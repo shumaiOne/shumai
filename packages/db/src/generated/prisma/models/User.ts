@@ -254,6 +254,7 @@ export type UserWhereInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalListRelationFilter
   kanbanTaskComments?: Prisma.KanbanTaskCommentListRelationFilter
   kanbanTaskEvents?: Prisma.KanbanTaskEventListRelationFilter
+  recentFiles?: Prisma.RecentFileItemListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -294,6 +295,7 @@ export type UserOrderByWithRelationInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalOrderByRelationAggregateInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentOrderByRelationAggregateInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventOrderByRelationAggregateInput
+  recentFiles?: Prisma.RecentFileItemOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -337,6 +339,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   kanbanGoalsCreated?: Prisma.KanbanGoalListRelationFilter
   kanbanTaskComments?: Prisma.KanbanTaskCommentListRelationFilter
   kanbanTaskEvents?: Prisma.KanbanTaskEventListRelationFilter
+  recentFiles?: Prisma.RecentFileItemListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -411,6 +414,7 @@ export type UserCreateInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -451,6 +455,7 @@ export type UserUncheckedCreateInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -491,6 +496,7 @@ export type UserUpdateInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -531,6 +537,7 @@ export type UserUncheckedUpdateInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -1041,6 +1048,20 @@ export type UserUpdateOneWithoutKanbanTaskEventsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutKanbanTaskEventsInput, Prisma.UserUpdateWithoutKanbanTaskEventsInput>, Prisma.UserUncheckedUpdateWithoutKanbanTaskEventsInput>
 }
 
+export type UserCreateNestedOneWithoutRecentFilesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRecentFilesInput, Prisma.UserUncheckedCreateWithoutRecentFilesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRecentFilesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutRecentFilesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRecentFilesInput, Prisma.UserUncheckedCreateWithoutRecentFilesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRecentFilesInput
+  upsert?: Prisma.UserUpsertWithoutRecentFilesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutRecentFilesInput, Prisma.UserUpdateWithoutRecentFilesInput>, Prisma.UserUncheckedUpdateWithoutRecentFilesInput>
+}
+
 export type UserCreateWithoutSessionsInput = {
   id?: string
   type?: $Enums.UserType
@@ -1078,6 +1099,7 @@ export type UserCreateWithoutSessionsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -1117,6 +1139,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -1172,6 +1195,7 @@ export type UserUpdateWithoutSessionsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -1211,6 +1235,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -1250,6 +1275,7 @@ export type UserCreateWithoutAccountsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -1289,6 +1315,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -1344,6 +1371,7 @@ export type UserUpdateWithoutAccountsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -1383,6 +1411,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAuthTokensInput = {
@@ -1422,6 +1451,7 @@ export type UserCreateWithoutAuthTokensInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAuthTokensInput = {
@@ -1461,6 +1491,7 @@ export type UserUncheckedCreateWithoutAuthTokensInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAuthTokensInput = {
@@ -1516,6 +1547,7 @@ export type UserUpdateWithoutAuthTokensInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuthTokensInput = {
@@ -1555,6 +1587,7 @@ export type UserUncheckedUpdateWithoutAuthTokensInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTeamMembersInput = {
@@ -1594,6 +1627,7 @@ export type UserCreateWithoutTeamMembersInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTeamMembersInput = {
@@ -1633,6 +1667,7 @@ export type UserUncheckedCreateWithoutTeamMembersInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTeamMembersInput = {
@@ -1688,6 +1723,7 @@ export type UserUpdateWithoutTeamMembersInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTeamMembersInput = {
@@ -1727,6 +1763,7 @@ export type UserUncheckedUpdateWithoutTeamMembersInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutShareLinksInput = {
@@ -1766,6 +1803,7 @@ export type UserCreateWithoutShareLinksInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutShareLinksInput = {
@@ -1805,6 +1843,7 @@ export type UserUncheckedCreateWithoutShareLinksInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutShareLinksInput = {
@@ -1860,6 +1899,7 @@ export type UserUpdateWithoutShareLinksInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutShareLinksInput = {
@@ -1899,6 +1939,7 @@ export type UserUncheckedUpdateWithoutShareLinksInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAssetsInput = {
@@ -1938,6 +1979,7 @@ export type UserCreateWithoutAssetsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAssetsInput = {
@@ -1977,6 +2019,7 @@ export type UserUncheckedCreateWithoutAssetsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAssetsInput = {
@@ -2032,6 +2075,7 @@ export type UserUpdateWithoutAssetsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssetsInput = {
@@ -2071,6 +2115,7 @@ export type UserUncheckedUpdateWithoutAssetsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCommentsInput = {
@@ -2110,6 +2155,7 @@ export type UserCreateWithoutCommentsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCommentsInput = {
@@ -2149,6 +2195,7 @@ export type UserUncheckedCreateWithoutCommentsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCommentsInput = {
@@ -2193,6 +2240,7 @@ export type UserCreateWithoutCompletionChangedCommentsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCompletionChangedCommentsInput = {
@@ -2232,6 +2280,7 @@ export type UserUncheckedCreateWithoutCompletionChangedCommentsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCompletionChangedCommentsInput = {
@@ -2287,6 +2336,7 @@ export type UserUpdateWithoutCommentsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCommentsInput = {
@@ -2326,6 +2376,7 @@ export type UserUncheckedUpdateWithoutCommentsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithoutCompletionChangedCommentsInput = {
@@ -2376,6 +2427,7 @@ export type UserUpdateWithoutCompletionChangedCommentsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCompletionChangedCommentsInput = {
@@ -2415,6 +2467,7 @@ export type UserUncheckedUpdateWithoutCompletionChangedCommentsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCreatedInvitesInput = {
@@ -2454,6 +2507,7 @@ export type UserCreateWithoutCreatedInvitesInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCreatedInvitesInput = {
@@ -2493,6 +2547,7 @@ export type UserUncheckedCreateWithoutCreatedInvitesInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCreatedInvitesInput = {
@@ -2548,6 +2603,7 @@ export type UserUpdateWithoutCreatedInvitesInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedInvitesInput = {
@@ -2587,6 +2643,7 @@ export type UserUncheckedUpdateWithoutCreatedInvitesInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCreatedNotificationsInput = {
@@ -2626,6 +2683,7 @@ export type UserCreateWithoutCreatedNotificationsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
@@ -2665,6 +2723,7 @@ export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCreatedNotificationsInput = {
@@ -2709,6 +2768,7 @@ export type UserCreateWithoutNotificationsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -2748,6 +2808,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -2803,6 +2864,7 @@ export type UserUpdateWithoutCreatedNotificationsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
@@ -2842,6 +2904,7 @@ export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithoutNotificationsInput = {
@@ -2892,6 +2955,7 @@ export type UserUpdateWithoutNotificationsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -2931,6 +2995,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTasksInput = {
@@ -2970,6 +3035,7 @@ export type UserCreateWithoutTasksInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTasksInput = {
@@ -3009,6 +3075,7 @@ export type UserUncheckedCreateWithoutTasksInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTasksInput = {
@@ -3064,6 +3131,7 @@ export type UserUpdateWithoutTasksInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTasksInput = {
@@ -3103,6 +3171,7 @@ export type UserUncheckedUpdateWithoutTasksInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAgentInput = {
@@ -3142,6 +3211,7 @@ export type UserCreateWithoutAgentInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAgentInput = {
@@ -3181,6 +3251,7 @@ export type UserUncheckedCreateWithoutAgentInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAgentInput = {
@@ -3236,6 +3307,7 @@ export type UserUpdateWithoutAgentInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAgentInput = {
@@ -3275,6 +3347,7 @@ export type UserUncheckedUpdateWithoutAgentInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAgentSessionsInput = {
@@ -3314,6 +3387,7 @@ export type UserCreateWithoutAgentSessionsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAgentSessionsInput = {
@@ -3353,6 +3427,7 @@ export type UserUncheckedCreateWithoutAgentSessionsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAgentSessionsInput = {
@@ -3408,6 +3483,7 @@ export type UserUpdateWithoutAgentSessionsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAgentSessionsInput = {
@@ -3447,6 +3523,7 @@ export type UserUncheckedUpdateWithoutAgentSessionsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutUserMetadataInput = {
@@ -3486,6 +3563,7 @@ export type UserCreateWithoutUserMetadataInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutUserMetadataInput = {
@@ -3525,6 +3603,7 @@ export type UserUncheckedCreateWithoutUserMetadataInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutUserMetadataInput = {
@@ -3580,6 +3659,7 @@ export type UserUpdateWithoutUserMetadataInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutUserMetadataInput = {
@@ -3619,6 +3699,7 @@ export type UserUncheckedUpdateWithoutUserMetadataInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCollectionsInput = {
@@ -3658,6 +3739,7 @@ export type UserCreateWithoutCollectionsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCollectionsInput = {
@@ -3697,6 +3779,7 @@ export type UserUncheckedCreateWithoutCollectionsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCollectionsInput = {
@@ -3752,6 +3835,7 @@ export type UserUpdateWithoutCollectionsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCollectionsInput = {
@@ -3791,6 +3875,7 @@ export type UserUncheckedUpdateWithoutCollectionsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutApiTokensInput = {
@@ -3830,6 +3915,7 @@ export type UserCreateWithoutApiTokensInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutApiTokensInput = {
@@ -3869,6 +3955,7 @@ export type UserUncheckedCreateWithoutApiTokensInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutApiTokensInput = {
@@ -3924,6 +4011,7 @@ export type UserUpdateWithoutApiTokensInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutApiTokensInput = {
@@ -3963,6 +4051,7 @@ export type UserUncheckedUpdateWithoutApiTokensInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAiUsagesInput = {
@@ -4002,6 +4091,7 @@ export type UserCreateWithoutAiUsagesInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAiUsagesInput = {
@@ -4041,6 +4131,7 @@ export type UserUncheckedCreateWithoutAiUsagesInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAiUsagesInput = {
@@ -4096,6 +4187,7 @@ export type UserUpdateWithoutAiUsagesInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAiUsagesInput = {
@@ -4135,6 +4227,7 @@ export type UserUncheckedUpdateWithoutAiUsagesInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAuditLogsInput = {
@@ -4174,6 +4267,7 @@ export type UserCreateWithoutAuditLogsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -4213,6 +4307,7 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -4268,6 +4363,7 @@ export type UserUpdateWithoutAuditLogsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -4307,6 +4403,7 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutQuotaRecordsInput = {
@@ -4346,6 +4443,7 @@ export type UserCreateWithoutQuotaRecordsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutQuotaRecordsInput = {
@@ -4385,6 +4483,7 @@ export type UserUncheckedCreateWithoutQuotaRecordsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutQuotaRecordsInput = {
@@ -4440,6 +4539,7 @@ export type UserUpdateWithoutQuotaRecordsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutQuotaRecordsInput = {
@@ -4479,6 +4579,7 @@ export type UserUncheckedUpdateWithoutQuotaRecordsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutKanbanGoalsCreatedInput = {
@@ -4518,6 +4619,7 @@ export type UserCreateWithoutKanbanGoalsCreatedInput = {
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutKanbanGoalsCreatedInput = {
@@ -4557,6 +4659,7 @@ export type UserUncheckedCreateWithoutKanbanGoalsCreatedInput = {
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutKanbanGoalsCreatedInput = {
@@ -4612,6 +4715,7 @@ export type UserUpdateWithoutKanbanGoalsCreatedInput = {
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutKanbanGoalsCreatedInput = {
@@ -4651,6 +4755,7 @@ export type UserUncheckedUpdateWithoutKanbanGoalsCreatedInput = {
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutKanbanTasksCreatedInput = {
@@ -4690,6 +4795,7 @@ export type UserCreateWithoutKanbanTasksCreatedInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutKanbanTasksCreatedInput = {
@@ -4729,6 +4835,7 @@ export type UserUncheckedCreateWithoutKanbanTasksCreatedInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutKanbanTasksCreatedInput = {
@@ -4773,6 +4880,7 @@ export type UserCreateWithoutKanbanTasksReportedInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutKanbanTasksReportedInput = {
@@ -4812,6 +4920,7 @@ export type UserUncheckedCreateWithoutKanbanTasksReportedInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutKanbanTasksReportedInput = {
@@ -4856,6 +4965,7 @@ export type UserCreateWithoutKanbanTasksAssignedInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutKanbanTasksAssignedInput = {
@@ -4895,6 +5005,7 @@ export type UserUncheckedCreateWithoutKanbanTasksAssignedInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutKanbanTasksAssignedInput = {
@@ -4950,6 +5061,7 @@ export type UserUpdateWithoutKanbanTasksCreatedInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutKanbanTasksCreatedInput = {
@@ -4989,6 +5101,7 @@ export type UserUncheckedUpdateWithoutKanbanTasksCreatedInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithoutKanbanTasksReportedInput = {
@@ -5039,6 +5152,7 @@ export type UserUpdateWithoutKanbanTasksReportedInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutKanbanTasksReportedInput = {
@@ -5078,6 +5192,7 @@ export type UserUncheckedUpdateWithoutKanbanTasksReportedInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithoutKanbanTasksAssignedInput = {
@@ -5128,6 +5243,7 @@ export type UserUpdateWithoutKanbanTasksAssignedInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutKanbanTasksAssignedInput = {
@@ -5167,6 +5283,7 @@ export type UserUncheckedUpdateWithoutKanbanTasksAssignedInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutKanbanTaskCommentsInput = {
@@ -5206,6 +5323,7 @@ export type UserCreateWithoutKanbanTaskCommentsInput = {
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutKanbanTaskCommentsInput = {
@@ -5245,6 +5363,7 @@ export type UserUncheckedCreateWithoutKanbanTaskCommentsInput = {
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutKanbanTaskCommentsInput = {
@@ -5300,6 +5419,7 @@ export type UserUpdateWithoutKanbanTaskCommentsInput = {
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutKanbanTaskCommentsInput = {
@@ -5339,6 +5459,7 @@ export type UserUncheckedUpdateWithoutKanbanTaskCommentsInput = {
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutKanbanTaskEventsInput = {
@@ -5378,6 +5499,7 @@ export type UserCreateWithoutKanbanTaskEventsInput = {
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutKanbanTaskEventsInput = {
@@ -5417,6 +5539,7 @@ export type UserUncheckedCreateWithoutKanbanTaskEventsInput = {
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutKanbanTaskEventsInput = {
@@ -5472,6 +5595,7 @@ export type UserUpdateWithoutKanbanTaskEventsInput = {
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutKanbanTaskEventsInput = {
@@ -5511,6 +5635,183 @@ export type UserUncheckedUpdateWithoutKanbanTaskEventsInput = {
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutRecentFilesInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
+  createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
+  aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
+  kanbanTasksCreated?: Prisma.KanbanTaskCreateNestedManyWithoutCreatorInput
+  kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+}
+
+export type UserUncheckedCreateWithoutRecentFilesInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenUncheckedCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
+  createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
+  aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutCreatorInput
+  kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+}
+
+export type UserCreateOrConnectWithoutRecentFilesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutRecentFilesInput, Prisma.UserUncheckedCreateWithoutRecentFilesInput>
+}
+
+export type UserUpsertWithoutRecentFilesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutRecentFilesInput, Prisma.UserUncheckedUpdateWithoutRecentFilesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutRecentFilesInput, Prisma.UserUncheckedCreateWithoutRecentFilesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutRecentFilesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutRecentFilesInput, Prisma.UserUncheckedUpdateWithoutRecentFilesInput>
+}
+
+export type UserUpdateWithoutRecentFilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
+  createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
+  aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUpdateManyWithoutCreatorNestedInput
+  kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+}
+
+export type UserUncheckedUpdateWithoutRecentFilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUncheckedUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
+  createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
+  aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUncheckedUpdateManyWithoutCreatorNestedInput
+  kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
 
 
@@ -5544,6 +5845,7 @@ export type UserCountOutputType = {
   kanbanGoalsCreated: number
   kanbanTaskComments: number
   kanbanTaskEvents: number
+  recentFiles: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -5572,6 +5874,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   kanbanGoalsCreated?: boolean | UserCountOutputTypeCountKanbanGoalsCreatedArgs
   kanbanTaskComments?: boolean | UserCountOutputTypeCountKanbanTaskCommentsArgs
   kanbanTaskEvents?: boolean | UserCountOutputTypeCountKanbanTaskEventsArgs
+  recentFiles?: boolean | UserCountOutputTypeCountRecentFilesArgs
 }
 
 /**
@@ -5759,6 +6062,13 @@ export type UserCountOutputTypeCountKanbanTaskEventsArgs<ExtArgs extends runtime
   where?: Prisma.KanbanTaskEventWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountRecentFilesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RecentFileItemWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -5798,6 +6108,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   kanbanGoalsCreated?: boolean | Prisma.User$kanbanGoalsCreatedArgs<ExtArgs>
   kanbanTaskComments?: boolean | Prisma.User$kanbanTaskCommentsArgs<ExtArgs>
   kanbanTaskEvents?: boolean | Prisma.User$kanbanTaskEventsArgs<ExtArgs>
+  recentFiles?: boolean | Prisma.User$recentFilesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -5871,6 +6182,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   kanbanGoalsCreated?: boolean | Prisma.User$kanbanGoalsCreatedArgs<ExtArgs>
   kanbanTaskComments?: boolean | Prisma.User$kanbanTaskCommentsArgs<ExtArgs>
   kanbanTaskEvents?: boolean | Prisma.User$kanbanTaskEventsArgs<ExtArgs>
+  recentFiles?: boolean | Prisma.User$recentFilesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -5905,6 +6217,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     kanbanGoalsCreated: Prisma.$KanbanGoalPayload<ExtArgs>[]
     kanbanTaskComments: Prisma.$KanbanTaskCommentPayload<ExtArgs>[]
     kanbanTaskEvents: Prisma.$KanbanTaskEventPayload<ExtArgs>[]
+    recentFiles: Prisma.$RecentFileItemPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -6341,6 +6654,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   kanbanGoalsCreated<T extends Prisma.User$kanbanGoalsCreatedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$kanbanGoalsCreatedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanGoalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   kanbanTaskComments<T extends Prisma.User$kanbanTaskCommentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$kanbanTaskCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   kanbanTaskEvents<T extends Prisma.User$kanbanTaskEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$kanbanTaskEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  recentFiles<T extends Prisma.User$recentFilesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$recentFilesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RecentFileItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7390,6 +7704,30 @@ export type User$kanbanTaskEventsArgs<ExtArgs extends runtime.Types.Extensions.I
   take?: number
   skip?: number
   distinct?: Prisma.KanbanTaskEventScalarFieldEnum | Prisma.KanbanTaskEventScalarFieldEnum[]
+}
+
+/**
+ * User.recentFiles
+ */
+export type User$recentFilesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RecentFileItem
+   */
+  select?: Prisma.RecentFileItemSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RecentFileItem
+   */
+  omit?: Prisma.RecentFileItemOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RecentFileItemInclude<ExtArgs> | null
+  where?: Prisma.RecentFileItemWhereInput
+  orderBy?: Prisma.RecentFileItemOrderByWithRelationInput | Prisma.RecentFileItemOrderByWithRelationInput[]
+  cursor?: Prisma.RecentFileItemWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RecentFileItemScalarFieldEnum | Prisma.RecentFileItemScalarFieldEnum[]
 }
 
 /**

@@ -3,6 +3,7 @@ import { zValidator } from '@hono/zod-validator'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { projectService } from '@shumai/core/src/project/project'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { recentsService } from '@shumai/core/src/recents/recents'
 import { reparentAssetsRequestSchema, copyAssetsRequestSchema } from '@shumai/dtos'
 import {
   createProjectRequestSchema,
@@ -11,6 +12,8 @@ import {
   recentlyDeletedRequestSchema,
   updateProjectMemberRoleRequestSchema,
   addProjectMemberRequestSchema,
+  listRecentsRequestSchema,
+  recordRecentViewRequestSchema,
 } from '@shumai/dtos'
 import { listMembersQuerySchema, paginationParamsSchema, AuditAction } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
@@ -116,6 +119,40 @@ const route = new Hono<{ Variables: { user: User } }>()
         first: req.first,
       })
       return c.json(resp)
+    },
+  )
+  .get('/projects/:projectId/recents', zValidator('query', listRecentsRequestSchema), async (c) => {
+    const projectId = c.req.param('projectId')
+    const user = c.get('user')
+    const req = c.req.valid('query')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: projectId,
+    })
+
+    const resp = await recentsService.listRecents(user.id, projectId, req)
+    return c.json(resp)
+  })
+  .post(
+    '/projects/:projectId/recents/view',
+    zValidator('json', recordRecentViewRequestSchema),
+    async (c) => {
+      const projectId = c.req.param('projectId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Project,
+        id: projectId,
+      })
+
+      await recentsService.recordView(user.id, projectId, req.assetId)
+      return c.json({ success: true })
     },
   )
   .post('/projects/:projectId/empty-trash', async (c) => {

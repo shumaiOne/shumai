@@ -433,7 +433,8 @@ export const ModelName = {
   KanbanTaskLink: 'KanbanTaskLink',
   KanbanTaskAsset: 'KanbanTaskAsset',
   KanbanTaskComment: 'KanbanTaskComment',
-  KanbanTaskEvent: 'KanbanTaskEvent'
+  KanbanTaskEvent: 'KanbanTaskEvent',
+  RecentFileItem: 'RecentFileItem'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -449,7 +450,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord" | "kanbanGoal" | "kanbanTask" | "kanbanTaskLink" | "kanbanTaskAsset" | "kanbanTaskComment" | "kanbanTaskEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord" | "kanbanGoal" | "kanbanTask" | "kanbanTaskLink" | "kanbanTaskAsset" | "kanbanTaskComment" | "kanbanTaskEvent" | "recentFileItem"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4153,6 +4154,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    RecentFileItem: {
+      payload: Prisma.$RecentFileItemPayload<ExtArgs>
+      fields: Prisma.RecentFileItemFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RecentFileItemFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecentFileItemPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RecentFileItemFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecentFileItemPayload>
+        }
+        findFirst: {
+          args: Prisma.RecentFileItemFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecentFileItemPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RecentFileItemFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecentFileItemPayload>
+        }
+        findMany: {
+          args: Prisma.RecentFileItemFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecentFileItemPayload>[]
+        }
+        create: {
+          args: Prisma.RecentFileItemCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecentFileItemPayload>
+        }
+        createMany: {
+          args: Prisma.RecentFileItemCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RecentFileItemCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecentFileItemPayload>[]
+        }
+        delete: {
+          args: Prisma.RecentFileItemDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecentFileItemPayload>
+        }
+        update: {
+          args: Prisma.RecentFileItemUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecentFileItemPayload>
+        }
+        deleteMany: {
+          args: Prisma.RecentFileItemDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RecentFileItemUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RecentFileItemUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecentFileItemPayload>[]
+        }
+        upsert: {
+          args: Prisma.RecentFileItemUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecentFileItemPayload>
+        }
+        aggregate: {
+          args: Prisma.RecentFileItemAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRecentFileItem>
+        }
+        groupBy: {
+          args: Prisma.RecentFileItemGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RecentFileItemGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RecentFileItemCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RecentFileItemCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -4918,6 +4993,17 @@ export const KanbanTaskEventScalarFieldEnum = {
 export type KanbanTaskEventScalarFieldEnum = (typeof KanbanTaskEventScalarFieldEnum)[keyof typeof KanbanTaskEventScalarFieldEnum]
 
 
+export const RecentFileItemScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  projectId: 'projectId',
+  assetId: 'assetId',
+  viewedAt: 'viewedAt'
+} as const
+
+export type RecentFileItemScalarFieldEnum = (typeof RecentFileItemScalarFieldEnum)[keyof typeof RecentFileItemScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -5572,6 +5658,7 @@ export type GlobalOmitConfig = {
   kanbanTaskAsset?: Prisma.KanbanTaskAssetOmit
   kanbanTaskComment?: Prisma.KanbanTaskCommentOmit
   kanbanTaskEvent?: Prisma.KanbanTaskEventOmit
+  recentFileItem?: Prisma.RecentFileItemOmit
 }
 
 /* Types for Logging */

@@ -146,6 +146,9 @@
 
   "all_files": "All Files",
   "recently_deleted": "Recently Deleted",
+  "recents": "Recents",
+  "no_recent_files": "No recent files",
+  "no_recent_files_description": "Files you view in this project will appear here.",
   "collections": "Collections",
   "shares": "Shares",
 

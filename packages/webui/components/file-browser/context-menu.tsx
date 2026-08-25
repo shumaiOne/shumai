@@ -41,6 +41,7 @@ interface FileBrowserContextMenuProps {
   folders: AssetInfo[]
   files: AssetInfo[]
   isRecentlyDeleted?: boolean
+  isRecents?: boolean
   onOpenAgentsMd?: (item: AssetInfo | null) => void
   isShareView?: boolean
   onRemoveFromShare?: (items: AssetInfo[]) => void
@@ -67,6 +68,7 @@ export function FileBrowserContextMenu({
   folders,
   files,
   isRecentlyDeleted,
+  isRecents,
   onOpenAgentsMd,
   isShareView,
   onRemoveFromShare,
@@ -152,7 +154,7 @@ export function FileBrowserContextMenu({
   }
 
   if (!item) {
-    if (!canEdit) return null
+    if (!canEdit || isRecents) return null
     // Right-click on empty area
     return (
       <ContextMenuContent

@@ -93,6 +93,7 @@ apps/web/e2e/
 | Owner saves a search result as a collection | `tests/project/save-search-collection.spec.ts` |
 | Image share with watermark + download disabled: no download buttons on public list/detail pages, watermarked proxy served, download-url rejected | `tests/project/share-watermark-no-download.spec.ts` |
 | Video share with watermark + download disabled: no download buttons on public list/detail pages, watermarked proxy served, download-url rejected | `tests/project/share-watermark-no-download.spec.ts` |
+| Owner views a file and it appears in recents | `tests/project/recents.spec.ts` |
 
 ### file
 | Test | File |

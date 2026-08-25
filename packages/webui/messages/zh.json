@@ -146,6 +146,9 @@
 
   "all_files": "全部文件",
   "recently_deleted": "最近删除",
+  "recents": "最近",
+  "no_recent_files": "暂无最近文件",
+  "no_recent_files_description": "您在此项目中查看的文件将显示在此处。",
   "collections": "媒体合集",
   "shares": "分享",
 

@@ -232,6 +232,7 @@ export type ProjectWhereInput = {
   collections?: Prisma.CollectionListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
   kanbanTasks?: Prisma.KanbanTaskListRelationFilter
+  recentFiles?: Prisma.RecentFileItemListRelationFilter
 }
 
 export type ProjectOrderByWithRelationInput = {
@@ -257,6 +258,7 @@ export type ProjectOrderByWithRelationInput = {
   collections?: Prisma.CollectionOrderByRelationAggregateInput
   auditLogs?: Prisma.AuditLogOrderByRelationAggregateInput
   kanbanTasks?: Prisma.KanbanTaskOrderByRelationAggregateInput
+  recentFiles?: Prisma.RecentFileItemOrderByRelationAggregateInput
 }
 
 export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -285,6 +287,7 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   collections?: Prisma.CollectionListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
   kanbanTasks?: Prisma.KanbanTaskListRelationFilter
+  recentFiles?: Prisma.RecentFileItemListRelationFilter
 }, "id" | "rootFolderId" | "shareRootId">
 
 export type ProjectOrderByWithAggregationInput = {
@@ -339,6 +342,7 @@ export type ProjectCreateInput = {
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateInput = {
@@ -361,6 +365,7 @@ export type ProjectUncheckedCreateInput = {
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUpdateInput = {
@@ -383,6 +388,7 @@ export type ProjectUpdateInput = {
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateInput = {
@@ -405,6 +411,7 @@ export type ProjectUncheckedUpdateInput = {
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyInput = {
@@ -744,6 +751,20 @@ export type ProjectUpdateOneWithoutKanbanTasksNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutKanbanTasksInput, Prisma.ProjectUpdateWithoutKanbanTasksInput>, Prisma.ProjectUncheckedUpdateWithoutKanbanTasksInput>
 }
 
+export type ProjectCreateNestedOneWithoutRecentFilesInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutRecentFilesInput, Prisma.ProjectUncheckedCreateWithoutRecentFilesInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutRecentFilesInput
+  connect?: Prisma.ProjectWhereUniqueInput
+}
+
+export type ProjectUpdateOneRequiredWithoutRecentFilesNestedInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutRecentFilesInput, Prisma.ProjectUncheckedCreateWithoutRecentFilesInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutRecentFilesInput
+  upsert?: Prisma.ProjectUpsertWithoutRecentFilesInput
+  connect?: Prisma.ProjectWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutRecentFilesInput, Prisma.ProjectUpdateWithoutRecentFilesInput>, Prisma.ProjectUncheckedUpdateWithoutRecentFilesInput>
+}
+
 export type ProjectCreateWithoutTeamInput = {
   id?: string
   name: string
@@ -763,6 +784,7 @@ export type ProjectCreateWithoutTeamInput = {
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutTeamInput = {
@@ -784,6 +806,7 @@ export type ProjectUncheckedCreateWithoutTeamInput = {
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutTeamInput = {
@@ -847,6 +870,7 @@ export type ProjectCreateWithoutMembersInput = {
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutMembersInput = {
@@ -868,6 +892,7 @@ export type ProjectUncheckedCreateWithoutMembersInput = {
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutMembersInput = {
@@ -905,6 +930,7 @@ export type ProjectUpdateWithoutMembersInput = {
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutMembersInput = {
@@ -926,6 +952,7 @@ export type ProjectUncheckedUpdateWithoutMembersInput = {
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutShareLinksInput = {
@@ -947,6 +974,7 @@ export type ProjectCreateWithoutShareLinksInput = {
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -968,6 +996,7 @@ export type ProjectUncheckedCreateWithoutShareLinksInput = {
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -1005,6 +1034,7 @@ export type ProjectUpdateWithoutShareLinksInput = {
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -1026,6 +1056,7 @@ export type ProjectUncheckedUpdateWithoutShareLinksInput = {
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutAssetsInput = {
@@ -1047,6 +1078,7 @@ export type ProjectCreateWithoutAssetsInput = {
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutAssetsInput = {
@@ -1068,6 +1100,7 @@ export type ProjectUncheckedCreateWithoutAssetsInput = {
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutAssetsInput = {
@@ -1094,6 +1127,7 @@ export type ProjectCreateWithoutRootFolderInput = {
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutRootFolderInput = {
@@ -1115,6 +1149,7 @@ export type ProjectUncheckedCreateWithoutRootFolderInput = {
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutRootFolderInput = {
@@ -1141,6 +1176,7 @@ export type ProjectCreateWithoutShareRootInput = {
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutShareRootInput = {
@@ -1162,6 +1198,7 @@ export type ProjectUncheckedCreateWithoutShareRootInput = {
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutShareRootInput = {
@@ -1199,6 +1236,7 @@ export type ProjectUpdateWithoutAssetsInput = {
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutAssetsInput = {
@@ -1220,6 +1258,7 @@ export type ProjectUncheckedUpdateWithoutAssetsInput = {
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUpsertWithoutRootFolderInput = {
@@ -1252,6 +1291,7 @@ export type ProjectUpdateWithoutRootFolderInput = {
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutRootFolderInput = {
@@ -1273,6 +1313,7 @@ export type ProjectUncheckedUpdateWithoutRootFolderInput = {
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUpsertWithoutShareRootInput = {
@@ -1305,6 +1346,7 @@ export type ProjectUpdateWithoutShareRootInput = {
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutShareRootInput = {
@@ -1326,6 +1368,7 @@ export type ProjectUncheckedUpdateWithoutShareRootInput = {
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutInvitesInput = {
@@ -1347,6 +1390,7 @@ export type ProjectCreateWithoutInvitesInput = {
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutInvitesInput = {
@@ -1368,6 +1412,7 @@ export type ProjectUncheckedCreateWithoutInvitesInput = {
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutInvitesInput = {
@@ -1405,6 +1450,7 @@ export type ProjectUpdateWithoutInvitesInput = {
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutInvitesInput = {
@@ -1426,6 +1472,7 @@ export type ProjectUncheckedUpdateWithoutInvitesInput = {
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutMetadataFieldsInput = {
@@ -1447,6 +1494,7 @@ export type ProjectCreateWithoutMetadataFieldsInput = {
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutMetadataFieldsInput = {
@@ -1468,6 +1516,7 @@ export type ProjectUncheckedCreateWithoutMetadataFieldsInput = {
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutMetadataFieldsInput = {
@@ -1505,6 +1554,7 @@ export type ProjectUpdateWithoutMetadataFieldsInput = {
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutMetadataFieldsInput = {
@@ -1526,6 +1576,7 @@ export type ProjectUncheckedUpdateWithoutMetadataFieldsInput = {
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutNotificationsInput = {
@@ -1547,6 +1598,7 @@ export type ProjectCreateWithoutNotificationsInput = {
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutNotificationsInput = {
@@ -1568,6 +1620,7 @@ export type ProjectUncheckedCreateWithoutNotificationsInput = {
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutNotificationsInput = {
@@ -1605,6 +1658,7 @@ export type ProjectUpdateWithoutNotificationsInput = {
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutNotificationsInput = {
@@ -1626,6 +1680,7 @@ export type ProjectUncheckedUpdateWithoutNotificationsInput = {
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutCollectionsInput = {
@@ -1647,6 +1702,7 @@ export type ProjectCreateWithoutCollectionsInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutCollectionsInput = {
@@ -1668,6 +1724,7 @@ export type ProjectUncheckedCreateWithoutCollectionsInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutCollectionsInput = {
@@ -1705,6 +1762,7 @@ export type ProjectUpdateWithoutCollectionsInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutCollectionsInput = {
@@ -1726,6 +1784,7 @@ export type ProjectUncheckedUpdateWithoutCollectionsInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutAuditLogsInput = {
@@ -1747,6 +1806,7 @@ export type ProjectCreateWithoutAuditLogsInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutAuditLogsInput = {
@@ -1768,6 +1828,7 @@ export type ProjectUncheckedCreateWithoutAuditLogsInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutAuditLogsInput = {
@@ -1805,6 +1866,7 @@ export type ProjectUpdateWithoutAuditLogsInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutAuditLogsInput = {
@@ -1826,6 +1888,7 @@ export type ProjectUncheckedUpdateWithoutAuditLogsInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutKanbanTasksInput = {
@@ -1847,6 +1910,7 @@ export type ProjectCreateWithoutKanbanTasksInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutKanbanTasksInput = {
@@ -1868,6 +1932,7 @@ export type ProjectUncheckedCreateWithoutKanbanTasksInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutKanbanTasksInput = {
@@ -1905,6 +1970,7 @@ export type ProjectUpdateWithoutKanbanTasksInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutKanbanTasksInput = {
@@ -1926,6 +1992,111 @@ export type ProjectUncheckedUpdateWithoutKanbanTasksInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectCreateWithoutRecentFilesInput = {
+  id?: string
+  name: string
+  coverImageKey?: string | null
+  metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
+  enableNotification?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  team: Prisma.TeamCreateNestedOneWithoutProjectsInput
+  rootFolder?: Prisma.AssetCreateNestedOneWithoutProjectRootFolderInput
+  shareRoot?: Prisma.AssetCreateNestedOneWithoutProjectShareRootInput
+  members?: Prisma.ProjectMemberCreateNestedManyWithoutProjectInput
+  assets?: Prisma.AssetCreateNestedManyWithoutProjectInput
+  metadataFields?: Prisma.MetadataFieldCreateNestedManyWithoutProjectInput
+  invites?: Prisma.InviteCreateNestedManyWithoutProjectInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectUncheckedCreateWithoutRecentFilesInput = {
+  id?: string
+  name: string
+  coverImageKey?: string | null
+  metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
+  enableNotification?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  teamId: string
+  rootFolderId?: string | null
+  shareRootId?: string | null
+  members?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutProjectInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutProjectInput
+  metadataFields?: Prisma.MetadataFieldUncheckedCreateNestedManyWithoutProjectInput
+  invites?: Prisma.InviteUncheckedCreateNestedManyWithoutProjectInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectCreateOrConnectWithoutRecentFilesInput = {
+  where: Prisma.ProjectWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutRecentFilesInput, Prisma.ProjectUncheckedCreateWithoutRecentFilesInput>
+}
+
+export type ProjectUpsertWithoutRecentFilesInput = {
+  update: Prisma.XOR<Prisma.ProjectUpdateWithoutRecentFilesInput, Prisma.ProjectUncheckedUpdateWithoutRecentFilesInput>
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutRecentFilesInput, Prisma.ProjectUncheckedCreateWithoutRecentFilesInput>
+  where?: Prisma.ProjectWhereInput
+}
+
+export type ProjectUpdateToOneWithWhereWithoutRecentFilesInput = {
+  where?: Prisma.ProjectWhereInput
+  data: Prisma.XOR<Prisma.ProjectUpdateWithoutRecentFilesInput, Prisma.ProjectUncheckedUpdateWithoutRecentFilesInput>
+}
+
+export type ProjectUpdateWithoutRecentFilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
+  enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneRequiredWithoutProjectsNestedInput
+  rootFolder?: Prisma.AssetUpdateOneWithoutProjectRootFolderNestedInput
+  shareRoot?: Prisma.AssetUpdateOneWithoutProjectShareRootNestedInput
+  members?: Prisma.ProjectMemberUpdateManyWithoutProjectNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutProjectNestedInput
+  metadataFields?: Prisma.MetadataFieldUpdateManyWithoutProjectNestedInput
+  invites?: Prisma.InviteUpdateManyWithoutProjectNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectUncheckedUpdateWithoutRecentFilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
+  enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  rootFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shareRootId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  members?: Prisma.ProjectMemberUncheckedUpdateManyWithoutProjectNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutProjectNestedInput
+  metadataFields?: Prisma.MetadataFieldUncheckedUpdateManyWithoutProjectNestedInput
+  invites?: Prisma.InviteUncheckedUpdateManyWithoutProjectNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyTeamInput = {
@@ -1959,6 +2130,7 @@ export type ProjectUpdateWithoutTeamInput = {
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutTeamInput = {
@@ -1980,6 +2152,7 @@ export type ProjectUncheckedUpdateWithoutTeamInput = {
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
   kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateManyWithoutTeamInput = {
@@ -2009,6 +2182,7 @@ export type ProjectCountOutputType = {
   collections: number
   auditLogs: number
   kanbanTasks: number
+  recentFiles: number
 }
 
 export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2021,6 +2195,7 @@ export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extension
   collections?: boolean | ProjectCountOutputTypeCountCollectionsArgs
   auditLogs?: boolean | ProjectCountOutputTypeCountAuditLogsArgs
   kanbanTasks?: boolean | ProjectCountOutputTypeCountKanbanTasksArgs
+  recentFiles?: boolean | ProjectCountOutputTypeCountRecentFilesArgs
 }
 
 /**
@@ -2096,6 +2271,13 @@ export type ProjectCountOutputTypeCountKanbanTasksArgs<ExtArgs extends runtime.T
   where?: Prisma.KanbanTaskWhereInput
 }
 
+/**
+ * ProjectCountOutputType without action
+ */
+export type ProjectCountOutputTypeCountRecentFilesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RecentFileItemWhereInput
+}
+
 
 export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2120,6 +2302,7 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   collections?: boolean | Prisma.Project$collectionsArgs<ExtArgs>
   auditLogs?: boolean | Prisma.Project$auditLogsArgs<ExtArgs>
   kanbanTasks?: boolean | Prisma.Project$kanbanTasksArgs<ExtArgs>
+  recentFiles?: boolean | Prisma.Project$recentFilesArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["project"]>
 
@@ -2182,6 +2365,7 @@ export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   collections?: boolean | Prisma.Project$collectionsArgs<ExtArgs>
   auditLogs?: boolean | Prisma.Project$auditLogsArgs<ExtArgs>
   kanbanTasks?: boolean | Prisma.Project$kanbanTasksArgs<ExtArgs>
+  recentFiles?: boolean | Prisma.Project$recentFilesArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ProjectIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2210,6 +2394,7 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     collections: Prisma.$CollectionPayload<ExtArgs>[]
     auditLogs: Prisma.$AuditLogPayload<ExtArgs>[]
     kanbanTasks: Prisma.$KanbanTaskPayload<ExtArgs>[]
+    recentFiles: Prisma.$RecentFileItemPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2631,6 +2816,7 @@ export interface Prisma__ProjectClient<T, Null = never, ExtArgs extends runtime.
   collections<T extends Prisma.Project$collectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$collectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CollectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   auditLogs<T extends Prisma.Project$auditLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   kanbanTasks<T extends Prisma.Project$kanbanTasksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$kanbanTasksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  recentFiles<T extends Prisma.Project$recentFilesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$recentFilesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RecentFileItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3322,6 +3508,30 @@ export type Project$kanbanTasksArgs<ExtArgs extends runtime.Types.Extensions.Int
   take?: number
   skip?: number
   distinct?: Prisma.KanbanTaskScalarFieldEnum | Prisma.KanbanTaskScalarFieldEnum[]
+}
+
+/**
+ * Project.recentFiles
+ */
+export type Project$recentFilesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RecentFileItem
+   */
+  select?: Prisma.RecentFileItemSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RecentFileItem
+   */
+  omit?: Prisma.RecentFileItemOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RecentFileItemInclude<ExtArgs> | null
+  where?: Prisma.RecentFileItemWhereInput
+  orderBy?: Prisma.RecentFileItemOrderByWithRelationInput | Prisma.RecentFileItemOrderByWithRelationInput[]
+  cursor?: Prisma.RecentFileItemWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RecentFileItemScalarFieldEnum | Prisma.RecentFileItemScalarFieldEnum[]
 }
 
 /**

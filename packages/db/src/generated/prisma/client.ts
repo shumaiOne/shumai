@@ -291,3 +291,8 @@ export type KanbanTaskComment = Prisma.KanbanTaskCommentModel
  * 
  */
 export type KanbanTaskEvent = Prisma.KanbanTaskEventModel
+/**
+ * Model RecentFileItem
+ * 
+ */
+export type RecentFileItem = Prisma.RecentFileItemModel

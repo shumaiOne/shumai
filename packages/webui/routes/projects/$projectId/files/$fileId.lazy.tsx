@@ -100,6 +100,19 @@ function FileViewPage() {
     }
   }, [projectId, fetchProjectMembers])
 
+  useEffect(() => {
+    if (projectId && fileId) {
+      client.api.projects[':projectId'].recents.view
+        .$post({
+          param: { projectId },
+          json: { assetId: fileId },
+        })
+        .catch(() => {
+          // ignore background view recording errors
+        })
+    }
+  }, [projectId, fileId])
+
   const {
     data: stackData,
     isLoading: isStackLoading,

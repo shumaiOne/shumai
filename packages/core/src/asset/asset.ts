@@ -29,25 +29,27 @@ import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 
-type AssetWithIncludes = Prisma.AssetGetPayload<{
-  include: {
-    creator: true
-    metadataValues: true
-    storageKey: true
-    target: {
-      include: {
-        creator: true
-        metadataValues: true
-        storageKey: true
-        children: {
-          include: { creator: true; metadataValues: true; storageKey: true }
-        }
-      }
-    }
-    children: {
-      include: { creator: true; metadataValues: true; storageKey: true }
-    }
-  }
+export const assetInclude = {
+  creator: true,
+  metadataValues: true,
+  storageKey: true,
+  target: {
+    include: {
+      creator: true,
+      metadataValues: true,
+      storageKey: true,
+      children: {
+        include: { creator: true, metadataValues: true, storageKey: true },
+      },
+    },
+  },
+  children: {
+    include: { creator: true, metadataValues: true, storageKey: true },
+  },
+} as const
+
+export type AssetWithIncludes = Prisma.AssetGetPayload<{
+  include: typeof assetInclude
 }>
 
 type CommentWithIncludes = Prisma.AssetCommentGetPayload<{
@@ -1623,7 +1625,7 @@ export class AssetService {
     return { data: infos, pageInfo }
   }
 
-  private async toAssetInfos(assets: AssetWithIncludes[]): Promise<AssetInfo[]> {
+  async toAssetInfos(assets: AssetWithIncludes[]): Promise<AssetInfo[]> {
     const stackIds = new Set<string>()
 
     for (const a of assets) {
