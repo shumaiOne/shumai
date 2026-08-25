@@ -197,21 +197,34 @@ describe('RecentsService', () => {
   it('caps recents at 100 items per user/project', async () => {
     const { user1, project } = await setupProject()
 
-    // Create 105 files and record views
-    const fileIds: string[] = []
-    for (let i = 0; i < 105; i++) {
-      const f = await prisma.asset.create({
-        data: {
-          name: `file_${i}.mp4`,
-          type: AssetType.file,
-          status: 'processed',
-          projectId: project.id,
-          parentId: project.rootFolder!,
-        },
-      })
-      fileIds.push(f.id)
-      await recentsService.recordView(user1.id, project.id, f.id)
-    }
+    // Batch create 105 assets
+    const assetsData = Array.from({ length: 105 }, (_, i) => ({
+      name: `file_${i}.mp4`,
+      type: AssetType.file,
+      status: 'processed',
+      projectId: project.id,
+      parentId: project.rootFolder!,
+    }))
+    await prisma.asset.createMany({ data: assetsData })
+    const allAssets = await prisma.asset.findMany({
+      where: { projectId: project.id, parentId: project.rootFolder! },
+      orderBy: { id: 'asc' },
+    })
+
+    // Seed 100 items in recentFileItem
+    const baseDate = new Date('2026-01-01T00:00:00Z')
+    await prisma.recentFileItem.createMany({
+      data: allAssets.slice(0, 100).map((a, i) => ({
+        userId: user1.id,
+        projectId: project.id,
+        assetId: a.id,
+        viewedAt: new Date(baseDate.getTime() + i * 1000),
+      })),
+    })
+
+    // Now record view for the 101st asset to trigger pruning
+    const newAsset = allAssets[100]
+    await recentsService.recordView(user1.id, project.id, newAsset.id)
 
     const count = await prisma.recentFileItem.count({
       where: { userId: user1.id, projectId: project.id },
@@ -220,7 +233,9 @@ describe('RecentsService', () => {
 
     const list = await recentsService.listRecents(user1.id, project.id, { first: 100 })
     expect(list.data.length).toBe(100)
-    // The most recently viewed file should be file_104
-    expect(list.data[0].id).toBe(fileIds[104])
-  })
+    // The most recently viewed file should be newAsset
+    expect(list.data[0].id).toBe(newAsset.id)
+    // The oldest file (allAssets[0]) should have been pruned
+    expect(list.data.some((d) => d.id === allAssets[0].id)).toBe(false)
+  }, 15000)
 })
