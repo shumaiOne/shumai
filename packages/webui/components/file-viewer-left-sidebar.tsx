@@ -50,7 +50,7 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
     rootMargin: '200px',
   })
   const activeItemRef = useRef<HTMLDivElement>(null)
-  const hasScrolledRef = useRef(false)
+  const isInitialMountRef = useRef(true)
 
   const [files, setFiles] = useState<AssetInfo[]>(initialFiles)
   const [nextCursor, setNextCursor] = useState<string | undefined>(initialNextCursor)
@@ -62,7 +62,7 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
     setFiles(initialFiles)
     setNextCursor(initialNextCursor)
     setHasMore(!!initialNextCursor)
-    hasScrolledRef.current = false
+    isInitialMountRef.current = true
   }, [initialFiles, initialNextCursor])
 
   // Fetch next page when scrolling near bottom
@@ -98,21 +98,24 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
     fetchNextPage()
   }, [inView, nextCursor, hasMore, isFetchingNext, parentFolderId])
 
-  // Reset scroll lock when current asset changes
-  useEffect(() => {
-    hasScrolledRef.current = false
-  }, [currentAssetId])
-
   // Scroll the active item into view
   useEffect(() => {
     const activeFileInView = files.some((f) => f?.id === currentAssetId)
-    if (activeFileInView && activeItemRef.current && !hasScrolledRef.current) {
-      activeItemRef.current.scrollIntoView({
-        block: 'center',
-        inline: 'center',
-        behavior: 'smooth',
-      })
-      hasScrolledRef.current = true
+    if (activeFileInView && activeItemRef.current) {
+      if (isInitialMountRef.current) {
+        activeItemRef.current.scrollIntoView({
+          block: 'center',
+          inline: 'center',
+          behavior: 'auto',
+        })
+        isInitialMountRef.current = false
+      } else {
+        activeItemRef.current.scrollIntoView({
+          block: 'nearest',
+          inline: 'nearest',
+          behavior: 'smooth',
+        })
+      }
     }
   }, [files, currentAssetId])
 
