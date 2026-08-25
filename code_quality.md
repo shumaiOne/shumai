@@ -1,49 +1,50 @@
-# Code Quality Review: Quota Usage Dashboard
+# Code Quality Review: Project Recently Viewed Files
 
 ## Context
 
-The change moves quota usage monitoring from the settings rule-card dialog to an owner-only dashboard section, adds collapsible rule/record display, and adds an audited manual record reset operation.
+Reviewed `main...d0b3358b` (PR #348), which adds per-user/project recent-file persistence, API endpoints, the project Recents page, view recording, and related UI and E2E coverage.
 
-## Review
+## Findings
 
-### Correctness
+### Critical: recent-view recording is not scoped to the requested project or to files
 
-- The reset service validates team ownership, scope mode, membership, role filters, and selected-member membership.
-- Reset and first-use record creation are serialized with a quota-rule row lock.
-- Reset starts a new window at the current time and clears consumption.
-- API and service tests cover shared records, member records, invalid targets, cross-team access, request validation, and audit logging.
-- The application E2E test covers the settings/dashboard flow and verifies the persisted reset.
+`AssetService.recordRecentView` loads the asset by only `assetId` and then ignores the selected `projectId` (`packages/core/src/asset/asset.ts:2373-2378`). An authenticated user with read access to project A can POST project A's view endpoint with an asset ID from project B. The service stores that asset under project A, and `listRecents` later returns its `AssetInfo` (including generated preview/media URLs) from project A's Recents response. The same endpoint also accepts folders and other asset types despite being a file-view endpoint.
 
-### Readability and architecture
+Constrain the initial asset lookup to `id` plus `projectId`, ensure a resolved version-stack parent belongs to the same project, and reject or ignore unsupported asset types. Add service/API regression tests for cross-project assets and non-file assets. The existing `projectId` selection appears to be the omitted guard.
 
-- Business logic remains in `QuotaService`; the API only validates, authorizes, invokes the service, and maps the audit action.
-- The dashboard owns usage presentation, while quota formatting metadata is shared between dashboard and settings.
-- The removed usage dialog and obsolete translation messages are not referenced after the refactor.
+### Required: Recents is still able to mutate assets through drag-and-drop
 
-### Security
+The Recents-specific external-drag and context-menu guards do not disable the internal DnD provider. `FileSystemManager` enables the pointer sensor whenever the user can edit (`packages/webui/components/file-system-manager.tsx:435-443`), even when `isRecents` is true. `useFileSystemDnd` can therefore send `reparent`/`order` requests when a recent item is dragged onto a folder or reorder target, and can also add it to a share or chatbot. This changes the real asset while the user is browsing a derived, read-only list.
 
-- The reset endpoint retains owner-level team authorization.
-- Request input is validated with Zod.
-- SQL uses Prisma tagged-template parameters and does not interpolate raw user input.
+Include `isRecents` in the sensor disable condition (or make the DnD hook explicitly read-only) and add an E2E assertion that dragging a recent item does not change its parent/order.
 
-### Performance
+### Required: per-item menus still expose destructive actions on Recents
 
-- Usage records are queried only after a rule is expanded.
-- Expanded rules refresh every ten seconds, matching the previous usage dialog behavior.
-- Quota rules retain the existing bounded list endpoint and descending ID ordering.
+The page-level right-click menu is suppressed, but `FileCard`/`FolderCard` still render their own overflow `DropdownMenu`s. `FileSystemManager` passes `isRecents` only to `FileBrowser`; it is not passed to those cards, so an editor can open a recent file's overflow menu and invoke rename or delete (`packages/webui/components/file-browser/file-card.tsx:316-327`, with the same pattern in `folder-card.tsx`). The selection bar also retains Download. At minimum, hide or make the per-item controls read-only on Recents; if downloading is intentionally allowed, keep only that action. Extend the E2E test to exercise the overflow button and verify no mutating action is available.
+
+### Consider: make recent ordering deterministic
+
+Both listing and pruning order only by `viewedAt` (`packages/core/src/asset/asset.ts:2421-2424` and `2461-2464`). Multiple requests can receive the same JavaScript millisecond timestamp, leaving PostgreSQL free to reorder ties. Offset-based pagination can then skip or repeat an item between requests, and pruning can retain an arbitrary item at a tie. Add a stable secondary key, such as `id DESC`, to both orderings and cover equal timestamps in a service test.
+
+## Positive observations
+
+- The API performs project-level authorization before invoking either Recents operation.
+- View recording is idempotent per user/project/asset through the compound unique constraint.
+- The service tests cover ordering, repeat views, version-stack resolution, user isolation, soft deletion, and the 100-item cap.
+- The new route follows the repository's route code-splitting and i18n patterns.
 
 ## Verification
 
 - `bun run lint` passed.
-- `bun run format` passed.
+- `bun run format` passed with no changes.
 - `bun run typecheck` passed.
-- `bun run test` passed: 124 files, 1190 tests.
-- Quota API/core tests passed: 2 files, 30 tests.
-- Quota application E2E passed.
-- WebUI harness E2E passed: 9 tests.
-- Workflow E2E passed: 14 files, 58 tests.
-- `git diff --check` passed.
+- `bun run test` passed: 129 files, 1280 tests.
+- Targeted API/core tests passed: 3 files, 33 tests.
+- `bun run test:e2e:app` passed: 38 tests.
+- `bun run test:e2e:webui` passed: 9 tests.
+- `bun run test:e2e:workflow` passed: 14 files, 58 tests.
+- `git diff --check` reports trailing whitespace in tracked Prisma-generated files; these paths are excluded from the repository's Prettier run.
 
 ## Verdict
 
-Approve. No critical or required findings remain.
+Request changes. The project-scoping gap is a security/data-isolation issue, and the Recents UI still permits asset mutation through DnD and item overflow menus despite presenting itself as a read-only recent-files view.
