@@ -6,17 +6,17 @@ import { getLocale, experimentalStaticLocale } from '../runtime.js';
 /** @typedef {{}} No_Recent_FilesInputs */
 
 const en_no_recent_files = /** @type {(inputs: No_Recent_FilesInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`No recent files`)
+	return /** @type {LocalizedString} */ (`No recently viewed files`)
 };
 
 const zh_no_recent_files = /** @type {(inputs: No_Recent_FilesInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`暂无最近文件`)
+	return /** @type {LocalizedString} */ (`暂无最近浏览文件`)
 };
 
 /**
 * | output |
 * | --- |
-* | "No recent files" |
+* | "No recently viewed files" |
 *
 * @param {No_Recent_FilesInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

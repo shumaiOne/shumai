@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "No recent files" |
+* | "No recently viewed files" |
 *
 * @param {No_Recent_FilesInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

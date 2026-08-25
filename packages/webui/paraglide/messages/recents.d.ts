@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Recents" |
+* | "Recently Viewed" |
 *
 * @param {RecentsInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

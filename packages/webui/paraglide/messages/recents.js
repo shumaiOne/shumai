@@ -6,17 +6,17 @@ import { getLocale, experimentalStaticLocale } from '../runtime.js';
 /** @typedef {{}} RecentsInputs */
 
 const en_recents = /** @type {(inputs: RecentsInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`Recents`)
+	return /** @type {LocalizedString} */ (`Recently Viewed`)
 };
 
 const zh_recents = /** @type {(inputs: RecentsInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`最近`)
+	return /** @type {LocalizedString} */ (`最近浏览`)
 };
 
 /**
 * | output |
 * | --- |
-* | "Recents" |
+* | "Recently Viewed" |
 *
 * @param {RecentsInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

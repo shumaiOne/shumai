@@ -146,9 +146,9 @@
 
   "all_files": "All Files",
   "recently_deleted": "Recently Deleted",
-  "recents": "Recents",
+  "recents": "Recently Viewed",
   "recents_toolbar_hint": "This page displays the 100 most recent files you viewed in this project.",
-  "no_recent_files": "No recent files",
+  "no_recent_files": "No recently viewed files",
   "no_recent_files_description": "Files you view in this project will appear here.",
   "collections": "Collections",
   "shares": "Shares",

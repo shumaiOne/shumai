@@ -10,7 +10,7 @@ test('owner views a file and it appears in recents', async ({ file }) => {
 
   // Navigate to Recents page via sidebar or direct URL
   await page.goto(`/projects/${projectId}`)
-  await page.getByText('Recents').first().click()
+  await page.getByText('Recently Viewed').first().click()
   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/recents`))
 
   // The viewed file should be visible in recents
