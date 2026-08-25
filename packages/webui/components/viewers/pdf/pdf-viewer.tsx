@@ -31,7 +31,17 @@ if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
 
 export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
   (
-    { file, annotations, shareId, onPlay, onPause, onTimeUpdate, startTime, allowDownload },
+    {
+      file,
+      annotations,
+      shareId,
+      children,
+      onPlay,
+      onPause,
+      onTimeUpdate,
+      startTime,
+      allowDownload,
+    },
     ref,
   ) => {
     const {
@@ -126,6 +136,10 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
     const [zoom, setZoom] = useState(1)
     const [pan, setPan] = useState({ x: 0, y: 0 })
     const [hasManuallyZoomed, setHasManuallyZoomed] = useState(false)
+
+    useEffect(() => {
+      setHasManuallyZoomed(false)
+    }, [file.id])
 
     const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -382,53 +396,56 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
 
     return (
       <div className="flex flex-col flex-1 h-full overflow-hidden bg-gray-100 dark:bg-gray-950 relative">
-        <div ref={containerRef} className="flex-1 relative overflow-hidden touch-none">
-          {loading ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
-              <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-            </div>
-          ) : error ? (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">
-              {error}
-            </div>
-          ) : (
-            <DrawingCanvas
-              width={conW}
-              height={conH}
-              mediaDimensions={pageDimensions}
-              canvasElement={pageCanvas}
-              annotations={displayAnnotations}
-              scale={zoom}
-              offset={pan}
-              className="absolute inset-0 z-0"
-              isDrawing={isDrawing}
-              currentTool={currentTool}
-              currentColor={currentColor}
-              onAddAnnotation={addAnnotation}
+        <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
+          {children}
+          <div ref={containerRef} className="flex-1 relative overflow-hidden touch-none">
+            {loading ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
+                <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+              </div>
+            ) : error ? (
+              <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">
+                {error}
+              </div>
+            ) : (
+              <DrawingCanvas
+                width={conW}
+                height={conH}
+                mediaDimensions={pageDimensions}
+                canvasElement={pageCanvas}
+                annotations={displayAnnotations}
+                scale={zoom}
+                offset={pan}
+                className="absolute inset-0 z-0"
+                isDrawing={isDrawing}
+                currentTool={currentTool}
+                currentColor={currentColor}
+                onAddAnnotation={addAnnotation}
+              />
+            )}
+            {/* Invisible selectable text overlay, transformed to match the Konva
+                stage. It sits ON TOP of the page canvas so the native selection
+                highlight is visible; pointer events are enabled only when not
+                drawing, so drags reach the stage below in draw mode. */}
+            <div
+              ref={textLayerContainerRef}
+              className="pdf-text-layer"
+              onMouseDown={(e) => {
+                // The container is user-select:none, so Chromium no longer
+                // clears the selection when clicking empty space (only text
+                // spans move the caret). Restore the expected behavior: a
+                // press on the container/br (not a text span) deselects.
+                if (e.target instanceof HTMLElement && e.target.tagName !== 'SPAN') {
+                  window.getSelection()?.removeAllRanges()
+                }
+              }}
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: '0 0',
+                pointerEvents: isDrawing ? 'none' : 'auto',
+              }}
             />
-          )}
-          {/* Invisible selectable text overlay, transformed to match the Konva
-              stage. It sits ON TOP of the page canvas so the native selection
-              highlight is visible; pointer events are enabled only when not
-              drawing, so drags reach the stage below in draw mode. */}
-          <div
-            ref={textLayerContainerRef}
-            className="pdf-text-layer"
-            onMouseDown={(e) => {
-              // The container is user-select:none, so Chromium no longer
-              // clears the selection when clicking empty space (only text
-              // spans move the caret). Restore the expected behavior: a
-              // press on the container/br (not a text span) deselects.
-              if (e.target instanceof HTMLElement && e.target.tagName !== 'SPAN') {
-                window.getSelection()?.removeAllRanges()
-              }
-            }}
-            style={{
-              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-              transformOrigin: '0 0',
-              pointerEvents: isDrawing ? 'none' : 'auto',
-            }}
-          />
+          </div>
         </div>
         <PdfControlBar
           currentPage={currentPage}

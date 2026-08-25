@@ -15,7 +15,17 @@ import { usePanZoomGestures } from '../use-pan-zoom'
 
 const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
   (
-    { file: data, onPlay, onPause, onTimeUpdate, annotations, startTime, shareId, allowDownload },
+    {
+      file: data,
+      onPlay,
+      onPause,
+      onTimeUpdate,
+      annotations,
+      startTime,
+      shareId,
+      children,
+      allowDownload,
+    },
     ref,
   ) => {
     const localPlayerRef = useRef<Player | null>(null)
@@ -116,6 +126,10 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const [pan, setPan] = useState({ x: 0, y: 0 })
     const [hasManuallyZoomed, setHasManuallyZoomed] = useState(false)
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
+
+    useEffect(() => {
+      setHasManuallyZoomed(false)
+    }, [data.id])
 
     const vidW = data.media?.metadata?.originalWidth || 1920
     const vidH = data.media?.metadata?.originalHeight || 1080
@@ -622,64 +636,69 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Video Area */}
-        <div
-          ref={containerRef}
-          className={cn(
-            'flex-1 bg-black cursor-pointer relative flex items-center justify-center overflow-hidden min-h-0 touch-none',
-          )}
-          onClick={togglePlay}
-          data-vjs-player
-          data-testid="video-area"
-        >
-          {/* Hidden VideoJS container */}
-          <div ref={videoContainerRef} className="absolute inset-0 z-[-1]" />
+        <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
+          {/* Render Carousel/Sidebar here if not fullscreen */}
+          {!state.isFullScreen && children}
 
-          {isAudio ? (
-            <div className="flex flex-col items-center justify-center text-muted-foreground w-full h-full pointer-events-none select-none">
-              <AudioLines
-                className={cn(
-                  'w-16 h-16 text-foreground/75 transition-transform duration-500',
-                  state.isPlaying ? 'animate-pulse scale-110 text-primary' : '',
-                )}
-              />
-            </div>
-          ) : (
-            /* Drawing Canvas (Visible) */
-            videoHtmlEl &&
-            containerSize.width > 0 && (
-              <DrawingCanvas
-                width={containerSize.width}
-                height={containerSize.height}
-                mediaDimensions={{
-                  width: vidW,
-                  height: vidH,
-                }}
-                videoElement={videoHtmlEl}
-                annotations={displayAnnotations}
-                scale={scale}
-                offset={pan}
-                className="absolute inset-0"
-                // Play/pause is handled by the video-area div's onClick; a
-                // Konva-level onClick would double-toggle once the overlay
-                // becomes interactive (zoomed).
-                // Drawing Props
-                isDrawing={isDrawing}
-                currentTool={currentTool}
-                currentColor={currentColor}
-                onAddAnnotation={addAnnotation}
-              />
-            )
-          )}
+          {/* Video Area */}
+          <div
+            ref={containerRef}
+            className={cn(
+              'flex-1 bg-black cursor-pointer relative flex items-center justify-center overflow-hidden min-h-0 touch-none',
+            )}
+            onClick={togglePlay}
+            data-vjs-player
+            data-testid="video-area"
+          >
+            {/* Hidden VideoJS container */}
+            <div ref={videoContainerRef} className="absolute inset-0 z-[-1]" />
 
-          {/* Big Play Button Overlay (when paused) */}
-          {!state.isPlaying && !isDrawing && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10">
-              <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/30 animate-pulse">
-                <Play className="w-10 h-10 text-white ml-1 fill-white" />
+            {isAudio ? (
+              <div className="flex flex-col items-center justify-center text-muted-foreground w-full h-full pointer-events-none select-none">
+                <AudioLines
+                  className={cn(
+                    'w-16 h-16 text-foreground/75 transition-transform duration-500',
+                    state.isPlaying ? 'animate-pulse scale-110 text-primary' : '',
+                  )}
+                />
               </div>
-            </div>
-          )}
+            ) : (
+              /* Drawing Canvas (Visible) */
+              videoHtmlEl &&
+              containerSize.width > 0 && (
+                <DrawingCanvas
+                  width={containerSize.width}
+                  height={containerSize.height}
+                  mediaDimensions={{
+                    width: vidW,
+                    height: vidH,
+                  }}
+                  videoElement={videoHtmlEl}
+                  annotations={displayAnnotations}
+                  scale={scale}
+                  offset={pan}
+                  className="absolute inset-0"
+                  // Play/pause is handled by the video-area div's onClick; a
+                  // Konva-level onClick would double-toggle once the overlay
+                  // becomes interactive (zoomed).
+                  // Drawing Props
+                  isDrawing={isDrawing}
+                  currentTool={currentTool}
+                  currentColor={currentColor}
+                  onAddAnnotation={addAnnotation}
+                />
+              )
+            )}
+
+            {/* Big Play Button Overlay (when paused) */}
+            {!state.isPlaying && !isDrawing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10">
+                <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/30 animate-pulse">
+                  <Play className="w-10 h-10 text-white ml-1 fill-white" />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <VideoControlBar

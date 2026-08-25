@@ -10,7 +10,7 @@ import { centeredPan, fitScale, isZoomed, zoomAtPoint } from '../pan-zoom'
 import { usePanZoomGestures } from '../use-pan-zoom'
 
 export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
-  ({ file, annotations, shareId, allowDownload }, ref) => {
+  ({ file, annotations, shareId, children, allowDownload }, ref) => {
     // Implement no-op media controller since images are static
     useImperativeHandle(ref, () => ({
       play: () => {},
@@ -34,6 +34,11 @@ export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
     const [copied, setCopied] = useState(false)
 
     const containerRef = useRef<HTMLDivElement | null>(null)
+
+    useEffect(() => {
+      setHasManuallyZoomed(false)
+      setCopied(false)
+    }, [file.id])
 
     useEffect(() => {
       const node = containerRef.current
@@ -173,31 +178,34 @@ export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
 
     return (
       <div className="flex flex-col flex-1 h-full overflow-hidden bg-gray-100 dark:bg-gray-950 relative">
-        <div ref={containerRef} className="flex-1 relative overflow-hidden touch-none">
-          {bestUrl ? (
-            <DrawingCanvas
-              width={conW}
-              height={conH}
-              mediaDimensions={{
-                width: imgW,
-                height: imgH,
-              }}
-              imageUrl={bestUrl}
-              annotations={displayAnnotations}
-              scale={zoom}
-              offset={pan}
-              onPan={isZoomed(zoom, baseScale) ? setPan : undefined}
-              className="absolute inset-0 z-0"
-              isDrawing={isDrawing}
-              currentTool={currentTool}
-              currentColor={currentColor}
-              onAddAnnotation={addAnnotation}
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <p className="text-muted-foreground">Preview unavailable</p>
-            </div>
-          )}
+        <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
+          {children}
+          <div ref={containerRef} className="flex-1 relative overflow-hidden touch-none">
+            {bestUrl ? (
+              <DrawingCanvas
+                width={conW}
+                height={conH}
+                mediaDimensions={{
+                  width: imgW,
+                  height: imgH,
+                }}
+                imageUrl={bestUrl}
+                annotations={displayAnnotations}
+                scale={zoom}
+                offset={pan}
+                onPan={isZoomed(zoom, baseScale) ? setPan : undefined}
+                className="absolute inset-0 z-0"
+                isDrawing={isDrawing}
+                currentTool={currentTool}
+                currentColor={currentColor}
+                onAddAnnotation={addAnnotation}
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <p className="text-muted-foreground">Preview unavailable</p>
+              </div>
+            )}
+          </div>
         </div>
         <ImageControlBar
           zoom={zoom}

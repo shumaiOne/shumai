@@ -5,15 +5,25 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FileViewer } from './file-viewer'
 import type { AssetInfo } from '@shumai/dtos'
 
+const MockViewer = React.forwardRef<unknown, { file: AssetInfo; children?: React.ReactNode }>(
+  ({ file, children }, ref) => {
+    React.useImperativeHandle(ref, () => ({}))
+    return (
+      <div>
+        <div data-testid={`viewer-${file.id}`}>{file.name}</div>
+        {children}
+      </div>
+    )
+  },
+)
+
 // Mock registry so getViewerForFile returns a simple test viewer
 vi.mock('./viewers/registry', () => ({
   getViewerForFile: () => ({
     id: 'test-viewer',
     name: 'Test Viewer',
     match: () => true,
-    viewer: React.forwardRef<unknown, { file: AssetInfo }>(({ file }) => (
-      <div data-testid={`viewer-${file.id}`}>{file.name}</div>
-    )),
+    viewer: MockViewer,
   }),
 }))
 
