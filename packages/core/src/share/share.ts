@@ -260,16 +260,17 @@ export class ShareService {
       WITH RECURSIVE 
       -- Trace ancestors in the real asset tree
       real_ancestors AS (
-        SELECT id, parent_id, type::text FROM assets WHERE id = ${assetId}
+        SELECT id, parent_id, type::text FROM assets WHERE id = ${assetId} AND is_deleted = false
         UNION ALL
         SELECT a.id, a.parent_id, a.type::text FROM assets a
         INNER JOIN real_ancestors ra ON ra.parent_id = a.id
+        WHERE a.is_deleted = false
       ),
       -- Find all symlinks pointing to any of these real ancestors
       found_symlinks AS (
         SELECT s.id, s.parent_id, s.type::text FROM assets s
         INNER JOIN real_ancestors ra ON s.target_id = ra.id
-        WHERE s.type = 'symlink'
+        WHERE s.type = 'symlink' AND s.is_deleted = false
       ),
       -- Combine: start with either real ancestors that are 'share' type, or symlinks that lead to 'share' type
       search_starts AS (
@@ -283,6 +284,7 @@ export class ShareService {
         UNION ALL
         SELECT a.id, a.parent_id, a.type::text FROM assets a
         INNER JOIN share_trace st ON st.parent_id = a.id
+        WHERE a.is_deleted = false
       )
       SELECT id as "shareRootId" FROM share_trace WHERE type = 'share' LIMIT 1;
     `

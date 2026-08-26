@@ -3575,5 +3575,133 @@ describe('AssetService — natural sort by name', () => {
       })
       expect(updatedFile.name).toBe('renamed.png')
     })
+
+    it('cascades soft-delete and restoration to symlinks and updates parent fileCount', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team ' + Date.now() } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'Root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const shareRoot = await prisma.asset.create({
+        data: {
+          name: 'Share Root',
+          type: AssetType.share_root,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          fileCount: 0,
+        },
+      })
+
+      const file = await prisma.asset.create({
+        data: {
+          name: 'test-file.txt',
+          type: AssetType.file,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      await prisma.asset.update({
+        where: { id: rootFolder.id },
+        data: { fileCount: 1 },
+      })
+
+      const symlink = await prisma.asset.create({
+        data: {
+          name: file.name,
+          type: AssetType.symlink,
+          parentId: shareRoot.id,
+          targetId: file.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      await prisma.asset.update({
+        where: { id: shareRoot.id },
+        data: { fileCount: 1 },
+      })
+
+      // Soft delete the file
+      await assetService.deleteAssets([file.id])
+
+      const deletedSymlink = await prisma.asset.findUnique({ where: { id: symlink.id } })
+      expect(deletedSymlink?.isDeleted).toBe(true)
+      expect(deletedSymlink?.status).toBe(AssetStatus.trashed)
+
+      const updatedShareRoot = await prisma.asset.findUnique({ where: { id: shareRoot.id } })
+      expect(updatedShareRoot?.fileCount).toBe(0)
+
+      // Restore the file
+      await assetService.restoreAssets([file.id])
+
+      const restoredSymlink = await prisma.asset.findUnique({ where: { id: symlink.id } })
+      expect(restoredSymlink?.isDeleted).toBe(false)
+      expect(restoredSymlink?.status).toBe(AssetStatus.processed)
+
+      const restoredShareRoot = await prisma.asset.findUnique({ where: { id: shareRoot.id } })
+      expect(restoredShareRoot?.fileCount).toBe(1)
+    })
+
+    it('cascades permanent purge to symlinks when emptying trash', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team ' + Date.now() } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'Root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const shareRoot = await prisma.asset.create({
+        data: {
+          name: 'Share Root',
+          type: AssetType.share_root,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          fileCount: 0,
+        },
+      })
+
+      const file = await prisma.asset.create({
+        data: {
+          name: 'file-to-purge.txt',
+          type: AssetType.file,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const symlink = await prisma.asset.create({
+        data: {
+          name: file.name,
+          type: AssetType.symlink,
+          parentId: shareRoot.id,
+          targetId: file.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      // Soft delete then empty trash
+      await assetService.deleteAssets([file.id])
+      await assetService.emptyTrash(project.id)
+
+      const purgedFile = await prisma.asset.findUnique({ where: { id: file.id } })
+      expect(purgedFile).toBeNull()
+
+      const purgedSymlink = await prisma.asset.findUnique({ where: { id: symlink.id } })
+      expect(purgedSymlink).toBeNull()
+    })
   })
 })

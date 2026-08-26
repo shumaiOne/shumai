@@ -335,4 +335,161 @@ describe('ShareService', () => {
     const item = list.data.find((l) => l.id === shareLink.id)
     expect(item?.creator?.image).toBe('http://s3/avatars/user123-presigned.png')
   })
+
+  it('hides soft-deleted files from share link and restores them upon file restoration', async () => {
+    const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId } })
+    const file = await prisma.asset.create({
+      data: {
+        name: 'shared-doc.pdf',
+        type: AssetType.file,
+        status: 'processed',
+        projectId,
+        parentId: project.rootFolderId,
+      },
+    })
+
+    const shareLink = await shareService.createShareLink(projectId, {
+      name: 'Doc Share',
+    })
+
+    await shareService.addAssetToShare(shareLink.id, {
+      assetIds: [file.id],
+    })
+
+    // Verify initial state: 1 file in share link
+    const initialChildren = await assetService.listChildren({
+      assetId: shareLink.rootFolderId,
+      assetType: 'file',
+    })
+    expect(initialChildren.data).toHaveLength(1)
+    expect(initialChildren.data[0].name).toBe('shared-doc.pdf')
+
+    const initialShareRoot = await prisma.asset.findUnique({
+      where: { id: shareLink.rootFolderId },
+    })
+    expect(initialShareRoot?.fileCount).toBe(1)
+
+    const symlink = await prisma.asset.findFirst({
+      where: { targetId: file.id, parentId: shareLink.rootFolderId },
+    })
+    expect(symlink).toBeDefined()
+    await expect(shareService.verifyPublicAccess(file.id)).resolves.toBeDefined()
+    await expect(shareService.verifyPublicAccess(symlink!.id)).resolves.toBeDefined()
+
+    // 1. Soft-delete the file (move to trash)
+    await assetService.deleteAssets([file.id])
+
+    // Verify: file should disappear from share link children
+    const afterDeleteChildren = await assetService.listChildren({
+      assetId: shareLink.rootFolderId,
+      assetType: 'file',
+    })
+    expect(afterDeleteChildren.data).toHaveLength(0)
+
+    // Verify: share root fileCount should be decremented to 0
+    const afterDeleteShareRoot = await prisma.asset.findUnique({
+      where: { id: shareLink.rootFolderId },
+    })
+    expect(afterDeleteShareRoot?.fileCount).toBe(0)
+
+    // Verify: public access is rejected
+    await expect(shareService.verifyPublicAccess(file.id)).rejects.toThrow()
+    await expect(shareService.verifyPublicAccess(symlink!.id)).rejects.toThrow()
+
+    // Verify: project's recently-deleted view does NOT list symlinks
+    const recentlyDeleted = await assetService.listChildren({
+      projectId,
+      showDeleted: true,
+      assetType: 'file',
+    })
+    expect(recentlyDeleted.data).toHaveLength(1)
+    expect(recentlyDeleted.data[0].id).toBe(file.id)
+
+    // 2. Restore the file from trash
+    await assetService.restoreAssets([file.id])
+
+    // Verify: file reappears in share link children
+    const afterRestoreChildren = await assetService.listChildren({
+      assetId: shareLink.rootFolderId,
+      assetType: 'file',
+    })
+    expect(afterRestoreChildren.data).toHaveLength(1)
+    expect(afterRestoreChildren.data[0].name).toBe('shared-doc.pdf')
+
+    // Verify: share root fileCount is restored to 1
+    const afterRestoreShareRoot = await prisma.asset.findUnique({
+      where: { id: shareLink.rootFolderId },
+    })
+    expect(afterRestoreShareRoot?.fileCount).toBe(1)
+
+    // Verify: public access works again
+    await expect(shareService.verifyPublicAccess(file.id)).resolves.toBeDefined()
+    await expect(shareService.verifyPublicAccess(symlink!.id)).resolves.toBeDefined()
+  })
+
+  it('hides soft-deleted folders from share link and restores them upon folder restoration', async () => {
+    const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId } })
+    const folder = await prisma.asset.create({
+      data: {
+        name: 'Shared Folder',
+        type: AssetType.folder,
+        status: 'processed',
+        projectId,
+        parentId: project.rootFolderId,
+      },
+    })
+    const childFile = await prisma.asset.create({
+      data: {
+        name: 'inner-file.txt',
+        type: AssetType.file,
+        status: 'processed',
+        projectId,
+        parentId: folder.id,
+      },
+    })
+
+    const shareLink = await shareService.createShareLink(projectId, {
+      name: 'Folder Share',
+    })
+
+    await shareService.addAssetToShare(shareLink.id, {
+      assetIds: [folder.id],
+    })
+
+    // Initial check: folder is in share link
+    const initialChildren = await assetService.listChildren({
+      assetId: shareLink.rootFolderId,
+      assetType: 'folder',
+    })
+    expect(initialChildren.data).toHaveLength(1)
+    expect(initialChildren.data[0].name).toBe('Shared Folder')
+    await expect(shareService.verifyPublicAccess(childFile.id)).resolves.toBeDefined()
+
+    // 1. Soft-delete the folder
+    await assetService.deleteAssets([folder.id])
+
+    // Verify: folder disappears from share link
+    const afterDeleteChildren = await assetService.listChildren({
+      assetId: shareLink.rootFolderId,
+      assetType: 'folder',
+    })
+    expect(afterDeleteChildren.data).toHaveLength(0)
+
+    // Verify: access to child file inside folder is rejected
+    await expect(shareService.verifyPublicAccess(childFile.id)).rejects.toThrow()
+
+    // 2. Restore the folder
+    await assetService.restoreAssets([folder.id])
+
+    // Verify: folder reappears in share link
+    const afterRestoreChildren = await assetService.listChildren({
+      assetId: shareLink.rootFolderId,
+      assetType: 'folder',
+    })
+    expect(afterRestoreChildren.data).toHaveLength(1)
+    expect(afterRestoreChildren.data[0].name).toBe('Shared Folder')
+
+    // Verify: access to child file inside folder is restored
+    await expect(shareService.verifyPublicAccess(childFile.id)).resolves.toBeDefined()
+  })
 })
