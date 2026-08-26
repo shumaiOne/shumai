@@ -31,7 +31,7 @@ export class TeamService {
         data: {
           name: 'Default Team',
           settings: {
-            transcode: { videoStrategy: 'best_match' },
+            transcode: { videoStrategy: 'best_match', hardwareAcceleration: 'off' },
           },
           sandbox: { create: {} },
         },
@@ -318,6 +318,12 @@ export class TeamService {
       }
       settings.transcode.videoStrategy = value
       delete settings['transcode.videoStrategy']
+    } else if (key === 'transcode.hardwareAcceleration') {
+      if (!settings.transcode) {
+        settings.transcode = {}
+      }
+      settings.transcode.hardwareAcceleration = value
+      delete settings['transcode.hardwareAcceleration']
     } else {
       settings[key] = value
     }

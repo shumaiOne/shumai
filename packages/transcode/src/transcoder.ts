@@ -22,6 +22,13 @@ export class VideoTranscoder {
     return this
   }
 
+  setHardwareAcceleration(hardwareAcceleration?: PrismaJson.HardwareAcceleration): this {
+    if (hardwareAcceleration) {
+      this.spec.hardwareAcceleration = hardwareAcceleration
+    }
+    return this
+  }
+
   withSprite(): this {
     this.spec.sprite = true
     return this

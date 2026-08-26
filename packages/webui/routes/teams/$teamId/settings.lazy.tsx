@@ -1,5 +1,9 @@
 import { createLazyFileRoute } from '@tanstack/react-router'
-import { VideoTranscodeStrategy, UpdateTeamSettingsRequest } from '@shumai/dtos'
+import {
+  VideoTranscodeStrategy,
+  HardwareAcceleration,
+  UpdateTeamSettingsRequest,
+} from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { AgentsSettings } from '@/ui/components/settings/AgentsSettings'
 import { ProvidersSettings } from '@/ui/components/settings/ProvidersSettings'
@@ -244,6 +248,16 @@ function TeamSettingsPage() {
     })
   }
 
+  const handleHardwareAccelerationChange = (value: HardwareAcceleration) => {
+    updateSettings({
+      teamId,
+      data: {
+        key: 'transcode.hardwareAcceleration',
+        value: value,
+      },
+    })
+  }
+
   if (isSettingsLoading || isMeLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -264,6 +278,10 @@ function TeamSettingsPage() {
   } else if (currentVideoStrategy === 'full') {
     currentVideoStrategy = VideoTranscodeStrategy.all
   }
+
+  const currentHardwareAcceleration =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (settings as any)?.transcode?.hardwareAcceleration || HardwareAcceleration.off
 
   return (
     <div className="h-full bg-background font-sans selection:bg-primary/20 transition-colors duration-300">
@@ -663,6 +681,46 @@ function TeamSettingsPage() {
                             <div className="font-semibold">{m.all_resolutions()}</div>
                             <div className="text-sm text-muted-foreground">
                               {m.all_resolutions_description()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Hardware Acceleration */}
+                      <div className="space-y-3 pt-6 border-t border-border">
+                        <h3 className="text-lg font-medium">{m.hardware_acceleration()}</h3>
+                        <div className="space-y-3">
+                          <div
+                            className={cn(
+                              'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
+                              currentHardwareAcceleration === HardwareAcceleration.off
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border',
+                            )}
+                            onClick={() =>
+                              handleHardwareAccelerationChange(HardwareAcceleration.off)
+                            }
+                          >
+                            <div className="font-semibold">{m.hardware_acceleration_off()}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {m.hardware_acceleration_off_description()}
+                            </div>
+                          </div>
+
+                          <div
+                            className={cn(
+                              'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
+                              currentHardwareAcceleration === HardwareAcceleration.auto
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border',
+                            )}
+                            onClick={() =>
+                              handleHardwareAccelerationChange(HardwareAcceleration.auto)
+                            }
+                          >
+                            <div className="font-semibold">{m.hardware_acceleration_auto()}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {m.hardware_acceleration_auto_description()}
                             </div>
                           </div>
                         </div>

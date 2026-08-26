@@ -190,6 +190,7 @@ describe('UploadService', () => {
       projectId: projectId,
       transcode: {
         videoStrategy: 'best_match',
+        hardwareAcceleration: 'off',
         sprite: true,
         poster: true,
       },

@@ -172,6 +172,7 @@ describe('Transcode Activities', () => {
       originalHeight: 1080,
       duration: 10,
       bitRate: 1000,
+      videoBitRate: 850000,
       frameRate: 30,
       totalFrames: 300,
       hasAudio: true,
@@ -193,6 +194,7 @@ describe('Transcode Activities', () => {
     expect(transcodeService.getVideoInfo).toHaveBeenCalledWith('/tmp/v.mp4')
     expect(result.duration).toBe(10)
     expect(result.metadata?.originalWidth).toBe(1920)
+    expect(result.metadata?.videoBitRate).toBe(850000)
     expect(result.metadata?.videoCodec).toBe('Advanced Video Coding')
     expect(result.metadata?.audioCodec).toBe('MPEG-4 Audio')
     expect(result.metadata?.audioChannels).toBe(2)
@@ -590,9 +592,17 @@ describe('Transcode Activities', () => {
       videoSpec: { resolution: '720p', width: 1280, height: 720 },
       duration: 10,
       originalFps: 30,
+      hardwareAcceleration: 'auto',
+      sourceVideoBitrate: 600_000,
     })
 
-    expect(transcodeService.transcodeVideo).toHaveBeenCalled()
+    expect(transcodeService.transcodeVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputFile: '/tmp/v.mp4',
+        hardwareAcceleration: 'auto',
+        sourceVideoBitrate: 600_000,
+      }),
+    )
   })
 
   it('should call transcodeService.takeScreenshots', async () => {

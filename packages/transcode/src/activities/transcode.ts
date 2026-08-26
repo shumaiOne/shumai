@@ -104,6 +104,7 @@ export async function getMediaInfoActivity(params: {
         originalHeight: info.originalHeight,
         duration: info.duration,
         bitRate: info.bitRate,
+        videoBitRate: info.videoBitRate,
         frameRate: info.frameRate,
         totalFrames: info.totalFrames,
         startTimecode: info.startTimecode || '00:00:00:00',
@@ -220,6 +221,8 @@ export interface VideoActivityParams {
   videoSpec: PrismaJson.VideoTranscode
   duration: number
   originalFps: number
+  hardwareAcceleration?: PrismaJson.HardwareAcceleration
+  sourceVideoBitrate?: number
 }
 
 export async function transcodeVideoActivity(
@@ -262,6 +265,8 @@ export async function transcodeVideoActivity(
       height: params.videoSpec.height,
       frameRate: targetFps || undefined,
       disableAudio,
+      hardwareAcceleration: params.hardwareAcceleration,
+      sourceVideoBitrate: params.sourceVideoBitrate,
     })
 
     const stat = fs.statSync(outputFile)

@@ -91,6 +91,7 @@ export interface MediaMetadata {
   originalHeight: number
   duration: number
   bitRate: number
+  videoBitRate?: number
   frameRate: number
   totalFrames: number
   startTimecode?: string
@@ -111,6 +112,113 @@ export interface TranscodeVideoParams {
   frameRate?: number | string
   disableAudio?: boolean
   overlayFile?: string
+  hardwareAcceleration?: 'off' | 'auto'
+  videoBitrate?: string
+  sourceVideoBitrate?: number
+}
+
+export interface EncoderConfig {
+  name: string
+  presetArgs: string[]
+}
+
+export const H264_ENCODER_CONFIGS: Record<string, EncoderConfig> = {
+  h264_nvenc: {
+    name: 'h264_nvenc',
+    presetArgs: ['-preset', 'p4', '-rc:v', 'vbr', '-cq:v', '26', '-b:v', '0'],
+  },
+  h264_qsv: {
+    name: 'h264_qsv',
+    presetArgs: ['-preset', 'fast', '-global_quality', '26'],
+  },
+  h264_amf: {
+    name: 'h264_amf',
+    presetArgs: ['-quality', 'balanced', '-rc', 'qvbr', '-qvbr_quality_level', '26'],
+  },
+  h264_videotoolbox: {
+    name: 'h264_videotoolbox',
+    presetArgs: ['-q:v', '74'],
+  },
+  libx264: {
+    name: 'libx264',
+    presetArgs: ['-preset', 'fast', '-crf', '26'],
+  },
+}
+
+export function getPlatformEncoderCandidates(
+  platform: NodeJS.Platform = process.platform,
+): string[] {
+  switch (platform) {
+    case 'darwin':
+      return ['h264_videotoolbox', 'h264_nvenc', 'h264_qsv', 'h264_amf']
+    case 'win32':
+      return ['h264_nvenc', 'h264_qsv', 'h264_amf']
+    case 'linux':
+    default:
+      return ['h264_nvenc', 'h264_qsv', 'h264_amf']
+  }
+}
+
+export function getDefaultBitrateBps(height: number, width?: number): number {
+  const longSide = Math.max(width || 0, height)
+  const shortSide = Math.min(width || height, height)
+  const effectiveHeight = shortSide > 0 ? shortSide : height
+
+  if (effectiveHeight >= 2160 || longSide >= 3840) return 12_000_000
+  if (effectiveHeight >= 1080 || longSide >= 1920) return 4_500_000
+  if (effectiveHeight >= 720 || longSide >= 1280) return 2_500_000
+  if (effectiveHeight >= 540 || longSide >= 960) return 1_200_000
+  if (effectiveHeight >= 360 || longSide >= 640) return 800_000
+  return 100_000
+}
+
+export function getDefaultBitrate(height: number, width?: number): string {
+  const bps = getDefaultBitrateBps(height, width)
+  return `${Math.round(bps / 1000)}k`
+}
+
+export function calculateMaxBitrate(
+  targetHeight: number,
+  targetWidth?: number,
+  sourceVideoBitrate?: number,
+  targetFps?: number | string,
+): { maxrate: string; bufsize: string } {
+  let configuredMaxBps = getDefaultBitrateBps(targetHeight, targetWidth)
+
+  // If frame rate is downsampled (e.g. 180p preview with < 24 fps), scale the bitrate ceiling proportionally
+  if (targetFps) {
+    let parsedFps: number | undefined
+    if (typeof targetFps === 'number') {
+      parsedFps = targetFps
+    } else {
+      const parts = targetFps.split('/')
+      if (parts.length === 2) {
+        parsedFps = parseFloat(parts[0]) / parseFloat(parts[1])
+      } else {
+        parsedFps = parseFloat(targetFps)
+      }
+    }
+    if (Number.isFinite(parsedFps) && parsedFps > 0 && parsedFps < 24) {
+      const fpsRatio = Math.max(0.1, parsedFps / 24)
+      configuredMaxBps = Math.max(50_000, Math.round(configuredMaxBps * fpsRatio))
+    }
+  }
+
+  let effectiveMaxBps =
+    sourceVideoBitrate && sourceVideoBitrate > 0
+      ? Math.min(configuredMaxBps, Math.round(sourceVideoBitrate * 1.2))
+      : configuredMaxBps
+
+  const minFloor = targetFps ? 50_000 : 100_000
+  effectiveMaxBps = Math.max(minFloor, effectiveMaxBps)
+
+  const maxrateKbps = Math.max(50, Math.round(effectiveMaxBps / 1000))
+  const bufsizeKbps = maxrateKbps * 2
+
+  return {
+    maxrate: `${maxrateKbps}k`,
+    bufsize: `${bufsizeKbps}k`,
+  }
 }
 
 export interface ExtractVideoFramesParams {
@@ -295,11 +403,38 @@ export class TranscodeService {
     }
     const startTimecode = videoStream.tags?.timecode || info.format?.tags?.timecode
 
+    let videoBitRate: number | undefined
+    if (videoStream.bit_rate && parseInt(videoStream.bit_rate, 10) > 0) {
+      videoBitRate = parseInt(videoStream.bit_rate, 10)
+    } else {
+      const bpsTag = videoStream.tags?.BPS || videoStream.tags?.['BPS-eng']
+      if (bpsTag && parseInt(bpsTag, 10) > 0) {
+        videoBitRate = parseInt(bpsTag, 10)
+      } else {
+        const bytesTag =
+          videoStream.tags?.NUMBER_OF_BYTES || videoStream.tags?.['NUMBER_OF_BYTES-eng']
+        if (bytesTag && duration > 0) {
+          videoBitRate = Math.round((parseInt(bytesTag, 10) * 8) / duration)
+        } else {
+          const totalBitrate = parseFloat(info.format.bit_rate)
+          if (Number.isFinite(totalBitrate) && totalBitrate > 0) {
+            const audioBitrate = audioStream?.bit_rate
+              ? parseFloat(audioStream.bit_rate)
+              : audioStream
+                ? 128_000
+                : 0
+            videoBitRate = Math.max(100_000, Math.round(totalBitrate - audioBitrate))
+          }
+        }
+      }
+    }
+
     return {
       originalWidth: videoStream.width,
       originalHeight: videoStream.height,
       duration,
       bitRate: parseFloat(info.format.bit_rate),
+      videoBitRate,
       frameRate: fps || 30,
       totalFrames: totalFrames || 0,
       startTimecode,
@@ -373,6 +508,53 @@ export class TranscodeService {
     }
   }
 
+  private availableEncodersCache: Set<string> | null = null
+
+  clearEncodersCache(): void {
+    this.availableEncodersCache = null
+  }
+
+  async getAvailableEncoders(): Promise<Set<string>> {
+    if (this.availableEncodersCache) {
+      return this.availableEncodersCache
+    }
+    try {
+      const { stdout } = await execFileAsync('ffmpeg', ['-encoders'])
+      const encoders = new Set<string>()
+      const lines = stdout.split('\n')
+      for (const line of lines) {
+        const match = line.match(/^\s*[A-Z.]{6}\s+([a-zA-Z0-9_-]+)/)
+        if (match) {
+          encoders.add(match[1])
+        }
+      }
+      this.availableEncodersCache = encoders
+      return encoders
+    } catch (err) {
+      console.warn('Failed to probe ffmpeg encoders:', err)
+      return new Set<string>()
+    }
+  }
+
+  async selectH264Encoder(
+    hardwareAcceleration?: 'off' | 'auto',
+    platform: NodeJS.Platform = process.platform,
+  ): Promise<EncoderConfig> {
+    if (hardwareAcceleration !== 'auto') {
+      return H264_ENCODER_CONFIGS.libx264
+    }
+
+    const available = await this.getAvailableEncoders()
+    const candidates = getPlatformEncoderCandidates(platform)
+    for (const enc of candidates) {
+      if (available.has(enc) && H264_ENCODER_CONFIGS[enc]) {
+        return H264_ENCODER_CONFIGS[enc]
+      }
+    }
+
+    return H264_ENCODER_CONFIGS.libx264
+  }
+
   async transcodeVideo(params: TranscodeVideoParams): Promise<void> {
     let filterComplex: string
     const args: string[] = ['-i', params.inputFile]
@@ -420,7 +602,25 @@ export class TranscodeService {
       args.push('-map', '0:a?')
     }
 
-    args.push('-c:v', 'libx264', '-preset', 'fast', '-crf', '26')
+    const encoder = await this.selectH264Encoder(params.hardwareAcceleration)
+    args.push('-c:v', encoder.name)
+    if (encoder.presetArgs.length > 0) {
+      args.push(...encoder.presetArgs)
+    }
+
+    if (params.videoBitrate) {
+      args.push('-b:v', params.videoBitrate)
+    } else {
+      const { maxrate, bufsize } = calculateMaxBitrate(
+        params.height,
+        params.width,
+        params.sourceVideoBitrate,
+        params.frameRate,
+      )
+      args.push('-maxrate', maxrate, '-bufsize', bufsize)
+    }
+
+    args.push('-pix_fmt', 'yuv420p')
 
     if (!params.disableAudio) {
       args.push('-c:a', 'aac', '-b:a', '128k')

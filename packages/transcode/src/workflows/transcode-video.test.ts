@@ -154,16 +154,86 @@ describe('transcodeVideoWorkflow', () => {
       projectId: 'proj-1',
     })
 
-    expect(mockActivities.createAutofillTaskIfEnabledActivity).toHaveBeenCalledWith({
-      assetId: 'asset-1',
-      teamId: 'team-1',
-      projectId: 'proj-1',
-    })
+    expect(mockActivities.transcodeVideoActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetKey: 'video.mp4',
+        filePath: '/tmp/video.mp4',
+        hardwareAcceleration: undefined,
+      }),
+    )
 
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
       taskId: 'task-1',
       status: WorkflowTaskStatus.completed,
     })
+  })
+
+  it('should forward hardwareAcceleration to transcodeVideoActivity when specified', async () => {
+    const task: WorkflowTask = {
+      id: 'task-hw',
+      assetId: 'asset-hw',
+      type: WorkflowTaskType.transcode_video,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: {
+          videoStrategy: 'best_match',
+          hardwareAcceleration: 'auto',
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid-hw',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-hw',
+      storageKey: { key: 'video.mp4' },
+      mediaType: 'video/mp4',
+    })
+
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      proxyType: 'video',
+      metadata: {
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 10,
+        frameRate: 30,
+        totalFrames: 300,
+        startTimecode: '00:00:00:00',
+        bitRate: 1000,
+        videoBitRate: 850000,
+        hasAudio: false,
+        format: {},
+      },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    mockActivities.transcodeVideoActivity.mockResolvedValue({
+      key: 'v.mp4',
+      width: 1920,
+      height: 1080,
+    })
+
+    await transcodeVideoWorkflow(task)
+
+    expect(mockActivities.transcodeVideoActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetKey: 'video.mp4',
+        filePath: '/tmp/video.mp4',
+        hardwareAcceleration: 'auto',
+        sourceVideoBitrate: 850000,
+      }),
+    )
   })
 
   it('should run audio transcoding workflow successfully', async () => {

@@ -46,6 +46,7 @@ declare global {
     // Team Settings
     // ----------------------------------------------------------------------
     export type VideoTranscodeStrategy = 'best_match' | 'all'
+    export type HardwareAcceleration = 'off' | 'auto'
 
     // ----------------------------------------------------------------------
     // Collection Filter
@@ -54,6 +55,7 @@ declare global {
 
     export interface TranscodeSettings {
       videoStrategy: VideoTranscodeStrategy
+      hardwareAcceleration?: HardwareAcceleration
     }
 
     export interface Settings {
@@ -103,6 +105,7 @@ declare global {
       hasAudio: boolean
       duration: number
       bitRate: number
+      videoBitRate?: number
       frameRate: number
       totalFrames: number
       startTimecode: string
@@ -290,6 +293,7 @@ declare global {
 
     export interface TaskSpec {
       videoStrategy?: VideoTranscodeStrategy
+      hardwareAcceleration?: HardwareAcceleration
       thumbnail?: boolean
       sprite?: boolean
       poster?: boolean

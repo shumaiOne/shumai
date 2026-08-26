@@ -303,9 +303,11 @@ export class UploadService {
       const settings = team.settings as PrismaJson.Settings | null
       if (isVideo) {
         const strategy = settings?.transcode?.videoStrategy || 'best_match'
+        const hardwareAcceleration = settings?.transcode?.hardwareAcceleration || 'off'
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await new VideoTranscoder(tx as any, asset.id, team.id, projectId)
           .setStrategy(strategy)
+          .setHardwareAcceleration(hardwareAcceleration)
           .withSprite()
           .withPoster()
           .submit()

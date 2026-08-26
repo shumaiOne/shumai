@@ -245,6 +245,21 @@ describe('team api', () => {
     expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'transcode.videoStrategy', 'all')
   })
 
+  it('PATCH /teams/:teamId/settings updates transcode.hardwareAcceleration', async () => {
+    mockUpdateSettings.mockResolvedValue({ transcode: { hardwareAcceleration: 'auto' } })
+
+    const res = await app.request('/teams/t1/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'transcode.hardwareAcceleration', value: 'auto' }),
+    })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.transcode.hardwareAcceleration).toBe('auto')
+    expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'transcode.hardwareAcceleration', 'auto')
+  })
+
   it('GET /teams/:teamId/user-metadata returns all metadata for the user in the team', async () => {
     mockListUserMetadata.mockResolvedValue([
       { key: 'key1', value: 'value1' },
