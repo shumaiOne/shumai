@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { transcodeService, calculatePreviewDimensions } from './transcode'
+import {
+  transcodeService,
+  calculatePreviewDimensions,
+  getPlatformEncoderCandidates,
+  getDefaultBitrate,
+  H264_ENCODER_CONFIGS,
+} from './transcode'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import * as path from 'path'
 import * as child_process from 'child_process'
@@ -895,6 +901,389 @@ describe('TranscodeService', () => {
         expect(vi.mocked(sharp().webp)).toHaveBeenCalledWith({ quality: 90 })
         expect(vi.mocked(sharp().toFile)).toHaveBeenCalledWith(outputPath)
       })
+    })
+  })
+
+  describe('Hardware Acceleration & Encoder Resolution', () => {
+    beforeEach(() => {
+      transcodeService.clearEncodersCache()
+    })
+
+    it('should return platform candidates correctly', () => {
+      expect(getPlatformEncoderCandidates('darwin')).toEqual([
+        'h264_videotoolbox',
+        'h264_nvenc',
+        'h264_qsv',
+        'h264_amf',
+      ])
+      expect(getPlatformEncoderCandidates('win32')).toEqual(['h264_nvenc', 'h264_qsv', 'h264_amf'])
+      expect(getPlatformEncoderCandidates('linux')).toEqual(['h264_nvenc', 'h264_qsv', 'h264_amf'])
+    })
+
+    it('should calculate default bitrates by resolution height and width correctly', () => {
+      expect(getDefaultBitrate(2160, 3840)).toBe('12000k')
+      expect(getDefaultBitrate(1080, 1920)).toBe('4500k')
+      expect(getDefaultBitrate(720, 1280)).toBe('2500k')
+      expect(getDefaultBitrate(540, 960)).toBe('1200k')
+      expect(getDefaultBitrate(360, 640)).toBe('800k')
+      expect(getDefaultBitrate(180, 320)).toBe('300k')
+      expect(getDefaultBitrate(100, 100)).toBe('300k')
+    })
+
+    it('selectH264Encoder should return libx264 when hardwareAcceleration is off', async () => {
+      const encoder = await transcodeService.selectH264Encoder('off')
+      expect(encoder).toEqual(H264_ENCODER_CONFIGS.libx264)
+      expect(child_process.execFile).not.toHaveBeenCalledWith(
+        'ffmpeg',
+        ['-encoders'],
+        expect.any(Function),
+      )
+    })
+
+    it('selectH264Encoder should select h264_videotoolbox on darwin when available', async () => {
+      const mockEncodersOutput = `
+ V....D libx264              libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+ V....D h264_videotoolbox    VideoToolbox H.264 Encoder
+      `
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          const argsArr = args as string[] | undefined
+          if (argsArr && argsArr[0] === '-encoders') {
+            cb(null, { stdout: mockEncodersOutput, stderr: '' })
+          } else if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const encoder = await transcodeService.selectH264Encoder('auto', 'darwin')
+      expect(encoder.name).toBe('h264_videotoolbox')
+      expect(encoder.presetArgs).toEqual([])
+      expect(encoder.supportsCrf).toBe(false)
+    })
+
+    it('selectH264Encoder should select h264_nvenc on linux when available', async () => {
+      const mockEncodersOutput = `
+ V....D libx264              libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+ V....D h264_nvenc           NVIDIA NVENC H.264 encoder
+ V....D h264_qsv             Intel Quick Sync Video H.264
+      `
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          const argsArr = args as string[] | undefined
+          if (argsArr && argsArr[0] === '-encoders') {
+            cb(null, { stdout: mockEncodersOutput, stderr: '' })
+          } else if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const encoder = await transcodeService.selectH264Encoder('auto', 'linux')
+      expect(encoder.name).toBe('h264_nvenc')
+      expect(encoder.presetArgs).toEqual(['-preset', 'p4'])
+      expect(encoder.supportsCrf).toBe(false)
+    })
+
+    it('selectH264Encoder should select h264_qsv on linux when nvenc is not available', async () => {
+      const mockEncodersOutput = `
+ V....D libx264              libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+ V....D h264_qsv             Intel Quick Sync Video H.264
+      `
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          const argsArr = args as string[] | undefined
+          if (argsArr && argsArr[0] === '-encoders') {
+            cb(null, { stdout: mockEncodersOutput, stderr: '' })
+          } else if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const encoder = await transcodeService.selectH264Encoder('auto', 'linux')
+      expect(encoder.name).toBe('h264_qsv')
+      expect(encoder.presetArgs).toEqual(['-preset', 'fast'])
+      expect(encoder.supportsCrf).toBe(false)
+    })
+
+    it('selectH264Encoder should select h264_amf on win32 when available', async () => {
+      const mockEncodersOutput = `
+ V....D libx264              libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+ V....D h264_amf             AMD AMF H.264 Encoder
+      `
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          const argsArr = args as string[] | undefined
+          if (argsArr && argsArr[0] === '-encoders') {
+            cb(null, { stdout: mockEncodersOutput, stderr: '' })
+          } else if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const encoder = await transcodeService.selectH264Encoder('auto', 'win32')
+      expect(encoder.name).toBe('h264_amf')
+      expect(encoder.presetArgs).toEqual(['-quality', 'balanced'])
+      expect(encoder.supportsCrf).toBe(false)
+    })
+
+    it('selectH264Encoder should fallback to libx264 when no hw encoder is in ffmpeg build', async () => {
+      const mockEncodersOutput = `
+ V....D libx264              libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+      `
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          const argsArr = args as string[] | undefined
+          if (argsArr && argsArr[0] === '-encoders') {
+            cb(null, { stdout: mockEncodersOutput, stderr: '' })
+          } else if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const encoder = await transcodeService.selectH264Encoder('auto', 'linux')
+      expect(encoder.name).toBe('libx264')
+      expect(encoder.supportsCrf).toBe(true)
+    })
+
+    it('transcodeVideo with hardwareAcceleration off should use libx264, preset fast, crf 26, and yuv420p', async () => {
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const outputFile = path.join(tempDir, 'out_off.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1280,
+        height: 720,
+        hardwareAcceleration: 'off',
+      })
+
+      expect(child_process.execFile).toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining([
+          '-c:v',
+          'libx264',
+          '-preset',
+          'fast',
+          '-crf',
+          '26',
+          '-pix_fmt',
+          'yuv420p',
+        ]),
+        expect.any(Function),
+      )
+    })
+
+    it('transcodeVideo with hardwareAcceleration auto and videotoolbox should use -b:v and no preset', async () => {
+      vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
+        H264_ENCODER_CONFIGS.h264_videotoolbox,
+      )
+
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const outputFile = path.join(tempDir, 'out_vt.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1280,
+        height: 720,
+        hardwareAcceleration: 'auto',
+      })
+
+      expect(child_process.execFile).toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining([
+          '-c:v',
+          'h264_videotoolbox',
+          '-b:v',
+          '2500k',
+          '-pix_fmt',
+          'yuv420p',
+        ]),
+        expect.any(Function),
+      )
+      expect(child_process.execFile).not.toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining(['-preset']),
+        expect.any(Function),
+      )
+      expect(child_process.execFile).not.toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining(['-crf']),
+        expect.any(Function),
+      )
+    })
+
+    it('transcodeVideo with hardwareAcceleration auto and nvenc should use -preset p4 and -b:v', async () => {
+      vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
+        H264_ENCODER_CONFIGS.h264_nvenc,
+      )
+
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const outputFile = path.join(tempDir, 'out_nvenc.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1920,
+        height: 1080,
+        hardwareAcceleration: 'auto',
+      })
+
+      expect(child_process.execFile).toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining([
+          '-c:v',
+          'h264_nvenc',
+          '-preset',
+          'p4',
+          '-b:v',
+          '4500k',
+          '-pix_fmt',
+          'yuv420p',
+        ]),
+        expect.any(Function),
+      )
+    })
+
+    it('transcodeVideo with hardwareAcceleration auto and amf should use -quality balanced and -b:v', async () => {
+      vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
+        H264_ENCODER_CONFIGS.h264_amf,
+      )
+
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const outputFile = path.join(tempDir, 'out_amf.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1280,
+        height: 720,
+        hardwareAcceleration: 'auto',
+      })
+
+      expect(child_process.execFile).toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining([
+          '-c:v',
+          'h264_amf',
+          '-quality',
+          'balanced',
+          '-b:v',
+          '2500k',
+          '-pix_fmt',
+          'yuv420p',
+        ]),
+        expect.any(Function),
+      )
     })
   })
 })

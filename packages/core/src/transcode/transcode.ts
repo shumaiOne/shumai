@@ -111,6 +111,69 @@ export interface TranscodeVideoParams {
   frameRate?: number | string
   disableAudio?: boolean
   overlayFile?: string
+  hardwareAcceleration?: 'off' | 'auto'
+  videoBitrate?: string
+}
+
+export interface EncoderConfig {
+  name: string
+  presetArgs: string[]
+  supportsCrf: boolean
+}
+
+export const H264_ENCODER_CONFIGS: Record<string, EncoderConfig> = {
+  h264_nvenc: {
+    name: 'h264_nvenc',
+    presetArgs: ['-preset', 'p4'],
+    supportsCrf: false,
+  },
+  h264_qsv: {
+    name: 'h264_qsv',
+    presetArgs: ['-preset', 'fast'],
+    supportsCrf: false,
+  },
+  h264_amf: {
+    name: 'h264_amf',
+    presetArgs: ['-quality', 'balanced'],
+    supportsCrf: false,
+  },
+  h264_videotoolbox: {
+    name: 'h264_videotoolbox',
+    presetArgs: [],
+    supportsCrf: false,
+  },
+  libx264: {
+    name: 'libx264',
+    presetArgs: ['-preset', 'fast'],
+    supportsCrf: true,
+  },
+}
+
+export function getPlatformEncoderCandidates(
+  platform: NodeJS.Platform = process.platform,
+): string[] {
+  switch (platform) {
+    case 'darwin':
+      return ['h264_videotoolbox', 'h264_nvenc', 'h264_qsv', 'h264_amf']
+    case 'win32':
+      return ['h264_nvenc', 'h264_qsv', 'h264_amf']
+    case 'linux':
+    default:
+      return ['h264_nvenc', 'h264_qsv', 'h264_amf']
+  }
+}
+
+export function getDefaultBitrate(height: number, width?: number): string {
+  const longSide = Math.max(width || 0, height)
+  const shortSide = Math.min(width || height, height)
+  const effectiveHeight = shortSide > 0 ? shortSide : height
+
+  if (effectiveHeight >= 2160 || longSide >= 3840) return '12000k'
+  if (effectiveHeight >= 1080 || longSide >= 1920) return '4500k'
+  if (effectiveHeight >= 720 || longSide >= 1280) return '2500k'
+  if (effectiveHeight >= 540 || longSide >= 960) return '1200k'
+  if (effectiveHeight >= 360 || longSide >= 640) return '800k'
+  return '300k'
 }
 
 export interface ExtractVideoFramesParams {
@@ -373,6 +436,53 @@ export class TranscodeService {
     }
   }
 
+  private availableEncodersCache: Set<string> | null = null
+
+  clearEncodersCache(): void {
+    this.availableEncodersCache = null
+  }
+
+  async getAvailableEncoders(): Promise<Set<string>> {
+    if (this.availableEncodersCache) {
+      return this.availableEncodersCache
+    }
+    try {
+      const { stdout } = await execFileAsync('ffmpeg', ['-encoders'])
+      const encoders = new Set<string>()
+      const lines = stdout.split('\n')
+      for (const line of lines) {
+        const match = line.match(/^\s*[A-Z.]{6}\s+([a-zA-Z0-9_-]+)/)
+        if (match) {
+          encoders.add(match[1])
+        }
+      }
+      this.availableEncodersCache = encoders
+      return encoders
+    } catch (err) {
+      console.warn('Failed to probe ffmpeg encoders:', err)
+      return new Set<string>()
+    }
+  }
+
+  async selectH264Encoder(
+    hardwareAcceleration?: 'off' | 'auto',
+    platform: NodeJS.Platform = process.platform,
+  ): Promise<EncoderConfig> {
+    if (hardwareAcceleration !== 'auto') {
+      return H264_ENCODER_CONFIGS.libx264
+    }
+
+    const available = await this.getAvailableEncoders()
+    const candidates = getPlatformEncoderCandidates(platform)
+    for (const enc of candidates) {
+      if (available.has(enc) && H264_ENCODER_CONFIGS[enc]) {
+        return H264_ENCODER_CONFIGS[enc]
+      }
+    }
+
+    return H264_ENCODER_CONFIGS.libx264
+  }
+
   async transcodeVideo(params: TranscodeVideoParams): Promise<void> {
     let filterComplex: string
     const args: string[] = ['-i', params.inputFile]
@@ -420,7 +530,24 @@ export class TranscodeService {
       args.push('-map', '0:a?')
     }
 
-    args.push('-c:v', 'libx264', '-preset', 'fast', '-crf', '26')
+    const encoder = await this.selectH264Encoder(params.hardwareAcceleration)
+    args.push('-c:v', encoder.name)
+    if (encoder.presetArgs.length > 0) {
+      args.push(...encoder.presetArgs)
+    }
+
+    if (encoder.supportsCrf) {
+      if (params.videoBitrate) {
+        args.push('-b:v', params.videoBitrate)
+      } else {
+        args.push('-crf', '26')
+      }
+    } else {
+      const bitrate = params.videoBitrate || getDefaultBitrate(params.height, params.width)
+      args.push('-b:v', bitrate)
+    }
+
+    args.push('-pix_fmt', 'yuv420p')
 
     if (!params.disableAudio) {
       args.push('-c:a', 'aac', '-b:a', '128k')

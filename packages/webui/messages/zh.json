@@ -254,6 +254,11 @@
   "best_match_description": "生成与源质量匹配的单一最优分辨率。",
   "all_resolutions": "所有分辨率",
   "all_resolutions_description": "生成不超过源质量的所有支持分辨率。",
+  "hardware_acceleration": "硬件加速",
+  "hardware_acceleration_off": "已禁用 (软件编码)",
+  "hardware_acceleration_off_description": "使用 CPU 的 libx264 软件编码器及 CRF 恒定画质模式。",
+  "hardware_acceleration_auto": "自动检测",
+  "hardware_acceleration_auto_description": "自动检测并使用 GPU/硬件加速（NVENC、QSV、AMF、VideoToolbox）。",
 
   "notification_settings": "通知设置",
   "notifications_description": "配置您在此团队的个人通知偏好。",

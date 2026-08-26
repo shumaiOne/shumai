@@ -371,11 +371,12 @@ describe('TeamService', () => {
     expect(newSettings).toEqual({ theme: 'dark', semanticSearchEnabled: false })
 
     await teamService.updateSettings(team.id, 'transcode.videoStrategy', 'all')
+    await teamService.updateSettings(team.id, 'transcode.hardwareAcceleration', 'auto')
 
     const finalSettings = await teamService.getSettings(team.id)
     expect(finalSettings).toEqual({
       theme: 'dark',
-      transcode: { videoStrategy: 'all' },
+      transcode: { videoStrategy: 'all', hardwareAcceleration: 'auto' },
       semanticSearchEnabled: false,
     })
   })

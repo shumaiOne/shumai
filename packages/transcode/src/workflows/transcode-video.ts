@@ -85,6 +85,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
           videoSpec,
           duration: metadata.duration,
           originalFps: metadata.frameRate,
+          hardwareAcceleration: spec.hardwareAcceleration,
         })
 
         if (res === '180p') {

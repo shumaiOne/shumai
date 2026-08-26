@@ -74,10 +74,20 @@ export const VideoTranscodeStrategy = {
 export type VideoTranscodeStrategy =
   (typeof VideoTranscodeStrategy)[keyof typeof VideoTranscodeStrategy]
 
+export const HardwareAcceleration = {
+  off: 'off',
+  auto: 'auto',
+} as const
+export type HardwareAcceleration = (typeof HardwareAcceleration)[keyof typeof HardwareAcceleration]
+
 export const updateTeamSettingsRequestSchema = z.union([
   z.object({
     key: z.literal('transcode.videoStrategy'),
     value: z.nativeEnum(VideoTranscodeStrategy),
+  }),
+  z.object({
+    key: z.literal('transcode.hardwareAcceleration'),
+    value: z.nativeEnum(HardwareAcceleration),
   }),
 ])
 export type UpdateTeamSettingsRequest = z.infer<typeof updateTeamSettingsRequestSchema>

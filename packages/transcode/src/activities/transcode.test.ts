@@ -590,9 +590,15 @@ describe('Transcode Activities', () => {
       videoSpec: { resolution: '720p', width: 1280, height: 720 },
       duration: 10,
       originalFps: 30,
+      hardwareAcceleration: 'auto',
     })
 
-    expect(transcodeService.transcodeVideo).toHaveBeenCalled()
+    expect(transcodeService.transcodeVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputFile: '/tmp/v.mp4',
+        hardwareAcceleration: 'auto',
+      }),
+    )
   })
 
   it('should call transcodeService.takeScreenshots', async () => {
