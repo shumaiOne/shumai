@@ -591,12 +591,14 @@ describe('Transcode Activities', () => {
       duration: 10,
       originalFps: 30,
       hardwareAcceleration: 'auto',
+      sourceVideoBitrate: 600_000,
     })
 
     expect(transcodeService.transcodeVideo).toHaveBeenCalledWith(
       expect.objectContaining({
         inputFile: '/tmp/v.mp4',
         hardwareAcceleration: 'auto',
+        sourceVideoBitrate: 600_000,
       }),
     )
   })

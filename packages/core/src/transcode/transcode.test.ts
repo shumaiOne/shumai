@@ -4,6 +4,8 @@ import {
   calculatePreviewDimensions,
   getPlatformEncoderCandidates,
   getDefaultBitrate,
+  getDefaultBitrateBps,
+  calculateMaxBitrate,
   H264_ENCODER_CONFIGS,
 } from './transcode'
 import { s3Service } from '@shumai/core/src/s3/s3'
@@ -113,6 +115,118 @@ describe('TranscodeService', () => {
       expect.any(Array),
       expect.any(Function),
     )
+  })
+
+  it('should extract videoBitRate from stream bit_rate or tags or fallback correctly', async () => {
+    /* eslint-disable @typescript-eslint/naming-convention */
+    // 1. Direct video stream bit_rate
+    const output1 = JSON.stringify({
+      format: { duration: '10', bit_rate: '2000000' },
+      streams: [
+        { codec_type: 'video', width: 1920, height: 1080, bit_rate: '1800000' },
+        { codec_type: 'audio', bit_rate: '128000' },
+      ],
+    })
+    vi.mocked(execFile).mockImplementation(
+      (
+        _cmd: unknown,
+        _args: unknown,
+        callback: unknown,
+      ): ReturnType<typeof child_process.execFile> => {
+        const cb = callback as (
+          err: Error | null,
+          result: { stdout: string; stderr: string },
+        ) => void
+        if (typeof cb === 'function') {
+          cb(null, { stdout: output1, stderr: '' })
+        }
+        return {} as ReturnType<typeof child_process.execFile>
+      },
+    )
+    const info1 = await transcodeService.getVideoInfo('test1.mp4')
+    expect(info1.videoBitRate).toBe(1800000)
+
+    // 2. Stream BPS tag
+    const output2 = JSON.stringify({
+      format: { duration: '10', bit_rate: '2000000' },
+      streams: [
+        { codec_type: 'video', width: 1920, height: 1080, tags: { BPS: '1500000' } },
+        { codec_type: 'audio', bit_rate: '128000' },
+      ],
+    })
+    vi.mocked(execFile).mockImplementation(
+      (
+        _cmd: unknown,
+        _args: unknown,
+        callback: unknown,
+      ): ReturnType<typeof child_process.execFile> => {
+        const cb = callback as (
+          err: Error | null,
+          result: { stdout: string; stderr: string },
+        ) => void
+        if (typeof cb === 'function') {
+          cb(null, { stdout: output2, stderr: '' })
+        }
+        return {} as ReturnType<typeof child_process.execFile>
+      },
+    )
+    const info2 = await transcodeService.getVideoInfo('test2.mp4')
+    expect(info2.videoBitRate).toBe(1500000)
+
+    // 3. Stream NUMBER_OF_BYTES tag
+    const output3 = JSON.stringify({
+      format: { duration: '10', bit_rate: '2000000' },
+      streams: [
+        { codec_type: 'video', width: 1920, height: 1080, tags: { NUMBER_OF_BYTES: '1000000' } },
+        { codec_type: 'audio', bit_rate: '128000' },
+      ],
+    })
+    vi.mocked(execFile).mockImplementation(
+      (
+        _cmd: unknown,
+        _args: unknown,
+        callback: unknown,
+      ): ReturnType<typeof child_process.execFile> => {
+        const cb = callback as (
+          err: Error | null,
+          result: { stdout: string; stderr: string },
+        ) => void
+        if (typeof cb === 'function') {
+          cb(null, { stdout: output3, stderr: '' })
+        }
+        return {} as ReturnType<typeof child_process.execFile>
+      },
+    )
+    const info3 = await transcodeService.getVideoInfo('test3.mp4')
+    expect(info3.videoBitRate).toBe(800000) // (1,000,000 * 8) / 10 = 800,000
+
+    // 4. Fallback totalBitrate - audioBitrate
+    const output4 = JSON.stringify({
+      format: { duration: '10', bit_rate: '1000000' },
+      streams: [
+        { codec_type: 'video', width: 1920, height: 1080 },
+        { codec_type: 'audio', bit_rate: '128000' },
+      ],
+    })
+    /* eslint-enable @typescript-eslint/naming-convention */
+    vi.mocked(execFile).mockImplementation(
+      (
+        _cmd: unknown,
+        _args: unknown,
+        callback: unknown,
+      ): ReturnType<typeof child_process.execFile> => {
+        const cb = callback as (
+          err: Error | null,
+          result: { stdout: string; stderr: string },
+        ) => void
+        if (typeof cb === 'function') {
+          cb(null, { stdout: output4, stderr: '' })
+        }
+        return {} as ReturnType<typeof child_process.execFile>
+      },
+    )
+    const info4 = await transcodeService.getVideoInfo('test4.mp4')
+    expect(info4.videoBitRate).toBe(872000) // 1,000,000 - 128,000 = 872,000
   })
 
   it('should get image info using sharp', async () => {
@@ -909,6 +1023,10 @@ describe('TranscodeService', () => {
       transcodeService.clearEncodersCache()
     })
 
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
     it('should return platform candidates correctly', () => {
       expect(getPlatformEncoderCandidates('darwin')).toEqual([
         'h264_videotoolbox',
@@ -921,6 +1039,7 @@ describe('TranscodeService', () => {
     })
 
     it('should calculate default bitrates by resolution height and width correctly', () => {
+      expect(getDefaultBitrateBps(2160, 3840)).toBe(12_000_000)
       expect(getDefaultBitrate(2160, 3840)).toBe('12000k')
       expect(getDefaultBitrate(1080, 1920)).toBe('4500k')
       expect(getDefaultBitrate(720, 1280)).toBe('2500k')
@@ -928,6 +1047,32 @@ describe('TranscodeService', () => {
       expect(getDefaultBitrate(360, 640)).toBe('800k')
       expect(getDefaultBitrate(180, 320)).toBe('300k')
       expect(getDefaultBitrate(100, 100)).toBe('300k')
+    })
+
+    it('calculateMaxBitrate should cap bitrate based on sourceVideoBitrate and ceiling', () => {
+      // Default without source bitrate
+      expect(calculateMaxBitrate(720, 1280)).toEqual({
+        maxrate: '2500k',
+        bufsize: '5000k',
+      })
+
+      // With low source bitrate (600k * 1.2 = 720k)
+      expect(calculateMaxBitrate(720, 1280, 600_000)).toEqual({
+        maxrate: '720k',
+        bufsize: '1440k',
+      })
+
+      // With high source bitrate (3000k * 1.2 = 3600k, capped at 2500k)
+      expect(calculateMaxBitrate(720, 1280, 3_000_000)).toEqual({
+        maxrate: '2500k',
+        bufsize: '5000k',
+      })
+
+      // With extremely low source bitrate (50k * 1.2 = 60k, minimum floor 100k)
+      expect(calculateMaxBitrate(720, 1280, 50_000)).toEqual({
+        maxrate: '100k',
+        bufsize: '200k',
+      })
     })
 
     it('selectH264Encoder should return libx264 when hardwareAcceleration is off', async () => {
@@ -967,8 +1112,7 @@ describe('TranscodeService', () => {
 
       const encoder = await transcodeService.selectH264Encoder('auto', 'darwin')
       expect(encoder.name).toBe('h264_videotoolbox')
-      expect(encoder.presetArgs).toEqual([])
-      expect(encoder.supportsCrf).toBe(false)
+      expect(encoder.presetArgs).toEqual(['-q:v', '74'])
     })
 
     it('selectH264Encoder should select h264_nvenc on linux when available', async () => {
@@ -999,8 +1143,16 @@ describe('TranscodeService', () => {
 
       const encoder = await transcodeService.selectH264Encoder('auto', 'linux')
       expect(encoder.name).toBe('h264_nvenc')
-      expect(encoder.presetArgs).toEqual(['-preset', 'p4'])
-      expect(encoder.supportsCrf).toBe(false)
+      expect(encoder.presetArgs).toEqual([
+        '-preset',
+        'p4',
+        '-rc:v',
+        'vbr',
+        '-cq:v',
+        '26',
+        '-b:v',
+        '0',
+      ])
     })
 
     it('selectH264Encoder should select h264_qsv on linux when nvenc is not available', async () => {
@@ -1030,8 +1182,7 @@ describe('TranscodeService', () => {
 
       const encoder = await transcodeService.selectH264Encoder('auto', 'linux')
       expect(encoder.name).toBe('h264_qsv')
-      expect(encoder.presetArgs).toEqual(['-preset', 'fast'])
-      expect(encoder.supportsCrf).toBe(false)
+      expect(encoder.presetArgs).toEqual(['-preset', 'fast', '-global_quality', '26'])
     })
 
     it('selectH264Encoder should select h264_amf on win32 when available', async () => {
@@ -1061,8 +1212,14 @@ describe('TranscodeService', () => {
 
       const encoder = await transcodeService.selectH264Encoder('auto', 'win32')
       expect(encoder.name).toBe('h264_amf')
-      expect(encoder.presetArgs).toEqual(['-quality', 'balanced'])
-      expect(encoder.supportsCrf).toBe(false)
+      expect(encoder.presetArgs).toEqual([
+        '-quality',
+        'balanced',
+        '-rc',
+        'qvbr',
+        '-qvbr_quality_level',
+        '26',
+      ])
     })
 
     it('selectH264Encoder should fallback to libx264 when no hw encoder is in ffmpeg build', async () => {
@@ -1091,10 +1248,10 @@ describe('TranscodeService', () => {
 
       const encoder = await transcodeService.selectH264Encoder('auto', 'linux')
       expect(encoder.name).toBe('libx264')
-      expect(encoder.supportsCrf).toBe(true)
+      expect(encoder.presetArgs).toEqual(['-preset', 'fast', '-crf', '26'])
     })
 
-    it('transcodeVideo with hardwareAcceleration off should use libx264, preset fast, crf 26, and yuv420p', async () => {
+    it('transcodeVideo with hardwareAcceleration off should use libx264, preset fast, crf 26, maxrate, and yuv420p', async () => {
       vi.mocked(execFile).mockImplementation(
         (
           _cmd: unknown,
@@ -1119,6 +1276,7 @@ describe('TranscodeService', () => {
         width: 1280,
         height: 720,
         hardwareAcceleration: 'off',
+        sourceVideoBitrate: 600_000,
       })
 
       expect(child_process.execFile).toHaveBeenCalledWith(
@@ -1130,6 +1288,10 @@ describe('TranscodeService', () => {
           'fast',
           '-crf',
           '26',
+          '-maxrate',
+          '720k',
+          '-bufsize',
+          '1440k',
           '-pix_fmt',
           'yuv420p',
         ]),
@@ -1137,7 +1299,7 @@ describe('TranscodeService', () => {
       )
     })
 
-    it('transcodeVideo with hardwareAcceleration auto and videotoolbox should use -b:v and no preset', async () => {
+    it('transcodeVideo with hardwareAcceleration auto and videotoolbox should use -q:v 74 and -maxrate', async () => {
       vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
         H264_ENCODER_CONFIGS.h264_videotoolbox,
       )
@@ -1166,6 +1328,7 @@ describe('TranscodeService', () => {
         width: 1280,
         height: 720,
         hardwareAcceleration: 'auto',
+        sourceVideoBitrate: 600_000,
       })
 
       expect(child_process.execFile).toHaveBeenCalledWith(
@@ -1173,26 +1336,20 @@ describe('TranscodeService', () => {
         expect.arrayContaining([
           '-c:v',
           'h264_videotoolbox',
-          '-b:v',
-          '2500k',
+          '-q:v',
+          '74',
+          '-maxrate',
+          '720k',
+          '-bufsize',
+          '1440k',
           '-pix_fmt',
           'yuv420p',
         ]),
         expect.any(Function),
       )
-      expect(child_process.execFile).not.toHaveBeenCalledWith(
-        'ffmpeg',
-        expect.arrayContaining(['-preset']),
-        expect.any(Function),
-      )
-      expect(child_process.execFile).not.toHaveBeenCalledWith(
-        'ffmpeg',
-        expect.arrayContaining(['-crf']),
-        expect.any(Function),
-      )
     })
 
-    it('transcodeVideo with hardwareAcceleration auto and nvenc should use -preset p4 and -b:v', async () => {
+    it('transcodeVideo with hardwareAcceleration auto and nvenc should use -preset p4, -rc:v vbr, -cq:v 26, -b:v 0, and -maxrate', async () => {
       vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
         H264_ENCODER_CONFIGS.h264_nvenc,
       )
@@ -1221,6 +1378,7 @@ describe('TranscodeService', () => {
         width: 1920,
         height: 1080,
         hardwareAcceleration: 'auto',
+        sourceVideoBitrate: 1_000_000,
       })
 
       expect(child_process.execFile).toHaveBeenCalledWith(
@@ -1230,8 +1388,16 @@ describe('TranscodeService', () => {
           'h264_nvenc',
           '-preset',
           'p4',
+          '-rc:v',
+          'vbr',
+          '-cq:v',
+          '26',
           '-b:v',
-          '4500k',
+          '0',
+          '-maxrate',
+          '1200k',
+          '-bufsize',
+          '2400k',
           '-pix_fmt',
           'yuv420p',
         ]),
@@ -1239,7 +1405,7 @@ describe('TranscodeService', () => {
       )
     })
 
-    it('transcodeVideo with hardwareAcceleration auto and amf should use -quality balanced and -b:v', async () => {
+    it('transcodeVideo with hardwareAcceleration auto and amf should use -quality balanced, -rc qvbr, -qvbr_quality_level 26, and -maxrate', async () => {
       vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
         H264_ENCODER_CONFIGS.h264_amf,
       )
@@ -1268,6 +1434,7 @@ describe('TranscodeService', () => {
         width: 1280,
         height: 720,
         hardwareAcceleration: 'auto',
+        sourceVideoBitrate: 600_000,
       })
 
       expect(child_process.execFile).toHaveBeenCalledWith(
@@ -1277,11 +1444,68 @@ describe('TranscodeService', () => {
           'h264_amf',
           '-quality',
           'balanced',
-          '-b:v',
-          '2500k',
+          '-rc',
+          'qvbr',
+          '-qvbr_quality_level',
+          '26',
+          '-maxrate',
+          '720k',
+          '-bufsize',
+          '1440k',
           '-pix_fmt',
           'yuv420p',
         ]),
+        expect.any(Function),
+      )
+    })
+
+    it('transcodeVideo with explicit videoBitrate should use -b:v directly', async () => {
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const outputFile = path.join(tempDir, 'out_explicit.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1280,
+        height: 720,
+        hardwareAcceleration: 'off',
+        videoBitrate: '1500k',
+      })
+
+      expect(child_process.execFile).toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining([
+          '-c:v',
+          'libx264',
+          '-preset',
+          'fast',
+          '-crf',
+          '26',
+          '-b:v',
+          '1500k',
+          '-pix_fmt',
+          'yuv420p',
+        ]),
+        expect.any(Function),
+      )
+      expect(child_process.execFile).not.toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining(['-maxrate']),
         expect.any(Function),
       )
     })

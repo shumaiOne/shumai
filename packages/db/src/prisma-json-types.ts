@@ -105,6 +105,7 @@ declare global {
       hasAudio: boolean
       duration: number
       bitRate: number
+      videoBitRate?: number
       frameRate: number
       totalFrames: number
       startTimecode: string

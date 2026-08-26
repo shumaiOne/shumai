@@ -210,6 +210,7 @@ describe('transcodeVideoWorkflow', () => {
         totalFrames: 300,
         startTimecode: '00:00:00:00',
         bitRate: 1000,
+        videoBitRate: 850000,
         hasAudio: false,
         format: {},
       },
@@ -230,6 +231,7 @@ describe('transcodeVideoWorkflow', () => {
         assetKey: 'video.mp4',
         filePath: '/tmp/video.mp4',
         hardwareAcceleration: 'auto',
+        sourceVideoBitrate: 850000,
       }),
     )
   })

@@ -221,6 +221,7 @@ export interface VideoActivityParams {
   duration: number
   originalFps: number
   hardwareAcceleration?: PrismaJson.HardwareAcceleration
+  sourceVideoBitrate?: number
 }
 
 export async function transcodeVideoActivity(
@@ -264,6 +265,7 @@ export async function transcodeVideoActivity(
       frameRate: targetFps || undefined,
       disableAudio,
       hardwareAcceleration: params.hardwareAcceleration,
+      sourceVideoBitrate: params.sourceVideoBitrate,
     })
 
     const stat = fs.statSync(outputFile)
