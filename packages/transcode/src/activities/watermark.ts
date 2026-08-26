@@ -133,7 +133,12 @@ export async function transcodeWatermarkMediaActivity(
 
   const asset = await prisma.asset.findUnique({
     where: { id: params.assetId },
-    include: { storageKey: true },
+    include: {
+      storageKey: true,
+      project: {
+        include: { team: true },
+      },
+    },
   })
 
   if (!asset || !asset.storageKey?.key) {
@@ -142,6 +147,9 @@ export async function transcodeWatermarkMediaActivity(
       nonRetryable: true,
     })
   }
+
+  const teamSettings = asset.project?.team?.settings as PrismaJson.Settings | null
+  const hardwareAcceleration = teamSettings?.transcode?.hardwareAcceleration ?? 'off'
 
   // The config column is declared as PrismaJson.WatermarkConfigSpec, which is
   // structurally identical to the DTO type, so no cast is required.
@@ -165,20 +173,26 @@ export async function transcodeWatermarkMediaActivity(
     let originalWidth = 1920
     let originalHeight = 1080
     let duration = 0
+    let bitRate = 0
+    let videoBitRate: number | undefined
     let frameRate = 30
     let totalFrames = 0
     let startTimecode = '00:00:00:00'
     let hasAudio = false
+    let sourceVideoBitrate: number | undefined
 
     if (isVideo) {
       const info = await transcodeService.getVideoInfo(rawFilePath)
       originalWidth = info.originalWidth
       originalHeight = info.originalHeight
       duration = info.duration
+      bitRate = info.bitRate
+      videoBitRate = info.videoBitRate
       frameRate = info.frameRate
       totalFrames = info.totalFrames
       startTimecode = info.startTimecode || '00:00:00:00'
       hasAudio = info.hasAudio
+      sourceVideoBitrate = info.videoBitRate || info.bitRate
     } else if (isImage) {
       const info = await transcodeService.getImageInfo(rawFilePath)
       originalWidth = info.originalWidth
@@ -237,7 +251,8 @@ export async function transcodeWatermarkMediaActivity(
         originalWidth,
         originalHeight,
         duration,
-        bitRate: 0,
+        bitRate,
+        videoBitRate,
         frameRate,
         totalFrames,
         startTimecode,
@@ -321,6 +336,8 @@ export async function transcodeWatermarkMediaActivity(
           height: targetHeight,
           disableAudio: !hasAudio,
           overlayFile: overlayPngPath,
+          hardwareAcceleration,
+          sourceVideoBitrate,
         })
 
         const stat = fs.statSync(outFilePath)
