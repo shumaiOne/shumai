@@ -632,10 +632,7 @@ export class AssetService {
         projectId: req.projectId,
         isDeleted: true,
         deletedAt: { gte: thirtyDaysAgo },
-        OR: [
-          { type: { in: typesToQuery } },
-          { type: AssetType.symlink, target: { type: { in: typesToQuery } } },
-        ],
+        type: { in: typesToQuery },
       }
     } else {
       if (!req.assetId) {
@@ -654,7 +651,7 @@ export class AssetService {
         isDeleted: false,
         OR: [
           { type: { in: typesToQuery } },
-          { type: AssetType.symlink, target: { type: { in: typesToQuery } } },
+          { type: AssetType.symlink, target: { isDeleted: false, type: { in: typesToQuery } } },
         ],
       }
     }
@@ -1103,6 +1100,39 @@ export class AssetService {
           })
         }
 
+        const allDeletedIds = [a.id, ...descendantIds]
+        const symlinks = await tx.asset.findMany({
+          where: {
+            targetId: { in: allDeletedIds },
+            isDeleted: false,
+            type: AssetType.symlink,
+          },
+        })
+
+        if (symlinks.length > 0) {
+          await tx.asset.updateMany({
+            where: { id: { in: symlinks.map((s) => s.id) } },
+            data: {
+              isDeleted: true,
+              status: AssetStatus.trashed,
+              deletedAt: new Date(),
+            },
+          })
+
+          const parentCounts = new Map<string, number>()
+          for (const s of symlinks) {
+            if (s.parentId) {
+              parentCounts.set(s.parentId, (parentCounts.get(s.parentId) || 0) + 1)
+            }
+          }
+          for (const [parentId, count] of parentCounts.entries()) {
+            await tx.asset.update({
+              where: { id: parentId },
+              data: { fileCount: { decrement: count } },
+            })
+          }
+        }
+
         await tx.asset.update({
           where: { id: a.id },
           data: {
@@ -1126,9 +1156,16 @@ export class AssetService {
         UNION ALL
         SELECT a.id FROM assets a
         INNER JOIN descendant d ON a.parent_id = d.id
+      ),
+      all_purging_targets AS (
+        SELECT id FROM descendant
+      ),
+      all_affected_symlinks AS (
+        SELECT s.id FROM assets s
+        WHERE s.type = 'symlink' AND s.target_id IN (SELECT id FROM all_purging_targets)
       )
       UPDATE assets SET status = 'pending_purge', updated_at = NOW()
-      WHERE id IN (SELECT id FROM descendant);
+      WHERE id IN (SELECT id FROM all_purging_targets) OR id IN (SELECT id FROM all_affected_symlinks);
     `
   }
 
@@ -1312,6 +1349,39 @@ export class AssetService {
             where: { id: { in: descendantIds } },
             data: { isDeleted: false },
           })
+        }
+
+        const allRestoredIds = [a.id, ...descendantIds]
+        const symlinks = await tx.asset.findMany({
+          where: {
+            targetId: { in: allRestoredIds },
+            isDeleted: true,
+            type: AssetType.symlink,
+          },
+        })
+
+        if (symlinks.length > 0) {
+          await tx.asset.updateMany({
+            where: { id: { in: symlinks.map((s) => s.id) } },
+            data: {
+              isDeleted: false,
+              status: AssetStatus.processed,
+              deletedAt: null,
+            },
+          })
+
+          const parentCounts = new Map<string, number>()
+          for (const s of symlinks) {
+            if (s.parentId) {
+              parentCounts.set(s.parentId, (parentCounts.get(s.parentId) || 0) + 1)
+            }
+          }
+          for (const [parentId, count] of parentCounts.entries()) {
+            await tx.asset.update({
+              where: { id: parentId },
+              data: { fileCount: { increment: count } },
+            })
+          }
         }
 
         await tx.asset.update({
