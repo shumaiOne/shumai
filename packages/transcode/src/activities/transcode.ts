@@ -104,6 +104,7 @@ export async function getMediaInfoActivity(params: {
         originalHeight: info.originalHeight,
         duration: info.duration,
         bitRate: info.bitRate,
+        videoBitRate: info.videoBitRate,
         frameRate: info.frameRate,
         totalFrames: info.totalFrames,
         startTimecode: info.startTimecode || '00:00:00:00',

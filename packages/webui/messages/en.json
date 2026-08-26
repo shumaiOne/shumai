@@ -258,7 +258,7 @@
   "hardware_acceleration_off": "Disabled (Software)",
   "hardware_acceleration_off_description": "Uses software libx264 encoder with constant rate factor (CRF).",
   "hardware_acceleration_auto": "Auto Detect",
-  "hardware_acceleration_auto_description": "Automatically probes and uses GPU/Hardware acceleration (NVENC, QSV, AMF, VideoToolbox).",
+  "hardware_acceleration_auto_description": "Automatically probes and uses GPU/Hardware acceleration (NVENC, QSV, AMF, VideoToolbox). If hardware acceleration is unsupported on the host, video transcoding may fail.",
 
   "notification_settings": "Notification Settings",
   "notifications_description": "Configure your personal notification preferences for this team.",

@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Automatically probes and uses GPU/Hardware acceleration (NVENC, QSV, AMF, VideoToolbox)." |
+* | "Automatically probes and uses GPU/Hardware acceleration (NVENC, QSV, AMF, VideoToolbox). If hardware acceleration is unsupported on the host, video transcodi..." |
 *
 * @param {Hardware_Acceleration_Auto_DescriptionInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options
