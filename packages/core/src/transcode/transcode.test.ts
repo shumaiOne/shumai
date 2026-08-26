@@ -1045,11 +1045,11 @@ describe('TranscodeService', () => {
       expect(getDefaultBitrate(720, 1280)).toBe('2500k')
       expect(getDefaultBitrate(540, 960)).toBe('1200k')
       expect(getDefaultBitrate(360, 640)).toBe('800k')
-      expect(getDefaultBitrate(180, 320)).toBe('300k')
-      expect(getDefaultBitrate(100, 100)).toBe('300k')
+      expect(getDefaultBitrate(180, 320)).toBe('100k')
+      expect(getDefaultBitrate(100, 100)).toBe('100k')
     })
 
-    it('calculateMaxBitrate should cap bitrate based on sourceVideoBitrate and ceiling', () => {
+    it('calculateMaxBitrate should cap bitrate based on sourceVideoBitrate, ceiling, and targetFps', () => {
       // Default without source bitrate
       expect(calculateMaxBitrate(720, 1280)).toEqual({
         maxrate: '2500k',
@@ -1068,7 +1068,19 @@ describe('TranscodeService', () => {
         bufsize: '5000k',
       })
 
-      // With extremely low source bitrate (50k * 1.2 = 60k, minimum floor 100k)
+      // With downsampled targetFps (180p preview @ 0.78 fps: 100k * (0.78/24) = 3.25k -> capped at min 50k)
+      expect(calculateMaxBitrate(180, 320, 600_000, 0.78)).toEqual({
+        maxrate: '50k',
+        bufsize: '100k',
+      })
+
+      // With downsampled targetFps string (180p preview @ 24 fps)
+      expect(calculateMaxBitrate(180, 320, 600_000, 24)).toEqual({
+        maxrate: '100k',
+        bufsize: '200k',
+      })
+
+      // With extremely low source bitrate without targetFps (50k * 1.2 = 60k, minimum floor 100k)
       expect(calculateMaxBitrate(720, 1280, 50_000)).toEqual({
         maxrate: '100k',
         bufsize: '200k',

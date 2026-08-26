@@ -169,7 +169,7 @@ export function getDefaultBitrateBps(height: number, width?: number): number {
   if (effectiveHeight >= 720 || longSide >= 1280) return 2_500_000
   if (effectiveHeight >= 540 || longSide >= 960) return 1_200_000
   if (effectiveHeight >= 360 || longSide >= 640) return 800_000
-  return 300_000
+  return 100_000
 }
 
 export function getDefaultBitrate(height: number, width?: number): string {
@@ -181,14 +181,38 @@ export function calculateMaxBitrate(
   targetHeight: number,
   targetWidth?: number,
   sourceVideoBitrate?: number,
+  targetFps?: number | string,
 ): { maxrate: string; bufsize: string } {
-  const configuredMaxBps = getDefaultBitrateBps(targetHeight, targetWidth)
-  const effectiveMaxBps =
+  let configuredMaxBps = getDefaultBitrateBps(targetHeight, targetWidth)
+
+  // If frame rate is downsampled (e.g. 180p preview with < 24 fps), scale the bitrate ceiling proportionally
+  if (targetFps) {
+    let parsedFps: number | undefined
+    if (typeof targetFps === 'number') {
+      parsedFps = targetFps
+    } else {
+      const parts = targetFps.split('/')
+      if (parts.length === 2) {
+        parsedFps = parseFloat(parts[0]) / parseFloat(parts[1])
+      } else {
+        parsedFps = parseFloat(targetFps)
+      }
+    }
+    if (Number.isFinite(parsedFps) && parsedFps > 0 && parsedFps < 24) {
+      const fpsRatio = Math.max(0.1, parsedFps / 24)
+      configuredMaxBps = Math.max(50_000, Math.round(configuredMaxBps * fpsRatio))
+    }
+  }
+
+  let effectiveMaxBps =
     sourceVideoBitrate && sourceVideoBitrate > 0
-      ? Math.max(100_000, Math.min(configuredMaxBps, Math.round(sourceVideoBitrate * 1.2)))
+      ? Math.min(configuredMaxBps, Math.round(sourceVideoBitrate * 1.2))
       : configuredMaxBps
 
-  const maxrateKbps = Math.max(100, Math.round(effectiveMaxBps / 1000))
+  const minFloor = targetFps ? 50_000 : 100_000
+  effectiveMaxBps = Math.max(minFloor, effectiveMaxBps)
+
+  const maxrateKbps = Math.max(50, Math.round(effectiveMaxBps / 1000))
   const bufsizeKbps = maxrateKbps * 2
 
   return {
@@ -591,6 +615,7 @@ export class TranscodeService {
         params.height,
         params.width,
         params.sourceVideoBitrate,
+        params.frameRate,
       )
       args.push('-maxrate', maxrate, '-bufsize', bufsize)
     }
