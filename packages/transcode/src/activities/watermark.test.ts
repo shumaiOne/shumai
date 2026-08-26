@@ -182,7 +182,13 @@ describe('Watermark Activities', () => {
   describe('transcodeWatermarkMediaActivity', () => {
     const bucket = process.env.S3_BUCKET || 'shumai'
 
-    async function seedAsset(name: string, mediaType: string, key: string, proxyType: string) {
+    async function seedAsset(
+      name: string,
+      mediaType: string,
+      key: string,
+      proxyType: string,
+      projectId?: string,
+    ) {
       const storageKey = await prisma.storageKey.create({ data: { key } })
       return prisma.asset.create({
         data: {
@@ -190,6 +196,7 @@ describe('Watermark Activities', () => {
           type: 'file',
           mediaType,
           status: 'processed',
+          projectId,
           storageKeyId: storageKey.id,
           media: {
             duration: 0,
@@ -327,12 +334,71 @@ describe('Watermark Activities', () => {
       expect(media.proxyType).toBe('video')
       expect(media.videoTranscodes?.length).toBeGreaterThan(0)
       expect(media.videoTranscodes?.[0].key).toContain('watermark-')
-      expect(s3Service.putObject).toHaveBeenCalledWith(
-        bucket,
-        expect.stringContaining('watermark-'),
-        expect.anything(),
-        expect.any(Number),
-        'video/mp4',
+      expect(transcodeService.transcodeVideo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hardwareAcceleration: 'off',
+          sourceVideoBitrate: 1000,
+        }),
+      )
+
+      fs.rmSync(outFilePath, { force: true })
+    })
+
+    it('passes team hardwareAcceleration and videoBitRate to transcodeVideo', async () => {
+      const team = await prisma.team.create({
+        data: {
+          name: 'HW Accel Team',
+          settings: {
+            transcode: {
+              videoStrategy: 'best_match',
+              hardwareAcceleration: 'auto',
+            },
+          },
+        },
+      })
+      const project = await prisma.project.create({
+        data: {
+          name: 'HW Accel Project',
+          teamId: team.id,
+        },
+      })
+
+      const assetKey = 'files/e2e-wm/video-hw.mp4'
+      const asset = await seedAsset('video-hw.mp4', 'video/mp4', assetKey, 'video', project.id)
+      const config = await seedConfig()
+
+      vi.mocked(transcodeService.getVideoInfo).mockResolvedValue({
+        originalWidth: 1280,
+        originalHeight: 720,
+        duration: 15,
+        bitRate: 2000000,
+        videoBitRate: 1800000,
+        frameRate: 24,
+        totalFrames: 360,
+        startTimecode: '00:00:00:00',
+        hasAudio: false,
+        mimeType: 'video/mp4',
+      })
+      vi.mocked(s3Service.putObject).mockResolvedValue(undefined as never)
+
+      const stem = 'video-hw'
+      const configId = config.id
+      const outFilePath = path.join('/tmp', `${stem}-watermark-${configId}-100p.mp4`)
+      fs.writeFileSync(outFilePath, Buffer.from('fake mp4'))
+
+      const media = await transcodeWatermarkMediaActivity({
+        assetId: asset.id,
+        watermarkConfigId: config.id,
+      })
+
+      expect(media.proxyType).toBe('video')
+      expect(media.metadata?.bitRate).toBe(2000000)
+      expect(transcodeService.transcodeVideo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hardwareAcceleration: 'auto',
+          sourceVideoBitrate: 1800000,
+          disableAudio: true,
+        }),
       )
 
       fs.rmSync(outFilePath, { force: true })
