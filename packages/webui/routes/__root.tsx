@@ -20,7 +20,6 @@ import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 import { useQuery } from '@tanstack/react-query'
-import { Folder } from 'lucide-react'
 import {
   createRootRouteWithContext,
   Outlet,
@@ -94,7 +93,25 @@ function RootComponent() {
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
       <Toaster />
-      <DualSidebar hideMobileButton={true}>
+      <DualSidebar
+        hideMobileButton={true}
+        defaultMobileContent={
+          projectState?.projectId
+            ? {
+                label: m.folder_tree_assets(),
+                children: (
+                  <FolderTree
+                    teamId={projectState.teamId}
+                    projectId={projectState.projectId}
+                    projectName={projectState.projectName}
+                    rootFolderId={projectState.rootFolderId || ''}
+                    ancestorFolders={projectState.ancestorFolders}
+                  />
+                ),
+              }
+            : undefined
+        }
+      >
         <DualSidebarItem
           icon={<HomeIcon />}
           label={m.home()}
@@ -107,21 +124,6 @@ function RootComponent() {
             }
           }}
         />
-        {projectState && projectState.projectId && (
-          <DualSidebarItem
-            id="folders"
-            icon={<Folder className="size-6 text-foreground" />}
-            label={m.folder_tree_assets()}
-          >
-            <FolderTree
-              teamId={projectState.teamId}
-              projectId={projectState.projectId}
-              projectName={projectState.projectName}
-              rootFolderId={projectState.rootFolderId || ''}
-              ancestorFolders={projectState.ancestorFolders}
-            />
-          </DualSidebarItem>
-        )}
         <DualSidebarItem icon={<NotificationFillIcon />} label={m.notifications()} badge={badge}>
           <NotificationList />
         </DualSidebarItem>

@@ -1,7 +1,8 @@
-import { Menu } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import React, { useEffect, useMemo } from 'react'
 import { useRouterState } from '@tanstack/react-router'
 import { useDualSidebarStore } from '@/ui/stores/dual-sidebar'
+import { cn } from '@/ui/lib/utils'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { UserMenu } from './user-menu'
@@ -24,17 +25,19 @@ export const DualSidebarItem: React.FC<DualSidebarItemProps> = () => {
 interface DualSidebarProps {
   children: React.ReactNode
   hideMobileButton?: boolean
+  defaultMobileContent?: {
+    label: string
+    children: React.ReactNode
+  }
 }
 
-export const DualSidebar: React.FC<DualSidebarProps> = ({ children, hideMobileButton = false }) => {
-  const {
-    isMobileMenuOpen,
-    activeItem,
-    activeItemId,
-    setActiveItem,
-    toggleMobileMenu,
-    closeMobileMenu,
-  } = useDualSidebarStore()
+export const DualSidebar: React.FC<DualSidebarProps> = ({
+  children,
+  hideMobileButton = false,
+  defaultMobileContent,
+}) => {
+  const { isMobileMenuOpen, activeItem, setActiveItem, toggleMobileMenu, closeMobileMenu } =
+    useDualSidebarStore()
 
   const pathname = useRouterState({ select: (s) => s.location.pathname })
 
@@ -47,22 +50,19 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children, hideMobileBu
     [children],
   )
 
-  // Automatically resolve activeItemId to activeItem index if specified
-  useEffect(() => {
-    if (activeItemId) {
-      const foundIndex = sidebarItems.findIndex((item) => item.props.id === activeItemId)
-      if (foundIndex !== -1) {
-        setActiveItem(foundIndex)
-      }
-    }
-  }, [activeItemId, sidebarItems, setActiveItem])
+  const prevPathnameRef = React.useRef(pathname)
 
   // Automatically close mobile menu when navigating to another route
   useEffect(() => {
-    closeMobileMenu()
+    if (prevPathnameRef.current !== pathname) {
+      prevPathnameRef.current = pathname
+      closeMobileMenu()
+    }
   }, [pathname, closeMobileMenu])
 
   const activeItemContent = activeItem !== null ? sidebarItems[activeItem]?.props : null
+  const displayContent = activeItemContent ?? (isMobileMenuOpen ? defaultMobileContent : null)
+  const isLevel2Open = Boolean(activeItemContent || (isMobileMenuOpen && defaultMobileContent))
 
   const handleItemClick = (index: number) => {
     const item = sidebarItems[index]
@@ -161,19 +161,30 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children, hideMobileBu
 
         {/* Level 2: Content Panel */}
         <div
-          className={`transition-all duration-300 ease-in-out bg-sidebar/95 backdrop-blur-sm shadow-lg overflow-hidden ${
-            activeItem !== null
-              ? 'w-[calc(100vw-4rem)] md:w-100 border-r border-sidebar-border'
-              : 'w-0'
-          }`}
+          className={cn(
+            'transition-all duration-300 ease-in-out bg-sidebar/95 backdrop-blur-sm shadow-lg overflow-hidden',
+            isLevel2Open ? 'w-[calc(100vw-4rem)] border-r border-sidebar-border' : 'w-0',
+            activeItemContent
+              ? 'md:w-100 md:border-r md:border-sidebar-border'
+              : 'md:w-0 md:border-r-0',
+          )}
         >
           <div className="w-[calc(100vw-4rem)] md:w-100 h-full flex flex-col">
-            {activeItemContent && (
+            {displayContent && (
               <>
-                <header className="h-16 flex items-center px-4 font-bold text-lg border-b border-sidebar-border flex-shrink-0">
-                  <h2>{activeItemContent.label}</h2>
+                <header className="h-16 flex items-center justify-between px-4 font-bold text-lg border-b border-sidebar-border flex-shrink-0">
+                  <h2 className="truncate">{displayContent.label}</h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={closeMobileMenu}
+                    className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent"
+                    aria-label="Close navigation menu"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
                 </header>
-                <div className="flex-1 overflow-y-auto p-2">{activeItemContent.children}</div>
+                <div className="flex-1 overflow-y-auto p-2">{displayContent.children}</div>
               </>
             )}
           </div>

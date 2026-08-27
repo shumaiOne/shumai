@@ -239,7 +239,7 @@ export function BreadcrumbNav({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => openMobileMenu('folders')}
+            onClick={() => openMobileMenu()}
             className="md:hidden h-8 w-8 text-foreground hover:bg-accent shrink-0 -ml-2 mr-1"
             aria-label="Open navigation menu"
           >
