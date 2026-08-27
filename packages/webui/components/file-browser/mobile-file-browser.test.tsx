@@ -220,6 +220,202 @@ describe('MobileFileBrowser', () => {
     expect(screen.getByRole('button', { name: /actions/i })).toBeDefined()
   })
 
+  it('completes upload and confirms upload on 2xx response', async () => {
+    const originalXhr = window.XMLHttpRequest
+    const patchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
+
+    const { client } = await import('@/ui/api/client')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(client.api.teams[':teamId'].upload.tasks as any)['$post'] = vi
+      .fn()
+      .mockImplementation(async (req) => {
+        const json = req.json
+        return {
+          ok: true,
+          json: async () => ({
+            taskId: 'task-1',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            presignedUrls: json.files.map((f: any) => ({
+              id: f.id,
+              url: 'https://upload.example.com',
+              fileId: 'server-file-1',
+            })),
+          }),
+        }
+      })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(client.api.teams[':teamId'].upload.tasks[':taskId'] as any)['$patch'] = patchMock
+
+    class MockXhr {
+      open = vi.fn()
+      setRequestHeader = vi.fn()
+      send = vi.fn(() => {
+        this.status = 200
+        this.onload?.()
+      })
+      status = 200
+      upload = { onprogress: null as unknown }
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onabort: (() => void) | null = null
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    window.XMLHttpRequest = MockXhr as any
+
+    const { container } = renderComponent()
+    const fileInput = container.querySelector(
+      'input[type="file"]:not([webkitdirectory])',
+    ) as HTMLInputElement
+    expect(fileInput).toBeDefined()
+
+    const testFile = new File(['content'], 'hello.txt', { type: 'text/plain' })
+    fireEvent.change(fileInput, { target: { files: [testFile] } })
+
+    // Wait for mutation to finish
+    await vi.waitFor(() => {
+      expect(patchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          param: { teamId: 'team-1', taskId: 'task-1' },
+          json: { fileId: 'server-file-1' },
+        }),
+      )
+    })
+
+    window.XMLHttpRequest = originalXhr
+  })
+
+  it('fails upload and confirms with error on non-2xx status', async () => {
+    const originalXhr = window.XMLHttpRequest
+    const patchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
+
+    const { client } = await import('@/ui/api/client')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(client.api.teams[':teamId'].upload.tasks as any)['$post'] = vi
+      .fn()
+      .mockImplementation(async (req) => {
+        const json = req.json
+        return {
+          ok: true,
+          json: async () => ({
+            taskId: 'task-2',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            presignedUrls: json.files.map((f: any) => ({
+              id: f.id,
+              url: 'https://upload.example.com',
+              fileId: 'server-file-2',
+            })),
+          }),
+        }
+      })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(client.api.teams[':teamId'].upload.tasks[':taskId'] as any)['$patch'] = patchMock
+
+    class MockXhr500 {
+      open = vi.fn()
+      setRequestHeader = vi.fn()
+      send = vi.fn(() => {
+        this.status = 500
+        this.onload?.()
+      })
+      status = 500
+      upload = { onprogress: null as unknown }
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onabort: (() => void) | null = null
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    window.XMLHttpRequest = MockXhr500 as any
+
+    const { container } = renderComponent()
+    const fileInput = container.querySelector(
+      'input[type="file"]:not([webkitdirectory])',
+    ) as HTMLInputElement
+
+    const testFile = new File(['content'], 'error.txt', { type: 'text/plain' })
+    fireEvent.change(fileInput, { target: { files: [testFile] } })
+
+    await vi.waitFor(() => {
+      expect(patchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          param: { teamId: 'team-1', taskId: 'task-2' },
+          json: {
+            fileId: 'server-file-2',
+            errorMessage: 'upload failed with status: 500',
+          },
+        }),
+      )
+    })
+
+    window.XMLHttpRequest = originalXhr
+  })
+
+  it('fails upload and confirms with error on network failure', async () => {
+    const originalXhr = window.XMLHttpRequest
+    const patchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
+
+    const { client } = await import('@/ui/api/client')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(client.api.teams[':teamId'].upload.tasks as any)['$post'] = vi
+      .fn()
+      .mockImplementation(async (req) => {
+        const json = req.json
+        return {
+          ok: true,
+          json: async () => ({
+            taskId: 'task-3',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            presignedUrls: json.files.map((f: any) => ({
+              id: f.id,
+              url: 'https://upload.example.com',
+              fileId: 'server-file-3',
+            })),
+          }),
+        }
+      })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(client.api.teams[':teamId'].upload.tasks[':taskId'] as any)['$patch'] = patchMock
+
+    class MockXhrError {
+      open = vi.fn()
+      setRequestHeader = vi.fn()
+      send = vi.fn(() => {
+        this.onerror?.()
+      })
+      status = 0
+      upload = { onprogress: null as unknown }
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onabort: (() => void) | null = null
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    window.XMLHttpRequest = MockXhrError as any
+
+    const { container } = renderComponent()
+    const fileInput = container.querySelector(
+      'input[type="file"]:not([webkitdirectory])',
+    ) as HTMLInputElement
+
+    const testFile = new File(['content'], 'network-error.txt', { type: 'text/plain' })
+    fireEvent.change(fileInput, { target: { files: [testFile] } })
+
+    await vi.waitFor(() => {
+      expect(patchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          param: { teamId: 'team-1', taskId: 'task-3' },
+          json: {
+            fileId: 'server-file-3',
+            errorMessage: 'upload failed with error: Network error',
+          },
+        }),
+      )
+    })
+
+    window.XMLHttpRequest = originalXhr
+  })
+
   it('hides Floating Action Button in public share mode', () => {
     renderComponent({ isPublic: true })
 

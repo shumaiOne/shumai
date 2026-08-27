@@ -198,6 +198,7 @@ export function MobileFileBrowser({
   const decrementUploading = useUploadStore((state) => state.decrement)
   const startTask = useUploadStore((state) => state.startTask)
   const updateFileProgress = useUploadStore((state) => state.updateFileProgress)
+  const completeFile = useUploadStore((state) => state.completeFile)
   const failFile = useUploadStore((state) => state.failFile)
 
   const $confirmUpload = client.api.teams[':teamId'].upload.tasks[':taskId'].$patch
@@ -273,9 +274,25 @@ export function MobileFileBrowser({
               )
 
               const resp = await uploadPromise
-              if (!resp.ok) {
+              if (resp.ok) {
+                completeFile(taskId, uploadInfo.fileId)
+                await confirmUpload({
+                  param: { teamId: teamId!, taskId: taskId },
+                  json: {
+                    fileId: uploadInfo.fileId,
+                  },
+                })
+              } else {
                 failFile(taskId, uploadInfo.fileId)
                 toast.error(`Failed to upload file: ${item.file.name}`)
+                await confirmUpload({
+                  param: { teamId: teamId!, taskId: taskId },
+                  json: {
+                    fileId: uploadInfo.fileId,
+                    errorMessage: `upload failed with status: ${resp.status}`,
+                  },
+                })
+                return
               }
             } catch (error) {
               failFile(taskId, uploadInfo.fileId)
@@ -287,6 +304,7 @@ export function MobileFileBrowser({
                   errorMessage: `upload failed with error: ${error instanceof Error ? error.message : String(error)}`,
                 },
               })
+              return
             } finally {
               decrementUploading()
               queryClient.invalidateQueries({
