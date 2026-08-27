@@ -51,7 +51,7 @@ describe('BreadcrumbNav component', () => {
       </QueryClientProvider>,
     )
 
-    expect(screen.getByTitle(/Linked Tasks|关联任务/i)).toBeDefined()
+    expect(screen.getAllByTitle(/Linked Tasks|关联任务/i).length).toBeGreaterThan(0)
   })
 
   it('hides SquareKanban task link button on project root folder', () => {
@@ -94,13 +94,33 @@ describe('BreadcrumbNav component', () => {
     expect(screen.getByRole('button', { name: /Open navigation menu/i })).toBeDefined()
   })
 
-  it('hides mobile navigation menu button in public share mode', () => {
+  it('renders mobile breadcrumbs without All Projects and with project name', () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <BreadcrumbNav {...baseProps} isPublic={true} />
+        <BreadcrumbNav {...baseProps} />
       </QueryClientProvider>,
     )
 
-    expect(screen.queryByRole('button', { name: /Open navigation menu/i })).toBeNull()
+    // Project name is in mobile and desktop
+    expect(screen.getAllByText('Demo Project').length).toBeGreaterThan(0)
+    // Folder A is rendered
+    expect(screen.getAllByText('Folder A').length).toBeGreaterThan(0)
+  })
+
+  it('renders omitted middle folders button (...) for deep hierarchy on mobile', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          ancestorFolders={[
+            { id: 'parent-1', name: 'Middle Folder 1' },
+            { id: 'parent-2', name: 'Middle Folder 2' },
+          ]}
+          currentAsset={{ id: 'asset-deep', name: 'Deep Folder', type: 'folder' }}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: /Show omitted folders/i })).toBeDefined()
   })
 })

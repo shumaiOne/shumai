@@ -232,20 +232,334 @@ export function BreadcrumbNav({
           })),
       ]
 
+  const hasTerminal = Boolean(customTerminalBreadcrumb || (!isRootFolder && !compareMode))
+
+  const mobileProjectItem = {
+    name: projectName,
+    path: isPublic ? undefined : `/projects/${projectId}`,
+    id: 'root',
+  }
+
+  const mobileAncestorItems = ancestorFolders
+    .slice()
+    .reverse()
+    .map((folder) => ({
+      name: folder.name || '',
+      path: isPublic ? undefined : `/projects/${projectId}/folders/${folder.id}`,
+      id: folder.id,
+    }))
+
+  const mobileMiddleItems = hasTerminal ? mobileAncestorItems : mobileAncestorItems.slice(0, -1)
+  const mobileTerminalDirect =
+    !hasTerminal && mobileAncestorItems.length > 0
+      ? mobileAncestorItems[mobileAncestorItems.length - 1]
+      : null
+
+  const renderTerminal = (isMobile = false) => {
+    if (customTerminalBreadcrumb) {
+      return (
+        <span
+          className={cn(
+            'truncate rounded px-2 py-1 text-sm font-medium text-foreground',
+            isMobile && 'min-w-0 flex-1',
+          )}
+        >
+          {customTerminalBreadcrumb}
+        </span>
+      )
+    }
+
+    if (!isRootFolder && !compareMode) {
+      if (currentAsset.type === 'folder') {
+        return (
+          <span
+            className={cn(
+              'truncate rounded px-2 py-1 text-sm font-medium text-foreground',
+              isMobile && 'min-w-0 flex-1',
+            )}
+          >
+            {currentAsset.name}
+          </span>
+        )
+      }
+
+      return (
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger
+            className={cn(
+              'flex items-center gap-1 truncate rounded px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground',
+              isMobile && 'min-w-0 flex-1',
+            )}
+          >
+            <span className="truncate">{currentAsset.name}</span>
+            {currentAsset.version !== undefined && (
+              <Badge variant="outline" className="px-1 py-0 text-xs shrink-0">
+                v{currentAsset.version}
+              </Badge>
+            )}
+            <ChevronDown className="h-4 w-4 shrink-0" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56">
+            {allowDownload &&
+              (hasVideoTranscodes ? (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="flex items-center gap-2">
+                    <span>{m.download()}</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent className="w-48">
+                      <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
+                      {downloadInfo?.videoTranscodes?.map((t) => {
+                        const longSide = Math.max(t.width, t.height)
+                        let resolution = `${t.height}p`
+                        if (longSide >= 3840) resolution = '2160p'
+                        else if (longSide >= 1920) resolution = '1080p'
+                        else if (longSide >= 1280) resolution = '720p'
+                        else if (longSide >= 960) resolution = '540p'
+                        else if (longSide >= 640) resolution = '360p'
+                        else if (longSide >= 320) resolution = '180p'
+                        return (
+                          <DropdownMenuItem
+                            key={resolution}
+                            onClick={() => handleDownload(t.key)}
+                            className="flex items-center justify-between"
+                          >
+                            <span>{resolution}</span>
+                            <span className="text-xs text-muted-foreground">MP4</span>
+                          </DropdownMenuItem>
+                        )
+                      })}
+                      {downloadInfo?.originalKey && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleDownload(downloadInfo.originalKey!)}
+                            className="flex items-center justify-between"
+                          >
+                            <span>Original</span>
+                            <span className="text-xs text-muted-foreground">
+                              {currentAsset.name?.split('.').pop()?.toUpperCase() || 'RAW'}
+                            </span>
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+              ) : (
+                <DropdownMenuItem
+                  onClick={() =>
+                    downloadInfo?.originalKey && handleDownload(downloadInfo.originalKey)
+                  }
+                  disabled={!downloadInfo?.originalKey}
+                >
+                  {m.download()}
+                </DropdownMenuItem>
+              ))}
+            {canEdit && onRename && (
+              <DropdownMenuItem onClick={onRename}>{m.rename()}</DropdownMenuItem>
+            )}
+            {canEdit && onDelete && (
+              <DropdownMenuItem
+                onClick={onDelete}
+                className="text-destructive focus:text-destructive"
+              >
+                {m.delete()}
+              </DropdownMenuItem>
+            )}
+
+            {canCompareVersions && onCompareVersions && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onCompareVersions()}>
+                  <Columns2 className="h-4 w-4" />
+                  <span>{m.compare_versions()}</span>
+                </DropdownMenuItem>
+              </>
+            )}
+
+            {versions && versions.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    <span>Versions</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent className="w-80 p-1">
+                      <div className="flex flex-col gap-1 max-h-96 overflow-y-auto">
+                        {versions.map((v) => {
+                          const isActive = currentAsset.version === v.version
+                          return (
+                            <DropdownMenuItem
+                              key={v.id}
+                              onClick={() => handleVersionClick(v.id)}
+                              className="flex items-center gap-3 py-2 px-3 rounded-md cursor-pointer focus:bg-accent focus:text-accent-foreground"
+                            >
+                              <div className="flex-shrink-0 flex items-center justify-center bg-muted dark:bg-muted-foreground/20 text-muted-foreground dark:text-muted-foreground rounded-full px-2 py-0.5 text-xs font-semibold select-none min-w-[2rem]">
+                                v{v.version}
+                              </div>
+
+                              <div className="h-10 w-16 flex-shrink-0 overflow-hidden rounded-md border border-border bg-muted flex items-center justify-center">
+                                {v.previewUrl ? (
+                                  <img
+                                    src={v.previewUrl}
+                                    alt={v.name || undefined}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <FileIcon className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </div>
+
+                              <div className="flex flex-col flex-1 min-w-0 text-left">
+                                <span className="truncate text-sm font-semibold text-foreground">
+                                  {v.name}
+                                </span>
+                                <span className="truncate text-xs text-muted-foreground">
+                                  {v.creator?.name || 'Unknown'}
+                                </span>
+                              </div>
+
+                              {isActive && (
+                                <Check className="h-4 w-4 text-primary ml-auto flex-shrink-0" />
+                              )}
+                            </DropdownMenuItem>
+                          )
+                        })}
+                      </div>
+                      <DropdownMenuSeparator />
+                      <div className="p-1">
+                        <button
+                          className="w-full text-center text-xs font-medium py-2 px-3 rounded-md bg-muted/80 hover:bg-muted text-foreground transition-colors cursor-pointer"
+                          onClick={() => setIsManageVersionsOpen(true)}
+                        >
+                          {m.manage_versions()}
+                        </button>
+                      </div>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    }
+
+    return null
+  }
+
   return (
     <div className="flex h-14 flex-nowrap items-center justify-between gap-2 border-b border-border bg-card px-4 py-2 overflow-hidden">
-      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+      {/* Mobile Breadcrumbs (md:hidden) */}
+      <div className="flex md:hidden min-w-0 flex-1 items-center gap-1 overflow-hidden">
         {!isPublic && (
           <Button
             variant="ghost"
             size="icon"
             onClick={() => openMobileMenu()}
-            className="md:hidden h-8 w-8 text-foreground hover:bg-accent shrink-0 -ml-2 mr-1"
+            className="h-8 w-8 text-foreground hover:bg-accent shrink-0 -ml-2 mr-1"
             aria-label="Open navigation menu"
           >
             <Menu className="h-5 w-5" />
           </Button>
         )}
+
+        {hasTerminal || mobileTerminalDirect ? (
+          <>
+            {mobileProjectItem.path ? (
+              <Link
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                to={mobileProjectItem.path as any}
+                className="min-w-0 flex-1 max-w-[45%] truncate rounded px-1.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground shrink"
+              >
+                {mobileProjectItem.name}
+              </Link>
+            ) : (
+              <button
+                onClick={() => mobileProjectItem.id && onFolderClick?.(mobileProjectItem.id)}
+                className="min-w-0 flex-1 max-w-[45%] truncate rounded px-1.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground text-left shrink cursor-pointer"
+              >
+                {mobileProjectItem.name}
+              </button>
+            )}
+
+            <span className="text-muted-foreground shrink-0">/</span>
+
+            {mobileMiddleItems.length > 0 && (
+              <>
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="text-muted-foreground hover:text-foreground text-sm font-medium px-1.5 py-0.5 rounded hover:bg-accent shrink-0 cursor-pointer"
+                      aria-label="Show omitted folders"
+                    >
+                      ...
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {mobileMiddleItems.map((item, idx) => (
+                      <DropdownMenuItem key={idx} asChild>
+                        {item.path ? (
+                          <Link
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            to={item.path as any}
+                            className="cursor-pointer"
+                          >
+                            {item.name}
+                          </Link>
+                        ) : (
+                          <button
+                            onClick={() => item.id && onFolderClick?.(item.id)}
+                            className="cursor-pointer w-full text-left"
+                          >
+                            {item.name}
+                          </button>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <span className="text-muted-foreground shrink-0">/</span>
+              </>
+            )}
+
+            {hasTerminal
+              ? renderTerminal(true)
+              : mobileTerminalDirect && (
+                  <span className="min-w-0 flex-1 truncate rounded px-1.5 py-1 text-sm font-medium text-foreground">
+                    {mobileTerminalDirect.name}
+                  </span>
+                )}
+          </>
+        ) : (
+          <span className="min-w-0 flex-1 truncate rounded px-1.5 py-1 text-sm font-medium text-foreground">
+            {mobileProjectItem.name}
+          </span>
+        )}
+
+        {showKanbanLink && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted ml-1 cursor-pointer shrink-0"
+            onClick={() => setIsLinkedTasksOpen(true)}
+            title={m.linked_tasks()}
+          >
+            <SquareKanban className="w-4 h-4" />
+            {linkedTaskCount > 0 && (
+              <span className="inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-semibold rounded-full bg-muted-foreground/15 text-foreground">
+                {linkedTaskCount}
+              </span>
+            )}
+          </Button>
+        )}
+      </div>
+
+      {/* Desktop Breadcrumbs (hidden md:flex) */}
+      <div className="hidden md:flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
         {breadcrumbs.map((breadcrumb, index) => (
           <div key={index} className="flex items-center gap-1">
             {index > 0 && <span className="text-muted-foreground">/</span>}
@@ -270,186 +584,18 @@ export function BreadcrumbNav({
             )}
           </div>
         ))}
-        {customTerminalBreadcrumb ? (
+        {hasTerminal && (
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground">/</span>
-            <span className="truncate rounded px-2 py-1 text-sm font-medium text-foreground">
-              {customTerminalBreadcrumb}
-            </span>
+            {renderTerminal(false)}
           </div>
-        ) : !isRootFolder && !compareMode ? (
-          <div className="flex items-center gap-1">
-            <span className="text-muted-foreground">/</span>
-            {currentAsset.type === 'folder' ? (
-              <span className="truncate rounded px-2 py-1 text-sm font-medium text-foreground">
-                {currentAsset.name}
-              </span>
-            ) : (
-              <DropdownMenu modal={false}>
-                <DropdownMenuTrigger className="flex items-center gap-1 truncate rounded px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
-                  <span>{currentAsset.name}</span>
-                  {currentAsset.version !== undefined && (
-                    <Badge variant="outline" className="px-1 py-0 text-xs">
-                      v{currentAsset.version}
-                    </Badge>
-                  )}
-                  <ChevronDown className="h-4 w-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  {allowDownload &&
-                    (hasVideoTranscodes ? (
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger className="flex items-center gap-2">
-                          <span>{m.download()}</span>
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuPortal>
-                          <DropdownMenuSubContent className="w-48">
-                            <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
-                            {downloadInfo?.videoTranscodes?.map((t) => {
-                              const longSide = Math.max(t.width, t.height)
-                              let resolution = `${t.height}p`
-                              if (longSide >= 3840) resolution = '2160p'
-                              else if (longSide >= 1920) resolution = '1080p'
-                              else if (longSide >= 1280) resolution = '720p'
-                              else if (longSide >= 960) resolution = '540p'
-                              else if (longSide >= 640) resolution = '360p'
-                              else if (longSide >= 320) resolution = '180p'
-                              return (
-                                <DropdownMenuItem
-                                  key={resolution}
-                                  onClick={() => handleDownload(t.key)}
-                                  className="flex items-center justify-between"
-                                >
-                                  <span>{resolution}</span>
-                                  <span className="text-xs text-muted-foreground">MP4</span>
-                                </DropdownMenuItem>
-                              )
-                            })}
-                            {downloadInfo?.originalKey && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleDownload(downloadInfo.originalKey!)}
-                                  className="flex items-center justify-between"
-                                >
-                                  <span>Original</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {currentAsset.name?.split('.').pop()?.toUpperCase() || 'RAW'}
-                                  </span>
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuSubContent>
-                        </DropdownMenuPortal>
-                      </DropdownMenuSub>
-                    ) : (
-                      <DropdownMenuItem
-                        onClick={() =>
-                          downloadInfo?.originalKey && handleDownload(downloadInfo.originalKey)
-                        }
-                        disabled={!downloadInfo?.originalKey}
-                      >
-                        {m.download()}
-                      </DropdownMenuItem>
-                    ))}
-                  {canEdit && onRename && (
-                    <DropdownMenuItem onClick={onRename}>{m.rename()}</DropdownMenuItem>
-                  )}
-                  {canEdit && onDelete && (
-                    <DropdownMenuItem
-                      onClick={onDelete}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      {m.delete()}
-                    </DropdownMenuItem>
-                  )}
-
-                  {canCompareVersions && onCompareVersions && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => onCompareVersions()}>
-                        <Columns2 className="h-4 w-4" />
-                        <span>{m.compare_versions()}</span>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-
-                  {versions && versions.length > 0 && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger className="flex items-center gap-2">
-                          <History className="h-4 w-4" />
-                          <span>Versions</span>
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuPortal>
-                          <DropdownMenuSubContent className="w-80 p-1">
-                            <div className="flex flex-col gap-1 max-h-96 overflow-y-auto">
-                              {versions.map((v) => {
-                                const isActive = currentAsset.version === v.version
-                                return (
-                                  <DropdownMenuItem
-                                    key={v.id}
-                                    onClick={() => handleVersionClick(v.id)}
-                                    className="flex items-center gap-3 py-2 px-3 rounded-md cursor-pointer focus:bg-accent focus:text-accent-foreground"
-                                  >
-                                    <div className="flex-shrink-0 flex items-center justify-center bg-muted dark:bg-muted-foreground/20 text-muted-foreground dark:text-muted-foreground rounded-full px-2 py-0.5 text-xs font-semibold select-none min-w-[2rem]">
-                                      v{v.version}
-                                    </div>
-
-                                    <div className="h-10 w-16 flex-shrink-0 overflow-hidden rounded-md border border-border bg-muted flex items-center justify-center">
-                                      {v.previewUrl ? (
-                                        <img
-                                          src={v.previewUrl}
-                                          alt={v.name || undefined}
-                                          className="h-full w-full object-cover"
-                                        />
-                                      ) : (
-                                        <FileIcon className="h-4 w-4 text-muted-foreground" />
-                                      )}
-                                    </div>
-
-                                    <div className="flex flex-col flex-1 min-w-0 text-left">
-                                      <span className="truncate text-sm font-semibold text-foreground">
-                                        {v.name}
-                                      </span>
-                                      <span className="truncate text-xs text-muted-foreground">
-                                        {v.creator?.name || 'Unknown'}
-                                      </span>
-                                    </div>
-
-                                    {isActive && (
-                                      <Check className="h-4 w-4 text-primary ml-auto flex-shrink-0" />
-                                    )}
-                                  </DropdownMenuItem>
-                                )
-                              })}
-                            </div>
-                            <DropdownMenuSeparator />
-                            <div className="p-1">
-                              <button
-                                className="w-full text-center text-xs font-medium py-2 px-3 rounded-md bg-muted/80 hover:bg-muted text-foreground transition-colors cursor-pointer"
-                                onClick={() => setIsManageVersionsOpen(true)}
-                              >
-                                {m.manage_versions()}
-                              </button>
-                            </div>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuPortal>
-                      </DropdownMenuSub>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-        ) : null}
+        )}
 
         {showKanbanLink && (
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted ml-1 cursor-pointer"
+            className="h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted ml-1 cursor-pointer shrink-0"
             onClick={() => setIsLinkedTasksOpen(true)}
             title={m.linked_tasks()}
           >
@@ -461,51 +607,51 @@ export function BreadcrumbNav({
             )}
           </Button>
         )}
-
-        {showKanbanLink && isLinkedTasksOpen && targetAssetId && (
-          <AssetLinkedTasksDialog
-            teamId={teamId}
-            assetId={targetAssetId}
-            assetName={currentAsset.name}
-            isOpen={isLinkedTasksOpen}
-            onClose={() => setIsLinkedTasksOpen(false)}
-          />
-        )}
-
-        {fileId && versions && versions.length > 0 && (
-          <ManageVersionsDialog
-            open={isManageVersionsOpen}
-            onOpenChange={setIsManageVersionsOpen}
-            stackId={fileId}
-            canEdit={canEdit}
-            onStackDissolved={(remainingFileId) => {
-              setIsManageVersionsOpen(false)
-              navigate({
-                to: '/projects/$projectId/files/$fileId',
-                params: { projectId, fileId: remainingFileId },
-              })
-            }}
-            onVersionRemoved={(removedVersionId, remainingVersions) => {
-              const currentVersionId = currentAsset.version
-                ? versions.find((v) => v.version === currentAsset.version)?.id
-                : undefined
-              if (currentVersionId === removedVersionId) {
-                const topVersion = remainingVersions[0]
-                if (topVersion) {
-                  navigate({
-                    to: '/projects/$projectId/files/$fileId',
-                    params: { projectId, fileId },
-                    search: (prev: Record<string, unknown>) => ({
-                      ...prev,
-                      version: topVersion.id,
-                    }),
-                  })
-                }
-              }
-            }}
-          />
-        )}
       </div>
+
+      {showKanbanLink && isLinkedTasksOpen && targetAssetId && (
+        <AssetLinkedTasksDialog
+          teamId={teamId}
+          assetId={targetAssetId}
+          assetName={currentAsset.name}
+          isOpen={isLinkedTasksOpen}
+          onClose={() => setIsLinkedTasksOpen(false)}
+        />
+      )}
+
+      {fileId && versions && versions.length > 0 && (
+        <ManageVersionsDialog
+          open={isManageVersionsOpen}
+          onOpenChange={setIsManageVersionsOpen}
+          stackId={fileId}
+          canEdit={canEdit}
+          onStackDissolved={(remainingFileId) => {
+            setIsManageVersionsOpen(false)
+            navigate({
+              to: '/projects/$projectId/files/$fileId',
+              params: { projectId, fileId: remainingFileId },
+            })
+          }}
+          onVersionRemoved={(removedVersionId, remainingVersions) => {
+            const currentVersionId = currentAsset.version
+              ? versions.find((v) => v.version === currentAsset.version)?.id
+              : undefined
+            if (currentVersionId === removedVersionId) {
+              const topVersion = remainingVersions[0]
+              if (topVersion) {
+                navigate({
+                  to: '/projects/$projectId/files/$fileId',
+                  params: { projectId, fileId },
+                  search: (prev: Record<string, unknown>) => ({
+                    ...prev,
+                    version: topVersion.id,
+                  }),
+                })
+              }
+            }
+          }}
+        />
+      )}
 
       <div className="hidden md:flex items-center gap-2">
         <div className="flex flex-shrink-0 items-center gap-1 rounded-md border border-border bg-background p-1">
