@@ -453,144 +453,151 @@ export function BreadcrumbNav({
 
   return (
     <div className="flex h-14 flex-nowrap items-center justify-between gap-2 border-b border-border bg-card px-4 py-2 overflow-hidden">
-      {/* Mobile Breadcrumbs (md:hidden) */}
-      <div className="flex md:hidden min-w-0 flex-1 items-center gap-1 overflow-hidden">
+      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+        {/* Mobile menu button */}
         {!isPublic && (
           <Button
             variant="ghost"
             size="icon"
             onClick={() => openMobileMenu()}
-            className="h-8 w-8 text-foreground hover:bg-accent shrink-0 -ml-2 mr-1"
+            className="md:hidden h-8 w-8 text-foreground hover:bg-accent shrink-0 -ml-2 mr-1"
             aria-label="Open navigation menu"
           >
             <Menu className="h-5 w-5" />
           </Button>
         )}
 
-        {hasTerminal || mobileTerminalDirect ? (
-          <>
-            {mobileProjectItem.path ? (
-              <Link
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                to={mobileProjectItem.path as any}
-                className="min-w-0 flex-1 max-w-[45%] truncate rounded px-1.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground shrink"
-              >
-                {mobileProjectItem.name}
-              </Link>
-            ) : (
-              <button
-                onClick={() => mobileProjectItem.id && onFolderClick?.(mobileProjectItem.id)}
-                className="min-w-0 flex-1 max-w-[45%] truncate rounded px-1.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground text-left shrink cursor-pointer"
-              >
-                {mobileProjectItem.name}
-              </button>
-            )}
+        {/* Desktop-only: All Projects */}
+        {!isPublic && (
+          <div className="hidden md:flex items-center gap-1 shrink-0">
+            <Link
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              to={`/teams/${teamId}` as any}
+              className="truncate rounded px-2 py-1 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground text-muted-foreground"
+            >
+              {m.all_projects()}
+            </Link>
+            <span className="text-muted-foreground">/</span>
+          </div>
+        )}
 
-            <span className="text-muted-foreground shrink-0">/</span>
-
-            {mobileMiddleItems.length > 0 && (
-              <>
-                <DropdownMenu modal={false}>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className="text-muted-foreground hover:text-foreground text-sm font-medium px-1.5 py-0.5 rounded hover:bg-accent shrink-0 cursor-pointer"
-                      aria-label="Show omitted folders"
-                    >
-                      ...
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    {mobileMiddleItems.map((item, idx) => (
-                      <DropdownMenuItem key={idx} asChild>
-                        {item.path ? (
-                          <Link
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            to={item.path as any}
-                            className="cursor-pointer"
-                          >
-                            {item.name}
-                          </Link>
-                        ) : (
-                          <button
-                            onClick={() => item.id && onFolderClick?.(item.id)}
-                            className="cursor-pointer w-full text-left"
-                          >
-                            {item.name}
-                          </button>
-                        )}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <span className="text-muted-foreground shrink-0">/</span>
-              </>
-            )}
-
-            {hasTerminal
-              ? renderTerminal(true)
-              : mobileTerminalDirect && (
-                  <span className="min-w-0 flex-1 truncate rounded px-1.5 py-1 text-sm font-medium text-foreground">
-                    {mobileTerminalDirect.name}
-                  </span>
-                )}
-          </>
+        {/* Project Name (Desktop & Mobile) */}
+        {hasTerminal || ancestorFolders.length > 0 ? (
+          mobileProjectItem.path ? (
+            <Link
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              to={mobileProjectItem.path as any}
+              className="min-w-0 max-w-[45%] md:max-w-none truncate rounded px-1.5 md:px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground shrink"
+            >
+              {mobileProjectItem.name}
+            </Link>
+          ) : (
+            <button
+              onClick={() => mobileProjectItem.id && onFolderClick?.(mobileProjectItem.id)}
+              className="min-w-0 max-w-[45%] md:max-w-none truncate rounded px-1.5 md:px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground text-left shrink cursor-pointer"
+            >
+              {mobileProjectItem.name}
+            </button>
+          )
         ) : (
-          <span className="min-w-0 flex-1 truncate rounded px-1.5 py-1 text-sm font-medium text-foreground">
+          <span className="min-w-0 flex-1 truncate rounded px-1.5 md:px-2 py-1 text-sm font-medium text-foreground">
             {mobileProjectItem.name}
           </span>
         )}
 
-        {showKanbanLink && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted ml-1 cursor-pointer shrink-0"
-            onClick={() => setIsLinkedTasksOpen(true)}
-            title={m.linked_tasks()}
-          >
-            <SquareKanban className="w-4 h-4" />
-            {linkedTaskCount > 0 && (
-              <span className="inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-semibold rounded-full bg-muted-foreground/15 text-foreground">
-                {linkedTaskCount}
-              </span>
-            )}
-          </Button>
+        {/* Mobile-only: Omitted Middle Ancestors (...) dropdown */}
+        {mobileMiddleItems.length > 0 && (
+          <div className="flex md:hidden items-center gap-1 shrink-0">
+            <span className="text-muted-foreground shrink-0">/</span>
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="text-muted-foreground hover:text-foreground text-sm font-medium px-1.5 py-0.5 rounded hover:bg-accent shrink-0 cursor-pointer"
+                  aria-label="Show omitted folders"
+                >
+                  ...
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {mobileMiddleItems.map((item, idx) => (
+                  <DropdownMenuItem key={idx} asChild>
+                    {item.path ? (
+                      <Link
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        to={item.path as any}
+                        className="cursor-pointer"
+                      >
+                        {item.name}
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => item.id && onFolderClick?.(item.id)}
+                        className="cursor-pointer w-full text-left"
+                      >
+                        {item.name}
+                      </button>
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <span className="text-muted-foreground shrink-0">/</span>
+          </div>
         )}
-      </div>
 
-      {/* Desktop Breadcrumbs (hidden md:flex) */}
-      <div className="hidden md:flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-        {breadcrumbs.map((breadcrumb, index) => (
-          <div key={index} className="flex items-center gap-1">
-            {index > 0 && <span className="text-muted-foreground">/</span>}
-            {breadcrumb.path ? (
-              <Link
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                to={breadcrumb.path as any}
-                className={cn(
-                  'truncate rounded px-2 py-1 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground',
-                  breadcrumb.isMuted ? 'text-muted-foreground' : 'text-foreground',
+        {/* Desktop-only: All Ancestor Folders */}
+        {ancestorFolders
+          .slice()
+          .reverse()
+          .map((folder) => {
+            const path = isPublic
+              ? undefined
+              : `/projects/${projectId}/folders/${folder.id}`
+            return (
+              <div key={folder.id} className="hidden md:flex items-center gap-1">
+                <span className="text-muted-foreground">/</span>
+                {path ? (
+                  <Link
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    to={path as any}
+                    className="truncate rounded px-2 py-1 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground text-foreground"
+                  >
+                    {folder.name}
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => folder.id && onFolderClick?.(folder.id)}
+                    className="truncate rounded px-2 py-1 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground text-foreground"
+                  >
+                    {folder.name}
+                  </button>
                 )}
-              >
-                {breadcrumb.name}
-              </Link>
-            ) : (
-              <button
-                onClick={() => breadcrumb.id && onFolderClick?.(breadcrumb.id)}
-                className="truncate rounded px-2 py-1 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground text-foreground"
-              >
-                {breadcrumb.name}
-              </button>
-            )}
-          </div>
-        ))}
-        {hasTerminal && (
-          <div className="flex items-center gap-1">
-            <span className="text-muted-foreground">/</span>
-            {renderTerminal(false)}
+              </div>
+            )
+          })}
+
+        {/* Terminal Item (Desktop & Mobile) */}
+        {(hasTerminal || (!hasTerminal && ancestorFolders.length > 0)) && (
+          <div className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden">
+            <span
+              className={cn(
+                'text-muted-foreground shrink-0',
+                mobileMiddleItems.length > 0 ? 'hidden md:inline' : 'inline',
+              )}
+            >
+              /
+            </span>
+            {hasTerminal
+              ? renderTerminal(true)
+              : mobileTerminalDirect && (
+                  <span className="min-w-0 flex-1 truncate rounded px-2 py-1 text-sm font-medium text-foreground">
+                    {mobileTerminalDirect.name}
+                  </span>
+                )}
           </div>
         )}
 
+        {/* Linked Tasks */}
         {showKanbanLink && (
           <Button
             variant="ghost"
