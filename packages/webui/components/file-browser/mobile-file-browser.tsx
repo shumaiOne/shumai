@@ -488,8 +488,8 @@ export function MobileFileBrowser({
 
       {/* Main scroll area */}
       <div className="flex-1 overflow-y-auto min-h-0 p-3 pb-24">
-        {/* 2-Column Grid */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* 1-Column Grid */}
+        <div className="grid grid-cols-1 gap-4 max-w-lg mx-auto w-full">
           {/* Folders */}
           {folders.map((folder) => (
             <FolderCard
