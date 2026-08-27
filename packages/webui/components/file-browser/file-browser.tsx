@@ -12,6 +12,7 @@ import type {
   AssetInfo,
   CollectionInfo,
   CreateUploadTaskRequest,
+  PresignedUrl,
   SearchCondition,
   SearchSort,
   ShareLinkInfo,
@@ -558,9 +559,7 @@ export function FileBrowser({
         queryKey: ['teams', teamId, 'upload', 'tasks'],
       })
 
-      // The RPC client returns an object that we cast to the expected type
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await uploadFiles(currentFiles, data.presignedUrls as any, data.taskId!)
+      await uploadFiles(currentFiles, data.presignedUrls, data.taskId!)
       queryClient.invalidateQueries({
         queryKey: ['search', teamId, assetId],
       })
@@ -731,14 +730,11 @@ export function FileBrowser({
 
   const uploadFiles = async (
     files: FileWithId[],
-    presignedUrls: { id?: string; url?: string; fileId?: string }[],
+    presignedUrls: PresignedUrl[] | undefined,
     taskId: string,
   ) => {
     const uploadUrlMap = presignedUrls?.reduce(
-      (
-        acc: Record<string, { url: string; fileId: string }>,
-        item: { id?: string; url?: string; fileId?: string },
-      ) => {
+      (acc: Record<string, { url: string; fileId: string }>, item: PresignedUrl) => {
         if (item.id) {
           acc[item.id] = {
             url: item.url || '',

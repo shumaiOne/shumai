@@ -5,6 +5,7 @@ export interface TopNavProjectState {
   teamId: string
   projectId: string
   projectName: string
+  rootFolderId?: string
   ancestorFolders: AncestorFolder[]
   currentAsset: {
     id?: string

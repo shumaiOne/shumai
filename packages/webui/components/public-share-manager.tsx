@@ -5,8 +5,10 @@ import { useTopNavStore } from '@/ui/stores/top-nav'
 import { m } from '@/ui/paraglide/messages.js'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useEffect, useState, useMemo, useRef } from 'react'
+import { useIsMobile } from '@/ui/hooks/use-mobile'
 import { TopNav } from './top-nav'
 import { FileBrowser } from './file-browser/file-browser'
+import { MobileFileBrowser } from './file-browser/mobile-file-browser'
 import { FileViewerRightSidebar } from './file-viewer-right-sidebar'
 import { ResizeHandle } from './resize-handle'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -61,6 +63,7 @@ export function PublicShareManager({
   compareActiveSide = 'left',
 }: PublicShareManagerProps) {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const isCompareMode = !!compare && !!compareLeftId && !!compareRightId
   const [password, setPassword] = useState(() => {
     return localStorage.getItem(`share_pwd_${shareId}`) || ''
@@ -293,6 +296,11 @@ export function PublicShareManager({
     () => filesData?.pages.flatMap((page) => page.data ?? []) ?? [],
     [filesData],
   )
+
+  const totalFolders = foldersData?.pages[0]?.pageInfo?.total
+  const totalFiles = filesData?.pages[0]?.pageInfo?.total
+  const totalFoldersSize = foldersData?.pages[0]?.pageInfo?.totalSize
+  const totalFilesSize = filesData?.pages[0]?.pageInfo?.totalSize
 
   const currentSelectedItem = useMemo(() => {
     if (viewingFileData) return viewingFileData
@@ -591,7 +599,44 @@ export function PublicShareManager({
             )}
           </div>
         ) : (
-          currentFolderId && (
+          currentFolderId &&
+          (isMobile ? (
+            <MobileFileBrowser
+              teamId=""
+              projectId={shareInfo.projectId}
+              assetId={currentFolderId}
+              folders={folders}
+              files={files}
+              totalFolders={totalFolders}
+              totalFiles={totalFiles}
+              totalFoldersSize={totalFoldersSize}
+              totalFilesSize={totalFilesSize}
+              selectedItem={null}
+              selectedIds={selectedIds}
+              onItemSelect={(item, e) => {
+                if (e.metaKey || e.ctrlKey) {
+                  const next = new Set(selectedIds)
+                  if (next.has(item.id!)) next.delete(item.id!)
+                  else next.add(item.id!)
+                  setSelectedIds(next)
+                } else {
+                  setSelectedIds(new Set([item.id!]))
+                }
+              }}
+              onItemDoubleClick={handleItemDoubleClick}
+              onClearSelection={() => setSelectedIds(new Set())}
+              fetchNextFoldersPage={fetchNextFoldersPage}
+              hasNextFoldersPage={hasNextPageFolders}
+              isFetchingNextFoldersPage={isFetchingNextFoldersPage}
+              fetchNextFilesPage={fetchNextFilesPage}
+              hasNextFilesPage={hasNextPageFiles}
+              isFetchingNextFilesPage={isFetchingNextFilesPage}
+              isShareView={true}
+              isPublic={true}
+              shareId={shareId}
+              allowDownload={shareInfo.allowDownload}
+            />
+          ) : (
             <FileBrowser
               teamId=""
               projectId={shareInfo.projectId}
@@ -625,10 +670,10 @@ export function PublicShareManager({
               shareId={shareId}
               allowDownload={shareInfo.allowDownload}
             />
-          )
+          ))
         )}
 
-        {!isRightSidebarCollapsed && (
+        {!isRightSidebarCollapsed && !isMobile && (
           <>
             <ResizeHandle
               onResize={(delta) =>
