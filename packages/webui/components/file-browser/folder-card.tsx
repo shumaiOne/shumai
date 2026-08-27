@@ -344,8 +344,7 @@ export function FolderCard({
             onBlur={handleRename}
             onKeyDown={handleKeyDown}
             disabled={!isEditing}
-            className="font-semibold text-foreground text-lg leading-tight truncate h-auto p-0 !bg-transparent"
-            title={name}
+            className="h-auto p-0 text-sm font-medium text-foreground truncate !bg-transparent"
           />
 
           <div className="flex items-center justify-between text-muted-foreground">
