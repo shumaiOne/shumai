@@ -177,6 +177,43 @@ describe('MobileFileBrowser', () => {
     expect(screen.getByText(/This folder is empty|此文件夹为空/i)).toBeDefined()
   })
 
+  it('renders collapsible section headers for folders and files with count and size', () => {
+    renderComponent({
+      totalFoldersSize: 50000,
+      totalFilesSize: 100000,
+    })
+
+    expect(screen.getByText(/1 Folder • 50 KB/i)).toBeDefined()
+    expect(screen.getByText(/1 Asset • 100 KB/i)).toBeDefined()
+  })
+
+  it('collapses and expands folders and files when clicking section headers', () => {
+    renderComponent()
+
+    expect(screen.getByText('Test Folder')).toBeDefined()
+    expect(screen.getByText('test_document.pdf')).toBeDefined()
+
+    // Collapse folders
+    const folderHeaderBtn = screen.getByRole('button', { name: /Folder/i })
+    fireEvent.click(folderHeaderBtn)
+
+    expect(screen.queryByText('Test Folder')).toBeNull()
+
+    // Expand folders back
+    fireEvent.click(folderHeaderBtn)
+    expect(screen.getByText('Test Folder')).toBeDefined()
+
+    // Collapse files
+    const fileHeaderBtn = screen.getByRole('button', { name: /Asset/i })
+    fireEvent.click(fileHeaderBtn)
+
+    expect(screen.queryByText('test_document.pdf')).toBeNull()
+
+    // Expand files back
+    fireEvent.click(fileHeaderBtn)
+    expect(screen.getByText('test_document.pdf')).toBeDefined()
+  })
+
   it('renders Floating Action Button when canEdit is true', () => {
     renderComponent()
 

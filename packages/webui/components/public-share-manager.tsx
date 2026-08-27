@@ -297,6 +297,11 @@ export function PublicShareManager({
     [filesData],
   )
 
+  const totalFolders = foldersData?.pages[0]?.pageInfo?.total
+  const totalFiles = filesData?.pages[0]?.pageInfo?.total
+  const totalFoldersSize = foldersData?.pages[0]?.pageInfo?.totalSize
+  const totalFilesSize = filesData?.pages[0]?.pageInfo?.totalSize
+
   const currentSelectedItem = useMemo(() => {
     if (viewingFileData) return viewingFileData
     if (selectedIds.size !== 1) return null
@@ -602,6 +607,10 @@ export function PublicShareManager({
               assetId={currentFolderId}
               folders={folders}
               files={files}
+              totalFolders={totalFolders}
+              totalFiles={totalFiles}
+              totalFoldersSize={totalFoldersSize}
+              totalFilesSize={totalFilesSize}
               selectedItem={null}
               selectedIds={selectedIds}
               onItemSelect={(item, e) => {

@@ -7,8 +7,11 @@ import { useUploadStore } from '@/ui/stores/upload'
 import type { AssetInfo, CreateUploadTaskRequest } from '@shumai/dtos'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
+import { formatSize } from '@/ui/lib/format'
 import {
   AlertTriangle,
+  ChevronDown,
+  ChevronRight,
   Download,
   FolderClock,
   FolderPlus,
@@ -94,6 +97,10 @@ export function MobileFileBrowser({
   assetId,
   folders,
   files,
+  totalFolders,
+  totalFiles,
+  totalFoldersSize,
+  totalFilesSize,
   selectedItem,
   selectedIds,
   onItemSelect,
@@ -118,9 +125,29 @@ export function MobileFileBrowser({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
 
+  const [foldersExpanded, setFoldersExpanded] = useState(true)
+  const [filesExpanded, setFilesExpanded] = useState(true)
   const [isNewFolderDialogOpen, setIsNewFolderDialogOpen] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
   const [isEmptyTrashDialogOpen, setIsEmptyTrashDialogOpen] = useState(false)
+
+  const foldersCount = totalFolders ?? folders.length
+  const filesCount = totalFiles ?? files.length
+  const foldersSizeVal =
+    totalFoldersSize ??
+    (folders.length > 0 ? folders.reduce((acc, f) => acc + (f.sizeByte || 0), 0) : -1)
+  const filesSizeVal =
+    totalFilesSize ?? (files.length > 0 ? files.reduce((acc, f) => acc + (f.sizeByte || 0), 0) : -1)
+  const showFoldersSize = foldersSizeVal > -1
+  const showFilesSize = filesSizeVal > -1
+
+  const formatCount = (count: number, isFile: boolean) => {
+    if (isFile) {
+      return count === 1 ? m.n_assets_singular({ count }) : m.n_assets_plural({ count })
+    } else {
+      return count === 1 ? m.n_folders_singular({ count }) : m.n_folders_plural({ count })
+    }
+  }
 
   const {
     editingItemId,
@@ -488,64 +515,109 @@ export function MobileFileBrowser({
 
       {/* Main scroll area */}
       <div className="flex-1 overflow-y-auto min-h-0 p-3 pb-24">
-        {/* 1-Column Grid */}
-        <div className="grid grid-cols-1 gap-4 max-w-lg mx-auto w-full">
-          {/* Folders */}
-          {folders.map((folder) => (
-            <FolderCard
-              key={folder.id}
-              item={folder}
-              isSelected={selectedItem?.id === folder.id}
-              isChecked={selectedIds.has(folder.id!)}
-              isEditing={editingItemId === folder.id}
-              onSelect={onItemSelect}
-              onDoubleClick={onItemDoubleClick}
-              onContextMenu={() => {}}
-              onDragStart={() => {}}
-              onDrop={() => {}}
-              onRename={(newName) => onRenameSubmit(folder, newName)}
-              onFinishEditing={() => setEditingItemId(null)}
-              onAction={(action, item) =>
-                handleAction(action as 'rename' | 'delete' | 'download' | 'restore', item)
-              }
-              isRecentlyDeleted={isRecentlyDeleted}
-              isRecents={isRecents}
-              selectedCount={selectedIds.size}
-              canEdit={canEdit}
-              isShareView={isShareView}
-              allowDownload={allowDownload}
-            />
-          ))}
+        <div className="max-w-lg mx-auto w-full">
+          {/* Folders Section */}
+          {foldersCount > 0 && (
+            <div className="mb-4">
+              <button
+                onClick={() => setFoldersExpanded(!foldersExpanded)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-3 font-medium select-none cursor-pointer"
+              >
+                {foldersExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+                <span>
+                  {formatCount(foldersCount, false)}
+                  {showFoldersSize ? ` • ${formatSize(foldersSizeVal)}` : ''}
+                </span>
+              </button>
 
-          {/* Files */}
-          {files.map((file) => (
-            <FileCard
-              key={file.id}
-              teamId={teamId}
-              item={file}
-              isSelected={selectedItem?.id === file.id}
-              isChecked={selectedIds.has(file.id!)}
-              isEditing={editingItemId === file.id}
-              onSelect={onItemSelect}
-              onDoubleClick={onItemDoubleClick}
-              onContextMenu={() => {}}
-              onDragStart={() => {}}
-              onDrop={() => {}}
-              onRename={(newName) => onRenameSubmit(file, newName)}
-              onFinishEditing={() => setEditingItemId(null)}
-              onSaveField={(fieldId, value) => onSaveField?.(file.id!, fieldId, value)}
-              fields={[]}
-              onAction={(action, item) =>
-                handleAction(action as 'rename' | 'delete' | 'download' | 'restore', item)
-              }
-              isRecentlyDeleted={isRecentlyDeleted}
-              isRecents={isRecents}
-              selectedCount={selectedIds.size}
-              canEdit={canEdit}
-              isShareView={isShareView}
-              allowDownload={allowDownload}
-            />
-          ))}
+              {foldersExpanded && (
+                <div className="grid grid-cols-1 gap-4 w-full">
+                  {folders.map((folder) => (
+                    <FolderCard
+                      key={folder.id}
+                      item={folder}
+                      isSelected={selectedItem?.id === folder.id}
+                      isChecked={selectedIds.has(folder.id!)}
+                      isEditing={editingItemId === folder.id}
+                      onSelect={onItemSelect}
+                      onDoubleClick={onItemDoubleClick}
+                      onContextMenu={() => {}}
+                      onDragStart={() => {}}
+                      onDrop={() => {}}
+                      onRename={(newName) => onRenameSubmit(folder, newName)}
+                      onFinishEditing={() => setEditingItemId(null)}
+                      onAction={(action, item) =>
+                        handleAction(action as 'rename' | 'delete' | 'download' | 'restore', item)
+                      }
+                      isRecentlyDeleted={isRecentlyDeleted}
+                      isRecents={isRecents}
+                      selectedCount={selectedIds.size}
+                      canEdit={canEdit}
+                      isShareView={isShareView}
+                      allowDownload={allowDownload}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Files Section */}
+          {filesCount > 0 && (
+            <div className="mb-4">
+              <button
+                onClick={() => setFilesExpanded(!filesExpanded)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-3 font-medium select-none cursor-pointer"
+              >
+                {filesExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+                <span>
+                  {formatCount(filesCount, true)}
+                  {showFilesSize ? ` • ${formatSize(filesSizeVal)}` : ''}
+                </span>
+              </button>
+
+              {filesExpanded && (
+                <div className="grid grid-cols-1 gap-4 w-full">
+                  {files.map((file) => (
+                    <FileCard
+                      key={file.id}
+                      teamId={teamId}
+                      item={file}
+                      isSelected={selectedItem?.id === file.id}
+                      isChecked={selectedIds.has(file.id!)}
+                      isEditing={editingItemId === file.id}
+                      onSelect={onItemSelect}
+                      onDoubleClick={onItemDoubleClick}
+                      onContextMenu={() => {}}
+                      onDragStart={() => {}}
+                      onDrop={() => {}}
+                      onRename={(newName) => onRenameSubmit(file, newName)}
+                      onFinishEditing={() => setEditingItemId(null)}
+                      onSaveField={(fieldId, value) => onSaveField?.(file.id!, fieldId, value)}
+                      fields={[]}
+                      onAction={(action, item) =>
+                        handleAction(action as 'rename' | 'delete' | 'download' | 'restore', item)
+                      }
+                      isRecentlyDeleted={isRecentlyDeleted}
+                      isRecents={isRecents}
+                      selectedCount={selectedIds.size}
+                      canEdit={canEdit}
+                      isShareView={isShareView}
+                      allowDownload={allowDownload}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Empty state */}
