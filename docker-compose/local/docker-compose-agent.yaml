@@ -1,9 +1,8 @@
-# Default deployment. Runs with standard container isolation.
+# Agent-enabled deployment.
 #
-# The agent feature is NOT enabled here. If you want it, use
-# docker-compose-agent.yaml instead, which adds the elevated privileges the agent
-# sandbox requires. Keeping them out of this file means an operator who never uses
-# the agent does not run with seccomp and AppArmor disabled.
+# Identical to docker-compose.yaml except that it grants the elevated privileges the
+# agent sandbox requires. Use this ONLY if you use the agent feature, and prefer to
+# run it where a compromise is survivable.
 services:
   postgres:
     image: pgvector/pgvector:pg18
@@ -24,6 +23,14 @@ services:
 
   shumai:
     image: shumaione/shumai:latest
+    # Required by the agent sandbox (bubblewrap needs to create user namespaces).
+    # These weaken container isolation, so this file is only for deployments that
+    # actually use the agent feature. See docker-compose.yaml for the default.
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor=unconfined
+      - seccomp=unconfined
     container_name: shumai_app
     ports:
       - '3000:3000'
@@ -42,6 +49,9 @@ services:
 
       # Better Auth
       BETTER_AUTH_SECRET: qSxs9DxzHDZBbeeTNPEwBuspYwipBqz5Gk5XdBjNhWw=
+
+      # Sandbox Configuration
+      ENABLE_WEAKER_NESTED_SANDBOX: 'true'
 
     depends_on:
       postgres:
