@@ -206,32 +206,6 @@ export function BreadcrumbNav({
   const isAudio = currentAsset.proxyType === 'audio'
   const hasVideoTranscodes = !isAudio && (downloadInfo?.videoTranscodes?.length ?? 0) > 0
 
-  const breadcrumbs: { name: string; path?: string; id?: string; isMuted?: boolean }[] = isPublic
-    ? [
-        {
-          name: projectName,
-          id: 'root', // Special ID for share root
-        },
-        ...ancestorFolders
-          .slice()
-          .reverse()
-          .map((folder) => ({
-            name: folder.name || '',
-            id: folder.id,
-          })),
-      ]
-    : [
-        { name: m.all_projects(), path: `/teams/${teamId}`, isMuted: true },
-        { name: projectName, path: `/projects/${projectId}` },
-        ...ancestorFolders
-          .slice()
-          .reverse()
-          .map((folder) => ({
-            name: folder.name || '',
-            path: `/projects/${projectId}/folders/${folder.id}`,
-          })),
-      ]
-
   const hasTerminal = Boolean(customTerminalBreadcrumb || (!isRootFolder && !compareMode))
 
   const mobileProjectItem = {
@@ -550,9 +524,7 @@ export function BreadcrumbNav({
           .slice()
           .reverse()
           .map((folder) => {
-            const path = isPublic
-              ? undefined
-              : `/projects/${projectId}/folders/${folder.id}`
+            const path = isPublic ? undefined : `/projects/${projectId}/folders/${folder.id}`
             return (
               <div key={folder.id} className="hidden md:flex items-center gap-1">
                 <span className="text-muted-foreground">/</span>
