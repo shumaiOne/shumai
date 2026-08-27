@@ -668,7 +668,7 @@ export function MobileFileBrowser({
             <DropdownMenuTrigger asChild>
               <Button
                 size="icon"
-                className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 flex items-center justify-center transition-all active:scale-95"
+                className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 flex items-center justify-center"
                 aria-label="Actions"
               >
                 <Plus className="h-6 w-6" />
