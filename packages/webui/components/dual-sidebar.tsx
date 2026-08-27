@@ -1,10 +1,13 @@
 import { Menu } from 'lucide-react'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo } from 'react'
+import { useRouterState } from '@tanstack/react-router'
+import { useDualSidebarStore } from '@/ui/stores/dual-sidebar'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { UserMenu } from './user-menu'
 
-interface DualSidebarItemProps {
+export interface DualSidebarItemProps {
+  id?: string
   icon: React.ReactNode
   label: string
   badge?: React.ReactNode
@@ -20,11 +23,20 @@ export const DualSidebarItem: React.FC<DualSidebarItemProps> = () => {
 
 interface DualSidebarProps {
   children: React.ReactNode
+  hideMobileButton?: boolean
 }
 
-export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
-  const [activeItem, setActiveItem] = useState<number | null>(null)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+export const DualSidebar: React.FC<DualSidebarProps> = ({ children, hideMobileButton = false }) => {
+  const {
+    isMobileMenuOpen,
+    activeItem,
+    activeItemId,
+    setActiveItem,
+    toggleMobileMenu,
+    closeMobileMenu,
+  } = useDualSidebarStore()
+
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
 
   const sidebarItems = useMemo(
     () =>
@@ -34,6 +46,21 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
       ),
     [children],
   )
+
+  // Automatically resolve activeItemId to activeItem index if specified
+  useEffect(() => {
+    if (activeItemId) {
+      const foundIndex = sidebarItems.findIndex((item) => item.props.id === activeItemId)
+      if (foundIndex !== -1) {
+        setActiveItem(foundIndex)
+      }
+    }
+  }, [activeItemId, sidebarItems, setActiveItem])
+
+  // Automatically close mobile menu when navigating to another route
+  useEffect(() => {
+    closeMobileMenu()
+  }, [pathname, closeMobileMenu])
 
   const activeItemContent = activeItem !== null ? sidebarItems[activeItem]?.props : null
 
@@ -46,39 +73,31 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
       return
     }
 
-    setActiveItem((prev) => {
-      if (prev === index) {
-        return null
-      }
+    if (activeItem === index) {
+      setActiveItem(null)
+    } else {
       if (item && item.props.onItemClick) {
         item.props.onItemClick()
       }
-      return index
-    })
-  }
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen((prev) => !prev)
-  }
-
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false)
-    setActiveItem(null)
+      setActiveItem(index)
+    }
   }
 
   return (
     <>
-      {/* Mobile Hamburger Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={toggleMobileMenu}
-        className="md:hidden fixed top-4 left-4 z-50 rounded-md bg-sidebar/50 backdrop-blur-sm text-sidebar-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-        aria-label="Open navigation menu"
-        aria-expanded={isMobileMenuOpen}
-      >
-        <Menu />
-      </Button>
+      {/* Mobile Hamburger Button (Optional if header provides its own menu button) */}
+      {!hideMobileButton && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleMobileMenu}
+          className="md:hidden fixed top-4 left-4 z-50 rounded-md bg-sidebar/50 backdrop-blur-sm text-sidebar-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          aria-label="Open navigation menu"
+          aria-expanded={isMobileMenuOpen}
+        >
+          <Menu />
+        </Button>
+      )}
 
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (

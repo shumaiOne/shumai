@@ -1,5 +1,6 @@
 import { client } from '@/ui/api/client'
 import { DualSidebar, DualSidebarItem } from '@/ui/components/dual-sidebar'
+import { FolderTree } from '@/ui/components/folder-tree'
 import { NotificationList } from '@/ui/components/notification-list'
 import { TopNav } from '@/ui/components/top-nav'
 import {
@@ -15,9 +16,11 @@ import { m } from '@/ui/paraglide/messages.js'
 import { getLocale, setLocale } from '@/ui/paraglide/runtime.js'
 import { useAuthStore } from '@/ui/stores/auth'
 import { useTeamContextStore } from '@/ui/stores/team-context'
+import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 import { useQuery } from '@tanstack/react-query'
+import { Folder } from 'lucide-react'
 import {
   createRootRouteWithContext,
   Outlet,
@@ -47,6 +50,7 @@ function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const navigate = useNavigate()
   const { teamId: storedTeamId, setTeamId } = useTeamContextStore()
+  const { projectState } = useTopNavStore()
 
   const showSidebar = user && (pathname.startsWith('/teams/') || pathname.startsWith('/projects/'))
 
@@ -90,7 +94,7 @@ function RootComponent() {
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
       <Toaster />
-      <DualSidebar>
+      <DualSidebar hideMobileButton={true}>
         <DualSidebarItem
           icon={<HomeIcon />}
           label={m.home()}
@@ -103,6 +107,21 @@ function RootComponent() {
             }
           }}
         />
+        {projectState && projectState.projectId && (
+          <DualSidebarItem
+            id="folders"
+            icon={<Folder className="size-6 text-foreground" />}
+            label={m.folder_tree_assets()}
+          >
+            <FolderTree
+              teamId={projectState.teamId}
+              projectId={projectState.projectId}
+              projectName={projectState.projectName}
+              rootFolderId={projectState.rootFolderId || ''}
+              ancestorFolders={projectState.ancestorFolders}
+            />
+          </DualSidebarItem>
+        )}
         <DualSidebarItem icon={<NotificationFillIcon />} label={m.notifications()} badge={badge}>
           <NotificationList />
         </DualSidebarItem>

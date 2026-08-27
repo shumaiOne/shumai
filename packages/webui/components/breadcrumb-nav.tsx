@@ -41,9 +41,11 @@ import {
   History,
   LayoutGrid,
   List,
+  Menu,
   SquareKanban,
 } from 'lucide-react'
 import { useState } from 'react'
+import { useDualSidebarStore } from '@/ui/stores/dual-sidebar'
 import { ManageVersionsDialog } from './manage-versions-dialog'
 import { AssetLinkedTasksDialog } from './kanban/asset-linked-tasks-dialog'
 
@@ -127,6 +129,7 @@ export function BreadcrumbNav({
 }: BreadcrumbNavProps) {
   const navigate = useNavigate()
   const { canEdit } = usePermissions(projectId)
+  const { openMobileMenu } = useDualSidebarStore()
   const [isManageVersionsOpen, setIsManageVersionsOpen] = useState(false)
   const [isLinkedTasksOpen, setIsLinkedTasksOpen] = useState(false)
 
@@ -230,8 +233,19 @@ export function BreadcrumbNav({
       ]
 
   return (
-    <div className="flex h-14 flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-4 py-2">
-      <div className="flex min-w-0 flex-shrink items-center gap-1">
+    <div className="flex h-14 flex-nowrap items-center justify-between gap-2 border-b border-border bg-card px-4 py-2 overflow-hidden">
+      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+        {!isPublic && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => openMobileMenu('folders')}
+            className="md:hidden h-8 w-8 text-foreground hover:bg-accent shrink-0 -ml-2 mr-1"
+            aria-label="Open navigation menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
         {breadcrumbs.map((breadcrumb, index) => (
           <div key={index} className="flex items-center gap-1">
             {index > 0 && <span className="text-muted-foreground">/</span>}
@@ -493,7 +507,7 @@ export function BreadcrumbNav({
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="hidden md:flex items-center gap-2">
         <div className="flex flex-shrink-0 items-center gap-1 rounded-md border border-border bg-background p-1">
           {/* Left Sidebar Toggle */}
           {!fileId && !isPublic && onLeftSidebarToggle && (

@@ -134,10 +134,27 @@ export function TopNav() {
   )
 }
 
+import { Menu } from 'lucide-react'
+import { Button } from '@/ui/components/ui/button'
+import { useDualSidebarStore } from '@/ui/stores/dual-sidebar'
+
 function TeamHeader() {
+  const { toggleMobileMenu } = useDualSidebarStore()
   return (
-    <div className="flex h-14 flex-wrap items-center justify-center gap-2 border-b border-border bg-card px-4 py-2 flex-shrink-0">
-      <ShumaiLogo className="w-10 h-10 text-orange-600" />
+    <div className="flex h-14 items-center justify-between border-b border-border bg-card px-4 py-2 flex-shrink-0">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={toggleMobileMenu}
+        className="md:hidden text-foreground hover:bg-accent -ml-2"
+        aria-label="Open navigation menu"
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+      <div className="flex flex-1 items-center justify-center">
+        <ShumaiLogo className="w-10 h-10 text-orange-600" />
+      </div>
+      <div className="w-9 md:hidden" />
     </div>
   )
 }

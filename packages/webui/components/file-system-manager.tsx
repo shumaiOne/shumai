@@ -25,9 +25,11 @@ import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '../lib/utils'
 import { getSelectedRangeIds } from '../lib/selection-utils'
+import { useIsMobile } from '@/ui/hooks/use-mobile'
 import { ChatbotSidebar } from './chatbot-sidebar'
 import { SnapToPointer } from './dnd-modifiers'
 import { FileBrowser } from './file-browser/file-browser'
+import { MobileFileBrowser } from './file-browser/mobile-file-browser'
 import { FileViewerRightSidebar } from './file-viewer-right-sidebar'
 import { FolderTree } from './folder-tree'
 import { ResizeHandle } from './resize-handle'
@@ -162,6 +164,7 @@ export default function FileSystemManager({
       teamId,
       projectId,
       projectName,
+      rootFolderId,
       ancestorFolders: folderInfo?.ancestorFolders ?? [],
       currentAsset: isRecentlyDeleted
         ? { name: m.recently_deleted(), type: 'folder' }
@@ -415,6 +418,39 @@ export default function FileSystemManager({
           })
         },
       },
+    )
+  }
+
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    return (
+      <MobileFileBrowser
+        teamId={teamId}
+        projectId={projectId}
+        assetId={assetId}
+        folders={folders}
+        files={files}
+        totalFolders={totalFolders}
+        totalFiles={totalFiles}
+        totalFoldersSize={totalFoldersSize}
+        totalFilesSize={totalFilesSize}
+        selectedItem={selectedItem}
+        selectedIds={selectedIds}
+        onItemSelect={handleItemSelect}
+        onItemDoubleClick={handleItemDoubleClick}
+        onSaveField={handleSaveField}
+        onClearSelection={handleClearSelection}
+        fetchNextFoldersPage={fetchNextFoldersPage}
+        hasNextFoldersPage={hasNextPageFolders || false}
+        isFetchingNextFoldersPage={isFetchingNextFoldersPage}
+        fetchNextFilesPage={fetchNextFilesPage}
+        hasNextFilesPage={hasNextPageFiles || false}
+        isFetchingNextFilesPage={isFetchingNextFilesPage}
+        isRecentlyDeleted={isRecentlyDeleted}
+        isRecents={isRecents}
+        rootFolderId={rootFolderId}
+      />
     )
   }
 

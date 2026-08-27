@@ -83,4 +83,24 @@ describe('BreadcrumbNav component', () => {
 
     expect(screen.queryByTitle(/Linked Tasks|关联任务/i)).toBeNull()
   })
+
+  it('renders mobile navigation menu button when not in public share mode', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav {...baseProps} isPublic={false} />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: /Open navigation menu/i })).toBeDefined()
+  })
+
+  it('hides mobile navigation menu button in public share mode', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav {...baseProps} isPublic={true} />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.queryByRole('button', { name: /Open navigation menu/i })).toBeNull()
+  })
 })
