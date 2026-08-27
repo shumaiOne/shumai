@@ -4,7 +4,7 @@ import { client } from '@/ui/api/client'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { m } from '@/ui/paraglide/messages.js'
 import { useUploadStore } from '@/ui/stores/upload'
-import type { AssetInfo, CreateUploadTaskRequest } from '@shumai/dtos'
+import type { AssetInfo, CreateUploadTaskRequest, PresignedUrl } from '@shumai/dtos'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { formatSize } from '@/ui/lib/format'
@@ -216,14 +216,11 @@ export function MobileFileBrowser({
 
   const uploadFiles = async (
     filesList: FileWithId[],
-    presignedUrls: { id?: string; url?: string; fileId?: string }[],
+    presignedUrls: PresignedUrl[] | undefined,
     taskId: string,
   ) => {
     const uploadUrlMap = presignedUrls?.reduce(
-      (
-        acc: Record<string, { url: string; fileId: string }>,
-        item: { id?: string; url?: string; fileId?: string },
-      ) => {
+      (acc: Record<string, { url: string; fileId: string }>, item: PresignedUrl) => {
         if (item.id) {
           acc[item.id] = {
             url: item.url || '',
@@ -341,9 +338,7 @@ export function MobileFileBrowser({
       const currentFiles = context?.files || []
       const filesProgressInfo = currentFiles
         .map((f) => {
-          const urlInfo = (
-            data.presignedUrls as { id?: string; url?: string; fileId?: string }[] | undefined
-          )?.find((p) => p.id === f.id)
+          const urlInfo = data.presignedUrls?.find((p) => p.id === f.id)
           return {
             fileId: urlInfo?.fileId || f.id,
             name: f.file.name,
@@ -363,8 +358,7 @@ export function MobileFileBrowser({
       queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'upload', 'tasks'] })
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await uploadFiles(currentFiles, data.presignedUrls as any, data.taskId!)
+      await uploadFiles(currentFiles, data.presignedUrls, data.taskId!)
       queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'upload', 'tasks'] })
     },
