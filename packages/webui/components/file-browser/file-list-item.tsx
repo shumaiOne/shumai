@@ -235,7 +235,7 @@ export function FileListItem({
             onBlur={handleRename}
             onKeyDown={handleKeyDown}
             disabled={!isEditing}
-            className="h-auto p-0 text-sm font-medium text-foreground truncate"
+            className="h-auto p-0 text-sm font-medium text-foreground truncate min-w-0 flex-1"
           />
           {displayItem.status === 'error' && (
             <span className="text-xs text-destructive font-semibold shrink-0">

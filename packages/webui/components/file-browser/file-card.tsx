@@ -305,7 +305,7 @@ export function FileCard({
             onBlur={handleRename}
             onKeyDown={handleKeyDown}
             disabled={!isEditing}
-            className="h-auto p-0 text-sm text-foreground !bg-transparent"
+            className="h-auto p-0 text-sm font-medium text-foreground truncate !bg-transparent"
           />
           <p className="text-sm text-muted-foreground">
             {displayItem.createdAt &&

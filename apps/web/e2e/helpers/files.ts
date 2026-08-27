@@ -7,15 +7,16 @@ interface CreateShareResponse {
 }
 
 /**
- * Locates a file/folder card by its name. File names are rendered as
- * `EditableText` inputs (not text nodes), so `getByText` does not match them.
- * The returned locator points at the card wrapper div (right-clickable to open
- * the card context menu).
+ * Locates a file/folder card by its name. Matches both read-only text nodes
+ * and active EditableText inputs. The returned locator points at the card
+ * wrapper div (right-clickable to open the card context menu).
  */
 export function fileCard(page: Page, name: string): Locator {
   return page
     .locator('div.group')
-    .filter({ has: page.locator(`input[value="${name}"]`) })
+    .filter({
+      has: page.locator(`input[value="${name}"]`).or(page.getByText(name, { exact: true })),
+    })
     .first()
 }
 
