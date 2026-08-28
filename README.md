@@ -45,6 +45,12 @@ Here is a short demo video showing what the Shumai agent can do:
 
 https://github.com/user-attachments/assets/1186067a-72c0-41b9-836f-987438f2332a
 
+Shumai also brings project management into the creative workflow. A built-in Kanban board helps teams organize tasks, track progress, and collaborate in one place.
+
+The ultimate goal is an **agentic Kanban**, where agents and team members can work together on tasks. This is still a **work in progress**: you can already create tasks for AI agents, but agents cannot act on those tasks yet.
+
+<img width="2880" height="2160" alt="localhost_3000_teams_01M0HQR3EEBS0B46K4FK39X2C8_kanban(1080p-2) (1)" src="https://github.com/user-attachments/assets/cd0648d0-c69a-4398-958b-8d15a33378b0" />
+
 
 
 > [!NOTE]
