@@ -3,11 +3,17 @@ import { BreadcrumbNav } from './breadcrumb-nav'
 import { ShumaiLogo } from '@/ui/components/ui/icons'
 import { useUiStore } from '@/ui/stores/ui'
 import { useChatbotStore } from '@/ui/stores/chatbot'
+import { useIsMobile } from '@/ui/hooks/use-mobile'
 
 export function TopNav() {
   const { projectState } = useTopNavStore()
   const uiStore = useUiStore()
   const { isChatbotOpen, setIsChatbotOpen } = useChatbotStore()
+  const isMobile = useIsMobile()
+
+  if (isMobile && projectState?.fileId) {
+    return null
+  }
 
   if (!projectState) {
     return <TeamHeader />

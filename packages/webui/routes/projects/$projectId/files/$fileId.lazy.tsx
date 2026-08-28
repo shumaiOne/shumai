@@ -5,6 +5,8 @@ import { CompareViewer } from '@/ui/components/compare/compare-viewer'
 import { FileViewer } from '@/ui/components/file-viewer'
 import { FileViewerLeftSidebar } from '@/ui/components/file-viewer-left-sidebar'
 import { FileViewerRightSidebar } from '@/ui/components/file-viewer-right-sidebar'
+import { MobileFileDetail } from '@/ui/components/file-viewer/mobile-file-detail'
+import { useIsMobile } from '@/ui/hooks/use-mobile'
 import { FileDetailSkeleton } from '@/ui/components/loading-skeletons'
 import { ResizeHandle } from '@/ui/components/resize-handle'
 import { m } from '@/ui/paraglide/messages.js'
@@ -89,6 +91,7 @@ function FileViewPage() {
   })
   const queryClient = useQueryClient()
   const { members, fetchProjectMembers } = useMemberStore()
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     ensureTeamIdForProject(projectId)
@@ -527,6 +530,65 @@ function FileViewPage() {
   const handlePlay = () => {
     setAnnotations([])
     setSelectedCommentId(null)
+  }
+
+  if (isMobile && !isCompareMode) {
+    return (
+      <MobileFileDetail
+        projectId={projectId}
+        teamId={teamId}
+        fileId={fileId}
+        file={fileData as unknown as AssetInfo}
+        projectInfo={projectInfo}
+        ancestorFolders={fileData.ancestorFolders ?? []}
+        parentFolderId={parentFolderId}
+        versions={versionsDataList}
+        activeFileId={activeFileId}
+        startTime={startTime}
+        siblingFiles={carouselState.files}
+        onNavigateToFile={(targetId) => {
+          navigate({
+            to: '/projects/$projectId/files/$fileId',
+            params: { projectId, fileId: targetId },
+          })
+        }}
+        onNavigateBack={() => {
+          if (parentFolderId && parentFolderId !== projectInfo?.rootFolder) {
+            navigate({
+              to: '/projects/$projectId/folders/$folderId',
+              params: { projectId, folderId: parentFolderId },
+            })
+          } else {
+            navigate({
+              to: '/projects/$projectId',
+              params: { projectId },
+            })
+          }
+        }}
+        onSelectVersion={(versionId) => {
+          navigate({
+            to: '/projects/$projectId/files/$fileId',
+            params: { projectId, fileId },
+            search: (prev: Record<string, unknown>) => ({
+              ...prev,
+              version: versionId,
+            }),
+          })
+        }}
+        onRenameFile={async (newName) => {
+          await renameFile({
+            param: { fileId: activeFileId },
+            json: { name: newName },
+          })
+        }}
+        onDeleteFile={async () => {
+          await deleteFiles({
+            json: { ids: [activeFileId] },
+          })
+        }}
+        onSaveField={handleSaveField}
+      />
+    )
   }
 
   return (

@@ -1298,6 +1298,10 @@
   "n_assets_selected": "已选择 {count} 个资产",
   "no_assets_in_folder": "此文件夹中没有资产",
   "linked_assets_count": "{count} 个资产",
-  "linked_tasks_count": "{count} 个任务",
-  "current_project_label": "当前项目"
+  "current_project_label": "当前项目",
+  "all_comments": "所有评论",
+  "previous_file": "上一个文件",
+  "next_file": "下一个文件",
+  "switch_version": "切换版本",
+  "more_options": "更多选项"
 }

@@ -1298,6 +1298,10 @@
   "n_assets_selected": "{count} assets selected",
   "no_assets_in_folder": "No assets in this folder",
   "linked_assets_count": "{count} assets",
-  "linked_tasks_count": "{count} tasks",
-  "current_project_label": "Current Project"
+  "current_project_label": "Current Project",
+  "all_comments": "All comments",
+  "previous_file": "Previous file",
+  "next_file": "Next file",
+  "switch_version": "Switch version",
+  "more_options": "More options"
 }

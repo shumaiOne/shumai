@@ -7,6 +7,8 @@ import type Player from 'video.js/dist/types/player'
 import { useFramePlayer } from './use-frame-player'
 import { resolveTotalFrames } from './utils'
 import { VideoControlBar, type PlayerState, type DisplayTranscode } from './video-control-bar'
+import { MobileVideoControlBar } from './mobile-video-control-bar'
+import { useIsMobile } from '@/ui/hooks/use-mobile'
 import DrawingCanvas from '@/ui/components/drawing-canvas'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import { FileViewerProps, MediaController } from '../types'
@@ -641,6 +643,8 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     // Center pan is owned by `pan` state (set by auto-fit / gestures).
     const scale = zoom
 
+    const isMobile = useIsMobile()
+
     if (!hasMedia) {
       return (
         <div className="flex h-full w-full items-center justify-center">
@@ -725,31 +729,59 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
           </div>
         </div>
 
-        <VideoControlBar
-          state={controlBarState}
-          zoom={zoom}
-          isControlsVisible={isControlsVisible}
-          buffered={buffered}
-          data={data}
-          resolutions={resolutions}
-          togglePlay={togglePlay}
-          toggleLoop={toggleLoop}
-          toggleMute={toggleMute}
-          handleVolumeChange={handleVolumeChange}
-          changePlaybackRate={changePlaybackRate}
-          changeResolution={changeResolution}
-          handleDownload={handleDownload}
-          toggleFullScreen={toggleFullScreen}
-          onZoomChange={handleZoomChange}
-          onZoomReset={handleZoomReset}
-          frameRate={frameRate}
-          totalFrames={totalFrames}
-          currentFrame={currentFrame}
-          seekToFrame={seekToFrame}
-          onMouseEnter={handleControlsMouseEnter}
-          onMouseLeave={handleControlsMouseLeave}
-          allowDownload={allowDownload}
-        />
+        {isMobile ? (
+          <MobileVideoControlBar
+            state={controlBarState}
+            zoom={zoom}
+            isControlsVisible={isControlsVisible}
+            buffered={buffered}
+            data={data}
+            resolutions={resolutions}
+            togglePlay={togglePlay}
+            toggleLoop={toggleLoop}
+            toggleMute={toggleMute}
+            handleVolumeChange={handleVolumeChange}
+            changePlaybackRate={changePlaybackRate}
+            changeResolution={changeResolution}
+            handleDownload={handleDownload}
+            toggleFullScreen={toggleFullScreen}
+            onZoomChange={handleZoomChange}
+            onZoomReset={handleZoomReset}
+            frameRate={frameRate}
+            totalFrames={totalFrames}
+            currentFrame={currentFrame}
+            seekToFrame={seekToFrame}
+            onMouseEnter={handleControlsMouseEnter}
+            onMouseLeave={handleControlsMouseLeave}
+            allowDownload={allowDownload}
+          />
+        ) : (
+          <VideoControlBar
+            state={controlBarState}
+            zoom={zoom}
+            isControlsVisible={isControlsVisible}
+            buffered={buffered}
+            data={data}
+            resolutions={resolutions}
+            togglePlay={togglePlay}
+            toggleLoop={toggleLoop}
+            toggleMute={toggleMute}
+            handleVolumeChange={handleVolumeChange}
+            changePlaybackRate={changePlaybackRate}
+            changeResolution={changeResolution}
+            handleDownload={handleDownload}
+            toggleFullScreen={toggleFullScreen}
+            onZoomChange={handleZoomChange}
+            onZoomReset={handleZoomReset}
+            frameRate={frameRate}
+            totalFrames={totalFrames}
+            currentFrame={currentFrame}
+            seekToFrame={seekToFrame}
+            onMouseEnter={handleControlsMouseEnter}
+            onMouseLeave={handleControlsMouseLeave}
+            allowDownload={allowDownload}
+          />
+        )}
       </div>
     )
   },
