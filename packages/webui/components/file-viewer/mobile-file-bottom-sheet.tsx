@@ -18,6 +18,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { XIcon } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
+import { toast } from 'sonner'
 
 export interface MobileFileBottomSheetProps {
   teamId: string
@@ -225,7 +226,15 @@ export function MobileFileBottomSheet({
           : ['files', file?.id, 'comments'],
       })
     },
+    onError: () => {
+      toast.error(m.failed_to_post_comment?.() || 'Failed to post comment')
+    },
   })
+
+  const totalComments =
+    commentsData?.pages?.[0]?.pageInfo?.total ??
+    commentsData?.pages.reduce((acc, page) => acc + (page.data?.length || 0), 0) ??
+    0
 
   useEffect(() => {
     if (inView && hasNextPage) {
@@ -257,32 +266,33 @@ export function MobileFileBottomSheet({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (commentsData?.pages.flatMap((page: any) => page.data ?? []) as CommentInfo[]) ?? []
 
-  const handleSendMessage = async (
+  const handleSendMessage = (
     text: string,
     attachmentIds: string[],
-    annotations?: Annotation[],
+    annotations: Annotation[] = [],
     replyToId?: string | null,
     second?: number | null,
   ) => {
-    if (!file?.id) return
+    if (!text.trim() && attachmentIds.length === 0 && annotations.length === 0) return
 
+    const actualReplyToId = replyToId || replyingTo?.id || null
     if (isPublic) {
-      const meRes = await client.api.me.$get()
-      const { id: loggedInUserId } = await meRes.json()
-
-      if (!loggedInUserId) {
-        const guestUserId = localStorage.getItem('guest_user_id')
-        if (!guestUserId) {
-          setPendingComment({ text, attachmentIds, annotations, replyToId, second })
-          setIsGuestPopupOpen(true)
-          return
-        }
-        createComment({ text, attachmentIds, annotations, replyToId, guestUserId, second })
+      const guestUserId = localStorage.getItem(`guest_user_id_${shareId}`)
+      if (!guestUserId) {
+        setPendingComment({ text, attachmentIds, annotations, replyToId: actualReplyToId, second })
+        setIsGuestPopupOpen(true)
       } else {
-        createComment({ text, attachmentIds, annotations, replyToId, second })
+        createComment({
+          text,
+          attachmentIds,
+          annotations,
+          replyToId: actualReplyToId,
+          guestUserId,
+          second,
+        })
       }
     } else {
-      createComment({ text, attachmentIds, annotations, replyToId, second })
+      createComment({ text, attachmentIds, annotations, replyToId: actualReplyToId, second })
     }
     setReplyingTo(null)
   }
@@ -322,14 +332,17 @@ export function MobileFileBottomSheet({
           className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 animate-in fade-in duration-200"
           onClick={() => setViewingAttachment(null)}
         >
-          <button className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors z-50">
+          <button
+            className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors z-50"
+            aria-label={m.close()}
+          >
             <XIcon className="w-8 h-8" />
           </button>
 
           <div className="w-full h-full flex items-center justify-center p-2">
             <img
               src={viewingAttachment.url}
-              alt="Enlarged view"
+              alt={m.preview()}
               className="max-w-full max-h-[85vh] object-contain rounded shadow-2xl cursor-zoom-out"
               onClick={() => setViewingAttachment(null)}
             />
@@ -356,7 +369,7 @@ export function MobileFileBottomSheet({
       >
         <TabsList className="w-full shrink-0 h-9 bg-muted/60 p-1">
           <TabsTrigger value="comments" className="flex-1 text-xs font-semibold py-1">
-            {m.comments()} {comments.length > 0 && `(${comments.length})`}
+            {m.comments()} {totalComments > 0 && `(${totalComments})`}
           </TabsTrigger>
           <TabsTrigger value="fields" className="flex-1 text-xs font-semibold py-1">
             {m.fields()}
@@ -374,14 +387,14 @@ export function MobileFileBottomSheet({
           <div className="flex items-center justify-between px-2 pb-1.5 shrink-0 border-b border-border/50">
             <span className="text-xs font-bold text-foreground">
               {m.all_comments?.() || 'All comments'}
-              {comments.length > 0 ? ` (${comments.length})` : ''}
+              {totalComments > 0 ? ` (${totalComments})` : ''}
             </span>
           </div>
 
           <ScrollArea className="flex-1 min-h-0 px-2 py-2 [&>div>div]:block!">
             {comments.length === 0 ? (
               <div className="py-8 text-center text-xs text-muted-foreground">
-                {m.no_comments_yet?.() || 'No comments yet'}
+                {m.no_comments_yet()}
               </div>
             ) : (
               <div className="space-y-3">

@@ -118,7 +118,7 @@ export function MobileFileHeader({
           size="icon"
           onClick={onBack}
           className="h-8 w-8 text-foreground hover:bg-accent cursor-pointer"
-          aria-label={m.previous_page?.() || 'Back'}
+          aria-label={m.previous_page()}
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
@@ -150,9 +150,7 @@ export function MobileFileHeader({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="center" className="w-48 z-40">
-                <DropdownMenuLabel className="text-xs">
-                  {m.switch_version?.() || 'Switch version'}
-                </DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs">{m.switch_version()}</DropdownMenuLabel>
                 {versions.map((v) => (
                   <DropdownMenuItem
                     key={v.id}
@@ -193,8 +191,8 @@ export function MobileFileHeader({
               disabled={!hasPrevFile}
               onClick={onPrevFile}
               className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
-              title={m.previous_file?.() || 'Previous file'}
-              aria-label={m.previous_file?.() || 'Previous file'}
+              title={m.previous_file()}
+              aria-label={m.previous_file()}
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
@@ -204,8 +202,8 @@ export function MobileFileHeader({
               disabled={!hasNextFile}
               onClick={onNextFile}
               className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
-              title={m.next_file?.() || 'Next file'}
-              aria-label={m.next_file?.() || 'Next file'}
+              title={m.next_file()}
+              aria-label={m.next_file()}
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
@@ -221,7 +219,7 @@ export function MobileFileHeader({
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-foreground hover:bg-accent cursor-pointer"
-              aria-label={m.more_options?.() || 'More options'}
+              aria-label={m.more_options()}
             >
               <MoreVertical className="h-4 w-4" />
             </Button>

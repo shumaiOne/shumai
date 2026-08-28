@@ -554,14 +554,24 @@ export function PublicShareManager({
     )
   } else {
     if (isMobile && viewingFileId && !isCompareMode && viewingFileData) {
+      const containingFolderId =
+        viewingFileData?.ancestorFolders?.[0]?.id ||
+        (currentFolderId !== shareInfo.rootFolderId ? currentFolderId : undefined)
+      const publicAncestorFolders =
+        viewingFileData?.ancestorFolders && viewingFileData.ancestorFolders.length > 0
+          ? viewingFileData.ancestorFolders
+          : ancestorFolders
+
       content = (
         <MobileFileDetail
           projectId={shareInfo.projectId}
           fileId={viewingFileId}
           file={viewingFileData}
           projectInfo={{ name: shareInfo.name, rootFolder: shareInfo.rootFolderId }}
-          ancestorFolders={ancestorFolders}
-          versions={viewingFileData?.versionStack?.versions}
+          ancestorFolders={publicAncestorFolders}
+          versions={
+            stackFileData?.versionStack?.versions ?? viewingFileData?.versionStack?.versions
+          }
           activeFileId={activeFileId || viewingFileId}
           startTime={startTime}
           isPublic={true}
@@ -576,10 +586,10 @@ export function PublicShareManager({
             })
           }}
           onNavigateBack={() => {
-            if (currentFolderId && currentFolderId !== shareInfo.rootFolderId) {
+            if (containingFolderId && containingFolderId !== shareInfo.rootFolderId) {
               navigate({
                 to: '/share/$shareId/folders/$folderId',
-                params: { shareId, folderId: currentFolderId },
+                params: { shareId, folderId: containingFolderId },
               })
             } else {
               navigate({

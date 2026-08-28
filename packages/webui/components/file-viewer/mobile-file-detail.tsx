@@ -132,10 +132,7 @@ export function MobileFileDetail({
     }
   }, [siblingFiles, fileId, activeFileId])
 
-  const folderName =
-    ancestorFolders.length > 0
-      ? ancestorFolders[ancestorFolders.length - 1]?.name
-      : projectInfo?.name
+  const folderName = ancestorFolders.length > 0 ? ancestorFolders[0]?.name : projectInfo?.name
 
   const currentVersionObj = versions?.find((v) => v.id === activeFileId)
   const versionNumber =

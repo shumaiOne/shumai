@@ -135,20 +135,20 @@ export const MobileVideoControlBar: React.FC<ControlBarProps> = ({
               <DropdownMenuTrigger asChild>
                 <button
                   className="h-5 w-5 inline-flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus:outline-none shrink-0"
-                  aria-label="Change time format"
+                  aria-label={m.change_time_format()}
                 >
                   <ChevronDown className="h-3 w-3" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-40 z-30">
                 <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                  Format
+                  {m.format()}
                 </DropdownMenuLabel>
                 <DropdownMenuItem
                   onClick={() => setVideoTimeDisplayMode('standard')}
                   className="flex items-center justify-between cursor-pointer text-xs"
                 >
-                  <span>Standard Time</span>
+                  <span>{m.standard_time()}</span>
                   {videoTimeDisplayMode === 'standard' && (
                     <Check className="h-3.5 w-3.5 text-primary" />
                   )}
@@ -157,7 +157,7 @@ export const MobileVideoControlBar: React.FC<ControlBarProps> = ({
                   onClick={() => setVideoTimeDisplayMode('frames')}
                   className="flex items-center justify-between cursor-pointer text-xs"
                 >
-                  <span>Frames</span>
+                  <span>{m.frames()}</span>
                   {videoTimeDisplayMode === 'frames' && (
                     <Check className="h-3.5 w-3.5 text-primary" />
                   )}
@@ -166,7 +166,7 @@ export const MobileVideoControlBar: React.FC<ControlBarProps> = ({
                   onClick={() => setVideoTimeDisplayMode('timecode')}
                   className="flex items-center justify-between cursor-pointer text-xs"
                 >
-                  <span>Timecode</span>
+                  <span>{m.timecode()}</span>
                   {videoTimeDisplayMode === 'timecode' && (
                     <Check className="h-3.5 w-3.5 text-primary" />
                   )}
@@ -182,8 +182,8 @@ export const MobileVideoControlBar: React.FC<ControlBarProps> = ({
             <DropdownMenuTrigger asChild>
               <button
                 className="flex items-center gap-1 rounded border border-border px-1.5 py-1 text-xs font-semibold hover:bg-muted transition-colors cursor-pointer"
-                title="Settings"
-                aria-label="Settings"
+                title={m.settings()}
+                aria-label={m.settings()}
               >
                 <Settings className="h-3.5 w-3.5" />
                 <span className="text-[11px]">
@@ -221,7 +221,7 @@ export const MobileVideoControlBar: React.FC<ControlBarProps> = ({
               )}
 
               <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Playback Speed
+                {m.playback_speed()}
               </DropdownMenuLabel>
               {[0.5, 1, 1.5, 2].map((rate) => (
                 <DropdownMenuItem
@@ -244,7 +244,7 @@ export const MobileVideoControlBar: React.FC<ControlBarProps> = ({
               >
                 <span className="flex items-center gap-1.5">
                   <Repeat className="h-3.5 w-3.5" />
-                  <span>Loop</span>
+                  <span>{m.loop()}</span>
                 </span>
                 {state.isLooping && <Check className="h-3.5 w-3.5 text-primary" />}
               </DropdownMenuItem>

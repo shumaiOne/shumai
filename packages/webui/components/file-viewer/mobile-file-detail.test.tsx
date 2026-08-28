@@ -117,4 +117,51 @@ describe('MobileFileDetail', () => {
     expect(screen.getByTestId('mock-file-viewer')).toBeDefined()
     expect(screen.getByTestId('mobile-bottom-sheet')).toBeDefined()
   })
+
+  it('displays the immediate parent folder name in nested folder hierarchies', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MobileFileDetail
+          projectId="proj-1"
+          teamId="team-1"
+          fileId="file-100"
+          file={mockFile}
+          activeFileId="file-100"
+          ancestorFolders={[
+            { id: 'f-sub', name: 'Immediate Subfolder' },
+            { id: 'f-root', name: 'Top Level Root' },
+          ]}
+          onNavigateToFile={vi.fn()}
+          onNavigateBack={vi.fn()}
+          onSaveField={vi.fn()}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getByText('Immediate Subfolder')).toBeDefined()
+    expect(screen.queryByText('Top Level Root')).toBeNull()
+  })
+
+  it('renders version list from stack when viewing selected version', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MobileFileDetail
+          projectId="proj-1"
+          teamId="team-1"
+          fileId="file-100"
+          file={mockFile}
+          activeFileId="ver-2"
+          versions={[
+            { id: 'ver-1', version: 1, name: 'video_v1.mp4' },
+            { id: 'ver-2', version: 2, name: 'video_v2.mp4' },
+          ]}
+          onNavigateToFile={vi.fn()}
+          onNavigateBack={vi.fn()}
+          onSaveField={vi.fn()}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getByText('v2')).toBeDefined()
+  })
 })

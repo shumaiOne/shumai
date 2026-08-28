@@ -193,7 +193,11 @@ function FileViewPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   const $renameFile = client.api.files[':fileId'].$put
-  const { mutate: renameFile, isPending: isRenaming } = useMutation<
+  const {
+    mutate: renameFile,
+    mutateAsync: renameFileAsync,
+    isPending: isRenaming,
+  } = useMutation<
     InferResponseType<typeof $renameFile, 200>,
     Error,
     InferRequestType<typeof $renameFile>
@@ -215,11 +219,11 @@ function FileViewPage() {
   })
 
   const $deleteFiles = client.api.files.$delete
-  const { mutate: deleteFiles, isPending: isDeleting } = useMutation<
-    void,
-    Error,
-    InferRequestType<typeof $deleteFiles>
-  >({
+  const {
+    mutate: deleteFiles,
+    mutateAsync: deleteFilesAsync,
+    isPending: isDeleting,
+  } = useMutation<void, Error, InferRequestType<typeof $deleteFiles>>({
     mutationFn: async (request) => {
       const res = await $deleteFiles(request)
       if (!res.ok) throw new Error('Failed to delete file')
@@ -400,6 +404,28 @@ function FileViewPage() {
           if (batchFiles.some((f) => f.id === activeFileId)) {
             found = true
             lastCursor = result.pageInfo?.cursor || undefined
+            if (result.pageInfo?.cursor) {
+              try {
+                const nextRes = await client.api.folders[':folderId'].search.$post({
+                  param: { folderId: parentFolderId },
+                  json: {
+                    assetType: 'file',
+                    after: result.pageInfo.cursor,
+                    first: 200,
+                    recursively: false,
+                    conditions: [],
+                  },
+                })
+                if (nextRes.ok) {
+                  const nextResult = (await nextRes.json()) as unknown as AssetInfoPaginatedList
+                  const nextBatchFiles = (nextResult.data || []) as AssetInfo[]
+                  allFiles.push(...nextBatchFiles)
+                  lastCursor = nextResult.pageInfo?.cursor || undefined
+                }
+              } catch {
+                // Ignore prefetch error
+              }
+            }
             break
           }
           if (!result.pageInfo?.cursor || batchFiles.length < 200) {
@@ -576,13 +602,13 @@ function FileViewPage() {
           })
         }}
         onRenameFile={async (newName) => {
-          await renameFile({
+          await renameFileAsync({
             param: { fileId: activeFileId },
             json: { name: newName },
           })
         }}
         onDeleteFile={async () => {
-          await deleteFiles({
+          await deleteFilesAsync({
             json: { ids: [activeFileId] },
           })
         }}

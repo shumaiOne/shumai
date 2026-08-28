@@ -1298,10 +1298,19 @@
   "n_assets_selected": "已选择 {count} 个资产",
   "no_assets_in_folder": "此文件夹中没有资产",
   "linked_assets_count": "{count} 个资产",
+  "linked_tasks_count": "{count} 个任务",
   "current_project_label": "当前项目",
   "all_comments": "所有评论",
   "previous_file": "上一个文件",
   "next_file": "下一个文件",
   "switch_version": "切换版本",
-  "more_options": "更多选项"
+  "more_options": "更多选项",
+  "change_time_format": "更改时间格式",
+  "format": "格式",
+  "standard_time": "标准时间",
+  "frames": "帧数",
+  "timecode": "时间码",
+  "playback_speed": "播放速度",
+  "settings": "设置",
+  "failed_to_post_comment": "发送评论失败"
 }
