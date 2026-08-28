@@ -44,6 +44,13 @@ Shumai 是一个开源的 Frame.io 替代方案，专为创意团队打造，让
 
 https://github.com/user-attachments/assets/1186067a-72c0-41b9-836f-987438f2332a
 
+Shumai 也将项目管理融入了创意工作流程。 内置的看板可以帮助团队整理任务以及跟踪进度。
+
+最终目标是打造一个 Agentic看板，让 Agent 和团队成员能够围绕同一个目标协同工作。目前这一功能仍在开发中: 你已经可以在看板中为 Agent 创建任务，但 Agent 目前还无法自动执行这些任务。
+
+<img width="2880" height="2160" alt="localhost_3000_teams_01M0HQR3EEBS0B46K4FK39X2C8_kanban(1080p-2) (1)" src="https://github.com/user-attachments/assets/29ff1db1-2d65-4e3c-b467-754b777b406f" />
+
+
 > [!NOTE]
 > **媒体处理与存储机制：** 上传媒体文件后，Shumai 始终会保留并存储原始文件。请注意，系统中显示的文件大小为原始文件的大小，不包含转码后生成的代理文件大小。无论图片还是视频，都会额外生成一张 300p 的 WebP 封面图，作为文件列表中的预览图。此外：
 >
