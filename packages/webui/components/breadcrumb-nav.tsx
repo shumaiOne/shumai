@@ -229,15 +229,10 @@ export function BreadcrumbNav({
       ? mobileAncestorItems[mobileAncestorItems.length - 1]
       : null
 
-  const renderTerminal = (isMobile = false) => {
+  const renderTerminal = () => {
     if (customTerminalBreadcrumb) {
       return (
-        <span
-          className={cn(
-            'truncate rounded px-2 py-1 text-sm font-medium text-foreground',
-            isMobile && 'min-w-0 flex-1',
-          )}
-        >
+        <span className="truncate rounded px-2 py-1 text-sm font-medium text-foreground">
           {customTerminalBreadcrumb}
         </span>
       )
@@ -246,12 +241,7 @@ export function BreadcrumbNav({
     if (!isRootFolder && !compareMode) {
       if (currentAsset.type === 'folder') {
         return (
-          <span
-            className={cn(
-              'truncate rounded px-2 py-1 text-sm font-medium text-foreground',
-              isMobile && 'min-w-0 flex-1',
-            )}
-          >
+          <span className="truncate rounded px-2 py-1 text-sm font-medium text-foreground">
             {currentAsset.name}
           </span>
         )
@@ -259,12 +249,7 @@ export function BreadcrumbNav({
 
       return (
         <DropdownMenu modal={false}>
-          <DropdownMenuTrigger
-            className={cn(
-              'flex items-center gap-1 truncate rounded px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground',
-              isMobile && 'min-w-0 flex-1',
-            )}
-          >
+          <DropdownMenuTrigger className="flex items-center gap-1 truncate rounded px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
             <span className="truncate">{currentAsset.name}</span>
             {currentAsset.version !== undefined && (
               <Badge variant="outline" className="px-1 py-0 text-xs shrink-0">
@@ -273,7 +258,7 @@ export function BreadcrumbNav({
             )}
             <ChevronDown className="h-4 w-4 shrink-0" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
+          <DropdownMenuContent className="w-56" align="start">
             {allowDownload &&
               (hasVideoTranscodes ? (
                 <DropdownMenuSub>
@@ -550,7 +535,7 @@ export function BreadcrumbNav({
 
         {/* Terminal Item (Desktop & Mobile) */}
         {(hasTerminal || (!hasTerminal && ancestorFolders.length > 0)) && (
-          <div className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden">
+          <div className="flex items-center gap-1 min-w-0 shrink overflow-hidden">
             <span
               className={cn(
                 'text-muted-foreground shrink-0',
@@ -560,9 +545,9 @@ export function BreadcrumbNav({
               /
             </span>
             {hasTerminal
-              ? renderTerminal(true)
+              ? renderTerminal()
               : mobileTerminalDirect && (
-                  <span className="min-w-0 flex-1 truncate rounded px-2 py-1 text-sm font-medium text-foreground">
+                  <span className="min-w-0 truncate rounded px-2 py-1 text-sm font-medium text-foreground">
                     {mobileTerminalDirect.name}
                   </span>
                 )}
