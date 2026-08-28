@@ -228,11 +228,12 @@ export function CompareViewer({
   )
 
   const handleToggleFullScreen = useCallback(() => {
-    if (!rootRef.current) return
+    const el = rootRef.current
+    if (!el || typeof el.requestFullscreen !== 'function') return
     if (!document.fullscreenElement) {
-      rootRef.current.requestFullscreen()
-    } else {
-      document.exitFullscreen()
+      el.requestFullscreen().catch(() => {})
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {})
     }
   }, [])
 

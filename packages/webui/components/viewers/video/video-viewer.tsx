@@ -595,14 +595,49 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     }
 
     const toggleFullScreen = () => {
-      if (!rootRef.current) return
-      if (!document.fullscreenElement) {
-        rootRef.current.requestFullscreen()
-        setState((prev) => ({ ...prev, isFullScreen: true }))
-      } else {
-        document.exitFullscreen()
-        setState((prev) => ({ ...prev, isFullScreen: false }))
+      const rootEl = rootRef.current
+      const videoEl = videoHtmlEl || videoRef.current
+
+      // 1. Standard W3C Fullscreen API (Desktop Chrome/Firefox/Safari, Android, iPadOS)
+      if (rootEl && typeof rootEl.requestFullscreen === 'function') {
+        if (!document.fullscreenElement) {
+          rootEl.requestFullscreen().catch(() => {})
+          setState((prev) => ({ ...prev, isFullScreen: true }))
+        } else if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {})
+          setState((prev) => ({ ...prev, isFullScreen: false }))
+        }
+        return
       }
+
+      // 2. iOS WebKit native video fullscreen (iPhone Safari & Chrome)
+      const webkitVideo = videoEl as
+        | (HTMLVideoElement & {
+            webkitEnterFullscreen?: () => void
+            webkitExitFullscreen?: () => void
+            webkitDisplayingFullscreen?: boolean
+          })
+        | null
+
+      if (webkitVideo && typeof webkitVideo.webkitEnterFullscreen === 'function') {
+        if (!webkitVideo.webkitDisplayingFullscreen) {
+          try {
+            webkitVideo.webkitEnterFullscreen()
+          } catch (err) {
+            console.error('Failed to enter iOS fullscreen:', err)
+          }
+        } else if (typeof webkitVideo.webkitExitFullscreen === 'function') {
+          try {
+            webkitVideo.webkitExitFullscreen()
+          } catch (err) {
+            console.error('Failed to exit iOS fullscreen:', err)
+          }
+        }
+        return
+      }
+
+      // 3. Fallback: pseudo-fullscreen
+      setState((prev) => ({ ...prev, isFullScreen: !prev.isFullScreen }))
     }
 
     const handleDownload = async (key: string) => {
@@ -628,7 +663,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       }
     }
 
-    // Listen for fullscreen change events (ESC key)
+    // Listen for fullscreen change events (ESC key, iOS Done button)
     useEffect(() => {
       const onFsChange = () => {
         setState((prev) => ({
@@ -637,8 +672,28 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
         }))
       }
       document.addEventListener('fullscreenchange', onFsChange)
-      return () => document.removeEventListener('fullscreenchange', onFsChange)
-    }, [])
+
+      // iOS WebKit fullscreen events on <video>
+      const videoEl = videoHtmlEl || videoRef.current
+      const onWebkitBeginFs = () => {
+        setState((prev) => ({ ...prev, isFullScreen: true }))
+      }
+      const onWebkitEndFs = () => {
+        setState((prev) => ({ ...prev, isFullScreen: false }))
+      }
+      if (videoEl) {
+        videoEl.addEventListener('webkitbeginfullscreen', onWebkitBeginFs)
+        videoEl.addEventListener('webkitendfullscreen', onWebkitEndFs)
+      }
+
+      return () => {
+        document.removeEventListener('fullscreenchange', onFsChange)
+        if (videoEl) {
+          videoEl.removeEventListener('webkitbeginfullscreen', onWebkitBeginFs)
+          videoEl.removeEventListener('webkitendfullscreen', onWebkitEndFs)
+        }
+      }
+    }, [videoHtmlEl])
 
     // Center pan is owned by `pan` state (set by auto-fit / gestures).
     const scale = zoom
