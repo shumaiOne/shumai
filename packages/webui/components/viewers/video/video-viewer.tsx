@@ -657,7 +657,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       <div
         ref={rootRef}
         className={cn(
-          'group shadow-2xl font-sans select-none flex flex-col mx-auto transition-all duration-300 relative',
+          'group shadow-2xl font-sans select-none flex flex-col mx-auto relative',
           state.isFullScreen ? 'h-full w-full rounded-none bg-black' : 'w-full h-full',
           !isControlsVisible && state.isFullScreen ? 'cursor-none' : '',
         )}

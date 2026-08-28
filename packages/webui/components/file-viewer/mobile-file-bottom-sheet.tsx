@@ -89,7 +89,7 @@ export function MobileFileBottomSheet({
       if (!isDragging.current) return
       const deltaY = dragStartY.current - e.clientY
       const deltaPercent = (deltaY / window.innerHeight) * 100
-      const newHeight = Math.min(92, Math.max(10, dragStartHeightPercent.current + deltaPercent))
+      const newHeight = Math.min(85, Math.max(10, dragStartHeightPercent.current + deltaPercent))
       onHeightPercentChange(newHeight)
     },
     [onHeightPercentChange],
@@ -322,8 +322,8 @@ export function MobileFileBottomSheet({
 
   return (
     <div
-      style={{ height: `${heightPercent}vh` }}
-      className="fixed bottom-0 left-0 right-0 z-30 flex flex-col bg-background border-t border-border shadow-2xl rounded-t-2xl overflow-hidden transition-[height] duration-75 ease-out select-none"
+      style={{ height: `${heightPercent}dvh` }}
+      className="shrink-0 flex flex-col bg-background border-t border-border shadow-2xl rounded-t-2xl overflow-hidden select-none z-20"
       data-testid="mobile-bottom-sheet"
     >
       {/* Lightbox for attachment viewing */}

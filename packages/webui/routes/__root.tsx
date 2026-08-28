@@ -91,7 +91,7 @@ function RootComponent() {
   const isDashboardActive = pathname.includes('/dashboard')
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden">
+    <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
       <Toaster />
       <DualSidebar
         hideMobileButton={true}
