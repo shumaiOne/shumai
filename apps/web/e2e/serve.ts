@@ -7,7 +7,6 @@ import { fileURLToPath } from 'url'
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
 
 async function start() {
-  process.env.TESTCONTAINERS_RYUK_DISABLED = 'true'
   console.log('Starting E2E test database container...')
   await globalTestSetup()
 
