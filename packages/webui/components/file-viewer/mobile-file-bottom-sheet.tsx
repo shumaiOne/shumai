@@ -399,7 +399,7 @@ export function MobileFileBottomSheet({
             ) : (
               <div className="space-y-3">
                 {comments.map((comment) => (
-                  <div key={comment.id} className="space-y-2">
+                  <div key={comment.id}>
                     <MessageCard
                       teamId={teamId}
                       message={comment}
@@ -424,7 +424,7 @@ export function MobileFileBottomSheet({
                       }}
                     />
                     {comment.replies?.map((reply, index) => (
-                      <div key={reply.id} className="pl-4 border-l border-border/60">
+                      <div key={reply.id}>
                         <MessageCard
                           teamId={teamId}
                           isReply={true}
