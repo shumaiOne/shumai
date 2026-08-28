@@ -20,13 +20,19 @@ const MAX_RENDER_PIXELS = 32_000_000
 const MAX_RENDER_SCALE = 16
 
 if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
-  const workerPath =
-    typeof pdfworker === 'string'
-      ? pdfworker.startsWith('/')
-        ? pdfworker
-        : '/' + pdfworker.replace(/^\.\//, '')
-      : pdfworker
-  pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath
+  try {
+    const workerPath =
+      typeof pdfworker === 'string'
+        ? pdfworker.startsWith('/')
+          ? pdfworker
+          : '/' + pdfworker.replace(/^\.\//, '')
+        : (pdfworker as unknown as string)
+    if (typeof workerPath === 'string') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath
+    }
+  } catch {
+    // Ignore in test/non-standard environments
+  }
 }
 
 export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(

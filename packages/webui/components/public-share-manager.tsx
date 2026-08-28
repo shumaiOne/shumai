@@ -9,6 +9,7 @@ import { useIsMobile } from '@/ui/hooks/use-mobile'
 import { TopNav } from './top-nav'
 import { FileBrowser } from './file-browser/file-browser'
 import { MobileFileBrowser } from './file-browser/mobile-file-browser'
+import { MobileFileDetail } from './file-viewer/mobile-file-detail'
 import { FileViewerRightSidebar } from './file-viewer-right-sidebar'
 import { ResizeHandle } from './resize-handle'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -552,165 +553,226 @@ export function PublicShareManager({
       </div>
     )
   } else {
-    content = (
-      <div className="flex flex-1 overflow-hidden relative">
-        {viewingFileId ? (
-          <div className="flex-1 relative bg-muted/30">
-            {isViewingFileLoading && !isCompareMode && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
-                <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-              </div>
-            )}
-            {isCompareMode && compareLeftId && compareRightId ? (
-              <CompareViewer
-                isPublic
-                shareId={shareId}
-                versions={viewingFileData?.versionStack?.versions ?? []}
-                leftId={compareLeftId}
-                rightId={compareRightId}
-                activeSide={compareActiveSide}
-                annotations={annotations}
-                seekRequest={seekRequest}
-                allowDownload={shareInfo.allowDownload}
-                onActiveSideChange={(side) => updateCompareSearch({ cmpActive: side })}
-                onSwitchVersion={(side, versionId) =>
-                  updateCompareSearch(
-                    side === 'left' ? { cmpLeft: versionId } : { cmpRight: versionId },
-                  )
-                }
-                onExit={handleCompareExit}
-                onActiveAssetChange={setCompareActiveAsset}
-                onPlay={handlePlay}
-                onTimeUpdate={setCurrentTime}
-              />
-            ) : (
-              viewingFileData && (
-                <FileViewer
-                  file={viewingFileData}
-                  mediaControllerRef={mediaControllerRef}
+    if (isMobile && viewingFileId && !isCompareMode && viewingFileData) {
+      const containingFolderId =
+        viewingFileData?.ancestorFolders?.[0]?.id ||
+        (currentFolderId !== shareInfo.rootFolderId ? currentFolderId : undefined)
+      const publicAncestorFolders =
+        viewingFileData?.ancestorFolders && viewingFileData.ancestorFolders.length > 0
+          ? viewingFileData.ancestorFolders
+          : ancestorFolders
+
+      content = (
+        <MobileFileDetail
+          projectId={shareInfo.projectId}
+          fileId={viewingFileId}
+          file={viewingFileData}
+          projectInfo={{ name: shareInfo.name, rootFolder: shareInfo.rootFolderId }}
+          ancestorFolders={publicAncestorFolders}
+          versions={
+            stackFileData?.versionStack?.versions ?? viewingFileData?.versionStack?.versions
+          }
+          activeFileId={activeFileId || viewingFileId}
+          startTime={startTime}
+          isPublic={true}
+          shareId={shareId}
+          allowDownload={shareInfo.allowDownload}
+          publicFields={publicFields}
+          siblingFiles={files}
+          onNavigateToFile={(targetId) => {
+            navigate({
+              to: '/share/$shareId/files/$fileId',
+              params: { shareId, fileId: targetId },
+            })
+          }}
+          onNavigateBack={() => {
+            if (containingFolderId && containingFolderId !== shareInfo.rootFolderId) {
+              navigate({
+                to: '/share/$shareId/folders/$folderId',
+                params: { shareId, folderId: containingFolderId },
+              })
+            } else {
+              navigate({
+                to: '/share/$shareId',
+                params: { shareId },
+              })
+            }
+          }}
+          onSelectVersion={(newVerId) => {
+            navigate({
+              to: '/share/$shareId/files/$fileId',
+              params: { shareId, fileId: viewingFileId },
+              search: (prev: Record<string, unknown>) => ({
+                ...prev,
+                version: newVerId,
+              }),
+            })
+          }}
+          onSaveField={() => {}}
+        />
+      )
+    } else {
+      content = (
+        <div className="flex flex-1 overflow-hidden relative">
+          {viewingFileId ? (
+            <div className="flex-1 relative bg-muted/30">
+              {isViewingFileLoading && !isCompareMode && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
+                  <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+                </div>
+              )}
+              {isCompareMode && compareLeftId && compareRightId ? (
+                <CompareViewer
+                  isPublic
+                  shareId={shareId}
+                  versions={viewingFileData?.versionStack?.versions ?? []}
+                  leftId={compareLeftId}
+                  rightId={compareRightId}
+                  activeSide={compareActiveSide}
+                  annotations={annotations}
+                  seekRequest={seekRequest}
+                  allowDownload={shareInfo.allowDownload}
+                  onActiveSideChange={(side) => updateCompareSearch({ cmpActive: side })}
+                  onSwitchVersion={(side, versionId) =>
+                    updateCompareSearch(
+                      side === 'left' ? { cmpLeft: versionId } : { cmpRight: versionId },
+                    )
+                  }
+                  onExit={handleCompareExit}
+                  onActiveAssetChange={setCompareActiveAsset}
                   onPlay={handlePlay}
                   onTimeUpdate={setCurrentTime}
-                  annotations={annotations}
-                  startTime={startTime}
-                  shareId={shareId}
-                  allowDownload={shareInfo.allowDownload}
                 />
-              )
-            )}
-          </div>
-        ) : (
-          currentFolderId &&
-          (isMobile ? (
-            <MobileFileBrowser
-              teamId=""
-              projectId={shareInfo.projectId}
-              assetId={currentFolderId}
-              folders={folders}
-              files={files}
-              totalFolders={totalFolders}
-              totalFiles={totalFiles}
-              totalFoldersSize={totalFoldersSize}
-              totalFilesSize={totalFilesSize}
-              selectedItem={null}
-              selectedIds={selectedIds}
-              onItemSelect={(item, e) => {
-                if (e.metaKey || e.ctrlKey) {
-                  const next = new Set(selectedIds)
-                  if (next.has(item.id!)) next.delete(item.id!)
-                  else next.add(item.id!)
-                  setSelectedIds(next)
-                } else {
-                  setSelectedIds(new Set([item.id!]))
-                }
-              }}
-              onItemDoubleClick={handleItemDoubleClick}
-              onClearSelection={() => setSelectedIds(new Set())}
-              fetchNextFoldersPage={fetchNextFoldersPage}
-              hasNextFoldersPage={hasNextPageFolders}
-              isFetchingNextFoldersPage={isFetchingNextFoldersPage}
-              fetchNextFilesPage={fetchNextFilesPage}
-              hasNextFilesPage={hasNextPageFiles}
-              isFetchingNextFilesPage={isFetchingNextFilesPage}
-              isShareView={true}
-              isPublic={true}
-              shareId={shareId}
-              allowDownload={shareInfo.allowDownload}
-            />
+              ) : (
+                viewingFileData && (
+                  <FileViewer
+                    file={viewingFileData}
+                    mediaControllerRef={mediaControllerRef}
+                    onPlay={handlePlay}
+                    onTimeUpdate={setCurrentTime}
+                    annotations={annotations}
+                    startTime={startTime}
+                    shareId={shareId}
+                    allowDownload={shareInfo.allowDownload}
+                  />
+                )
+              )}
+            </div>
           ) : (
-            <FileBrowser
-              teamId=""
-              projectId={shareInfo.projectId}
-              assetId={currentFolderId}
-              folders={folders}
-              files={files}
-              selectedItem={null}
-              selectedIds={selectedIds}
-              onItemSelect={(item, e) => {
-                if (e.metaKey || e.ctrlKey) {
-                  const next = new Set(selectedIds)
-                  if (next.has(item.id!)) next.delete(item.id!)
-                  else next.add(item.id!)
-                  setSelectedIds(next)
-                } else {
-                  setSelectedIds(new Set([item.id!]))
-                }
-              }}
-              onItemDoubleClick={handleItemDoubleClick}
-              onSaveField={() => {}}
-              displayStyle={(shareInfo.viewMode as 'card' | 'list') ?? 'card'}
-              onClearSelection={() => setSelectedIds(new Set())}
-              fetchNextFoldersPage={fetchNextFoldersPage}
-              hasNextFoldersPage={hasNextPageFolders}
-              isFetchingNextFoldersPage={isFetchingNextFoldersPage}
-              fetchNextFilesPage={fetchNextFilesPage}
-              hasNextFilesPage={hasNextPageFiles}
-              isFetchingNextFilesPage={isFetchingNextFilesPage}
-              isShareView={true}
-              isPublic={true}
-              shareId={shareId}
-              allowDownload={shareInfo.allowDownload}
-            />
-          ))
-        )}
-
-        {!isRightSidebarCollapsed && !isMobile && (
-          <>
-            <ResizeHandle
-              onResize={(delta) =>
-                setRightSidebarWidth((p) => Math.max(240, Math.min(600, p - delta)))
-              }
-            />
-            <div style={{ width: rightSidebarWidth }} className="flex-shrink-0 border-l">
-              <FileViewerRightSidebar
+            currentFolderId &&
+            (isMobile ? (
+              <MobileFileBrowser
                 teamId=""
                 projectId={shareInfo.projectId}
-                file={isCompareMode ? compareActiveAsset : currentSelectedItem}
-                onSaveField={() => {}}
-                members={[]}
-                readOnly={true}
-                publicFields={publicFields}
-                onCommentSelect={handleCommentSelect}
+                assetId={currentFolderId}
+                folders={folders}
+                files={files}
+                totalFolders={totalFolders}
+                totalFiles={totalFiles}
+                totalFoldersSize={totalFoldersSize}
+                totalFilesSize={totalFilesSize}
+                selectedItem={null}
+                selectedIds={selectedIds}
+                onItemSelect={(item, e) => {
+                  if (e.metaKey || e.ctrlKey) {
+                    const next = new Set(selectedIds)
+                    if (next.has(item.id!)) next.delete(item.id!)
+                    else next.add(item.id!)
+                    setSelectedIds(next)
+                  } else {
+                    setSelectedIds(new Set([item.id!]))
+                  }
+                }}
+                onItemDoubleClick={handleItemDoubleClick}
+                onClearSelection={() => setSelectedIds(new Set())}
+                fetchNextFoldersPage={fetchNextFoldersPage}
+                hasNextFoldersPage={hasNextPageFolders}
+                isFetchingNextFoldersPage={isFetchingNextFoldersPage}
+                fetchNextFilesPage={fetchNextFilesPage}
+                hasNextFilesPage={hasNextPageFiles}
+                isFetchingNextFilesPage={isFetchingNextFilesPage}
+                isShareView={true}
                 isPublic={true}
                 shareId={shareId}
-                currentTime={currentTime}
-                onTyping={() => {
-                  mediaControllerRef.current?.pause()
+                allowDownload={shareInfo.allowDownload}
+              />
+            ) : (
+              <FileBrowser
+                teamId=""
+                projectId={shareInfo.projectId}
+                assetId={currentFolderId}
+                folders={folders}
+                files={files}
+                selectedItem={null}
+                selectedIds={selectedIds}
+                onItemSelect={(item, e) => {
+                  if (e.metaKey || e.ctrlKey) {
+                    const next = new Set(selectedIds)
+                    if (next.has(item.id!)) next.delete(item.id!)
+                    else next.add(item.id!)
+                    setSelectedIds(next)
+                  } else {
+                    setSelectedIds(new Set([item.id!]))
+                  }
                 }}
-                selectedCommentId={selectedCommentId}
-                hideAnnotationControl={
-                  (isCompareMode ? compareActiveAsset : currentSelectedItem)?.proxyType === 'audio'
+                onItemDoubleClick={handleItemDoubleClick}
+                onSaveField={() => {}}
+                displayStyle={(shareInfo.viewMode as 'card' | 'list') ?? 'card'}
+                onClearSelection={() => setSelectedIds(new Set())}
+                fetchNextFoldersPage={fetchNextFoldersPage}
+                hasNextFoldersPage={hasNextPageFolders}
+                isFetchingNextFoldersPage={isFetchingNextFoldersPage}
+                fetchNextFilesPage={fetchNextFilesPage}
+                hasNextFilesPage={hasNextPageFiles}
+                isFetchingNextFilesPage={isFetchingNextFilesPage}
+                isShareView={true}
+                isPublic={true}
+                shareId={shareId}
+                allowDownload={shareInfo.allowDownload}
+              />
+            ))
+          )}
+
+          {!isRightSidebarCollapsed && !isMobile && (
+            <>
+              <ResizeHandle
+                onResize={(delta) =>
+                  setRightSidebarWidth((p) => Math.max(240, Math.min(600, p - delta)))
                 }
               />
-            </div>
-          </>
-        )}
-      </div>
-    )
+              <div style={{ width: rightSidebarWidth }} className="flex-shrink-0 border-l">
+                <FileViewerRightSidebar
+                  teamId=""
+                  projectId={shareInfo.projectId}
+                  file={isCompareMode ? compareActiveAsset : currentSelectedItem}
+                  onSaveField={() => {}}
+                  members={[]}
+                  readOnly={true}
+                  publicFields={publicFields}
+                  onCommentSelect={handleCommentSelect}
+                  isPublic={true}
+                  shareId={shareId}
+                  currentTime={currentTime}
+                  onTyping={() => {
+                    mediaControllerRef.current?.pause()
+                  }}
+                  selectedCommentId={selectedCommentId}
+                  hideAnnotationControl={
+                    (isCompareMode ? compareActiveAsset : currentSelectedItem)?.proxyType ===
+                    'audio'
+                  }
+                />
+              </div>
+            </>
+          )}
+        </div>
+      )
+    }
   }
 
   return (
-    <div className="flex h-screen flex-col bg-background">
-      <TopNav />
+    <div className="flex h-[100dvh] flex-col bg-background">
+      {(!isMobile || !viewingFileId) && <TopNav />}
       {content}
     </div>
   )

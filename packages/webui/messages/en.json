@@ -1299,5 +1299,18 @@
   "no_assets_in_folder": "No assets in this folder",
   "linked_assets_count": "{count} assets",
   "linked_tasks_count": "{count} tasks",
-  "current_project_label": "Current Project"
+  "current_project_label": "Current Project",
+  "all_comments": "All comments",
+  "previous_file": "Previous file",
+  "next_file": "Next file",
+  "switch_version": "Switch version",
+  "more_options": "More options",
+  "change_time_format": "Change time format",
+  "format": "Format",
+  "standard_time": "Standard Time",
+  "frames": "Frames",
+  "timecode": "Timecode",
+  "playback_speed": "Playback Speed",
+  "settings": "Settings",
+  "failed_to_post_comment": "Failed to post comment"
 }

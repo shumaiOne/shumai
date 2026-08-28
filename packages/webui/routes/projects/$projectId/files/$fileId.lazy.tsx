@@ -5,6 +5,8 @@ import { CompareViewer } from '@/ui/components/compare/compare-viewer'
 import { FileViewer } from '@/ui/components/file-viewer'
 import { FileViewerLeftSidebar } from '@/ui/components/file-viewer-left-sidebar'
 import { FileViewerRightSidebar } from '@/ui/components/file-viewer-right-sidebar'
+import { MobileFileDetail } from '@/ui/components/file-viewer/mobile-file-detail'
+import { useIsMobile } from '@/ui/hooks/use-mobile'
 import { FileDetailSkeleton } from '@/ui/components/loading-skeletons'
 import { ResizeHandle } from '@/ui/components/resize-handle'
 import { m } from '@/ui/paraglide/messages.js'
@@ -89,6 +91,7 @@ function FileViewPage() {
   })
   const queryClient = useQueryClient()
   const { members, fetchProjectMembers } = useMemberStore()
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     ensureTeamIdForProject(projectId)
@@ -190,7 +193,11 @@ function FileViewPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   const $renameFile = client.api.files[':fileId'].$put
-  const { mutate: renameFile, isPending: isRenaming } = useMutation<
+  const {
+    mutate: renameFile,
+    mutateAsync: renameFileAsync,
+    isPending: isRenaming,
+  } = useMutation<
     InferResponseType<typeof $renameFile, 200>,
     Error,
     InferRequestType<typeof $renameFile>
@@ -212,11 +219,11 @@ function FileViewPage() {
   })
 
   const $deleteFiles = client.api.files.$delete
-  const { mutate: deleteFiles, isPending: isDeleting } = useMutation<
-    void,
-    Error,
-    InferRequestType<typeof $deleteFiles>
-  >({
+  const {
+    mutate: deleteFiles,
+    mutateAsync: deleteFilesAsync,
+    isPending: isDeleting,
+  } = useMutation<void, Error, InferRequestType<typeof $deleteFiles>>({
     mutationFn: async (request) => {
       const res = await $deleteFiles(request)
       if (!res.ok) throw new Error('Failed to delete file')
@@ -397,6 +404,28 @@ function FileViewPage() {
           if (batchFiles.some((f) => f.id === activeFileId)) {
             found = true
             lastCursor = result.pageInfo?.cursor || undefined
+            if (result.pageInfo?.cursor) {
+              try {
+                const nextRes = await client.api.folders[':folderId'].search.$post({
+                  param: { folderId: parentFolderId },
+                  json: {
+                    assetType: 'file',
+                    after: result.pageInfo.cursor,
+                    first: 200,
+                    recursively: false,
+                    conditions: [],
+                  },
+                })
+                if (nextRes.ok) {
+                  const nextResult = (await nextRes.json()) as unknown as AssetInfoPaginatedList
+                  const nextBatchFiles = (nextResult.data || []) as AssetInfo[]
+                  allFiles.push(...nextBatchFiles)
+                  lastCursor = nextResult.pageInfo?.cursor || undefined
+                }
+              } catch {
+                // Ignore prefetch error
+              }
+            }
             break
           }
           if (!result.pageInfo?.cursor || batchFiles.length < 200) {
@@ -527,6 +556,65 @@ function FileViewPage() {
   const handlePlay = () => {
     setAnnotations([])
     setSelectedCommentId(null)
+  }
+
+  if (isMobile && !isCompareMode) {
+    return (
+      <MobileFileDetail
+        projectId={projectId}
+        teamId={teamId}
+        fileId={fileId}
+        file={fileData as unknown as AssetInfo}
+        projectInfo={projectInfo}
+        ancestorFolders={fileData.ancestorFolders ?? []}
+        parentFolderId={parentFolderId}
+        versions={versionsDataList}
+        activeFileId={activeFileId}
+        startTime={startTime}
+        siblingFiles={carouselState.files}
+        onNavigateToFile={(targetId) => {
+          navigate({
+            to: '/projects/$projectId/files/$fileId',
+            params: { projectId, fileId: targetId },
+          })
+        }}
+        onNavigateBack={() => {
+          if (parentFolderId && parentFolderId !== projectInfo?.rootFolder) {
+            navigate({
+              to: '/projects/$projectId/folders/$folderId',
+              params: { projectId, folderId: parentFolderId },
+            })
+          } else {
+            navigate({
+              to: '/projects/$projectId',
+              params: { projectId },
+            })
+          }
+        }}
+        onSelectVersion={(versionId) => {
+          navigate({
+            to: '/projects/$projectId/files/$fileId',
+            params: { projectId, fileId },
+            search: (prev: Record<string, unknown>) => ({
+              ...prev,
+              version: versionId,
+            }),
+          })
+        }}
+        onRenameFile={async (newName) => {
+          await renameFileAsync({
+            param: { fileId: activeFileId },
+            json: { name: newName },
+          })
+        }}
+        onDeleteFile={async () => {
+          await deleteFilesAsync({
+            json: { ids: [activeFileId] },
+          })
+        }}
+        onSaveField={handleSaveField}
+      />
+    )
   }
 
   return (
