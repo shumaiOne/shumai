@@ -25,6 +25,7 @@ import { toast } from 'sonner'
 import { ulid } from 'ulid'
 import type { DragState } from '../dnd-types'
 import { MoveCopyDialog } from '../move-copy-dialog'
+import { ManageVersionsDialog } from '../manage-versions-dialog'
 import { FileBrowserContextMenu } from './context-menu'
 
 import {
@@ -146,6 +147,7 @@ export function FileBrowser({
   allowDownload = true,
 }: FileBrowserProps) {
   const [contextMenuItem, setContextMenuItem] = useState<AssetInfo | null>(null)
+  const [manageVersionsStackId, setManageVersionsStackId] = useState<string | null>(null)
   const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy' | null>(null)
   const [itemsToMoveCopy, setItemsToMoveCopy] = useState<AssetInfo[]>([])
   const queryClient = useQueryClient()
@@ -671,6 +673,10 @@ export function FileBrowser({
       },
       dragState,
       onAction: (action: string, item: AssetInfo) => {
+        if (action === 'manage-versions') {
+          setManageVersionsStackId(item.id || null)
+          return
+        }
         if (isShareView) {
           if (action === 'remove-from-share') {
             const isSelected = selectedIds.has(item.id!)
@@ -1200,6 +1206,7 @@ export function FileBrowser({
           onUploadFile={handleUploadFilesClick}
           onUploadFolder={handleUploadFolderClick}
           onNewVersion={handleNewVersionClick}
+          onManageVersions={(item) => setManageVersionsStackId(item.id || null)}
           onMoveTo={(items) => {
             setItemsToMoveCopy(items)
             setMoveCopyMode('move')
@@ -1368,6 +1375,20 @@ export function FileBrowser({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {manageVersionsStackId && (
+        <ManageVersionsDialog
+          open={!!manageVersionsStackId}
+          onOpenChange={(open) => {
+            if (!open) setManageVersionsStackId(null)
+          }}
+          stackId={manageVersionsStackId}
+          canEdit={canEdit}
+          onStackDissolved={() => {
+            setManageVersionsStackId(null)
+          }}
+        />
+      )}
     </>
   )
 }

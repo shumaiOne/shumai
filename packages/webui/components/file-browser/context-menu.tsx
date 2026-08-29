@@ -22,6 +22,7 @@ import {
   Plus,
   ArrowRight,
   Copy,
+  Layers,
 } from 'lucide-react'
 
 interface FileBrowserContextMenuProps {
@@ -36,6 +37,7 @@ interface FileBrowserContextMenuProps {
   onUploadFile: () => void
   onUploadFolder: () => void
   onNewVersion: (item: AssetInfo) => void
+  onManageVersions?: (item: AssetInfo) => void
   onMoveTo: (items: AssetInfo[]) => void
   onCopyTo: (items: AssetInfo[]) => void
   folders: AssetInfo[]
@@ -63,6 +65,7 @@ export function FileBrowserContextMenu({
   onUploadFile,
   onUploadFolder,
   onNewVersion,
+  onManageVersions,
   onMoveTo,
   onCopyTo,
   folders,
@@ -293,6 +296,13 @@ export function FileBrowserContextMenu({
           <ContextMenuItem onSelect={() => onNewVersion(item)}>
             <UploadCloud className="mr-2 h-4 w-4" />
             <span>{m.create_new_version()}</span>
+          </ContextMenuItem>
+        )}
+
+        {canEdit && item.type === 'version_stack' && (
+          <ContextMenuItem onSelect={() => onManageVersions?.(item)}>
+            <Layers className="mr-2 h-4 w-4" />
+            <span>{m.manage_versions()}</span>
           </ContextMenuItem>
         )}
 

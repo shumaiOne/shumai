@@ -21,7 +21,7 @@ import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
 import { cn } from '@/ui/lib/utils'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
-import { Download, Edit, History, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Download, Edit, History, Layers, MoreHorizontal, Trash2 } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
 import FieldRenderer from '../field-renderer'
@@ -48,7 +48,7 @@ interface FileCardProps {
   dragState?: DragState
   disabled?: boolean
   onAction?: (
-    action: 'rename' | 'delete' | 'download' | 'restore' | 'remove-from-share',
+    action: 'rename' | 'delete' | 'download' | 'restore' | 'remove-from-share' | 'manage-versions',
     item: AssetInfo,
   ) => void
   isRecentlyDeleted?: boolean
@@ -373,6 +373,17 @@ export function FileCard({
                     >
                       <Edit className="mr-2 h-4 w-4" />
                       <span>{m.rename()}</span>
+                    </DropdownMenuItem>
+                  )}
+                  {canEdit && item.type === 'version_stack' && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onAction?.('manage-versions', item)
+                      }}
+                    >
+                      <Layers className="mr-2 h-4 w-4" />
+                      <span>{m.manage_versions()}</span>
                     </DropdownMenuItem>
                   )}
                   {allowDownload && (
