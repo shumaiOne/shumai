@@ -4,7 +4,7 @@ import { zValidator } from '@hono/zod-validator'
 import { shareService } from '@shumai/core/src/share/share'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
-import { paginationParamsSchema } from '@shumai/dtos'
+import { paginationParamsSchema, assetTypeFilterSchema } from '@shumai/dtos'
 import { z } from 'zod'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { FieldInfo } from '@shumai/dtos'
@@ -117,7 +117,7 @@ export function handlePublicShareError(c: Context, err: unknown) {
 }
 
 const sharedChildrenRequestSchema = paginationParamsSchema.extend({
-  assetType: z.string().optional(),
+  assetType: assetTypeFilterSchema.optional().default('file'),
 })
 
 const route = app

@@ -22,9 +22,8 @@ const listAssetsSchema = Type.Object({
     }),
   ),
   type: Type.Optional(
-    Type.String({
+    Type.Union([Type.Literal('file'), Type.Literal('folder'), Type.Literal('all')], {
       description: "Filter assets by type: 'file', 'folder', or 'all'. Default is 'all'.",
-      enum: ['file', 'folder', 'all'],
       default: 'all',
     }),
   ),
@@ -51,6 +50,8 @@ export function createListAssetsTool(userId: string): AgentTool<typeof listAsset
       const result = await assetService.listChildren({
         assetId: params.parent,
         assetType: type,
+        sort: 'createdAt',
+        order: 'desc',
         first: pageSize,
         after: page > 1 ? encodeCursor((page - 1) * pageSize) : undefined,
       })

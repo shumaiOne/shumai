@@ -616,9 +616,13 @@ export class AssetService {
   }
 
   async listChildren(req: ListChildrenRequest): Promise<PaginatedData<AssetInfo[]>> {
-    const typesToQuery: AssetType[] = [req.assetType as AssetType]
-    if (req.assetType === AssetType.file) {
-      typesToQuery.push(AssetType.version_stack)
+    let typesToQuery: AssetType[]
+    if (req.assetType === 'file') {
+      typesToQuery = [AssetType.file, AssetType.version_stack]
+    } else if (req.assetType === 'folder') {
+      typesToQuery = [AssetType.folder]
+    } else {
+      typesToQuery = [AssetType.file, AssetType.folder, AssetType.version_stack]
     }
 
     let where: Prisma.AssetWhereInput = {}
@@ -723,12 +727,17 @@ export class AssetService {
     return { data: infos, pageInfo }
   }
 
-  async createAsset(req: CreateAssetRequest): Promise<AssetInfo> {
+  async createAsset(
+    req: CreateAssetRequest,
+    txClient?: Prisma.TransactionClient,
+  ): Promise<AssetInfo> {
+    const db = txClient ?? this.prismaClient
+
     let projectId = req.projectId
     let parent: Prisma.AssetGetPayload<{ include: { project: true } }> | null = null
 
     if (req.parentId) {
-      parent = await this.prismaClient.asset.findUnique({
+      parent = await db.asset.findUnique({
         where: { id: req.parentId },
         include: { project: true },
       })
@@ -740,7 +749,7 @@ export class AssetService {
 
     let sortIndex: string | null = null
     if (parent) {
-      const firstFile = await this.prismaClient.asset.findFirst({
+      const firstFile = await db.asset.findFirst({
         where: { parentId: parent.id },
         orderBy: { sortIndex: 'asc' },
       })
@@ -768,7 +777,7 @@ export class AssetService {
     if (req.contentType) data.mediaType = req.contentType
     if (req.creatorId) data.creator = { connect: { id: req.creatorId } }
 
-    const asset = await this.prismaClient.$transaction(async (tx) => {
+    const executeInTx = async (tx: Prisma.TransactionClient) => {
       const createdAsset = await tx.asset.create({
         data,
         include: {
@@ -805,7 +814,11 @@ export class AssetService {
       }
 
       return createdAsset
-    })
+    }
+
+    const asset = txClient
+      ? await executeInTx(txClient)
+      : await this.prismaClient.$transaction(executeInTx)
 
     const infos = await this.toAssetInfos([asset])
     return infos[0]
@@ -838,17 +851,22 @@ export class AssetService {
       )
     }
 
-    const newFile = await this.createAsset({
-      name,
-      type: 'file',
-      parentId,
-      key,
-      sizeByte,
-      contentType,
-      creatorId,
-    })
-
+    let newFileId = ''
     await this.prismaClient.$transaction(async (tx) => {
+      const newFile = await this.createAsset(
+        {
+          name,
+          type: 'file',
+          parentId,
+          key,
+          sizeByte,
+          contentType,
+          creatorId,
+        },
+        tx,
+      )
+      newFileId = newFile.id
+
       await this.updateAncestorsSize(tx, parentId, sizeByte)
       if (metadata) {
         const metadataUpdates = Object.entries(metadata)
@@ -866,7 +884,7 @@ export class AssetService {
       )
     })
 
-    return this.getAsset({ assetId: newFile.id })
+    return this.getAsset({ assetId: newFileId })
   }
 
   async createVersion(params: {
@@ -912,15 +930,18 @@ export class AssetService {
 
     let newFileId = ''
     await this.prismaClient.$transaction(async (tx) => {
-      const newFile = await this.createAsset({
-        name,
-        type: 'file',
-        parentId: targetFolderId,
-        key,
-        sizeByte,
-        contentType,
-        creatorId,
-      })
+      const newFile = await this.createAsset(
+        {
+          name,
+          type: 'file',
+          parentId: targetFolderId,
+          key,
+          sizeByte,
+          contentType,
+          creatorId,
+        },
+        tx,
+      )
       newFileId = newFile.id
 
       await this.reparentAssets(

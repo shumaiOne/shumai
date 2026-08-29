@@ -3794,6 +3794,52 @@ describe('AssetService — natural sort by name', () => {
         }),
       ).rejects.toThrow(/metadata contains keys that are not valid in this project/)
     })
+
+    it('rolls back completely if post-upload workflow fails in transaction', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'FileRollbackUser', email: `filerollback-${Date.now()}@example.com` },
+      })
+      const team = await prisma.team.create({ data: { name: 'FileRollbackTeam' } })
+      const project = await prisma.project.create({
+        data: { name: 'FileRollbackProject', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'RootFolder',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 0n,
+          fileCount: 0,
+        },
+      })
+
+      vi.spyOn(uploadService, 'triggerPostUploadWorkflows').mockRejectedValueOnce(
+        new Error('Simulated workflow failure'),
+      )
+
+      await expect(
+        assetService.createFile({
+          parentId: rootFolder.id,
+          name: 'should_rollback.txt',
+          key: 'files/test/should_rollback.txt',
+          sizeByte: 1024,
+          contentType: 'text/plain',
+          creatorId: user.id,
+        }),
+      ).rejects.toThrow('Simulated workflow failure')
+
+      // Assert no asset was created
+      const created = await prisma.asset.findFirst({
+        where: { name: 'should_rollback.txt', projectId: project.id },
+      })
+      expect(created).toBeNull()
+
+      // Assert parent folder counters remained untouched
+      const folderAfter = await prisma.asset.findUnique({ where: { id: rootFolder.id } })
+      expect(folderAfter?.fileCount).toBe(0)
+      expect(folderAfter?.sizeByte).toBe(0n)
+    })
   })
 
   describe('createVersion', () => {
@@ -3921,6 +3967,147 @@ describe('AssetService — natural sort by name', () => {
       expect(stackAfter?.sizeByte).toBe(5000n)
 
       expect(triggerSpy).toHaveBeenCalledWith(expect.anything(), v2Info.id, team.id, project.id)
+    })
+
+    it('rolls back completely if workflow triggering fails in createVersion', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'VersionRollbackUser', email: `verrollback-${Date.now()}@example.com` },
+      })
+      const team = await prisma.team.create({ data: { name: 'VersionRollbackTeam' } })
+      const project = await prisma.project.create({
+        data: { name: 'VersionRollbackProject', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'RootFolder',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 2000n,
+          fileCount: 1,
+        },
+      })
+
+      const v1 = await prisma.asset.create({
+        data: {
+          name: 'image.png',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 2000n,
+        },
+      })
+
+      vi.spyOn(uploadService, 'triggerPostUploadWorkflows').mockRejectedValueOnce(
+        new Error('Simulated version workflow failure'),
+      )
+
+      await expect(
+        assetService.createVersion({
+          parentId: v1.id,
+          name: 'image_v2_fail.png',
+          key: 'files/test/v2_fail.png',
+          sizeByte: 3000,
+          contentType: 'image/png',
+          creatorId: user.id,
+        }),
+      ).rejects.toThrow('Simulated version workflow failure')
+
+      // Check that new version was rolled back
+      const createdV2 = await prisma.asset.findFirst({
+        where: { name: 'image_v2_fail.png', projectId: project.id },
+      })
+      expect(createdV2).toBeNull()
+
+      // Check that v1 remains under rootFolder (no orphaned version stack created)
+      const v1After = await prisma.asset.findUnique({ where: { id: v1.id } })
+      expect(v1After?.parentId).toBe(rootFolder.id)
+
+      // Check root folder counters remained unchanged
+      const rootFolderAfter = await prisma.asset.findUnique({ where: { id: rootFolder.id } })
+      expect(rootFolderAfter?.fileCount).toBe(1)
+      expect(rootFolderAfter?.sizeByte).toBe(2000n)
+    })
+  })
+
+  describe('listChildren type filtering', () => {
+    it('returns files, folders, and version stacks when assetType is all or omitted', async () => {
+      const team = await prisma.team.create({ data: { name: 'ListTypeTeam' } })
+      const project = await prisma.project.create({
+        data: { name: 'ListTypeProject', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'RootFolder',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const subFolder = await prisma.asset.create({
+        data: {
+          name: 'subfolder',
+          type: AssetType.folder,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const file = await prisma.asset.create({
+        data: {
+          name: 'file.txt',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const stack = await prisma.asset.create({
+        data: {
+          name: 'stack.png',
+          type: AssetType.version_stack,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      // Query with assetType: 'all'
+      const allRes = await assetService.listChildren({
+        assetId: rootFolder.id,
+        assetType: 'all',
+      })
+      const allIds = allRes.data.map((a) => a.id)
+      expect(allIds).toContain(subFolder.id)
+      expect(allIds).toContain(file.id)
+      expect(allIds).toContain(stack.id)
+      expect(allRes.data.length).toBe(3)
+
+      // Query with assetType: 'file'
+      const fileRes = await assetService.listChildren({
+        assetId: rootFolder.id,
+        assetType: 'file',
+      })
+      const fileIds = fileRes.data.map((a) => a.id)
+      expect(fileIds).toContain(file.id)
+      expect(fileIds).toContain(stack.id)
+      expect(fileIds).not.toContain(subFolder.id)
+      expect(fileRes.data.length).toBe(2)
+
+      // Query with assetType: 'folder'
+      const folderRes = await assetService.listChildren({
+        assetId: rootFolder.id,
+        assetType: 'folder',
+      })
+      const folderIds = folderRes.data.map((a) => a.id)
+      expect(folderIds).toContain(subFolder.id)
+      expect(folderIds).not.toContain(file.id)
+      expect(folderIds).not.toContain(stack.id)
+      expect(folderRes.data.length).toBe(1)
     })
   })
 })
