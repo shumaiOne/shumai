@@ -191,6 +191,9 @@ export function ManageVersionsDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['version_stacks'] })
       queryClient.invalidateQueries({ queryKey: ['files'] })
+      queryClient.invalidateQueries({ queryKey: ['file'] })
+      queryClient.invalidateQueries({ queryKey: ['search'] })
+      queryClient.invalidateQueries({ queryKey: ['folders'] })
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       toast.success(m.version_reordered_successfully())
     },
@@ -218,6 +221,9 @@ export function ManageVersionsDialog({
 
       queryClient.invalidateQueries({ queryKey: ['version_stacks'] })
       queryClient.invalidateQueries({ queryKey: ['files'] })
+      queryClient.invalidateQueries({ queryKey: ['file'] })
+      queryClient.invalidateQueries({ queryKey: ['search'] })
+      queryClient.invalidateQueries({ queryKey: ['folders'] })
       queryClient.invalidateQueries({ queryKey: ['projects'] })
 
       if (remaining.length <= 1) {
