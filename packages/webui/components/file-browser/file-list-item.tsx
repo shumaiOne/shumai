@@ -108,7 +108,7 @@ export function FileListItem({
   const { ref: setDraggableRef, isDragging: isDraggableDragging } = useDraggable({
     id: `browser:${displayItem.id!}`,
     data: {
-      type: displayItem.type === 'folder' ? 'folder' : 'file',
+      type: displayItem.type,
       id: displayItem.id,
       item: displayItem,
     },

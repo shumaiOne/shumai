@@ -72,7 +72,7 @@ function ListRow({
   const { ref: setRowRef, isDropTarget: isRowOver } = useDroppable({
     id: `browser:${item.id!}`,
     data: {
-      type: item.type === 'folder' ? 'folder' : 'file',
+      type: item.type,
       id: item.id,
       item: item,
     },
@@ -85,10 +85,8 @@ function ListRow({
 
     if (item.type === 'folder') return true
 
-    if (item.type === 'file') {
-      if (dragState.hasFolders) return false
-      if (dragState.itemCount !== 1) return false
-      return true
+    if (item.type === 'file' || item.type === 'version_stack') {
+      return dragState.isSingleFile
     }
 
     return false
