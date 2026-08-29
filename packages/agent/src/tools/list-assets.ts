@@ -1,6 +1,9 @@
 import { Type } from 'typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
-import { executeAgentToolWorkflow } from './utils'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { encodeCursor } from '@shumai/core/src/pagination'
+import { type User } from '@shumai/db'
 
 const listAssetsSchema = Type.Object({
   parent: Type.String({
@@ -19,9 +22,8 @@ const listAssetsSchema = Type.Object({
     }),
   ),
   type: Type.Optional(
-    Type.String({
+    Type.Union([Type.Literal('file'), Type.Literal('folder'), Type.Literal('all')], {
       description: "Filter assets by type: 'file', 'folder', or 'all'. Default is 'all'.",
-      enum: ['file', 'folder', 'all'],
       default: 'all',
     }),
   ),
@@ -34,15 +36,41 @@ export function createListAssetsTool(userId: string): AgentTool<typeof listAsset
     description: 'List the assets (files and folders) inside a parent folder with pagination.',
     parameters: listAssetsSchema,
     execute: async (_toolCallId, params) => {
-      const result = await executeAgentToolWorkflow({
-        toolName: 'list_assets',
-        args: params,
-        userId,
-        assetId: params.parent,
+      await authzService.hasPermission({
+        user: { id: userId } as User,
+        permission: Permission.Read,
+        type: ResourceType.Asset,
+        id: params.parent,
       })
+
+      const page = params.page || 1
+      const pageSize = params.pageSize || 20
+      const type = params.type || 'all'
+
+      const result = await assetService.listChildren({
+        assetId: params.parent,
+        assetType: type,
+        sort: 'createdAt',
+        order: 'desc',
+        first: pageSize,
+        after: page > 1 ? encodeCursor((page - 1) * pageSize) : undefined,
+      })
+
+      const assets = result.data.map((a) => ({
+        id: a.id,
+        name: a.name,
+        type: a.type,
+        size: Number(a.sizeByte),
+      }))
+
+      const output = {
+        assets,
+        pageInfo: result.pageInfo,
+      }
+
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        details: result,
+        content: [{ type: 'text', text: JSON.stringify(output, null, 2) }],
+        details: output,
       }
     },
   }

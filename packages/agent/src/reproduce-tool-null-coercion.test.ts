@@ -3,7 +3,8 @@ import { validateToolArguments } from '@earendil-works/pi-ai'
 import { createCreateFileTool } from './tools/create-file'
 import { fieldsToTypeBoxSchema } from './index'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { executeAgentToolWorkflow } from './tools/utils'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { authzService } from '@shumai/core/src/authz/authz'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
@@ -12,8 +13,20 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
   },
 }))
 
-vi.mock('./tools/utils', () => ({
-  executeAgentToolWorkflow: vi.fn().mockResolvedValue({ id: 'file-1', name: 'test', type: 'file' }),
+vi.mock('@shumai/core/src/authz/authz', () => ({
+  authzService: {
+    hasPermission: vi.fn().mockResolvedValue(undefined),
+  },
+  Permission: { Edit: 'edit', Read: 'read' },
+  ResourceType: { Asset: 'asset' },
+}))
+
+vi.mock('@shumai/core/src/asset/asset', () => ({
+  assetService: {
+    createFile: vi
+      .fn()
+      .mockResolvedValue({ id: 'file-1', name: 'test', type: 'file', sizeByte: 100 }),
+  },
 }))
 
 /**
@@ -63,9 +76,10 @@ describe('reproduce null coercion in harness tool validation', () => {
 
     // execute must accept the valid call (data-only) without throwing
     const result = await tool.execute('call-1', validated as never)
-    expect(result.details).toEqual({ id: 'file-1', name: 'test', type: 'file' })
+    expect(result.details).toEqual({ id: 'file-1', name: 'test', type: 'file', size: 100 })
     expect(s3Service.putObject).toHaveBeenCalledTimes(1)
-    expect(executeAgentToolWorkflow).toHaveBeenCalledTimes(1)
+    expect(authzService.hasPermission).toHaveBeenCalledTimes(1)
+    expect(assetService.createFile).toHaveBeenCalledTimes(1)
   })
 
   it('keeps null metadata values (the "unknown" sentinel) through validation', () => {

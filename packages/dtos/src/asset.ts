@@ -160,9 +160,12 @@ export const updateAssetNameRequestSchema = z.object({
 })
 export type UpdateAssetNameRequest = z.infer<typeof updateAssetNameRequestSchema>
 
+export const assetTypeFilterSchema = z.enum(['file', 'folder', 'all'])
+export type AssetTypeFilter = z.infer<typeof assetTypeFilterSchema>
+
 export const listChildrenRequestSchema = z.object({
   assetId: z.string().optional(),
-  assetType: z.string(),
+  assetType: assetTypeFilterSchema.optional().default('all'),
   projectId: z.string().optional(),
   showDeleted: z.boolean().optional(),
   prefix: z.string().optional(),

@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createCreateVersionTool } from './create-version'
 import { fieldsToTypeBoxSchema } from '../index'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { executeAgentToolWorkflow } from './utils'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { authzService } from '@shumai/core/src/authz/authz'
 import { Value } from 'typebox/value'
 import * as fs from 'fs'
 import * as os from 'os'
@@ -14,8 +15,20 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
   },
 }))
 
-vi.mock('./utils', () => ({
-  executeAgentToolWorkflow: vi.fn().mockResolvedValue({ id: 'file-1', name: 'v2', type: 'file' }),
+vi.mock('@shumai/core/src/authz/authz', () => ({
+  authzService: {
+    hasPermission: vi.fn().mockResolvedValue(undefined),
+  },
+  Permission: { Edit: 'edit', Read: 'read' },
+  ResourceType: { Asset: 'asset' },
+}))
+
+vi.mock('@shumai/core/src/asset/asset', () => ({
+  assetService: {
+    createVersion: vi
+      .fn()
+      .mockResolvedValue({ id: 'file-1', name: 'v2', type: 'file', sizeByte: 100 }),
+  },
 }))
 
 describe('createCreateVersionTool', () => {
@@ -41,7 +54,7 @@ describe('createCreateVersionTool', () => {
     return filePath
   }
 
-  it('should upload a local file and create a version via the agent tool workflow', async () => {
+  it('should upload a local file and create a version via assetService.createVersion', async () => {
     const filePath = createTempFile('# Hello from disk', 'create-version-test.md')
 
     const tool = createCreateVersionTool('user-1')
@@ -53,23 +66,27 @@ describe('createCreateVersionTool', () => {
     expect(s3Key).toMatch(/^files\/.+\.md$/)
     expect(uploadArgs[2]).toBe('text/markdown')
 
-    expect(executeAgentToolWorkflow).toHaveBeenCalledWith({
-      toolName: 'create_version',
-      args: {
-        parent: 'file-1',
-        s3Key,
-        name: 'create-version-test.md',
-        size: Buffer.byteLength('# Hello from disk', 'utf-8'),
-        contentType: 'text/markdown',
-      },
-      userId: 'user-1',
-      assetId: 'file-1',
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user-1' },
+      permission: 'edit',
+      type: 'asset',
+      id: 'file-1',
     })
 
-    expect(result.details).toEqual({ id: 'file-1', name: 'v2', type: 'file' })
+    expect(assetService.createVersion).toHaveBeenCalledWith({
+      parentId: 'file-1',
+      name: 'create-version-test.md',
+      key: s3Key,
+      sizeByte: Buffer.byteLength('# Hello from disk', 'utf-8'),
+      contentType: 'text/markdown',
+      creatorId: 'user-1',
+      metadata: undefined,
+    })
+
+    expect(result.details).toEqual({ id: 'file-1', name: 'v2', type: 'file', size: 100 })
   })
 
-  it('should forward the metadata to the agent tool workflow when provided', async () => {
+  it('should forward the metadata to assetService.createVersion when provided', async () => {
     const filePath = createTempFile('# Hello from disk', 'create-version-metadata.md')
     const metadataSchema = fieldsToTypeBoxSchema([
       { id: 'prompt', config: { name: 'Prompt', type: 'text' } },
@@ -82,9 +99,9 @@ describe('createCreateVersionTool', () => {
       metadata: { prompt: 'Generated using gemini' },
     })
 
-    expect(executeAgentToolWorkflow).toHaveBeenCalledWith(
+    expect(assetService.createVersion).toHaveBeenCalledWith(
       expect.objectContaining({
-        args: expect.objectContaining({ metadata: { prompt: 'Generated using gemini' } }),
+        metadata: { prompt: 'Generated using gemini' },
       }),
     )
   })
@@ -120,19 +137,17 @@ describe('createCreateVersionTool', () => {
       },
     })
 
-    expect(executeAgentToolWorkflow).toHaveBeenCalledWith(
+    expect(assetService.createVersion).toHaveBeenCalledWith(
       expect.objectContaining({
-        args: expect.objectContaining({
-          metadata: {
-            provider: { newOption: { value: 'Kling' } },
-            tags: ['tag1', { newOption: { value: 'Tag 2' } }],
-          },
-        }),
+        metadata: {
+          provider: { newOption: { value: 'Kling' } },
+          tags: ['tag1', { newOption: { value: 'Tag 2' } }],
+        },
       }),
     )
   })
 
-  it('should not include metadata in args when metadata is null', async () => {
+  it('should not include metadata when metadata is null', async () => {
     const filePath = createTempFile('# Hello from disk', 'create-version-no-metadata.md')
     const metadataSchema = fieldsToTypeBoxSchema([
       { id: 'prompt', config: { name: 'Prompt', type: 'text' } },
@@ -141,8 +156,8 @@ describe('createCreateVersionTool', () => {
     const tool = createCreateVersionTool('user-1', metadataSchema)
     await tool.execute('call-1', { parent: 'file-1', path: filePath, metadata: null })
 
-    const callArgs = vi.mocked(executeAgentToolWorkflow).mock.calls[0][0].args
-    expect(callArgs).not.toHaveProperty('metadata')
+    const callArgs = vi.mocked(assetService.createVersion).mock.calls[0][0]
+    expect(callArgs.metadata).toBeUndefined()
   })
 
   it('should throw when the local file does not exist', async () => {
@@ -151,7 +166,7 @@ describe('createCreateVersionTool', () => {
       tool.execute('call-1', { parent: 'file-1', path: '/nonexistent/file.md' }),
     ).rejects.toThrow('Local file not found at path: /nonexistent/file.md')
     expect(s3Service.uploadFileToKey).not.toHaveBeenCalled()
-    expect(executeAgentToolWorkflow).not.toHaveBeenCalled()
+    expect(assetService.createVersion).not.toHaveBeenCalled()
   })
 
   it('should expose a strict, all-required (nullable) metadata schema when fields are provided', () => {

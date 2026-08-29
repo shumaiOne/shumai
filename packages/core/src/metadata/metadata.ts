@@ -215,6 +215,29 @@ export class MetadataService {
     return res
   }
 
+  async validateCreationContextMetadata(
+    userId: string | null,
+    projectId: string,
+    metadata?: Record<string, unknown> | null,
+  ): Promise<void> {
+    if (!metadata || Object.keys(metadata).length === 0) return
+
+    const fields = await this.listProjectFields(userId, projectId)
+    const allowedKeys = new Set(
+      fields
+        .filter((f) => f.field.config?.autofillSource === 'CREATION_CONTEXT')
+        .map((f) => f.field.key),
+    )
+    const invalidKeys = Object.keys(metadata).filter((key) => !allowedKeys.has(key))
+    if (invalidKeys.length > 0) {
+      throw new Error(
+        `metadata contains keys that are not valid in this project: ${invalidKeys.join(', ')}. ` +
+          "The valid metadata fields are fixed to the current conversation's project. " +
+          'If the target folder or file belongs to a different project, call the tool WITHOUT the metadata parameter.',
+      )
+    }
+  }
+
   private async getProjectFieldsOrder(
     userId: string,
     projectId: string,

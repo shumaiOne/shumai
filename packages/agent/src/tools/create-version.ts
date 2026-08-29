@@ -1,12 +1,14 @@
-import { Type, type TSchema } from 'typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
-import { executeAgentToolWorkflow } from './utils'
-import * as fs from 'fs'
-import * as path from 'path'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { readFileMimeType } from '@shumai/core/src/utils/file-mime'
-import { ulid } from 'ulid'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
+import { type User } from '@shumai/db'
+import { Type, type TSchema } from 'typebox'
+import * as fs from 'fs'
+import * as path from 'path'
+import { ulid } from 'ulid'
 
 interface CreateVersionToolParams {
   parent: string
@@ -48,24 +50,36 @@ export function createCreateVersionTool(userId: string, metadataSchema?: TSchema
 
       const fileSize = fs.statSync(absolutePath).size
       const mimeType = readFileMimeType(absolutePath)
+      const name = path.basename(absolutePath)
 
       // Generate compliant S3 key matching normal file upload format
-      const s3Key = `files/${ulid()}/${sanitizeFilename(path.basename(absolutePath))}`
+      const s3Key = `files/${ulid()}/${sanitizeFilename(name)}`
       await s3Service.uploadFileToKey(absolutePath, s3Key, mimeType)
 
-      const result = await executeAgentToolWorkflow({
-        toolName: 'create_version',
-        args: {
-          parent: p.parent,
-          s3Key,
-          name: path.basename(absolutePath),
-          size: fileSize,
-          contentType: mimeType,
-          ...(p.metadata ? { metadata: p.metadata } : {}),
-        },
-        userId,
-        assetId: p.parent,
+      await authzService.hasPermission({
+        user: { id: userId } as User,
+        permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id: p.parent,
       })
+
+      const asset = await assetService.createVersion({
+        parentId: p.parent,
+        name,
+        key: s3Key,
+        sizeByte: fileSize,
+        contentType: mimeType,
+        creatorId: userId,
+        metadata: p.metadata ?? undefined,
+      })
+
+      const result = {
+        id: asset.id,
+        name: asset.name,
+        type: asset.type,
+        size: Number(asset.sizeByte),
+      }
+
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         details: result,

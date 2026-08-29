@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { UserType } from '@shumai/db/enums'
 import { paginationPageInfoSchema, paginationParamsSchema } from './pagination'
+import { assetTypeFilterSchema } from './asset'
 
 export const createProjectRequestSchema = z.object({
   name: z.string(),
@@ -58,7 +59,7 @@ export type ProjectUserInfo = z.infer<typeof projectUserInfoSchema>
 
 export const recentlyDeletedRequestSchema = z
   .object({
-    assetType: z.string(),
+    assetType: assetTypeFilterSchema.optional().default('all'),
     sort: z.enum(['createdAt', 'name', 'size']).optional(),
     order: z.enum(['asc', 'desc']).optional(),
   })
