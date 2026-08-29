@@ -211,6 +211,12 @@ export class AssetService {
         return this.reparentFileToFile(tx, newParent, req.assetIds, req.creatorId)
       }
 
+      if (newParent.type === AssetType.version_stack) {
+        if (req.assetIds.length !== 1) {
+          throw new Error('Can only move one file at a time into a version stack')
+        }
+      }
+
       const assetsToMove = await tx.asset.findMany({
         where: { id: { in: req.assetIds } },
         include: { project: { include: { team: true } } },
@@ -221,6 +227,14 @@ export class AssetService {
       }
 
       if (assetsToMove.length === 0) return
+
+      if (newParent.type === AssetType.version_stack) {
+        for (const a of assetsToMove) {
+          if (a.type !== AssetType.file) {
+            throw new Error(`Cannot move ${a.type} asset into a version stack`)
+          }
+        }
+      }
 
       let totalSize = 0
       const oldParentId = assetsToMove[0].parentId
@@ -524,6 +538,10 @@ export class AssetService {
     assetIds: string[],
     creatorId?: string,
   ) {
+    if (destFile.type !== AssetType.file) {
+      throw new Error('Destination asset must be a file')
+    }
+
     if (assetIds.length !== 1) {
       throw new Error('Can only reparent one file to another file')
     }
@@ -538,6 +556,10 @@ export class AssetService {
     })
 
     if (!sourceAsset) throw new Error('Source asset not found')
+
+    if (sourceAsset.type !== AssetType.file) {
+      throw new Error('Source asset must be a file to create a version stack')
+    }
 
     if (!sourceAsset.project || !sourceAsset.project.team) {
       throw new Error(`Asset ${sourceAsset.id} is not associated with a team`)

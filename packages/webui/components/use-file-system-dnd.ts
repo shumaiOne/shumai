@@ -173,11 +173,15 @@ export function useFileSystemDnd({
     }
 
     const hasFolders = draggedItems.some((item) => item.type === 'folder')
+    const hasVersionStacks = draggedItems.some((item) => item.type === 'version_stack')
+    const isSingleFile = draggedItems.length === 1 && draggedItems[0].type === 'file'
 
     setDragState({
       isActive: true,
       draggedIds,
       hasFolders,
+      hasVersionStacks,
+      isSingleFile,
       itemCount: draggedIds.size,
     })
   }
@@ -242,9 +246,9 @@ export function useFileSystemDnd({
       if (targetData && !dragState.draggedIds.has(targetId)) {
         if (targetData.type === 'folder' || targetData.type === 'reorder') {
           isValid = true
-        } else if (targetData.type === 'file') {
-          // Can only drop single file onto single file
-          if (!dragState.hasFolders && dragState.itemCount === 1) {
+        } else if (targetData.type === 'file' || targetData.type === 'version_stack') {
+          // Can only drop single regular file onto file or version stack
+          if (dragState.isSingleFile) {
             isValid = true
           }
         }

@@ -570,6 +570,62 @@ describe('AssetService', () => {
     })
   })
 
+  it('rejects reparenting a version_stack onto a file', async () => {
+    const { user, assets } = await setupBasicAssets()
+    await expect(
+      assetService.reparentAssets({
+        assetIds: [assets.stackB.id],
+        newParentId: assets.fileA1.id,
+        creatorId: user.id,
+      }),
+    ).rejects.toThrow('Source asset must be a file to create a version stack')
+  })
+
+  it('rejects reparenting a version_stack onto another version_stack', async () => {
+    const { user, assets, project } = await setupBasicAssets()
+    const stack2 = await prisma.asset.create({
+      data: {
+        name: 'stack2',
+        type: AssetType.version_stack,
+        projectId: project.id,
+        parentId: assets.folderA.id,
+        creatorId: user.id,
+        fileCount: 2,
+        sizeByte: 100,
+        status: 'uploaded',
+      },
+    })
+    await expect(
+      assetService.reparentAssets({
+        assetIds: [assets.stackB.id],
+        newParentId: stack2.id,
+        creatorId: user.id,
+      }),
+    ).rejects.toThrow('Cannot move version_stack asset into a version stack')
+  })
+
+  it('rejects reparenting a folder onto a version_stack', async () => {
+    const { user, assets } = await setupBasicAssets()
+    await expect(
+      assetService.reparentAssets({
+        assetIds: [assets.folderA.id],
+        newParentId: assets.stackB.id,
+        creatorId: user.id,
+      }),
+    ).rejects.toThrow('Cannot move folder asset into a version stack')
+  })
+
+  it('rejects reparenting multiple files onto a version_stack at once', async () => {
+    const { user, assets } = await setupBasicAssets()
+    await expect(
+      assetService.reparentAssets({
+        assetIds: [assets.fileA1.id, assets.fileA2.id],
+        newParentId: assets.stackB.id,
+        creatorId: user.id,
+      }),
+    ).rejects.toThrow('Can only move one file at a time into a version stack')
+  })
+
   describe('fileCount verification', () => {
     it('createAsset should increment parent fileCount', async () => {
       const { user, assets, project } = await setupBasicAssets()

@@ -133,7 +133,7 @@ export function FileCard({
   const { ref: setDraggableRef, isDragging: isDraggableDragging } = useDraggable({
     id: `browser:${displayItem.id!}`,
     data: {
-      type: 'file',
+      type: displayItem.type,
       id: displayItem.id,
       item: displayItem,
     },
@@ -143,7 +143,7 @@ export function FileCard({
   const { ref: setDroppableRef, isDropTarget: isOver } = useDroppable({
     id: `browser:${displayItem.id!}`,
     data: {
-      type: 'file',
+      type: displayItem.type,
       id: displayItem.id,
       item: displayItem,
     },
@@ -160,14 +160,12 @@ export function FileCard({
     isDraggableDragging || (dragState?.draggedIds.has(displayItem.id!) ?? false)
 
   // Determine if this is a valid drop target
-  // File target is valid ONLY if dragging 1 item AND it is a file (version stack)
+  // File/version stack target is valid ONLY if dragging 1 single regular file
   // And strictly, we shouldn't drop on ourselves
   const isValidDropTarget = useMemo(() => {
     if (!dragState?.isActive) return false
     if (dragState.draggedIds.has(displayItem.id!)) return false // Can't drop on self
-    if (dragState.hasFolders) return false // Can't drag folders onto file
-    if (dragState.itemCount !== 1) return false // Can't drag multiple files onto file
-    return true
+    return dragState.isSingleFile
   }, [dragState, displayItem.id])
 
   const showDropFeedback = isOver && isValidDropTarget
