@@ -173,14 +173,13 @@ export function useFileSystemDnd({
     }
 
     const hasFolders = draggedItems.some((item) => item.type === 'folder')
-    const hasVersionStacks = draggedItems.some((item) => item.type === 'version_stack')
-    const isSingleFile = draggedItems.length === 1 && draggedItems[0].type === 'file'
+    const isSingleFile =
+      draggedIds.size === 1 && draggedItems.length === 1 && draggedItems[0].type === 'file'
 
     setDragState({
       isActive: true,
       draggedIds,
       hasFolders,
-      hasVersionStacks,
       isSingleFile,
       itemCount: draggedIds.size,
     })

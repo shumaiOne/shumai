@@ -103,13 +103,12 @@ describe('useFileSystemDnd', () => {
         isActive: true,
         draggedIds: new Set(['file-1']),
         hasFolders: false,
-        hasVersionStacks: false,
         isSingleFile: true,
         itemCount: 1,
       })
     })
 
-    it('sets isSingleFile false and hasVersionStacks true when dragging a version stack', () => {
+    it('sets isSingleFile false when dragging a version stack', () => {
       const { result } = renderHook(
         () =>
           useFileSystemDnd({
@@ -139,7 +138,6 @@ describe('useFileSystemDnd', () => {
         isActive: true,
         draggedIds: new Set(['stack-1']),
         hasFolders: false,
-        hasVersionStacks: true,
         isSingleFile: false,
         itemCount: 1,
       })
@@ -175,7 +173,6 @@ describe('useFileSystemDnd', () => {
         isActive: true,
         draggedIds: new Set(['folder-1']),
         hasFolders: true,
-        hasVersionStacks: false,
         isSingleFile: false,
         itemCount: 1,
       })
@@ -212,7 +209,42 @@ describe('useFileSystemDnd', () => {
         isActive: true,
         draggedIds: new Set(['file-1', 'file-2']),
         hasFolders: false,
-        hasVersionStacks: false,
+        isSingleFile: false,
+        itemCount: 2,
+      })
+    })
+
+    it('sets isSingleFile false when draggedIds contains unloaded items outside visible items', () => {
+      const selectedIds = new Set(['file-1', 'file-unloaded'])
+      const { result } = renderHook(
+        () =>
+          useFileSystemDnd({
+            teamId: 'team-1',
+            projectId: 'proj-1',
+            assetId: 'asset-1',
+            folders,
+            files,
+            selectedIds,
+            onClearSelection: vi.fn(),
+          }),
+        { wrapper },
+      )
+
+      act(() => {
+        result.current.handleDragStart({
+          operation: {
+            source: {
+              id: 'browser:file-1',
+              data: { type: 'file', item: files[0] },
+            },
+          },
+        } as never)
+      })
+
+      expect(result.current.dragState).toEqual({
+        isActive: true,
+        draggedIds: new Set(['file-1', 'file-unloaded']),
+        hasFolders: false,
         isSingleFile: false,
         itemCount: 2,
       })
@@ -487,6 +519,47 @@ describe('useFileSystemDnd', () => {
 
     it('does NOT execute reparentAssets when dropping multiple files onto a version stack or file', () => {
       const selectedIds = new Set(['file-1', 'file-2'])
+      const { result } = renderHook(
+        () =>
+          useFileSystemDnd({
+            teamId: 'team-1',
+            projectId: 'proj-1',
+            assetId: 'asset-1',
+            folders,
+            files,
+            selectedIds,
+            onClearSelection: vi.fn(),
+          }),
+        { wrapper },
+      )
+
+      act(() => {
+        result.current.handleDragStart({
+          operation: {
+            source: {
+              id: 'browser:file-1',
+              data: { type: 'file', item: files[0] },
+            },
+          },
+        } as never)
+      })
+
+      act(() => {
+        result.current.handleDragEnd({
+          operation: {
+            target: {
+              id: 'browser:stack-1',
+              data: { type: 'version_stack', item: files[2] },
+            },
+          },
+        } as never)
+      })
+
+      expect(mockReparent).not.toHaveBeenCalled()
+    })
+
+    it('does NOT execute reparentAssets when dragging selection with unloaded items onto a file or version stack', () => {
+      const selectedIds = new Set(['file-1', 'file-unloaded'])
       const { result } = renderHook(
         () =>
           useFileSystemDnd({
