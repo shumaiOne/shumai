@@ -5,6 +5,8 @@ import { HTTPException } from 'hono/http-exception'
 
 import { AssetType, AssetStatus, Prisma } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { uploadService } from '@shumai/core/src/upload/upload'
+import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { AssetService } from './asset'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
@@ -3702,6 +3704,223 @@ describe('AssetService — natural sort by name', () => {
 
       const purgedSymlink = await prisma.asset.findUnique({ where: { id: symlink.id } })
       expect(purgedSymlink).toBeNull()
+    })
+  })
+
+  describe('createFile', () => {
+    it('creates a file, updates ancestor sizes, persists metadata, and triggers workflows', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'FileUser', email: `fileuser-${Date.now()}@example.com` },
+      })
+      const team = await prisma.team.create({ data: { name: 'FileTeam' } })
+      const project = await prisma.project.create({
+        data: { name: 'FileProject', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'RootFolder',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const promptField = await metadataService.createProjectField(project.id, {
+        description: 'Prompt field',
+        config: {
+          name: 'Prompt',
+          type: 'text',
+          autofillSource: 'CREATION_CONTEXT',
+        },
+      })
+
+      const triggerSpy = vi
+        .spyOn(uploadService, 'triggerPostUploadWorkflows')
+        .mockResolvedValue(undefined)
+
+      const fileInfo = await assetService.createFile({
+        parentId: rootFolder.id,
+        name: 'document.txt',
+        key: 'files/test/doc.txt',
+        sizeByte: 1024,
+        contentType: 'text/plain',
+        creatorId: user.id,
+        metadata: { [promptField.key]: 'Project overview document' },
+      })
+
+      expect(fileInfo.id).toBeDefined()
+      expect(fileInfo.name).toBe('document.txt')
+      expect(fileInfo.type).toBe(AssetType.file)
+      expect(fileInfo.sizeByte).toBe(1024)
+
+      const folderAfter = await prisma.asset.findUnique({ where: { id: rootFolder.id } })
+      expect(folderAfter?.sizeByte).toBe(1024n)
+      expect(folderAfter?.fileCount).toBe(1)
+
+      const metaVal = await prisma.assetMetadataValue.findFirst({
+        where: { assetId: fileInfo.id, fieldKey: promptField.key },
+      })
+      expect(metaVal?.stringValue).toBe('Project overview document')
+
+      expect(triggerSpy).toHaveBeenCalledWith(expect.anything(), fileInfo.id, team.id, project.id)
+    })
+
+    it('rejects if metadata contains invalid keys', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'FileUser2', email: `fileuser2-${Date.now()}@example.com` },
+      })
+      const team = await prisma.team.create({ data: { name: 'FileTeam2' } })
+      const project = await prisma.project.create({
+        data: { name: 'FileProject2', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'RootFolder2',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      await expect(
+        assetService.createFile({
+          parentId: rootFolder.id,
+          name: 'invalid.txt',
+          key: 'files/test/inv.txt',
+          sizeByte: 100,
+          contentType: 'text/plain',
+          creatorId: user.id,
+          metadata: { unknownField: 'val' },
+        }),
+      ).rejects.toThrow(/metadata contains keys that are not valid in this project/)
+    })
+  })
+
+  describe('createVersion', () => {
+    it('creates a version stack when target is a regular file', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'VersionUser', email: `veruser-${Date.now()}@example.com` },
+      })
+      const team = await prisma.team.create({ data: { name: 'VersionTeam' } })
+      const project = await prisma.project.create({
+        data: { name: 'VersionProject', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'RootFolder',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const v1 = await prisma.asset.create({
+        data: {
+          name: 'image.png',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 2000n,
+        },
+      })
+
+      const triggerSpy = vi
+        .spyOn(uploadService, 'triggerPostUploadWorkflows')
+        .mockResolvedValue(undefined)
+
+      const v2Info = await assetService.createVersion({
+        parentId: v1.id,
+        name: 'image.png',
+        key: 'files/test/v2.png',
+        sizeByte: 3000,
+        contentType: 'image/png',
+        creatorId: user.id,
+      })
+
+      expect(v2Info.id).toBeDefined()
+
+      const v2Record = await prisma.asset.findUnique({
+        where: { id: v2Info.id },
+        include: { parent: true },
+      })
+      expect(v2Record?.parent?.type).toBe(AssetType.version_stack)
+      expect(v2Record?.parent?.parentId).toBe(rootFolder.id)
+
+      const v1Record = await prisma.asset.findUnique({ where: { id: v1.id } })
+      expect(v1Record?.parentId).toBe(v2Record?.parentId)
+
+      const stackRecord = await prisma.asset.findUnique({ where: { id: v2Record!.parentId! } })
+      expect(stackRecord?.fileCount).toBe(2)
+      expect(stackRecord?.sizeByte).toBe(5000n)
+
+      expect(triggerSpy).toHaveBeenCalledWith(expect.anything(), v2Info.id, team.id, project.id)
+    })
+
+    it('appends a new version when target is in an existing version stack', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'VersionUser2', email: `veruser2-${Date.now()}@example.com` },
+      })
+      const team = await prisma.team.create({ data: { name: 'VersionTeam2' } })
+      const project = await prisma.project.create({
+        data: { name: 'VersionProject2', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'RootFolder',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const stack = await prisma.asset.create({
+        data: {
+          name: 'image.png',
+          type: AssetType.version_stack,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 2000n,
+          fileCount: 1,
+        },
+      })
+
+      const v1 = await prisma.asset.create({
+        data: {
+          name: 'image.png',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: stack.id,
+          status: AssetStatus.uploaded,
+          sortIndex: 'a0',
+          sizeByte: 2000n,
+        },
+      })
+
+      const triggerSpy = vi
+        .spyOn(uploadService, 'triggerPostUploadWorkflows')
+        .mockResolvedValue(undefined)
+
+      const v2Info = await assetService.createVersion({
+        parentId: v1.id,
+        name: 'image_v2.png',
+        key: 'files/test/v2.png',
+        sizeByte: 3000,
+        contentType: 'image/png',
+        creatorId: user.id,
+      })
+
+      expect(v2Info.id).toBeDefined()
+
+      const v2Record = await prisma.asset.findUnique({ where: { id: v2Info.id } })
+      expect(v2Record?.parentId).toBe(stack.id)
+
+      const stackAfter = await prisma.asset.findUnique({ where: { id: stack.id } })
+      expect(stackAfter?.fileCount).toBe(2)
+      expect(stackAfter?.sizeByte).toBe(5000n)
+
+      expect(triggerSpy).toHaveBeenCalledWith(expect.anything(), v2Info.id, team.id, project.id)
     })
   })
 })

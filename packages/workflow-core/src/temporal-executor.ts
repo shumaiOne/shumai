@@ -33,10 +33,6 @@ export class TemporalExecutor implements Executor {
         workflowName = 'agentChatWorkflow'
         taskQueue = TaskQueueAgent
         break
-      case WorkflowTaskType.agent_tool_call:
-        workflowName = 'agentToolCallWorkflow'
-        taskQueue = TaskQueueAgent
-        break
       case WorkflowTaskType.transcode:
         workflowName = 'transcodeWorkflow'
         taskQueue = TaskQueueTranscode

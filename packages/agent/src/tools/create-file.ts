@@ -1,12 +1,14 @@
 import { type AgentTool } from '@earendil-works/pi-agent-core'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { getFileMimeType, readFileMimeType } from '@shumai/core/src/utils/file-mime'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
+import { type User } from '@shumai/db'
 import { Type, type TSchema } from 'typebox'
 import * as fs from 'fs'
 import * as path from 'path'
 import { ulid } from 'ulid'
-import { executeAgentToolWorkflow } from './utils'
 
 interface CreateFileToolParams {
   parent: string
@@ -105,19 +107,30 @@ export function createCreateFileTool(userId: string, metadataSchema?: TSchema): 
         await s3Service.putObject(process.env.S3_BUCKET || 'shumai', s3Key, content, size, mimeType)
       }
 
-      const result = await executeAgentToolWorkflow({
-        toolName: 'create_file',
-        args: {
-          parent: p.parent,
-          s3Key,
-          name,
-          size,
-          contentType: mimeType,
-          ...(p.metadata ? { metadata: p.metadata } : {}),
-        },
-        userId,
-        assetId: p.parent,
+      await authzService.hasPermission({
+        user: { id: userId } as User,
+        permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id: p.parent,
       })
+
+      const asset = await assetService.createFile({
+        parentId: p.parent,
+        name,
+        key: s3Key,
+        sizeByte: size,
+        contentType: mimeType,
+        creatorId: userId,
+        metadata: p.metadata ?? undefined,
+      })
+
+      const result = {
+        id: asset.id,
+        name: asset.name,
+        type: asset.type,
+        size: Number(asset.sizeByte),
+      }
+
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         details: result,

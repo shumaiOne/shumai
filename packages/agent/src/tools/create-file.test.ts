@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createCreateFileTool } from './create-file'
 import { fieldsToTypeBoxSchema } from '../index'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { executeAgentToolWorkflow } from './utils'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { authzService } from '@shumai/core/src/authz/authz'
 import { Value } from 'typebox/value'
 import * as fs from 'fs'
 import * as os from 'os'
@@ -15,8 +16,20 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
   },
 }))
 
-vi.mock('./utils', () => ({
-  executeAgentToolWorkflow: vi.fn().mockResolvedValue({ id: 'file-1', name: 'test', type: 'file' }),
+vi.mock('@shumai/core/src/authz/authz', () => ({
+  authzService: {
+    hasPermission: vi.fn().mockResolvedValue(undefined),
+  },
+  Permission: { Edit: 'edit', Read: 'read' },
+  ResourceType: { Asset: 'asset' },
+}))
+
+vi.mock('@shumai/core/src/asset/asset', () => ({
+  assetService: {
+    createFile: vi
+      .fn()
+      .mockResolvedValue({ id: 'file-1', name: 'test', type: 'file', sizeByte: 100 }),
+  },
 }))
 
 describe('createCreateFileTool', () => {
@@ -56,23 +69,27 @@ describe('createCreateFileTool', () => {
     expect(s3Key).toMatch(/^files\/.+\.md$/)
     expect(uploadArgs[2]).toBe('text/markdown')
 
-    expect(executeAgentToolWorkflow).toHaveBeenCalledWith({
-      toolName: 'create_file',
-      args: {
-        parent: 'folder-1',
-        s3Key,
-        name: 'create-file-test.md',
-        size: Buffer.byteLength('# Hello from disk', 'utf-8'),
-        contentType: 'text/markdown',
-      },
-      userId: 'user-1',
-      assetId: 'folder-1',
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user-1' },
+      permission: 'edit',
+      type: 'asset',
+      id: 'folder-1',
     })
 
-    expect(result.details).toEqual({ id: 'file-1', name: 'test', type: 'file' })
+    expect(assetService.createFile).toHaveBeenCalledWith({
+      parentId: 'folder-1',
+      name: 'create-file-test.md',
+      key: s3Key,
+      sizeByte: Buffer.byteLength('# Hello from disk', 'utf-8'),
+      contentType: 'text/markdown',
+      creatorId: 'user-1',
+      metadata: undefined,
+    })
+
+    expect(result.details).toEqual({ id: 'file-1', name: 'test', type: 'file', size: 100 })
   })
 
-  it('should forward the metadata to the agent tool workflow when provided', async () => {
+  it('should forward the metadata to assetService.createFile when provided', async () => {
     const filePath = createTempFile('# Hello from disk', 'create-file-metadata.md')
     const metadataSchema = fieldsToTypeBoxSchema([
       { id: 'prompt', config: { name: 'Prompt', type: 'text' } },
@@ -86,9 +103,9 @@ describe('createCreateFileTool', () => {
       metadata: { prompt: 'Generated using gemini' },
     })
 
-    expect(executeAgentToolWorkflow).toHaveBeenCalledWith(
+    expect(assetService.createFile).toHaveBeenCalledWith(
       expect.objectContaining({
-        args: expect.objectContaining({ metadata: { prompt: 'Generated using gemini' } }),
+        metadata: { prompt: 'Generated using gemini' },
       }),
     )
   })
@@ -125,19 +142,17 @@ describe('createCreateFileTool', () => {
       },
     })
 
-    expect(executeAgentToolWorkflow).toHaveBeenCalledWith(
+    expect(assetService.createFile).toHaveBeenCalledWith(
       expect.objectContaining({
-        args: expect.objectContaining({
-          metadata: {
-            provider: { newOption: { value: 'Kling' } },
-            tags: ['tag1', { newOption: { value: 'Tag 2' } }],
-          },
-        }),
+        metadata: {
+          provider: { newOption: { value: 'Kling' } },
+          tags: ['tag1', { newOption: { value: 'Tag 2' } }],
+        },
       }),
     )
   })
 
-  it('should not include metadata in args when metadata is null', async () => {
+  it('should not include metadata when metadata is null', async () => {
     const filePath = createTempFile('# Hello from disk', 'create-file-no-metadata.md')
     const metadataSchema = fieldsToTypeBoxSchema([
       { id: 'prompt', config: { name: 'Prompt', type: 'text' } },
@@ -151,8 +166,8 @@ describe('createCreateFileTool', () => {
       metadata: null,
     })
 
-    const callArgs = vi.mocked(executeAgentToolWorkflow).mock.calls[0][0].args
-    expect(callArgs).not.toHaveProperty('metadata')
+    const callArgs = vi.mocked(assetService.createFile).mock.calls[0][0]
+    expect(callArgs.metadata).toBeUndefined()
   })
 
   it('should throw when the local file does not exist', async () => {
@@ -161,7 +176,7 @@ describe('createCreateFileTool', () => {
       tool.execute('call-1', { parent: 'folder-1', path: '/nonexistent/file.md', data: null }),
     ).rejects.toThrow('Local file not found at path: /nonexistent/file.md')
     expect(s3Service.uploadFileToKey).not.toHaveBeenCalled()
-    expect(executeAgentToolWorkflow).not.toHaveBeenCalled()
+    expect(assetService.createFile).not.toHaveBeenCalled()
   })
 
   it('should create a file directly from name and content', async () => {
@@ -184,20 +199,17 @@ describe('createCreateFileTool', () => {
     expect(size).toBe(Buffer.byteLength('# Notes\n\nHello', 'utf-8'))
     expect(contentType).toBe('text/markdown')
 
-    expect(executeAgentToolWorkflow).toHaveBeenCalledWith({
-      toolName: 'create_file',
-      args: {
-        parent: 'folder-1',
-        s3Key,
-        name: 'notes.md',
-        size: Buffer.byteLength('# Notes\n\nHello', 'utf-8'),
-        contentType: 'text/markdown',
-      },
-      userId: 'user-1',
-      assetId: 'folder-1',
+    expect(assetService.createFile).toHaveBeenCalledWith({
+      parentId: 'folder-1',
+      name: 'notes.md',
+      key: s3Key,
+      sizeByte: Buffer.byteLength('# Notes\n\nHello', 'utf-8'),
+      contentType: 'text/markdown',
+      creatorId: 'user-1',
+      metadata: undefined,
     })
 
-    expect(result.details).toEqual({ id: 'file-1', name: 'test', type: 'file' })
+    expect(result.details).toEqual({ id: 'file-1', name: 'test', type: 'file', size: 100 })
   })
 
   it('should default unknown extensions to text/plain when creating from content', async () => {
@@ -235,10 +247,8 @@ describe('createCreateFileTool', () => {
     ]
     expect(s3Key).toContain('my_notes.md')
 
-    expect(executeAgentToolWorkflow).toHaveBeenCalledWith(
-      expect.objectContaining({
-        args: expect.objectContaining({ name: 'my_notes.md' }),
-      }),
+    expect(assetService.createFile).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'my_notes.md' }),
     )
   })
 
@@ -260,7 +270,7 @@ describe('createCreateFileTool', () => {
     ).rejects.toThrow('Provide exactly one of "path" (a local file) or "data" (name and content).')
     expect(s3Service.uploadFileToKey).not.toHaveBeenCalled()
     expect(s3Service.putObject).not.toHaveBeenCalled()
-    expect(executeAgentToolWorkflow).not.toHaveBeenCalled()
+    expect(assetService.createFile).not.toHaveBeenCalled()
   })
 
   it('should expose a strict, all-required (nullable) metadata schema when fields are provided', () => {

@@ -117,7 +117,7 @@ enum WorkflowTaskType {
   chat
   ai_embedding
   query_embedding_for_search
-  agent_tool_call
+  agent_tool_call // @deprecated: Agent tools now execute directly in-process via Core services
   kanban_agent_run
 }
 

@@ -613,7 +613,6 @@ import * as aiActivities from './activities/ai'
 import { agentAutofillMedia } from './workflows/agent-autofill'
 import { agentChat } from './workflows/agent-chat'
 import { agentEmbeddingMedia } from './workflows/agent-embedding'
-import { agentToolCall } from './workflows/agent-tool-call'
 import { queryEmbeddingForSearch } from './workflows/query-embedding-for-search'
 
 export function initAgentWorkflows() {
@@ -621,7 +620,6 @@ export function initAgentWorkflows() {
   registerWorkflow(WorkflowTaskType.query_embedding_for_search, queryEmbeddingForSearch)
   registerWorkflow(WorkflowTaskType.ai_metadata_autofill, agentAutofillMedia)
   registerWorkflow(WorkflowTaskType.chat, agentChat)
-  registerWorkflow(WorkflowTaskType.agent_tool_call, agentToolCall)
 
   registerActivities(agentActivities)
   registerActivities(aiActivities)
@@ -643,5 +641,4 @@ export * from './database-session-storage'
 export * from './workflows/agent-autofill'
 export * from './workflows/agent-chat'
 export * from './workflows/agent-embedding'
-export * from './workflows/agent-tool-call'
 export * from './workflows/query-embedding-for-search'

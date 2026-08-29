@@ -549,4 +549,65 @@ describe('MetadataService', () => {
       ]),
     ).rejects.toThrow('expected string or {newOption}')
   })
+
+  describe('validateCreationContextMetadata', () => {
+    it('passes for allowed CREATION_CONTEXT fields and throws for invalid fields', async () => {
+      const team = await prisma.team.create({ data: { name: 'test-team-meta' } })
+      const project = await prisma.project.create({
+        data: { name: 'test-project-meta', teamId: team.id },
+      })
+      const validField = await prisma.metadataField.create({
+        data: {
+          key: 'prompt_field',
+          scope: 'PROJECT',
+          project: { connect: { id: project.id } },
+          config: {
+            name: 'Prompt',
+            type: 'text',
+            autofillSource: 'CREATION_CONTEXT',
+          },
+        },
+      })
+      await prisma.metadataField.create({
+        data: {
+          key: 'other_field',
+          scope: 'PROJECT',
+          project: { connect: { id: project.id } },
+          config: {
+            name: 'Other',
+            type: 'text',
+            autofillSource: 'NONE',
+          },
+        },
+      })
+
+      // Valid: empty metadata or null/undefined
+      await expect(
+        metadataService.validateCreationContextMetadata(null, project.id, null),
+      ).resolves.toBeUndefined()
+      await expect(
+        metadataService.validateCreationContextMetadata(null, project.id, {}),
+      ).resolves.toBeUndefined()
+
+      // Valid: allowed key
+      await expect(
+        metadataService.validateCreationContextMetadata(null, project.id, {
+          [validField.key]: 'valid value',
+        }),
+      ).resolves.toBeUndefined()
+
+      // Invalid: non-CREATION_CONTEXT key or non-existent key
+      await expect(
+        metadataService.validateCreationContextMetadata(null, project.id, {
+          otherField: 'value',
+        }),
+      ).rejects.toThrow(/metadata contains keys that are not valid in this project/)
+
+      await expect(
+        metadataService.validateCreationContextMetadata(null, project.id, {
+          randomFakeKey: 'value',
+        }),
+      ).rejects.toThrow(/metadata contains keys that are not valid in this project/)
+    })
+  })
 })

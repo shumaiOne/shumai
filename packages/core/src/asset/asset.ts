@@ -29,6 +29,8 @@ import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
+import { metadataService } from '@shumai/core/src/metadata/metadata'
+import { uploadService } from '@shumai/core/src/upload/upload'
 
 export const assetInclude = {
   creator: true,
@@ -807,6 +809,147 @@ export class AssetService {
 
     const infos = await this.toAssetInfos([asset])
     return infos[0]
+  }
+
+  async createFile(params: {
+    parentId: string
+    name: string
+    key: string
+    sizeByte: number
+    contentType: string
+    creatorId: string
+    metadata?: Record<string, unknown>
+  }): Promise<AssetInfo> {
+    const { parentId, name, key, sizeByte, contentType, creatorId, metadata } = params
+
+    const parentAsset = await this.prismaClient.asset.findUnique({
+      where: { id: parentId },
+      include: { project: true },
+    })
+    if (!parentAsset || !parentAsset.projectId || !parentAsset.project?.teamId) {
+      throw new Error(`Parent folder ${parentId} is invalid or has no project associated`)
+    }
+
+    if (metadata) {
+      await metadataService.validateCreationContextMetadata(
+        creatorId,
+        parentAsset.projectId,
+        metadata,
+      )
+    }
+
+    const newFile = await this.createAsset({
+      name,
+      type: 'file',
+      parentId,
+      key,
+      sizeByte,
+      contentType,
+      creatorId,
+    })
+
+    await this.prismaClient.$transaction(async (tx) => {
+      await this.updateAncestorsSize(tx, parentId, sizeByte)
+      if (metadata) {
+        const metadataUpdates = Object.entries(metadata)
+          .filter(([, value]) => value !== null)
+          .map(([k, v]) => ({ key: k, value: v }))
+        if (metadataUpdates.length > 0) {
+          await metadataService.updateAssetMetadataInTx(tx, newFile.id, metadataUpdates)
+        }
+      }
+      await uploadService.triggerPostUploadWorkflows(
+        tx,
+        newFile.id,
+        parentAsset.project!.teamId,
+        parentAsset.projectId!,
+      )
+    })
+
+    return this.getAsset({ assetId: newFile.id })
+  }
+
+  async createVersion(params: {
+    parentId: string
+    name: string
+    key: string
+    sizeByte: number
+    contentType: string
+    creatorId: string
+    metadata?: Record<string, unknown>
+  }): Promise<AssetInfo> {
+    const { parentId, name, key, sizeByte, contentType, creatorId, metadata } = params
+
+    const targetAsset = await this.prismaClient.asset.findUnique({
+      where: { id: parentId },
+      include: { project: true, parent: true },
+    })
+    if (!targetAsset || !targetAsset.projectId || !targetAsset.project?.teamId) {
+      throw new Error(`Target file ${parentId} is invalid or has no project associated`)
+    }
+
+    if (metadata) {
+      await metadataService.validateCreationContextMetadata(
+        creatorId,
+        targetAsset.projectId,
+        metadata,
+      )
+    }
+
+    let targetFolderId: string
+    let reparentTargetId: string
+
+    if (targetAsset.type === AssetType.version_stack) {
+      targetFolderId = targetAsset.parentId!
+      reparentTargetId = targetAsset.id
+    } else if (targetAsset.parent?.type === AssetType.version_stack) {
+      targetFolderId = targetAsset.parent.parentId!
+      reparentTargetId = targetAsset.parentId!
+    } else {
+      targetFolderId = targetAsset.parentId!
+      reparentTargetId = targetAsset.id
+    }
+
+    let newFileId = ''
+    await this.prismaClient.$transaction(async (tx) => {
+      const newFile = await this.createAsset({
+        name,
+        type: 'file',
+        parentId: targetFolderId,
+        key,
+        sizeByte,
+        contentType,
+        creatorId,
+      })
+      newFileId = newFile.id
+
+      await this.reparentAssets(
+        {
+          assetIds: [newFile.id],
+          newParentId: reparentTargetId,
+          creatorId,
+        },
+        tx,
+      )
+
+      if (metadata) {
+        const metadataUpdates = Object.entries(metadata)
+          .filter(([, value]) => value !== null)
+          .map(([k, v]) => ({ key: k, value: v }))
+        if (metadataUpdates.length > 0) {
+          await metadataService.updateAssetMetadataInTx(tx, newFile.id, metadataUpdates)
+        }
+      }
+
+      await uploadService.triggerPostUploadWorkflows(
+        tx,
+        newFile.id,
+        targetAsset.project!.teamId,
+        targetAsset.projectId!,
+      )
+    })
+
+    return this.getAsset({ assetId: newFileId })
   }
 
   async findAsset(parentId: string, name: string): Promise<AssetInfo | null> {

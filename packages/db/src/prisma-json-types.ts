@@ -275,7 +275,6 @@ declare global {
       queryEmbeddingForSearch?: {
         text: string
       }
-      agentToolCall?: AgentToolCallPayload
       screenshot?: ScreenshotSpec
       imageAnnotation?: ImageAnnotationSpec
       pdfPages?: PdfPagesSpec
@@ -285,12 +284,6 @@ declare global {
     // ----------------------------------------------------------------------
     // Task Spec & Payload
     // ----------------------------------------------------------------------
-    export interface AgentToolCallPayload {
-      toolName: string
-      args: Record<string, unknown>
-      userId: string
-    }
-
     export interface TaskSpec {
       videoStrategy?: VideoTranscodeStrategy
       hardwareAcceleration?: HardwareAcceleration
