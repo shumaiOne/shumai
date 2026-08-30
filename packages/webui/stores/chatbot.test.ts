@@ -368,4 +368,54 @@ describe('useChatbotStore', () => {
 
     expect(onAssetMutation).toHaveBeenCalledTimes(1)
   })
+
+  it('should replace optimistic message when shumai_message entry streams back', async () => {
+    const mockEvents = [
+      'data: {"type":"session","sessionId":"sess-123"}\n\n',
+      'data: {"type":"entry","entry":{"id":"user-msg-ulid","role":"custom","customType":"shumai_message","content":"hello","details":{"user":{"id":"u1","name":"User 1"}},"timestamp":123}}\n\n',
+      'data: {"type":"entry","entry":{"id":"assistant-msg-ulid","role":"assistant","content":[{"type":"text","text":"Hi!"}],"timestamp":124}}\n\n',
+      'data: {"type":"done","status":"completed"}\n\n',
+    ]
+
+    let eventIdx = 0
+    const mockReader = {
+      read: vi.fn(async () => {
+        if (eventIdx < mockEvents.length) {
+          const value = new TextEncoder().encode(mockEvents[eventIdx++])
+          return { done: false, value }
+        }
+        return { done: true, value: undefined }
+      }),
+    }
+
+    const mockResponse = {
+      ok: true,
+      headers: {
+        get: vi.fn(() => 'sess-123'),
+      },
+      body: {
+        getReader: () => mockReader,
+      },
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(client.api.teams[':teamId'].chat.$post).mockResolvedValue(mockResponse as any)
+
+    const sendPromise = useChatbotStore.getState().sendMessage('team-123', 'hello', 'proj-123')
+
+    // Optimistic message should be present immediately
+    const stateWithOptimistic = useChatbotStore.getState()
+    expect(stateWithOptimistic.messages).toHaveLength(1)
+    expect(stateWithOptimistic.messages[0].id).toContain('temp-')
+
+    await sendPromise
+
+    // Final state assertions: optimistic message must be replaced
+    const finalState = useChatbotStore.getState()
+    expect(finalState.messages).toHaveLength(2)
+    expect(finalState.messages[0].id).toBe('user-msg-ulid')
+    expect(finalState.messages[0].role).toBe('custom')
+    expect((finalState.messages[0] as { customType?: string }).customType).toBe('shumai_message')
+    expect(finalState.messages[1].id).toBe('assistant-msg-ulid')
+  })
 })

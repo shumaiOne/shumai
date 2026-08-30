@@ -72,6 +72,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
   }
 
   nextEntryId?: string | null
+  currentMessageContext?: PrismaJson.ShumaiMessageContext
 
   async createEntryId(): Promise<string> {
     if (this.nextEntryId) {
@@ -90,9 +91,13 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     data: unknown
   }): SessionTreeEntry {
     const payload = (record.data as Record<string, unknown>) || {}
+    let type = (record.type || 'message') as SessionTreeEntry['type']
+    if (type === 'message' && payload.customType === 'shumai_message') {
+      type = 'custom_message'
+    }
     return {
       id: record.id,
-      type: (record.type || 'message') as SessionTreeEntry['type'],
+      type,
       parentId: record.parentId,
       timestamp: record.createdAt.toISOString(),
       ...payload,
@@ -100,10 +105,41 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
   }
 
   async appendEntry(entry: SessionTreeEntry): Promise<void> {
-    const strippedEntry = structuredClone(entry)
+    let entryToProcess = entry
+    if (
+      entryToProcess.type === 'message' &&
+      entryToProcess.message &&
+      entryToProcess.message.role === 'user' &&
+      this.currentMessageContext
+    ) {
+      let contentText = ''
+      if (typeof entryToProcess.message.content === 'string') {
+        contentText = entryToProcess.message.content
+      } else if (Array.isArray(entryToProcess.message.content)) {
+        contentText = entryToProcess.message.content
+          .map((c) =>
+            typeof c === 'object' && c && 'text' in c && typeof c.text === 'string' ? c.text : '',
+          )
+          .join('')
+      }
+
+      entryToProcess = {
+        type: 'custom_message',
+        id: entryToProcess.id,
+        parentId: entryToProcess.parentId,
+        timestamp: entryToProcess.timestamp,
+        customType: 'shumai_message',
+        content: contentText,
+        display: true,
+        details: this.currentMessageContext,
+      } as unknown as SessionTreeEntry
+      this.currentMessageContext = undefined
+    }
+
+    const strippedEntry = structuredClone(entryToProcess)
 
     // Strip image data and skill content before saving to DB
-    if (strippedEntry.type === 'message') {
+    if (strippedEntry.type === 'message' && strippedEntry.message) {
       const msg = strippedEntry.message
       if (msg.role === 'toolResult') {
         const details = msg.details as { sourceKeys?: string[]; skillId?: string } | undefined
@@ -139,7 +175,10 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
       }
     }
 
-    const targetLeafId = entry.type === 'leaf' ? entry.targetId : entry.id
+    const targetLeafId =
+      strippedEntry.type === 'leaf'
+        ? (strippedEntry as unknown as { targetId?: string }).targetId || strippedEntry.id
+        : strippedEntry.id
 
     // Extract base fields and store type-specific properties in data payload
     const payload = { ...strippedEntry } as Record<string, unknown>
@@ -155,17 +194,18 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
 
     await prisma.$transaction([
       prisma.agentSessionEntry.upsert({
-        where: { id: entry.id },
+        where: { id: strippedEntry.id },
         create: {
-          id: entry.id,
+          id: strippedEntry.id,
           sessionId: this.sessionId,
           assetId: session?.assetId || null,
-          type: entry.type,
-          parentId: entry.parentId || null,
-          createdAt: entry.timestamp ? new Date(entry.timestamp) : new Date(),
+          type: strippedEntry.type,
+          parentId: strippedEntry.parentId || null,
+          createdAt: strippedEntry.timestamp ? new Date(strippedEntry.timestamp) : new Date(),
           data: payload as PrismaJson.PiSessionEntryData,
         },
         update: {
+          type: strippedEntry.type,
           data: payload as PrismaJson.PiSessionEntryData,
         },
       }),
@@ -236,7 +276,9 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     let costTotal = 0
 
     for (const entry of entries) {
-      if (entry.type === 'message') {
+      if (entry.type === 'custom_message' && entry.customType === 'shumai_message') {
+        messageCount++
+      } else if (entry.type === 'message' && entry.message) {
         const msg = entry.message
         if (msg.role === 'user' || msg.role === 'assistant') {
           messageCount++
@@ -348,18 +390,29 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
         for (let i = 0; i < pathEntries.length; i++) {
           const entry = pathEntries[i]
           const count = threadReplyCountMap.get(entry.id)
-          if (count !== undefined && count > 0 && entry.type === 'message') {
-            const cloned = structuredClone(entry)
-            const msg = cloned.message as unknown as {
-              content?: Array<{ type: string; text: string }>
-            }
-            if (Array.isArray(msg.content) && msg.content[0] && msg.content[0].type === 'text') {
-              const threadTag = `[Thread ID: ${entry.id}] [Replies: ${count}]`
-              if (!msg.content[0].text.includes(`[Thread ID: ${entry.id}]`)) {
-                msg.content[0].text = `${threadTag} ${msg.content[0].text}`
+          if (count !== undefined && count > 0) {
+            if (entry.type === 'message' && entry.message) {
+              const cloned = structuredClone(entry)
+              const msg = cloned.message as unknown as {
+                content?: Array<{ type: string; text: string }>
               }
+              if (Array.isArray(msg.content) && msg.content[0] && msg.content[0].type === 'text') {
+                const threadTag = `[Thread ID: ${entry.id}] [Replies: ${count}]`
+                if (!msg.content[0].text.includes(`[Thread ID: ${entry.id}]`)) {
+                  msg.content[0].text = `${threadTag} ${msg.content[0].text}`
+                }
+              }
+              pathEntries[i] = cloned
+            } else if (entry.type === 'custom_message') {
+              const cloned = structuredClone(entry)
+              const threadTag = `[Thread ID: ${entry.id}] [Replies: ${count}]`
+              if (typeof cloned.content === 'string') {
+                if (!cloned.content.includes(`[Thread ID: ${entry.id}]`)) {
+                  cloned.content = `${threadTag} ${cloned.content}`
+                }
+              }
+              pathEntries[i] = cloned
             }
-            pathEntries[i] = cloned
           }
         }
       }
@@ -382,7 +435,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
   }
 
   private async reinjectImageDataAsync(entry: SessionTreeEntry) {
-    if (entry.type === 'message') {
+    if (entry.type === 'message' && entry.message) {
       const msg = entry.message as AgentMessage
       if (msg.role === 'toolResult') {
         const details = msg.details as { sourceKeys?: string[] } | undefined
@@ -407,7 +460,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
   }
 
   private async reinjectSkillContentAsync(entry: SessionTreeEntry) {
-    if (entry.type === 'message') {
+    if (entry.type === 'message' && entry.message) {
       const msg = entry.message as AgentMessage
       if (msg.role === 'toolResult' && msg.toolName === 'read_skill') {
         const details = msg.details as { skillId?: string } | undefined

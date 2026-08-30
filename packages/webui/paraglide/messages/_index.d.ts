@@ -1250,4 +1250,5 @@ export * from "./frames.js";
 export * from "./timecode.js";
 export * from "./playback_speed.js";
 export * from "./failed_to_post_comment.js";
+export * from "./entry_id.js";
 export type LocalizedString = import("../runtime.js").LocalizedString;

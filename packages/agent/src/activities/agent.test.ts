@@ -13,6 +13,7 @@ import {
   getCommentActivity,
   getProjectAutofillFieldsActivity,
   updateAssetMetadataActivity,
+  getAssetPathHierarchyActivity,
   getAssetPathContextActivity,
   generateSessionNameActivity,
   type GenerateSessionNameParams,
@@ -564,12 +565,29 @@ describe('Agent Database Activities Integration', () => {
 
   describe('initializeAgentSessionActivity', () => {
     it('should initialize a session, create agent/user records if missing, and store existing comments context', async () => {
+      const attAsset = await prisma.asset.create({
+        data: {
+          name: 'attached-doc.pdf',
+          type: AssetType.file,
+          mediaType: 'application/pdf',
+          status: AssetStatus.uploaded,
+          projectId: project.id,
+        },
+      })
+
       // Create first comment so it acts as context
-      await prisma.assetComment.create({
+      const firstComment = await prisma.assetComment.create({
         data: {
           assetId: asset.id,
           message: 'Hello <@' + user.id + '> check this',
           creatorId: user.id,
+        },
+      })
+
+      await prisma.assetCommentAttachment.create({
+        data: {
+          commentId: firstComment.id,
+          assetId: attAsset.id,
         },
       })
 
@@ -611,9 +629,20 @@ describe('Agent Database Activities Integration', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- entry data is stored as Json in DB and needs casting to check properties
       const parsedEntry = pathEntries[0] as any
-      expect(parsedEntry.message.content[0].text).toContain(
-        `[${user.name} (owner)]: Hello <@${user.name}> check this`,
-      )
+      expect(parsedEntry.type).toBe('custom_message')
+      expect(parsedEntry.customType).toBe('shumai_message')
+      expect(parsedEntry.content).toContain(`Hello <@${user.name}> check this`)
+      expect(parsedEntry.details.user.name).toBe(user.name)
+      expect(parsedEntry.details.user.role).toBe('owner')
+      expect(parsedEntry.details.attachedFiles).toEqual([
+        {
+          id: attAsset.id,
+          name: 'attached-doc.pdf',
+          type: 'file',
+          mediaType: undefined,
+          mimeType: 'application/pdf',
+        },
+      ])
     })
 
     it('should distinguish Main Session (userCommentId: null) and Thread Session (userCommentId: rootId) during lazy sync', async () => {
@@ -727,7 +756,7 @@ describe('Agent Database Activities Integration', () => {
       const msg3Entry = pathEntries.find((e) => e.id.includes(msg3.id))
       expect(msg3Entry).toBeDefined()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const text = (msg3Entry as any).message.content[0].text
+      const text = (msg3Entry as any).content ?? (msg3Entry as any).message?.content[0]?.text
       expect(text).toContain(`[Thread ID: ${msg3.id}] [Replies: 1]`)
     })
 
@@ -1340,10 +1369,14 @@ describe('Agent Database Activities Integration', () => {
       })
 
       const pathCtx = await getAssetPathContextActivity(targetAsset.id)
-      expect(pathCtx).toContain('Path: RootFolder/SubFolder/TargetImage.webp')
-      expect(pathCtx).toContain(`name: RootFolder, id: ${rootFolder.id}`)
-      expect(pathCtx).toContain(`name: SubFolder, id: ${subfolder.id}`)
-      expect(pathCtx).toContain(`name: TargetImage.webp, id: ${targetAsset.id}`)
+      expect(pathCtx).toBe('RootFolder/SubFolder/TargetImage.webp')
+
+      const hierarchy = await getAssetPathHierarchyActivity(targetAsset.id)
+      expect(hierarchy.path).toBe('RootFolder/SubFolder/TargetImage.webp')
+      expect(hierarchy.ancestors).toEqual([
+        { id: rootFolder.id, name: 'RootFolder' },
+        { id: subfolder.id, name: 'SubFolder' },
+      ])
     })
   })
 

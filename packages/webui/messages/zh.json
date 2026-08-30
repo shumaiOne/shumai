@@ -1312,5 +1312,6 @@
   "timecode": "时间码",
   "playback_speed": "播放速度",
   "settings": "设置",
-  "failed_to_post_comment": "发送评论失败"
+  "failed_to_post_comment": "发送评论失败",
+  "entry_id": "条目 ID"
 }

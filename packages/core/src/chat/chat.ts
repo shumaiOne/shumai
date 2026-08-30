@@ -30,11 +30,31 @@ export function buildSessionMessages(pathEntries: PathEntry[]): ChatMessage[] {
   const appendMessage = (entry: PathEntry) => {
     const timestampMs = new Date(entry.timestamp).getTime()
     if (entry.type === 'message') {
-      messages.push({
-        ...entry.message,
-        id: entry.id,
-        timestamp: entry.message.timestamp || timestampMs,
-      } as unknown as ChatMessage)
+      if ((entry as unknown as { customType?: string }).customType === 'shumai_message') {
+        const customEntry = entry as unknown as {
+          customType: string
+          content: string
+          display?: boolean
+          details?: Record<string, unknown>
+        }
+        messages.push({
+          id: entry.id,
+          role: 'custom',
+          customType: customEntry.customType,
+          content: customEntry.content,
+          display: customEntry.display,
+          details: customEntry.details,
+          timestamp: timestampMs,
+        } as unknown as ChatMessage)
+        return
+      }
+      if (entry.message) {
+        messages.push({
+          ...entry.message,
+          id: entry.id,
+          timestamp: entry.message.timestamp || timestampMs,
+        } as unknown as ChatMessage)
+      }
     } else if (entry.type === 'custom_message') {
       if (entry.customType === 'context') return
       messages.push({
@@ -117,9 +137,13 @@ export function mapEntryToMessage(
   entryRecord: Prisma.AgentSessionEntryGetPayload<Record<string, never>>,
 ): ChatMessage | null {
   const payload = (entryRecord.data as Record<string, unknown>) || {}
+  let type = (entryRecord.type || 'message') as SessionTreeEntry['type']
+  if (type === 'message' && payload.customType === 'shumai_message') {
+    type = 'custom_message'
+  }
   const entryObj = {
     id: entryRecord.id,
-    type: (entryRecord.type || 'message') as SessionTreeEntry['type'],
+    type,
     parentId: entryRecord.parentId,
     timestamp: entryRecord.createdAt.toISOString(),
     ...payload,

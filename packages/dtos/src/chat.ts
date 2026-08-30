@@ -39,11 +39,77 @@ export const chatSessionInfoSchema = z.object({
 
 export type ChatSessionInfo = z.infer<typeof chatSessionInfoSchema>
 
+export const shumaiAssetContextSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.string(),
+  mediaType: z.enum(['image', 'video', 'pdf', 'audio', 'other']).optional(),
+  mimeType: z.string().optional(),
+  parentId: z.string().optional(),
+  path: z.string().optional(),
+  durationSeconds: z.number().optional(),
+  totalPages: z.number().optional(),
+  navigated: z.boolean().optional(),
+  ancestors: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
+})
+
+export type ShumaiAssetContext = z.infer<typeof shumaiAssetContextSchema>
+
+export const shumaiAttachedFileContextSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.string(),
+  mediaType: z.enum(['image', 'video', 'pdf', 'audio', 'other']).optional(),
+  mimeType: z.string().optional(),
+  path: z.string().optional(),
+})
+
+export type ShumaiAttachedFileContext = z.infer<typeof shumaiAttachedFileContextSchema>
+
+export const shumaiMediaPositionSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('time'), seconds: z.number() }),
+  z.object({ type: z.literal('page'), page: z.number() }),
+])
+
+export type ShumaiMediaPosition = z.infer<typeof shumaiMediaPositionSchema>
+
+export const shumaiMessageContextSchema = z.object({
+  user: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      role: z.string(),
+    })
+    .optional(),
+  currentAsset: shumaiAssetContextSchema.optional(),
+  position: shumaiMediaPositionSchema.optional(),
+  annotation: z.boolean().optional(),
+  attachedFiles: z.array(shumaiAttachedFileContextSchema).optional(),
+  referencedAssets: z.array(shumaiAttachedFileContextSchema).optional(),
+})
+
+export type ShumaiMessageContext = z.infer<typeof shumaiMessageContextSchema>
+
 export const chatMessageSchema = z.intersection(
   z.object({
     id: z.string(),
   }),
   z.unknown(),
-) as unknown as z.ZodType<AgentMessage & { id: string }>
+) as unknown as z.ZodType<ChatMessage>
 
-export type ChatMessage = AgentMessage & { id: string }
+export type ChatMessage = (
+  | AgentMessage
+  | {
+      role: 'custom'
+      customType: string
+      content?: unknown
+      display?: boolean
+      details?: unknown
+      timestamp?: number
+    }
+  | {
+      role: 'thinking_level_change'
+      content: string
+      timestamp?: number
+    }
+) & { id: string }

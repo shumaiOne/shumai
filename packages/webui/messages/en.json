@@ -1312,5 +1312,6 @@
   "timecode": "Timecode",
   "playback_speed": "Playback Speed",
   "settings": "Settings",
-  "failed_to_post_comment": "Failed to post comment"
+  "failed_to_post_comment": "Failed to post comment",
+  "entry_id": "Entry ID"
 }

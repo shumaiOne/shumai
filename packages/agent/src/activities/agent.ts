@@ -1,8 +1,4 @@
-import {
-  type AgentMessage,
-  type AgentTool,
-  type SessionTreeEntry,
-} from '@earendil-works/pi-agent-core'
+import { type AgentMessage, type AgentTool } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
@@ -14,7 +10,6 @@ import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/perm
 import { AssetType, prisma, Prisma, type Skill } from '@shumai/db'
 import { registerLocalCancelHandler, unregisterLocalCancelHandler } from '@shumai/workflow-core'
 import { ApplicationFailure, Context } from '@temporalio/activity'
-import { ulid } from 'ulid'
 import { DatabaseSessionStorage } from '../database-session-storage'
 import {
   createAgentSession,
@@ -25,7 +20,11 @@ import {
 
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
 import { quotaService, QuotaExceededError } from '@shumai/core/src/quota/quota-service'
-import { UpdateAssetMetadataRequest } from '@shumai/dtos'
+import {
+  UpdateAssetMetadataRequest,
+  type ShumaiMessageContext,
+  type ShumaiMediaPosition,
+} from '@shumai/dtos'
 
 export interface Usage {
   inputTokens: number
@@ -81,7 +80,7 @@ async function executeAgentPrompt(params: {
   agentId: string
   prompt: string
   images: string[]
-  agentsInstruction: string
+  messageContext?: ShumaiMessageContext
   sessionId?: string
   userId?: string
   projectId?: string
@@ -116,14 +115,14 @@ shumai has its own cloud file system. If a user asks you to perform file system 
 
 If you need to create files in the local filesystem (for example, a temporary file for uploading), only the '.pi' folder in the current directory has write permissions. Do NOT attempt to create files in any other directories.
 
-When creating a file or version, you may attach metadata (for example, the AI model or prompt used to generate the asset). The allowed field keys and value types are declared directly in the 'metadata' parameter of the 'create_file' and 'create_version' tools.`
+When creating a file or version, you may attach metadata (for example, the AI model or prompt used to generate the asset). The allowed field keys and value types are declared directly in the 'metadata' parameter of the 'create_file' and 'create_version' tools.
+
+# Message Context & Tools
+User messages may contain a <context> block detailing the user, active asset location, playback position, and attachments. Use the asset IDs from <context> when invoking tools (e.g. 'analyze_image', 'screenshot', 'read_pdf_pages', 'download_asset', 'list_assets'). When an <annotation /> tag is present, it indicates the user has drawn visual markups on the asset at the specified position.`
 
   if (agent.soul) {
     systemPrompt = `${systemPrompt}\n\nAgent Personality and Core Instructions:\n${agent.soul}`
   }
-
-  // Note: params.agentsInstruction is no longer appended to systemPrompt here.
-  // Instead, it is persisted as a custom message session entry in the conversation history below.
 
   let targetAssetId = params.assetId
   if (!targetAssetId) {
@@ -255,32 +254,9 @@ When creating a file or version, you may attach metadata (for example, the AI mo
   }
 
   try {
-    if (params.agentsInstruction && params.agentsInstruction.trim()) {
-      const storage = session.getStorage()
-      const parentId = await storage.getLeafId()
-      await storage.appendEntry({
-        id: ulid(),
-        type: 'custom_message',
-        parentId,
-        timestamp: new Date().toISOString(),
-        customType: 'context',
-        content: params.agentsInstruction.trim(),
-      } as unknown as SessionTreeEntry)
-    }
-
-    if (params.attachedAssets && params.attachedAssets.length > 0) {
-      const storage = session.getStorage()
-      const parentId = await storage.getLeafId()
-      await storage.appendEntry({
-        id: ulid(),
-        type: 'custom',
-        parentId,
-        timestamp: new Date().toISOString(),
-        customType: 'context_display_info',
-        data: {
-          assets: params.attachedAssets,
-        },
-      } as unknown as SessionTreeEntry)
+    const storage = session.getStorage()
+    if (storage instanceof DatabaseSessionStorage && params.messageContext) {
+      storage.currentMessageContext = params.messageContext
     }
 
     let totalInputTokens = 0
@@ -414,7 +390,7 @@ When creating a file or version, you may attach metadata (for example, the AI mo
 
     const sessionEntries = await session.getEntries()
     sessionEntries.forEach((entry) => {
-      if (entry.type === 'message') {
+      if (entry.type === 'message' && entry.message) {
         const msg = entry.message
         if (msg.role === 'toolResult') {
           const logMsg = { ...msg, content: undefined }
@@ -451,7 +427,6 @@ When creating a file or version, you may attach metadata (for example, the AI mo
       cost: totalCost,
     }
 
-    const storage = session.getStorage()
     let sessionId = ''
     if (storage instanceof DatabaseSessionStorage) {
       sessionId = storage.sessionId
@@ -479,11 +454,11 @@ export interface AgentChatParams {
   projectId: string
   folderId: string
   assetId?: string
-  agentsInstruction?: string
   sessionId: string
   userId?: string
   userCommentId?: string | null
   context: AgentExecutionContext
+  messageContext?: ShumaiMessageContext
   attachedAssets?: Array<{ id: string; name: string; type: string }>
 }
 
@@ -513,40 +488,19 @@ export async function agentChatActivity(params: AgentChatParams) {
   const cleanMessage = params.message.replace(/<@[A-Z0-9]+>/g, '').trim()
   const sessionId = params.sessionId
 
-  let prompt = cleanMessage
-  if (params.userCommentId) {
-    let targetUserId = params.userId
-    if (!targetUserId) {
-      const comment = await prisma.assetComment.findUnique({
-        where: { id: params.userCommentId },
-        select: { creatorId: true },
-      })
-      targetUserId = comment?.creatorId || undefined
-    }
-    if (targetUserId) {
-      const userInfo = await getUserTeamInfoActivity({
-        userId: targetUserId,
-        teamId: params.teamId,
-      })
-      if (userInfo) {
-        prompt = `[${userInfo.name} (${userInfo.role})]: ${cleanMessage}`
-      }
-    }
-  }
-
   return executeAgentPrompt({
     taskId: params.taskId,
     teamId: params.teamId,
     agentId: params.agentId,
-    prompt,
+    prompt: cleanMessage,
     images: params.imageUrls,
-    agentsInstruction: params.agentsInstruction || '',
     sessionId,
     userId: params.userId,
     projectId: params.projectId,
     assetId: params.assetId || params.folderId,
     userCommentId: params.userCommentId,
     context: params.context,
+    messageContext: params.messageContext,
     attachedAssets: params.attachedAssets,
   })
 }
@@ -588,7 +542,6 @@ export async function autofillAiActivity(params: AutofillAiParams) {
     agentId: agent.id,
     prompt: fullPrompt,
     images: params.images,
-    agentsInstruction: '',
     sessionId: undefined,
     userId: undefined,
     projectId: params.projectId,
@@ -711,7 +664,10 @@ export async function initializeAgentSessionActivity(params: {
       createdAt: { lte: rootComment.createdAt },
     },
     orderBy: { id: 'asc' },
-    include: { creator: true },
+    include: {
+      creator: true,
+      attachments: { include: { asset: true } },
+    },
   })
 
   // 2. Fetch thread replies up to userComment.createdAt excluding userComment itself
@@ -723,7 +679,10 @@ export async function initializeAgentSessionActivity(params: {
           id: { not: userComment.id },
         },
         orderBy: { id: 'asc' },
-        include: { creator: true },
+        include: {
+          creator: true,
+          attachments: { include: { asset: true } },
+        },
       })
     : []
 
@@ -773,7 +732,13 @@ export async function initializeAgentSessionActivity(params: {
     }
   }
 
-  function formatCommentMessage(c: (typeof allCommentsToSync)[0]): string {
+  const assetRecord = await prisma.asset.findUnique({
+    where: { id: userComment.assetId },
+    select: { media: true },
+  })
+  const proxyType = (assetRecord?.media as PrismaJson.MediaInfo | null)?.proxyType
+
+  function buildCommentEntry(c: (typeof allCommentsToSync)[0]) {
     const isAgent = c.creator?.type === 'agent' || c.sessionId !== null
     let messageContent = c.message || ''
 
@@ -783,13 +748,82 @@ export async function initializeAgentSessionActivity(params: {
     })
 
     if (isAgent) {
-      const agentName = c.creator?.name || 'Ai Agent'
-      return `[Agent Message][${agentName}]: ${messageContent}`
-    } else if (c.creator?.name) {
-      const role = (c.creatorId ? userRoleMap.get(c.creatorId) : undefined) || 'user'
-      return `[${c.creator.name} (${role})]: ${messageContent}`
+      const message: AgentMessage = {
+        role: 'assistant',
+        content: [{ type: 'text', text: messageContent }],
+        api: 'custom',
+        provider: 'shumai',
+        model: 'agent',
+        usage: {
+          input: 0,
+          output: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+          totalTokens: 0,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+        },
+        stopReason: 'stop',
+        timestamp: c.createdAt.getTime(),
+      }
+      return {
+        type: 'message' as const,
+        data: { message },
+      }
     }
-    return messageContent
+
+    let userObj: ShumaiMessageContext['user'] = undefined
+    if (c.creator) {
+      const role = (c.creatorId ? userRoleMap.get(c.creatorId) : undefined) || 'user'
+      userObj = {
+        id: c.creator.id,
+        name: c.creator.name || 'Unknown',
+        role,
+      }
+    }
+
+    let position: ShumaiMediaPosition | undefined = undefined
+    if (c.second !== null && c.second !== undefined) {
+      if (proxyType === 'pdf') {
+        position = { type: 'page', page: Math.round(c.second) }
+      } else {
+        position = { type: 'time', seconds: c.second }
+      }
+    }
+
+    const annotation = !!(c.annotation && Array.isArray(c.annotation) && c.annotation.length > 0)
+
+    const attachedFiles: ShumaiMessageContext['attachedFiles'] = []
+    if (c.attachments && c.attachments.length > 0) {
+      for (const att of c.attachments) {
+        if (att.asset) {
+          const attProxyType = (att.asset.media as PrismaJson.MediaInfo | null)?.proxyType
+          attachedFiles.push({
+            id: att.asset.id,
+            name: att.asset.name,
+            type: att.asset.type,
+            mediaType: attProxyType as 'image' | 'video' | 'pdf' | 'audio' | 'other' | undefined,
+            mimeType: att.asset.mediaType || undefined,
+          })
+        }
+      }
+    }
+
+    const commentDetails: ShumaiMessageContext = {
+      ...(userObj ? { user: userObj } : {}),
+      ...(position ? { position } : {}),
+      ...(annotation ? { annotation: true } : {}),
+      ...(attachedFiles.length > 0 ? { attachedFiles } : {}),
+    }
+
+    return {
+      type: 'custom_message' as const,
+      data: {
+        customType: 'shumai_message',
+        content: messageContent,
+        display: true,
+        details: commentDetails,
+      },
+    }
   }
 
   // 3. Sync top-level comments into agent_session_entries (DAG spine)
@@ -801,21 +835,16 @@ export async function initializeAgentSessionActivity(params: {
     })
 
     if (!existingEntry) {
-      const messageContent = formatCommentMessage(c)
-      const message: AgentMessage = {
-        role: 'user',
-        content: [{ type: 'text', text: messageContent }],
-        timestamp: c.createdAt.getTime(),
-      }
+      const entryData = buildCommentEntry(c)
       await prisma.agentSessionEntry.create({
         data: {
           id: c.id,
           sessionId: mainSession.id,
           assetId: userComment.assetId,
-          type: 'message',
+          type: entryData.type,
           parentId: mainPrevId,
           createdAt: c.createdAt,
-          data: { message },
+          data: entryData.data as PrismaJson.PiSessionEntryData,
         },
       })
     }
@@ -841,21 +870,16 @@ export async function initializeAgentSessionActivity(params: {
       })
 
       if (!existingReplyEntry) {
-        const messageContent = formatCommentMessage(reply)
-        const message: AgentMessage = {
-          role: 'user',
-          content: [{ type: 'text', text: messageContent }],
-          timestamp: reply.createdAt.getTime(),
-        }
+        const entryData = buildCommentEntry(reply)
         await prisma.agentSessionEntry.create({
           data: {
             id: reply.id,
             sessionId: session.id,
             assetId: userComment.assetId,
-            type: 'message',
+            type: entryData.type,
             parentId: lastReplyParentId,
             createdAt: reply.createdAt,
-            data: { message },
+            data: entryData.data as PrismaJson.PiSessionEntryData,
           },
         })
       }
@@ -1194,7 +1218,11 @@ export async function getAssetActivity(assetId: string) {
 export async function getCommentActivity(commentId: string) {
   return prisma.assetComment.findUnique({
     where: { id: commentId },
-    include: { attachments: { include: { asset: { include: { storageKey: true } } } } },
+    include: {
+      attachments: {
+        include: { asset: { include: { storageKey: true } } },
+      },
+    },
   })
 }
 
@@ -1210,7 +1238,9 @@ export async function updateAssetMetadataActivity(params: {
   return metadataService.updateAssetMetadata(params.assetId, params.metadata)
 }
 
-export async function getAssetPathContextActivity(assetId: string): Promise<string> {
+export async function getAssetPathHierarchyActivity(
+  assetId: string,
+): Promise<{ path: string; ancestors: Array<{ id: string; name: string }> }> {
   const parts: { name: string; id: string }[] = []
   let currentId: string | null = assetId
 
@@ -1229,15 +1259,16 @@ export async function getAssetPathContextActivity(assetId: string): Promise<stri
     currentId = assetNode.parentId
   }
 
-  if (parts.length === 0) return ''
+  if (parts.length === 0) return { path: '', ancestors: [] }
 
-  const pathStr = parts.map((p) => p.name).join('/')
-  let contextStr = `Path: ${pathStr}\n\n`
-  for (const part of parts) {
-    contextStr += `name: ${part.name}, id: ${part.id}\n`
-  }
+  const path = parts.map((p) => p.name).join('/')
+  const ancestors = parts.slice(0, -1)
+  return { path, ancestors }
+}
 
-  return contextStr
+export async function getAssetPathContextActivity(assetId: string): Promise<string> {
+  const { path } = await getAssetPathHierarchyActivity(assetId)
+  return path
 }
 
 export interface GenerateSessionNameParams {

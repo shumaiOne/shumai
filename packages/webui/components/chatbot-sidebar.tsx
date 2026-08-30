@@ -12,7 +12,7 @@ import { m } from '@/ui/paraglide/messages.js'
 import { useChatbotStore } from '@/ui/stores/chatbot'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useDroppable } from '@dnd-kit/react'
-import type { ChatMessage } from '@shumai/dtos'
+import type { ChatMessage, ShumaiMessageContext } from '@shumai/dtos'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -401,6 +401,31 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
       case 'thinking_level_change':
       case 'custom': {
         const msgObj = msg as unknown as Record<string, unknown>
+        if (msgObj.customType === 'shumai_message') {
+          const details = msgObj.details as ShumaiMessageContext | undefined
+          const referencedAssets = details?.referencedAssets || []
+          return (
+            <div key={msg.id} className="flex flex-col items-end w-full space-y-1">
+              {referencedAssets.length > 0 && (
+                <div className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 space-y-1 my-1 w-full">
+                  <div className="font-semibold">{m.assets_added_to_context()}</div>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    {referencedAssets.map((asset) => (
+                      <li key={asset.id} className="truncate">
+                        {asset.name}{' '}
+                        <span className="text-muted-foreground/70">({asset.type})</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap shadow-xs break-words">
+                {getMessageText(msgObj.content)}
+              </div>
+            </div>
+          )
+        }
+
         if (msgObj.customType === 'context_display_info') {
           const details = msgObj.details as
             | { assets?: Array<{ id: string; name: string; type: string }> }
@@ -561,7 +586,12 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
                 {messages.map(renderMessage)}
                 {isStreaming &&
                   messages.length > 0 &&
-                  messages[messages.length - 1].role === 'user' && (
+                  (messages[messages.length - 1].role === 'user' ||
+                    (
+                      messages[messages.length - 1] as unknown as {
+                        customType?: string
+                      }
+                    ).customType === 'shumai_message') && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground italic">
                       <Loader2 className="h-3 w-3 animate-spin text-primary" />
                       <span>Thinking...</span>

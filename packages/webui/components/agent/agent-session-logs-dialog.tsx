@@ -14,6 +14,7 @@ import { formatTimeAgo } from '@/ui/lib/time'
 import { m } from '@/ui/paraglide/messages.js'
 import { Terminal } from 'lucide-react'
 import Markdown from 'react-markdown'
+import { serializeContextToXml, type ShumaiMessageContext } from '@shumai/dtos'
 
 interface AgentSessionLogsDialogProps {
   sessionId?: string | null
@@ -87,14 +88,59 @@ export function AgentSessionLogsDialog({
                 }
 
                 if (piEntry && typeof piEntry === 'object') {
+                  if (piEntry.type === 'custom_message') {
+                    if (piEntry.customType === 'context') return null
+                    if (piEntry.customType === 'shumai_message') {
+                      const xml = serializeContextToXml(piEntry.details as ShumaiMessageContext)
+                      const text = typeof piEntry.content === 'string' ? piEntry.content : ''
+                      const fullText = xml ? `${text}\n\n${xml}`.trim() : text
+                      const badgeColor = 'bg-primary/10 text-primary'
+                      const roleName = m.role_user()
+
+                      return (
+                        <div key={entry.id} className="relative pl-6 pb-6 last:pb-0">
+                          {/* Timeline Line */}
+                          <div className="absolute left-[9px] top-2 bottom-0 w-0.5 bg-foreground/10 last:hidden" />
+
+                          {/* Timeline Node */}
+                          <div className="absolute left-0 top-1.5 h-5 w-5 rounded-full border-4 border-background flex items-center justify-center bg-primary" />
+
+                          <div className="flex flex-col gap-1.5 bg-muted/30 dark:bg-muted/10 p-3 rounded-lg border border-foreground/5 backdrop-blur-xs w-full">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span
+                                  className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${badgeColor}`}
+                                >
+                                  {roleName}
+                                </span>
+                                <span
+                                  className="text-[10px] font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-foreground/10 select-all"
+                                  title={m.entry_id()}
+                                >
+                                  {m.entry_id()}: {entry.id}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground/60 shrink-0">
+                                {timestamp}
+                              </span>
+                            </div>
+
+                            <div className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed font-sans">
+                              {fullText}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    }
+                  }
+
                   if (piEntry.type === 'message' && piEntry.message) {
                     const msg = piEntry.message as Record<string, unknown>
                     let badgeColor = 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
                     let roleName: string = String(msg.role || '')
 
                     if (msg.role === 'user') {
-                      badgeColor =
-                        'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300'
+                      badgeColor = 'bg-primary/10 text-primary'
                       roleName = m.role_user()
                     } else if (msg.role === 'assistant') {
                       badgeColor =
@@ -283,7 +329,7 @@ export function AgentSessionLogsDialog({
                         <div
                           className={`absolute left-0 top-1.5 h-5 w-5 rounded-full border-4 border-background flex items-center justify-center ${
                             msg.role === 'user'
-                              ? 'bg-slate-500'
+                              ? 'bg-primary'
                               : msg.role === 'assistant'
                                 ? 'bg-violet-500'
                                 : msg.role === 'toolResult'
@@ -304,9 +350,9 @@ export function AgentSessionLogsDialog({
                               </span>
                               <span
                                 className="text-[10px] font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-foreground/10 select-all"
-                                title="Entry ID"
+                                title={m.entry_id()}
                               >
-                                ID: {entry.id}
+                                {m.entry_id()}: {entry.id}
                               </span>
                             </div>
                             <span className="text-[10px] text-muted-foreground/60 shrink-0">

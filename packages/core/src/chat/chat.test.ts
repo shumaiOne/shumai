@@ -613,6 +613,53 @@ describe('ChatService', () => {
     expect(mapEntryToMessage(leafRecord)).toBeNull()
   })
 
+  it('should map shumai_message custom_message entries with clean text and structured details', () => {
+    const entryRecord = {
+      id: 'entry-shumai-msg',
+      type: 'custom_message',
+      parentId: null,
+      createdAt: new Date('2026-07-07T00:05:00.000Z'),
+      data: {
+        customType: 'shumai_message',
+        content: 'Please adjust color grading',
+        display: true,
+        details: {
+          user: { id: 'u1', name: 'Alice', role: 'editor' },
+          currentAsset: { id: 'a1', name: 'video.mp4', type: 'file' },
+          position: { type: 'time', seconds: 12.5 },
+        },
+      },
+    } as unknown as Parameters<typeof mapEntryToMessage>[0]
+
+    const msg = mapEntryToMessage(entryRecord)
+    expect(msg).toBeDefined()
+    expect(msg?.id).toBe('entry-shumai-msg')
+    expect(msg?.role).toBe('custom')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((msg as any)?.customType).toBe('shumai_message')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((msg as any)?.content).toBe('Please adjust color grading')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((msg as any)?.details?.user?.name).toBe('Alice')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((msg as any)?.details?.position?.seconds).toBe(12.5)
+  })
+
+  it('should skip legacy context custom_message in mapEntryToMessage', () => {
+    const entryRecord = {
+      id: 'entry-legacy-context',
+      type: 'custom_message',
+      parentId: null,
+      createdAt: new Date('2026-07-07T00:05:00.000Z'),
+      data: {
+        customType: 'context',
+        content: 'System context prompt...',
+      },
+    } as unknown as Parameters<typeof mapEntryToMessage>[0]
+
+    expect(mapEntryToMessage(entryRecord)).toBeNull()
+  })
+
   describe('getNewSessionMessages', () => {
     it('returns new messages and lastEntryId', async () => {
       const { user, team, project } = await setupBasicData()
@@ -899,6 +946,47 @@ describe('ChatService', () => {
           projectId: project.id,
         }),
       ).rejects.toThrow(/Insufficient role/)
+    })
+
+    it('safely maps entries without message object or with customType shumai_message', () => {
+      // 1. Entry with type: 'message' but customType: 'shumai_message'
+      const legacyEntry = {
+        id: 'legacy-1',
+        sessionId: 'sess-1',
+        assetId: null,
+        parentId: null,
+        type: 'message',
+        data: {
+          customType: 'shumai_message',
+          content: 'Hello legacy',
+          display: true,
+          details: { user: { id: 'u1', name: 'User 1' } },
+        },
+        createdAt: new Date(),
+      }
+
+      const msg1 = mapEntryToMessage(legacyEntry)
+      expect(msg1).toBeDefined()
+      expect(msg1?.role).toBe('custom')
+      if (msg1 && msg1.role === 'custom') {
+        expect(msg1.customType).toBe('shumai_message')
+        expect(msg1.content).toBe('Hello legacy')
+        expect(msg1.details).toEqual({ user: { id: 'u1', name: 'User 1' } })
+      }
+
+      // 2. Entry with type: 'message' but empty data / no message
+      const emptyEntry = {
+        id: 'empty-1',
+        sessionId: 'sess-1',
+        assetId: null,
+        parentId: null,
+        type: 'message',
+        data: {},
+        createdAt: new Date(),
+      }
+
+      const msg2 = mapEntryToMessage(emptyEntry)
+      expect(msg2).toBeNull()
     })
   })
 })
