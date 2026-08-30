@@ -112,6 +112,7 @@ export default function ShareManager({
     fetchNextPage: fetchNextFoldersPage,
     hasNextPage: hasNextPageFolders,
     isFetchingNextPage: isFetchingNextFoldersPage,
+    isLoading: isFoldersLoading,
   } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: ['folder-children', teamId, currentFolderId, 'folder', sort, order],
     queryFn: async ({ pageParam }) => {
@@ -137,6 +138,7 @@ export default function ShareManager({
     fetchNextPage: fetchNextFilesPage,
     hasNextPage: hasNextPageFiles,
     isFetchingNextPage: isFetchingNextFilesPage,
+    isLoading: isFilesLoading,
   } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: ['folder-children', teamId, currentFolderId, 'file', sort, order],
     queryFn: async ({ pageParam }) => {
@@ -321,6 +323,7 @@ export default function ShareManager({
             fetchNextFilesPage={fetchNextFilesPage}
             hasNextFilesPage={hasNextPageFiles}
             isFetchingNextFilesPage={isFetchingNextFilesPage}
+            isLoading={isFoldersLoading || isFilesLoading}
             filterConditions={[]}
             onFilterChange={() => {}}
             dragState={dragState}

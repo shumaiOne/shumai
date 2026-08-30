@@ -202,6 +202,7 @@ export default function FileSystemManager({
     fetchNextPage: fetchNextFoldersPage,
     hasNextPage: hasNextPageFolders,
     isFetchingNextPage: isFetchingNextFoldersPage,
+    isLoading: isFoldersLoading,
   } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: isRecentlyDeleted
       ? ['projects', projectId, 'recently-deleted', 'folder']
@@ -252,6 +253,7 @@ export default function FileSystemManager({
     fetchNextPage: fetchNextFilesPage,
     hasNextPage: hasNextPageFiles,
     isFetchingNextPage: isFetchingNextFilesPage,
+    isLoading: isFilesLoading,
   } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: isRecentlyDeleted
       ? ['projects', projectId, 'recently-deleted', 'file']
@@ -304,6 +306,9 @@ export default function FileSystemManager({
 
   const folders = foldersData?.pages.flatMap((page) => page.data ?? []) ?? []
   const files = filesData?.pages.flatMap((page) => page.data ?? []) ?? []
+
+  const isFoldersQueryActive = !isFiltering && !isRecents
+  const isLoading = (isFoldersQueryActive ? isFoldersLoading : false) || isFilesLoading
 
   const totalFolders = foldersData?.pages[0]?.pageInfo?.total
   const totalFiles = filesData?.pages[0]?.pageInfo?.total
@@ -449,6 +454,7 @@ export default function FileSystemManager({
         isFetchingNextFilesPage={isFetchingNextFilesPage}
         isRecentlyDeleted={isRecentlyDeleted}
         isRecents={isRecents}
+        isLoading={isLoading}
         rootFolderId={rootFolderId}
       />
     )
@@ -544,6 +550,7 @@ export default function FileSystemManager({
             isFetchingNextFilesPage={isFetchingNextFilesPage}
             isRecentlyDeleted={isRecentlyDeleted}
             isRecents={isRecents}
+            isLoading={isLoading}
             filterConditions={filterConditions}
             onFilterChange={setFilterConditions}
             sort={sort}

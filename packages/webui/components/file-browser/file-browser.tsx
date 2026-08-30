@@ -26,6 +26,7 @@ import { ulid } from 'ulid'
 import type { DragState } from '../dnd-types'
 import { MoveCopyDialog } from '../move-copy-dialog'
 import { ManageVersionsDialog } from '../manage-versions-dialog'
+import { FileBrowserContentSkeleton } from '../loading-skeletons'
 import { FileBrowserContextMenu } from './context-menu'
 
 import {
@@ -81,6 +82,7 @@ interface FileBrowserProps {
   isFetchingNextFilesPage: boolean
   isRecentlyDeleted?: boolean
   isRecents?: boolean
+  isLoading?: boolean
   filterConditions?: SearchCondition[]
   onFilterChange?: (conditions: SearchCondition[]) => void
   sort?: SearchSort
@@ -131,6 +133,7 @@ export function FileBrowser({
   isFetchingNextFilesPage,
   isRecentlyDeleted,
   isRecents,
+  isLoading = false,
   filterConditions,
   onFilterChange,
   sort,
@@ -1052,7 +1055,9 @@ export function FileBrowser({
               className="flex-1 overflow-y-auto min-h-0 relative flex flex-col"
               style={{ overflowAnchor: 'none' }}
             >
-              {displayStyle === 'list' ? (
+              {isLoading && folders.length === 0 && displayedFiles.length === 0 ? (
+                <FileBrowserContentSkeleton displayStyle={displayStyle} />
+              ) : displayStyle === 'list' ? (
                 <FileBrowserListView
                   folders={folders}
                   files={displayedFiles}
@@ -1121,11 +1126,12 @@ export function FileBrowser({
 
               {(isFetchingNextFoldersPage || isFetchingNextFilesPage) && (
                 <div className="flex justify-center items-center p-4">
-                  <p>Loading more...</p>
+                  <p>{m.loading_more()}</p>
                 </div>
               )}
 
-              {folders.length === 0 &&
+              {!isLoading &&
+                folders.length === 0 &&
                 displayedFiles.length === 0 &&
                 !isFetchingNextFoldersPage &&
                 !isFetchingNextFilesPage && (
@@ -1139,7 +1145,7 @@ export function FileBrowser({
                         </p>
                       </div>
                     ) : (
-                      <span>This folder is empty</span>
+                      <span>{m.this_folder_is_empty()}</span>
                     )}
                   </div>
                 )}
