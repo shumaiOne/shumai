@@ -947,5 +947,46 @@ describe('ChatService', () => {
         }),
       ).rejects.toThrow(/Insufficient role/)
     })
+
+    it('safely maps entries without message object or with customType shumai_message', () => {
+      // 1. Entry with type: 'message' but customType: 'shumai_message'
+      const legacyEntry = {
+        id: 'legacy-1',
+        sessionId: 'sess-1',
+        assetId: null,
+        parentId: null,
+        type: 'message',
+        data: {
+          customType: 'shumai_message',
+          content: 'Hello legacy',
+          display: true,
+          details: { user: { id: 'u1', name: 'User 1' } },
+        },
+        createdAt: new Date(),
+      }
+
+      const msg1 = mapEntryToMessage(legacyEntry)
+      expect(msg1).toBeDefined()
+      expect(msg1?.role).toBe('custom')
+      if (msg1 && msg1.role === 'custom') {
+        expect(msg1.customType).toBe('shumai_message')
+        expect(msg1.content).toBe('Hello legacy')
+        expect(msg1.details).toEqual({ user: { id: 'u1', name: 'User 1' } })
+      }
+
+      // 2. Entry with type: 'message' but empty data / no message
+      const emptyEntry = {
+        id: 'empty-1',
+        sessionId: 'sess-1',
+        assetId: null,
+        parentId: null,
+        type: 'message',
+        data: {},
+        createdAt: new Date(),
+      }
+
+      const msg2 = mapEntryToMessage(emptyEntry)
+      expect(msg2).toBeNull()
+    })
   })
 })

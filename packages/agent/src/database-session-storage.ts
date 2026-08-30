@@ -91,9 +91,13 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     data: unknown
   }): SessionTreeEntry {
     const payload = (record.data as Record<string, unknown>) || {}
+    let type = (record.type || 'message') as SessionTreeEntry['type']
+    if (type === 'message' && payload.customType === 'shumai_message') {
+      type = 'custom_message'
+    }
     return {
       id: record.id,
-      type: (record.type || 'message') as SessionTreeEntry['type'],
+      type,
       parentId: record.parentId,
       timestamp: record.createdAt.toISOString(),
       ...payload,
@@ -104,6 +108,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     let entryToProcess = entry
     if (
       entryToProcess.type === 'message' &&
+      entryToProcess.message &&
       entryToProcess.message.role === 'user' &&
       this.currentMessageContext
     ) {
@@ -134,7 +139,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     const strippedEntry = structuredClone(entryToProcess)
 
     // Strip image data and skill content before saving to DB
-    if (strippedEntry.type === 'message') {
+    if (strippedEntry.type === 'message' && strippedEntry.message) {
       const msg = strippedEntry.message
       if (msg.role === 'toolResult') {
         const details = msg.details as { sourceKeys?: string[]; skillId?: string } | undefined
@@ -170,7 +175,10 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
       }
     }
 
-    const targetLeafId = entry.type === 'leaf' ? entry.targetId : entry.id
+    const targetLeafId =
+      strippedEntry.type === 'leaf'
+        ? (strippedEntry as unknown as { targetId?: string }).targetId || strippedEntry.id
+        : strippedEntry.id
 
     // Extract base fields and store type-specific properties in data payload
     const payload = { ...strippedEntry } as Record<string, unknown>
@@ -186,17 +194,18 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
 
     await prisma.$transaction([
       prisma.agentSessionEntry.upsert({
-        where: { id: entry.id },
+        where: { id: strippedEntry.id },
         create: {
-          id: entry.id,
+          id: strippedEntry.id,
           sessionId: this.sessionId,
           assetId: session?.assetId || null,
-          type: entry.type,
-          parentId: entry.parentId || null,
-          createdAt: entry.timestamp ? new Date(entry.timestamp) : new Date(),
+          type: strippedEntry.type,
+          parentId: strippedEntry.parentId || null,
+          createdAt: strippedEntry.timestamp ? new Date(strippedEntry.timestamp) : new Date(),
           data: payload as PrismaJson.PiSessionEntryData,
         },
         update: {
+          type: strippedEntry.type,
           data: payload as PrismaJson.PiSessionEntryData,
         },
       }),
@@ -267,7 +276,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     let costTotal = 0
 
     for (const entry of entries) {
-      if (entry.type === 'message') {
+      if (entry.type === 'message' && entry.message) {
         const msg = entry.message
         if (msg.role === 'user' || msg.role === 'assistant') {
           messageCount++
@@ -380,7 +389,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
           const entry = pathEntries[i]
           const count = threadReplyCountMap.get(entry.id)
           if (count !== undefined && count > 0) {
-            if (entry.type === 'message') {
+            if (entry.type === 'message' && entry.message) {
               const cloned = structuredClone(entry)
               const msg = cloned.message as unknown as {
                 content?: Array<{ type: string; text: string }>
@@ -424,7 +433,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
   }
 
   private async reinjectImageDataAsync(entry: SessionTreeEntry) {
-    if (entry.type === 'message') {
+    if (entry.type === 'message' && entry.message) {
       const msg = entry.message as AgentMessage
       if (msg.role === 'toolResult') {
         const details = msg.details as { sourceKeys?: string[] } | undefined
@@ -449,7 +458,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
   }
 
   private async reinjectSkillContentAsync(entry: SessionTreeEntry) {
-    if (entry.type === 'message') {
+    if (entry.type === 'message' && entry.message) {
       const msg = entry.message as AgentMessage
       if (msg.role === 'toolResult' && msg.toolName === 'read_skill') {
         const details = msg.details as { skillId?: string } | undefined

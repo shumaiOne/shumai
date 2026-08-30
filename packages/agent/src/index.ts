@@ -294,6 +294,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       for (const entry of entries) {
         if (
           entry.type === 'message' &&
+          entry.message &&
           entry.message.role === 'toolResult' &&
           entry.message.toolName === 'read_skill' &&
           !entry.message.isError

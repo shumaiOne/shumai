@@ -394,7 +394,7 @@ User messages may contain a <context> block detailing the user, active asset loc
 
     const sessionEntries = await session.getEntries()
     sessionEntries.forEach((entry) => {
-      if (entry.type === 'message') {
+      if (entry.type === 'message' && entry.message) {
         const msg = entry.message
         if (msg.role === 'toolResult') {
           const logMsg = { ...msg, content: undefined }

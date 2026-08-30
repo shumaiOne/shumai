@@ -662,5 +662,85 @@ describe('DatabaseSessionStorage', () => {
       expect(stats.totalTokens).toBe(170)
       expect(stats.costTotal).toBeCloseTo(0.032)
     })
+
+    it('should save user message turn as custom_message (shumai_message) in DB when currentMessageContext is set', async () => {
+      const { agent, user } = await setupTestData()
+      const storage = await DatabaseSessionStorage.create({ agentId: agent.id, userId: user.id })
+
+      storage.currentMessageContext = {
+        user: { id: user.id, name: user.name, role: 'owner' },
+        currentAsset: { id: 'asset-123', name: 'video.mp4', type: 'file' },
+      }
+
+      const userEntry: SessionTreeEntry = {
+        type: 'message',
+        id: 'msg-user-1',
+        parentId: null,
+        timestamp: new Date().toISOString(),
+        message: {
+          role: 'user',
+          content: 'Hello, help me analyze this video',
+          timestamp: Date.now(),
+        },
+      }
+
+      await storage.appendEntry(userEntry)
+
+      // 1. Verify DB record type is 'custom_message', not 'message'
+      const record = await prisma.agentSessionEntry.findUnique({
+        where: { id: 'msg-user-1' },
+      })
+      expect(record).toBeDefined()
+      expect(record?.type).toBe('custom_message')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = record?.data as any
+      expect(data.customType).toBe('shumai_message')
+      expect(data.content).toBe('Hello, help me analyze this video')
+      expect(data.details?.user?.id).toBe(user.id)
+      expect(data.details?.currentAsset?.id).toBe('asset-123')
+
+      // 2. Verify getEntries() and getPathToRoot() do not throw and return proper custom_message
+      const entries = await storage.getEntries()
+      expect(entries).toHaveLength(1)
+      expect(entries[0].type).toBe('custom_message')
+
+      const pathEntries = await storage.getPathToRoot('msg-user-1')
+      expect(pathEntries).toHaveLength(1)
+      expect(pathEntries[0].type).toBe('custom_message')
+
+      const stats = await storage.getSessionStats()
+      expect(stats.messageCount).toBe(0)
+    })
+
+    it('should safely handle legacy records where type was message but data was shumai_message', async () => {
+      const { agent } = await setupTestData()
+      const storage = await DatabaseSessionStorage.create({ agentId: agent.id })
+
+      await prisma.agentSessionEntry.create({
+        data: {
+          id: 'legacy-corrupted-entry',
+          sessionId: storage.sessionId,
+          type: 'message',
+          data: {
+            customType: 'shumai_message',
+            content: 'Legacy prompt',
+            display: true,
+            details: { user: { id: 'u1', name: 'User 1' } },
+          },
+        },
+      })
+
+      // Must not throw in getEntries(), getPathToRoot(), or getSessionStats()
+      const entries = await storage.getEntries()
+      expect(entries).toHaveLength(1)
+      expect(entries[0].type).toBe('custom_message')
+
+      const path = await storage.getPathToRoot('legacy-corrupted-entry')
+      expect(path).toHaveLength(1)
+      expect(path[0].type).toBe('custom_message')
+
+      const stats = await storage.getSessionStats()
+      expect(stats.messageCount).toBe(0)
+    })
   })
 })
