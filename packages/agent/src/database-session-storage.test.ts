@@ -709,7 +709,7 @@ describe('DatabaseSessionStorage', () => {
       expect(pathEntries[0].type).toBe('custom_message')
 
       const stats = await storage.getSessionStats()
-      expect(stats.messageCount).toBe(0)
+      expect(stats.messageCount).toBe(1)
     })
 
     it('should safely handle legacy records where type was message but data was shumai_message', async () => {
@@ -740,7 +740,7 @@ describe('DatabaseSessionStorage', () => {
       expect(path[0].type).toBe('custom_message')
 
       const stats = await storage.getSessionStats()
-      expect(stats.messageCount).toBe(0)
+      expect(stats.messageCount).toBe(1)
     })
   })
 })

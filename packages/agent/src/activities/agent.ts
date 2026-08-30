@@ -80,7 +80,6 @@ async function executeAgentPrompt(params: {
   agentId: string
   prompt: string
   images: string[]
-  agentsInstruction?: string
   messageContext?: ShumaiMessageContext
   sessionId?: string
   userId?: string
@@ -455,7 +454,6 @@ export interface AgentChatParams {
   projectId: string
   folderId: string
   assetId?: string
-  agentsInstruction?: string
   sessionId: string
   userId?: string
   userCommentId?: string | null
@@ -496,7 +494,6 @@ export async function agentChatActivity(params: AgentChatParams) {
     agentId: params.agentId,
     prompt: cleanMessage,
     images: params.imageUrls,
-    agentsInstruction: params.agentsInstruction || '',
     sessionId,
     userId: params.userId,
     projectId: params.projectId,
@@ -545,7 +542,6 @@ export async function autofillAiActivity(params: AutofillAiParams) {
     agentId: agent.id,
     prompt: fullPrompt,
     images: params.images,
-    agentsInstruction: '',
     sessionId: undefined,
     userId: undefined,
     projectId: params.projectId,
@@ -668,7 +664,10 @@ export async function initializeAgentSessionActivity(params: {
       createdAt: { lte: rootComment.createdAt },
     },
     orderBy: { id: 'asc' },
-    include: { creator: true },
+    include: {
+      creator: true,
+      attachments: { include: { asset: true } },
+    },
   })
 
   // 2. Fetch thread replies up to userComment.createdAt excluding userComment itself
@@ -680,7 +679,10 @@ export async function initializeAgentSessionActivity(params: {
           id: { not: userComment.id },
         },
         orderBy: { id: 'asc' },
-        include: { creator: true },
+        include: {
+          creator: true,
+          attachments: { include: { asset: true } },
+        },
       })
     : []
 
@@ -790,10 +792,27 @@ export async function initializeAgentSessionActivity(params: {
 
     const annotation = !!(c.annotation && Array.isArray(c.annotation) && c.annotation.length > 0)
 
+    const attachedFiles: ShumaiMessageContext['attachedFiles'] = []
+    if (c.attachments && c.attachments.length > 0) {
+      for (const att of c.attachments) {
+        if (att.asset) {
+          const attProxyType = (att.asset.media as PrismaJson.MediaInfo | null)?.proxyType
+          attachedFiles.push({
+            id: att.asset.id,
+            name: att.asset.name,
+            type: att.asset.type,
+            mediaType: attProxyType as 'image' | 'video' | 'pdf' | 'audio' | 'other' | undefined,
+            mimeType: att.asset.mediaType || undefined,
+          })
+        }
+      }
+    }
+
     const commentDetails: ShumaiMessageContext = {
       ...(userObj ? { user: userObj } : {}),
       ...(position ? { position } : {}),
       ...(annotation ? { annotation: true } : {}),
+      ...(attachedFiles.length > 0 ? { attachedFiles } : {}),
     }
 
     return {
@@ -1199,7 +1218,11 @@ export async function getAssetActivity(assetId: string) {
 export async function getCommentActivity(commentId: string) {
   return prisma.assetComment.findUnique({
     where: { id: commentId },
-    include: { attachments: { include: { asset: { include: { storageKey: true } } } } },
+    include: {
+      attachments: {
+        include: { asset: { include: { storageKey: true } } },
+      },
+    },
   })
 }
 

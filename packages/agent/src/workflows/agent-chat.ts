@@ -53,6 +53,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     // 1. Get User Comment
     const userCommentId = payload.agent?.userCommentId
+    let userComment: Awaited<ReturnType<typeof getCommentActivity>> | null = null
     let prompt = ''
     let attachmentImageUrls: string[] = []
     let commentTimestamp: number | undefined
@@ -60,7 +61,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     let commentCreatorId: string | undefined
 
     if (userCommentId) {
-      const userComment = await executeActivity(agentWorkerQueue, getCommentActivity, userCommentId)
+      userComment = await executeActivity(agentWorkerQueue, getCommentActivity, userCommentId)
       if (!userComment) {
         throw ApplicationFailure.create({ message: 'User comment not found', nonRetryable: true })
       }
@@ -151,7 +152,27 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     // Resolve Attached Files Details
     const attachedFiles: ShumaiAttachedFileContext[] = []
     const attachedAssets: Array<{ id: string; name: string; type: string }> = []
-    if (payload.agent?.attachedFiles) {
+    if (userCommentId && userComment?.attachments) {
+      for (const att of userComment.attachments) {
+        if (att.asset) {
+          const filePath = await executeActivity(
+            agentWorkerQueue,
+            getAssetPathContextActivity,
+            att.asset.id,
+          )
+          const attProxyType = (att.asset.media as PrismaJson.MediaInfo | null)?.proxyType
+          attachedFiles.push({
+            id: att.asset.id,
+            name: att.asset.name,
+            type: att.asset.type,
+            mediaType: attProxyType as ShumaiAttachedFileContext['mediaType'],
+            mimeType: att.asset.mediaType || undefined,
+            path: filePath || undefined,
+          })
+          attachedAssets.push({ id: att.asset.id, name: att.asset.name, type: att.asset.type })
+        }
+      }
+    } else if (payload.agent?.attachedFiles) {
       for (const fileId of payload.agent.attachedFiles) {
         const file = await executeActivity(agentWorkerQueue, getAssetActivity, fileId)
         if (file) {
@@ -160,11 +181,13 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
             getAssetPathContextActivity,
             fileId,
           )
+          const fileProxyType = (file.media as PrismaJson.MediaInfo | null)?.proxyType
           attachedFiles.push({
             id: file.id,
             name: file.name,
             type: file.type,
-            mediaType: file.mediaType || undefined,
+            mediaType: fileProxyType as ShumaiAttachedFileContext['mediaType'],
+            mimeType: file.mediaType || undefined,
             path: filePath || undefined,
           })
           attachedAssets.push({ id: file.id, name: file.name, type: file.type })
@@ -183,11 +206,13 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
             getAssetPathContextActivity,
             assetId,
           )
+          const refProxyType = (referencedAsset.media as PrismaJson.MediaInfo | null)?.proxyType
           referencedAssets.push({
             id: referencedAsset.id,
             name: referencedAsset.name,
             type: referencedAsset.type,
-            mediaType: referencedAsset.mediaType || undefined,
+            mediaType: refProxyType as ShumaiAttachedFileContext['mediaType'],
+            mimeType: referencedAsset.mediaType || undefined,
             path: filePath || undefined,
           })
           attachedAssets.push({
@@ -223,8 +248,9 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     const currentAssetContext: ShumaiAssetContext = {
       id: asset.id,
       name: asset.name,
-      type: asset.type as 'file' | 'folder' | 'version_stack',
-      mediaType: asset.mediaType as 'image' | 'video' | 'pdf' | 'audio' | 'other' | undefined,
+      type: asset.type,
+      mediaType: proxyType as ShumaiAssetContext['mediaType'],
+      mimeType: asset.mediaType || undefined,
       parentId: asset.parentId || undefined,
       path: assetPath || undefined,
       durationSeconds: duration !== undefined ? duration : undefined,

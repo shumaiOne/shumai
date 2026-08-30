@@ -42,7 +42,7 @@ export type ChatSessionInfo = z.infer<typeof chatSessionInfoSchema>
 export const shumaiAssetContextSchema = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.enum(['file', 'folder', 'version_stack']),
+  type: z.string(),
   mediaType: z.enum(['image', 'video', 'pdf', 'audio', 'other']).optional(),
   mimeType: z.string().optional(),
   parentId: z.string().optional(),
@@ -59,7 +59,8 @@ export const shumaiAttachedFileContextSchema = z.object({
   id: z.string(),
   name: z.string(),
   type: z.string(),
-  mediaType: z.string().optional(),
+  mediaType: z.enum(['image', 'video', 'pdf', 'audio', 'other']).optional(),
+  mimeType: z.string().optional(),
   path: z.string().optional(),
 })
 

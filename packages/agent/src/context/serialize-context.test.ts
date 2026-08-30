@@ -155,6 +155,36 @@ describe('serializeContextToXml', () => {
 
       expect(serializeContextToXml(context)).toBe(expected)
     })
+
+    it('serializes mime_type alongside media_type for current asset and attached files', () => {
+      const context: ShumaiMessageContext = {
+        currentAsset: {
+          id: 'img_1',
+          name: 'photo.png',
+          type: 'file',
+          mediaType: 'image',
+          mimeType: 'image/png',
+        },
+        attachedFiles: [
+          {
+            id: 'doc_1',
+            name: 'spec.pdf',
+            type: 'file',
+            mediaType: 'pdf',
+            mimeType: 'application/pdf',
+          },
+        ],
+      }
+
+      const expected = `<context>
+  <current_asset id="img_1" name="photo.png" type="file" media_type="image" mime_type="image/png" />
+  <attached_files>
+    <file id="doc_1" name="spec.pdf" type="file" media_type="pdf" mime_type="application/pdf" />
+  </attached_files>
+</context>`
+
+      expect(serializeContextToXml(context)).toBe(expected)
+    })
   })
 
   describe('XML Escaping & Security', () => {

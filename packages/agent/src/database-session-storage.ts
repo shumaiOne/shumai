@@ -276,7 +276,9 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     let costTotal = 0
 
     for (const entry of entries) {
-      if (entry.type === 'message' && entry.message) {
+      if (entry.type === 'custom_message' && entry.customType === 'shumai_message') {
+        messageCount++
+      } else if (entry.type === 'message' && entry.message) {
         const msg = entry.message
         if (msg.role === 'user' || msg.role === 'assistant') {
           messageCount++

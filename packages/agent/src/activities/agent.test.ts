@@ -565,12 +565,29 @@ describe('Agent Database Activities Integration', () => {
 
   describe('initializeAgentSessionActivity', () => {
     it('should initialize a session, create agent/user records if missing, and store existing comments context', async () => {
+      const attAsset = await prisma.asset.create({
+        data: {
+          name: 'attached-doc.pdf',
+          type: AssetType.file,
+          mediaType: 'application/pdf',
+          status: AssetStatus.uploaded,
+          projectId: project.id,
+        },
+      })
+
       // Create first comment so it acts as context
-      await prisma.assetComment.create({
+      const firstComment = await prisma.assetComment.create({
         data: {
           assetId: asset.id,
           message: 'Hello <@' + user.id + '> check this',
           creatorId: user.id,
+        },
+      })
+
+      await prisma.assetCommentAttachment.create({
+        data: {
+          commentId: firstComment.id,
+          assetId: attAsset.id,
         },
       })
 
@@ -617,6 +634,15 @@ describe('Agent Database Activities Integration', () => {
       expect(parsedEntry.content).toContain(`Hello <@${user.name}> check this`)
       expect(parsedEntry.details.user.name).toBe(user.name)
       expect(parsedEntry.details.user.role).toBe('owner')
+      expect(parsedEntry.details.attachedFiles).toEqual([
+        {
+          id: attAsset.id,
+          name: 'attached-doc.pdf',
+          type: 'file',
+          mediaType: undefined,
+          mimeType: 'application/pdf',
+        },
+      ])
     })
 
     it('should distinguish Main Session (userCommentId: null) and Thread Session (userCommentId: rootId) during lazy sync', async () => {

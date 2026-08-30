@@ -168,7 +168,8 @@ describe('Agent Chat Workflow', () => {
             id: 'a1',
             name: 'test-file.png',
             type: 'file',
-            mediaType: 'image/png',
+            mediaType: 'image',
+            mimeType: 'image/png',
             parentId: 'parent-folder-id',
             path: 'folder/subfolder/test-file.png',
             ancestors: [
@@ -395,6 +396,7 @@ describe('Agent Chat Workflow', () => {
           name: 'attachment.png',
           type: 'file',
           mediaType: 'image/png',
+          media: { proxyType: 'image' },
           projectId: 'p1',
         }
       }
@@ -404,6 +406,7 @@ describe('Agent Chat Workflow', () => {
           name: 'ref-folder',
           type: 'folder',
           mediaType: null,
+          media: null,
           projectId: 'p1',
         }
       }
@@ -412,6 +415,7 @@ describe('Agent Chat Workflow', () => {
         name: 'test-file.png',
         type: 'file',
         mediaType: 'image/png',
+        media: { proxyType: 'image' },
         projectId: 'p1',
         project: { teamId: 't1' },
       }
@@ -466,7 +470,8 @@ describe('Agent Chat Workflow', () => {
               id: 'file-attachment-1',
               name: 'attachment.png',
               type: 'file',
-              mediaType: 'image/png',
+              mediaType: 'image',
+              mimeType: 'image/png',
               path: 'attachment.png',
             },
           ],
@@ -476,6 +481,7 @@ describe('Agent Chat Workflow', () => {
               name: 'ref-folder',
               type: 'folder',
               mediaType: undefined,
+              mimeType: undefined,
               path: 'ref-folder',
             },
           ],
@@ -564,6 +570,83 @@ describe('Agent Chat Workflow', () => {
       expect.objectContaining({
         messageContext: expect.objectContaining({
           user: { id: 'user-alice', name: 'Test User', role: 'owner' },
+        }),
+      }),
+    )
+  })
+
+  it('should populate comment attachments into structured messageContext.attachedFiles', async () => {
+    mockActivities.getCommentActivity.mockResolvedValue({
+      id: 'c1',
+      creatorId: 'user-c1',
+      message: 'check these attachments',
+      replyToId: null,
+      attachments: [
+        {
+          asset: {
+            id: 'att-doc-1',
+            name: 'brief.pdf',
+            type: 'file',
+            mediaType: 'application/pdf',
+            media: { proxyType: 'pdf' },
+            storageKey: { key: 'brief.pdf' },
+          },
+        },
+        {
+          asset: {
+            id: 'att-img-1',
+            name: 'mockup.png',
+            type: 'file',
+            mediaType: 'image/png',
+            media: { proxyType: 'image' },
+            storageKey: { key: 'mockup.png' },
+          },
+        },
+      ],
+    })
+
+    mockActivities.getAssetPathContextActivity.mockImplementation(async (id: string) => {
+      if (id === 'att-doc-1') return 'Docs/brief.pdf'
+      if (id === 'att-img-1') return 'Designs/mockup.png'
+      return 'folder/subfolder/file.png'
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'chat',
+        status: 'pending',
+        assetId: 'a1',
+        payload: {
+          projectId: 'p1',
+          agent: { userCommentId: 'c1', agentId: 'b1' },
+        },
+      },
+    })
+
+    await agentChat(task)
+
+    expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        imageUrls: ['mockup.png'],
+        messageContext: expect.objectContaining({
+          attachedFiles: [
+            {
+              id: 'att-doc-1',
+              name: 'brief.pdf',
+              type: 'file',
+              mediaType: 'pdf',
+              mimeType: 'application/pdf',
+              path: 'Docs/brief.pdf',
+            },
+            {
+              id: 'att-img-1',
+              name: 'mockup.png',
+              type: 'file',
+              mediaType: 'image',
+              mimeType: 'image/png',
+              path: 'Designs/mockup.png',
+            },
+          ],
         }),
       }),
     )

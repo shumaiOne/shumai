@@ -94,8 +94,7 @@ export function AgentSessionLogsDialog({
                       const xml = serializeContextToXml(piEntry.details as ShumaiMessageContext)
                       const text = typeof piEntry.content === 'string' ? piEntry.content : ''
                       const fullText = xml ? `${text}\n\n${xml}`.trim() : text
-                      const badgeColor =
-                        'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300'
+                      const badgeColor = 'bg-primary/10 text-primary'
                       const roleName = m.role_user()
 
                       return (
@@ -104,7 +103,7 @@ export function AgentSessionLogsDialog({
                           <div className="absolute left-[9px] top-2 bottom-0 w-0.5 bg-foreground/10 last:hidden" />
 
                           {/* Timeline Node */}
-                          <div className="absolute left-0 top-1.5 h-5 w-5 rounded-full border-4 border-background flex items-center justify-center bg-slate-500" />
+                          <div className="absolute left-0 top-1.5 h-5 w-5 rounded-full border-4 border-background flex items-center justify-center bg-primary" />
 
                           <div className="flex flex-col gap-1.5 bg-muted/30 dark:bg-muted/10 p-3 rounded-lg border border-foreground/5 backdrop-blur-xs w-full">
                             <div className="flex items-center justify-between gap-2">
@@ -116,9 +115,9 @@ export function AgentSessionLogsDialog({
                                 </span>
                                 <span
                                   className="text-[10px] font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-foreground/10 select-all"
-                                  title="Entry ID"
+                                  title={m.entry_id()}
                                 >
-                                  ID: {entry.id}
+                                  {m.entry_id()}: {entry.id}
                                 </span>
                               </div>
                               <span className="text-[10px] text-muted-foreground/60 shrink-0">
@@ -141,8 +140,7 @@ export function AgentSessionLogsDialog({
                     let roleName: string = String(msg.role || '')
 
                     if (msg.role === 'user') {
-                      badgeColor =
-                        'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300'
+                      badgeColor = 'bg-primary/10 text-primary'
                       roleName = m.role_user()
                     } else if (msg.role === 'assistant') {
                       badgeColor =
@@ -331,7 +329,7 @@ export function AgentSessionLogsDialog({
                         <div
                           className={`absolute left-0 top-1.5 h-5 w-5 rounded-full border-4 border-background flex items-center justify-center ${
                             msg.role === 'user'
-                              ? 'bg-slate-500'
+                              ? 'bg-primary'
                               : msg.role === 'assistant'
                                 ? 'bg-violet-500'
                                 : msg.role === 'toolResult'
@@ -352,9 +350,9 @@ export function AgentSessionLogsDialog({
                               </span>
                               <span
                                 className="text-[10px] font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-foreground/10 select-all"
-                                title="Entry ID"
+                                title={m.entry_id()}
                               >
-                                ID: {entry.id}
+                                {m.entry_id()}: {entry.id}
                               </span>
                             </div>
                             <span className="text-[10px] text-muted-foreground/60 shrink-0">

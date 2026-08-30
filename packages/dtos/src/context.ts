@@ -107,6 +107,7 @@ export function serializeContextToXml(context?: ShumaiMessageContext | null): st
       if (file.name !== undefined) fileAttrs += formatAttr('name', file.name)
       if (file.type !== undefined) fileAttrs += formatAttr('type', file.type)
       if (file.mediaType !== undefined) fileAttrs += formatAttr('media_type', file.mediaType)
+      if (file.mimeType !== undefined) fileAttrs += formatAttr('mime_type', file.mimeType)
       if (file.path !== undefined) fileAttrs += formatAttr('path', file.path)
       lines.push(`    <file${fileAttrs} />`)
     }
@@ -130,6 +131,7 @@ export function serializeContextToXml(context?: ShumaiMessageContext | null): st
         if (item.name !== undefined) assetAttrs += formatAttr('name', item.name)
         if (item.type !== undefined) assetAttrs += formatAttr('type', item.type)
         if (item.mediaType !== undefined) assetAttrs += formatAttr('media_type', item.mediaType)
+        if (item.mimeType !== undefined) assetAttrs += formatAttr('mime_type', item.mimeType)
         if (item.path !== undefined) assetAttrs += formatAttr('path', item.path)
         lines.push(`    <asset${assetAttrs} />`)
       }
