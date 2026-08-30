@@ -1,7 +1,12 @@
 import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@shumai/db'
 import { executeActivity, getActivities, TaskQueueAgent } from '@shumai/workflow-core'
-import { AgentChatPromptBuilder } from './agent-chat-prompt-builder'
+import type {
+  ShumaiMessageContext,
+  ShumaiAssetContext,
+  ShumaiAttachedFileContext,
+  ShumaiMediaPosition,
+} from '@shumai/dtos'
 
 export async function agentChat(task: WorkflowTask): Promise<void> {
   const {
@@ -15,6 +20,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     updateTaskUsageActivity,
     getAgentWorkerQueueActivity,
     initializeAgentSessionActivity,
+    getAssetPathHierarchyActivity,
     getAssetPathContextActivity,
     generateSessionNameActivity,
     getUserTeamInfoActivity,
@@ -50,6 +56,8 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     let prompt = ''
     let attachmentImageUrls: string[] = []
     let commentTimestamp: number | undefined
+    let commentAnnotation = false
+    let commentCreatorId: string | undefined
 
     if (userCommentId) {
       const userComment = await executeActivity(agentWorkerQueue, getCommentActivity, userCommentId)
@@ -57,8 +65,16 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
         throw ApplicationFailure.create({ message: 'User comment not found', nonRetryable: true })
       }
       prompt = userComment.message || ''
+      commentCreatorId = userComment.creatorId || undefined
       if (userComment.second !== null && userComment.second !== undefined) {
         commentTimestamp = userComment.second
+      }
+      if (
+        userComment.annotation &&
+        Array.isArray(userComment.annotation) &&
+        userComment.annotation.length > 0
+      ) {
+        commentAnnotation = true
       }
 
       // 2. Create Placeholder Comment
@@ -71,7 +87,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       })
       placeholderCommentId = placeholder.id
 
-      // 5. Prepare Images (Attachments only)
+      // Prepare Images (Attachments only)
       if (userComment.attachments) {
         for (const att of userComment.attachments) {
           const attProxyType = (att.asset?.media as PrismaJson.MediaInfo | null)?.proxyType
@@ -118,43 +134,62 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       projectId: payload.projectId,
     })
 
-    const pathContext = await executeActivity(
+    const pathHierarchy = await executeActivity(
       agentWorkerQueue,
-      getAssetPathContextActivity,
+      getAssetPathHierarchyActivity,
       task.assetId,
     )
+    const assetPath = pathHierarchy?.path || ''
+    const ancestors = pathHierarchy?.ancestors || []
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mediaInfo = asset.media as any
     const duration = mediaInfo?.duration
     const totalPages = mediaInfo?.frames || mediaInfo?.metadata?.totalFrames
+    const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
 
     // Resolve Attached Files Details
-    const attachedFileDetailsList: string[] = []
+    const attachedFiles: ShumaiAttachedFileContext[] = []
     const attachedAssets: Array<{ id: string; name: string; type: string }> = []
     if (payload.agent?.attachedFiles) {
       for (const fileId of payload.agent.attachedFiles) {
         const file = await executeActivity(agentWorkerQueue, getAssetActivity, fileId)
         if (file) {
-          const path = await executeActivity(agentWorkerQueue, getAssetPathContextActivity, fileId)
-          attachedFileDetailsList.push(
-            `- Name: ${file.name} (ID: ${file.id}, Type: ${file.type}, Media Type: ${file.mediaType || 'unknown'}, Project ID: ${file.projectId || 'unknown'}, Path: ${path})`,
+          const filePath = await executeActivity(
+            agentWorkerQueue,
+            getAssetPathContextActivity,
+            fileId,
           )
+          attachedFiles.push({
+            id: file.id,
+            name: file.name,
+            type: file.type,
+            mediaType: file.mediaType || undefined,
+            path: filePath || undefined,
+          })
           attachedAssets.push({ id: file.id, name: file.name, type: file.type })
         }
       }
     }
 
     // Resolve Referenced Workspace Assets Details
-    const referencedAssetDetailsList: string[] = []
+    const referencedAssets: ShumaiAttachedFileContext[] = []
     if (payload.agent?.assetIds) {
       for (const assetId of payload.agent.assetIds) {
         const referencedAsset = await executeActivity(agentWorkerQueue, getAssetActivity, assetId)
         if (referencedAsset) {
-          const path = await executeActivity(agentWorkerQueue, getAssetPathContextActivity, assetId)
-          referencedAssetDetailsList.push(
-            `- Name: ${referencedAsset.name} (ID: ${referencedAsset.id}, Type: ${referencedAsset.type}, Media Type: ${referencedAsset.mediaType || 'unknown'}, Project ID: ${referencedAsset.projectId || 'unknown'}, Path: ${path})`,
+          const filePath = await executeActivity(
+            agentWorkerQueue,
+            getAssetPathContextActivity,
+            assetId,
           )
+          referencedAssets.push({
+            id: referencedAsset.id,
+            name: referencedAsset.name,
+            type: referencedAsset.type,
+            mediaType: referencedAsset.mediaType || undefined,
+            path: filePath || undefined,
+          })
           attachedAssets.push({
             id: referencedAsset.id,
             name: referencedAsset.name,
@@ -164,29 +199,51 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       }
     }
 
+    // Resolve User Info
+    const targetUserId = userCommentId ? commentCreatorId : payload.agent?.userId
     let userInfo: { name: string; role: string } | null = null
-    if (!userCommentId && isNewChat && payload.agent?.userId) {
+    if (targetUserId) {
       userInfo = await executeActivity(agentWorkerQueue, getUserTeamInfoActivity, {
-        userId: payload.agent.userId,
+        userId: targetUserId,
         teamId,
       })
     }
 
-    const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
-    const promptBuilder = new AgentChatPromptBuilder(asset.id)
-      .withContinuation(!isNewChat)
-      .withAssetChanged(payload.agent?.hasAssetChanged)
-      .withPathContext(pathContext)
-      .withAssetDetails(asset.name, asset.mediaType, duration, totalPages, proxyType)
-      .withCommentTimestamp(commentTimestamp)
-      .withAttachedFiles(attachedFileDetailsList)
-      .withReferencedAssets(referencedAssetDetailsList)
-
-    if (userInfo) {
-      promptBuilder.withUserInfo(userInfo.name, userInfo.role)
+    // Build position
+    let mediaPosition: ShumaiMediaPosition | undefined
+    if (commentTimestamp !== undefined && commentTimestamp !== null) {
+      if (proxyType === 'pdf') {
+        mediaPosition = { type: 'page', page: Math.round(commentTimestamp) }
+      } else {
+        mediaPosition = { type: 'time', seconds: commentTimestamp }
+      }
     }
 
-    const instruction = promptBuilder.build()
+    // Build Current Asset Context
+    const currentAssetContext: ShumaiAssetContext = {
+      id: asset.id,
+      name: asset.name,
+      type: asset.type as 'file' | 'folder' | 'version_stack',
+      mediaType: asset.mediaType as 'image' | 'video' | 'pdf' | 'audio' | 'other' | undefined,
+      parentId: asset.parentId || undefined,
+      path: assetPath || undefined,
+      durationSeconds: duration !== undefined ? duration : undefined,
+      totalPages: totalPages !== undefined ? totalPages : undefined,
+      navigated: payload.agent?.hasAssetChanged === true ? true : undefined,
+      ancestors: ancestors.length > 0 ? ancestors : undefined,
+    }
+
+    // Build structured ShumaiMessageContext
+    const messageContext: ShumaiMessageContext = {
+      ...(userInfo
+        ? { user: { id: targetUserId!, name: userInfo.name, role: userInfo.role } }
+        : {}),
+      currentAsset: currentAssetContext,
+      ...(mediaPosition ? { position: mediaPosition } : {}),
+      ...(commentAnnotation ? { annotation: true } : {}),
+      ...(attachedFiles.length > 0 ? { attachedFiles } : {}),
+      ...(referencedAssets.length > 0 ? { referencedAssets } : {}),
+    }
 
     // 6. Call AI Chat
     let folderId = ''
@@ -205,11 +262,11 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       projectId: payload.projectId,
       folderId,
       assetId: asset.id,
-      agentsInstruction: instruction,
       sessionId,
       userId: payload.agent?.userId,
       userCommentId: userCommentId || undefined,
       context,
+      messageContext,
       attachedAssets,
     })
 

@@ -30,6 +30,8 @@ import { createReadSkillTool } from './tools/read-skill'
 import { createReadThreadTool } from './tools/read-thread'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
 import { createScreenshotTool } from './tools/screenshot'
+import { serializeContextToXml } from './context/serialize-context'
+import type { ShumaiMessageContext } from '@shumai/dtos'
 
 export interface DbModelInfo {
   modelId: string
@@ -445,6 +447,29 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     tools: enabledTools,
   })
 
+  harness.on('context', async ({ messages }) => {
+    return {
+      messages: messages.map((msg) => {
+        if (
+          msg.role === 'custom' &&
+          msg.customType === 'shumai_message' &&
+          msg.details &&
+          typeof msg.details === 'object'
+        ) {
+          const context = msg.details as ShumaiMessageContext
+          const xml = serializeContextToXml(context)
+          const text = typeof msg.content === 'string' ? msg.content : ''
+          const fullContent = xml ? `${text}\n\n${xml}`.trim() : text
+          return {
+            ...msg,
+            content: fullContent,
+          }
+        }
+        return msg
+      }),
+    }
+  })
+
   return { session, harness }
 }
 
@@ -638,6 +663,7 @@ export {
   type GenerateTextEmbeddingParams,
 } from './activities/ai'
 export * from './database-session-storage'
+export * from './context/serialize-context'
 export * from './workflows/agent-autofill'
 export * from './workflows/agent-chat'
 export * from './workflows/agent-embedding'

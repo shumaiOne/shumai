@@ -8,6 +8,8 @@ declare global {
       'id' | 'type' | 'parentId' | 'timestamp'
     >
 
+    export type ShumaiMessageContext = import('@shumai/dtos').ShumaiMessageContext
+
     // ----------------------------------------------------------------------
     // User Agent Settings
     // ----------------------------------------------------------------------
@@ -303,6 +305,7 @@ declare global {
       assetIds?: string[]
       isNewChat?: boolean
       hasAssetChanged?: boolean
+      context?: import('@shumai/dtos').ShumaiMessageContext
     }
 
     // ----------------------------------------------------------------------

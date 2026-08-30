@@ -72,6 +72,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
   }
 
   nextEntryId?: string | null
+  currentMessageContext?: PrismaJson.ShumaiMessageContext
 
   async createEntryId(): Promise<string> {
     if (this.nextEntryId) {
@@ -100,7 +101,37 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
   }
 
   async appendEntry(entry: SessionTreeEntry): Promise<void> {
-    const strippedEntry = structuredClone(entry)
+    let entryToProcess = entry
+    if (
+      entryToProcess.type === 'message' &&
+      entryToProcess.message.role === 'user' &&
+      this.currentMessageContext
+    ) {
+      let contentText = ''
+      if (typeof entryToProcess.message.content === 'string') {
+        contentText = entryToProcess.message.content
+      } else if (Array.isArray(entryToProcess.message.content)) {
+        contentText = entryToProcess.message.content
+          .map((c) =>
+            typeof c === 'object' && c && 'text' in c && typeof c.text === 'string' ? c.text : '',
+          )
+          .join('')
+      }
+
+      entryToProcess = {
+        type: 'custom_message',
+        id: entryToProcess.id,
+        parentId: entryToProcess.parentId,
+        timestamp: entryToProcess.timestamp,
+        customType: 'shumai_message',
+        content: contentText,
+        display: true,
+        details: this.currentMessageContext,
+      } as unknown as SessionTreeEntry
+      this.currentMessageContext = undefined
+    }
+
+    const strippedEntry = structuredClone(entryToProcess)
 
     // Strip image data and skill content before saving to DB
     if (strippedEntry.type === 'message') {
@@ -348,18 +379,29 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
         for (let i = 0; i < pathEntries.length; i++) {
           const entry = pathEntries[i]
           const count = threadReplyCountMap.get(entry.id)
-          if (count !== undefined && count > 0 && entry.type === 'message') {
-            const cloned = structuredClone(entry)
-            const msg = cloned.message as unknown as {
-              content?: Array<{ type: string; text: string }>
-            }
-            if (Array.isArray(msg.content) && msg.content[0] && msg.content[0].type === 'text') {
-              const threadTag = `[Thread ID: ${entry.id}] [Replies: ${count}]`
-              if (!msg.content[0].text.includes(`[Thread ID: ${entry.id}]`)) {
-                msg.content[0].text = `${threadTag} ${msg.content[0].text}`
+          if (count !== undefined && count > 0) {
+            if (entry.type === 'message') {
+              const cloned = structuredClone(entry)
+              const msg = cloned.message as unknown as {
+                content?: Array<{ type: string; text: string }>
               }
+              if (Array.isArray(msg.content) && msg.content[0] && msg.content[0].type === 'text') {
+                const threadTag = `[Thread ID: ${entry.id}] [Replies: ${count}]`
+                if (!msg.content[0].text.includes(`[Thread ID: ${entry.id}]`)) {
+                  msg.content[0].text = `${threadTag} ${msg.content[0].text}`
+                }
+              }
+              pathEntries[i] = cloned
+            } else if (entry.type === 'custom_message') {
+              const cloned = structuredClone(entry)
+              const threadTag = `[Thread ID: ${entry.id}] [Replies: ${count}]`
+              if (typeof cloned.content === 'string') {
+                if (!cloned.content.includes(`[Thread ID: ${entry.id}]`)) {
+                  cloned.content = `${threadTag} ${cloned.content}`
+                }
+              }
+              pathEntries[i] = cloned
             }
-            pathEntries[i] = cloned
           }
         }
       }

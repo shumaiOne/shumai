@@ -3,7 +3,6 @@ import { agentChat } from './agent-chat'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import * as workflowUtils from '@shumai/workflow-core'
-import { AgentChatPromptBuilder } from './agent-chat-prompt-builder'
 
 vi.mock('@shumai/workflow-core', async () => {
   const actual = await vi.importActual('@shumai/workflow-core')
@@ -43,6 +42,9 @@ describe('Agent Chat Workflow', () => {
       updateCommentActivity: Object.assign(vi.fn(), { _activityName: 'updateCommentActivity' }),
       updateTaskUsageActivity: Object.assign(vi.fn(), { _activityName: 'updateTaskUsageActivity' }),
       deleteCommentActivity: Object.assign(vi.fn(), { _activityName: 'deleteCommentActivity' }),
+      getAssetPathHierarchyActivity: Object.assign(vi.fn(), {
+        _activityName: 'getAssetPathHierarchyActivity',
+      }),
       getAssetPathContextActivity: Object.assign(vi.fn(), {
         _activityName: 'getAssetPathContextActivity',
       }),
@@ -70,13 +72,21 @@ describe('Agent Chat Workflow', () => {
     })
     mockActivities.getCommentActivity.mockResolvedValue({
       id: 'c1',
+      creatorId: 'user-c1',
       message: 'hello agent',
       replyToId: null,
       attachments: [],
     })
     mockActivities.initializeAgentSessionActivity.mockResolvedValue('session-123')
     mockActivities.getAgentChatContextActivity.mockResolvedValue({ agent: { id: 'b1' } })
-    mockActivities.getAssetPathContextActivity.mockResolvedValue('Path: folder/subfolder/file.png')
+    mockActivities.getAssetPathHierarchyActivity.mockResolvedValue({
+      path: 'folder/subfolder/test-file.png',
+      ancestors: [
+        { id: 'f1', name: 'folder' },
+        { id: 'f2', name: 'subfolder' },
+      ],
+    })
+    mockActivities.getAssetPathContextActivity.mockResolvedValue('folder/subfolder/test-file.png')
     mockActivities.agentChatActivity.mockResolvedValue({
       text: 'Hello user, how can I help you?',
       sessionId: 'session-123',
@@ -119,7 +129,6 @@ describe('Agent Chat Workflow', () => {
     expect(mockActivities.getCommentActivity).toHaveBeenCalledWith('c1')
 
     // Verify agent context fetched with the project context forwarded
-    // (required for project-aware role enforcement in the activity)
     expect(mockActivities.getAgentChatContextActivity).toHaveBeenCalledWith({
       teamId: 't1',
       agentId: 'b1',
@@ -144,22 +153,30 @@ describe('Agent Chat Workflow', () => {
       userId: undefined,
     })
 
-    // Verify agent instruction composition
-    const expectedInstruction1 = new AgentChatPromptBuilder('a1')
-      .withPathContext('Path: folder/subfolder/file.png')
-      .withAssetDetails('test-file.png', 'image/png', undefined, undefined, 'image')
-      .withCommentTimestamp(null)
-      .build()
-
+    // Verify agent chat called with structured messageContext
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: 't1',
         agentId: 'b1',
         message: 'hello agent',
-        agentsInstruction: expectedInstruction1,
         sessionId: 'session-123',
         folderId: 'parent-folder-id',
         assetId: 'a1',
+        messageContext: expect.objectContaining({
+          user: { id: 'user-c1', name: 'Test User', role: 'owner' },
+          currentAsset: expect.objectContaining({
+            id: 'a1',
+            name: 'test-file.png',
+            type: 'file',
+            mediaType: 'image/png',
+            parentId: 'parent-folder-id',
+            path: 'folder/subfolder/test-file.png',
+            ancestors: [
+              { id: 'f1', name: 'folder' },
+              { id: 'f2', name: 'subfolder' },
+            ],
+          }),
+        }),
       }),
     )
 
@@ -211,17 +228,13 @@ describe('Agent Chat Workflow', () => {
     await agentChat(task)
 
     expect(mockActivities.initializeAgentSessionActivity).not.toHaveBeenCalled()
-    const expectedInstruction2 = new AgentChatPromptBuilder('a1')
-      .withContinuation(true)
-      .withPathContext('Path: folder/subfolder/file.png')
-      .withAssetDetails('test-file.png', 'image/png', undefined)
-      .withCommentTimestamp(null)
-      .build()
 
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: 'existing-session-456',
-        agentsInstruction: expectedInstruction2,
+        messageContext: expect.objectContaining({
+          currentAsset: expect.objectContaining({ id: 'a1', name: 'test-file.png' }),
+        }),
       }),
     )
 
@@ -273,16 +286,9 @@ describe('Agent Chat Workflow', () => {
 
     await agentChat(task)
 
-    const expectedInstruction4 = new AgentChatPromptBuilder('a1')
-      .withPathContext('Path: folder/subfolder/file.png')
-      .withAssetDetails('test-file.png', 'image/png', undefined, undefined, 'image')
-      .withCommentTimestamp(null)
-      .build()
-
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
       expect.objectContaining({
         imageUrls: ['attachments/image1.png', 'attachments/image2.jpg'],
-        agentsInstruction: expectedInstruction4,
       }),
     )
   })
@@ -315,15 +321,13 @@ describe('Agent Chat Workflow', () => {
 
     await agentChat(task)
 
-    const expectedInstruction5 = new AgentChatPromptBuilder('a1')
-      .withPathContext('Path: folder/subfolder/file.png')
-      .withAssetDetails('test-asset', 'video/mp4', 10)
-      .withCommentTimestamp(null)
-      .build()
-
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentsInstruction: expectedInstruction5,
+        messageContext: expect.objectContaining({
+          currentAsset: expect.objectContaining({
+            durationSeconds: 10,
+          }),
+        }),
       }),
     )
   })
@@ -443,20 +447,7 @@ describe('Agent Chat Workflow', () => {
     expect(mockActivities.createCommentActivity).not.toHaveBeenCalled()
     expect(mockActivities.updateCommentActivity).not.toHaveBeenCalled()
 
-    // Verify prompt builder is populated and workflow runs agentChatActivity with context instruction
-    const expectedInstruction = new AgentChatPromptBuilder('a1')
-      .withContinuation(true)
-      .withPathContext('folder/subfolder/file.png')
-      .withAssetDetails('test-file.png', 'image/png', undefined)
-      .withCommentTimestamp(undefined)
-      .withAttachedFiles([
-        '- Name: attachment.png (ID: file-attachment-1, Type: file, Media Type: image/png, Project ID: p1, Path: attachment.png)',
-      ])
-      .withReferencedAssets([
-        '- Name: ref-folder (ID: referenced-asset-1, Type: folder, Media Type: unknown, Project ID: p1, Path: ref-folder)',
-      ])
-      .build()
-
+    // Verify messageContext is populated with attachedFiles and referencedAssets
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: 't1',
@@ -465,15 +456,30 @@ describe('Agent Chat Workflow', () => {
         imageUrls: [],
         projectId: 'p1',
         folderId: '',
-        agentsInstruction: expectedInstruction,
         sessionId: 'session-direct-123',
         userId: undefined,
         userCommentId: undefined,
         context: { agent: { id: 'b1' } },
-        attachedAssets: [
-          { id: 'file-attachment-1', name: 'attachment.png', type: 'file' },
-          { id: 'referenced-asset-1', name: 'ref-folder', type: 'folder' },
-        ],
+        messageContext: expect.objectContaining({
+          attachedFiles: [
+            {
+              id: 'file-attachment-1',
+              name: 'attachment.png',
+              type: 'file',
+              mediaType: 'image/png',
+              path: 'attachment.png',
+            },
+          ],
+          referencedAssets: [
+            {
+              id: 'referenced-asset-1',
+              name: 'ref-folder',
+              type: 'folder',
+              mediaType: undefined,
+              path: 'ref-folder',
+            },
+          ],
+        }),
       }),
     )
   })
@@ -512,19 +518,18 @@ describe('Agent Chat Workflow', () => {
 
     await agentChat(task)
 
-    const expectedInstruction = new AgentChatPromptBuilder('v2-latest')
-      .withContinuation(true)
-      .withPathContext('Path: folder/subfolder/file.png')
-      .withAssetDetails('latest-video.mp4', 'video/mp4', 42, undefined, 'video')
-      .build()
-
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: 't1',
         agentId: 'b1',
         message: 'Explain this version stack video',
-        agentsInstruction: expectedInstruction,
         sessionId: 'session-vs-123',
+        messageContext: expect.objectContaining({
+          currentAsset: expect.objectContaining({
+            id: 'v2-latest',
+            durationSeconds: 42,
+          }),
+        }),
       }),
     )
   })
@@ -557,7 +562,9 @@ describe('Agent Chat Workflow', () => {
 
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentsInstruction: expect.stringContaining('User Info:\nName: Test User\nRole: owner'),
+        messageContext: expect.objectContaining({
+          user: { id: 'user-alice', name: 'Test User', role: 'owner' },
+        }),
       }),
     )
   })

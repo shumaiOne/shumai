@@ -401,6 +401,16 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
       case 'thinking_level_change':
       case 'custom': {
         const msgObj = msg as unknown as Record<string, unknown>
+        if (msgObj.customType === 'shumai_message') {
+          return (
+            <div key={msg.id} className="flex justify-end w-full">
+              <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap shadow-xs break-words">
+                {getMessageText(msgObj.content)}
+              </div>
+            </div>
+          )
+        }
+
         if (msgObj.customType === 'context_display_info') {
           const details = msgObj.details as
             | { assets?: Array<{ id: string; name: string; type: string }> }
@@ -561,7 +571,12 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
                 {messages.map(renderMessage)}
                 {isStreaming &&
                   messages.length > 0 &&
-                  messages[messages.length - 1].role === 'user' && (
+                  (messages[messages.length - 1].role === 'user' ||
+                    (
+                      messages[messages.length - 1] as unknown as {
+                        customType?: string
+                      }
+                    ).customType === 'shumai_message') && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground italic">
                       <Loader2 className="h-3 w-3 animate-spin text-primary" />
                       <span>Thinking...</span>
