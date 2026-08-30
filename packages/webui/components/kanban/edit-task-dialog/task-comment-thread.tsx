@@ -119,8 +119,8 @@ export function TaskCommentThread({ teamId, taskId, initialComments }: TaskComme
       )}
 
       {/* Comments List */}
-      <ScrollArea className="flex-1 p-3.5">
-        <div className="space-y-3 pr-1 pb-2">
+      <ScrollArea className="flex-1 min-h-0 p-3.5 [&>div>div]:block!">
+        <div className="space-y-3 pr-1 pb-2 w-full max-w-full">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />

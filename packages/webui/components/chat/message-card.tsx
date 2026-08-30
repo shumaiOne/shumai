@@ -328,7 +328,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
 
         {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (
-          <div className="flex flex-col gap-1.5 mt-3 w-full">
+          <div className="flex flex-col gap-1.5 mt-3 w-full max-w-full overflow-hidden">
             {message.attachments.map((att) => {
               const rawName = att.url?.split('/').pop()?.split('?')[0] || 'file'
               const name = decodeURIComponent(rawName)
@@ -336,7 +336,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
               return (
                 <div
                   key={att.id}
-                  className={`group relative flex items-center w-full rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors ${
+                  className={`group relative flex items-center w-full max-w-full rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors overflow-hidden ${
                     isImage ? 'h-18 p-1.5 gap-2.5 cursor-pointer' : 'h-9 px-2.5 gap-2.5'
                   }`}
                   onClick={() => {
@@ -360,8 +360,11 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                     <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                   )}
 
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-foreground truncate" title={name}>
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    <p
+                      className="text-xs font-medium text-foreground truncate block w-full"
+                      title={name}
+                    >
                       {name}
                     </p>
                   </div>

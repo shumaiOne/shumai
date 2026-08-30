@@ -91,7 +91,7 @@ export function TaskCommentCard({
     .toUpperCase()
 
   return (
-    <div className="relative flex gap-3 p-3 rounded-xl border border-transparent bg-foreground/[0.03] dark:bg-foreground/[0.08] hover:bg-foreground/[0.06] dark:hover:bg-foreground/[0.12] transition-colors group">
+    <div className="relative flex gap-3 p-3 rounded-xl border border-transparent bg-foreground/[0.03] dark:bg-foreground/[0.08] hover:bg-foreground/[0.06] dark:hover:bg-foreground/[0.12] transition-colors group w-full max-w-full overflow-hidden">
       {/* Left Avatar */}
       <Avatar className="w-7 h-7 shrink-0 mt-0.5 border border-border">
         {comment.author.image && (
@@ -103,7 +103,7 @@ export function TaskCommentCard({
       </Avatar>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-w-0 space-y-1.5">
+      <div className="flex-1 min-w-0 space-y-1.5 overflow-hidden">
         {/* Header: Author + Timestamp + Actions */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
@@ -146,13 +146,13 @@ export function TaskCommentCard({
 
         {/* Attachments Section */}
         {comment.attachments && comment.attachments.length > 0 && (
-          <div className="flex flex-col gap-1.5 pt-1.5 w-full">
+          <div className="flex flex-col gap-1.5 pt-1.5 w-full max-w-full overflow-hidden">
             {comment.attachments.map((att) => {
               const isImage = isImageFileName(att.name || att.url)
               return (
                 <div
                   key={att.id}
-                  className={`group/att relative flex items-center w-full rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors ${
+                  className={`group/att relative flex items-center w-full max-w-full rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors overflow-hidden ${
                     isImage ? 'h-18 p-1.5 gap-2.5 cursor-pointer' : 'h-9 px-2.5 gap-2.5'
                   }`}
                   onClick={() => {
@@ -176,12 +176,15 @@ export function TaskCommentCard({
                     <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                   )}
 
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-foreground truncate" title={att.name}>
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    <p
+                      className="text-xs font-medium text-foreground truncate block w-full"
+                      title={att.name}
+                    >
                       {att.name}
                     </p>
                     {att.sizeByte !== undefined && att.sizeByte > 0 && (
-                      <p className="text-[10px] text-muted-foreground font-mono">
+                      <p className="text-[10px] text-muted-foreground font-mono truncate">
                         {formatSize(att.sizeByte)}
                       </p>
                     )}
