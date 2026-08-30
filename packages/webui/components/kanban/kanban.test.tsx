@@ -449,7 +449,6 @@ describe('Kanban UI Unit & Component Tests', () => {
         updatedAt: '2026-08-20T00:00:00.000Z',
       }
 
-      const onViewAttachment = vi.fn()
       render(
         <TaskCommentCard
           teamId="team-1"
@@ -457,19 +456,37 @@ describe('Kanban UI Unit & Component Tests', () => {
           comment={mockComment}
           currentUserId="u-1"
           isOwnerOrAdmin={true}
-          onViewAttachment={onViewAttachment}
         />,
         { wrapper: createWrapper() },
       )
 
       expect(screen.getByText('Alice Author')).toBeDefined()
       expect(screen.getByText('bold')).toBeDefined()
+      expect(screen.getByText('preview.png')).toBeDefined()
       expect(screen.getByText('specs.pdf')).toBeDefined()
 
-      // Click image attachment
-      const img = screen.getByAltText('preview.png')
-      fireEvent.click(img)
-      expect(onViewAttachment).toHaveBeenCalledWith(mockComment.attachments[0])
+      // Verify row classes for 2x image height (h-18) vs standard file height (h-9)
+      const previewImg = screen.getByAltText('preview.png')
+      const imageRow = previewImg.closest('.group\\/att')
+      expect(imageRow?.className).toContain('h-18')
+
+      const pdfText = screen.getByText('specs.pdf')
+      const pdfRow = pdfText.closest('.group\\/att')
+      expect(pdfRow?.className).toContain('h-9')
+
+      // Click image attachment row opens preview dialog
+      fireEvent.click(imageRow!)
+      expect(screen.getAllByAltText('preview.png').length).toBeGreaterThanOrEqual(2)
+
+      // Click PDF attachment row
+      const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+      fireEvent.click(pdfRow!)
+      expect(windowOpenSpy).toHaveBeenCalledWith(
+        'https://example.com/specs.pdf',
+        '_blank',
+        'noreferrer',
+      )
+      windowOpenSpy.mockRestore()
     })
 
     it('renders TaskCommentInput and triggers send on button click', async () => {

@@ -2,6 +2,13 @@ import type { ImageTranscode, VideoTranscode } from '@shumai/dtos'
 
 type Transcode = ImageTranscode | VideoTranscode
 
+const WEB_IMAGE_EXTENSION_REGEX = /\.(png|jpe?g|webp|gif|svg|avif|bmp|ico)$/i
+
+export function isImageFileName(filename?: string | null): boolean {
+  if (!filename) return false
+  return WEB_IMAGE_EXTENSION_REGEX.test(filename)
+}
+
 export function getBestTranscode(
   transcodes: Transcode[] | undefined,
   screenWidth: number,

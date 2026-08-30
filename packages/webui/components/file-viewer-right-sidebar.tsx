@@ -1,4 +1,4 @@
-import type { AssetInfo, AttachmentInfo, CommentInfo, FieldValueInfo } from '@shumai/dtos'
+import type { AssetInfo, CommentInfo, FieldValueInfo } from '@shumai/dtos'
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import type { MemberInfo } from '@/ui/stores/members'
 import { client } from '@/ui/api/client'
@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tab
 import { useFieldStore } from '@/ui/stores/fields'
 import type { Annotation } from '@/ui/types'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { XIcon } from 'lucide-react'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { MessageCard } from './chat/message-card'
@@ -56,7 +55,6 @@ export function FileViewerRightSidebar({
   const queryClient = useQueryClient()
   const { ref, inView } = useInView()
   const [replyingTo, setReplyingTo] = useState<CommentInfo | null>(null)
-  const [viewingAttachment, setViewingAttachment] = useState<AttachmentInfo | null>(null)
   const [isGuestPopupOpen, setIsGuestPopupOpen] = useState(false)
   const [pendingComment, setPendingComment] = useState<{
     text: string
@@ -290,26 +288,6 @@ export function FileViewerRightSidebar({
 
   return (
     <div className="bg-background h-full flex flex-col overflow-hidden">
-      {/* Lightbox */}
-      {viewingAttachment && viewingAttachment.proxyType === 'image' && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setViewingAttachment(null)}
-        >
-          <button className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors z-50">
-            <XIcon className="w-8 h-8" />
-          </button>
-
-          <div className="w-full h-full flex items-center justify-center p-2">
-            <img
-              src={viewingAttachment.url}
-              alt="Enlarged view"
-              className="max-w-full max-h-[85vh] object-contain rounded shadow-2xl cursor-zoom-out"
-              onClick={() => setViewingAttachment(null)}
-            />
-          </div>
-        </div>
-      )}
       <Tabs defaultValue="comments" className="p-1 flex-1 flex flex-col px-2 min-h-0">
         <TabsList className="w-full shrink-0">
           <TabsTrigger value="comments" className="flex-1">
@@ -329,7 +307,6 @@ export function FileViewerRightSidebar({
                     message={comment}
                     getUser={getUser}
                     onReply={setReplyingTo}
-                    onViewAttachment={setViewingAttachment}
                     hasReplies={!!comment.replies?.length}
                     formatTimestamp={viewerDef?.commentsConfig?.formatTimestamp}
                     frameRate={
@@ -355,7 +332,6 @@ export function FileViewerRightSidebar({
                         message={reply}
                         getUser={getUser}
                         onReply={setReplyingTo}
-                        onViewAttachment={setViewingAttachment}
                         hasReplies={false}
                         isLastReply={index === (comment.replies?.length ?? 0) - 1}
                         formatTimestamp={viewerDef?.commentsConfig?.formatTimestamp}

@@ -24,8 +24,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
 import { formatSize } from '@/ui/lib/format'
-import type { KanbanAttachmentInfo, KanbanCommentInfo } from '@shumai/dtos'
+import { isImageFileName } from '@/ui/lib/media'
+import type { KanbanCommentInfo } from '@shumai/dtos'
 
 interface TaskCommentCardProps {
   teamId: string
@@ -33,7 +35,6 @@ interface TaskCommentCardProps {
   comment: KanbanCommentInfo
   currentUserId?: string
   isOwnerOrAdmin?: boolean
-  onViewAttachment?: (attachment: KanbanAttachmentInfo) => void
 }
 
 export function TaskCommentCard({
@@ -42,10 +43,10 @@ export function TaskCommentCard({
   comment,
   currentUserId,
   isOwnerOrAdmin,
-  onViewAttachment,
 }: TaskCommentCardProps) {
   const queryClient = useQueryClient()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null)
 
   const canDelete = isOwnerOrAdmin || comment.author.id === currentUserId
 
@@ -88,7 +89,7 @@ export function TaskCommentCard({
     .toUpperCase()
 
   return (
-    <div className="relative flex gap-3 p-3 rounded-xl border border-transparent bg-foreground/[0.03] dark:bg-foreground/[0.08] hover:bg-foreground/[0.06] dark:hover:bg-foreground/[0.12] transition-colors group">
+    <div className="relative flex gap-3 p-3 rounded-xl border border-transparent bg-foreground/[0.03] dark:bg-foreground/[0.08] hover:bg-foreground/[0.06] dark:hover:bg-foreground/[0.12] transition-colors group w-full max-w-full overflow-hidden">
       {/* Left Avatar */}
       <Avatar className="w-7 h-7 shrink-0 mt-0.5 border border-border">
         {comment.author.image && (
@@ -100,7 +101,7 @@ export function TaskCommentCard({
       </Avatar>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-w-0 space-y-1.5">
+      <div className="flex-1 min-w-0 space-y-1.5 overflow-hidden">
         {/* Header: Author + Timestamp + Actions */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
@@ -143,62 +144,60 @@ export function TaskCommentCard({
 
         {/* Attachments Section */}
         {comment.attachments && comment.attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1.5">
+          <div className="flex flex-col gap-1.5 pt-1.5 w-full max-w-full overflow-hidden">
             {comment.attachments.map((att) => {
-              const isImage = att.proxyType === 'image' || att.contentType?.startsWith('image/')
+              const isImage = isImageFileName(att.name || att.url)
               return (
                 <div
                   key={att.id}
-                  className="relative group/att rounded-lg border border-border bg-card overflow-hidden transition-all duration-200"
+                  className={`group/att relative flex items-center w-full max-w-full rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors overflow-hidden ${
+                    isImage ? 'h-18 p-1.5 gap-2.5 cursor-pointer' : 'h-9 px-2.5 gap-2.5'
+                  }`}
+                  onClick={() => {
+                    if (isImage) {
+                      setPreviewImage({ url: att.url, name: att.name })
+                    } else {
+                      window.open(att.url, '_blank', 'noreferrer')
+                    }
+                  }}
                 >
                   {isImage ? (
-                    <div
-                      className="w-40 h-28 relative cursor-pointer overflow-hidden bg-muted/40"
-                      onClick={() => onViewAttachment?.(att)}
-                    >
+                    <div className="h-full aspect-square rounded-md overflow-hidden bg-muted/40 shrink-0">
                       <img
                         src={att.url}
                         alt={att.name}
                         className="w-full h-full object-cover group-hover/att:scale-105 transition-transform duration-200"
                       />
-                      <a
-                        href={att.url}
-                        download={att.name}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="absolute right-1.5 bottom-1.5 bg-black/60 hover:bg-black/80 text-white p-1 rounded-md opacity-0 group-hover/att:opacity-100 transition-opacity shadow-xs"
-                        onClick={(e) => e.stopPropagation()}
-                        title="Download"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </a>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2.5 p-2.5 max-w-[240px] bg-card hover:bg-muted/40 transition-colors">
-                      <FileText className="w-7 h-7 text-primary/80 shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className="text-xs font-medium text-foreground truncate"
-                          title={att.name}
-                        >
-                          {att.name}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground font-mono">
-                          {formatSize(att.sizeByte)}
-                        </p>
-                      </div>
-                      <a
-                        href={att.url}
-                        download={att.name}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1 text-muted-foreground hover:text-foreground shrink-0 rounded-md hover:bg-muted transition-colors"
-                        title="Download"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </a>
-                    </div>
+                    <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                   )}
+
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    <p
+                      className="text-xs font-medium text-foreground truncate block w-full"
+                      title={att.name}
+                    >
+                      {att.name}
+                    </p>
+                    {att.sizeByte !== undefined && att.sizeByte > 0 && (
+                      <p className="text-[10px] text-muted-foreground font-mono truncate">
+                        {formatSize(att.sizeByte)}
+                      </p>
+                    )}
+                  </div>
+
+                  <a
+                    href={att.url}
+                    download={att.name}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1 text-muted-foreground hover:text-foreground shrink-0 rounded-md hover:bg-muted transition-colors opacity-0 group-hover/att:opacity-100"
+                    onClick={(e) => e.stopPropagation()}
+                    title={m.download()}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </a>
                 </div>
               )
             })}
@@ -225,6 +224,30 @@ export function TaskCommentCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent
+          className="w-auto max-w-[80vw] sm:max-w-[80vw] max-h-[80vh] p-2 sm:p-3 bg-background/95 backdrop-blur-sm border-border flex flex-col items-center justify-center overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>{previewImage?.name || 'Image Preview'}</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <div className="flex flex-col items-center justify-center max-w-[80vw] max-h-[80vh] overflow-hidden">
+              <img
+                src={previewImage.url}
+                alt={previewImage.name}
+                className="max-w-[80vw] max-h-[calc(80vh-2.5rem)] w-auto h-auto object-contain rounded-md"
+              />
+              <p className="text-xs text-muted-foreground truncate max-w-full px-2 pt-1.5 text-center">
+                {previewImage.name}
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
