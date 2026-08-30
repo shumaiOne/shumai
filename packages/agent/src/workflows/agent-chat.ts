@@ -7,6 +7,7 @@ import type {
   ShumaiAttachedFileContext,
   ShumaiMediaPosition,
 } from '@shumai/dtos'
+import { getProxyType } from '@shumai/core/src/utils/mime'
 
 export async function agentChat(task: WorkflowTask): Promise<void> {
   const {
@@ -145,8 +146,14 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mediaInfo = asset.media as any
-    const duration = mediaInfo?.duration
-    const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
+    const proxyType =
+      (asset.media as PrismaJson.MediaInfo | null)?.proxyType ||
+      getProxyType(asset.mediaType, asset.name) ||
+      undefined
+    const duration =
+      (proxyType === 'video' || proxyType === 'audio') && typeof mediaInfo?.duration === 'number'
+        ? mediaInfo.duration
+        : undefined
     const totalPages =
       proxyType === 'pdf' ? mediaInfo?.frames || mediaInfo?.metadata?.totalFrames : undefined
     const totalFrames =
@@ -163,7 +170,10 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
             getAssetPathContextActivity,
             att.asset.id,
           )
-          const attProxyType = (att.asset.media as PrismaJson.MediaInfo | null)?.proxyType
+          const attProxyType =
+            (att.asset.media as PrismaJson.MediaInfo | null)?.proxyType ||
+            getProxyType(att.asset.mediaType, att.asset.name) ||
+            undefined
           attachedFiles.push({
             id: att.asset.id,
             name: att.asset.name,
@@ -184,7 +194,10 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
             getAssetPathContextActivity,
             fileId,
           )
-          const fileProxyType = (file.media as PrismaJson.MediaInfo | null)?.proxyType
+          const fileProxyType =
+            (file.media as PrismaJson.MediaInfo | null)?.proxyType ||
+            getProxyType(file.mediaType, file.name) ||
+            undefined
           attachedFiles.push({
             id: file.id,
             name: file.name,
@@ -209,7 +222,10 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
             getAssetPathContextActivity,
             assetId,
           )
-          const refProxyType = (referencedAsset.media as PrismaJson.MediaInfo | null)?.proxyType
+          const refProxyType =
+            (referencedAsset.media as PrismaJson.MediaInfo | null)?.proxyType ||
+            getProxyType(referencedAsset.mediaType, referencedAsset.name) ||
+            undefined
           referencedAssets.push({
             id: referencedAsset.id,
             name: referencedAsset.name,

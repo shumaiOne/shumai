@@ -672,7 +672,7 @@ describe('Agent Chat Workflow', () => {
           type: 'file',
           name: 'doc.pdf',
           mediaType: 'application/pdf',
-          media: { proxyType: 'pdf', frames: 15 },
+          media: { proxyType: 'pdf', frames: 15, duration: 0 },
           parentId: 'f1',
         }
       }
@@ -729,6 +729,7 @@ describe('Agent Chat Workflow', () => {
             mediaType: 'pdf',
             totalPages: 15,
             totalFrames: undefined,
+            durationSeconds: undefined,
           }),
         }),
       }),
