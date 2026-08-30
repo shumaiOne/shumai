@@ -228,20 +228,20 @@ export function TaskCommentCard({
       {/* Image Preview Dialog */}
       <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
         <DialogContent
-          className="max-w-4xl p-2 sm:p-4 bg-background/95 backdrop-blur-sm border-border flex flex-col items-center justify-center"
+          className="w-auto max-w-[80vw] sm:max-w-[80vw] max-h-[80vh] p-2 sm:p-3 bg-background/95 backdrop-blur-sm border-border flex flex-col items-center justify-center overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           <DialogHeader className="sr-only">
             <DialogTitle>{previewImage?.name || 'Image Preview'}</DialogTitle>
           </DialogHeader>
           {previewImage && (
-            <div className="w-full flex flex-col items-center justify-center gap-2">
+            <div className="flex flex-col items-center justify-center max-w-[80vw] max-h-[80vh] overflow-hidden">
               <img
                 src={previewImage.url}
                 alt={previewImage.name}
-                className="max-w-full max-h-[80vh] object-contain rounded-md"
+                className="max-w-[80vw] max-h-[calc(80vh-2.5rem)] w-auto h-auto object-contain rounded-md"
               />
-              <p className="text-xs text-muted-foreground truncate max-w-full px-2">
+              <p className="text-xs text-muted-foreground truncate max-w-full px-2 pt-1.5 text-center">
                 {previewImage.name}
               </p>
             </div>
