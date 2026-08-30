@@ -464,12 +464,31 @@ describe('Kanban UI Unit & Component Tests', () => {
 
       expect(screen.getByText('Alice Author')).toBeDefined()
       expect(screen.getByText('bold')).toBeDefined()
+      expect(screen.getByText('preview.png')).toBeDefined()
       expect(screen.getByText('specs.pdf')).toBeDefined()
 
-      // Click image attachment
-      const img = screen.getByAltText('preview.png')
-      fireEvent.click(img)
+      // Verify row classes for 2x image height (h-18) vs standard file height (h-9)
+      const previewImg = screen.getByAltText('preview.png')
+      const imageRow = previewImg.closest('.group\\/att')
+      expect(imageRow?.className).toContain('h-18')
+
+      const pdfText = screen.getByText('specs.pdf')
+      const pdfRow = pdfText.closest('.group\\/att')
+      expect(pdfRow?.className).toContain('h-9')
+
+      // Click image attachment row
+      fireEvent.click(imageRow!)
       expect(onViewAttachment).toHaveBeenCalledWith(mockComment.attachments[0])
+
+      // Click PDF attachment row
+      const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+      fireEvent.click(pdfRow!)
+      expect(windowOpenSpy).toHaveBeenCalledWith(
+        'https://example.com/specs.pdf',
+        '_blank',
+        'noreferrer',
+      )
+      windowOpenSpy.mockRestore()
     })
 
     it('renders TaskCommentInput and triggers send on button click', async () => {

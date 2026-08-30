@@ -143,62 +143,57 @@ export function TaskCommentCard({
 
         {/* Attachments Section */}
         {comment.attachments && comment.attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1.5">
+          <div className="flex flex-col gap-1.5 pt-1.5 w-full">
             {comment.attachments.map((att) => {
               const isImage = att.proxyType === 'image' || att.contentType?.startsWith('image/')
               return (
                 <div
                   key={att.id}
-                  className="relative group/att rounded-lg border border-border bg-card overflow-hidden transition-all duration-200"
+                  className={`group/att relative flex items-center w-full rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors ${
+                    isImage ? 'h-18 p-1.5 gap-2.5 cursor-pointer' : 'h-9 px-2.5 gap-2.5'
+                  }`}
+                  onClick={() => {
+                    if (isImage) {
+                      onViewAttachment?.(att)
+                    } else {
+                      window.open(att.url, '_blank', 'noreferrer')
+                    }
+                  }}
                 >
                   {isImage ? (
-                    <div
-                      className="w-40 h-28 relative cursor-pointer overflow-hidden bg-muted/40"
-                      onClick={() => onViewAttachment?.(att)}
-                    >
+                    <div className="h-full aspect-square rounded-md overflow-hidden bg-muted/40 shrink-0">
                       <img
                         src={att.url}
                         alt={att.name}
                         className="w-full h-full object-cover group-hover/att:scale-105 transition-transform duration-200"
                       />
-                      <a
-                        href={att.url}
-                        download={att.name}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="absolute right-1.5 bottom-1.5 bg-black/60 hover:bg-black/80 text-white p-1 rounded-md opacity-0 group-hover/att:opacity-100 transition-opacity shadow-xs"
-                        onClick={(e) => e.stopPropagation()}
-                        title="Download"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </a>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2.5 p-2.5 max-w-[240px] bg-card hover:bg-muted/40 transition-colors">
-                      <FileText className="w-7 h-7 text-primary/80 shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className="text-xs font-medium text-foreground truncate"
-                          title={att.name}
-                        >
-                          {att.name}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground font-mono">
-                          {formatSize(att.sizeByte)}
-                        </p>
-                      </div>
-                      <a
-                        href={att.url}
-                        download={att.name}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1 text-muted-foreground hover:text-foreground shrink-0 rounded-md hover:bg-muted transition-colors"
-                        title="Download"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </a>
-                    </div>
+                    <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                   )}
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-foreground truncate" title={att.name}>
+                      {att.name}
+                    </p>
+                    {att.sizeByte !== undefined && att.sizeByte > 0 && (
+                      <p className="text-[10px] text-muted-foreground font-mono">
+                        {formatSize(att.sizeByte)}
+                      </p>
+                    )}
+                  </div>
+
+                  <a
+                    href={att.url}
+                    download={att.name}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1 text-muted-foreground hover:text-foreground shrink-0 rounded-md hover:bg-muted transition-colors opacity-0 group-hover/att:opacity-100"
+                    onClick={(e) => e.stopPropagation()}
+                    title="Download"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </a>
                 </div>
               )
             })}

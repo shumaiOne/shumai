@@ -19,7 +19,7 @@ import {
 import type { AttachmentInfo, CommentInfo, UserInfo } from '@shumai/dtos'
 import type { MemberInfo } from '@/ui/stores/members'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Download, File, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Download, FileText, MoreHorizontal, Trash2 } from 'lucide-react'
 import React from 'react'
 import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
@@ -325,39 +325,52 @@ export const MessageCard: React.FC<MessageCardProps> = ({
 
         {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
+          <div className="flex flex-col gap-1.5 mt-3 w-full">
             {message.attachments.map((att) => {
               const isImage = att.proxyType === 'image'
               const name = att.url?.split('/').pop()?.split('?')[0] || 'file'
               return (
                 <div
                   key={att.id}
-                  className="relative group rounded-lg overflow-hidden border bg-white shadow-sm hover:shadow-md transition-shadow w-48 h-32"
-                  onClick={() => isImage && onViewAttachment(att)}
+                  className={`group relative flex items-center w-full rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors ${
+                    isImage ? 'h-18 p-1.5 gap-2.5 cursor-pointer' : 'h-9 px-2.5 gap-2.5'
+                  }`}
+                  onClick={() => {
+                    if (isImage) {
+                      onViewAttachment(att)
+                    } else {
+                      window.open(att.url, '_blank', 'noreferrer')
+                    }
+                  }}
                 >
                   {isImage ? (
-                    <img
-                      src={att.url}
-                      alt={name}
-                      className="w-full h-full object-cover cursor-pointer"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 flex flex-col items-center justify-center p-2 text-center">
-                      <File className="w-8 h-8 text-gray-500 mb-2" />
-                      <span className="text-xs font-medium text-gray-700 break-all line-clamp-2">
-                        {name}
-                      </span>
+                    <div className="h-full aspect-square rounded-md overflow-hidden bg-muted/40 shrink-0">
+                      <img
+                        src={att.url}
+                        alt={name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
                     </div>
+                  ) : (
+                    <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                   )}
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-foreground truncate" title={name}>
+                      {name}
+                    </p>
+                  </div>
+
                   <a
                     href={att.url}
                     target="_blank"
                     rel="noreferrer"
                     download={name}
-                    className="absolute right-2 bottom-2 bg-black/60 text-white hover:bg-black/80 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="p-1 text-muted-foreground hover:text-foreground shrink-0 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
                     onClick={(e) => e.stopPropagation()}
+                    title="Download"
                   >
-                    <Download className="w-4 h-4" />
+                    <Download className="w-3.5 h-3.5" />
                   </a>
                 </div>
               )
