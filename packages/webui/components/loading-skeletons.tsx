@@ -167,3 +167,65 @@ export function FileDetailSkeleton() {
     </div>
   )
 }
+
+export function FileBrowserContentSkeleton({
+  displayStyle = 'card',
+}: {
+  displayStyle?: 'card' | 'list'
+}) {
+  if (displayStyle === 'list') {
+    return (
+      <div className="p-4 space-y-2" data-testid="file-browser-loading-skeleton">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 py-2 border-b border-border/40">
+            <Skeleton className="h-4 w-4 rounded" />
+            <Skeleton className="h-4 w-4 rounded" />
+            <Skeleton className="h-4 w-48" />
+            <div className="ml-auto flex items-center gap-8">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 space-y-4" data-testid="file-browser-loading-skeleton">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="flex flex-col rounded-lg border bg-card p-3 space-y-3">
+            <Skeleton className="aspect-square w-full rounded-md" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-3 w-1/4" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function MobileFileBrowserContentSkeleton() {
+  return (
+    <div
+      className="p-3 space-y-3 max-w-lg mx-auto w-full"
+      data-testid="mobile-file-browser-loading-skeleton"
+    >
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
+          <Skeleton className="h-10 w-10 rounded-md shrink-0" />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/3" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}

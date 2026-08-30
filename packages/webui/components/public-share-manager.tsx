@@ -160,6 +160,7 @@ export function PublicShareManager({
     fetchNextPage: fetchNextFoldersPage,
     hasNextPage: hasNextPageFolders,
     isFetchingNextPage: isFetchingNextFoldersPage,
+    isLoading: isFoldersLoading,
     error: foldersError,
   } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: ['public-share-children', shareId, currentFolderId, 'folder', password],
@@ -193,6 +194,7 @@ export function PublicShareManager({
     fetchNextPage: fetchNextFilesPage,
     hasNextPage: hasNextPageFiles,
     isFetchingNextPage: isFetchingNextFilesPage,
+    isLoading: isFilesLoading,
   } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: ['public-share-children', shareId, currentFolderId, 'file', password],
     queryFn: async ({ pageParam }) => {
@@ -691,6 +693,7 @@ export function PublicShareManager({
                 fetchNextFilesPage={fetchNextFilesPage}
                 hasNextFilesPage={hasNextPageFiles}
                 isFetchingNextFilesPage={isFetchingNextFilesPage}
+                isLoading={isFoldersLoading || isFilesLoading}
                 isShareView={true}
                 isPublic={true}
                 shareId={shareId}
@@ -725,6 +728,7 @@ export function PublicShareManager({
                 fetchNextFilesPage={fetchNextFilesPage}
                 hasNextFilesPage={hasNextPageFiles}
                 isFetchingNextFilesPage={isFetchingNextFilesPage}
+                isLoading={isFoldersLoading || isFilesLoading}
                 isShareView={true}
                 isPublic={true}
                 shareId={shareId}

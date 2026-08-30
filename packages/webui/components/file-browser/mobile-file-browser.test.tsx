@@ -171,10 +171,17 @@ describe('MobileFileBrowser', () => {
     expect(onItemDoubleClick).toHaveBeenCalledWith(mockFolder)
   })
 
-  it('renders empty state when there are no folders and files', () => {
-    renderComponent({ folders: [], files: [] })
+  it('renders empty state when there are no folders and files and not loading', () => {
+    renderComponent({ folders: [], files: [], isLoading: false })
 
     expect(screen.getByText(/This folder is empty|此文件夹为空/i)).toBeDefined()
+  })
+
+  it('renders loading skeleton and does not render empty state when isLoading is true', () => {
+    renderComponent({ folders: [], files: [], isLoading: true })
+
+    expect(screen.queryByText(/This folder is empty|此文件夹为空/i)).toBeNull()
+    expect(screen.getByTestId('mobile-file-browser-loading-skeleton')).toBeDefined()
   })
 
   it('renders collapsible section headers for folders and files with count and size', () => {
