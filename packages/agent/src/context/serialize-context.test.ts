@@ -134,6 +134,26 @@ describe('serializeContextToXml', () => {
       expect(serializeContextToXml(context)).toBe(expected)
     })
 
+    it('serializes Video context with total_frames and duration_seconds', () => {
+      const context: ShumaiMessageContext = {
+        currentAsset: {
+          id: 'vid_1',
+          name: 'clip.mp4',
+          type: 'file',
+          mediaType: 'video',
+          mimeType: 'video/mp4',
+          durationSeconds: 9,
+          totalFrames: 268,
+        },
+      }
+
+      const expected = `<context>
+  <current_asset id="vid_1" name="clip.mp4" type="file" media_type="video" mime_type="video/mp4" duration_seconds="9.00" total_frames="268" />
+</context>`
+
+      expect(serializeContextToXml(context)).toBe(expected)
+    })
+
     it('serializes navigation context with navigated="true" and ancestors hierarchy', () => {
       const context: ShumaiMessageContext = {
         currentAsset: {

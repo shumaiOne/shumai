@@ -60,6 +60,9 @@ export function serializeContextToXml(context?: ShumaiMessageContext | null): st
     if (ca.durationSeconds !== undefined) {
       assetAttrs += ` duration_seconds="${ca.durationSeconds.toFixed(2)}"`
     }
+    if (ca.totalFrames !== undefined) {
+      assetAttrs += ` total_frames="${Math.round(ca.totalFrames)}"`
+    }
     if (ca.totalPages !== undefined) {
       assetAttrs += ` total_pages="${Math.round(ca.totalPages)}"`
     }

@@ -48,6 +48,7 @@ export const shumaiAssetContextSchema = z.object({
   parentId: z.string().optional(),
   path: z.string().optional(),
   durationSeconds: z.number().optional(),
+  totalFrames: z.number().optional(),
   totalPages: z.number().optional(),
   navigated: z.boolean().optional(),
   ancestors: z.array(z.object({ id: z.string(), name: z.string() })).optional(),

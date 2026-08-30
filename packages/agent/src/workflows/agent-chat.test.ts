@@ -651,4 +651,87 @@ describe('Agent Chat Workflow', () => {
       }),
     )
   })
+
+  it('should set totalFrames for video assets and totalPages for pdf assets in currentAsset context', async () => {
+    mockActivities.getAssetActivity.mockImplementation(async (id: string) => {
+      if (id === 'video-asset-1') {
+        return {
+          id: 'video-asset-1',
+          project: { teamId: 't1' },
+          type: 'file',
+          name: 'clip.mp4',
+          mediaType: 'video/mp4',
+          media: { proxyType: 'video', duration: 9, frames: 268 },
+          parentId: 'f1',
+        }
+      }
+      if (id === 'pdf-asset-1') {
+        return {
+          id: 'pdf-asset-1',
+          project: { teamId: 't1' },
+          type: 'file',
+          name: 'doc.pdf',
+          mediaType: 'application/pdf',
+          media: { proxyType: 'pdf', frames: 15 },
+          parentId: 'f1',
+        }
+      }
+      return null
+    })
+
+    // Test Video asset
+    const videoTask = await prisma.workflowTask.create({
+      data: {
+        type: 'chat',
+        status: 'pending',
+        assetId: 'video-asset-1',
+        payload: {
+          projectId: 'p1',
+          agent: { prompt: 'Analyze video', agentId: 'b1', sessionId: 'session-video-1' },
+        },
+      },
+    })
+    await agentChat(videoTask)
+
+    expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messageContext: expect.objectContaining({
+          currentAsset: expect.objectContaining({
+            id: 'video-asset-1',
+            mediaType: 'video',
+            durationSeconds: 9,
+            totalFrames: 268,
+            totalPages: undefined,
+          }),
+        }),
+      }),
+    )
+
+    // Test PDF asset
+    const pdfTask = await prisma.workflowTask.create({
+      data: {
+        type: 'chat',
+        status: 'pending',
+        assetId: 'pdf-asset-1',
+        payload: {
+          projectId: 'p1',
+          agent: { prompt: 'Analyze pdf', agentId: 'b1', sessionId: 'session-pdf-1' },
+        },
+      },
+    })
+    await agentChat(pdfTask)
+
+    expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messageContext: expect.objectContaining({
+          currentAsset: expect.objectContaining({
+            id: 'pdf-asset-1',
+            mediaType: 'pdf',
+            totalPages: 15,
+            totalFrames: undefined,
+          }),
+        }),
+      }),
+    )
+  })
 })

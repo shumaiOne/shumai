@@ -146,8 +146,11 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mediaInfo = asset.media as any
     const duration = mediaInfo?.duration
-    const totalPages = mediaInfo?.frames || mediaInfo?.metadata?.totalFrames
     const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
+    const totalPages =
+      proxyType === 'pdf' ? mediaInfo?.frames || mediaInfo?.metadata?.totalFrames : undefined
+    const totalFrames =
+      proxyType === 'video' ? mediaInfo?.frames || mediaInfo?.metadata?.totalFrames : undefined
 
     // Resolve Attached Files Details
     const attachedFiles: ShumaiAttachedFileContext[] = []
@@ -254,6 +257,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       parentId: asset.parentId || undefined,
       path: assetPath || undefined,
       durationSeconds: duration !== undefined ? duration : undefined,
+      totalFrames: totalFrames !== undefined ? totalFrames : undefined,
       totalPages: totalPages !== undefined ? totalPages : undefined,
       navigated: payload.agent?.hasAssetChanged === true ? true : undefined,
       ancestors: ancestors.length > 0 ? ancestors : undefined,
