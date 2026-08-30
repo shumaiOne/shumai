@@ -27,7 +27,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
 import { formatSize } from '@/ui/lib/format'
 import { isImageFileName } from '@/ui/lib/media'
-import type { KanbanAttachmentInfo, KanbanCommentInfo } from '@shumai/dtos'
+import type { KanbanCommentInfo } from '@shumai/dtos'
 
 interface TaskCommentCardProps {
   teamId: string
@@ -35,7 +35,6 @@ interface TaskCommentCardProps {
   comment: KanbanCommentInfo
   currentUserId?: string
   isOwnerOrAdmin?: boolean
-  onViewAttachment?: (attachment: KanbanAttachmentInfo) => void
 }
 
 export function TaskCommentCard({
@@ -44,7 +43,6 @@ export function TaskCommentCard({
   comment,
   currentUserId,
   isOwnerOrAdmin,
-  onViewAttachment,
 }: TaskCommentCardProps) {
   const queryClient = useQueryClient()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -158,7 +156,6 @@ export function TaskCommentCard({
                   onClick={() => {
                     if (isImage) {
                       setPreviewImage({ url: att.url, name: att.name })
-                      onViewAttachment?.(att)
                     } else {
                       window.open(att.url, '_blank', 'noreferrer')
                     }
@@ -197,7 +194,7 @@ export function TaskCommentCard({
                     rel="noreferrer"
                     className="p-1 text-muted-foreground hover:text-foreground shrink-0 rounded-md hover:bg-muted transition-colors opacity-0 group-hover/att:opacity-100"
                     onClick={(e) => e.stopPropagation()}
-                    title="Download"
+                    title={m.download()}
                   >
                     <Download className="w-3.5 h-3.5" />
                   </a>

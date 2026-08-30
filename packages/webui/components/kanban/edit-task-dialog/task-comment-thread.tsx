@@ -1,13 +1,12 @@
-import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
 import { m } from '@/ui/paraglide/messages.js'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { toast } from 'sonner'
-import { Loader2, MessageSquare, X } from 'lucide-react'
+import { Loader2, MessageSquare } from 'lucide-react'
 import { TaskCommentCard } from './task-comment-card'
 import { TaskCommentInput } from './task-comment-input'
-import type { KanbanAttachmentInfo, KanbanAttachmentPayload, KanbanCommentInfo } from '@shumai/dtos'
+import type { KanbanAttachmentPayload, KanbanCommentInfo } from '@shumai/dtos'
 
 interface TaskCommentThreadProps {
   teamId: string
@@ -17,7 +16,6 @@ interface TaskCommentThreadProps {
 
 export function TaskCommentThread({ teamId, taskId, initialComments }: TaskCommentThreadProps) {
   const queryClient = useQueryClient()
-  const [viewingAttachment, setViewingAttachment] = useState<KanbanAttachmentInfo | null>(null)
 
   // Query Current User Info
   const { data: me } = useQuery({
@@ -92,32 +90,6 @@ export function TaskCommentThread({ teamId, taskId, initialComments }: TaskComme
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
-      {/* Lightbox / Full-screen Attachment Viewer */}
-      {viewingAttachment && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4 animate-in fade-in duration-150"
-          onClick={() => setViewingAttachment(null)}
-        >
-          <button
-            type="button"
-            onClick={() => setViewingAttachment(null)}
-            className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors z-50 cursor-pointer"
-            title="Close"
-          >
-            <X className="w-6 h-6" />
-          </button>
-
-          <div className="w-full h-full flex items-center justify-center p-2">
-            <img
-              src={viewingAttachment.url}
-              alt={viewingAttachment.name}
-              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Comments List */}
       <ScrollArea className="flex-1 min-h-0 p-3.5 [&>div>div]:block!">
         <div className="space-y-3 pr-1 pb-2 w-full max-w-full">
@@ -141,7 +113,6 @@ export function TaskCommentThread({ teamId, taskId, initialComments }: TaskComme
                 comment={comment}
                 currentUserId={me?.id}
                 isOwnerOrAdmin={isOwnerOrAdmin}
-                onViewAttachment={(att) => setViewingAttachment(att)}
               />
             ))
           )}

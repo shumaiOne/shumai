@@ -12,10 +12,9 @@ import { m } from '@/ui/paraglide/messages.js'
 import { useFieldStore } from '@/ui/stores/fields'
 import type { MemberInfo } from '@/ui/stores/members'
 import type { Annotation } from '@/ui/types'
-import type { AssetInfo, AttachmentInfo, CommentInfo, FieldValueInfo } from '@shumai/dtos'
+import type { AssetInfo, CommentInfo, FieldValueInfo } from '@shumai/dtos'
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { XIcon } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
@@ -62,7 +61,6 @@ export function MobileFileBottomSheet({
   const queryClient = useQueryClient()
   const { ref, inView } = useInView()
   const [replyingTo, setReplyingTo] = useState<CommentInfo | null>(null)
-  const [viewingAttachment, setViewingAttachment] = useState<AttachmentInfo | null>(null)
   const [isGuestPopupOpen, setIsGuestPopupOpen] = useState(false)
   const [pendingComment, setPendingComment] = useState<{
     text: string
@@ -326,30 +324,6 @@ export function MobileFileBottomSheet({
       className="shrink-0 flex flex-col bg-background border-t border-border shadow-2xl rounded-t-2xl overflow-hidden select-none z-20"
       data-testid="mobile-bottom-sheet"
     >
-      {/* Lightbox for attachment viewing */}
-      {viewingAttachment && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setViewingAttachment(null)}
-        >
-          <button
-            className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors z-50"
-            aria-label={m.close()}
-          >
-            <XIcon className="w-8 h-8" />
-          </button>
-
-          <div className="w-full h-full flex items-center justify-center p-2">
-            <img
-              src={viewingAttachment.url}
-              alt={m.preview()}
-              className="max-w-full max-h-[85vh] object-contain rounded shadow-2xl cursor-zoom-out"
-              onClick={() => setViewingAttachment(null)}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Drag Handle Bar */}
       <div
         onPointerDown={handlePointerDown}
@@ -405,7 +379,6 @@ export function MobileFileBottomSheet({
                       message={comment}
                       getUser={getUser}
                       onReply={setReplyingTo}
-                      onViewAttachment={setViewingAttachment}
                       hasReplies={!!comment.replies?.length}
                       formatTimestamp={viewerDef?.commentsConfig?.formatTimestamp}
                       frameRate={
@@ -431,7 +404,6 @@ export function MobileFileBottomSheet({
                           message={reply}
                           getUser={getUser}
                           onReply={setReplyingTo}
-                          onViewAttachment={setViewingAttachment}
                           hasReplies={false}
                           isLastReply={index === (comment.replies?.length ?? 0) - 1}
                           formatTimestamp={viewerDef?.commentsConfig?.formatTimestamp}

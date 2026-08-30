@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
-import type { AttachmentInfo, CommentInfo, UserInfo } from '@shumai/dtos'
+import type { CommentInfo, UserInfo } from '@shumai/dtos'
 import type { MemberInfo } from '@/ui/stores/members'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Download, FileText, MoreHorizontal, Trash2 } from 'lucide-react'
@@ -41,7 +41,6 @@ interface MessageCardProps {
   isLastReply?: boolean
   getUser: (id: string) => MemberInfo | UserInfo
   onReply: (message: CommentInfo) => void
-  onViewAttachment: (attachment: AttachmentInfo) => void
   isSelected?: boolean
   onSelect?: () => void
   frameRate?: number
@@ -102,7 +101,6 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   isLastReply,
   getUser,
   onReply,
-  onViewAttachment,
   isSelected,
   onSelect,
   frameRate,
@@ -342,7 +340,6 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                   onClick={() => {
                     if (isImage) {
                       setPreviewImage({ url: att.url, name })
-                      onViewAttachment?.(att)
                     } else {
                       window.open(att.url, '_blank', 'noreferrer')
                     }
@@ -376,7 +373,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                     download={name}
                     className="p-1 text-muted-foreground hover:text-foreground shrink-0 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
                     onClick={(e) => e.stopPropagation()}
-                    title="Download"
+                    title={m.download()}
                   >
                     <Download className="w-3.5 h-3.5" />
                   </a>

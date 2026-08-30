@@ -58,19 +58,12 @@ describe('MessageCard component', () => {
       completionLastChangedBy: null,
     }
 
-    const onViewAttachment = vi.fn()
     const onReply = vi.fn()
     const getUser = vi.fn().mockReturnValue({ id: 'u-1', name: 'Bob Reviewer' })
 
-    render(
-      <MessageCard
-        message={mockMessage}
-        getUser={getUser}
-        onReply={onReply}
-        onViewAttachment={onViewAttachment}
-      />,
-      { wrapper: createWrapper() },
-    )
+    render(<MessageCard message={mockMessage} getUser={getUser} onReply={onReply} />, {
+      wrapper: createWrapper(),
+    })
 
     expect(screen.getByText('Here is the feedback on design')).toBeDefined()
     expect(screen.getByText('screenshot.png')).toBeDefined()
@@ -91,9 +84,9 @@ describe('MessageCard component', () => {
     const psdRow = psdEl.closest('.group')
     expect(psdRow?.className).toContain('h-9')
 
-    // Clicking image row triggers onViewAttachment
+    // Clicking image row opens image preview dialog
     fireEvent.click(imgRow!)
-    expect(onViewAttachment).toHaveBeenCalledWith(mockMessage.attachments[0])
+    expect(screen.getAllByAltText('screenshot.png').length).toBeGreaterThanOrEqual(2)
 
     // Clicking file row opens URL in a new tab
     const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null)

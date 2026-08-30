@@ -449,7 +449,6 @@ describe('Kanban UI Unit & Component Tests', () => {
         updatedAt: '2026-08-20T00:00:00.000Z',
       }
 
-      const onViewAttachment = vi.fn()
       render(
         <TaskCommentCard
           teamId="team-1"
@@ -457,7 +456,6 @@ describe('Kanban UI Unit & Component Tests', () => {
           comment={mockComment}
           currentUserId="u-1"
           isOwnerOrAdmin={true}
-          onViewAttachment={onViewAttachment}
         />,
         { wrapper: createWrapper() },
       )
@@ -476,9 +474,9 @@ describe('Kanban UI Unit & Component Tests', () => {
       const pdfRow = pdfText.closest('.group\\/att')
       expect(pdfRow?.className).toContain('h-9')
 
-      // Click image attachment row
+      // Click image attachment row opens preview dialog
       fireEvent.click(imageRow!)
-      expect(onViewAttachment).toHaveBeenCalledWith(mockComment.attachments[0])
+      expect(screen.getAllByAltText('preview.png').length).toBeGreaterThanOrEqual(2)
 
       // Click PDF attachment row
       const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
