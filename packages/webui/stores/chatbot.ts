@@ -289,10 +289,14 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
 
                 set((s) => {
                   const isExisting = s.messages.some((m) => m.id === entry.id)
+                  const isUserMessage =
+                    (entry.role === 'user' ||
+                      (entry.role === 'custom' && entry.customType === 'shumai_message')) &&
+                    !isExisting
                   // Replace temp/optimistic message when the real counterpart streams back
                   const filtered = s.messages.filter((m) => {
-                    if (entry.role === 'user' && !isExisting) {
-                      return !(m.id.startsWith('temp-') && !m.id.startsWith('temp-context-'))
+                    if (isUserMessage) {
+                      return !m.id.startsWith('temp-')
                     }
                     if (
                       entry.role === 'custom' &&

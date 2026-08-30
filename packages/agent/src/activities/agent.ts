@@ -25,7 +25,6 @@ import {
   type ShumaiMessageContext,
   type ShumaiMediaPosition,
 } from '@shumai/dtos'
-import { serializeContextToXml } from '../context/serialize-context'
 
 export interface Usage {
   inputTokens: number
@@ -357,9 +356,7 @@ User messages may contain a <context> block detailing the user, active asset loc
       }
     })
 
-    const xml = serializeContextToXml(params.messageContext)
-    const promptToSend = xml ? `${params.prompt}\n\n${xml}`.trim() : params.prompt
-    const assistantMessage = await harness.prompt(promptToSend, { images: imagesToPass })
+    const assistantMessage = await harness.prompt(params.prompt, { images: imagesToPass })
 
     if (totalInputTokens === 0 && totalOutputTokens === 0 && assistantMessage.usage) {
       totalInputTokens = assistantMessage.usage.input || 0
