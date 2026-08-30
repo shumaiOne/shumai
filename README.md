@@ -9,6 +9,12 @@
 </p>
 
 <p align="center">
+  <a href="https://hub.docker.com/r/shumaione/shumai"><img alt="Docker pulls" src="https://img.shields.io/docker/pulls/shumaione/shumai" /></a>
+  <a href="https://github.com/shumaiOne/shumai/releases"><img alt="GitHub latest release" src="https://img.shields.io/github/v/release/shumaiOne/shumai" /></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue" /></a>
+</p>
+
+<p align="center">
   <a target="_blank" href="https://shumai.one/">Website</a> | <a target="_blank" href="https://docs.shumai.one/getting-started/overview">Docs</a> | <a target="_blank" href="https://staging.shumai.one">Demo</a> | <a target="_blank" href="https://discord.gg/sUzhujK6DD">Discord</a> | <a target="_blank" href="README_CN.md">中文</a>
 </p>
 
