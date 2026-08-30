@@ -327,7 +327,7 @@ export function MobileFileBottomSheet({
       data-testid="mobile-bottom-sheet"
     >
       {/* Lightbox for attachment viewing */}
-      {viewingAttachment && viewingAttachment.proxyType === 'image' && (
+      {viewingAttachment && (
         <div
           className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 animate-in fade-in duration-200"
           onClick={() => setViewingAttachment(null)}

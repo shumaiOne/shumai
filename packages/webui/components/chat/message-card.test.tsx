@@ -34,14 +34,20 @@ describe('MessageCard component', () => {
         {
           id: 'att-img-1',
           assetId: 'asset-1',
-          url: 'https://example.com/screenshot.png',
-          proxyType: 'image',
+          url: 'https://example.com/screenshot.png?AWSAccessKeyId=123',
+          proxyType: null,
         },
         {
           id: 'att-doc-2',
           assetId: 'asset-1',
-          url: 'https://example.com/notes.pdf',
-          proxyType: 'pdf',
+          url: 'https://example.com/notes.pdf?AWSAccessKeyId=123',
+          proxyType: null,
+        },
+        {
+          id: 'att-psd-3',
+          assetId: 'asset-1',
+          url: 'https://example.com/mockup.psd',
+          proxyType: null,
         },
       ],
       mentions: [],
@@ -69,6 +75,7 @@ describe('MessageCard component', () => {
     expect(screen.getByText('Here is the feedback on design')).toBeDefined()
     expect(screen.getByText('screenshot.png')).toBeDefined()
     expect(screen.getByText('notes.pdf')).toBeDefined()
+    expect(screen.getByText('mockup.psd')).toBeDefined()
 
     // Verify row height classes: image row is h-18 (72px), file row is h-9 (36px)
     const imgEl = screen.getByAltText('screenshot.png')
@@ -79,6 +86,11 @@ describe('MessageCard component', () => {
     const fileRow = fileEl.closest('.group')
     expect(fileRow?.className).toContain('h-9')
 
+    // PSD should NOT be an image row (web browsers cannot render PSD in <img>)
+    const psdEl = screen.getByText('mockup.psd')
+    const psdRow = psdEl.closest('.group')
+    expect(psdRow?.className).toContain('h-9')
+
     // Clicking image row triggers onViewAttachment
     fireEvent.click(imgRow!)
     expect(onViewAttachment).toHaveBeenCalledWith(mockMessage.attachments[0])
@@ -87,7 +99,7 @@ describe('MessageCard component', () => {
     const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
     fireEvent.click(fileRow!)
     expect(windowOpenSpy).toHaveBeenCalledWith(
-      'https://example.com/notes.pdf',
+      'https://example.com/notes.pdf?AWSAccessKeyId=123',
       '_blank',
       'noreferrer',
     )

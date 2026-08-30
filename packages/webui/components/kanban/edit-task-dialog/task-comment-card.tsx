@@ -24,7 +24,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
 import { formatSize } from '@/ui/lib/format'
+import { isImageFileName } from '@/ui/lib/media'
 import type { KanbanAttachmentInfo, KanbanCommentInfo } from '@shumai/dtos'
 
 interface TaskCommentCardProps {
@@ -46,6 +48,7 @@ export function TaskCommentCard({
 }: TaskCommentCardProps) {
   const queryClient = useQueryClient()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null)
 
   const canDelete = isOwnerOrAdmin || comment.author.id === currentUserId
 
@@ -145,7 +148,7 @@ export function TaskCommentCard({
         {comment.attachments && comment.attachments.length > 0 && (
           <div className="flex flex-col gap-1.5 pt-1.5 w-full">
             {comment.attachments.map((att) => {
-              const isImage = att.proxyType === 'image' || att.contentType?.startsWith('image/')
+              const isImage = isImageFileName(att.name || att.url)
               return (
                 <div
                   key={att.id}
@@ -154,6 +157,7 @@ export function TaskCommentCard({
                   }`}
                   onClick={() => {
                     if (isImage) {
+                      setPreviewImage({ url: att.url, name: att.name })
                       onViewAttachment?.(att)
                     } else {
                       window.open(att.url, '_blank', 'noreferrer')
@@ -220,6 +224,30 @@ export function TaskCommentCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent
+          className="max-w-4xl p-2 sm:p-4 bg-background/95 backdrop-blur-sm border-border flex flex-col items-center justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>{previewImage?.name || 'Image Preview'}</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <div className="w-full flex flex-col items-center justify-center gap-2">
+              <img
+                src={previewImage.url}
+                alt={previewImage.name}
+                className="max-w-full max-h-[80vh] object-contain rounded-md"
+              />
+              <p className="text-xs text-muted-foreground truncate max-w-full px-2">
+                {previewImage.name}
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

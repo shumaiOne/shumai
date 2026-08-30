@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
 import type { AttachmentInfo, CommentInfo, UserInfo } from '@shumai/dtos'
 import type { MemberInfo } from '@/ui/stores/members'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -30,6 +31,7 @@ import { m } from '@/ui/paraglide/messages.js'
 import { useUiStore } from '@/ui/stores/ui'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
 import { AgentSessionLogsDialog } from '../agent/agent-session-logs-dialog'
+import { isImageFileName } from '@/ui/lib/media'
 
 interface MessageCardProps {
   teamId?: string
@@ -116,6 +118,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   const loadingText = (message.message && AI_PLACEHOLDERS[message.message]) || 'Generating...'
 
   const [isLogsOpen, setIsLogsOpen] = React.useState(false)
+  const [previewImage, setPreviewImage] = React.useState<{ url: string; name: string } | null>(null)
 
   const { videoTimeDisplayMode } = useUiStore()
   const displayTime = React.useMemo(() => {
@@ -327,8 +330,9 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         {message.attachments && message.attachments.length > 0 && (
           <div className="flex flex-col gap-1.5 mt-3 w-full">
             {message.attachments.map((att) => {
-              const isImage = att.proxyType === 'image'
-              const name = att.url?.split('/').pop()?.split('?')[0] || 'file'
+              const rawName = att.url?.split('/').pop()?.split('?')[0] || 'file'
+              const name = decodeURIComponent(rawName)
+              const isImage = isImageFileName(name)
               return (
                 <div
                   key={att.id}
@@ -337,7 +341,8 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                   }`}
                   onClick={() => {
                     if (isImage) {
-                      onViewAttachment(att)
+                      setPreviewImage({ url: att.url, name })
+                      onViewAttachment?.(att)
                     } else {
                       window.open(att.url, '_blank', 'noreferrer')
                     }
@@ -471,6 +476,30 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent
+          className="max-w-4xl p-2 sm:p-4 bg-background/95 backdrop-blur-sm border-border flex flex-col items-center justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>{previewImage?.name || 'Image Preview'}</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <div className="w-full flex flex-col items-center justify-center gap-2">
+              <img
+                src={previewImage.url}
+                alt={previewImage.name}
+                className="max-w-full max-h-[80vh] object-contain rounded-md"
+              />
+              <p className="text-xs text-muted-foreground truncate max-w-full px-2">
+                {previewImage.name}
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
