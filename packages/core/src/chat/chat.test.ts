@@ -988,5 +988,29 @@ describe('ChatService', () => {
       const msg2 = mapEntryToMessage(emptyEntry)
       expect(msg2).toBeNull()
     })
+
+    it('should forward annotations and second to workflow task payload', async () => {
+      const { user, team, project } = await setupBasicData()
+
+      const { sessionId, taskId } = await chatService.startOrContinueChat(user, team.id, {
+        agentId: 'test-agent-id',
+        textPrompt: 'Check out this area',
+        projectId: project.id,
+        annotations: [{ type: 'rectangle', x: 10, y: 20, width: 30, height: 40 }],
+        second: 8.5,
+      })
+
+      expect(sessionId).toBeDefined()
+      expect(taskId).toBeDefined()
+
+      const task = await prisma.workflowTask.findUnique({
+        where: { id: taskId },
+      })
+      expect(task).toBeDefined()
+      expect(task?.payload?.agent?.second).toBe(8.5)
+      expect(task?.payload?.agent?.annotations).toEqual([
+        { type: 'rectangle', x: 10, y: 20, width: 30, height: 40 },
+      ])
+    })
   })
 })

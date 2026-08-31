@@ -61,6 +61,8 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     let commentAnnotation = false
     let commentCreatorId: string | undefined
 
+    let commentAnnotations: unknown[] | undefined
+
     if (userCommentId) {
       userComment = await executeActivity(agentWorkerQueue, getCommentActivity, userCommentId)
       if (!userComment) {
@@ -77,6 +79,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
         userComment.annotation.length > 0
       ) {
         commentAnnotation = true
+        commentAnnotations = userComment.annotation
       }
 
       // 2. Create Placeholder Comment
@@ -101,6 +104,17 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     } else {
       prompt = payload.agent?.prompt || ''
       attachmentImageUrls = payload.agent?.imageUrls || []
+      if (payload.agent?.second !== null && payload.agent?.second !== undefined) {
+        commentTimestamp = payload.agent.second
+      }
+      if (
+        payload.agent?.annotations &&
+        Array.isArray(payload.agent.annotations) &&
+        payload.agent.annotations.length > 0
+      ) {
+        commentAnnotation = true
+        commentAnnotations = payload.agent.annotations
+      }
     }
 
     // 3. Get Asset
@@ -181,6 +195,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
             mediaType: attProxyType as ShumaiAttachedFileContext['mediaType'],
             mimeType: att.asset.mediaType || undefined,
             path: filePath || undefined,
+            url: (att.asset as { url?: string }).url || undefined,
           })
           attachedAssets.push({ id: att.asset.id, name: att.asset.name, type: att.asset.type })
         }
@@ -205,6 +220,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
             mediaType: fileProxyType as ShumaiAttachedFileContext['mediaType'],
             mimeType: file.mediaType || undefined,
             path: filePath || undefined,
+            url: (file as { url?: string }).url || undefined,
           })
           attachedAssets.push({ id: file.id, name: file.name, type: file.type })
         }
@@ -233,6 +249,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
             mediaType: refProxyType as ShumaiAttachedFileContext['mediaType'],
             mimeType: referencedAsset.mediaType || undefined,
             path: filePath || undefined,
+            url: (referencedAsset as { url?: string }).url || undefined,
           })
           attachedAssets.push({
             id: referencedAsset.id,
@@ -286,7 +303,12 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
         : {}),
       currentAsset: currentAssetContext,
       ...(mediaPosition ? { position: mediaPosition } : {}),
-      ...(commentAnnotation ? { annotation: true } : {}),
+      ...(commentAnnotation
+        ? {
+            annotation: true,
+            annotations: commentAnnotations as ShumaiMessageContext['annotations'],
+          }
+        : {}),
       ...(attachedFiles.length > 0 ? { attachedFiles } : {}),
       ...(referencedAssets.length > 0 ? { referencedAssets } : {}),
     }

@@ -662,6 +662,7 @@
 
   "select_source_folder": "Select Source Folder",
   "assets": "Assets",
+  "attachments": "Attachments",
   "filter": "Filter",
   "project_members": "Project Members",
 
@@ -916,6 +917,9 @@
   "enable_timestamp": "Enable Timestamp",
   "attach_files": "Attach files",
   "toggle_annotation": "Toggle Annotation",
+  "markup_not_supported_for_this_file": "Markup is not supported for this file type",
+  "open_file_to_add_markup": "Open a supported file to add markup",
+  "type_a_message": "Type a message...",
 
   "loop": "Loop",
   "click_toggle_time_frames": "Click to toggle Time/Frames",
@@ -1313,5 +1317,10 @@
   "playback_speed": "Playback Speed",
   "settings": "Settings",
   "failed_to_post_comment": "Failed to post comment",
-  "entry_id": "Entry ID"
+  "entry_id": "Entry ID",
+  "back_to_chat": "Back to Chat",
+  "delete_session": "Delete Session",
+  "thinking_status": "Thinking...",
+  "contains_drawing_annotations": "Contains drawing annotations",
+  "page_prefix": "Page {page}"
 }

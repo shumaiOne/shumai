@@ -181,9 +181,7 @@ describe('useChatbotStore', () => {
     const stateWithOptimistic = useChatbotStore.getState()
     expect(stateWithOptimistic.messages).toHaveLength(1)
     expect(stateWithOptimistic.messages[0].id).toContain('temp-')
-    expect((stateWithOptimistic.messages[0] as { content: unknown }).content).toEqual([
-      { type: 'text', text: 'hello' },
-    ])
+    expect((stateWithOptimistic.messages[0] as { content: unknown }).content).toBe('hello')
     expect(stateWithOptimistic.isStreaming).toBe(true)
 
     await sendPromise
@@ -301,28 +299,24 @@ describe('useChatbotStore', () => {
 
     const sendPromise = useChatbotStore.getState().sendMessage('team-123', 'hello', 'proj-123')
 
-    // 3. Verify that both the optimistic context message and user message are present immediately
+    // 3. Verify that the optimistic message includes referencedAssets
     const stateWithOptimistic = useChatbotStore.getState()
-    expect(stateWithOptimistic.messages).toHaveLength(2)
+    expect(stateWithOptimistic.messages).toHaveLength(1)
 
-    // First message should be the optimistic context_display_info
-    expect(stateWithOptimistic.messages[0].id).toContain('temp-context-')
+    // Message should be the optimistic shumai_message with referencedAssets in details
+    expect(stateWithOptimistic.messages[0].id).toContain('temp-')
     expect(stateWithOptimistic.messages[0].role).toBe('custom')
     expect((stateWithOptimistic.messages[0] as { customType?: string }).customType).toBe(
-      'context_display_info',
+      'shumai_message',
     )
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((stateWithOptimistic.messages[0] as any).details).toEqual({
-      assets: [{ id: 'asset-1', name: 'File 1.txt', type: 'file' }],
-    })
-
-    // Second message should be the optimistic user message
-    expect(stateWithOptimistic.messages[1].id).toContain('temp-')
-    expect(stateWithOptimistic.messages[1].role).toBe('user')
+    expect((stateWithOptimistic.messages[0] as any).details.referencedAssets).toEqual([
+      { id: 'asset-1', name: 'File 1.txt', type: 'file' },
+    ])
 
     await sendPromise
 
-    // 4. Verify they are replaced correctly by the real backend entries
+    // 4. Verify message list after streaming completes
     const finalState = useChatbotStore.getState()
     expect(finalState.messages).toHaveLength(2)
     expect(finalState.messages[0].id).toBe('context-display-ulid')
@@ -417,5 +411,94 @@ describe('useChatbotStore', () => {
     expect(finalState.messages[0].role).toBe('custom')
     expect((finalState.messages[0] as { customType?: string }).customType).toBe('shumai_message')
     expect(finalState.messages[1].id).toBe('assistant-msg-ulid')
+  })
+
+  it('should include attachments, annotations, and second in optimistic message and API call', async () => {
+    const mockEvents = [
+      'data: {"type":"session","sessionId":"sess-456"}\n\n',
+      'data: {"type":"done","status":"completed"}\n\n',
+    ]
+    let eventIdx = 0
+    const mockReader = {
+      read: vi.fn(async () => {
+        if (eventIdx < mockEvents.length) {
+          const value = new TextEncoder().encode(mockEvents[eventIdx++])
+          return { done: false, value }
+        }
+        return { done: true, value: undefined }
+      }),
+    }
+    const mockResponse = {
+      ok: true,
+      headers: {
+        get: vi.fn(() => 'sess-456'),
+      },
+      body: {
+        getReader: () => mockReader,
+      },
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(client.api.teams[':teamId'].chat.$post).mockResolvedValue(mockResponse as any)
+
+    const sendPromise = useChatbotStore.getState().sendMessage(
+      'team-123',
+      'Look at this frame',
+      'proj-123',
+      'file-asset-1',
+      undefined,
+      ['att-1'],
+      [
+        {
+          type: 'box',
+          color: '#ff0000',
+          points: [
+            [10, 20],
+            [30, 40],
+          ],
+        },
+      ],
+      12.5,
+      [{ id: 'att-1', name: 'screenshot.png', type: 'image', mediaType: 'image/png' }],
+    )
+
+    // Check optimistic message has annotations, second position, and attachedFiles
+    const optimisticState = useChatbotStore.getState()
+    expect(optimisticState.messages).toHaveLength(1)
+    const optMsg = optimisticState.messages[0] as unknown as Record<string, unknown>
+    expect(optMsg.customType).toBe('shumai_message')
+    const details = optMsg.details as Record<string, unknown>
+    expect(details.annotation).toBe(true)
+    expect(details.annotations).toHaveLength(1)
+    expect(details.position).toEqual({ type: 'time', seconds: 12.5 })
+    expect(details.attachedFiles).toEqual([
+      { id: 'att-1', name: 'screenshot.png', type: 'image', mediaType: 'image/png' },
+    ])
+
+    await sendPromise
+
+    expect(client.api.teams[':teamId'].chat.$post).toHaveBeenCalledWith({
+      param: { teamId: 'team-123' },
+      json: {
+        agentId: 'agent-1',
+        textPrompt: 'Look at this frame',
+        attachedFiles: ['att-1'],
+        assetIds: undefined,
+        sessionId: undefined,
+        contextAssetId: 'file-asset-1',
+        projectId: 'proj-123',
+        second: 12.5,
+        annotations: [
+          {
+            type: 'box',
+            color: '#ff0000',
+            points: [
+              [10, 20],
+              [30, 40],
+            ],
+          },
+        ],
+      },
+    })
   })
 })

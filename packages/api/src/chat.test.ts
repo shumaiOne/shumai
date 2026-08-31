@@ -148,6 +148,48 @@ describe('Chat API', () => {
       )
     })
 
+    it('accepts chat request with annotations, second, and attachmentIds', async () => {
+      vi.mocked(chatService.startOrContinueChat).mockResolvedValue({
+        sessionId: 'session1',
+        taskId: 'task1',
+      })
+
+      vi.mocked(chatService.getNewSessionMessages).mockResolvedValue({
+        messages: [],
+        lastEntryId: null,
+      })
+
+      vi.mocked(chatService.getChatWorkflowStatus).mockResolvedValue({
+        status: 'completed',
+        output: {},
+      })
+
+      const res = await app.request('/teams/team1/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentId: 'agent1',
+          textPrompt: 'Review annotation',
+          attachedFiles: ['att1'],
+          annotations: [{ type: 'rectangle', x: 10, y: 20 }],
+          second: 5.5,
+        }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(chatService.startOrContinueChat).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'user1' }),
+        'team1',
+        expect.objectContaining({
+          agentId: 'agent1',
+          textPrompt: 'Review annotation',
+          attachedFiles: ['att1'],
+          annotations: [{ type: 'rectangle', x: 10, y: 20 }],
+          second: 5.5,
+        }),
+      )
+    })
+
     it('sends ping keep-alive SSE events when there are no new messages', async () => {
       vi.mocked(chatService.startOrContinueChat).mockResolvedValue({
         sessionId: 'session1',

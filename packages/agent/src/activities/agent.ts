@@ -811,7 +811,12 @@ export async function initializeAgentSessionActivity(params: {
     const commentDetails: ShumaiMessageContext = {
       ...(userObj ? { user: userObj } : {}),
       ...(position ? { position } : {}),
-      ...(annotation ? { annotation: true } : {}),
+      ...(annotation
+        ? {
+            annotation: true,
+            annotations: c.annotation as unknown as ShumaiMessageContext['annotations'],
+          }
+        : {}),
       ...(attachedFiles.length > 0 ? { attachedFiles } : {}),
     }
 
@@ -1190,6 +1195,7 @@ export async function getAssetActivity(assetId: string) {
     },
   })
 
+  let resolvedAsset = asset
   if (asset && asset.type === AssetType.version_stack) {
     const latestVersion = await prisma.asset.findFirst({
       where: { parentId: asset.id, isDeleted: false },
@@ -1205,18 +1211,36 @@ export async function getAssetActivity(assetId: string) {
     })
 
     if (latestVersion) {
-      return {
+      resolvedAsset = {
         ...latestVersion,
         project: latestVersion.project ?? asset.project,
-      }
+      } as typeof asset
     }
   }
 
-  return asset
+  if (!resolvedAsset) return null
+
+  let url: string | undefined
+  if (resolvedAsset.storageKey?.key) {
+    try {
+      url = await s3Service.presign(
+        process.env.S3_BUCKET || 'shumai',
+        resolvedAsset.storageKey.key,
+        'GET',
+      )
+    } catch {
+      // Ignore presign errors
+    }
+  }
+
+  return {
+    ...resolvedAsset,
+    url,
+  }
 }
 
 export async function getCommentActivity(commentId: string) {
-  return prisma.assetComment.findUnique({
+  const comment = await prisma.assetComment.findUnique({
     where: { id: commentId },
     include: {
       attachments: {
@@ -1224,6 +1248,34 @@ export async function getCommentActivity(commentId: string) {
       },
     },
   })
+
+  if (!comment) return null
+
+  const attachmentsWithUrl = await Promise.all(
+    comment.attachments.map(async (att) => {
+      let url: string | undefined
+      if (att.asset?.storageKey?.key) {
+        try {
+          url = await s3Service.presign(
+            process.env.S3_BUCKET || 'shumai',
+            att.asset.storageKey.key,
+            'GET',
+          )
+        } catch {
+          // Ignore
+        }
+      }
+      return {
+        ...att,
+        asset: att.asset ? { ...att.asset, url } : null,
+      }
+    }),
+  )
+
+  return {
+    ...comment,
+    attachments: attachmentsWithUrl,
+  }
 }
 
 export async function getProjectAutofillFieldsActivity(projectId: string) {

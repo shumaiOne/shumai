@@ -19,6 +19,7 @@ import {
   Paperclip,
   Redo,
   Square,
+  Trash2,
   Undo,
   XIcon,
 } from 'lucide-react'
@@ -27,10 +28,12 @@ import { Button } from '../ui/button'
 import { DrawAnnotation } from '../ui/icons'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { ProgressCircle } from '../ui/progress-circle'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
 import { formatTimecode } from '../viewers/video/utils'
 import { useUiStore } from '@/ui/stores/ui'
+import { isImageFileName } from '@/ui/lib/media'
 
-type UploadingFile = {
+export type UploadingFile = {
   id: string // A unique ID for the file, e.g., timestamp + name
   file: File
   progress: number
@@ -38,7 +41,16 @@ type UploadingFile = {
   error?: string
 }
 
-interface ChatInputProps {
+export interface AttachedFileMeta {
+  id: string
+  name: string
+  type: string
+  url?: string
+  mediaType?: string
+  mimeType?: string
+}
+
+export interface ChatInputProps {
   projectId: string
   onSendMessage: (
     text: string,
@@ -46,16 +58,51 @@ interface ChatInputProps {
     annotations?: Annotation[],
     replyToId?: string | null,
     second?: number | null,
+    attachedFilesMeta?: AttachedFileMeta[],
   ) => void
-  replyingTo?: CommentInfo | null
-  onCancelReply?: () => void
+
+  placeholder?: string
   initialText?: string
-  hideAnnotationControl?: boolean
+  value?: string
+  onChangeText?: (text: string) => void
+  disabled?: boolean
+
+  // Mentions
+  allowMentions?: boolean
   disableMentions?: boolean
+
+  // Local file attachments
+  allowAttachments?: boolean
+
+  // Referenced workspace assets
+  workspaceAssets?: Array<{ id: string; name: string; type: string }>
+  onRemoveWorkspaceAsset?: (id: string) => void
+
+  // Markup / Annotations
+  allowMarkup?: boolean
+  hideAnnotationControl?: boolean
+  canMarkup?: boolean
+  markupDisabledTooltip?: string
+
+  // Timestamps
+  allowTimestamp?: boolean
   currentTime?: number
   frameRate?: number
   startTimecode?: string
   formatTimestamp?: (second: number) => string
+
+  // Comment Thread Reply
+  replyingTo?: CommentInfo | null
+  onCancelReply?: () => void
+
+  // Bottom action bar extras (e.g. Agent Selector)
+  bottomLeftExtra?: React.ReactNode
+
+  // Streaming & Abort
+  isStreaming?: boolean
+  onAbort?: () => void
+
+  // Callbacks
   onTyping?: () => void
 }
 
@@ -80,13 +127,28 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       onSendMessage,
       replyingTo,
       onCancelReply,
+      placeholder,
       initialText = '',
-      hideAnnotationControl = false,
+      value,
+      onChangeText,
+      disabled = false,
+      allowMentions,
       disableMentions = false,
+      allowAttachments = true,
+      workspaceAssets,
+      onRemoveWorkspaceAsset,
+      allowMarkup,
+      hideAnnotationControl = false,
+      canMarkup = true,
+      markupDisabledTooltip,
+      allowTimestamp = true,
       currentTime,
       frameRate,
       startTimecode,
       formatTimestamp,
+      bottomLeftExtra,
+      isStreaming = false,
+      onAbort,
       onTyping,
     },
     ref,
@@ -94,6 +156,10 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([])
     const [viewingFile, setViewingFile] = useState<File | null>(null)
     const [isTimestampEnabled, setIsTimestampEnabled] = useState(true)
+
+    const effectiveAllowMentions = allowMentions ?? !disableMentions
+    const effectiveAllowMarkup = allowMarkup ?? !hideAnnotationControl
+    const effectiveAllowTimestamp = allowTimestamp
 
     const { videoTimeDisplayMode } = useUiStore()
     const displayTime = React.useMemo(() => {
@@ -145,6 +211,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     const paddingLeftClass = React.useMemo(() => {
       if (
         !isTimestampEnabled ||
+        !effectiveAllowTimestamp ||
         currentTime === undefined ||
         (!formatTimestamp && !frameRate) ||
         hasContent
@@ -155,12 +222,21 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
         return 'pl-[120px]'
       }
       return 'pl-[85px]'
-    }, [isTimestampEnabled, currentTime, frameRate, hasContent, videoTimeDisplayMode])
+    }, [
+      isTimestampEnabled,
+      effectiveAllowTimestamp,
+      currentTime,
+      frameRate,
+      hasContent,
+      videoTimeDisplayMode,
+      formatTimestamp,
+    ])
 
     const editorRef = useRef<HTMLDivElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const mentionRangeRef = useRef<Range | null>(null)
     const mentionListRef = useRef<HTMLDivElement>(null)
+    const isInternalUpdateRef = useRef(false)
 
     const { mutateAsync: uploadAttachment } = useMutation({
       mutationFn: async ({
@@ -180,7 +256,16 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     })
 
     useEffect(() => {
-      if (initialText && editorRef.current) {
+      if (value !== undefined && editorRef.current) {
+        if (isInternalUpdateRef.current) {
+          isInternalUpdateRef.current = false
+          return
+        }
+        if (editorRef.current.innerText !== value) {
+          editorRef.current.innerText = value
+          setHasContent(!!value.trim())
+        }
+      } else if (initialText && editorRef.current) {
         editorRef.current.innerText = initialText
         setHasContent(!!initialText.trim())
         // Focus and move cursor to end
@@ -192,7 +277,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
         sel?.removeAllRanges()
         sel?.addRange(range)
       }
-    }, [initialText])
+    }, [value, initialText])
 
     // Focus editor when replyingTo becomes truthy
     useEffect(() => {
@@ -254,10 +339,13 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
 
     const handleInput = () => {
       if (!editorRef.current) return
-      setHasContent(!!editorRef.current.innerText.trim())
+      const text = editorRef.current.innerText || ''
+      setHasContent(!!text.trim())
+      isInternalUpdateRef.current = true
+      onChangeText?.(text)
       onTyping?.()
 
-      if (disableMentions) {
+      if (!effectiveAllowMentions) {
         setShowMentionList(false)
         mentionRangeRef.current = null
         return
@@ -337,13 +425,17 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       setShowMentionList(false)
       mentionRangeRef.current = null
       setHasContent(true)
+      const currentText = editorRef.current.innerText || ''
+      isInternalUpdateRef.current = true
+      onChangeText?.(currentText)
+      onTyping?.()
       editorRef.current.focus()
     }
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.nativeEvent.isComposing) return
 
-      if (showMentionList && filteredEntities.length > 0) {
+      if (showMentionList && effectiveAllowMentions && filteredEntities.length > 0) {
         if (e.key === 'ArrowUp') {
           e.preventDefault()
           setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : filteredEntities.length - 1))
@@ -444,6 +536,18 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
         .map((f) => f.attachmentId)
         .filter((id): id is string => !!id)
 
+      const successfulAttachedFilesMeta: AttachedFileMeta[] = uploadingFiles
+        .filter((f) => !f.error && !!f.attachmentId)
+        .map((f) => ({
+          id: f.attachmentId!,
+          name: f.file.name,
+          type: f.file.type,
+          url:
+            f.file.type.startsWith('image/') || isImageFileName(f.file.name)
+              ? URL.createObjectURL(f.file)
+              : undefined,
+        }))
+
       // Serialize content
       let processedText = ''
       editorRef.current.childNodes.forEach((node) => {
@@ -466,20 +570,31 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
 
       processedText = processedText.trim()
 
-      // Allow sending if annotations exist, even if text is empty
-      if (!processedText && successfulAttachmentIds.length === 0 && annotations.length === 0) return
+      const hasWorkspaceAssets = (workspaceAssets?.length ?? 0) > 0
+
+      // Allow sending if annotations, attachments, or workspace assets exist, even if text is empty
+      if (
+        !processedText &&
+        successfulAttachmentIds.length === 0 &&
+        annotations.length === 0 &&
+        !hasWorkspaceAssets
+      )
+        return
 
       onSendMessage(
         processedText,
         successfulAttachmentIds,
         annotations,
         replyingTo?.id,
-        isTimestampEnabled ? currentTime : undefined,
+        effectiveAllowTimestamp && isTimestampEnabled ? currentTime : undefined,
+        successfulAttachedFilesMeta,
       )
 
       // Reset editor
       editorRef.current.innerHTML = ''
       setHasContent(false)
+      isInternalUpdateRef.current = true
+      onChangeText?.('')
       setUploadingFiles([])
       setViewingFile(null)
       setIsDrawing(false)
@@ -490,13 +605,18 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
 
     const isUploading = uploadingFiles.some((f) => !f.attachmentId && !f.error)
     const hasSuccessfulUploads = uploadingFiles.some((f) => !!f.attachmentId)
-    const canSend = hasContent || hasSuccessfulUploads || annotations.length > 0
-    const showUpperPart = uploadingFiles.length > 0 || !!replyingTo
+    const hasWorkspaceAssets = (workspaceAssets?.length ?? 0) > 0
+    const effectiveDisabled = disabled || isStreaming
+    const canSend =
+      (hasContent || hasSuccessfulUploads || annotations.length > 0 || hasWorkspaceAssets) &&
+      !effectiveDisabled
+    const showUpperPart =
+      (workspaceAssets && workspaceAssets.length > 0) || uploadingFiles.length > 0 || !!replyingTo
 
     return (
       <div
         ref={ref}
-        className="relative flex flex-col w-full border border-foreground/35 rounded-3xl shadow-sm transition-all duration-200"
+        className="relative flex flex-col w-full border border-foreground/35 rounded-3xl shadow-sm transition-all duration-200 bg-background"
       >
         <style>{`
         [contenteditable]:empty:before {
@@ -506,8 +626,12 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
         }
       `}</style>
         {showMentionList &&
+          effectiveAllowMentions &&
           (membersLoading || filteredAgents.length > 0 || filteredHumans.length > 0) && (
-            <div className="absolute bottom-full left-4 mb-2 w-64 rounded-xl shadow-lg border border-border overflow-hidden z-20 bg-popover text-popover-foreground animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div
+              onMouseDown={(e) => e.preventDefault()}
+              className="absolute bottom-full left-4 mb-2 w-64 rounded-xl shadow-lg border border-border overflow-hidden z-20 bg-popover text-popover-foreground animate-in fade-in slide-in-from-bottom-2 duration-200"
+            >
               <div ref={mentionListRef} className="h-64 overflow-y-auto">
                 {membersLoading ? (
                   <div className="p-2 space-y-4 animate-pulse">
@@ -545,12 +669,15 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                     {filteredAgents.length > 0 && (
                       <>
                         <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
                             setCollapsedSections((prev) => ({ ...prev, bots: !prev.bots }))
+                            editorRef.current?.focus()
                           }}
-                          className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border flex items-center justify-between hover:bg-muted transition-colors"
+                          className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border flex items-center justify-between hover:bg-muted transition-colors cursor-pointer select-none"
                         >
                           <span>Agents</span>
                           <ChevronDown
@@ -562,11 +689,13 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                             const actualIndex = index
                             return (
                               <button
+                                type="button"
                                 key={item.data.id}
                                 data-index={actualIndex}
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => handleSelectEntity(item)}
                                 onMouseEnter={() => setHighlightedIndex(actualIndex)}
-                                className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left ${
+                                className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left cursor-pointer ${
                                   actualIndex === highlightedIndex
                                     ? 'bg-accent text-accent-foreground'
                                     : 'hover:bg-accent/50'
@@ -594,12 +723,15 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                     {filteredHumans.length > 0 && (
                       <>
                         <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
                             setCollapsedSections((prev) => ({ ...prev, users: !prev.users }))
+                            editorRef.current?.focus()
                           }}
-                          className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border flex items-center justify-between hover:bg-muted transition-colors"
+                          className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border flex items-center justify-between hover:bg-muted transition-colors cursor-pointer select-none"
                         >
                           <span>Members</span>
                           <ChevronDown
@@ -608,15 +740,17 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                         </button>
                         {!collapsedSections.users &&
                           filteredHumans.map((item, index) => {
-                            const actualIndex =
-                              (collapsedSections.bots ? 0 : filteredAgents.length) + index
+                            const agentOffset = collapsedSections.bots ? 0 : filteredAgents.length
+                            const actualIndex = index + agentOffset
                             return (
                               <button
+                                type="button"
                                 key={item.data.id}
                                 data-index={actualIndex}
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => handleSelectEntity(item)}
                                 onMouseEnter={() => setHighlightedIndex(actualIndex)}
-                                className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left ${
+                                className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left cursor-pointer ${
                                   actualIndex === highlightedIndex
                                     ? 'bg-accent text-accent-foreground'
                                     : 'hover:bg-accent/50'
@@ -630,7 +764,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                                       className="object-cover"
                                     />
                                   )}
-                                  <AvatarFallback className="text-[10px] bg-blue-400 text-black font-semibold">
+                                  <AvatarFallback className="text-[10px] bg-purple-400 text-black font-semibold">
                                     {getInitials(item.data.name)}
                                   </AvatarFallback>
                                 </Avatar>
@@ -648,6 +782,35 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
 
         {showUpperPart && (
           <div className="flex flex-col gap-2 p-3 pb-0 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            {/* Referenced Workspace Assets */}
+            {workspaceAssets && workspaceAssets.length > 0 && (
+              <div className="flex flex-col gap-1.5 min-h-0 max-h-[160px] overflow-y-auto border border-border/60 rounded-lg bg-muted/20 p-2.5 divide-y divide-border/50">
+                {workspaceAssets.map((asset) => (
+                  <div
+                    key={asset.id}
+                    className="flex items-center justify-between py-1 text-xs group"
+                  >
+                    <div className="flex items-baseline gap-1.5 min-w-0 pr-2">
+                      <span className="truncate font-medium text-foreground">{asset.name}</span>
+                      <span className="text-[9px] text-muted-foreground uppercase flex-shrink-0">
+                        {asset.type}
+                      </span>
+                    </div>
+                    {onRemoveWorkspaceAsset && (
+                      <button
+                        onClick={() => onRemoveWorkspaceAsset(asset.id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors p-0.5 cursor-pointer"
+                        title={m.remove_from_context?.() || 'Remove from context'}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Replying banner */}
             {replyingTo && (
               <div className="flex items-center justify-between bg-muted p-2 px-3 rounded-lg border border-border">
                 <div className="text-xs text-muted-foreground truncate mr-2">
@@ -662,6 +825,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
               </div>
             )}
 
+            {/* Local file uploads thumbnail strip */}
             {uploadingFiles.length > 0 && (
               <div className="flex gap-3 overflow-x-auto py-2 px-1 scrollbar-hide">
                 {uploadingFiles.map((upload) => (
@@ -687,7 +851,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                     </div>
                     <button
                       onClick={() => removeFile(upload.id)}
-                      className="absolute -top-1.5 -right-1.5 bg-gray-500 text-white rounded-full p-0.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 z-10"
+                      className="absolute -top-1.5 -right-1.5 bg-gray-500 text-white rounded-full p-0.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 z-10 cursor-pointer"
                     >
                       <XIcon className="w-3 h-3" />
                     </button>
@@ -705,24 +869,29 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
           onClick={() => editorRef.current?.focus()}
           className="w-full px-4 pt-1 pb-1 cursor-text flow-root max-h-60 overflow-y-auto"
         >
-          {isTimestampEnabled && currentTime !== undefined && frameRate !== undefined && (
-            <div
-              onClick={(e) => {
-                e.stopPropagation()
-                editorRef.current?.focus()
-              }}
-              className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-0.5 mt-3 mr-2 rounded-sm text-xs font-mono font-bold flex items-center gap-1 cursor-text"
-            >
-              {displayTime}
-            </div>
-          )}
+          {effectiveAllowTimestamp &&
+            isTimestampEnabled &&
+            currentTime !== undefined &&
+            (frameRate !== undefined || formatTimestamp !== undefined) && (
+              <div
+                onClick={(e) => {
+                  e.stopPropagation()
+                  editorRef.current?.focus()
+                }}
+                className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-0.5 mt-3 mr-2 rounded-sm text-xs font-mono font-bold flex items-center gap-1 cursor-text"
+              >
+                {displayTime}
+              </div>
+            )}
           <div
             ref={editorRef}
-            contentEditable
+            contentEditable={!disabled && !isStreaming}
             suppressContentEditableWarning
             onInput={handleInput}
             onKeyDown={handleKeyDown}
-            data-placeholder={replyingTo ? m.reply_placeholder() : m.message_placeholder()}
+            data-placeholder={
+              placeholder || (replyingTo ? m.reply_placeholder() : m.message_placeholder())
+            }
             className={`bg-transparent border-none focus:ring-0 resize-none min-h-[40px] leading-relaxed py-2 focus:outline-none block ${paddingLeftClass}`}
           />
         </div>
@@ -818,59 +987,104 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1">
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                multiple
-                onChange={handleFileSelect}
-              />
-              {currentTime !== undefined && frameRate !== undefined && (
-                <Button
-                  onClick={() => setIsTimestampEnabled(!isTimestampEnabled)}
-                  variant={isTimestampEnabled ? 'secondary' : 'ghost'}
-                  size="icon"
-                  className={`p-2 rounded-full cursor-pointer ${isTimestampEnabled ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
-                  title={isTimestampEnabled ? m.disable_timestamp() : m.enable_timestamp()}
-                >
-                  <Clock className="w-4 h-4" />
-                </Button>
+            <div className="flex items-center gap-1.5 min-w-0 max-w-[80%]">
+              {bottomLeftExtra}
+              {allowAttachments && (
+                <>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    multiple
+                    onChange={handleFileSelect}
+                  />
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 rounded-full cursor-pointer shrink-0"
+                    variant="ghost"
+                    size="icon"
+                    title={m.attach_files()}
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </Button>
+                </>
               )}
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 rounded-full cursor-pointer"
-                variant="ghost"
-                size="icon"
-                title={m.attach_files()}
-              >
-                <Paperclip className="w-4 h-4" />
-              </Button>
-              {!hideAnnotationControl && (
-                <Button
-                  onClick={() => setIsDrawing(true)}
-                  variant="ghost"
-                  size="icon"
-                  className="p-2 rounded-full cursor-pointer"
-                  title={m.toggle_annotation()}
-                >
-                  <DrawAnnotation className="w-4 h-4" />
-                </Button>
-              )}
+              {effectiveAllowTimestamp &&
+                currentTime !== undefined &&
+                (frameRate !== undefined || formatTimestamp !== undefined) && (
+                  <Button
+                    onClick={() => setIsTimestampEnabled(!isTimestampEnabled)}
+                    variant={isTimestampEnabled ? 'secondary' : 'ghost'}
+                    size="icon"
+                    className={`p-2 rounded-full cursor-pointer shrink-0 ${isTimestampEnabled ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                    title={isTimestampEnabled ? m.disable_timestamp() : m.enable_timestamp()}
+                  >
+                    <Clock className="w-4 h-4" />
+                  </Button>
+                )}
+              {effectiveAllowMarkup &&
+                (canMarkup ? (
+                  <Button
+                    onClick={() => {
+                      onTyping?.()
+                      setIsDrawing(true)
+                    }}
+                    variant="ghost"
+                    size="icon"
+                    className="p-2 rounded-full cursor-pointer shrink-0"
+                    title={m.toggle_annotation()}
+                  >
+                    <DrawAnnotation className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-block cursor-not-allowed shrink-0">
+                          <Button
+                            disabled
+                            variant="ghost"
+                            size="icon"
+                            className="p-2 rounded-full opacity-40 cursor-not-allowed pointer-events-none"
+                          >
+                            <DrawAnnotation className="w-4 h-4" />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="text-xs">
+                          {markupDisabledTooltip || m.markup_not_supported_for_this_file()}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
             </div>
           )}
 
-          <button
-            onClick={handleSend}
-            disabled={!canSend || isUploading}
-            className={`p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 ${
-              canSend && !isUploading
-                ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5'
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <ArrowUp className="w-4 h-4" />
-          </button>
+          {isStreaming ? (
+            <button
+              onClick={onAbort}
+              className="p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 shadow-sm bg-destructive text-destructive-foreground hover:bg-destructive/90 transform hover:-translate-y-0.5 cursor-pointer"
+              title="Stop generation"
+            >
+              <div className="h-4 w-4 flex items-center justify-center">
+                <div className="h-3 w-3 rounded-[2px] bg-white" />
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={handleSend}
+              disabled={!canSend || isUploading}
+              className={`p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 ${
+                canSend && !isUploading
+                  ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5 cursor-pointer'
+                  : 'bg-gray-400 cursor-not-allowed opacity-50'
+              }`}
+            >
+              <ArrowUp className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {viewingFile && (

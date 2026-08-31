@@ -10,6 +10,7 @@ import { useIsMobile } from '@/ui/hooks/use-mobile'
 import { FileDetailSkeleton } from '@/ui/components/loading-skeletons'
 import { ResizeHandle } from '@/ui/components/resize-handle'
 import { m } from '@/ui/paraglide/messages.js'
+import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import { useChatbotStore } from '@/ui/stores/chatbot'
 import { useMemberStore } from '@/ui/stores/members'
 import { useTeamContextStore } from '@/ui/stores/team-context'
@@ -42,7 +43,13 @@ import { Input } from '@/ui/components/ui/input'
 import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
 import { toast } from 'sonner'
 import type { MediaController } from '@/ui/components/viewers/types'
-import type { AssetInfo, AssetInfoPaginatedList, CommentInfo } from '@shumai/dtos'
+import type {
+  AssetInfo,
+  AssetInfoPaginatedList,
+  ChatMessage,
+  CommentInfo,
+  ShumaiMessageContext,
+} from '@shumai/dtos'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
@@ -482,6 +489,13 @@ function FileViewPage() {
     setAnnotations([])
   }, [compareActiveAsset?.id])
 
+  useEffect(() => {
+    useAnnotationStore.getState().reset()
+    useAnnotationStore.getState().setIsDrawing(false)
+    setAnnotations([])
+    setSelectedCommentId(null)
+  }, [activeFileId])
+
   if (isLoading && !fileData) {
     return <FileDetailSkeleton />
   }
@@ -549,6 +563,39 @@ function FileViewPage() {
       mediaControllerRef.current?.seekTo(comment.second)
       mediaControllerRef.current?.pause()
     } else if (newAnnotations && newAnnotations.length > 0) {
+      mediaControllerRef.current?.pause()
+    }
+  }
+
+  const handleChatMessageSelect = (msg: ChatMessage) => {
+    setSelectedCommentId(msg.id || null)
+    const msgObj = msg as unknown as Record<string, unknown>
+    const details = msgObj.details as ShumaiMessageContext | undefined
+    const rawAnnotations = details?.annotations as Annotation[] | undefined
+    if (rawAnnotations && rawAnnotations.length > 0) {
+      setAnnotations(rawAnnotations)
+    } else {
+      setAnnotations([])
+    }
+
+    const second =
+      details?.position?.type === 'time'
+        ? details.position.seconds
+        : details?.position?.type === 'page'
+          ? details.position.page
+          : undefined
+
+    if (isCompareMode) {
+      if (second !== undefined) {
+        setSeekRequest({ second, nonce: Date.now() })
+      }
+      return
+    }
+
+    if (second !== undefined) {
+      mediaControllerRef.current?.seekTo(second)
+      mediaControllerRef.current?.pause()
+    } else if (rawAnnotations && rawAnnotations.length > 0) {
       mediaControllerRef.current?.pause()
     }
   }
@@ -679,7 +726,20 @@ function FileViewPage() {
               className="flex-shrink-0 bg-background flex flex-col"
             >
               {isChatbotOpen ? (
-                <ChatbotSidebar projectId={projectId} contextAssetId={activeFileId} />
+                <ChatbotSidebar
+                  projectId={projectId}
+                  contextAssetId={activeFileId}
+                  file={sidebarFile}
+                  currentTime={currentTime}
+                  frameRate={sidebarFile?.media?.metadata?.frameRate || 30}
+                  startTimecode={sidebarFile?.media?.metadata?.startTimecode}
+                  onTyping={() => {
+                    if (isCompareMode) return
+                    mediaControllerRef.current?.pause()
+                  }}
+                  onSelectMessage={handleChatMessageSelect}
+                  selectedMessageId={selectedCommentId}
+                />
               ) : (
                 <FileViewerRightSidebar
                   teamId={teamId}

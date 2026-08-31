@@ -10,7 +10,7 @@ const en_contains_drawing_annotations = /** @type {(inputs: Contains_Drawing_Ann
 };
 
 const zh_contains_drawing_annotations = /** @type {(inputs: Contains_Drawing_AnnotationsInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`包含绘图标注`)
+	return /** @type {LocalizedString} */ (`包含标注绘图`)
 };
 
 /**
