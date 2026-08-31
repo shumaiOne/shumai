@@ -6,11 +6,9 @@ This change unifies the agent 1-to-1 chat input with the file-comment input and 
 
 ## Findings
 
-### Required: Direct multimodal delivery can be bypassed for newly uploaded image attachments
+### FYI: Attachment inspection is intentionally tool-driven
 
-`ChatService.startOrContinueChat` builds `resolvedImageUrls` by checking only `file.media.proxyType` (`packages/core/src/chat/chat.ts:286-294`). The attachment endpoint creates an asset with `mediaType` and `storageKey`, but does not populate `media`; a freshly uploaded `image/png` therefore produces no `imageUrls` entry. The new chat UI does send these IDs (`packages/webui/stores/chatbot.ts:248-263`), but the workflow then calls the model without the image bytes on the direct multimodal path. The message card can display the attachment while the agent cannot see it directly.
-
-This can be masked if the model calls the existing `analyze_image` tool using the attachment ID; that tool independently loads the S3 object, so a successful response does not prove that the image was included in the original model request. It can also work for assets whose `media.proxyType` has already been populated. To make the behavior deterministic, use the canonical `getProxyType(file.mediaType, file.name)` fallback (as the workflow already does) and add a regression test using a newly created attachment whose `media` is null.
+The chat and comment flows expose attachment IDs and metadata in the message context rather than forcing every attachment into the initial model request. This is appropriate because attachments may be images, videos, PDFs, Markdown files, or other formats. The agent can choose `analyze_image`, `screenshot`, `read_pdf_pages`, or `download_asset` based on the attachment type and the task. The tool availability and behavior for unprocessed attachment assets should still be covered by tests (see the notes below).
 
 ### Required: A message can be discarded when the team ID is still loading
 
@@ -40,15 +38,15 @@ Markup/timestamp message cards and attachment rows use non-interactive `<div onC
 
 ## Quality Checklist
 
-- Correctness: **Request changes** due to the direct image-delivery gap, silent draft loss, destructive deletion without confirmation, and broken mention navigation.
+- Correctness: **Request changes** due to silent draft loss, destructive deletion without confirmation, and broken mention navigation. The previously noted direct image-delivery concern is withdrawn because tool-driven attachment inspection is the intended design.
 - Readability: The data flow is understandable, but `ChatbotSidebar` and `ChatInput` now contain substantial duplicated rendering and interaction logic that should be decomposed after the correctness fixes.
 - Architecture: Reusing `getProxyType` would keep attachment classification consistent between the service and workflow. The shared input API is directionally appropriate.
 - Security: Existing asset permission checks remain in `ChatService`; no new injection or authorization bypass was found.
 - Performance: Attachment URL presigning is parallelized for comment attachments. The chat path still resolves multiple assets sequentially, but this is not a new unbounded query pattern.
-- Tests: `bun run test` passed (147 files, 1,393 tests). The five changed-area test files passed (64 tests). The added tests do not cover fresh image attachment delivery, team-ID race handling, delete confirmation, or collapsed mention navigation.
+- Tests: `bun run test` passed (147 files, 1,393 tests). The five changed-area test files passed (64 tests). The added tests do not cover tool selection/handling for fresh Markdown or video/PDF attachment assets, team-ID race handling, delete confirmation, or collapsed mention navigation.
 - Static checks: `bun run lint`, `bun run typecheck`, `bun run format --check`, and `git diff --check` passed.
 - E2E: `bun run test:e2e:workflow` passed (13 files, 56 tests), `bun run test:e2e:webui` passed (9 tests), and `bun run test:e2e:app` passed (38 tests) when run after the parallel port conflict was cleared.
 
 ## Verdict
 
-**Request changes** — fix the direct image-delivery gap, prevent draft loss while team context loads, restore deletion confirmation, repair collapsed mention navigation, and route all new user-facing text through Paraglide before merging.
+**Request changes** — prevent draft loss while team context loads, restore deletion confirmation, repair collapsed mention navigation, and route all new user-facing text through Paraglide before merging.
