@@ -284,4 +284,69 @@ describe('ChatbotSidebar - Agent Selection & Preference Persistence', () => {
 
     expect(mockSelectMessage).not.toHaveBeenCalled()
   })
+
+  it('renders full-width message card with inline badges, attachments and assets sections', async () => {
+    vi.mocked(client.api.projects[':projectId']['chat-agents'].$get).mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: 'agent-1', name: 'Agent 1', type: 'chat', enabled: true }],
+    } as unknown as Awaited<
+      ReturnType<(typeof client.api.projects)[':projectId']['chat-agents']['$get']>
+    >)
+
+    const mockMessage = {
+      id: 'msg-full',
+      role: 'custom',
+      customType: 'shumai_message',
+      content: 'Review this scene carefully',
+      details: {
+        annotation: true,
+        annotations: [
+          {
+            type: 'box',
+            color: '#ff0000',
+            points: [
+              [0, 0],
+              [10, 10],
+            ],
+          },
+        ],
+        position: { type: 'time', seconds: 45 },
+        currentAsset: { id: 'file-123', name: 'clip.mp4', type: 'file' },
+        attachedFiles: [
+          { id: 'att-1', name: 'reference-mood.jpg', type: 'image', mediaType: 'image/jpeg' },
+        ],
+        referencedAssets: [
+          { id: 'asset-ref-1', name: 'Storyboard.pdf', type: 'file' },
+          { id: 'asset-ref-2', name: 'Audio Stems', type: 'folder' },
+        ],
+      },
+    } as unknown as ChatMessage
+
+    useChatbotStore.setState({
+      messages: [mockMessage],
+    })
+
+    const { getByText } = render(
+      <QueryClientProvider client={queryClient}>
+        <ChatbotSidebar projectId="proj-1" contextAssetId="file-123" />
+      </QueryClientProvider>,
+    )
+
+    // Inline text and timestamp
+    expect(getByText('Review this scene carefully')).toBeTruthy()
+    expect(getByText('00:45')).toBeTruthy()
+
+    // Attachments section
+    expect(getByText('Attachments')).toBeTruthy()
+    expect(getByText('reference-mood.jpg')).toBeTruthy()
+
+    // Assets section
+    expect(getByText('Assets')).toBeTruthy()
+    expect(getByText('Storyboard.pdf')).toBeTruthy()
+    expect(getByText('Audio Stems')).toBeTruthy()
+
+    // Card should be full width (w-full)
+    const cardEl = getByText('Review this scene carefully').closest('.bg-primary')
+    expect(cardEl?.className).toContain('w-full')
+  })
 })

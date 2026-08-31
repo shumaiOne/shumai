@@ -22,6 +22,7 @@ import {
   ChevronDown,
   Download,
   FileIcon,
+  Folder,
   History,
   Loader2,
   Plus,
@@ -289,6 +290,7 @@ export function ChatbotSidebar({
             timeStr = `Page ${position.page}`
           }
           const messageText = getMessageText(msgObj.content)
+          const hasAttachmentsOrAssets = attachedFiles.length > 0 || referencedAssets.length > 0
           const handleCardClick = () => {
             if (isCurrentAssetMatch && onSelectMessage) {
               onSelectMessage(msg)
@@ -299,108 +301,133 @@ export function ChatbotSidebar({
               key={msg.id}
               onClick={handleCardClick}
               className={cn(
-                'flex flex-col items-end w-full space-y-1 group transition-all duration-150',
+                'flex flex-col items-end w-full group transition-all duration-150',
                 isCurrentAssetMatch && (hasAnnotations || position) && 'cursor-pointer',
               )}
             >
-              {referencedAssets.length > 0 && (
-                <div className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 space-y-1 my-1 w-full">
-                  <div className="font-semibold">{m.assets_added_to_context()}</div>
-                  <ul className="list-disc list-inside space-y-0.5">
-                    {referencedAssets.map((asset) => (
-                      <li key={asset.id} className="truncate">
-                        {asset.name}{' '}
-                        <span className="text-muted-foreground/70">({asset.type})</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
               <div
                 className={cn(
-                  'bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap shadow-xs break-words transition-all',
+                  'bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm whitespace-pre-wrap shadow-xs break-words transition-all',
+                  hasAttachmentsOrAssets ? 'w-full' : 'max-w-[85%]',
                   isSelected && 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-background',
                 )}
               >
-                {(hasAnnotations || position) && (
-                  <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                    {hasAnnotations && (
-                      <span
-                        className="bg-primary-foreground/20 text-primary-foreground px-1.5 py-0.5 rounded text-xs inline-flex items-center gap-1 font-mono font-medium"
-                        title={m.contains_drawing_annotations?.() || 'Contains drawing annotations'}
-                      >
-                        <DrawAnnotation className="w-3.5 h-3.5" />
-                      </span>
-                    )}
-                    {position && (
-                      <span className="bg-primary-foreground/20 text-primary-foreground px-2 py-0.5 rounded text-xs font-mono font-bold">
-                        {timeStr}
-                      </span>
-                    )}
+                <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                  {hasAnnotations && (
+                    <span
+                      className="inline-flex items-center align-middle mr-1.5 p-0.5 rounded bg-primary-foreground/20 text-primary-foreground"
+                      title={m.contains_drawing_annotations?.() || 'Contains drawing annotations'}
+                    >
+                      <DrawAnnotation className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+                  {position && (
+                    <span className="inline-flex items-center align-middle mr-1.5 px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-primary-foreground/20 text-primary-foreground">
+                      {timeStr}
+                    </span>
+                  )}
+                  {messageText && <span>{messageText}</span>}
+                </div>
+
+                {attachedFiles.length > 0 && (
+                  <div className="mt-2.5 w-full">
+                    <div className="text-xs font-medium text-primary-foreground/70 mb-1">
+                      {m.attachments?.() || 'Attachments'}
+                    </div>
+                    <div className="flex flex-col gap-1.5 w-full">
+                      {attachedFiles.map((att) => {
+                        const name = att.name || 'file'
+                        const isImage =
+                          att.mediaType === 'image' ||
+                          att.mimeType?.startsWith('image/') ||
+                          /\.(jpe?g|png|gif|webp|svg)$/i.test(name)
+                        return (
+                          <div
+                            key={att.id}
+                            className={cn(
+                              'group/att relative flex items-center w-full max-w-full rounded-lg border border-primary-foreground/15 bg-primary-foreground/10 hover:bg-primary-foreground/15 transition-colors overflow-hidden',
+                              isImage ? 'h-14 p-1.5 gap-2.5 cursor-pointer' : 'h-9 px-2.5 gap-2.5',
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (att.url) {
+                                if (isImage) {
+                                  setPreviewImage({ url: att.url, name })
+                                } else {
+                                  window.open(att.url, '_blank', 'noreferrer')
+                                }
+                              }
+                            }}
+                          >
+                            {isImage && att.url ? (
+                              <div className="h-full aspect-square rounded-md overflow-hidden bg-black/20 shrink-0">
+                                <img
+                                  src={att.url}
+                                  alt={name}
+                                  className="w-full h-full object-cover group-hover/att:scale-105 transition-transform duration-200"
+                                />
+                              </div>
+                            ) : (
+                              <FileIcon className="w-4 h-4 text-primary-foreground/70 shrink-0" />
+                            )}
+                            <div className="min-w-0 flex-1 overflow-hidden">
+                              <p
+                                className="text-xs font-medium text-primary-foreground truncate block w-full"
+                                title={name}
+                              >
+                                {name}
+                              </p>
+                            </div>
+                            {att.url && (
+                              <a
+                                href={att.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                download={name}
+                                className="p-1 text-primary-foreground/70 hover:text-primary-foreground shrink-0 rounded-md hover:bg-primary-foreground/20 transition-colors opacity-0 group-hover/att:opacity-100"
+                                onClick={(e) => e.stopPropagation()}
+                                title={m.download?.() || 'Download'}
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 )}
-                {messageText && <div>{messageText}</div>}
-                {attachedFiles.length > 0 && (
-                  <div className="flex flex-col gap-1.5 mt-2 w-full max-w-full overflow-hidden">
-                    {attachedFiles.map((att) => {
-                      const name = att.name || 'file'
-                      const isImage =
-                        att.mediaType === 'image' ||
-                        att.mimeType?.startsWith('image/') ||
-                        /\.(jpe?g|png|gif|webp|svg)$/i.test(name)
-                      return (
+
+                {referencedAssets.length > 0 && (
+                  <div className="mt-2.5 w-full">
+                    <div className="text-xs font-medium text-primary-foreground/70 mb-1">
+                      {m.assets?.() || 'Assets'}
+                    </div>
+                    <div className="flex flex-col gap-1.5 w-full">
+                      {referencedAssets.map((asset) => (
                         <div
-                          key={att.id}
-                          className={cn(
-                            'group/att relative flex items-center w-full max-w-full rounded-lg border border-primary-foreground/20 bg-background/90 text-foreground hover:bg-background transition-colors overflow-hidden',
-                            isImage ? 'h-14 p-1.5 gap-2 cursor-pointer' : 'h-8 px-2 gap-2',
-                          )}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (att.url) {
-                              if (isImage) {
-                                setPreviewImage({ url: att.url, name })
-                              } else {
-                                window.open(att.url, '_blank', 'noreferrer')
-                              }
-                            }
-                          }}
+                          key={asset.id}
+                          className="flex items-center justify-between w-full h-9 px-2.5 rounded-lg border border-primary-foreground/15 bg-primary-foreground/10 hover:bg-primary-foreground/15 transition-colors overflow-hidden"
                         >
-                          {isImage && att.url ? (
-                            <div className="h-full aspect-square rounded overflow-hidden bg-muted shrink-0">
-                              <img
-                                src={att.url}
-                                alt={name}
-                                className="w-full h-full object-cover group-hover/att:scale-105 transition-transform duration-200"
-                              />
-                            </div>
-                          ) : (
-                            <FileIcon className="w-4 h-4 text-muted-foreground shrink-0" />
-                          )}
-                          <div className="min-w-0 flex-1 overflow-hidden">
-                            <p
-                              className="text-xs font-medium text-foreground truncate block w-full"
-                              title={name}
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            {asset.type === 'folder' ? (
+                              <Folder className="w-4 h-4 text-primary-foreground/70 shrink-0" />
+                            ) : (
+                              <FileIcon className="w-4 h-4 text-primary-foreground/70 shrink-0" />
+                            )}
+                            <span
+                              className="text-xs font-medium truncate text-primary-foreground"
+                              title={asset.name}
                             >
-                              {name}
-                            </p>
+                              {asset.name}
+                            </span>
                           </div>
-                          {att.url && (
-                            <a
-                              href={att.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              download={name}
-                              className="p-1 text-muted-foreground hover:text-foreground shrink-0 rounded hover:bg-muted transition-colors opacity-0 group-hover/att:opacity-100"
-                              onClick={(e) => e.stopPropagation()}
-                              title={m.download?.() || 'Download'}
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                            </a>
-                          )}
+                          <span className="text-[10px] text-primary-foreground/60 uppercase shrink-0 font-mono ml-2">
+                            {asset.type}
+                          </span>
                         </div>
-                      )
-                    })}
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
