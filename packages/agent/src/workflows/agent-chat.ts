@@ -195,6 +195,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
             mediaType: attProxyType as ShumaiAttachedFileContext['mediaType'],
             mimeType: att.asset.mediaType || undefined,
             path: filePath || undefined,
+            url: (att.asset as { url?: string }).url || undefined,
           })
           attachedAssets.push({ id: att.asset.id, name: att.asset.name, type: att.asset.type })
         }
@@ -219,6 +220,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
             mediaType: fileProxyType as ShumaiAttachedFileContext['mediaType'],
             mimeType: file.mediaType || undefined,
             path: filePath || undefined,
+            url: (file as { url?: string }).url || undefined,
           })
           attachedAssets.push({ id: file.id, name: file.name, type: file.type })
         }
@@ -247,6 +249,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
             mediaType: refProxyType as ShumaiAttachedFileContext['mediaType'],
             mimeType: referencedAsset.mediaType || undefined,
             path: filePath || undefined,
+            url: (referencedAsset as { url?: string }).url || undefined,
           })
           attachedAssets.push({
             id: referencedAsset.id,

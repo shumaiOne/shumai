@@ -31,6 +31,7 @@ import { ProgressCircle } from '../ui/progress-circle'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
 import { formatTimecode } from '../viewers/video/utils'
 import { useUiStore } from '@/ui/stores/ui'
+import { isImageFileName } from '@/ui/lib/media'
 
 export type UploadingFile = {
   id: string // A unique ID for the file, e.g., timestamp + name
@@ -541,7 +542,10 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
           id: f.attachmentId!,
           name: f.file.name,
           type: f.file.type,
-          url: f.file.type.startsWith('image/') ? URL.createObjectURL(f.file) : undefined,
+          url:
+            f.file.type.startsWith('image/') || isImageFileName(f.file.name)
+              ? URL.createObjectURL(f.file)
+              : undefined,
         }))
 
       // Serialize content

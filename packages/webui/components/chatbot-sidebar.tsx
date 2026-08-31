@@ -36,6 +36,7 @@ import { formatTimeAgo } from '../lib/time'
 import { ChatInput } from './chat/message-input'
 import { DrawAnnotation } from './ui/icons'
 import { formatTimecode } from './viewers/video/utils'
+import { isImageFileName } from '@/ui/lib/media'
 
 interface ChatbotSidebarProps {
   projectId: string
@@ -338,15 +339,15 @@ export function ChatbotSidebar({
                       {attachedFiles.map((att) => {
                         const name = att.name || 'file'
                         const isImage =
+                          isImageFileName(name) ||
                           att.mediaType === 'image' ||
-                          att.mimeType?.startsWith('image/') ||
-                          /\.(jpe?g|png|gif|webp|svg)$/i.test(name)
+                          att.mimeType?.startsWith('image/')
                         return (
                           <div
                             key={att.id}
                             className={cn(
                               'group/att relative flex items-center w-full max-w-full rounded-lg border border-primary-foreground/15 bg-primary-foreground/10 hover:bg-primary-foreground/15 transition-colors overflow-hidden',
-                              isImage ? 'h-14 p-1.5 gap-2.5 cursor-pointer' : 'h-9 px-2.5 gap-2.5',
+                              isImage ? 'h-18 p-1.5 gap-2.5 cursor-pointer' : 'h-9 px-2.5 gap-2.5',
                             )}
                             onClick={(e) => {
                               e.stopPropagation()
