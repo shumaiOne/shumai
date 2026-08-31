@@ -288,7 +288,7 @@ export function ChatbotSidebar({
               timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
             }
           } else if (position?.type === 'page') {
-            timeStr = `Page ${position.page}`
+            timeStr = m.page_prefix({ page: position.page })
           }
           const messageText = getMessageText(msgObj.content)
           const hasAttachmentsOrAssets = attachedFiles.length > 0 || referencedAssets.length > 0
@@ -317,7 +317,7 @@ export function ChatbotSidebar({
                   {hasAnnotations && (
                     <span
                       className="inline-flex items-center align-middle mr-1.5 p-0.5 rounded bg-primary-foreground/20 text-primary-foreground"
-                      title={m.contains_drawing_annotations?.() || 'Contains drawing annotations'}
+                      title={m.contains_drawing_annotations()}
                     >
                       <DrawAnnotation className="w-3.5 h-3.5" />
                     </span>
@@ -333,7 +333,7 @@ export function ChatbotSidebar({
                 {attachedFiles.length > 0 && (
                   <div className="mt-2.5 w-full">
                     <div className="text-xs font-medium text-primary-foreground/70 mb-1">
-                      {m.attachments?.() || 'Attachments'}
+                      {m.attachments()}
                     </div>
                     <div className="flex flex-col gap-1.5 w-full">
                       {attachedFiles.map((att) => {
@@ -387,7 +387,7 @@ export function ChatbotSidebar({
                                 download={name}
                                 className="p-1 text-primary-foreground/70 hover:text-primary-foreground shrink-0 rounded-md hover:bg-primary-foreground/20 transition-colors opacity-0 group-hover/att:opacity-100"
                                 onClick={(e) => e.stopPropagation()}
-                                title={m.download?.() || 'Download'}
+                                title={m.download()}
                               >
                                 <Download className="w-3.5 h-3.5" />
                               </a>
@@ -402,7 +402,7 @@ export function ChatbotSidebar({
                 {referencedAssets.length > 0 && (
                   <div className="mt-2.5 w-full">
                     <div className="text-xs font-medium text-primary-foreground/70 mb-1">
-                      {m.assets?.() || 'Assets'}
+                      {m.assets()}
                     </div>
                     <div className="flex flex-col gap-1.5 w-full">
                       {referencedAssets.map((asset) => (
@@ -599,7 +599,18 @@ export function ChatbotSidebar({
           </div>
         )
       }
-      case 'thinking_level_change':
+      case 'thinking_level_change': {
+        const msgObj = msg as unknown as Record<string, unknown>
+        const systemContent = msgObj.content || ''
+        return (
+          <div
+            key={msg.id}
+            className="text-center text-xs text-muted-foreground italic bg-muted/20 py-1.5 rounded"
+          >
+            {getMessageText(systemContent)}
+          </div>
+        )
+      }
       default:
         return null
     }
@@ -617,7 +628,7 @@ export function ChatbotSidebar({
           <div className="bg-background/95 text-foreground px-4 py-3 rounded-xl border border-border/80 flex flex-col items-center gap-2 shadow-lg max-w-[80%] animate-in zoom-in-95 duration-150">
             <Bot className="h-6 w-6 text-primary animate-bounce" />
             <span className="text-sm font-semibold text-foreground">
-              {m.chatbot_drag_drop_hint() || 'Drop assets here'}
+              {m.chatbot_drag_drop_hint()}
             </span>
           </div>
         </div>
@@ -630,7 +641,7 @@ export function ChatbotSidebar({
             <button
               onClick={() => setIsHistoryMode(false)}
               className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              title="Back to Chat"
+              title={m.back_to_chat()}
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
@@ -678,7 +689,7 @@ export function ChatbotSidebar({
         <ScrollArea className="flex-1 p-3">
           {historySessions.length === 0 ? (
             <div className="text-center text-xs text-muted-foreground py-8">
-              {m.no_history_sessions() || 'No past chat sessions found'}
+              {m.no_history_sessions()}
             </div>
           ) : (
             <div className="space-y-1">
@@ -702,7 +713,7 @@ export function ChatbotSidebar({
                   >
                     <div className="flex flex-col min-w-0 pr-2">
                       <span className="truncate text-foreground font-medium text-xs">
-                        {session.name || m.untitled_session() || 'Chat Session'}
+                        {session.name || m.untitled_session()}
                       </span>
                       <span className="text-[10px] text-muted-foreground">
                         {formatTimeAgo(session.updatedAt)}
@@ -711,12 +722,12 @@ export function ChatbotSidebar({
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        if (teamId) {
+                        if (teamId && window.confirm(m.delete_session_confirm())) {
                           deleteSession(teamId, session.id)
                         }
                       }}
                       className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-muted-foreground hover:text-destructive p-1 rounded hover:bg-muted cursor-pointer"
-                      title="Delete Session"
+                      title={m.delete_session()}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -747,7 +758,7 @@ export function ChatbotSidebar({
                     ).customType === 'shumai_message') && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground italic">
                       <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                      <span>Thinking...</span>
+                      <span>{m.thinking_status()}</span>
                     </div>
                   )}
                 <div ref={messagesEndRef} />
@@ -760,8 +771,8 @@ export function ChatbotSidebar({
               projectId={projectId}
               value={inputText}
               onChangeText={setInputText}
-              placeholder={m.type_a_message?.() || 'Type a message...'}
-              disabled={!selectedAgentId}
+              placeholder={m.type_a_message()}
+              disabled={!selectedAgentId || !teamId}
               isStreaming={isStreaming}
               onAbort={() => {
                 if (teamId) {
@@ -775,10 +786,7 @@ export function ChatbotSidebar({
               allowMarkup={true}
               canMarkup={!!file && ['image', 'video', 'pdf'].includes(file.proxyType || '')}
               markupDisabledTooltip={
-                !file
-                  ? m.open_file_to_add_markup?.() || 'Open a supported file to add markup'
-                  : m.markup_not_supported_for_this_file?.() ||
-                    'Markup is not supported for this file type'
+                !file ? m.open_file_to_add_markup() : m.markup_not_supported_for_this_file()
               }
               allowTimestamp={file?.proxyType === 'video' || file?.proxyType === 'pdf'}
               currentTime={currentTime}
@@ -786,7 +794,9 @@ export function ChatbotSidebar({
               startTimecode={startTimecode || file?.media?.metadata?.startTimecode}
               formatTimestamp={
                 formatTimestamp ||
-                (file?.proxyType === 'pdf' ? (sec: number) => `Page ${Math.round(sec)}` : undefined)
+                (file?.proxyType === 'pdf'
+                  ? (sec: number) => m.page_prefix({ page: Math.round(sec) })
+                  : undefined)
               }
               onTyping={onTyping}
               onSendMessage={(

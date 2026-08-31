@@ -628,7 +628,10 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
         {showMentionList &&
           effectiveAllowMentions &&
           (membersLoading || filteredAgents.length > 0 || filteredHumans.length > 0) && (
-            <div className="absolute bottom-full left-4 mb-2 w-64 rounded-xl shadow-lg border border-border overflow-hidden z-20 bg-popover text-popover-foreground animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div
+              onMouseDown={(e) => e.preventDefault()}
+              className="absolute bottom-full left-4 mb-2 w-64 rounded-xl shadow-lg border border-border overflow-hidden z-20 bg-popover text-popover-foreground animate-in fade-in slide-in-from-bottom-2 duration-200"
+            >
               <div ref={mentionListRef} className="h-64 overflow-y-auto">
                 {membersLoading ? (
                   <div className="p-2 space-y-4 animate-pulse">
@@ -666,12 +669,15 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                     {filteredAgents.length > 0 && (
                       <>
                         <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
                             setCollapsedSections((prev) => ({ ...prev, bots: !prev.bots }))
+                            editorRef.current?.focus()
                           }}
-                          className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border flex items-center justify-between hover:bg-muted transition-colors"
+                          className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border flex items-center justify-between hover:bg-muted transition-colors cursor-pointer select-none"
                         >
                           <span>Agents</span>
                           <ChevronDown
@@ -683,11 +689,13 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                             const actualIndex = index
                             return (
                               <button
+                                type="button"
                                 key={item.data.id}
                                 data-index={actualIndex}
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => handleSelectEntity(item)}
                                 onMouseEnter={() => setHighlightedIndex(actualIndex)}
-                                className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left ${
+                                className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left cursor-pointer ${
                                   actualIndex === highlightedIndex
                                     ? 'bg-accent text-accent-foreground'
                                     : 'hover:bg-accent/50'
@@ -715,12 +723,15 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                     {filteredHumans.length > 0 && (
                       <>
                         <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
                             setCollapsedSections((prev) => ({ ...prev, users: !prev.users }))
+                            editorRef.current?.focus()
                           }}
-                          className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border flex items-center justify-between hover:bg-muted transition-colors"
+                          className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border flex items-center justify-between hover:bg-muted transition-colors cursor-pointer select-none"
                         >
                           <span>Members</span>
                           <ChevronDown
@@ -729,14 +740,17 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                         </button>
                         {!collapsedSections.users &&
                           filteredHumans.map((item, index) => {
-                            const actualIndex = index + filteredAgents.length
+                            const agentOffset = collapsedSections.bots ? 0 : filteredAgents.length
+                            const actualIndex = index + agentOffset
                             return (
                               <button
+                                type="button"
                                 key={item.data.id}
                                 data-index={actualIndex}
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => handleSelectEntity(item)}
                                 onMouseEnter={() => setHighlightedIndex(actualIndex)}
-                                className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left ${
+                                className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left cursor-pointer ${
                                   actualIndex === highlightedIndex
                                     ? 'bg-accent text-accent-foreground'
                                     : 'hover:bg-accent/50'

@@ -349,4 +349,89 @@ describe('ChatbotSidebar - Agent Selection & Preference Persistence', () => {
     const cardEl = getByText('Review this scene carefully').closest('.bg-primary')
     expect(cardEl?.className).toContain('w-full')
   })
+
+  it('asks for confirmation before deleting a session and deletes when confirmed', async () => {
+    const mockDeleteSession = vi.fn()
+    const originalDeleteSession = useChatbotStore.getState().deleteSession
+    useChatbotStore.setState({
+      isHistoryMode: true,
+      historySessions: [
+        {
+          id: 'sess-1',
+          agentId: 'agent-1',
+          userId: 'user-1',
+          assetId: 'asset-1',
+          userCommentId: null,
+          name: 'Important Chat',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+      deleteSession: mockDeleteSession,
+    })
+
+    const { useTeamContextStore } = await import('@/ui/stores/team-context')
+    useTeamContextStore.setState({ teamId: 'team-123' })
+
+    window.confirm = vi.fn()
+    const confirmSpy = vi.spyOn(window, 'confirm')
+
+    // 1. User cancels confirmation
+    confirmSpy.mockReturnValue(false)
+    const { getByTitle } = render(
+      <QueryClientProvider client={queryClient}>
+        <ChatbotSidebar projectId="proj-1" />
+      </QueryClientProvider>,
+    )
+
+    const deleteBtn = getByTitle('Delete Session')
+    deleteBtn.click()
+    expect(confirmSpy).toHaveBeenCalled()
+    expect(mockDeleteSession).not.toHaveBeenCalled()
+
+    // 2. User confirms deletion
+    confirmSpy.mockReturnValue(true)
+    deleteBtn.click()
+    expect(mockDeleteSession).toHaveBeenCalledWith('team-123', 'sess-1')
+
+    confirmSpy.mockRestore()
+    useChatbotStore.setState({ deleteSession: originalDeleteSession })
+  })
+
+  it('renders thinking_level_change messages properly in the chat log', () => {
+    const mockThinkingChangeMsg = {
+      id: 'think-1',
+      role: 'thinking_level_change',
+      content: 'Thinking level changed to high',
+      timestamp: Date.now(),
+    } as unknown as ChatMessage
+
+    useChatbotStore.setState({
+      messages: [mockThinkingChangeMsg],
+    })
+
+    const { getByText } = render(
+      <QueryClientProvider client={queryClient}>
+        <ChatbotSidebar projectId="proj-1" />
+      </QueryClientProvider>,
+    )
+
+    expect(getByText('Thinking level changed to high')).toBeTruthy()
+  })
+
+  it('disables message input when teamId is not available', async () => {
+    const { useTeamContextStore } = await import('@/ui/stores/team-context')
+    useTeamContextStore.setState({ teamId: null, projectTeamMap: {} })
+    useChatbotStore.setState({ selectedAgentId: 'agent-1' })
+
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <ChatbotSidebar projectId="proj-1" />
+      </QueryClientProvider>,
+    )
+
+    const inputArea = container.querySelector('[contenteditable="false"]')
+    expect(inputArea).toBeTruthy()
+    expect(inputArea?.getAttribute('contenteditable')).toBe('false')
+  })
 })

@@ -1317,5 +1317,10 @@
   "playback_speed": "播放速度",
   "settings": "设置",
   "failed_to_post_comment": "发送评论失败",
-  "entry_id": "条目 ID"
+  "entry_id": "条目 ID",
+  "back_to_chat": "返回聊天",
+  "delete_session": "删除会话",
+  "thinking_status": "思考中...",
+  "contains_drawing_annotations": "包含标注绘图",
+  "page_prefix": "第 {page} 页"
 }

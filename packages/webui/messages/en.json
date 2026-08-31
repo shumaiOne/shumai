@@ -1317,5 +1317,10 @@
   "playback_speed": "Playback Speed",
   "settings": "Settings",
   "failed_to_post_comment": "Failed to post comment",
-  "entry_id": "Entry ID"
+  "entry_id": "Entry ID",
+  "back_to_chat": "Back to Chat",
+  "delete_session": "Delete Session",
+  "thinking_status": "Thinking...",
+  "contains_drawing_annotations": "Contains drawing annotations",
+  "page_prefix": "Page {page}"
 }
