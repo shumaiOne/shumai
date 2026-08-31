@@ -308,9 +308,9 @@ export function ChatbotSidebar({
             >
               <div
                 className={cn(
-                  'bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm whitespace-pre-wrap shadow-xs break-words transition-all',
+                  'bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm whitespace-pre-wrap shadow-xs break-words transition-all border',
                   hasAttachmentsOrAssets ? 'w-full' : 'max-w-[85%]',
-                  isSelected && 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-background',
+                  isSelected ? 'border-blue-500 dark:border-blue-400' : 'border-transparent',
                 )}
               >
                 <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">

@@ -236,10 +236,44 @@ describe('ChatbotSidebar - Agent Selection & Preference Persistence', () => {
     expect(getByText('00:15')).toBeTruthy()
     expect(getByText('color-ref.png')).toBeTruthy()
 
+    const msgCardInner = getByText('Fix the color in this scene').closest('.bg-primary')
+    expect(msgCardInner?.className).not.toContain('ring-2')
+
     const msgCard = getByText('Fix the color in this scene').closest('div')
     msgCard?.click()
 
     expect(mockSelectMessage).toHaveBeenCalledWith(mockMessage)
+  })
+
+  it('renders selected message card with border-blue-500 instead of ring when selectedMessageId matches', async () => {
+    const mockMessage = {
+      id: 'msg-selected',
+      role: 'custom',
+      customType: 'shumai_message',
+      content: 'Selected message content',
+      details: {
+        position: { type: 'time', seconds: 10 },
+        currentAsset: { id: 'file-123', name: 'video.mp4', type: 'file' },
+      },
+    } as unknown as ChatMessage
+
+    useChatbotStore.setState({
+      messages: [mockMessage],
+    })
+
+    const { getByText } = render(
+      <QueryClientProvider client={queryClient}>
+        <ChatbotSidebar
+          projectId="proj-1"
+          contextAssetId="file-123"
+          selectedMessageId="msg-selected"
+        />
+      </QueryClientProvider>,
+    )
+
+    const cardInner = getByText('Selected message content').closest('.bg-primary')
+    expect(cardInner?.className).toContain('border-blue-500')
+    expect(cardInner?.className).not.toContain('ring')
   })
 
   it('does not trigger onSelectMessage on click when currentAsset does not match', async () => {
