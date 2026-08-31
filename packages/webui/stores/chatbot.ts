@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { client } from '@/ui/api/client'
 import type { ChatMessage, ChatSessionInfo } from '@shumai/dtos'
+import type { Annotation } from '@/ui/types'
 import { toast } from 'sonner'
 
 export const AGENT_PREFERENCE_STORAGE_KEY = 'shumai_selected_agent_id'
@@ -16,6 +17,15 @@ export interface ChatAsset {
   id: string
   name: string
   type: 'file' | 'folder'
+}
+
+export interface AttachedFileMeta {
+  id: string
+  name: string
+  type: string
+  url?: string
+  mediaType?: string
+  mimeType?: string
 }
 
 interface ChatbotState {
@@ -54,6 +64,10 @@ interface ChatbotState {
     projectId: string,
     contextAssetId?: string,
     onAssetMutation?: () => void,
+    attachmentIds?: string[],
+    annotations?: Annotation[],
+    second?: number | null,
+    attachedFilesMeta?: AttachedFileMeta[],
   ) => Promise<void>
   abortActiveSession: (teamId: string) => Promise<void>
 }
@@ -177,37 +191,43 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
     })
   },
 
-  sendMessage: async (teamId, text, projectId, contextAssetId, onAssetMutation) => {
+  sendMessage: async (
+    teamId,
+    text,
+    projectId,
+    contextAssetId,
+    onAssetMutation,
+    attachmentIds,
+    annotations,
+    second,
+    attachedFilesMeta,
+  ) => {
     const state = useChatbotStore.getState()
     if (state.isStreaming) return
 
     const tempId = `temp-${Date.now()}`
     const optimisticMsg = {
       id: tempId,
-      role: 'user' as const,
-      content: [{ type: 'text', text }],
+      role: 'custom' as const,
+      customType: 'shumai_message',
+      content: text,
+      display: true,
+      details: {
+        currentAsset: contextAssetId ? { id: contextAssetId, name: '', type: 'file' } : undefined,
+        position:
+          second !== undefined && second !== null ? { type: 'time', seconds: second } : undefined,
+        annotation: !!(annotations && annotations.length > 0),
+        annotations: annotations || undefined,
+        attachedFiles: attachedFilesMeta || undefined,
+        referencedAssets:
+          state.chatAssets.length > 0
+            ? state.chatAssets.map((a) => ({ id: a.id, name: a.name, type: a.type }))
+            : undefined,
+      },
       timestamp: Date.now(),
     } as unknown as ChatMessage
 
-    const newMessages = [...state.messages]
-    if (state.chatAssets.length > 0) {
-      const tempContextId = `temp-context-${Date.now()}`
-      const optimisticContextMsg = {
-        id: tempContextId,
-        role: 'custom' as const,
-        customType: 'context_display_info',
-        details: {
-          assets: state.chatAssets.map((a) => ({
-            id: a.id,
-            name: a.name,
-            type: a.type,
-          })),
-        },
-        timestamp: Date.now() - 1,
-      } as unknown as ChatMessage
-      newMessages.push(optimisticContextMsg)
-    }
-    newMessages.push(optimisticMsg)
+    const newMessages = [...state.messages, optimisticMsg]
 
     set({
       messages: newMessages,
@@ -229,11 +249,17 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
         param: { teamId },
         json: {
           agentId,
-          textPrompt: text,
-          assetIds,
+          textPrompt: text || undefined,
+          attachedFiles: attachmentIds && attachmentIds.length > 0 ? attachmentIds : undefined,
+          assetIds: assetIds && assetIds.length > 0 ? assetIds : undefined,
           sessionId: state.currentSessionId || undefined,
           contextAssetId,
           projectId,
+          second: second ?? undefined,
+          annotations:
+            annotations && annotations.length > 0
+              ? (annotations as unknown as Record<string, unknown>[])
+              : undefined,
         },
       })
 

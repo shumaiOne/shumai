@@ -735,4 +735,35 @@ describe('Agent Chat Workflow', () => {
       }),
     )
   })
+
+  it('should include annotations and second in direct chat messageContext', async () => {
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'chat',
+        status: 'pending',
+        assetId: 'a1',
+        payload: {
+          projectId: 'p1',
+          agent: {
+            prompt: 'Look at the highlighted zone',
+            agentId: 'b1',
+            sessionId: 'session-markup-1',
+            second: 14.2,
+            annotations: [{ type: 'rectangle', x: 20, y: 30, width: 40, height: 50 }],
+          },
+        },
+      },
+    })
+
+    await agentChat(task)
+
+    expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messageContext: expect.objectContaining({
+          position: { type: 'time', seconds: 14.2 },
+          annotations: [{ type: 'rectangle', x: 20, y: 30, width: 40, height: 50 }],
+        }),
+      }),
+    )
+  })
 })

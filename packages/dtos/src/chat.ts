@@ -10,15 +10,19 @@ export const chatRequestSchema = z
     sessionId: z.string().optional(), // ID of existing session (to continue)
     contextAssetId: z.string().optional(), // Active page context asset ID
     projectId: z.string().optional(), // Target project ID
+    second: z.number().nullable().optional(),
+    annotations: z.array(z.record(z.string(), z.unknown())).optional(),
   })
   .superRefine((data, ctx) => {
     const hasPrompt = data.textPrompt && data.textPrompt.trim().length > 0
     const hasFiles = data.attachedFiles && data.attachedFiles.length > 0
     const hasAssets = data.assetIds && data.assetIds.length > 0
-    if (!hasPrompt && !hasFiles && !hasAssets) {
+    const hasAnnotations = data.annotations && data.annotations.length > 0
+    if (!hasPrompt && !hasFiles && !hasAssets && !hasAnnotations) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'At least one of textPrompt, attachedFiles, or assetIds must be provided.',
+        message:
+          'At least one of textPrompt, attachedFiles, assetIds, or annotations must be provided.',
         path: ['textPrompt'],
       })
     }
@@ -63,6 +67,7 @@ export const shumaiAttachedFileContextSchema = z.object({
   mediaType: z.enum(['image', 'video', 'pdf', 'audio', 'other']).optional(),
   mimeType: z.string().optional(),
   path: z.string().optional(),
+  url: z.string().optional(),
 })
 
 export type ShumaiAttachedFileContext = z.infer<typeof shumaiAttachedFileContextSchema>
@@ -85,6 +90,7 @@ export const shumaiMessageContextSchema = z.object({
   currentAsset: shumaiAssetContextSchema.optional(),
   position: shumaiMediaPositionSchema.optional(),
   annotation: z.boolean().optional(),
+  annotations: z.array(z.record(z.string(), z.unknown())).optional(),
   attachedFiles: z.array(shumaiAttachedFileContextSchema).optional(),
   referencedAssets: z.array(shumaiAttachedFileContextSchema).optional(),
 })

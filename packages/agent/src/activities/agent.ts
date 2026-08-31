@@ -811,7 +811,12 @@ export async function initializeAgentSessionActivity(params: {
     const commentDetails: ShumaiMessageContext = {
       ...(userObj ? { user: userObj } : {}),
       ...(position ? { position } : {}),
-      ...(annotation ? { annotation: true } : {}),
+      ...(annotation
+        ? {
+            annotation: true,
+            annotations: c.annotation as unknown as ShumaiMessageContext['annotations'],
+          }
+        : {}),
       ...(attachedFiles.length > 0 ? { attachedFiles } : {}),
     }
 

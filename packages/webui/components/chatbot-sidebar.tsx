@@ -11,31 +11,56 @@ import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { useChatbotStore } from '@/ui/stores/chatbot'
 import { useTeamContextStore } from '@/ui/stores/team-context'
+import { useUiStore } from '@/ui/stores/ui'
 import { useDroppable } from '@dnd-kit/react'
-import type { ChatMessage, ShumaiMessageContext } from '@shumai/dtos'
+import type { AssetInfo, ChatMessage, ShumaiMessageContext } from '@shumai/dtos'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
-  ArrowUp,
   Bot,
   Brain,
   ChevronDown,
+  Download,
+  FileIcon,
   History,
   Loader2,
   Plus,
   Trash2,
   Wrench,
+  XIcon,
 } from 'lucide-react'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import { formatTimeAgo } from '../lib/time'
+import { ChatInput } from './chat/message-input'
+import { DrawAnnotation } from './ui/icons'
+import { formatTimecode } from './viewers/video/utils'
 
 interface ChatbotSidebarProps {
   projectId: string
   contextAssetId?: string
+  file?: AssetInfo | null
+  currentTime?: number
+  frameRate?: number
+  startTimecode?: string
+  formatTimestamp?: (second: number) => string
+  onTyping?: () => void
+  onSelectMessage?: (message: ChatMessage) => void
+  selectedMessageId?: string | null
 }
 
-export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProps) {
+export function ChatbotSidebar({
+  projectId,
+  contextAssetId,
+  file,
+  currentTime,
+  frameRate,
+  startTimecode,
+  formatTimestamp,
+  onTyping,
+  onSelectMessage,
+  selectedMessageId,
+}: ChatbotSidebarProps) {
   const {
     isHistoryMode,
     setIsHistoryMode,
@@ -58,6 +83,8 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
   } = useChatbotStore()
 
   const { teamId, ensureTeamIdForProject } = useTeamContextStore()
+  const { videoTimeDisplayMode } = useUiStore()
+  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null)
 
   useEffect(() => {
     if (projectId) {
@@ -187,21 +214,6 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
     queryClient.invalidateQueries({ queryKey: ['projects'] })
   }, [queryClient])
 
-  const handleSend = () => {
-    if (!inputText.trim() || isStreaming || !teamId) return
-    sendMessage(teamId, inputText, projectId, contextAssetId, handleAssetMutation)
-    setInputText('')
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.nativeEvent.isComposing) return
-
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
-
   const getMessageText = (content: unknown): string => {
     if (typeof content === 'string') return content
     if (Array.isArray(content)) {
@@ -224,29 +236,195 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
 
   const renderMessage = (msg: ChatMessage) => {
     switch (msg.role as string) {
-      case 'user': {
+      case 'user':
+      case 'custom': {
         const msgObj = msg as unknown as Record<string, unknown>
-        return (
-          <div key={msg.id} className="flex justify-end w-full">
-            <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap shadow-xs break-words">
-              {getMessageText(msgObj.content)}
+        if (msg.role === 'custom' && msgObj.customType === 'context_display_info') {
+          const details = msgObj.details as
+            | { assets?: Array<{ id: string; name: string; type: string }> }
+            | undefined
+          const assets = details?.assets || []
+          if (assets.length === 0) return null
+          return (
+            <div
+              key={msg.id}
+              className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 space-y-1 my-1"
+            >
+              <div className="font-semibold">{m.assets_added_to_context()}</div>
+              <ul className="list-disc list-inside space-y-0.5">
+                {assets.map((asset) => (
+                  <li key={asset.id} className="truncate">
+                    {asset.name} <span className="text-muted-foreground/70">({asset.type})</span>
+                  </li>
+                ))}
+              </ul>
             </div>
+          )
+        }
+        if (msg.role === 'user' || msgObj.customType === 'shumai_message') {
+          const details = msgObj.details as ShumaiMessageContext | undefined
+          const referencedAssets = details?.referencedAssets || []
+          const attachedFiles = details?.attachedFiles || []
+          const position = details?.position
+          const hasAnnotations =
+            details?.annotation || (details?.annotations && details.annotations.length > 0)
+          const isCurrentAssetMatch =
+            !details?.currentAsset?.id ||
+            (contextAssetId && details.currentAsset.id === contextAssetId) ||
+            (file?.id && details.currentAsset.id === file.id)
+          const isSelected = selectedMessageId === msg.id
+          let timeStr = ''
+          if (position?.type === 'time') {
+            if (formatTimestamp) {
+              timeStr = formatTimestamp(position.seconds)
+            } else if (frameRate) {
+              const frameIndex = Math.round(position.seconds * frameRate)
+              timeStr = formatTimecode(frameIndex, frameRate, videoTimeDisplayMode, startTimecode)
+            } else {
+              const mins = Math.floor(position.seconds / 60)
+              const secs = Math.floor(position.seconds % 60)
+              timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+            }
+          } else if (position?.type === 'page') {
+            timeStr = `Page ${position.page}`
+          }
+          const messageText = getMessageText(msgObj.content)
+          const handleCardClick = () => {
+            if (isCurrentAssetMatch && onSelectMessage) {
+              onSelectMessage(msg)
+            }
+          }
+          return (
+            <div
+              key={msg.id}
+              onClick={handleCardClick}
+              className={cn(
+                'flex flex-col items-end w-full space-y-1 group transition-all duration-150',
+                isCurrentAssetMatch && (hasAnnotations || position) && 'cursor-pointer',
+              )}
+            >
+              {referencedAssets.length > 0 && (
+                <div className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 space-y-1 my-1 w-full">
+                  <div className="font-semibold">{m.assets_added_to_context()}</div>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    {referencedAssets.map((asset) => (
+                      <li key={asset.id} className="truncate">
+                        {asset.name}{' '}
+                        <span className="text-muted-foreground/70">({asset.type})</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div
+                className={cn(
+                  'bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap shadow-xs break-words transition-all',
+                  isSelected && 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-background',
+                )}
+              >
+                {(hasAnnotations || position) && (
+                  <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                    {hasAnnotations && (
+                      <span
+                        className="bg-primary-foreground/20 text-primary-foreground px-1.5 py-0.5 rounded text-xs inline-flex items-center gap-1 font-mono font-medium"
+                        title={m.contains_drawing_annotations?.() || 'Contains drawing annotations'}
+                      >
+                        <DrawAnnotation className="w-3.5 h-3.5" />
+                      </span>
+                    )}
+                    {position && (
+                      <span className="bg-primary-foreground/20 text-primary-foreground px-2 py-0.5 rounded text-xs font-mono font-bold">
+                        {timeStr}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {messageText && <div>{messageText}</div>}
+                {attachedFiles.length > 0 && (
+                  <div className="flex flex-col gap-1.5 mt-2 w-full max-w-full overflow-hidden">
+                    {attachedFiles.map((att) => {
+                      const name = att.name || 'file'
+                      const isImage =
+                        att.mediaType === 'image' ||
+                        att.mimeType?.startsWith('image/') ||
+                        /\.(jpe?g|png|gif|webp|svg)$/i.test(name)
+                      return (
+                        <div
+                          key={att.id}
+                          className={cn(
+                            'group/att relative flex items-center w-full max-w-full rounded-lg border border-primary-foreground/20 bg-background/90 text-foreground hover:bg-background transition-colors overflow-hidden',
+                            isImage ? 'h-14 p-1.5 gap-2 cursor-pointer' : 'h-8 px-2 gap-2',
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (att.url) {
+                              if (isImage) {
+                                setPreviewImage({ url: att.url, name })
+                              } else {
+                                window.open(att.url, '_blank', 'noreferrer')
+                              }
+                            }
+                          }}
+                        >
+                          {isImage && att.url ? (
+                            <div className="h-full aspect-square rounded overflow-hidden bg-muted shrink-0">
+                              <img
+                                src={att.url}
+                                alt={name}
+                                className="w-full h-full object-cover group-hover/att:scale-105 transition-transform duration-200"
+                              />
+                            </div>
+                          ) : (
+                            <FileIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+                          )}
+                          <div className="min-w-0 flex-1 overflow-hidden">
+                            <p
+                              className="text-xs font-medium text-foreground truncate block w-full"
+                              title={name}
+                            >
+                              {name}
+                            </p>
+                          </div>
+                          {att.url && (
+                            <a
+                              href={att.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              download={name}
+                              className="p-1 text-muted-foreground hover:text-foreground shrink-0 rounded hover:bg-muted transition-colors opacity-0 group-hover/att:opacity-100"
+                              onClick={(e) => e.stopPropagation()}
+                              title={m.download?.() || 'Download'}
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        }
+        const systemContent = msgObj.content || ''
+        return (
+          <div
+            key={msg.id}
+            className="text-center text-xs text-muted-foreground italic bg-muted/20 py-1.5 rounded"
+          >
+            {getMessageText(systemContent)}
           </div>
         )
       }
-
       case 'assistant': {
         const msgObj = msg as unknown as Record<string, unknown>
         const content = msgObj.content as unknown[]
         if (!content) return null
-
         const renderedBlocks: React.ReactNode[] = []
-
         content.forEach((block: unknown, idx: number) => {
           if (!block || typeof block !== 'object') return
-
           const b = block as unknown as Record<string, unknown>
-
           switch (b.type) {
             case 'text': {
               const text = b.text
@@ -357,9 +535,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
             }
           }
         })
-
         if (renderedBlocks.length === 0) return null
-
         let shouldShowFooter = false
         if (content.length > 0) {
           const lastBlock = content[content.length - 1]
@@ -372,7 +548,6 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
             }
           }
         }
-
         return (
           <div key={msg.id} className="flex flex-col w-full space-y-1">
             <div className="space-y-2 w-full">{renderedBlocks}</div>
@@ -384,7 +559,6 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
           </div>
         )
       }
-
       case 'toolResult': {
         return (
           <div
@@ -397,69 +571,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
           </div>
         )
       }
-
       case 'thinking_level_change':
-      case 'custom': {
-        const msgObj = msg as unknown as Record<string, unknown>
-        if (msgObj.customType === 'shumai_message') {
-          const details = msgObj.details as ShumaiMessageContext | undefined
-          const referencedAssets = details?.referencedAssets || []
-          return (
-            <div key={msg.id} className="flex flex-col items-end w-full space-y-1">
-              {referencedAssets.length > 0 && (
-                <div className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 space-y-1 my-1 w-full">
-                  <div className="font-semibold">{m.assets_added_to_context()}</div>
-                  <ul className="list-disc list-inside space-y-0.5">
-                    {referencedAssets.map((asset) => (
-                      <li key={asset.id} className="truncate">
-                        {asset.name}{' '}
-                        <span className="text-muted-foreground/70">({asset.type})</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap shadow-xs break-words">
-                {getMessageText(msgObj.content)}
-              </div>
-            </div>
-          )
-        }
-
-        if (msgObj.customType === 'context_display_info') {
-          const details = msgObj.details as
-            | { assets?: Array<{ id: string; name: string; type: string }> }
-            | undefined
-          const assets = details?.assets || []
-          if (assets.length === 0) return null
-          return (
-            <div
-              key={msg.id}
-              className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 space-y-1 my-1"
-            >
-              <div className="font-semibold">{m.assets_added_to_context()}</div>
-              <ul className="list-disc list-inside space-y-0.5">
-                {assets.map((asset) => (
-                  <li key={asset.id} className="truncate">
-                    {asset.name} <span className="text-muted-foreground/70">({asset.type})</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )
-        }
-
-        const systemContent = msgObj.content || ''
-        return (
-          <div
-            key={msg.id}
-            className="text-center text-xs text-muted-foreground italic bg-muted/20 py-1.5 rounded"
-          >
-            {getMessageText(systemContent)}
-          </div>
-        )
-      }
-
       default:
         return null
     }
@@ -483,85 +595,99 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
         </div>
       )}
 
-      {/* Header section */}
-      <div className="flex items-center justify-between p-4 pt-[0.7rem] flex-shrink-0">
-        {isHistoryMode ? (
-          <>
-            <div className="flex items-center gap-2 font-semibold">
-              <span>{m.history()}</span>
-            </div>
+      {/* Header */}
+      <div className="h-12 border-b border-border flex items-center justify-between px-4 flex-shrink-0 bg-background/50 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          {isHistoryMode && (
             <button
               onClick={() => setIsHistoryMode(false)}
-              className="p-1.5 hover:bg-accent rounded-md text-muted-foreground hover:text-foreground transition-colors"
-              title="Close History"
+              className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="Back to Chat"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-2 font-semibold">
-              <span>{m.shumai_agent()}</span>
-            </div>
-            <div className="flex items-center gap-1">
+          )}
+          <Bot className="h-5 w-5 text-primary" />
+          <span className="font-semibold text-sm">
+            {isHistoryMode ? m.history() : m.shumai_agent()}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          {!isHistoryMode ? (
+            <>
               <button
                 onClick={startNewSession}
-                className="p-1.5 hover:bg-accent rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 title={m.new_chat()}
               >
                 <Plus className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setIsHistoryMode(true)}
-                className="p-1.5 hover:bg-accent rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 title={m.history()}
               >
                 <History className="h-4 w-4" />
               </button>
-            </div>
-          </>
-        )}
+            </>
+          ) : (
+            <button
+              onClick={() => {
+                startNewSession()
+                setIsHistoryMode(false)
+              }}
+              className="flex items-center gap-1 text-xs bg-primary text-primary-foreground px-2.5 py-1 rounded-md hover:bg-primary/90 transition-colors shadow-xs cursor-pointer"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>{m.new_chat()}</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Main body view */}
+      {/* Body */}
       {isHistoryMode ? (
-        <ScrollArea className="flex-1 p-4 min-h-0">
+        <ScrollArea className="flex-1 p-3">
           {historySessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground p-4 text-center">
-              <History className="h-8 w-8 mb-2 opacity-50 text-muted-foreground" />
-              <p className="text-sm">{m.no_history_sessions()}</p>
+            <div className="text-center text-xs text-muted-foreground py-8">
+              {m.no_history_sessions() || 'No past chat sessions found'}
             </div>
           ) : (
-            <div className="space-y-2 pb-4">
-              {historySessions.map((sess) => {
-                const isActive = sess.id === currentSessionId
+            <div className="space-y-1">
+              {historySessions.map((session) => {
+                const isCurrent = session.id === currentSessionId
                 return (
                   <div
-                    key={sess.id}
+                    key={session.id}
+                    onClick={() => {
+                      if (teamId) {
+                        loadSession(teamId, session.id)
+                        setIsHistoryMode(false)
+                      }
+                    }}
                     className={cn(
-                      'group relative flex items-center justify-between p-3 border rounded-lg transition-all cursor-pointer bg-card',
-                      isActive ? 'border-primary' : 'border-border hover:bg-accent/30',
+                      'group flex items-center justify-between p-2.5 rounded-lg text-xs cursor-pointer transition-all border border-transparent',
+                      isCurrent
+                        ? 'bg-accent/80 text-accent-foreground font-medium border-border/40'
+                        : 'hover:bg-muted/60 text-muted-foreground hover:text-foreground',
                     )}
                   >
-                    <div
-                      onClick={() => teamId && loadSession(teamId, sess.id)}
-                      className="flex-1 min-w-0 pr-6"
-                    >
-                      <div className="text-sm font-semibold text-foreground truncate">
-                        {sess.name || m.new_chat()}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {formatTimeAgo(sess.createdAt)}
-                      </div>
+                    <div className="flex flex-col min-w-0 pr-2">
+                      <span className="truncate text-foreground font-medium text-xs">
+                        {session.name || m.untitled_session() || 'Chat Session'}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {formatTimeAgo(session.updatedAt)}
+                      </span>
                     </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        if (teamId && confirm(m.delete_session_confirm())) {
-                          deleteSession(teamId, sess.id)
+                        if (teamId) {
+                          deleteSession(teamId, session.id)
                         }
                       }}
-                      className="absolute right-3 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-muted-foreground hover:text-destructive p-1 rounded hover:bg-muted"
+                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-muted-foreground hover:text-destructive p-1 rounded hover:bg-muted cursor-pointer"
                       title="Delete Session"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -574,7 +700,6 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
         </ScrollArea>
       ) : (
         <>
-          {/* Active Chat view */}
           <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 min-h-0 [&>div>div]:!block">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-border rounded-lg text-muted-foreground p-4 text-center">
@@ -602,62 +727,75 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
             )}
           </ScrollArea>
 
-          {/* Input Area (nested inside the border exactly like comment input) */}
           <div className="p-2 flex-shrink-0 bg-background">
-            <div className="relative flex flex-col w-full border border-foreground/20 rounded-2xl shadow-xs transition-all duration-200 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent bg-background overflow-hidden">
-              {/* Context assets list at the top inside the border */}
-              {chatAssets.length > 0 && (
-                <div className="flex flex-col gap-1.5 min-h-0 max-h-[160px] overflow-y-auto border-b border-border bg-muted/5 p-3 divide-y divide-border/50">
-                  {chatAssets.map((asset) => (
-                    <div
-                      key={asset.id}
-                      className="flex items-center justify-between py-1.5 text-xs group"
-                    >
-                      <div className="flex items-baseline gap-1.5 min-w-0 pr-2">
-                        <span className="truncate font-medium text-foreground">{asset.name}</span>
-                        <span className="text-[9px] text-muted-foreground uppercase flex-shrink-0">
-                          {asset.type}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => removeAsset(asset.id)}
-                        className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
-                        title={m.remove_from_context()}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Textarea inside the border */}
-              <textarea
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
-                rows={2}
-                className="w-full bg-transparent border-none focus:ring-0 focus:outline-hidden resize-none min-h-[44px] max-h-[120px] px-3 py-2 text-sm focus-visible:outline-hidden focus:ring-transparent focus:border-transparent focus-visible:ring-0"
-                disabled={isStreaming}
-              />
-
-              {/* Bottom row inside the border containing the agent selector and send button */}
-              <div className="flex justify-between items-center px-3 pb-2 pt-1">
-                {/* Agent selector */}
-                <div className="flex items-center gap-1.5 min-w-0 max-w-[70%]">
+            <ChatInput
+              projectId={projectId}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder={m.type_a_message?.() || 'Type a message...'}
+              disabled={!selectedAgentId}
+              isStreaming={isStreaming}
+              onAbort={() => {
+                if (teamId) {
+                  abortActiveSession(teamId)
+                }
+              }}
+              allowMentions={false}
+              allowAttachments={true}
+              workspaceAssets={chatAssets}
+              onRemoveWorkspaceAsset={removeAsset}
+              allowMarkup={true}
+              canMarkup={!!file && ['image', 'video', 'pdf'].includes(file.proxyType || '')}
+              markupDisabledTooltip={
+                !file
+                  ? m.open_file_to_add_markup?.() || 'Open a supported file to add markup'
+                  : m.markup_not_supported_for_this_file?.() ||
+                    'Markup is not supported for this file type'
+              }
+              allowTimestamp={file?.proxyType === 'video' || file?.proxyType === 'pdf'}
+              currentTime={currentTime}
+              frameRate={frameRate || file?.media?.metadata?.frameRate || 30}
+              startTimecode={startTimecode || file?.media?.metadata?.startTimecode}
+              formatTimestamp={
+                formatTimestamp ||
+                (file?.proxyType === 'pdf' ? (sec: number) => `Page ${Math.round(sec)}` : undefined)
+              }
+              onTyping={onTyping}
+              onSendMessage={(
+                text,
+                attachmentIds,
+                annotations,
+                _replyToId,
+                second,
+                attachedFilesMeta,
+              ) => {
+                if (!teamId) return
+                sendMessage(
+                  teamId,
+                  text,
+                  projectId,
+                  contextAssetId,
+                  handleAssetMutation,
+                  attachmentIds,
+                  annotations,
+                  second,
+                  attachedFilesMeta,
+                )
+              }}
+              bottomLeftExtra={
+                <div className="flex items-center gap-1.5 min-w-0 max-w-full">
                   {chatAgents.length > 0 ? (
                     <Select
                       value={selectedAgentId || ''}
                       onValueChange={(val) => setSelectedAgentId(val)}
                       disabled={isStreaming}
                     >
-                      <SelectTrigger className="h-8 border-none bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground focus:ring-0 focus:ring-offset-0 px-2 py-0 gap-1.5 text-xs shrink-0 select-none shadow-none max-w-full">
+                      <SelectTrigger className="h-8 border-none bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground focus:ring-0 focus:ring-offset-0 px-2 py-0 gap-1.5 text-xs shrink-0 select-none shadow-none max-w-full cursor-pointer">
                         <SelectValue placeholder={m.select_agent()} />
                       </SelectTrigger>
                       <SelectContent>
                         {chatAgents.map((agent) => (
-                          <SelectItem key={agent.id} value={agent.id}>
+                          <SelectItem key={agent.id} value={agent.id} className="cursor-pointer">
                             <div className="flex items-center gap-2">
                               {agent.avatar ? (
                                 <img
@@ -680,39 +818,35 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
                     </div>
                   )}
                 </div>
-
-                {isStreaming ? (
-                  <button
-                    onClick={() => {
-                      if (teamId) {
-                        abortActiveSession(teamId)
-                      }
-                    }}
-                    className="p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 shadow-sm bg-destructive text-destructive-foreground hover:bg-destructive/90 transform hover:-translate-y-0.5"
-                    title="Stop generation"
-                  >
-                    <div className="h-4 w-4 flex items-center justify-center">
-                      <div className="h-3 w-3 bg-current rounded-[2px] bg-white" />
-                    </div>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleSend}
-                    disabled={!inputText.trim() || !selectedAgentId}
-                    className={cn(
-                      'p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 shadow-sm',
-                      inputText.trim() && selectedAgentId
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/95 transform hover:-translate-y-0.5'
-                        : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50',
-                    )}
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </div>
+              }
+            />
           </div>
         </>
+      )}
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button className="absolute top-4 right-4 text-white/70 hover:text-white hover:bg-white/20 rounded-full p-2 transition-colors z-50 cursor-pointer">
+            <XIcon className="w-8 h-8" />
+          </button>
+          <div className="w-full h-full flex items-center justify-center p-2">
+            <img
+              src={previewImage.url}
+              alt={previewImage.name}
+              className="max-w-full max-h-[85vh] object-contain rounded shadow-2xl cursor-zoom-out"
+              onClick={(e) => {
+                e.stopPropagation()
+                setPreviewImage(null)
+              }}
+            />
+          </div>
+          <div className="absolute bottom-6 text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">
+            {previewImage.name}
+          </div>
+        </div>
       )}
     </div>
   )

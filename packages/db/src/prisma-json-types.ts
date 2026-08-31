@@ -305,6 +305,8 @@ declare global {
       assetIds?: string[]
       isNewChat?: boolean
       hasAssetChanged?: boolean
+      second?: number | null
+      annotations?: Record<string, unknown>[]
       context?: import('@shumai/dtos').ShumaiMessageContext
     }
 

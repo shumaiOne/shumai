@@ -916,6 +916,9 @@
   "enable_timestamp": "Enable Timestamp",
   "attach_files": "Attach files",
   "toggle_annotation": "Toggle Annotation",
+  "markup_not_supported_for_this_file": "Markup is not supported for this file type",
+  "open_file_to_add_markup": "Open a supported file to add markup",
+  "type_a_message": "Type a message...",
 
   "loop": "Loop",
   "click_toggle_time_frames": "Click to toggle Time/Frames",

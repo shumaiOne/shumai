@@ -199,6 +199,8 @@ export class ChatService {
       sessionId: passedSessionId,
       contextAssetId,
       projectId: passedProjectId,
+      second,
+      annotations,
     } = req
 
     // 1. Permissions verification
@@ -401,6 +403,8 @@ export class ChatService {
               userId: user.id,
               isNewChat: !passedSessionId,
               hasAssetChanged,
+              second: second ?? undefined,
+              annotations: annotations ?? undefined,
             },
           },
         },

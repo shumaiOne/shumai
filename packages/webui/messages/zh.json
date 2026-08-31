@@ -916,6 +916,9 @@
   "enable_timestamp": "启用时间戳",
   "attach_files": "附加文件",
   "toggle_annotation": "切换标注",
+  "markup_not_supported_for_this_file": "此文件类型不支持标注",
+  "open_file_to_add_markup": "打开支持的文件以添加标注",
+  "type_a_message": "输入消息...",
 
   "loop": "循环",
   "click_toggle_time_frames": "点击切换时间/帧",

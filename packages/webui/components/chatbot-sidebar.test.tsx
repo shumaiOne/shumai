@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ChatbotSidebar } from './chatbot-sidebar'
 import { useChatbotStore, AGENT_PREFERENCE_STORAGE_KEY } from '@/ui/stores/chatbot'
 import { client } from '@/ui/api/client'
+import type { ChatMessage } from '@shumai/dtos'
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {}
@@ -189,5 +190,98 @@ describe('ChatbotSidebar - Agent Selection & Preference Persistence', () => {
       expect(useChatbotStore.getState().selectedAgentId).toBeNull()
       expect(localStorage.getItem(AGENT_PREFERENCE_STORAGE_KEY)).toBeNull()
     })
+  })
+
+  it('renders user messages with markup badge, timestamp, and attachments and triggers onSelectMessage on click when matched', async () => {
+    vi.mocked(client.api.projects[':projectId']['chat-agents'].$get).mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: 'agent-1', name: 'Agent 1', type: 'chat', enabled: true }],
+    } as unknown as Awaited<
+      ReturnType<(typeof client.api.projects)[':projectId']['chat-agents']['$get']>
+    >)
+
+    const mockSelectMessage = vi.fn()
+
+    const mockMessage = {
+      id: 'msg-1',
+      role: 'custom',
+      customType: 'shumai_message',
+      content: 'Fix the color in this scene',
+      details: {
+        annotation: true,
+        annotations: [{ type: 'rectangle', x: 5, y: 10 }],
+        position: { type: 'time', seconds: 15 },
+        currentAsset: { id: 'file-123', name: 'video.mp4', type: 'file' },
+        attachedFiles: [
+          { id: 'att-1', name: 'color-ref.png', type: 'image', mediaType: 'image/png' },
+        ],
+      },
+    } as unknown as ChatMessage
+
+    useChatbotStore.setState({
+      messages: [mockMessage],
+    })
+
+    const { getByText } = render(
+      <QueryClientProvider client={queryClient}>
+        <ChatbotSidebar
+          projectId="proj-1"
+          contextAssetId="file-123"
+          onSelectMessage={mockSelectMessage}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(getByText('Fix the color in this scene')).toBeTruthy()
+    expect(getByText('00:15')).toBeTruthy()
+    expect(getByText('color-ref.png')).toBeTruthy()
+
+    const msgCard = getByText('Fix the color in this scene').closest('div')
+    msgCard?.click()
+
+    expect(mockSelectMessage).toHaveBeenCalledWith(mockMessage)
+  })
+
+  it('does not trigger onSelectMessage on click when currentAsset does not match', async () => {
+    vi.mocked(client.api.projects[':projectId']['chat-agents'].$get).mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: 'agent-1', name: 'Agent 1', type: 'chat', enabled: true }],
+    } as unknown as Awaited<
+      ReturnType<(typeof client.api.projects)[':projectId']['chat-agents']['$get']>
+    >)
+
+    const mockSelectMessage = vi.fn()
+
+    const mockMessage = {
+      id: 'msg-2',
+      role: 'custom',
+      customType: 'shumai_message',
+      content: 'Other file comment',
+      details: {
+        annotation: true,
+        annotations: [{ type: 'rectangle', x: 5, y: 10 }],
+        position: { type: 'time', seconds: 20 },
+        currentAsset: { id: 'other-file-456', name: 'other.mp4', type: 'file' },
+      },
+    } as unknown as ChatMessage
+
+    useChatbotStore.setState({
+      messages: [mockMessage],
+    })
+
+    const { getByText } = render(
+      <QueryClientProvider client={queryClient}>
+        <ChatbotSidebar
+          projectId="proj-1"
+          contextAssetId="file-123"
+          onSelectMessage={mockSelectMessage}
+        />
+      </QueryClientProvider>,
+    )
+
+    const msgCard = getByText('Other file comment').closest('div')
+    msgCard?.click()
+
+    expect(mockSelectMessage).not.toHaveBeenCalled()
   })
 })
