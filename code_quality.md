@@ -6,11 +6,11 @@ This change unifies the agent 1-to-1 chat input with the file-comment input and 
 
 ## Findings
 
-### Critical: Newly uploaded image attachments are not sent to the agent
+### Required: Direct multimodal delivery can be bypassed for newly uploaded image attachments
 
-`ChatService.startOrContinueChat` builds `resolvedImageUrls` by checking only `file.media.proxyType` (`packages/core/src/chat/chat.ts:286-294`). The attachment endpoint creates an asset with `mediaType` and `storageKey`, but does not populate `media`; a freshly uploaded `image/png` therefore produces no `imageUrls` entry. The new chat UI does send these IDs (`packages/webui/stores/chatbot.ts:248-263`), but the workflow then calls the model without the image bytes. The message card can display the attachment while the agent cannot see it.
+`ChatService.startOrContinueChat` builds `resolvedImageUrls` by checking only `file.media.proxyType` (`packages/core/src/chat/chat.ts:286-294`). The attachment endpoint creates an asset with `mediaType` and `storageKey`, but does not populate `media`; a freshly uploaded `image/png` therefore produces no `imageUrls` entry. The new chat UI does send these IDs (`packages/webui/stores/chatbot.ts:248-263`), but the workflow then calls the model without the image bytes on the direct multimodal path. The message card can display the attachment while the agent cannot see it directly.
 
-Use the canonical `getProxyType(file.mediaType, file.name)` fallback (as the workflow already does) when resolving image attachments, and add a regression test using a newly created attachment whose `media` is null.
+This can be masked if the model calls the existing `analyze_image` tool using the attachment ID; that tool independently loads the S3 object, so a successful response does not prove that the image was included in the original model request. It can also work for assets whose `media.proxyType` has already been populated. To make the behavior deterministic, use the canonical `getProxyType(file.mediaType, file.name)` fallback (as the workflow already does) and add a regression test using a newly created attachment whose `media` is null.
 
 ### Required: A message can be discarded when the team ID is still loading
 
@@ -40,7 +40,7 @@ Markup/timestamp message cards and attachment rows use non-interactive `<div onC
 
 ## Quality Checklist
 
-- Correctness: **Request changes** due to image attachments not reaching the model, silent draft loss, destructive deletion without confirmation, and broken mention navigation.
+- Correctness: **Request changes** due to the direct image-delivery gap, silent draft loss, destructive deletion without confirmation, and broken mention navigation.
 - Readability: The data flow is understandable, but `ChatbotSidebar` and `ChatInput` now contain substantial duplicated rendering and interaction logic that should be decomposed after the correctness fixes.
 - Architecture: Reusing `getProxyType` would keep attachment classification consistent between the service and workflow. The shared input API is directionally appropriate.
 - Security: Existing asset permission checks remain in `ChatService`; no new injection or authorization bypass was found.
@@ -51,4 +51,4 @@ Markup/timestamp message cards and attachment rows use non-interactive `<div onC
 
 ## Verdict
 
-**Request changes** — fix image delivery, prevent draft loss while team context loads, restore deletion confirmation, repair collapsed mention navigation, and route all new user-facing text through Paraglide before merging.
+**Request changes** — fix the direct image-delivery gap, prevent draft loss while team context loads, restore deletion confirmation, repair collapsed mention navigation, and route all new user-facing text through Paraglide before merging.
