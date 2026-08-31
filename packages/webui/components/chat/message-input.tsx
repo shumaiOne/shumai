@@ -432,6 +432,52 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       editorRef.current.focus()
     }
 
+    const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+      e.preventDefault()
+      const text = e.clipboardData.getData('text/plain')
+      if (!text) return
+
+      let selection = window.getSelection()
+      if (
+        !selection ||
+        selection.rangeCount === 0 ||
+        !editorRef.current?.contains(selection.anchorNode)
+      ) {
+        if (editorRef.current) {
+          editorRef.current.focus()
+          const range = document.createRange()
+          range.selectNodeContents(editorRef.current)
+          range.collapse(false)
+          selection = window.getSelection()
+          selection?.removeAllRanges()
+          selection?.addRange(range)
+        }
+      }
+
+      const success =
+        typeof document.execCommand === 'function' &&
+        document.queryCommandSupported?.('insertText') &&
+        document.execCommand('insertText', false, text)
+
+      if (!success) {
+        const sel = window.getSelection()
+        if (sel && sel.rangeCount > 0) {
+          const range = sel.getRangeAt(0)
+          range.deleteContents()
+          const textNode = document.createTextNode(text)
+          range.insertNode(textNode)
+          range.setStartAfter(textNode)
+          range.collapse(true)
+          sel.removeAllRanges()
+          sel.addRange(range)
+        } else if (editorRef.current) {
+          editorRef.current.innerText += text
+        }
+      }
+
+      handleInput()
+    }
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.nativeEvent.isComposing) return
 
@@ -889,10 +935,11 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
             suppressContentEditableWarning
             onInput={handleInput}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             data-placeholder={
               placeholder || (replyingTo ? m.reply_placeholder() : m.message_placeholder())
             }
-            className={`bg-transparent border-none focus:ring-0 resize-none min-h-[40px] leading-relaxed py-2 focus:outline-none block ${paddingLeftClass}`}
+            className={`bg-transparent border-none focus:ring-0 resize-none min-h-[40px] leading-relaxed py-2 focus:outline-none block whitespace-pre-wrap break-words ${paddingLeftClass}`}
           />
         </div>
 
