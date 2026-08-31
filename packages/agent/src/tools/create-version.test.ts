@@ -83,7 +83,13 @@ describe('createCreateVersionTool', () => {
       metadata: undefined,
     })
 
-    expect(result.details).toEqual({ id: 'file-1', name: 'v2', type: 'file', size: 100 })
+    expect(result.details).toEqual({})
+    expect(JSON.parse((result.content[0] as { text: string }).text)).toEqual({
+      id: 'file-1',
+      name: 'v2',
+      type: 'file',
+      size: 100,
+    })
   })
 
   it('should forward the metadata to assetService.createVersion when provided', async () => {

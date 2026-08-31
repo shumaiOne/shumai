@@ -45,7 +45,8 @@ describe('createCreateFolderTool', () => {
       creatorId: 'user-1',
     })
 
-    expect(result.details).toEqual({
+    expect(result.details).toEqual({})
+    expect(JSON.parse((result.content[0] as { text: string }).text)).toEqual({
       id: 'folder-1',
       name: 'New Folder',
       type: 'folder',

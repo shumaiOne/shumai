@@ -70,7 +70,7 @@ export function createListAssetsTool(userId: string): AgentTool<typeof listAsset
 
       return {
         content: [{ type: 'text', text: JSON.stringify(output, null, 2) }],
-        details: output,
+        details: {},
       }
     },
   }

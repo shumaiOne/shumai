@@ -86,7 +86,13 @@ describe('createCreateFileTool', () => {
       metadata: undefined,
     })
 
-    expect(result.details).toEqual({ id: 'file-1', name: 'test', type: 'file', size: 100 })
+    expect(result.details).toEqual({})
+    expect(JSON.parse((result.content[0] as { text: string }).text)).toEqual({
+      id: 'file-1',
+      name: 'test',
+      type: 'file',
+      size: 100,
+    })
   })
 
   it('should forward the metadata to assetService.createFile when provided', async () => {
@@ -209,7 +215,13 @@ describe('createCreateFileTool', () => {
       metadata: undefined,
     })
 
-    expect(result.details).toEqual({ id: 'file-1', name: 'test', type: 'file', size: 100 })
+    expect(result.details).toEqual({})
+    expect(JSON.parse((result.content[0] as { text: string }).text)).toEqual({
+      id: 'file-1',
+      name: 'test',
+      type: 'file',
+      size: 100,
+    })
   })
 
   it('should default unknown extensions to text/plain when creating from content', async () => {

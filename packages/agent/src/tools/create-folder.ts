@@ -44,7 +44,7 @@ export function createCreateFolderTool(userId: string): AgentTool<typeof createF
 
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        details: result,
+        details: {},
       }
     },
   }
