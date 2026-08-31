@@ -133,7 +133,7 @@ export function createCreateFileTool(userId: string, metadataSchema?: TSchema): 
 
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        details: result,
+        details: {},
       }
     },
   }

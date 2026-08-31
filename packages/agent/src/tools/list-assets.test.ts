@@ -48,7 +48,8 @@ describe('createListAssetsTool', () => {
       after: undefined,
     })
 
-    expect(result.details).toEqual({
+    expect(result.details).toEqual({})
+    expect(JSON.parse((result.content[0] as { text: string }).text)).toEqual({
       assets: [
         { id: '01M2FILE2', name: 'file2.txt', type: 'file', size: 200 },
         { id: '01M1FILE1', name: 'file1.txt', type: 'file', size: 100 },

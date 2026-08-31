@@ -76,7 +76,13 @@ describe('reproduce null coercion in harness tool validation', () => {
 
     // execute must accept the valid call (data-only) without throwing
     const result = await tool.execute('call-1', validated as never)
-    expect(result.details).toEqual({ id: 'file-1', name: 'test', type: 'file', size: 100 })
+    expect(result.details).toEqual({})
+    expect(JSON.parse((result.content[0] as { text: string }).text)).toEqual({
+      id: 'file-1',
+      name: 'test',
+      type: 'file',
+      size: 100,
+    })
     expect(s3Service.putObject).toHaveBeenCalledTimes(1)
     expect(authzService.hasPermission).toHaveBeenCalledTimes(1)
     expect(assetService.createFile).toHaveBeenCalledTimes(1)
