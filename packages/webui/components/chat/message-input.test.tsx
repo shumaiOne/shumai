@@ -141,3 +141,111 @@ describe('ChatInput mention navigation', () => {
     expect(mentionNode.textContent).toContain('David Human')
   })
 })
+
+describe('ChatInput paste handling', () => {
+  afterEach(() => {
+    cleanup()
+    vi.clearAllMocks()
+  })
+
+  it('pastes plain text only and strips HTML formatting when styled HTML is in clipboard', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    const mockSendMessage = vi.fn()
+    const mockChangeText = vi.fn()
+
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <ChatInput
+          projectId="proj-1"
+          onSendMessage={mockSendMessage}
+          onChangeText={mockChangeText}
+        />
+      </QueryClientProvider>,
+    )
+
+    const editor = container.querySelector('[contenteditable="true"]') as HTMLDivElement
+    expect(editor).toBeTruthy()
+
+    // Focus editor and set selection
+    editor.focus()
+    const range = document.createRange()
+    range.selectNodeContents(editor)
+    range.collapse(false)
+    const sel = window.getSelection()!
+    sel.removeAllRanges()
+    sel.addRange(range)
+
+    // Simulate pasting HTML with plain text fallback
+    fireEvent.paste(editor, {
+      clipboardData: {
+        getData: (format: string) => {
+          if (format === 'text/plain') return 'Clean plain text'
+          if (format === 'text/html')
+            return '<span style="color: red; font-size: 24px;"><b>Clean plain text</b></span>'
+          return ''
+        },
+      },
+    })
+
+    expect(editor.innerHTML).not.toContain('<span')
+    expect(editor.innerHTML).not.toContain('style=')
+    expect(editor.textContent).toBe('Clean plain text')
+    expect(mockChangeText).toHaveBeenCalledWith('Clean plain text')
+
+    // Press Enter to send
+    fireEvent.keyDown(editor, { key: 'Enter' })
+    expect(mockSendMessage).toHaveBeenCalledWith(
+      'Clean plain text',
+      [],
+      [],
+      undefined,
+      undefined,
+      [],
+    )
+  })
+
+  it('preserves multiple lines when multiline text is pasted', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    const mockSendMessage = vi.fn()
+
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <ChatInput projectId="proj-1" onSendMessage={mockSendMessage} />
+      </QueryClientProvider>,
+    )
+
+    const editor = container.querySelector('[contenteditable="true"]') as HTMLDivElement
+    expect(editor).toBeTruthy()
+
+    editor.focus()
+    const range = document.createRange()
+    range.selectNodeContents(editor)
+    range.collapse(false)
+    const sel = window.getSelection()!
+    sel.removeAllRanges()
+    sel.addRange(range)
+
+    const multilineText = 'First line\nSecond line\nThird line'
+
+    fireEvent.paste(editor, {
+      clipboardData: {
+        getData: (format: string) => {
+          if (format === 'text/plain') return multilineText
+          return `<p>First line</p><p>Second line</p><p>Third line</p>`
+        },
+      },
+    })
+
+    expect(editor.textContent).toBe(multilineText)
+
+    // Send message and verify multiline content is preserved in onSendMessage
+    fireEvent.keyDown(editor, { key: 'Enter' })
+    expect(mockSendMessage).toHaveBeenCalledWith(multilineText, [], [], undefined, undefined, [])
+  })
+})
