@@ -31,6 +31,25 @@ describe('serializeContextToXml', () => {
       )
     })
 
+    it('serializes context with user and thread tag with reply_count', () => {
+      const context: ShumaiMessageContext = {
+        user: { id: 'usr_1', name: 'Alice', role: 'editor' },
+        thread: { id: 'th_01JXYZ', replyCount: 3 },
+      }
+      expect(serializeContextToXml(context)).toBe(
+        '<context>\n  <user id="usr_1" name="Alice" role="editor" />\n  <thread id="th_01JXYZ" reply_count="3" />\n</context>',
+      )
+    })
+
+    it('serializes context with thread tag without reply_count', () => {
+      const context: ShumaiMessageContext = {
+        thread: { id: 'th_01JXYZ' },
+      }
+      expect(serializeContextToXml(context)).toBe(
+        '<context>\n  <thread id="th_01JXYZ" />\n</context>',
+      )
+    })
+
     it('serializes minimal context with only currentAsset (without ancestors)', () => {
       const context: ShumaiMessageContext = {
         currentAsset: {

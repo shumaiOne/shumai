@@ -8,6 +8,7 @@ import {
   type SessionTreeEntry,
 } from '@earendil-works/pi-agent-core'
 import { agentService } from '@shumai/core/src/agent/agent'
+import type { ShumaiMessageContext } from '@shumai/dtos'
 
 export interface DatabaseSessionMetadata extends SessionMetadata {
   agentId: string
@@ -391,25 +392,16 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
           const entry = pathEntries[i]
           const count = threadReplyCountMap.get(entry.id)
           if (count !== undefined && count > 0) {
-            if (entry.type === 'message' && entry.message) {
+            if (entry.type === 'custom_message') {
               const cloned = structuredClone(entry)
-              const msg = cloned.message as unknown as {
-                content?: Array<{ type: string; text: string }>
-              }
-              if (Array.isArray(msg.content) && msg.content[0] && msg.content[0].type === 'text') {
-                const threadTag = `[Thread ID: ${entry.id}] [Replies: ${count}]`
-                if (!msg.content[0].text.includes(`[Thread ID: ${entry.id}]`)) {
-                  msg.content[0].text = `${threadTag} ${msg.content[0].text}`
-                }
-              }
-              pathEntries[i] = cloned
-            } else if (entry.type === 'custom_message') {
-              const cloned = structuredClone(entry)
-              const threadTag = `[Thread ID: ${entry.id}] [Replies: ${count}]`
-              if (typeof cloned.content === 'string') {
-                if (!cloned.content.includes(`[Thread ID: ${entry.id}]`)) {
-                  cloned.content = `${threadTag} ${cloned.content}`
-                }
+              const existingDetails = ((cloned as unknown as { details?: ShumaiMessageContext })
+                .details || {}) as ShumaiMessageContext
+              ;(cloned as unknown as { details: ShumaiMessageContext }).details = {
+                ...existingDetails,
+                thread: {
+                  id: entry.id,
+                  replyCount: count,
+                },
               }
               pathEntries[i] = cloned
             }

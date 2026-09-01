@@ -23,7 +23,7 @@ function formatAttr(name: string, value: string | undefined): string {
  * object into a standardized, order-stable <context> XML block.
  *
  * Adheres strictly to the following invariants:
- * 1. Tag sequence: <user>, <current_asset>, <position>, <annotation>, <attached_files>, <referenced_assets>
+ * 1. Tag sequence: <user>, <thread>, <current_asset>, <position>, <annotation>, <attached_files>, <referenced_assets>
  * 2. Attribute sequence on every tag follows fixed, invariant order.
  * 3. Arrays (attachedFiles, referencedAssets) sorted by id ascending.
  * 4. Floats formatted with .toFixed(2), integers rounded.
@@ -46,7 +46,19 @@ export function serializeContextToXml(context?: ShumaiMessageContext | null): st
     }
   }
 
-  // 2. <current_asset ...> ... </current_asset>
+  // 2. <thread ... />
+  if (context.thread) {
+    let threadAttrs = ''
+    if (context.thread.id !== undefined) threadAttrs += formatAttr('id', context.thread.id)
+    if (context.thread.replyCount !== undefined) {
+      threadAttrs += ` reply_count="${Math.round(context.thread.replyCount)}"`
+    }
+    if (threadAttrs) {
+      lines.push(`  <thread${threadAttrs} />`)
+    }
+  }
+
+  // 3. <current_asset ...> ... </current_asset>
   if (context.currentAsset) {
     const ca = context.currentAsset
     let assetAttrs = ''
