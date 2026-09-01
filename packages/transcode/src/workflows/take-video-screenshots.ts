@@ -17,10 +17,23 @@ export async function takeVideoScreenshotsWorkflow(task: WorkflowTask): Promise<
     }
 
     const { asset, key } = await fetchAssetWithKey(workerQueue, task.assetId)
+    let targetKey = key
+    if (asset?.media) {
+      const mediaInfo = asset.media as unknown as PrismaJson.MediaInfo
+      if (mediaInfo.videoTranscodes && mediaInfo.videoTranscodes.length > 0) {
+        const sorted = [...mediaInfo.videoTranscodes]
+          .filter((t) => t.key)
+          .sort((a, b) => (b.height || 0) - (a.height || 0))
+        if (sorted.length > 0 && sorted[0].key) {
+          targetKey = sorted[0].key
+        }
+      }
+    }
+
     const { takeScreenshotsActivity } = getActivities()
 
     const screenshots = await executeActivity(workerQueue, takeScreenshotsActivity, {
-      assetKey: key,
+      assetKey: targetKey,
       assetId: asset.id,
       start: payload.screenshot.start,
       end: payload.screenshot.end,

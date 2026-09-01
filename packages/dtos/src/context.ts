@@ -26,7 +26,7 @@ function formatAttr(name: string, value: string | undefined): string {
  * 1. Tag sequence: <user>, <thread>, <current_asset>, <position>, <annotation>, <attached_files>, <referenced_assets>
  * 2. Attribute sequence on every tag follows fixed, invariant order.
  * 3. Arrays (attachedFiles, referencedAssets) sorted by id ascending.
- * 4. Floats formatted with .toFixed(2), integers rounded.
+ * 4. Time position floats formatted with .toFixed(4), duration with .toFixed(2), integers rounded.
  * 5. String values escaped via escapeXmlAttr.
  * 6. Exact 2-space indentation and LF newlines.
  */
@@ -101,7 +101,7 @@ export function serializeContextToXml(context?: ShumaiMessageContext | null): st
   // 3. <position ... />
   if (context.position) {
     if (context.position.type === 'time') {
-      lines.push(`  <position type="time" seconds="${context.position.seconds.toFixed(2)}" />`)
+      lines.push(`  <position type="time" seconds="${context.position.seconds.toFixed(4)}" />`)
     } else if (context.position.type === 'page') {
       lines.push(`  <position type="page" page="${Math.round(context.position.page)}" />`)
     }
