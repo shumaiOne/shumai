@@ -107,4 +107,63 @@ describe('takeVideoScreenshotsWorkflow', () => {
       },
     })
   })
+
+  it('should prefer highest-resolution video transcode proxy over master storageKey', async () => {
+    const task: WorkflowTask = {
+      id: 'task-screenshot-proxy',
+      assetId: 'asset-video-proxy',
+      type: WorkflowTaskType.transcode_screenshot,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        screenshot: {
+          start: 1.2345,
+          end: 1.2345,
+          count: 1,
+          commentTimestamp: 1.2345,
+          annotations: [],
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-video-proxy',
+      storageKey: { key: 'raw-master.mp4' },
+      mediaType: 'video/mp4',
+      media: {
+        videoTranscodes: [
+          { key: 'proxy-720p.mp4', height: 720, width: 1280 },
+          { key: 'proxy-1080p.mp4', height: 1080, width: 1920 },
+          { key: 'proxy-360p.mp4', height: 360, width: 640 },
+        ],
+      },
+    })
+
+    mockActivities.takeScreenshotsActivity.mockResolvedValue([
+      { key: 'files/asset-video-proxy/screenshots/shot1.webp', timestamp: 1.2345 },
+    ])
+
+    await takeVideoScreenshotsWorkflow(task)
+
+    expect(mockActivities.takeScreenshotsActivity).toHaveBeenCalledWith({
+      assetKey: 'proxy-1080p.mp4',
+      assetId: 'asset-video-proxy',
+      start: 1.2345,
+      end: 1.2345,
+      count: 1,
+      commentTimestamp: 1.2345,
+      annotations: [],
+    })
+  })
 })

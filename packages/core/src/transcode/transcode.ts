@@ -1225,12 +1225,12 @@ export class TranscodeService {
 
       // 4. Extract each screenshot
       for (const t of timestamps) {
-        const outName = `shot-${t.toFixed(3)}-${ulid()}.webp`
+        const outName = `shot-${t.toFixed(4)}-${ulid()}.webp`
         const localShotPath = path.join(tmpDir, outName)
 
         const args = [
           '-ss',
-          t.toFixed(3),
+          t.toFixed(4),
           '-i',
           videoPath,
           '-vframes',
@@ -1248,7 +1248,7 @@ export class TranscodeService {
         const isMatch =
           commentTimestamp !== undefined &&
           commentTimestamp !== null &&
-          Math.abs(t - commentTimestamp) < 1e-4
+          Math.abs(t - commentTimestamp) <= 1e-3
 
         // 5. Overlay annotations if timestamp matches commentTimestamp (within float tolerance)
         if (isMatch && params.annotations && params.annotations.length > 0) {

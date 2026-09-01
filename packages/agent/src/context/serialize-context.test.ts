@@ -119,7 +119,7 @@ describe('serializeContextToXml', () => {
       <folder id="ast_01JC03_PARENT" name="Footage" />
     </ancestors>
   </current_asset>
-  <position type="time" seconds="14.25" />
+  <position type="time" seconds="14.2500" />
   <annotation />
   <attached_files>
     <file id="ast_01JC05_ATT1" name="brand_guidelines_2026.pdf" type="file" media_type="pdf" path="Brand/brand_guidelines_2026.pdf" />
@@ -315,7 +315,7 @@ describe('serializeContextToXml', () => {
       expect(refOrder).toEqual(['a_asset', 'm_asset', 'z_asset'])
     })
 
-    it('normalizes float formatting with fixed .toFixed(2)', () => {
+    it('normalizes float formatting with fixed precision (toFixed(4) for position, toFixed(2) for duration)', () => {
       const context1: ShumaiMessageContext = {
         currentAsset: { id: '1', name: 'a', type: 'file', durationSeconds: 14 },
         position: { type: 'time', seconds: 5.5 },
@@ -326,9 +326,9 @@ describe('serializeContextToXml', () => {
       }
 
       expect(serializeContextToXml(context1)).toContain('duration_seconds="14.00"')
-      expect(serializeContextToXml(context1)).toContain('seconds="5.50"')
+      expect(serializeContextToXml(context1)).toContain('seconds="5.5000"')
       expect(serializeContextToXml(context2)).toContain('duration_seconds="14.00"')
-      expect(serializeContextToXml(context2)).toContain('seconds="5.50"')
+      expect(serializeContextToXml(context2)).toContain('seconds="5.5000"')
     })
   })
 })
