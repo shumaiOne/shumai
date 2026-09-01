@@ -338,6 +338,85 @@ describe('AgentService', () => {
       expect(entries[0].id).toBe(entry1.id)
       expect(entries[1].id).toBe(entry2.id)
     })
+
+    test('getSessionEntries dynamically attaches details.thread on custom_message entries with replies', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { agent, team } = await setupTestData(db)
+
+      const project = await db.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const asset = await db.asset.create({
+        data: {
+          name: 'video.mp4',
+          type: 'file',
+          status: 'uploaded',
+          projectId: project.id,
+        },
+      })
+      const user = await db.user.create({
+        data: { name: 'Alice', email: `alice-${Date.now()}@example.com` },
+      })
+
+      const rootComment = await db.assetComment.create({
+        data: {
+          id: 'comment-root-entries',
+          assetId: asset.id,
+          message: 'Top-level comment',
+          creatorId: user.id,
+        },
+      })
+
+      // Add a reply
+      await db.assetComment.create({
+        data: {
+          id: 'comment-reply-entries',
+          assetId: asset.id,
+          message: 'Reply to root',
+          creatorId: user.id,
+          replyToId: rootComment.id,
+        },
+      })
+
+      const session = await db.agentSession.create({
+        data: {
+          agentId: agent.id,
+          type: 'comment',
+          cwd: '/tmp',
+        },
+      })
+
+      const entry = await db.agentSessionEntry.create({
+        data: {
+          id: rootComment.id,
+          sessionId: session.id,
+          type: 'custom_message',
+          parentId: null,
+          data: {
+            customType: 'shumai_message',
+            content: 'Top-level comment',
+            display: true,
+            details: { user: { id: user.id, name: user.name } },
+          },
+        },
+      })
+
+      await db.agentSession.update({
+        where: { id: session.id },
+        data: { leafId: entry.id },
+      })
+
+      const entries = await svc.getSessionEntries({ sessionId: session.id })
+      expect(entries).toHaveLength(1)
+      expect(entries[0].id).toBe(rootComment.id)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const entryDetails = (entries[0].entry as any).details
+      expect(entryDetails?.thread).toEqual({
+        id: rootComment.id,
+        replyCount: 1,
+      })
+    })
   })
 
   describe('listSessions', () => {

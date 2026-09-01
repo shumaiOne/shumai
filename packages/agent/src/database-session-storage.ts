@@ -367,50 +367,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
       await this.reinjectSkillContentAsync(entry)
     }
 
-    // Dynamically tag comments that currently have reply threads
-    const entryIds = pathEntries.map((e) => e.id)
-    if (entryIds.length > 0) {
-      const threadCounts = await prisma.assetComment.groupBy({
-        by: ['replyToId'],
-        where: {
-          replyToId: { in: entryIds },
-          message: { not: '__CHAT__' },
-        },
-        _count: {
-          id: true,
-        },
-      })
-      const threadReplyCountMap = new Map<string, number>()
-      for (const tc of threadCounts) {
-        if (tc.replyToId) {
-          threadReplyCountMap.set(tc.replyToId, tc._count.id)
-        }
-      }
-
-      if (threadReplyCountMap.size > 0) {
-        for (let i = 0; i < pathEntries.length; i++) {
-          const entry = pathEntries[i]
-          const count = threadReplyCountMap.get(entry.id)
-          if (count !== undefined && count > 0) {
-            if (entry.type === 'custom_message') {
-              const cloned = structuredClone(entry)
-              const existingDetails = ((cloned as unknown as { details?: ShumaiMessageContext })
-                .details || {}) as ShumaiMessageContext
-              ;(cloned as unknown as { details: ShumaiMessageContext }).details = {
-                ...existingDetails,
-                thread: {
-                  id: entry.id,
-                  replyCount: count,
-                },
-              }
-              pathEntries[i] = cloned
-            }
-          }
-        }
-      }
-    }
-
-    return pathEntries
+    return this.injectThreadMetadataAsync(pathEntries)
   }
 
   async getEntries(): Promise<SessionTreeEntry[]> {
@@ -423,6 +380,56 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
       await this.reinjectImageDataAsync(entry)
       await this.reinjectSkillContentAsync(entry)
     }
+    return this.injectThreadMetadataAsync(entries)
+  }
+
+  private async injectThreadMetadataAsync(
+    entries: SessionTreeEntry[],
+  ): Promise<SessionTreeEntry[]> {
+    const entryIds = entries.map((e) => e.id)
+    if (entryIds.length === 0) {
+      return entries
+    }
+
+    const threadCounts = await prisma.assetComment.groupBy({
+      by: ['replyToId'],
+      where: {
+        replyToId: { in: entryIds },
+        message: { not: '__CHAT__' },
+      },
+      _count: {
+        id: true,
+      },
+    })
+    const threadReplyCountMap = new Map<string, number>()
+    for (const tc of threadCounts) {
+      if (tc.replyToId) {
+        threadReplyCountMap.set(tc.replyToId, tc._count.id)
+      }
+    }
+
+    if (threadReplyCountMap.size > 0) {
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i]
+        const count = threadReplyCountMap.get(entry.id)
+        if (count !== undefined && count > 0) {
+          if (entry.type === 'custom_message') {
+            const cloned = structuredClone(entry)
+            const existingDetails = ((cloned as unknown as { details?: ShumaiMessageContext })
+              .details || {}) as ShumaiMessageContext
+            ;(cloned as unknown as { details: ShumaiMessageContext }).details = {
+              ...existingDetails,
+              thread: {
+                id: entry.id,
+                replyCount: count,
+              },
+            }
+            entries[i] = cloned
+          }
+        }
+      }
+    }
+
     return entries
   }
 

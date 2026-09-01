@@ -805,6 +805,15 @@ describe('DatabaseSessionStorage', () => {
       })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((path[0] as any).content).toBe('Top-level question')
+
+      const entries = await storage.getEntries()
+      expect(entries).toHaveLength(1)
+      expect(entries[0].type).toBe('custom_message')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((entries[0] as any).details?.thread).toEqual({
+        id: rootComment.id,
+        replyCount: 1,
+      })
     })
   })
 })
