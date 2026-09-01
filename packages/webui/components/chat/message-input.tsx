@@ -279,9 +279,64 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       }
     }, [value, initialText])
 
-    // Focus editor when replyingTo becomes truthy
+    const prevReplyingToIdRef = useRef<string | null>(null)
+
+    const insertMention = useCallback(
+      (user: { id: string; name: string }) => {
+        if (!editorRef.current) return
+
+        const mentionNode = document.createElement('span')
+        mentionNode.contentEditable = 'false'
+        mentionNode.dataset.type = 'mention'
+        mentionNode.dataset.id = user.id
+        mentionNode.className =
+          'inline-block bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-1.5 py-0.5 rounded-md text-sm font-medium align-middle select-none mx-0.5'
+        mentionNode.innerText = `@${user.name}`
+
+        const spaceNode = document.createTextNode('\u00A0')
+
+        editorRef.current.appendChild(mentionNode)
+        editorRef.current.appendChild(spaceNode)
+
+        // Move cursor after the space
+        const newRange = document.createRange()
+        const sel = window.getSelection()
+        newRange.setStartAfter(spaceNode)
+        newRange.collapse(true)
+        sel?.removeAllRanges()
+        sel?.addRange(newRange)
+
+        setHasContent(true)
+        const currentText = editorRef.current.innerText || ''
+        isInternalUpdateRef.current = true
+        onChangeText?.(currentText)
+        onTyping?.()
+        editorRef.current.focus()
+      },
+      [onChangeText, onTyping],
+    )
+
+    // Auto mention creator and focus editor when replyingTo is set or changed
     useEffect(() => {
       if (replyingTo && editorRef.current) {
+        if (replyingTo.id !== prevReplyingToIdRef.current) {
+          prevReplyingToIdRef.current = replyingTo.id
+
+          if (effectiveAllowMentions && replyingTo.creator?.id && replyingTo.creator?.name) {
+            const existingMentions = editorRef.current.querySelectorAll('span[data-type="mention"]')
+            const alreadyMentioned = Array.from(existingMentions).some(
+              (node) => (node as HTMLElement).dataset.id === replyingTo.creator.id,
+            )
+            if (!alreadyMentioned) {
+              insertMention({
+                id: replyingTo.creator.id,
+                name: replyingTo.creator.name,
+              })
+              return
+            }
+          }
+        }
+
         editorRef.current.focus()
         // Focus and move cursor to end
         const range = document.createRange()
@@ -290,8 +345,10 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
         range.collapse(false)
         sel?.removeAllRanges()
         sel?.addRange(range)
+      } else if (!replyingTo) {
+        prevReplyingToIdRef.current = null
       }
-    }, [replyingTo])
+    }, [replyingTo, effectiveAllowMentions, insertMention])
 
     // Clean up drawing mode on unmount
     useEffect(() => {
