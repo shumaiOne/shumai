@@ -341,7 +341,7 @@ describe('AgentService', () => {
   })
 
   describe('listSessions', () => {
-    test('lists sessions for team and excludes pending id', async () => {
+    test('lists sessions for team, includes chat sessions and leaf comment sessions, hides main comment sessions and excludes pending id', async () => {
       const db = prisma
       const svc = new AgentService()
       const { team, agent } = await setupTestData(db)
@@ -353,27 +353,43 @@ describe('AgentService', () => {
         },
       })
 
-      const session1 = await db.agentSession.create({
+      // 1. Chat session (userCommentId is null) - should be included!
+      const chatSession = await db.agentSession.create({
         data: {
-          name: 'Session One',
+          name: 'Chat Session',
           agentId: agent.id,
           userId: user.id,
           type: 'chat',
           cwd: '/tmp',
+          userCommentId: null,
         },
       })
 
-      const session2 = await db.agentSession.create({
+      // 2. Main comment session (userCommentId is null) - should be HIDDEN / EXCLUDED!
+      const mainCommentSession = await db.agentSession.create({
         data: {
-          name: 'Session Two',
+          name: 'Main Comment Session',
           agentId: agent.id,
           userId: user.id,
           type: 'comment',
           cwd: '/tmp',
+          userCommentId: null,
         },
       })
 
-      // Pending session - should be excluded!
+      // 3. Leaf comment session (userCommentId is not null) - should be included!
+      const leafCommentSession = await db.agentSession.create({
+        data: {
+          name: 'Leaf Comment Session',
+          agentId: agent.id,
+          userId: user.id,
+          type: 'comment',
+          cwd: '/tmp',
+          userCommentId: 'comment-123',
+        },
+      })
+
+      // 4. Pending session - should be excluded!
       await db.agentSession.create({
         data: {
           id: 'pending',
@@ -388,15 +404,21 @@ describe('AgentService', () => {
       const res = await svc.listSessions(team.id, { first: 10 })
 
       expect(res.data).toHaveLength(2)
-      expect(res.data.map((s) => s.id)).not.toContain('pending')
       const sessionIds = res.data.map((s) => s.id)
-      expect(sessionIds).toContain(session1.id)
-      expect(sessionIds).toContain(session2.id)
+      expect(sessionIds).not.toContain('pending')
+      expect(sessionIds).not.toContain(mainCommentSession.id)
+      expect(sessionIds).toContain(chatSession.id)
+      expect(sessionIds).toContain(leafCommentSession.id)
 
-      const found = res.data.find((s) => s.id === session1.id)
-      expect(found?.name).toBe('Session One')
-      expect(found?.type).toBe('chat')
-      expect(found?.creator?.name).toBe('Regular User')
+      const foundChat = res.data.find((s) => s.id === chatSession.id)
+      expect(foundChat?.name).toBe('Chat Session')
+      expect(foundChat?.type).toBe('chat')
+      expect(foundChat?.creator?.name).toBe('Regular User')
+
+      const foundLeafComment = res.data.find((s) => s.id === leafCommentSession.id)
+      expect(foundLeafComment?.name).toBe('Leaf Comment Session')
+      expect(foundLeafComment?.type).toBe('comment')
+      expect(foundLeafComment?.creator?.name).toBe('Regular User')
     })
   })
 
