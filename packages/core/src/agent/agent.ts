@@ -579,6 +579,13 @@ export class AgentService {
       agent: {
         teamId,
       },
+      OR: [
+        { type: { not: 'comment' } },
+        {
+          type: 'comment',
+          userCommentId: { not: null },
+        },
+      ],
     }
 
     return await paginateQuery(
