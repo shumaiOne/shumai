@@ -69,6 +69,24 @@ Shumai 也将项目管理融入了创意工作流程。 内置的看板可以帮
 以下是使用本地存储运行 Shumai 的快速上手指南。如需了解高级配置（包括 S3 兼容存储配置、Temporal 工作流编排等），请参阅我们的[官方文档](https://docs.shumai.one/getting-started/overview)。
 
 ### 方案一：使用 Docker Compose（推荐）
+<details>
+  
+<summary>复制这个提示词，让agent帮你安装</summary>
+
+```
+请帮我在本机使用 Docker Compose 一键部署 Shumai。
+
+请严格参考官方文档：
+https://gh-proxy.com/https://raw.githubusercontent.com/shumaiOne/shumai/main/README_CN.md
+
+要求：
+
+1. 只能使用 Docker Compose local方式部署，不要使用其他部署方式。
+2. 部署前请先检查本机是否已安装并可正常使用 Docker 和 Docker Compose。
+3. 如果本机未安装 Docker，请立即提醒用户先安装 Docker，并停止后续部署操作。不要自行安装 Docker，也不要采用其他方式部署。
+4. 获取 `docker-compose-aliyun.yaml` 文件内容时，必须通过 `https://gh-proxy.com` 加速访问，不要直接访问 GitHub Raw 地址。
+```
+</details>
 
 使用 Docker Compose 是运行 Shumai 最快的方式。您无需克隆仓库，也不需要手动安装依赖包。请确保电脑上已安装 [Docker](https://docs.docker.com/get-docker/) 和 [Docker Compose](https://docs.docker.com/compose/install/)，然后按照以下步骤操作：
 
