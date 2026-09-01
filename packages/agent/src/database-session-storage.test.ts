@@ -742,5 +742,78 @@ describe('DatabaseSessionStorage', () => {
       const stats = await storage.getSessionStats()
       expect(stats.messageCount).toBe(1)
     })
+
+    it('should dynamically inject thread metadata into details.thread in getPathToRoot when replies exist', async () => {
+      const { agent, user } = await setupTestData()
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: agent.teamId },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'Test Asset',
+          type: 'file',
+          status: 'uploaded',
+          projectId: project.id,
+        },
+      })
+      const storage = await DatabaseSessionStorage.create({ agentId: agent.id, assetId: asset.id })
+
+      const rootComment = await prisma.assetComment.create({
+        data: {
+          id: 'comment-root-1',
+          assetId: asset.id,
+          message: 'Top-level question',
+          creatorId: user.id,
+        },
+      })
+
+      // Add a reply
+      await prisma.assetComment.create({
+        data: {
+          id: 'comment-reply-1',
+          assetId: asset.id,
+          message: 'Reply 1',
+          creatorId: user.id,
+          replyToId: rootComment.id,
+        },
+      })
+
+      // Create session entry for root comment
+      await prisma.agentSessionEntry.create({
+        data: {
+          id: rootComment.id,
+          sessionId: storage.sessionId,
+          assetId: asset.id,
+          type: 'custom_message',
+          data: {
+            customType: 'shumai_message',
+            content: 'Top-level question',
+            display: true,
+            details: { user: { id: user.id, name: user.name } },
+          },
+        },
+      })
+
+      const path = await storage.getPathToRoot(rootComment.id)
+      expect(path).toHaveLength(1)
+      expect(path[0].type).toBe('custom_message')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const details = (path[0] as any).details
+      expect(details.thread).toEqual({
+        id: rootComment.id,
+        replyCount: 1,
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((path[0] as any).content).toBe('Top-level question')
+
+      const entries = await storage.getEntries()
+      expect(entries).toHaveLength(1)
+      expect(entries[0].type).toBe('custom_message')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((entries[0] as any).details?.thread).toEqual({
+        id: rootComment.id,
+        replyCount: 1,
+      })
+    })
   })
 })

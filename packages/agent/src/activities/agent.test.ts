@@ -711,7 +711,7 @@ describe('Agent Database Activities Integration', () => {
       expect(threadSession1?.userCommentId).toBe(mainComment1.id) // Thread Session has userCommentId = rootComment.id
     })
 
-    it('should dynamically tag top-level comments with [Thread ID: id] even if thread was created after initial sync', async () => {
+    it('should dynamically tag top-level comments with thread metadata in context even if thread was created after initial sync', async () => {
       const msg3 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: 'Question in msg3', creatorId: user.id },
       })
@@ -756,8 +756,13 @@ describe('Agent Database Activities Integration', () => {
       const msg3Entry = pathEntries.find((e) => e.id.includes(msg3.id))
       expect(msg3Entry).toBeDefined()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((msg3Entry as any).details?.thread).toEqual({
+        id: msg3.id,
+        replyCount: 1,
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const text = (msg3Entry as any).content ?? (msg3Entry as any).message?.content[0]?.text
-      expect(text).toContain(`[Thread ID: ${msg3.id}] [Replies: 1]`)
+      expect(text).not.toContain(`[Thread ID: ${msg3.id}]`)
     })
 
     it('should create separate thread sessions when agent is mentioned in top-level comments (msg3 & msg5) sharing DAG entries without duplication', async () => {
@@ -979,7 +984,7 @@ describe('Agent Database Activities Integration', () => {
       ).resolves.not.toThrow()
     })
 
-    it('should not tag Thread ID when only __CHAT__ placeholder comment exists under root comment', async () => {
+    it('should not tag thread when only __CHAT__ placeholder comment exists under root comment', async () => {
       const rootComment = await prisma.assetComment.create({
         data: { assetId: asset.id, message: 'Root comment asking agent', creatorId: user.id },
       })
@@ -1006,8 +1011,7 @@ describe('Agent Database Activities Integration', () => {
 
       expect(rootEntry).toBeDefined()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- entry data structure parsing
-      const content = (rootEntry as any)?.message?.content?.[0]?.text || ''
-      expect(content).not.toContain(`[Thread ID: ${rootComment.id}]`)
+      expect((rootEntry as any)?.details?.thread).toBeUndefined()
     })
 
     it('should return user name and role for team member', async () => {
@@ -1695,6 +1699,78 @@ describe('Agent Database Activities Integration', () => {
       expect(systemPromptArg).toContain(
         '<project_instructions path="/subfolder/AGENTS.md">\n# Subfolder Policy\n</project_instructions>',
       )
+    })
+
+    it('agentChatActivity injects # Comment Threads into systemPrompt when userCommentId is present', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'User_Comment_Prompt', email: `comment-prompt-${Date.now()}@example.com` },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'Team_Comment_Prompt_' + Date.now() },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Project_Comment_Prompt', teamId: team.id },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'Asset_1',
+          type: AssetType.file,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const comment = await prisma.assetComment.create({
+        data: {
+          assetId: asset.id,
+          message: 'Question',
+          creatorId: user.id,
+        },
+      })
+
+      const mockHarness = {
+        subscribe: vi.fn(),
+        prompt: vi.fn().mockResolvedValue({
+          content: [{ type: 'text', text: 'Chat reply' }],
+          usage: { input: 10, output: 20 },
+        }),
+      }
+      const mockSession = {
+        getEntries: vi.fn().mockResolvedValue([]),
+        getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
+      }
+
+      vi.mocked(piAgent.createAgentSession).mockResolvedValue({
+        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
+      })
+
+      const context = {
+        agent: { id: 'agent-1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
+        dbProviders: [],
+        teamSkills: [],
+        allowedDomains: [],
+      } as unknown as AgentExecutionContext
+
+      await agentChatActivity({
+        teamId: team.id,
+        agentId: 'agent-1',
+        message: 'Hello',
+        imageUrls: [],
+        projectId: project.id,
+        folderId: asset.id,
+        assetId: asset.id,
+        sessionId: 'mock-session-id',
+        userCommentId: comment.id,
+        userId: user.id,
+        context,
+      })
+
+      const lastCall = vi.mocked(piAgent.createAgentSession).mock.calls.at(-1)
+      const systemPromptArg = lastCall?.[0].systemPrompt as string
+      expect(systemPromptArg).toContain('# Comment Threads')
+      expect(systemPromptArg).toContain('<thread id="..." reply_count="..." />')
+      expect(systemPromptArg).toContain('read_thread')
     })
   })
 })

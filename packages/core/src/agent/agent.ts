@@ -549,21 +549,53 @@ export class AgentService {
       ORDER BY depth DESC;
     `
 
+    const entryIds = rows.map((r) => r.id)
+    const threadReplyCountMap = new Map<string, number>()
+    if (entryIds.length > 0) {
+      const threadCounts = await this.prismaClient.assetComment.groupBy({
+        by: ['replyToId'],
+        where: {
+          replyToId: { in: entryIds },
+          message: { not: '__CHAT__' },
+        },
+        _count: {
+          id: true,
+        },
+      })
+      for (const tc of threadCounts) {
+        if (tc.replyToId) {
+          threadReplyCountMap.set(tc.replyToId, tc._count.id)
+        }
+      }
+    }
+
     return rows.map((r) => {
       const payload = (r.data as Record<string, unknown>) || {}
+      const count = threadReplyCountMap.get(r.id)
+      let details = payload.details as Record<string, unknown> | undefined
+      if (count !== undefined && count > 0 && r.type === 'custom_message') {
+        details = {
+          ...details,
+          thread: {
+            id: r.id,
+            replyCount: count,
+          },
+        }
+      }
       const entryObj = {
         id: r.id,
         type: r.type || 'message',
         parentId: r.parent_id,
         timestamp: r.created_at.toISOString(),
         ...payload,
+        ...(details ? { details } : {}),
       }
       return {
         id: r.id,
         sessionId: r.session_id || params.sessionId,
         type: r.type,
         parentId: r.parent_id,
-        data: r.data,
+        data: details !== payload.details ? { ...payload, details } : r.data,
         createdAt: r.created_at,
         entry: entryObj,
       }

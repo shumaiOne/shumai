@@ -79,6 +79,13 @@ export const shumaiMediaPositionSchema = z.discriminatedUnion('type', [
 
 export type ShumaiMediaPosition = z.infer<typeof shumaiMediaPositionSchema>
 
+export const shumaiThreadContextSchema = z.object({
+  id: z.string(),
+  replyCount: z.number().optional(),
+})
+
+export type ShumaiThreadContext = z.infer<typeof shumaiThreadContextSchema>
+
 export const shumaiMessageContextSchema = z.object({
   user: z
     .object({
@@ -87,6 +94,7 @@ export const shumaiMessageContextSchema = z.object({
       role: z.string(),
     })
     .optional(),
+  thread: shumaiThreadContextSchema.optional(),
   currentAsset: shumaiAssetContextSchema.optional(),
   position: shumaiMediaPositionSchema.optional(),
   annotation: z.boolean().optional(),

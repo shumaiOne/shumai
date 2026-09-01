@@ -163,6 +163,21 @@ User messages may contain a <context> block detailing the user, active asset loc
     systemPrompt += `\n\nYour current model supports the following input types: ${modelConfig.input.join(', ')}.`
   }
 
+  const isCommentMode =
+    !!params.userCommentId ||
+    (params.sessionId
+      ? (
+          await prisma.agentSession.findUnique({
+            where: { id: params.sessionId },
+            select: { type: true },
+          })
+        )?.type === 'comment'
+      : false)
+
+  if (isCommentMode) {
+    systemPrompt += `\n\n# Comment Threads\nWhen operating in comment mode, previous top-level messages in the conversation history may contain a <thread id="..." reply_count="..." /> tag indicating an earlier discussion thread with replies. If a user's question refers to or depends on earlier comments or discussions, you can use the 'read_thread' tool with the thread ID to inspect all replies in that thread.`
+  }
+
   const agentConfig = agent.config as PrismaJson.AgentConfig | null | undefined
   const thinkingLevel = agentConfig?.thinkingLevel || 'off'
 

@@ -92,4 +92,35 @@ describe('createReadThreadTool', () => {
     expect(textContent).toContain('- [Bob]: First reply to thread')
     expect(textContent).toContain('- [Charlie]: Second reply to thread')
   })
+
+  it('should label agent replies as [Ai Agent] when creator is null but sessionId exists', async () => {
+    vi.mocked(prisma.assetComment.findUnique).mockResolvedValue({
+      id: 'root-1',
+      message: 'Question to agent',
+      creator: { name: 'Alice' },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+    vi.mocked(prisma.assetComment.findMany).mockResolvedValue([
+      {
+        id: 'reply-1',
+        message: 'Agent answer',
+        creator: null,
+        sessionId: 'session-123',
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any)
+
+    const tool = createReadThreadTool()
+    const result = await tool.execute('call-agent', { threadId: 'root-1' })
+    const textContent = (result.content[0] as { text: string }).text
+
+    expect(textContent).toContain('- [Ai Agent]: Agent answer')
+  })
+
+  it('should describe threadId parameter as referencing <thread id="..." /> in <context>', () => {
+    const tool = createReadThreadTool()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const description = (tool.parameters as any).properties.threadId.description
+    expect(description).toContain('<thread id="..." />')
+  })
 })

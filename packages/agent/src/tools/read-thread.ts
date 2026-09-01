@@ -5,7 +5,7 @@ import { type AgentTool } from '@earendil-works/pi-agent-core'
 const readThreadSchema = Type.Object({
   threadId: Type.String({
     description:
-      'The root comment ID of a thread (e.g. from [Thread ID: ...]). Do NOT pass an asset ID or project ID.',
+      'The root comment ID of a thread (from <thread id="..." /> in the <context> block). Do NOT pass an asset ID or project ID.',
   }),
 })
 
@@ -47,14 +47,16 @@ export const createReadThreadTool = (): AgentTool<
       include: { creator: true },
     })
 
-    const rootAuthor = rootComment.creator?.name || 'User'
+    const isRootAgent = rootComment.creator?.type === 'agent' || rootComment.sessionId !== null
+    const rootAuthor = rootComment.creator?.name || (isRootAgent ? 'Ai Agent' : 'User')
     let output = `Thread Root [${rootAuthor}] (${rootComment.id}): ${rootComment.message || ''}\n\nReplies (${replies.length}):`
 
     if (replies.length === 0) {
       output += '\n(No replies in this thread yet)'
     } else {
       for (const reply of replies) {
-        const author = reply.creator?.name || 'User'
+        const isAgent = reply.creator?.type === 'agent' || reply.sessionId !== null
+        const author = reply.creator?.name || (isAgent ? 'Ai Agent' : 'User')
         output += `\n- [${author}]: ${reply.message || ''}`
       }
     }
