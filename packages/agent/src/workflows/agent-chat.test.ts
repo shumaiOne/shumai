@@ -766,4 +766,44 @@ describe('Agent Chat Workflow', () => {
       }),
     )
   })
+
+  it('should include userCommentId as id in comment messageContext', async () => {
+    mockActivities.getCommentActivity.mockResolvedValue({
+      id: 'comment-with-id-123',
+      creatorId: 'user-c1',
+      message: 'Check this out',
+      replyToId: null,
+      second: 5.0,
+      annotation: [{ type: 'arrow' }],
+      attachments: [],
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'chat',
+        status: 'pending',
+        assetId: 'a1',
+        payload: {
+          projectId: 'p1',
+          agent: {
+            agentId: 'b1',
+            userCommentId: 'comment-with-id-123',
+          },
+        },
+      },
+    })
+
+    await agentChat(task)
+
+    expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messageContext: expect.objectContaining({
+          id: 'comment-with-id-123',
+          position: { type: 'time', seconds: 5.0 },
+          annotation: true,
+          annotations: [{ type: 'arrow' }],
+        }),
+      }),
+    )
+  })
 })

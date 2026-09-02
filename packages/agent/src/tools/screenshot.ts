@@ -5,6 +5,7 @@ import { prisma, WorkflowTaskType, WorkflowTaskStatus, type User } from '@shumai
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { resolveAnnotationsById } from './annotation-resolver'
 
 const screenshotSchema = Type.Object({
   assetId: Type.String({
@@ -13,12 +14,15 @@ const screenshotSchema = Type.Object({
   start: Type.Number({ description: 'Start time in seconds' }),
   end: Type.Number({ description: 'End time in seconds' }),
   count: Type.Number({ description: 'Number of screenshots to take' }),
+  annotationId: Type.Optional(
+    Type.String({
+      description:
+        'The ID of the comment or message entry from <annotation id="..." /> whose visual markup should be overlaid on the screenshot.',
+    }),
+  ),
 })
 
-export function createScreenshotTool(
-  userId: string,
-  userCommentId?: string | null,
-): AgentTool<typeof screenshotSchema> {
+export function createScreenshotTool(userId: string): AgentTool<typeof screenshotSchema> {
   return {
     name: 'screenshot',
     label: 'Take Video Screenshots',
@@ -47,23 +51,10 @@ export function createScreenshotTool(
         throw new Error(`Asset with ID ${assetId} not found.`)
       }
 
-      // Fetch trigger comment details for timestamp and annotations
-      let commentTimestamp: number | null = null
-      let annotations: unknown = null
-      if (userCommentId) {
-        const comment = await prisma.assetComment.findUnique({
-          where: { id: userCommentId },
-        })
-        if (comment && comment.assetId === assetId) {
-          commentTimestamp = comment.second !== null ? comment.second : null
-          if (comment.annotation) {
-            const list = comment.annotation
-            if (Array.isArray(list) && list.length > 0) {
-              annotations = list
-            }
-          }
-        }
-      }
+      // Resolve annotations dynamically by annotationId
+      const { annotations, timestamp: commentTimestamp } = await resolveAnnotationsById(
+        params.annotationId,
+      )
 
       // Trigger transcode workflow to take screenshots
       const task = await prisma.workflowTask.create({
@@ -79,7 +70,7 @@ export function createScreenshotTool(
               end: params.end,
               count: params.count,
               commentTimestamp,
-              annotations: annotations as PrismaJson.AnnotationList,
+              annotations,
             },
           },
         },

@@ -5,17 +5,21 @@ import { prisma, WorkflowTaskType, WorkflowTaskStatus, type User } from '@shumai
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { resolveAnnotationsById } from './annotation-resolver'
 
 const analyzeImageSchema = Type.Object({
   assetId: Type.String({
     description: 'The asset ID of the image to analyze. This parameter is required.',
   }),
+  annotationId: Type.Optional(
+    Type.String({
+      description:
+        'The ID of the comment or message entry from <annotation id="..." /> whose visual markup should be overlaid on the image.',
+    }),
+  ),
 })
 
-export function createAnalyzeImageTool(
-  userId: string,
-  userCommentId?: string | null,
-): AgentTool<typeof analyzeImageSchema> {
+export function createAnalyzeImageTool(userId: string): AgentTool<typeof analyzeImageSchema> {
   return {
     name: 'analyze_image',
     label: 'Analyze Image',
@@ -70,19 +74,8 @@ export function createAnalyzeImageTool(
         throw new Error('No media content found for this asset.')
       }
 
-      // Check if trigger comment has draw annotations for this asset
-      let annotations: unknown = null
-      if (userCommentId) {
-        const comment = await prisma.assetComment.findUnique({
-          where: { id: userCommentId },
-        })
-        if (comment && comment.assetId === assetId && comment.annotation) {
-          const list = comment.annotation
-          if (Array.isArray(list) && list.length > 0) {
-            annotations = list
-          }
-        }
-      }
+      // Resolve annotations dynamically by annotationId
+      const { annotations } = await resolveAnnotationsById(params.annotationId)
 
       let keyToUse = mediaKey
 
@@ -97,7 +90,7 @@ export function createAnalyzeImageTool(
             payload: {
               projectId: asset.projectId || 'none',
               imageAnnotation: {
-                annotations: annotations as PrismaJson.AnnotationList,
+                annotations,
               },
             },
           },

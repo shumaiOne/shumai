@@ -107,9 +107,13 @@ export function serializeContextToXml(context?: ShumaiMessageContext | null): st
     }
   }
 
-  // 4. <annotation />
+  // 4. <annotation ... />
   if (context.annotation) {
-    lines.push('  <annotation />')
+    if (context.id !== undefined) {
+      lines.push(`  <annotation id="${escapeXmlAttr(context.id)}" />`)
+    } else {
+      lines.push('  <annotation />')
+    }
   }
 
   // 5. <attached_files> ... </attached_files>

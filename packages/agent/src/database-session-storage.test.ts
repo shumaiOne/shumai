@@ -470,12 +470,12 @@ describe('DatabaseSessionStorage', () => {
       providers: mockProviders,
     })
 
-    // 4. Assert that the tools were instantiated using the new comment ID and user ID
-    expect(createAnalyzeImageToolSpy).toHaveBeenCalledWith(user.id, 'new-comment-456')
-    expect(createScreenshotToolSpy).toHaveBeenCalledWith(user.id, 'new-comment-456')
+    // 4. Assert that the tools were instantiated using user ID
+    expect(createAnalyzeImageToolSpy).toHaveBeenCalledWith(user.id)
+    expect(createScreenshotToolSpy).toHaveBeenCalledWith(user.id)
   })
 
-  it('should use the current comment ID for media tools in subsequent turns (video)', async () => {
+  it('should instantiate media tools with user ID in subsequent turns (video)', async () => {
     const { agent, user, team } = await setupTestData()
 
     // Create a project and asset to satisfy FK constraints
@@ -524,9 +524,9 @@ describe('DatabaseSessionStorage', () => {
       providers: mockProviders,
     })
 
-    // 4. Assert that the tools were instantiated using the new comment ID and user ID
-    expect(createScreenshotToolSpy).toHaveBeenCalledWith(user.id, 'new-comment-456')
-    expect(createAnalyzeImageToolSpy).toHaveBeenCalledWith(user.id, 'new-comment-456')
+    // 4. Assert that the tools were instantiated using user ID
+    expect(createScreenshotToolSpy).toHaveBeenCalledWith(user.id)
+    expect(createAnalyzeImageToolSpy).toHaveBeenCalledWith(user.id)
   })
 
   describe('P1 Bug Reproductions', () => {

@@ -5,6 +5,7 @@ import {
   WorkflowTaskStatus,
   type Asset,
   type AssetComment,
+  type AgentSessionEntry,
   type User,
   type WorkflowTask,
 } from '@shumai/db'
@@ -24,6 +25,9 @@ vi.mock('@shumai/db', async (importOriginal) => {
         findUnique: vi.fn(),
       },
       assetComment: {
+        findUnique: vi.fn(),
+      },
+      agentSessionEntry: {
         findUnique: vi.fn(),
       },
       workflowTask: {
@@ -58,7 +62,7 @@ describe('screenshotTool', () => {
     vi.clearAllMocks()
   })
 
-  it('should trigger screenshot transcode workflow and return image outputs', async () => {
+  it('should trigger screenshot transcode workflow with annotations when annotationId matches AssetComment', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as User)
     vi.mocked(authzService.hasPermission).mockResolvedValue()
 
@@ -105,8 +109,14 @@ describe('screenshotTool', () => {
       } as unknown as { buffer: Buffer; contentType: string }
     })
 
-    const tool = createScreenshotTool('user-1', 'comment-1')
-    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 0, end: 10, count: 2 })
+    const tool = createScreenshotTool('user-1')
+    const result = await tool.execute('call-1', {
+      assetId: 'asset-1',
+      start: 0,
+      end: 10,
+      count: 2,
+      annotationId: 'comment-1',
+    })
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
       user: { id: 'user-1' },
@@ -152,5 +162,129 @@ describe('screenshotTool', () => {
       Buffer.from('fake-bytes-for-screenshots/shot2.webp').toString('base64'),
     )
     expect(result.details.sourceKeys).toEqual(['screenshots/shot1.webp', 'screenshots/shot2.webp'])
+  })
+
+  it('should trigger screenshot transcode workflow with annotations when annotationId matches AgentSessionEntry (1-on-1 chat)', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as User)
+    vi.mocked(authzService.hasPermission).mockResolvedValue()
+
+    vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+      id: 'asset-1',
+      projectId: 'project-1',
+    } as unknown as Asset)
+
+    vi.mocked(prisma.assetComment.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.agentSessionEntry.findUnique).mockResolvedValue({
+      id: 'entry-1',
+      data: {
+        details: {
+          position: { type: 'time', seconds: 7.25 },
+          annotations: [{ type: 'rectangle', x: 10, y: 20, width: 30, height: 40 }],
+        },
+      },
+    } as unknown as AgentSessionEntry)
+
+    vi.mocked(prisma.workflowTask.create).mockResolvedValue({
+      id: 'task-1',
+    } as unknown as WorkflowTask)
+
+    vi.mocked(workflowService.executeWait).mockResolvedValue({
+      id: 'task-1',
+      status: WorkflowTaskStatus.completed,
+      output: {
+        screenshots: [{ key: 'screenshots/shot-chat.webp', timestamp: 7.25 }],
+      },
+    } as unknown as WorkflowTask)
+
+    vi.mocked(s3Service.getObject).mockImplementation(async (_bucket: string, key: string) => {
+      return {
+        buffer: Buffer.from(`fake-bytes-for-${key}`),
+        contentType: 'image/webp',
+      } as unknown as { buffer: Buffer; contentType: string }
+    })
+
+    const tool = createScreenshotTool('user-1')
+    await tool.execute('call-2', {
+      assetId: 'asset-1',
+      start: 5,
+      end: 10,
+      count: 1,
+      annotationId: 'entry-1',
+    })
+
+    expect(prisma.workflowTask.create).toHaveBeenCalledWith({
+      data: {
+        assetId: 'asset-1',
+        projectId: 'project-1',
+        type: 'transcode_screenshot',
+        status: 'pending',
+        payload: {
+          projectId: 'project-1',
+          screenshot: {
+            start: 5,
+            end: 10,
+            count: 1,
+            commentTimestamp: 7.25,
+            annotations: [{ type: 'rectangle', x: 10, y: 20, width: 30, height: 40 }],
+          },
+        },
+      },
+    })
+  })
+
+  it('should take unannotated screenshots when annotationId is omitted', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as User)
+    vi.mocked(authzService.hasPermission).mockResolvedValue()
+
+    vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+      id: 'asset-1',
+      projectId: 'project-1',
+    } as unknown as Asset)
+
+    vi.mocked(prisma.workflowTask.create).mockResolvedValue({
+      id: 'task-1',
+    } as unknown as WorkflowTask)
+
+    vi.mocked(workflowService.executeWait).mockResolvedValue({
+      id: 'task-1',
+      status: WorkflowTaskStatus.completed,
+      output: {
+        screenshots: [{ key: 'screenshots/shot-clean.webp', timestamp: 0.0 }],
+      },
+    } as unknown as WorkflowTask)
+
+    vi.mocked(s3Service.getObject).mockImplementation(async (_bucket: string, key: string) => {
+      return {
+        buffer: Buffer.from(`fake-bytes-for-${key}`),
+        contentType: 'image/webp',
+      } as unknown as { buffer: Buffer; contentType: string }
+    })
+
+    const tool = createScreenshotTool('user-1')
+    await tool.execute('call-3', {
+      assetId: 'asset-1',
+      start: 0,
+      end: 5,
+      count: 1,
+    })
+
+    expect(prisma.workflowTask.create).toHaveBeenCalledWith({
+      data: {
+        assetId: 'asset-1',
+        projectId: 'project-1',
+        type: 'transcode_screenshot',
+        status: 'pending',
+        payload: {
+          projectId: 'project-1',
+          screenshot: {
+            start: 0,
+            end: 5,
+            count: 1,
+            commentTimestamp: null,
+            annotations: null,
+          },
+        },
+      },
+    })
   })
 })

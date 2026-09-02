@@ -5,6 +5,7 @@ import { prisma, WorkflowTaskType, WorkflowTaskStatus, type User } from '@shumai
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { resolveAnnotationsById } from './annotation-resolver'
 
 const readPdfPagesSchema = Type.Object({
   assetId: Type.String({
@@ -12,12 +13,15 @@ const readPdfPagesSchema = Type.Object({
   }),
   start: Type.Number({ description: 'Start page number (1-based index)' }),
   end: Type.Number({ description: 'End page number (1-based index)' }),
+  annotationId: Type.Optional(
+    Type.String({
+      description:
+        'The ID of the comment or message entry from <annotation id="..." /> whose visual markup should be overlaid on the rendered PDF pages.',
+    }),
+  ),
 })
 
-export function createReadPdfPagesTool(
-  userId: string,
-  userCommentId?: string | null,
-): AgentTool<typeof readPdfPagesSchema> {
+export function createReadPdfPagesTool(userId: string): AgentTool<typeof readPdfPagesSchema> {
   return {
     name: 'read_pdf_pages',
     label: 'Read PDF Pages',
@@ -79,23 +83,10 @@ export function createReadPdfPagesTool(
         throw new Error(`Asset ${targetAssetId} is not a PDF or document.`)
       }
 
-      // Fetch trigger comment details for comment page and annotations
-      let commentTimestamp: number | null = null
-      let annotations: unknown = null
-      if (userCommentId) {
-        const comment = await prisma.assetComment.findUnique({
-          where: { id: userCommentId },
-        })
-        if (comment && comment.assetId === targetAssetId) {
-          commentTimestamp = comment.second !== null ? comment.second : null
-          if (comment.annotation) {
-            const list = comment.annotation
-            if (Array.isArray(list) && list.length > 0) {
-              annotations = list
-            }
-          }
-        }
-      }
+      // Resolve annotations dynamically by annotationId
+      const { annotations, timestamp: commentTimestamp } = await resolveAnnotationsById(
+        params.annotationId,
+      )
 
       // Trigger transcode workflow to render PDF pages
       const task = await prisma.workflowTask.create({
@@ -110,7 +101,7 @@ export function createReadPdfPagesTool(
               start: params.start,
               end: params.end,
               commentTimestamp,
-              annotations: annotations as PrismaJson.AnnotationList,
+              annotations,
             },
           },
         },

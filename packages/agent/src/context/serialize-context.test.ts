@@ -330,5 +330,25 @@ describe('serializeContextToXml', () => {
       expect(serializeContextToXml(context2)).toContain('duration_seconds="14.00"')
       expect(serializeContextToXml(context2)).toContain('seconds="5.5000"')
     })
+
+    it('serializes annotation tag with id when context.id is provided', () => {
+      const context: ShumaiMessageContext = {
+        id: '01JABCDEF1234567890',
+        annotation: true,
+      }
+      expect(serializeContextToXml(context)).toBe(
+        '<context>\n  <annotation id="01JABCDEF1234567890" />\n</context>',
+      )
+    })
+
+    it('escapes special XML characters in annotation id', () => {
+      const context: ShumaiMessageContext = {
+        id: 'test<id>&"123"',
+        annotation: true,
+      }
+      expect(serializeContextToXml(context)).toBe(
+        '<context>\n  <annotation id="test&lt;id&gt;&amp;&quot;123&quot;" />\n</context>',
+      )
+    })
   })
 })
