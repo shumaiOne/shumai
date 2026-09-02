@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createReadAssetTool } from './read-asset'
-import { prisma, WorkflowTaskType, WorkflowTaskStatus, type Asset, type WorkflowTask } from '@shumai/db'
+import {
+  prisma,
+  WorkflowTaskType,
+  WorkflowTaskStatus,
+  type Asset,
+  type WorkflowTask,
+} from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
 import { authzService } from '@shumai/core/src/authz/authz'
@@ -141,11 +147,22 @@ describe('readAssetTool', () => {
       } as unknown as Asset)
 
       vi.spyOn(annotationResolver, 'resolveAnnotationsById').mockResolvedValue({
-        annotations: [{ type: 'arrow', color: '#ff0000', points: [[0, 0], [10, 10]] }],
+        annotations: [
+          {
+            type: 'arrow',
+            color: '#ff0000',
+            points: [
+              [0, 0],
+              [10, 10],
+            ],
+          },
+        ],
         timestamp: null,
       })
 
-      vi.mocked(prisma.workflowTask.create).mockResolvedValue({ id: 'task-anno' } as unknown as WorkflowTask)
+      vi.mocked(prisma.workflowTask.create).mockResolvedValue({
+        id: 'task-anno',
+      } as unknown as WorkflowTask)
       vi.mocked(workflowService.executeWait).mockResolvedValue({
         id: 'task-anno',
         output: { key: 'annotated/photo.webp' },
@@ -174,7 +191,16 @@ describe('readAssetTool', () => {
           payload: {
             projectId: 'project-1',
             imageAnnotation: {
-              annotations: [{ type: 'arrow', color: '#ff0000', points: [[0, 0], [10, 10]] }],
+              annotations: [
+                {
+                  type: 'arrow',
+                  color: '#ff0000',
+                  points: [
+                    [0, 0],
+                    [10, 10],
+                  ],
+                },
+              ],
             },
           },
         },
@@ -225,7 +251,9 @@ describe('readAssetTool', () => {
           videoConfig: { start: 10, end: 5, count: 1 },
           docConfig: null,
         }),
-      ).rejects.toThrow('Invalid video time range: start (10) must be less than or equal to end (5).')
+      ).rejects.toThrow(
+        'Invalid video time range: start (10) must be less than or equal to end (5).',
+      )
     })
 
     it('should extract frames and return ImageContent array and keys', async () => {
@@ -238,7 +266,9 @@ describe('readAssetTool', () => {
         media: { proxyType: 'video' },
       } as unknown as Asset)
 
-      vi.mocked(prisma.workflowTask.create).mockResolvedValue({ id: 'task-shot' } as unknown as WorkflowTask)
+      vi.mocked(prisma.workflowTask.create).mockResolvedValue({
+        id: 'task-shot',
+      } as unknown as WorkflowTask)
       vi.mocked(workflowService.executeWait).mockResolvedValue({
         id: 'task-shot',
         output: {
@@ -319,7 +349,9 @@ describe('readAssetTool', () => {
         media: { proxyType: 'pdf' },
       } as unknown as Asset)
 
-      vi.mocked(prisma.workflowTask.create).mockResolvedValue({ id: 'task-pdf' } as unknown as WorkflowTask)
+      vi.mocked(prisma.workflowTask.create).mockResolvedValue({
+        id: 'task-pdf',
+      } as unknown as WorkflowTask)
       vi.mocked(workflowService.executeWait).mockResolvedValue({
         id: 'task-pdf',
         output: {

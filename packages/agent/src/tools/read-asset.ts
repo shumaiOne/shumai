@@ -239,7 +239,7 @@ export function createReadAssetTool(userId: string): AgentTool<typeof readAssetS
         const content: Array<TextContent | ImageContent> = [
           {
             type: 'text',
-            text: `Image asset "${asset.name}" (ID: ${asset.id}):\n- S3 Key: "${keyToUse}"\n- Download URL: ${downloadUrl}`,
+            text: `Image asset "${asset.name}" (ID: ${asset.id}):\n- S3 Key: "${keyToUse}"`,
           },
           {
             type: 'image',
@@ -341,9 +341,7 @@ export function createReadAssetTool(userId: string): AgentTool<typeof readAssetS
             asset.name || undefined,
           )
 
-          textLines.push(
-            `- Frame at ${shot.timestamp}s: S3 Key: "${shot.key}" | URL: ${downloadUrl}`,
-          )
+          textLines.push(`- Frame at ${shot.timestamp}s: S3 Key: "${shot.key}"`)
           content.push({
             type: 'image',
             data: buffer.toString('base64'),
@@ -538,7 +536,7 @@ export function createReadAssetTool(userId: string): AgentTool<typeof readAssetS
             asset.name || undefined,
           )
 
-          textLines.push(`- Page ${pageItem.page}: S3 Key: "${pageItem.key}" | URL: ${downloadUrl}`)
+          textLines.push(`- Page ${pageItem.page}: S3 Key: "${pageItem.key}"`)
           content.push({
             type: 'image',
             data: buffer.toString('base64'),
