@@ -27,6 +27,64 @@ export const downloadAssetSchema = Type.Object(
   { additionalProperties: false },
 )
 
+export async function resolveAssetIdFromKey(key: string): Promise<string> {
+  if (!key.startsWith('files/') || key.includes('..')) {
+    throw new Error(
+      'Invalid storage key format: key must start with "files/" and cannot contain "..".',
+    )
+  }
+
+  const segments = key.split('/')
+  if (segments.length < 3) {
+    throw new Error(
+      'Invalid storage key format: key must follow "files/<identifier>/<path>" structure.',
+    )
+  }
+
+  const identifier = segments[1]
+
+  // 1. Check if identifier is directly an Asset ID (Derived Artifacts: screenshots, pdf_pages, annotations, proxies)
+  const assetById = await prisma.asset.findUnique({
+    where: { id: identifier, isDeleted: false },
+    select: { id: true },
+  })
+  if (assetById) {
+    return assetById.id
+  }
+
+  // 2. Check if identifier is a StorageKey directory prefix (Original uploads / agent-created files)
+  const storageKeyByPrefix = await prisma.storageKey.findFirst({
+    where: { key: { startsWith: `files/${identifier}/` } },
+    include: {
+      assets: {
+        where: { isDeleted: false },
+        select: { id: true },
+      },
+    },
+  })
+  if (storageKeyByPrefix?.assets && storageKeyByPrefix.assets.length > 0) {
+    return storageKeyByPrefix.assets[0].id
+  }
+
+  // 3. Exact StorageKey fallback
+  const exactStorageKey = await prisma.storageKey.findUnique({
+    where: { key },
+    include: {
+      assets: {
+        where: { isDeleted: false },
+        select: { id: true },
+      },
+    },
+  })
+  if (exactStorageKey?.assets && exactStorageKey.assets.length > 0) {
+    return exactStorageKey.assets[0].id
+  }
+
+  throw new Error(
+    `Storage key "${key}" does not belong to any valid asset or the asset has been deleted.`,
+  )
+}
+
 export function createDownloadAssetTool(userId: string): AgentTool<typeof downloadAssetSchema> {
   return {
     name: 'download_asset',
@@ -146,6 +204,15 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
 
       // Branch B: Download by S3 storage key
       if (key) {
+        const owningAssetId = await resolveAssetIdFromKey(key)
+
+        await authzService.hasPermission({
+          user: { id: userId } as User,
+          permission: Permission.Read,
+          type: ResourceType.Asset,
+          id: owningAssetId,
+        })
+
         const rawBasename = path.basename(key)
         const safeBasename = sanitizeFilename(rawBasename) || 'downloaded_file'
         const filename = safeBasename
@@ -164,6 +231,7 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
           ],
           details: {
             key,
+            assetId: owningAssetId,
             filePath: relativePath,
             absolutePath: targetFilePath,
             contentType: contentType || 'application/octet-stream',
