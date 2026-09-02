@@ -132,7 +132,10 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
         customType: 'shumai_message',
         content: contentText,
         display: true,
-        details: this.currentMessageContext,
+        details: {
+          ...this.currentMessageContext,
+          id: entryToProcess.id,
+        },
       } as unknown as SessionTreeEntry
       this.currentMessageContext = undefined
     }

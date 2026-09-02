@@ -9,6 +9,20 @@ const readThreadSchema = Type.Object({
   }),
 })
 
+function formatCommentMeta(c: {
+  id: string
+  second?: number | null
+  annotation?: unknown
+}): string {
+  const parts = [`id: ${c.id}`]
+  if (c.second !== null && c.second !== undefined) {
+    parts.push(`time: ${c.second}s`)
+  }
+  const hasMarkup = Boolean(c.annotation && Array.isArray(c.annotation) && c.annotation.length > 0)
+  parts.push(`has_markup: ${hasMarkup}`)
+  return `(${parts.join(', ')})`
+}
+
 export const createReadThreadTool = (): AgentTool<
   typeof readThreadSchema,
   { threadId: string }
@@ -49,7 +63,8 @@ export const createReadThreadTool = (): AgentTool<
 
     const isRootAgent = rootComment.creator?.type === 'agent' || rootComment.sessionId !== null
     const rootAuthor = rootComment.creator?.name || (isRootAgent ? 'Ai Agent' : 'User')
-    let output = `Thread Root [${rootAuthor}] (${rootComment.id}): ${rootComment.message || ''}\n\nReplies (${replies.length}):`
+    const rootMeta = formatCommentMeta(rootComment)
+    let output = `Thread Root [${rootAuthor}] ${rootMeta}: ${rootComment.message || ''}\n\nReplies (${replies.length}):`
 
     if (replies.length === 0) {
       output += '\n(No replies in this thread yet)'
@@ -57,7 +72,8 @@ export const createReadThreadTool = (): AgentTool<
       for (const reply of replies) {
         const isAgent = reply.creator?.type === 'agent' || reply.sessionId !== null
         const author = reply.creator?.name || (isAgent ? 'Ai Agent' : 'User')
-        output += `\n- [${author}]: ${reply.message || ''}`
+        const replyMeta = formatCommentMeta(reply)
+        output += `\n- [${author}] ${replyMeta}: ${reply.message || ''}`
       }
     }
 

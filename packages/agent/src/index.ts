@@ -312,16 +312,12 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     }
   }
 
-  const metadata = await storage.getMetadata()
-  const userCommentId =
-    passedUserCommentId !== undefined ? passedUserCommentId : metadata.userCommentId
-
   const mediaTools: AgentTool[] = []
   if (userId) {
     mediaTools.push(
-      createAnalyzeImageTool(userId, userCommentId),
-      createScreenshotTool(userId, userCommentId),
-      createReadPdfPagesTool(userId, userCommentId),
+      createAnalyzeImageTool(userId),
+      createScreenshotTool(userId),
+      createReadPdfPagesTool(userId),
     )
   }
 

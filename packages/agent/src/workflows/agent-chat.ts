@@ -298,6 +298,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     // Build structured ShumaiMessageContext
     const messageContext: ShumaiMessageContext = {
+      ...(userCommentId ? { id: userCommentId } : {}),
       ...(userInfo
         ? { user: { id: targetUserId!, name: userInfo.name, role: userInfo.role } }
         : {}),

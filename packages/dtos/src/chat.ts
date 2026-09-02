@@ -87,6 +87,7 @@ export const shumaiThreadContextSchema = z.object({
 export type ShumaiThreadContext = z.infer<typeof shumaiThreadContextSchema>
 
 export const shumaiMessageContextSchema = z.object({
+  id: z.string().optional(),
   user: z
     .object({
       id: z.string(),

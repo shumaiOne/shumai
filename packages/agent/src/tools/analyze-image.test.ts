@@ -5,6 +5,7 @@ import {
   WorkflowTaskStatus,
   type Asset,
   type AssetComment,
+  type AgentSessionEntry,
   type User,
   type WorkflowTask,
 } from '@shumai/db'
@@ -24,6 +25,9 @@ vi.mock('@shumai/db', async (importOriginal) => {
         findUnique: vi.fn(),
       },
       assetComment: {
+        findUnique: vi.fn(),
+      },
+      agentSessionEntry: {
         findUnique: vi.fn(),
       },
       workflowTask: {
@@ -58,7 +62,7 @@ describe('analyzeImageTool', () => {
     vi.clearAllMocks()
   })
 
-  it('should check user permissions and fetch the image from S3 when comment has no annotations', async () => {
+  it('should check user permissions and fetch the image from S3 when annotationId is omitted', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as User)
     vi.mocked(authzService.hasPermission).mockResolvedValue()
 
@@ -69,18 +73,12 @@ describe('analyzeImageTool', () => {
       media: null,
     } as unknown as Asset)
 
-    vi.mocked(prisma.assetComment.findUnique).mockResolvedValue({
-      id: 'comment-1',
-      assetId: 'asset-1',
-      annotation: null,
-    } as unknown as AssetComment)
-
     vi.mocked(s3Service.getObject).mockResolvedValue({
       buffer: Buffer.from('fake-image-bytes'),
       contentType: 'image/png',
     } as unknown as { buffer: Buffer; contentType: string })
 
-    const tool = createAnalyzeImageTool('user-1', 'comment-1')
+    const tool = createAnalyzeImageTool('user-1')
     const result = await tool.execute('call-1', { assetId: 'asset-1' })
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
@@ -99,7 +97,10 @@ describe('analyzeImageTool', () => {
     expect(prisma.workflowTask.create).not.toHaveBeenCalled()
   })
 
-  it('should trigger overlay transcode workflow when comment has annotations', async () => {
+  it('should trigger overlay transcode workflow when annotationId matches AssetComment with annotations', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as User)
+    vi.mocked(authzService.hasPermission).mockResolvedValue()
+
     vi.mocked(prisma.asset.findUnique).mockResolvedValue({
       id: 'asset-1',
       projectId: 'project-1',
@@ -139,8 +140,8 @@ describe('analyzeImageTool', () => {
       contentType: 'image/webp',
     } as unknown as { buffer: Buffer; contentType: string })
 
-    const tool = createAnalyzeImageTool('user-1', 'comment-1')
-    const result = await tool.execute('call-1', { assetId: 'asset-1' })
+    const tool = createAnalyzeImageTool('user-1')
+    const result = await tool.execute('call-1', { assetId: 'asset-1', annotationId: 'comment-1' })
 
     expect(prisma.workflowTask.create).toHaveBeenCalledWith({
       data: {
@@ -171,5 +172,91 @@ describe('analyzeImageTool', () => {
       Buffer.from('fake-annotated-image-bytes').toString('base64'),
     )
     expect(result.details.sourceKeys).toEqual(['annotated-image.webp'])
+  })
+
+  it('should trigger overlay transcode workflow when annotationId matches AgentSessionEntry (1-on-1 chat mode)', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as User)
+    vi.mocked(authzService.hasPermission).mockResolvedValue()
+
+    vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+      id: 'asset-1',
+      projectId: 'project-1',
+      storageKey: { key: 'raw-image.png' },
+      media: null,
+    } as unknown as Asset)
+
+    vi.mocked(prisma.assetComment.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.agentSessionEntry.findUnique).mockResolvedValue({
+      id: 'entry-1',
+      assetId: 'asset-1',
+      data: {
+        details: {
+          annotations: [{ type: 'arrow', x1: 5, y1: 5, x2: 20, y2: 20 }],
+        },
+      },
+    } as unknown as AgentSessionEntry)
+
+    vi.mocked(prisma.workflowTask.create).mockResolvedValue({
+      id: 'task-1',
+    } as unknown as WorkflowTask)
+
+    vi.mocked(workflowService.executeWait).mockResolvedValue({
+      id: 'task-1',
+      status: WorkflowTaskStatus.completed,
+      output: { key: 'chat-annotated-image.webp' },
+    } as unknown as WorkflowTask)
+
+    vi.mocked(s3Service.getObject).mockResolvedValue({
+      buffer: Buffer.from('fake-chat-annotated-bytes'),
+      contentType: 'image/webp',
+    } as unknown as { buffer: Buffer; contentType: string })
+
+    const tool = createAnalyzeImageTool('user-1')
+    const result = await tool.execute('call-2', { assetId: 'asset-1', annotationId: 'entry-1' })
+
+    expect(prisma.workflowTask.create).toHaveBeenCalledWith({
+      data: {
+        assetId: 'asset-1',
+        projectId: 'project-1',
+        type: 'transcode_image_annotation',
+        status: 'pending',
+        payload: {
+          projectId: 'project-1',
+          imageAnnotation: {
+            annotations: [{ type: 'arrow', x1: 5, y1: 5, x2: 20, y2: 20 }],
+          },
+        },
+      },
+    })
+
+    expect(result.details.sourceKeys).toEqual(['chat-annotated-image.webp'])
+  })
+
+  it('should throw an error when annotationId belongs to a different asset', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as User)
+    vi.mocked(authzService.hasPermission).mockResolvedValue()
+
+    vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+      id: 'asset-1',
+      projectId: 'project-1',
+      storageKey: { key: 'raw-image.png' },
+      media: null,
+    } as unknown as Asset)
+
+    vi.mocked(prisma.assetComment.findUnique).mockResolvedValue({
+      id: 'comment-on-other-asset',
+      assetId: 'asset-999',
+      annotation: [{ type: 'arrow' }],
+    } as unknown as AssetComment)
+
+    const tool = createAnalyzeImageTool('user-1')
+    await expect(
+      tool.execute('call-mismatch', {
+        assetId: 'asset-1',
+        annotationId: 'comment-on-other-asset',
+      }),
+    ).rejects.toThrow(
+      'Annotation "comment-on-other-asset" belongs to asset "asset-999", not target asset "asset-1".',
+    )
   })
 })
