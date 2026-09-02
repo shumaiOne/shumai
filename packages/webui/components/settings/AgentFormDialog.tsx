@@ -70,19 +70,9 @@ const BUILTIN_TOOLS = [
     description: () => m.agent_tool_read_skill_desc(),
   },
   {
-    id: 'analyze_image',
-    name: () => m.agent_tool_analyze_image_name(),
-    description: () => m.agent_tool_analyze_image_desc(),
-  },
-  {
-    id: 'screenshot',
-    name: () => m.agent_tool_screenshot_name(),
-    description: () => m.agent_tool_screenshot_desc(),
-  },
-  {
-    id: 'read_pdf_pages',
-    name: () => m.agent_tool_read_pdf_pages_name(),
-    description: () => m.agent_tool_read_pdf_pages_desc(),
+    id: 'read_asset',
+    name: () => m.agent_tool_read_asset_name(),
+    description: () => m.agent_tool_read_asset_desc(),
   },
   {
     id: 'list_assets',

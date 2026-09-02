@@ -69,9 +69,7 @@ interface QuotaRuleDialogProps {
 }
 
 const STANDARD_TOOLS = [
-  { value: 'analyze_image', label: () => m.agent_tool_analyze_image_name() },
-  { value: 'screenshot', label: () => m.agent_tool_screenshot_name() },
-  { value: 'read_pdf_pages', label: () => m.agent_tool_read_pdf_pages_name() },
+  { value: 'read_asset', label: () => m.agent_tool_read_asset_name() },
   { value: 'list_assets', label: () => m.agent_tool_list_assets_name() },
   { value: 'create_folder', label: () => m.agent_tool_create_folder_name() },
   { value: 'create_file', label: () => m.agent_tool_create_file_name() },
@@ -129,7 +127,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
   const [resource, setResource] = useState<QuotaResourceTypeEnum>('agent_total_tokens')
   const [mcpServerId, setMcpServerId] = useState<string>('')
   const [bashMatch, setBashMatch] = useState<string>('*')
-  const [toolName, setToolName] = useState<string>('analyze_image')
+  const [toolName, setToolName] = useState<string>('read_asset')
   const [limit, setLimit] = useState<number>(100000)
   const [period, setPeriod] = useState<QuotaPeriodEnum>('1day')
   const [enabled, setEnabled] = useState<boolean>(true)
@@ -177,7 +175,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
           ? resData.name
           : typeof resData.toolName === 'string'
             ? resData.toolName
-            : 'analyze_image',
+            : 'read_asset',
       )
       setLimit(rule.limit)
       setPeriod(formatQuotaPeriod(rule.period) as QuotaPeriodEnum)
@@ -189,7 +187,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
       setResource('agent_total_tokens')
       setMcpServerId('')
       setBashMatch('*')
-      setToolName('analyze_image')
+      setToolName('read_asset')
       setLimit(RESOURCE_CONFIG.agent_total_tokens.defaultLimit)
       setPeriod('1day')
       setEnabled(true)
@@ -213,7 +211,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
       } else if (resource === 'agent_bash_call_count') {
         resourceData.match = bashMatch.trim() || '*'
       } else if (resource === 'agent_tool_call_count') {
-        resourceData.name = toolName || 'analyze_image'
+        resourceData.name = toolName || 'read_asset'
       }
 
       const res = await client.api.teams[':teamId'].quotas.$post({
@@ -261,7 +259,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
       } else if (resource === 'agent_bash_call_count') {
         resourceData.match = bashMatch.trim() || '*'
       } else if (resource === 'agent_tool_call_count') {
-        resourceData.name = toolName || 'analyze_image'
+        resourceData.name = toolName || 'read_asset'
       }
 
       const res = await client.api.teams[':teamId'].quotas[':id'].$put({

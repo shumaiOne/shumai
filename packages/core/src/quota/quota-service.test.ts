@@ -21,12 +21,12 @@ describe('QuotaRule Wildcard Matchers', () => {
 
   it('correctly matches agent tool name wildcards', () => {
     const starTool = wildcardToRegex('*')
-    expect(starTool.test('analyze_image')).toBe(true)
-    expect(starTool.test('screenshot')).toBe(true)
+    expect(starTool.test('read_asset')).toBe(true)
+    expect(starTool.test('create_file')).toBe(true)
 
-    const exactTool = wildcardToRegex('analyze_image')
-    expect(exactTool.test('analyze_image')).toBe(true)
-    expect(exactTool.test('screenshot')).toBe(false)
+    const exactTool = wildcardToRegex('read_asset')
+    expect(exactTool.test('read_asset')).toBe(true)
+    expect(exactTool.test('create_file')).toBe(false)
   })
 })
 
@@ -405,29 +405,29 @@ describe('QuotaService', () => {
     await quotaService.createRule(team.id, {
       scopeMode: 'all_members',
       resource: 'agent_tool_call_count',
-      resourceData: { name: 'analyze_image' },
+      resourceData: { name: 'read_asset' },
       limit: 1,
       period: '1hour',
       enabled: true,
     })
 
-    // First call to analyze_image
+    // First call to read_asset
     await quotaService.consumeQuota(
       {
         teamId: team.id,
         resource: 'agent_tool_call_count',
-        resourceData: { name: 'analyze_image' },
+        resourceData: { name: 'read_asset' },
       },
       1,
     )
 
-    // 2nd call to analyze_image is blocked
+    // 2nd call to read_asset is blocked
     await expect(
       quotaService.checkQuota(
         {
           teamId: team.id,
           resource: 'agent_tool_call_count',
-          resourceData: { name: 'analyze_image' },
+          resourceData: { name: 'read_asset' },
         },
         1,
       ),

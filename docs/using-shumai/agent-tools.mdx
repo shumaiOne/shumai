@@ -30,35 +30,35 @@ The following tools can be individually toggled in the agent configuration dialo
 - **Description:** Allows the agent to load and read skill definitions to perform specialized actions.
 - **Why it matters:** Enables the agent to inspect the instructions/configurations of custom skills registered in your workspace before executing them.
 
-### 3. Analyze Image (`analyze_image`)
+### 3. Read Asset (`read_asset`)
 
-- **Description:** Allows the agent to view and analyze the visual contents of an image file.
-- **Why it matters:** Enables multimodal agents to "see" image assets uploaded to Shumai, allowing them to answer comments or write metadata about images.
+- **Description:** Allows the agent to inspect images, extract still frames from video files, render PDF document pages, and read text/markdown documents.
+- **Why it matters:** Enables multimodal agents to view visual media assets uploaded to Shumai, extract frame-by-frame video screenshots, inspect document layouts, and answer questions about uploaded creative assets.
 
-### 4. Video Frame Extraction (`screenshot`)
-
-- **Description:** Allows the agent to extract still image frames from video files for analysis.
-- **Why it matters:** Enables the agent to perform frame-by-frame analysis on videos (e.g. for comments, annotation, or search).
-
-### 5. Browse Shumai (`list_assets`)
+### 4. Browse Shumai (`list_assets`)
 
 - **Description:** Allows the agent to list folders and browse files in Shumai.
 - **Why it matters:** Gives the agent visual mapping of the project structure so it can search for other files or locate related assets.
 
-### 6. Create Folder (`create_folder`)
+### 5. Create Folder (`create_folder`)
 
 - **Description:** Allows the agent to create new folders in Shumai.
 - **Why it matters:** Needed if the agent organizes outputs or places files in custom subdirectory folders.
 
-### 7. Create File (`create_file`)
+### 6. Create File (`create_file`)
 
 - **Description:** Allows the agent to create and upload new files to Shumai.
 - **Why it matters:** Allows the agent to generate new assets (e.g. text logs, transcoded clips, reports) and save them directly back into your project.
 
-### 8. Create Version (`create_version`)
+### 7. Create Version (`create_version`)
 
 - **Description:** Allows the agent to upload and stack a new version of an existing file in Shumai.
 - **Why it matters:** Allows the agent to update files in a clean, non-destructive way by stacking revisions rather than creating duplicate files.
+
+### 8. Download Asset (`download_asset`)
+
+- **Description:** Allows the agent to download a workspace asset or specific storage S3 key to the local `.pi` directory for processing with local scripts or bash commands.
+- **Why it matters:** Enables agents executing custom skill scripts to fetch files or intermediate transcode artifacts to local disk.
 
 ---
 
