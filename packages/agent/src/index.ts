@@ -19,17 +19,15 @@ import * as os from 'os'
 import * as path from 'path'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
-import { createAnalyzeImageTool } from './tools/analyze-image'
 import { createCreateFileTool } from './tools/create-file'
 import { createCreateFolderTool } from './tools/create-folder'
 import { createCreateVersionTool } from './tools/create-version'
 import { createDownloadAssetTool } from './tools/download-asset'
 import { createListAssetsTool } from './tools/list-assets'
-import { createReadPdfPagesTool } from './tools/read-pdf-pages'
+import { createReadAssetTool } from './tools/read-asset'
 import { createReadSkillTool } from './tools/read-skill'
 import { createReadThreadTool } from './tools/read-thread'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
-import { createScreenshotTool } from './tools/screenshot'
 import { serializeContextToXml } from './context/serialize-context'
 import type { ShumaiMessageContext } from '@shumai/dtos'
 
@@ -314,11 +312,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
   const mediaTools: AgentTool[] = []
   if (userId) {
-    mediaTools.push(
-      createAnalyzeImageTool(userId),
-      createScreenshotTool(userId),
-      createReadPdfPagesTool(userId),
-    )
+    mediaTools.push(createReadAssetTool(userId))
   }
 
   const agent = await prisma.agent.findUnique({

@@ -3,7 +3,7 @@ import type { ShumaiMessageContext } from '@shumai/dtos'
 
 export async function resolveAnnotationsById(
   assetId: string,
-  annotationId?: string,
+  annotationId?: string | null,
 ): Promise<{ annotations: PrismaJson.AnnotationList | null; timestamp: number | null }> {
   if (!annotationId) {
     return { annotations: null, timestamp: null }

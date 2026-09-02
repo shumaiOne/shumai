@@ -118,7 +118,7 @@ If you need to create files in the local filesystem (for example, a temporary fi
 When creating a file or version, you may attach metadata (for example, the AI model or prompt used to generate the asset). The allowed field keys and value types are declared directly in the 'metadata' parameter of the 'create_file' and 'create_version' tools.
 
 # Message Context & Tools
-User messages may contain a <context> block detailing the user, active asset location, playback position, and attachments. Use the asset IDs from <context> when invoking tools (e.g. 'analyze_image', 'screenshot', 'read_pdf_pages', 'download_asset', 'list_assets'). When an <annotation id="..." /> tag is present, it indicates the user has drawn visual markups on the asset at the specified position. When calling 'screenshot', 'analyze_image', or 'read_pdf_pages', pass the 'annotationId' parameter with that ID to view the image with the visual markups overlaid.`
+User messages may contain a <context> block detailing the user, active asset location, playback position, and attachments. Use the asset IDs from <context> when invoking tools (e.g. 'read_asset', 'download_asset', 'list_assets'). When an <annotation id="..." /> tag is present, it indicates the user has drawn visual markups on the asset at the specified position. When calling 'read_asset', pass the 'annotationId' parameter with that ID to view the image or rendered pages with the visual markups overlaid.`
 
   if (agent.soul) {
     systemPrompt = `${systemPrompt}\n\nAgent Personality and Core Instructions:\n${agent.soul}`

@@ -52,22 +52,38 @@ describe('downloadAssetTool', () => {
 
   it('should throw authorization error if user ID is empty', async () => {
     const tool = createDownloadAssetTool('')
-    await expect(tool.execute('call-1', { assetId: 'asset-1' })).rejects.toThrow(
+    await expect(tool.execute('call-1', { assetId: 'asset-1', key: null })).rejects.toThrow(
       'User ID is required for authorization.',
     )
   })
 
-  it('should throw error if asset not found', async () => {
+  it('should throw error if both assetId and key are null', async () => {
+    const tool = createDownloadAssetTool('user-1')
+    await expect(tool.execute('call-1', { assetId: null, key: null })).rejects.toThrow(
+      'Provide exactly one of "assetId" (to download a workspace asset) or "key" (to download a specific S3 storage key). Set the unused parameter to null.',
+    )
+  })
+
+  it('should throw error if both assetId and key are provided', async () => {
+    const tool = createDownloadAssetTool('user-1')
+    await expect(
+      tool.execute('call-1', { assetId: 'asset-1', key: 'files/path/file.png' }),
+    ).rejects.toThrow(
+      'Provide exactly one of "assetId" (to download a workspace asset) or "key" (to download a specific S3 storage key). Set the unused parameter to null.',
+    )
+  })
+
+  it('should throw error if asset not found when downloading by assetId', async () => {
     vi.mocked(authzService.hasPermission).mockResolvedValue()
     vi.mocked(prisma.asset.findUnique).mockResolvedValue(null)
 
     const tool = createDownloadAssetTool('user-1')
-    await expect(tool.execute('call-1', { assetId: 'asset-1' })).rejects.toThrow(
+    await expect(tool.execute('call-1', { assetId: 'asset-1', key: null })).rejects.toThrow(
       'Asset with ID asset-1 not found.',
     )
   })
 
-  it('should download proxy image to .pi directory when imageTranscodes is present', async () => {
+  it('should download proxy image to .pi directory when downloading by assetId', async () => {
     vi.mocked(authzService.hasPermission).mockResolvedValue()
     vi.mocked(prisma.asset.findUnique).mockResolvedValue({
       id: 'asset-img-1',
@@ -85,7 +101,7 @@ describe('downloadAssetTool', () => {
     } as unknown as { buffer: Buffer; contentType: string })
 
     const tool = createDownloadAssetTool('user-1')
-    const result = await tool.execute('call-1', { assetId: 'asset-img-1' })
+    const result = await tool.execute('call-1', { assetId: 'asset-img-1', key: null })
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
       user: { id: 'user-1' },
@@ -109,63 +125,35 @@ describe('downloadAssetTool', () => {
     )
   })
 
-  it('should download proxy video to .pi directory when videoTranscodes is present', async () => {
-    vi.mocked(authzService.hasPermission).mockResolvedValue()
-    vi.mocked(prisma.asset.findUnique).mockResolvedValue({
-      id: 'asset-vid-1',
-      name: 'video_test.mov',
-      storageKey: { key: 'raw/video_test.mov' },
-      media: {
-        proxyType: 'video',
-        videoTranscodes: [{ key: 'proxy/video_test.mp4' }],
-      },
-    } as unknown as Asset)
-
+  it('should download specific S3 storage key to .pi directory when key is provided', async () => {
     vi.mocked(s3Service.getObject).mockResolvedValue({
-      buffer: Buffer.from('fake-video-bytes'),
-      contentType: 'video/mp4',
+      buffer: Buffer.from('fake-screenshot-bytes'),
+      contentType: 'image/webp',
     } as unknown as { buffer: Buffer; contentType: string })
 
     const tool = createDownloadAssetTool('user-1')
-    const result = await tool.execute('call-1', { assetId: 'asset-vid-1' })
+    const result = await tool.execute('call-1', {
+      assetId: null,
+      key: 'files/ast-123/screenshots/shot_5.0s.webp',
+    })
 
-    expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'proxy/video_test.mp4')
+    expect(s3Service.getObject).toHaveBeenCalledWith(
+      'shumai',
+      'files/ast-123/screenshots/shot_5.0s.webp',
+    )
 
-    const expectedPath = path.join(piDir, 'asset-vid-1_video_test.mov')
+    const expectedPath = path.join(piDir, 'shot_5.0s.webp')
     createdFiles.push(expectedPath)
 
     expect(fs.existsSync(expectedPath)).toBe(true)
-    expect(result.details.size).toBe(Buffer.from('fake-video-bytes').length)
-  })
+    expect(fs.readFileSync(expectedPath, 'utf-8')).toBe('fake-screenshot-bytes')
 
-  it('should download original file to .pi directory even when pdfTranscode is present', async () => {
-    vi.mocked(authzService.hasPermission).mockResolvedValue()
-    vi.mocked(prisma.asset.findUnique).mockResolvedValue({
-      id: 'asset-md-1',
-      name: 'doc.md',
-      storageKey: { key: 'raw/doc.md' },
-      media: {
-        proxyType: 'pdf',
-        pdfTranscode: { key: 'proxy/doc.pdf' },
-        original: { key: 'raw/doc.md' },
-      },
-    } as unknown as Asset)
-
-    vi.mocked(s3Service.getObject).mockResolvedValue({
-      buffer: Buffer.from('# fake markdown bytes'),
-      contentType: 'text/markdown',
-    } as unknown as { buffer: Buffer; contentType: string })
-
-    const tool = createDownloadAssetTool('user-1')
-    const result = await tool.execute('call-1', { assetId: 'asset-md-1' })
-
-    expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'raw/doc.md')
-
-    const expectedPath = path.join(piDir, 'asset-md-1_doc.md')
-    createdFiles.push(expectedPath)
-
-    expect(fs.existsSync(expectedPath)).toBe(true)
-    expect(result.details.contentType).toBe('text/markdown')
+    expect(result.details.filePath).toBe(path.join('.pi', 'shot_5.0s.webp'))
+    expect(result.details.key).toBe('files/ast-123/screenshots/shot_5.0s.webp')
+    expect(result.details.size).toBe(Buffer.from('fake-screenshot-bytes').length)
+    expect((result.content[0] as { type: 'text'; text: string }).text).toContain(
+      'Downloaded storage key "files/ast-123/screenshots/shot_5.0s.webp"',
+    )
   })
 
   it('should resolve version_stack asset to its latest version file', async () => {
@@ -195,7 +183,7 @@ describe('downloadAssetTool', () => {
     } as unknown as { buffer: Buffer; contentType: string })
 
     const tool = createDownloadAssetTool('user-1')
-    const result = await tool.execute('call-1', { assetId: 'stack-1' })
+    const result = await tool.execute('call-1', { assetId: 'stack-1', key: null })
 
     expect(prisma.asset.findFirst).toHaveBeenCalledWith({
       where: { parentId: 'stack-1', isDeleted: false },

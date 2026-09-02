@@ -7,8 +7,7 @@ import { DatabaseSessionStorage } from './database-session-storage'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { createAgentSession, type DbProviderInfo } from './index'
 import * as sandboxedBashModule from './tools/sandboxed-bash'
-import * as analyzeImageModule from './tools/analyze-image'
-import * as screenshotModule from './tools/screenshot'
+import * as readAssetModule from './tools/read-asset'
 
 describe('DatabaseSessionStorage', () => {
   setupTestDbHooks()
@@ -451,9 +450,8 @@ describe('DatabaseSessionStorage', () => {
     })
     const sessionId = initialStorage.sessionId
 
-    // 2. Spy on media tools constructors
-    const createAnalyzeImageToolSpy = vi.spyOn(analyzeImageModule, 'createAnalyzeImageTool')
-    const createScreenshotToolSpy = vi.spyOn(screenshotModule, 'createScreenshotTool')
+    // 2. Spy on media tool constructor
+    const createReadAssetToolSpy = vi.spyOn(readAssetModule, 'createReadAssetTool')
 
     // 3. Resume the session via createAgentSession with a NEW comment ID
     await createAgentSession({
@@ -470,9 +468,8 @@ describe('DatabaseSessionStorage', () => {
       providers: mockProviders,
     })
 
-    // 4. Assert that the tools were instantiated using user ID
-    expect(createAnalyzeImageToolSpy).toHaveBeenCalledWith(user.id)
-    expect(createScreenshotToolSpy).toHaveBeenCalledWith(user.id)
+    // 4. Assert that the tool was instantiated using user ID
+    expect(createReadAssetToolSpy).toHaveBeenCalledWith(user.id)
   })
 
   it('should instantiate media tools with user ID in subsequent turns (video)', async () => {
@@ -505,9 +502,8 @@ describe('DatabaseSessionStorage', () => {
     })
     const sessionId = initialStorage.sessionId
 
-    // 2. Spy on media tools constructors
-    const createAnalyzeImageToolSpy = vi.spyOn(analyzeImageModule, 'createAnalyzeImageTool')
-    const createScreenshotToolSpy = vi.spyOn(screenshotModule, 'createScreenshotTool')
+    // 2. Spy on media tool constructor
+    const createReadAssetToolSpy = vi.spyOn(readAssetModule, 'createReadAssetTool')
 
     // 3. Resume the session via createAgentSession with a NEW comment ID
     await createAgentSession({
@@ -524,9 +520,8 @@ describe('DatabaseSessionStorage', () => {
       providers: mockProviders,
     })
 
-    // 4. Assert that the tools were instantiated using user ID
-    expect(createScreenshotToolSpy).toHaveBeenCalledWith(user.id)
-    expect(createAnalyzeImageToolSpy).toHaveBeenCalledWith(user.id)
+    // 4. Assert that the tool was instantiated using user ID
+    expect(createReadAssetToolSpy).toHaveBeenCalledWith(user.id)
   })
 
   describe('P1 Bug Reproductions', () => {
