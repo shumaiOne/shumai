@@ -188,6 +188,7 @@ describe('analyzeImageTool', () => {
     vi.mocked(prisma.assetComment.findUnique).mockResolvedValue(null)
     vi.mocked(prisma.agentSessionEntry.findUnique).mockResolvedValue({
       id: 'entry-1',
+      assetId: 'asset-1',
       data: {
         details: {
           annotations: [{ type: 'arrow', x1: 5, y1: 5, x2: 20, y2: 20 }],
@@ -229,5 +230,33 @@ describe('analyzeImageTool', () => {
     })
 
     expect(result.details.sourceKeys).toEqual(['chat-annotated-image.webp'])
+  })
+
+  it('should throw an error when annotationId belongs to a different asset', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as User)
+    vi.mocked(authzService.hasPermission).mockResolvedValue()
+
+    vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+      id: 'asset-1',
+      projectId: 'project-1',
+      storageKey: { key: 'raw-image.png' },
+      media: null,
+    } as unknown as Asset)
+
+    vi.mocked(prisma.assetComment.findUnique).mockResolvedValue({
+      id: 'comment-on-other-asset',
+      assetId: 'asset-999',
+      annotation: [{ type: 'arrow' }],
+    } as unknown as AssetComment)
+
+    const tool = createAnalyzeImageTool('user-1')
+    await expect(
+      tool.execute('call-mismatch', {
+        assetId: 'asset-1',
+        annotationId: 'comment-on-other-asset',
+      }),
+    ).rejects.toThrow(
+      'Annotation "comment-on-other-asset" belongs to asset "asset-999", not target asset "asset-1".',
+    )
   })
 })

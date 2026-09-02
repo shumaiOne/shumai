@@ -172,6 +172,7 @@ describe('readPdfPagesTool', () => {
     vi.mocked(prisma.assetComment.findUnique).mockResolvedValue(null)
     vi.mocked(prisma.agentSessionEntry.findUnique).mockResolvedValue({
       id: 'entry-1',
+      assetId: 'asset-1',
       data: {
         details: {
           position: { type: 'page', page: 3 },
@@ -224,6 +225,34 @@ describe('readPdfPagesTool', () => {
         },
       },
     })
+  })
+
+  it('should throw an error when annotationId belongs to a different asset', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as User)
+
+    vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+      id: 'asset-1',
+      projectId: 'project-1',
+      media: { proxyType: 'pdf' },
+    } as unknown as Asset)
+
+    vi.mocked(prisma.assetComment.findUnique).mockResolvedValue({
+      id: 'comment-on-other-asset',
+      assetId: 'asset-pdf-2',
+      annotation: [{ type: 'highlight' }],
+    } as unknown as AssetComment)
+
+    const tool = createReadPdfPagesTool('user-1')
+    await expect(
+      tool.execute('call-mismatch', {
+        assetId: 'asset-1',
+        start: 1,
+        end: 3,
+        annotationId: 'comment-on-other-asset',
+      }),
+    ).rejects.toThrow(
+      'Annotation "comment-on-other-asset" belongs to asset "asset-pdf-2", not target asset "asset-1".',
+    )
   })
 
   it('should throw error if start page is less than 1', async () => {

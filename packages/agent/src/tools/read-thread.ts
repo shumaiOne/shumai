@@ -18,9 +18,8 @@ function formatCommentMeta(c: {
   if (c.second !== null && c.second !== undefined) {
     parts.push(`time: ${c.second}s`)
   }
-  if (c.annotation && Array.isArray(c.annotation) && c.annotation.length > 0) {
-    parts.push('has_markup: true')
-  }
+  const hasMarkup = Boolean(c.annotation && Array.isArray(c.annotation) && c.annotation.length > 0)
+  parts.push(`has_markup: ${hasMarkup}`)
   return `(${parts.join(', ')})`
 }
 

@@ -75,7 +75,7 @@ export function createAnalyzeImageTool(userId: string): AgentTool<typeof analyze
       }
 
       // Resolve annotations dynamically by annotationId
-      const { annotations } = await resolveAnnotationsById(params.annotationId)
+      const { annotations } = await resolveAnnotationsById(assetId, params.annotationId)
 
       let keyToUse = mediaKey
 

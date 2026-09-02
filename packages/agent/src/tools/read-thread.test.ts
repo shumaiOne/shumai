@@ -94,11 +94,15 @@ describe('createReadThreadTool', () => {
     const result = await tool.execute('call-3', { threadId: 'root-1' })
     const textContent = (result.content[0] as { text: string }).text
 
-    expect(textContent).toContain('Thread Root [Alice] (id: root-1): Initial top-level question')
+    expect(textContent).toContain(
+      'Thread Root [Alice] (id: root-1, has_markup: false): Initial top-level question',
+    )
     expect(textContent).toContain(
       '- [Bob] (id: reply-1, time: 15s, has_markup: true): First reply to thread',
     )
-    expect(textContent).toContain('- [Charlie] (id: reply-2): Second reply to thread')
+    expect(textContent).toContain(
+      '- [Charlie] (id: reply-2, has_markup: false): Second reply to thread',
+    )
   })
 
   it('should label agent replies as [Ai Agent] when creator is null but sessionId exists', async () => {
@@ -122,7 +126,7 @@ describe('createReadThreadTool', () => {
     const result = await tool.execute('call-agent', { threadId: 'root-1' })
     const textContent = (result.content[0] as { text: string }).text
 
-    expect(textContent).toContain('- [Ai Agent] (id: reply-1): Agent answer')
+    expect(textContent).toContain('- [Ai Agent] (id: reply-1, has_markup: false): Agent answer')
   })
 
   it('should describe threadId parameter as referencing <thread id="..." /> in <context>', () => {

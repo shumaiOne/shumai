@@ -53,6 +53,7 @@ export function createScreenshotTool(userId: string): AgentTool<typeof screensho
 
       // Resolve annotations dynamically by annotationId
       const { annotations, timestamp: commentTimestamp } = await resolveAnnotationsById(
+        assetId,
         params.annotationId,
       )
 

@@ -85,6 +85,7 @@ export function createReadPdfPagesTool(userId: string): AgentTool<typeof readPdf
 
       // Resolve annotations dynamically by annotationId
       const { annotations, timestamp: commentTimestamp } = await resolveAnnotationsById(
+        targetAssetId,
         params.annotationId,
       )
 
