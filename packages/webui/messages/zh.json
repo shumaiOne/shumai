@@ -312,6 +312,7 @@
   "configured_ai_providers": "已配置的 AI 提供商",
   "add_provider": "添加提供商",
   "search_providers_placeholder": "搜索提供商...",
+  "no_providers_found": "未找到提供商",
   "built_in": "内置",
   "models_count": "模型",
   "n_models_count": "{count} 个模型",

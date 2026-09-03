@@ -296,6 +296,7 @@ export * from "./providers_description.js";
 export * from "./configured_ai_providers.js";
 export * from "./add_provider.js";
 export * from "./search_providers_placeholder.js";
+export * from "./no_providers_found.js";
 export * from "./built_in.js";
 export * from "./models_count.js";
 export * from "./n_models_count.js";

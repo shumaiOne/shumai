@@ -312,6 +312,7 @@
   "configured_ai_providers": "Configured AI Providers",
   "add_provider": "Add Provider",
   "search_providers_placeholder": "Search providers...",
+  "no_providers_found": "No providers found",
   "built_in": "Built-in",
   "models_count": "Models",
   "n_models_count": "{count} Models",
