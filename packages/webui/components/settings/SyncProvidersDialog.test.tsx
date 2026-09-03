@@ -106,18 +106,44 @@ describe('SyncProvidersDialog', () => {
     expect(screen.getByText(/^new provider$/i)).toBeDefined()
     expect(screen.getByText(/^existing provider$/i)).toBeDefined()
 
-    // Check that new provider has a checkbox, while existing provider does not
+    // Check that both new and existing providers have checkboxes
     const newProviderCheckbox = document.getElementById('provider-check-test-new-provider')
     expect(newProviderCheckbox).toBeDefined()
     expect(newProviderCheckbox?.getAttribute('data-state')).toBe('checked')
 
-    // Existing provider does not have a checkbox
-    expect(document.getElementById('provider-check-test-existing-provider')).toBeNull()
+    const existingProviderCheckbox = document.getElementById(
+      'provider-check-test-existing-provider',
+    )
+    expect(existingProviderCheckbox).toBeDefined()
+    expect(existingProviderCheckbox?.getAttribute('data-state')).toBe('checked')
 
     // Model checkboxes are checked by default
     const mNew1Check = document.getElementById('model-check-test-new-provider-m-new-1')
     expect(mNew1Check).toBeDefined()
     expect(mNew1Check?.getAttribute('data-state')).toBe('checked')
+  })
+
+  it('toggles all models for an existing provider when its checkbox is clicked', () => {
+    renderDialog()
+
+    const existingProviderCheckbox = document.getElementById(
+      'provider-check-test-existing-provider',
+    )!
+    const existingModelCheck = document.getElementById(
+      'model-check-test-existing-provider-m-existing-add-1',
+    )!
+
+    expect(existingModelCheck.getAttribute('data-state')).toBe('checked')
+
+    // Click to uncheck all
+    fireEvent.click(existingProviderCheckbox)
+    expect(existingModelCheck.getAttribute('data-state')).toBe('unchecked')
+    expect(existingProviderCheckbox.getAttribute('data-state')).toBe('unchecked')
+
+    // Click to check all
+    fireEvent.click(existingProviderCheckbox)
+    expect(existingModelCheck.getAttribute('data-state')).toBe('checked')
+    expect(existingProviderCheckbox.getAttribute('data-state')).toBe('checked')
   })
 
   it('supports select all and deselect all buttons', () => {

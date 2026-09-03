@@ -12,7 +12,7 @@ import { Checkbox } from '@/ui/components/ui/checkbox'
 import { Badge } from '@/ui/components/ui/badge'
 import { Input } from '@/ui/components/ui/input'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
-import { ChevronDown, ChevronRight, Cpu, Info, Loader2, Search, Sparkles } from 'lucide-react'
+import { ChevronDown, ChevronRight, Cpu, Loader2, Search, Sparkles } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
 import { toast } from 'sonner'
@@ -50,32 +50,17 @@ export function SyncProvidersDialog({
     return set
   })
 
-  const [selectedNewProviders, setSelectedNewProviders] = useState<Set<string>>(() => {
-    const set = new Set<string>()
-    syncData?.providers.forEach((p) => {
-      if (p.isNewProvider && p.models.length > 0) {
-        set.add(p.name)
-      }
-    })
-    return set
-  })
-
   // Sync state if syncData changes
   useMemo(() => {
     if (syncData) {
       setExpandedProviders(new Set(syncData.providers.map((p) => p.name)))
       const modelSet = new Set<string>()
-      const providerSet = new Set<string>()
       syncData.providers.forEach((p) => {
         p.models.forEach((mItem) => {
           modelSet.add(`${p.name}:${mItem.modelId}`)
         })
-        if (p.isNewProvider && p.models.length > 0) {
-          providerSet.add(p.name)
-        }
       })
       setSelectedModels(modelSet)
-      setSelectedNewProviders(providerSet)
     }
   }, [syncData])
 
@@ -128,61 +113,32 @@ export function SyncProvidersDialog({
     })
   }
 
-  const toggleModel = (providerName: string, modelId: string, isNewProvider: boolean) => {
+  const toggleModel = (providerName: string, modelId: string) => {
     const key = `${providerName}:${modelId}`
     setSelectedModels((prevModels) => {
       const nextModels = new Set(prevModels)
-      const willBeChecked = !nextModels.has(key)
-
-      if (willBeChecked) {
-        nextModels.add(key)
-      } else {
+      if (nextModels.has(key)) {
         nextModels.delete(key)
+      } else {
+        nextModels.add(key)
       }
-
-      // Check new provider coupling rule
-      if (isNewProvider) {
-        setSelectedNewProviders((prevProviders) => {
-          const nextProviders = new Set(prevProviders)
-          const providerData = syncData?.providers.find((p) => p.name === providerName)
-          const hasAnyModelSelected =
-            providerData?.models.some((mItem) =>
-              nextModels.has(`${providerName}:${mItem.modelId}`),
-            ) ?? false
-
-          if (hasAnyModelSelected) {
-            nextProviders.add(providerName)
-          } else {
-            nextProviders.delete(providerName)
-          }
-          return nextProviders
-        })
-      }
-
       return nextModels
     })
   }
 
-  const toggleNewProvider = (providerName: string) => {
-    const isCurrentlyChecked = selectedNewProviders.has(providerName)
+  const toggleProvider = (providerName: string) => {
     const providerData = syncData?.providers.find((p) => p.name === providerName)
-    if (!providerData) return
+    if (!providerData || providerData.models.length === 0) return
 
-    setSelectedNewProviders((prev) => {
-      const next = new Set(prev)
-      if (isCurrentlyChecked) {
-        next.delete(providerName)
-      } else {
-        next.add(providerName)
-      }
-      return next
-    })
+    const allModelsChecked = providerData.models.every((mItem) =>
+      selectedModels.has(`${providerName}:${mItem.modelId}`),
+    )
 
     setSelectedModels((prev) => {
       const next = new Set(prev)
       providerData.models.forEach((mItem) => {
         const key = `${providerName}:${mItem.modelId}`
-        if (isCurrentlyChecked) {
+        if (allModelsChecked) {
           next.delete(key)
         } else {
           next.add(key)
@@ -195,22 +151,16 @@ export function SyncProvidersDialog({
   const handleSelectAll = () => {
     if (!syncData) return
     const modelSet = new Set<string>()
-    const providerSet = new Set<string>()
     syncData.providers.forEach((p) => {
       p.models.forEach((mItem) => {
         modelSet.add(`${p.name}:${mItem.modelId}`)
       })
-      if (p.isNewProvider && p.models.length > 0) {
-        providerSet.add(p.name)
-      }
     })
     setSelectedModels(modelSet)
-    setSelectedNewProviders(providerSet)
   }
 
   const handleDeselectAll = () => {
     setSelectedModels(new Set())
-    setSelectedNewProviders(new Set())
   }
 
   // Apply mutation
@@ -271,25 +221,18 @@ export function SyncProvidersDialog({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-3xl md:max-w-4xl w-full h-[85vh] max-h-[85vh] flex flex-col p-0 overflow-hidden gap-0">
-        <DialogHeader className="p-6 pb-2 shrink-0">
+        <DialogHeader className="p-6 pb-4 shrink-0">
           <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
             <Sparkles className="w-5 h-5 text-primary" />
             {m.sync_providers_dialog_title()}
           </DialogTitle>
-          <DialogDescription className="sr-only">
+          <DialogDescription className="text-xs text-muted-foreground leading-relaxed mt-1.5">
             {m.sync_providers_dialog_description()}
           </DialogDescription>
         </DialogHeader>
 
-        {/* Notice Banner & Controls Toolbar */}
-        <div className="px-6 pb-3 shrink-0 space-y-3">
-          {/* Notice Banner */}
-          <div className="p-3 rounded-lg bg-muted/60 border border-border/80 flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed">
-            <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-            <span>{m.sync_providers_dialog_description()}</span>
-          </div>
-
-          {/* Controls Toolbar */}
+        {/* Controls Toolbar */}
+        <div className="px-6 pb-3 shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -336,7 +279,7 @@ export function SyncProvidersDialog({
                   const isExpanded = expandedProviders.has(provider.name)
                   const isNew = provider.isNewProvider
 
-                  // Determine provider check state if new
+                  // Determine provider check state
                   const checkedCount = provider.models.filter((mItem) =>
                     selectedModels.has(`${provider.name}:${mItem.modelId}`),
                   ).length
@@ -363,16 +306,14 @@ export function SyncProvidersDialog({
                             )}
                           </button>
 
-                          {isNew ? (
-                            <Checkbox
-                              checked={allChecked ? true : someChecked ? 'indeterminate' : false}
-                              onCheckedChange={() => toggleNewProvider(provider.name)}
-                              id={`provider-check-${provider.name}`}
-                            />
-                          ) : null}
+                          <Checkbox
+                            checked={allChecked ? true : someChecked ? 'indeterminate' : false}
+                            onCheckedChange={() => toggleProvider(provider.name)}
+                            id={`provider-check-${provider.name}`}
+                          />
 
                           <label
-                            htmlFor={isNew ? `provider-check-${provider.name}` : undefined}
+                            htmlFor={`provider-check-${provider.name}`}
                             className="font-medium text-sm text-foreground flex items-center gap-2 cursor-pointer select-none"
                           >
                             <Cpu className="w-4 h-4 text-muted-foreground" />
@@ -420,7 +361,7 @@ export function SyncProvidersDialog({
                                   <Checkbox
                                     checked={isModelChecked}
                                     onCheckedChange={() =>
-                                      toggleModel(provider.name, model.modelId, isNew)
+                                      toggleModel(provider.name, model.modelId)
                                     }
                                     id={`model-check-${provider.name}-${model.modelId}`}
                                   />
