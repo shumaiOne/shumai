@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '@/ui/components/ui/dialog'
 import { Field, FieldLabel, FieldError } from '@/ui/components/ui/field'
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -22,8 +23,8 @@ import {
 import { Switch } from '@/ui/components/ui/switch'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, useStore } from '@tanstack/react-form'
-import { Loader2, Puzzle, Server, Terminal } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { Check, ChevronDown, Loader2, Puzzle, Search, Server, Terminal, Zap } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { m } from '@/ui/paraglide/messages.js'
 import { toast } from 'sonner'
 import { AgentInfo, AgentType, ThinkingLevel, thinkingLevelSchema } from '@shumai/dtos'
@@ -218,6 +219,44 @@ export function AgentFormDialog({
     enabled: !!selectedProviderId && isOpen,
   })
 
+  const [providerSearchQuery, setProviderSearchQuery] = useState('')
+  const [isProviderSelectOpen, setIsProviderSelectOpen] = useState(false)
+
+  // Sort providers alphabetically by name
+  const sortedProviders = useMemo(() => {
+    if (!providers) return []
+    return [...providers].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
+  }, [providers])
+
+  // Filter providers based on search query
+  const filteredProviders = useMemo(() => {
+    if (!providerSearchQuery.trim()) return sortedProviders
+    const q = providerSearchQuery.toLowerCase()
+    return sortedProviders.filter((p) => p.name.toLowerCase().includes(q))
+  }, [sortedProviders, providerSearchQuery])
+
+  const [modelSearchQuery, setModelSearchQuery] = useState('')
+  const [isModelSelectOpen, setIsModelSelectOpen] = useState(false)
+
+  // Sort models alphabetically by display name / modelId
+  const sortedModels = useMemo(() => {
+    if (!models) return []
+    return [...models].sort((a, b) => {
+      const nameA = (a.name || a.modelId).toLowerCase()
+      const nameB = (b.name || b.modelId).toLowerCase()
+      return nameA.localeCompare(nameB)
+    })
+  }, [models])
+
+  // Filter models based on search query
+  const filteredModels = useMemo(() => {
+    if (!modelSearchQuery.trim()) return sortedModels
+    const q = modelSearchQuery.toLowerCase()
+    return sortedModels.filter(
+      (m) => m.modelId.toLowerCase().includes(q) || (m.name && m.name.toLowerCase().includes(q)),
+    )
+  }, [sortedModels, modelSearchQuery])
+
   const createMutation = useMutation({
     mutationFn: async (values: AgentFormValues) => {
       const res = await client.api.teams[':teamId'].agents.$post({
@@ -259,6 +298,10 @@ export function AgentFormDialog({
   useEffect(() => {
     if (isOpen) {
       form.reset()
+      setProviderSearchQuery('')
+      setIsProviderSelectOpen(false)
+      setModelSearchQuery('')
+      setIsModelSelectOpen(false)
     }
   }, [isOpen, initialValues, type])
 
@@ -421,27 +464,109 @@ export function AgentFormDialog({
                       children={(field) => {
                         const isInvalid =
                           !!field.state.meta.errors.length && field.state.meta.isTouched
+                        const selectedProvider = providers?.find((p) => p.id === field.state.value)
+
                         return (
                           <Field data-invalid={isInvalid}>
                             <FieldLabel>{m.provider()}</FieldLabel>
-                            <Select
-                              value={field.state.value}
-                              onValueChange={(val) => {
-                                field.handleChange(val)
-                                form.setFieldValue('modelId', '')
+                            <Popover
+                              open={isProviderSelectOpen}
+                              onOpenChange={(open) => {
+                                setIsProviderSelectOpen(open)
+                                if (!open) setProviderSearchQuery('')
                               }}
+                              modal={true}
                             >
-                              <SelectTrigger aria-invalid={isInvalid}>
-                                <SelectValue placeholder={m.select_provider()} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {providers?.map((p) => (
-                                  <SelectItem key={p.id} value={p.id}>
-                                    {p.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={isProviderSelectOpen}
+                                  aria-invalid={isInvalid}
+                                  className={cn(
+                                    'w-full justify-between font-normal h-10 px-3 bg-background border-border hover:bg-accent/50',
+                                    isInvalid && 'border-destructive ring-destructive',
+                                  )}
+                                >
+                                  <span className="truncate">
+                                    {selectedProvider ? (
+                                      <span className="font-medium text-foreground truncate">
+                                        {selectedProvider.name}
+                                      </span>
+                                    ) : (
+                                      <span className="text-muted-foreground">
+                                        {m.select_provider()}
+                                      </span>
+                                    )}
+                                  </span>
+                                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                className="w-[--radix-popover-trigger-width] min-w-[320px] max-h-[360px] p-0 flex flex-col overflow-hidden"
+                                align="start"
+                                side="bottom"
+                                sideOffset={4}
+                                onWheel={(e) => e.stopPropagation()}
+                              >
+                                <div className="relative p-2 pb-1.5 border-b border-border shrink-0">
+                                  <Search className="absolute left-4.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                                  <Input
+                                    placeholder={m.search_providers_placeholder()}
+                                    value={providerSearchQuery}
+                                    onChange={(e) => setProviderSearchQuery(e.target.value)}
+                                    className="pl-8 h-8 text-xs bg-muted/40"
+                                    autoFocus
+                                  />
+                                </div>
+                                <ScrollArea
+                                  className="w-full p-1"
+                                  style={{
+                                    height:
+                                      filteredProviders.length === 0
+                                        ? '96px'
+                                        : `${Math.min(filteredProviders.length * 38 + 8, 256)}px`,
+                                  }}
+                                  onWheel={(e) => e.stopPropagation()}
+                                >
+                                  {filteredProviders.length === 0 ? (
+                                    <div className="flex items-center justify-center h-full py-6 text-xs text-muted-foreground">
+                                      {m.no_providers_found()}
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-0.5 pr-2">
+                                      {filteredProviders.map((p) => {
+                                        const isSelected = field.state.value === p.id
+                                        return (
+                                          <div
+                                            key={p.id}
+                                            onClick={() => {
+                                              field.handleChange(p.id)
+                                              form.setFieldValue('modelId', '')
+                                              setModelSearchQuery('')
+                                              setIsProviderSelectOpen(false)
+                                              setProviderSearchQuery('')
+                                            }}
+                                            className={cn(
+                                              'flex items-center justify-between px-2.5 py-2 rounded-md text-xs cursor-pointer transition-colors',
+                                              isSelected
+                                                ? 'bg-accent text-accent-foreground font-medium'
+                                                : 'hover:bg-muted/60 text-foreground',
+                                            )}
+                                          >
+                                            <span className="truncate flex-1 pr-2">{p.name}</span>
+                                            {isSelected && (
+                                              <Check className="w-4 h-4 text-primary shrink-0" />
+                                            )}
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
+                                </ScrollArea>
+                              </PopoverContent>
+                            </Popover>
                             {isInvalid && (
                               <FieldError errors={mapErrors(field.state.meta.errors)} />
                             )}
@@ -455,28 +580,141 @@ export function AgentFormDialog({
                       children={(field) => {
                         const isInvalid =
                           !!field.state.meta.errors.length && field.state.meta.isTouched
+                        const selectedModel = models?.find((m) => m.id === field.state.value)
+
                         return (
                           <Field data-invalid={isInvalid}>
                             <FieldLabel className="flex items-center gap-2">
                               {m.model()}
                               {isModelsLoading && <Loader2 className="w-3 h-3 animate-spin" />}
                             </FieldLabel>
-                            <Select
-                              value={field.state.value}
-                              onValueChange={field.handleChange}
-                              disabled={!selectedProviderId || isModelsLoading}
+                            <Popover
+                              open={isModelSelectOpen}
+                              onOpenChange={(open) => {
+                                setIsModelSelectOpen(open)
+                                if (!open) setModelSearchQuery('')
+                              }}
+                              modal={true}
                             >
-                              <SelectTrigger aria-invalid={isInvalid}>
-                                <SelectValue placeholder={m.select_model()} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {models?.map((m) => (
-                                  <SelectItem key={m.id} value={m.id}>
-                                    {m.name || m.modelId}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={isModelSelectOpen}
+                                  aria-invalid={isInvalid}
+                                  disabled={!selectedProviderId || isModelsLoading}
+                                  className={cn(
+                                    'w-full justify-between font-normal h-10 px-3 bg-background border-border hover:bg-accent/50',
+                                    isInvalid && 'border-destructive ring-destructive',
+                                  )}
+                                >
+                                  <span className="truncate flex items-center gap-2">
+                                    {selectedModel ? (
+                                      <>
+                                        <span className="truncate font-medium text-foreground">
+                                          {selectedModel.name || selectedModel.modelId}
+                                        </span>
+                                        {selectedModel.name &&
+                                          selectedModel.name !== selectedModel.modelId && (
+                                            <Badge
+                                              variant="secondary"
+                                              className="font-mono text-[10px] px-1.5 py-0 shrink-0"
+                                            >
+                                              {selectedModel.modelId}
+                                            </Badge>
+                                          )}
+                                      </>
+                                    ) : (
+                                      <span className="text-muted-foreground">
+                                        {m.select_model()}
+                                      </span>
+                                    )}
+                                  </span>
+                                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                className="w-[--radix-popover-trigger-width] min-w-[320px] max-h-[360px] p-0 flex flex-col overflow-hidden"
+                                align="start"
+                                side="bottom"
+                                sideOffset={4}
+                                onWheel={(e) => e.stopPropagation()}
+                              >
+                                <div className="relative p-2 pb-1.5 border-b border-border shrink-0">
+                                  <Search className="absolute left-4.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                                  <Input
+                                    placeholder={m.search_models_placeholder()}
+                                    value={modelSearchQuery}
+                                    onChange={(e) => setModelSearchQuery(e.target.value)}
+                                    className="pl-8 h-8 text-xs bg-muted/40"
+                                    autoFocus
+                                  />
+                                </div>
+                                <ScrollArea
+                                  className="w-full p-1"
+                                  style={{
+                                    height:
+                                      filteredModels.length === 0
+                                        ? '96px'
+                                        : `${Math.min(filteredModels.length * 38 + 8, 256)}px`,
+                                  }}
+                                  onWheel={(e) => e.stopPropagation()}
+                                >
+                                  {filteredModels.length === 0 ? (
+                                    <div className="flex items-center justify-center h-full py-6 text-xs text-muted-foreground">
+                                      {m.no_models_found()}
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-0.5 pr-2">
+                                      {filteredModels.map((m) => {
+                                        const isSelected = field.state.value === m.id
+                                        return (
+                                          <div
+                                            key={m.id}
+                                            onClick={() => {
+                                              field.handleChange(m.id)
+                                              setIsModelSelectOpen(false)
+                                              setModelSearchQuery('')
+                                            }}
+                                            className={cn(
+                                              'flex items-center justify-between px-2.5 py-2 rounded-md text-xs cursor-pointer transition-colors',
+                                              isSelected
+                                                ? 'bg-accent text-accent-foreground font-medium'
+                                                : 'hover:bg-muted/60 text-foreground',
+                                            )}
+                                          >
+                                            <div className="min-w-0 flex-1 pr-2">
+                                              <div className="flex items-center gap-2">
+                                                <span className="truncate">
+                                                  {m.name || m.modelId}
+                                                </span>
+                                                {m.name && m.name !== m.modelId && (
+                                                  <span className="font-mono text-[10px] text-muted-foreground truncate">
+                                                    ({m.modelId})
+                                                  </span>
+                                                )}
+                                                {m.config?.reasoning && (
+                                                  <Badge
+                                                    variant="outline"
+                                                    className="text-[9px] px-1 py-0 h-4 gap-0.5 bg-primary/10 text-primary border-primary/20 shrink-0"
+                                                  >
+                                                    <Zap className="w-2.5 h-2.5" />
+                                                  </Badge>
+                                                )}
+                                              </div>
+                                            </div>
+                                            {isSelected && (
+                                              <Check className="w-4 h-4 text-primary shrink-0" />
+                                            )}
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
+                                </ScrollArea>
+                              </PopoverContent>
+                            </Popover>
                             {isInvalid && (
                               <FieldError errors={mapErrors(field.state.meta.errors)} />
                             )}

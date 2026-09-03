@@ -163,13 +163,13 @@ describe('provider api', () => {
     const res = await app.request('/providers/p1', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ config, models }),
+      body: JSON.stringify({ name: 'new-name', config, models }),
     })
 
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.config.baseUrl).toBe('https://new-url.com')
-    expect(providerService.update).toHaveBeenCalledWith('t1', 'p1', config, models)
+    expect(providerService.update).toHaveBeenCalledWith('t1', 'p1', config, models, 'new-name')
     expect(authzService.hasPermission).toHaveBeenCalledWith({
       user: expect.anything(),
       permission: Permission.Admin,
@@ -182,6 +182,111 @@ describe('provider api', () => {
       userId: 'user1',
       itemId: 'p1',
     })
+  })
+
+  it('POST /providers/:id/models creates a model', async () => {
+    vi.mocked(providerService.getById).mockResolvedValue({
+      id: 'p1',
+      teamId: 't1',
+    } as unknown as Awaited<ReturnType<typeof providerService.getById>>)
+    const modelData = {
+      modelId: 'm1',
+      name: 'Model 1',
+      config: {
+        reasoning: true,
+        input: ['text' as const],
+        contextWindow: 128000,
+        maxTokens: 4096,
+        cost: { input: 1, output: 2, cacheRead: 0, cacheWrite: 0 },
+      },
+    }
+    vi.mocked(providerService.createModel).mockResolvedValue({
+      id: 'm-db-1',
+      providerId: 'p1',
+      modelId: 'm1',
+      name: 'Model 1',
+      config: modelData.config,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    const res = await app.request('/providers/p1/models', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(modelData),
+    })
+
+    expect(res.status).toBe(201)
+    const data = await res.json()
+    expect(data.id).toBe('m-db-1')
+    expect(providerService.createModel).toHaveBeenCalledWith('t1', 'p1', modelData)
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Provider,
+      id: 'p1',
+    })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'provider_update',
+      teamId: 't1',
+      userId: 'user1',
+      itemId: 'p1',
+    })
+  })
+
+  it('PUT /providers/:id/models/:modelDbId updates a model', async () => {
+    vi.mocked(providerService.getById).mockResolvedValue({
+      id: 'p1',
+      teamId: 't1',
+    } as unknown as Awaited<ReturnType<typeof providerService.getById>>)
+    const updateData = {
+      name: 'Updated Model',
+    }
+    vi.mocked(providerService.updateModel).mockResolvedValue({
+      id: 'm-db-1',
+      providerId: 'p1',
+      modelId: 'm1',
+      name: 'Updated Model',
+      config: {
+        reasoning: false,
+        input: ['text'],
+        contextWindow: 128000,
+        maxTokens: 4096,
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    const res = await app.request('/providers/p1/models/m-db-1', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updateData),
+    })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.name).toBe('Updated Model')
+    expect(providerService.updateModel).toHaveBeenCalledWith('t1', 'p1', 'm-db-1', updateData)
+  })
+
+  it('DELETE /providers/:id/models/:modelDbId deletes a model', async () => {
+    vi.mocked(providerService.getById).mockResolvedValue({
+      id: 'p1',
+      teamId: 't1',
+    } as unknown as Awaited<ReturnType<typeof providerService.getById>>)
+    vi.mocked(providerService.deleteModel).mockResolvedValue({
+      id: 'm-db-1',
+    } as unknown as Awaited<ReturnType<typeof providerService.deleteModel>>)
+
+    const res = await app.request('/providers/p1/models/m-db-1', {
+      method: 'DELETE',
+    })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.success).toBe(true)
+    expect(providerService.deleteModel).toHaveBeenCalledWith('t1', 'p1', 'm-db-1')
   })
 
   it('DELETE /providers/:id deletes provider', async () => {

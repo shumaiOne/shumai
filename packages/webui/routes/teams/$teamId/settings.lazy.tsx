@@ -58,10 +58,51 @@ type SettingsTab =
   | 'notifications'
   | 'developer'
 
+const VALID_SETTINGS_TABS: readonly SettingsTab[] = [
+  'general',
+  'transcode',
+  'quotas',
+  'skills',
+  'mcp',
+  'providers',
+  'agents',
+  'sandbox',
+  'notifications',
+  'developer',
+]
+
+function getTabFromHash(): SettingsTab {
+  if (typeof window === 'undefined') return 'general'
+  const hash = window.location.hash.replace(/^#/, '')
+  return (VALID_SETTINGS_TABS as readonly string[]).includes(hash)
+    ? (hash as SettingsTab)
+    : 'general'
+}
+
 function TeamSettingsPage() {
   const { teamId } = Route.useParams()
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general')
+  const [activeTab, setActiveTabState] = useState<SettingsTab>(getTabFromHash)
+
+  const handleTabChange = (tab: SettingsTab) => {
+    setActiveTabState(tab)
+    const newHash = tab === 'general' ? '' : `#${tab}`
+    if (window.location.hash !== newHash) {
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search + newHash,
+      )
+    }
+  }
+
+  useEffect(() => {
+    const onHashChange = () => {
+      setActiveTabState(getTabFromHash())
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
   const [profileName, setProfileName] = useState('')
   const [isCropOpen, setIsCropOpen] = useState(false)
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
@@ -128,7 +169,7 @@ function TeamSettingsPage() {
       'sandbox',
     ]
     if (me && me.role !== 'owner' && ownerOnlyTabs.includes(activeTab)) {
-      setActiveTab('general')
+      handleTabChange('general')
     }
   }, [me, activeTab])
 
@@ -295,7 +336,7 @@ function TeamSettingsPage() {
             </div>
 
             <button
-              onClick={() => setActiveTab('general')}
+              onClick={() => handleTabChange('general')}
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                 activeTab === 'general'
@@ -311,7 +352,7 @@ function TeamSettingsPage() {
             </button>
 
             <button
-              onClick={() => setActiveTab('notifications')}
+              onClick={() => handleTabChange('notifications')}
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                 activeTab === 'notifications'
@@ -327,7 +368,7 @@ function TeamSettingsPage() {
             </button>
 
             <button
-              onClick={() => setActiveTab('developer')}
+              onClick={() => handleTabChange('developer')}
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                 activeTab === 'developer'
@@ -350,7 +391,7 @@ function TeamSettingsPage() {
                 </div>
 
                 <button
-                  onClick={() => setActiveTab('transcode')}
+                  onClick={() => handleTabChange('transcode')}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                     activeTab === 'transcode'
@@ -366,7 +407,7 @@ function TeamSettingsPage() {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('quotas')}
+                  onClick={() => handleTabChange('quotas')}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                     activeTab === 'quotas'
@@ -391,7 +432,7 @@ function TeamSettingsPage() {
                 </div>
 
                 <button
-                  onClick={() => setActiveTab('providers')}
+                  onClick={() => handleTabChange('providers')}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                     activeTab === 'providers'
@@ -407,7 +448,7 @@ function TeamSettingsPage() {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('skills')}
+                  onClick={() => handleTabChange('skills')}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                     activeTab === 'skills'
@@ -423,7 +464,7 @@ function TeamSettingsPage() {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('mcp')}
+                  onClick={() => handleTabChange('mcp')}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                     activeTab === 'mcp'
@@ -439,7 +480,7 @@ function TeamSettingsPage() {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('agents')}
+                  onClick={() => handleTabChange('agents')}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                     activeTab === 'agents'
@@ -455,7 +496,7 @@ function TeamSettingsPage() {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('sandbox')}
+                  onClick={() => handleTabChange('sandbox')}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                     activeTab === 'sandbox'

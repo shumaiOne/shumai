@@ -37,15 +37,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select'
-import { Switch } from '@/ui/components/ui/switch'
-import { providerConfigSchema, providerModelSchema, KNOWN_APIS } from '@shumai/dtos'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs'
+import { providerConfigSchema, KNOWN_APIS } from '@shumai/dtos'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { InferResponseType } from 'hono/client'
 import {
   ChevronRight,
   Cpu,
-  DollarSign,
   Globe,
   Info,
   Loader2,
@@ -60,6 +59,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { m } from '@/ui/paraglide/messages.js'
+import { ModelFormDialog, ModelFormValues } from './ModelFormDialog'
 
 const API_PROTOCOL_LABELS: Record<(typeof KNOWN_APIS)[number], string> = {
   'openai-completions': 'OpenAI Completions',
@@ -73,18 +73,13 @@ const API_PROTOCOL_LABELS: Record<(typeof KNOWN_APIS)[number], string> = {
   'google-vertex': 'Google Vertex',
 }
 
-const providerFormSchemaBase = z.object({
-  name: z.string().min(1, m.provider_name_is_required()),
-  config: providerConfigSchema,
-  models: z.array(providerModelSchema).min(1, m.at_least_one_model_required()),
-})
-
-type ProviderFormValues = z.infer<typeof providerFormSchemaBase>
-
 type ProvidersResponse = InferResponseType<
   (typeof client.api.teams)[':teamId']['providers']['$get']
 >
 type Provider = ProvidersResponse[number]
+
+type ModelsResponse = InferResponseType<(typeof client.api.providers)[':id']['models']['$get']>
+type ProviderModelItem = ModelsResponse[number]
 
 interface ProvidersSettingsProps {
   teamId: string
@@ -115,19 +110,6 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
     [providers, editingProviderId],
   )
 
-  // Fetch models for editing
-  const { data: editingModels, isLoading: isModelsLoading } = useQuery({
-    queryKey: ['teams', teamId, 'providers', editingProviderId, 'models'],
-    queryFn: async () => {
-      const res = await client.api.providers[':id'].models.$get({
-        param: { id: editingProviderId! },
-      })
-      if (!res.ok) throw new Error('Failed to fetch models')
-      return await res.json()
-    },
-    enabled: !!editingProviderId,
-  })
-
   const existingProviderNames = useMemo(() => providers?.map((p) => p.name) || [], [providers])
 
   const filteredProviders = useMemo(() => {
@@ -139,7 +121,11 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
 
   // Create Mutation
   const createMutation = useMutation({
-    mutationFn: async (values: ProviderFormValues) => {
+    mutationFn: async (values: {
+      name: string
+      config: z.infer<typeof providerConfigSchema>
+      models: ModelFormValues[]
+    }) => {
       const res = await client.api.teams[':teamId'].providers.$post({
         param: { teamId },
         json: {
@@ -155,29 +141,6 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'providers'] })
       setIsCreateDialogOpen(false)
       toast.success(m.provider_created_successfully())
-    },
-    onError: (error) => {
-      toast.error(m.error_message({ message: error.message }))
-    },
-  })
-
-  // Update Mutation
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, values }: { id: string; values: ProviderFormValues }) => {
-      const res = await client.api.providers[':id'].$put({
-        param: { id },
-        json: {
-          config: values.config,
-          models: values.models,
-        },
-      })
-      if (!res.ok) throw new Error('Failed to update provider')
-      return await res.json()
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'providers'] })
-      setEditingProviderId(null)
-      toast.success(m.provider_updated_successfully())
     },
     onError: (error) => {
       toast.error(m.error_message({ message: error.message }))
@@ -257,14 +220,6 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-foreground truncate">{provider.name}</span>
-                      {provider.isBuiltin && (
-                        <Badge
-                          variant="secondary"
-                          className="flex-none text-[10px] uppercase tracking-wider font-bold h-5"
-                        >
-                          {m.built_in()}
-                        </Badge>
-                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground mt-1">
                       <span className="flex items-center gap-1 flex-none">
@@ -284,16 +239,13 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
                         <span className="h-1 w-1 rounded-full bg-muted-foreground/30 flex-none" />
                         <Maximize2 className="w-3 h-3" />
                         {m.n_models_count({ count: provider.modelsCount })}
-                        {editingProviderId === provider.id && isModelsLoading && (
-                          <Loader2 className="w-3 h-3 animate-spin ml-1" />
-                        )}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <DropdownMenu>
+                  <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                       <Button
                         variant="ghost"
@@ -350,34 +302,24 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
         </div>
       </ScrollArea>
 
-      <ProviderFormDialog
+      <CreateProviderDialog
         isOpen={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
         onSubmit={(values) => createMutation.mutate(values)}
         isLoading={createMutation.isPending}
-        title={m.add_new_provider()}
         existingProviderNames={existingProviderNames}
       />
 
-      <ProviderFormDialog
-        isOpen={!!editingProvider && !isModelsLoading && !!editingModels}
-        onClose={() => setEditingProviderId(null)}
-        onSubmit={(values) => updateMutation.mutate({ id: editingProvider!.id, values })}
-        onDelete={() => deleteMutation.mutate(editingProvider!.id)}
-        isLoading={updateMutation.isPending || deleteMutation.isPending}
-        initialValues={
-          editingProvider && editingModels
-            ? {
-                name: editingProvider.name,
-                config: editingProvider.config,
-                models: editingModels,
-              }
-            : undefined
-        }
-        isBuiltin={editingProvider?.isBuiltin}
-        title={editingProvider ? m.edit_item({ name: editingProvider.name }) : ''}
-        existingProviderNames={existingProviderNames}
-      />
+      {editingProvider && (
+        <EditProviderDialog
+          isOpen={!!editingProvider}
+          onClose={() => setEditingProviderId(null)}
+          provider={editingProvider}
+          teamId={teamId}
+          existingProviderNames={existingProviderNames}
+        />
+      )}
+
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -412,80 +354,72 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
   )
 }
 
-interface ProviderFormDialogProps {
+// ---------------------------------------------------------------------------
+// Create Provider Dialog
+// ---------------------------------------------------------------------------
+
+interface CreateProviderDialogProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (values: ProviderFormValues) => void
-  onDelete?: () => void
+  onSubmit: (values: {
+    name: string
+    config: z.infer<typeof providerConfigSchema>
+    models: ModelFormValues[]
+  }) => void
   isLoading: boolean
-  initialValues?: ProviderFormValues
-  isBuiltin?: boolean
-  title: string
   existingProviderNames: string[]
 }
 
-function ProviderFormDialog({
+function CreateProviderDialog({
   isOpen,
   onClose,
   onSubmit,
-  onDelete,
   isLoading,
-  initialValues,
-  isBuiltin,
-  title,
   existingProviderNames,
-}: ProviderFormDialogProps) {
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+}: CreateProviderDialogProps) {
+  const [initialModels, setInitialModels] = useState<ModelFormValues[]>([])
+  const [isAddModelOpen, setIsAddModelOpen] = useState(false)
+  const [editingModelIndex, setEditingModelIndex] = useState<number | null>(null)
+
   const schema = useMemo(() => {
-    return providerFormSchemaBase.extend({
+    return z.object({
       name: z
         .string()
-        .min(1, 'Provider name is required')
-        .refine(
-          (name) => {
-            if (initialValues?.name === name) return true
-            return !existingProviderNames.includes(name)
-          },
-          { message: 'Provider name must be unique' },
-        ),
+        .min(1, m.provider_name_is_required())
+        .refine((name) => !existingProviderNames.includes(name), {
+          message: m.provider_name_must_be_unique(),
+        }),
+      config: providerConfigSchema,
     })
-  }, [existingProviderNames, initialValues])
+  }, [existingProviderNames])
 
   const form = useForm({
-    defaultValues: (initialValues || {
+    defaultValues: {
       name: '',
       config: {
         api: 'openai-completions',
         baseUrl: '',
         apiKey: '',
       },
-      models: [
-        {
-          modelId: '',
-          name: '',
-          config: {
-            api: 'openai-completions',
-            reasoning: false,
-            input: ['text'],
-            contextWindow: 128000,
-            maxTokens: 4096,
-            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-          },
-        },
-      ],
-    }) as z.input<typeof schema>,
+    } as z.input<typeof schema>,
     validators: {
-      onChange: schema,
+      onSubmit: schema,
     },
     onSubmit: async ({ value }) => {
-      onSubmit(value as ProviderFormValues)
+      onSubmit({
+        name: value.name,
+        config: value.config as z.infer<typeof providerConfigSchema>,
+        models: initialModels,
+      })
     },
   })
 
-  // Reset form when dialog opens
   useEffect(() => {
     if (isOpen) {
       form.reset()
+      setInitialModels([])
+      setIsAddModelOpen(false)
+      setEditingModelIndex(null)
     }
   }, [isOpen, form])
 
@@ -499,11 +433,22 @@ function ProviderFormDialog({
     })
   }
 
+  const handleSaveModel = (model: ModelFormValues) => {
+    if (editingModelIndex !== null) {
+      setInitialModels((prev) => prev.map((m, i) => (i === editingModelIndex ? model : m)))
+      setEditingModelIndex(null)
+    } else {
+      // Prepend newly added model to the top
+      setInitialModels((prev) => [model, ...prev])
+      setIsAddModelOpen(false)
+    }
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-2xl h-[85vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2 shrink-0">
-          <DialogTitle className="text-xl">{title}</DialogTitle>
+          <DialogTitle className="text-xl">{m.add_new_provider()}</DialogTitle>
           <DialogDescription>{m.configure_provider_description()}</DialogDescription>
         </DialogHeader>
 
@@ -517,9 +462,9 @@ function ProviderFormDialog({
         >
           <div className="flex-1 min-h-0">
             <ScrollArea className="h-full">
-              <div className="p-6 pt-2 space-y-8 pr-6">
-                {/* Row 1: Basic Config */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl border">
+              <div className="p-6 pt-2 space-y-6 pr-6">
+                {/* General Settings */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 rounded-2xl border bg-muted/20">
                   <form.Field
                     name="name"
                     children={(field) => {
@@ -535,7 +480,6 @@ function ProviderFormDialog({
                             onBlur={field.handleBlur}
                             onChange={(e) => field.handleChange(e.target.value)}
                             placeholder={m.provider_name_placeholder()}
-                            disabled={isBuiltin}
                             aria-invalid={isInvalid}
                           />
                           {isInvalid && <FieldError errors={mapErrors(field.state.meta.errors)} />}
@@ -555,7 +499,6 @@ function ProviderFormDialog({
                           <Select
                             onValueChange={field.handleChange as (value: string) => void}
                             value={field.state.value}
-                            disabled={isBuiltin}
                           >
                             <SelectTrigger id={field.name} aria-invalid={isInvalid}>
                               <SelectValue placeholder={m.select_api_protocol()} />
@@ -601,11 +544,8 @@ function ProviderFormDialog({
                       }}
                     />
                   </div>
-                </div>
 
-                {/* Row 2: API Key Card */}
-                <Card className="rounded-2xl border bg-transparent">
-                  <CardContent className="p-6 pt-2">
+                  <div className="md:col-span-2">
                     <form.Field
                       name="config.apiKey"
                       children={(field) => {
@@ -613,9 +553,7 @@ function ProviderFormDialog({
                           !!field.state.meta.errors.length && field.state.meta.isTouched
                         return (
                           <Field data-invalid={isInvalid}>
-                            <FieldLabel htmlFor={field.name} className="text-base font-semibold">
-                              {m.api_key()}
-                            </FieldLabel>
+                            <FieldLabel htmlFor={field.name}>{m.api_key()}</FieldLabel>
                             <Input
                               id={field.name}
                               name={field.name}
@@ -626,7 +564,7 @@ function ProviderFormDialog({
                               placeholder={m.api_key_placeholder()}
                               aria-invalid={isInvalid}
                             />
-                            <FieldDescription className="text-xs mt-2">
+                            <FieldDescription className="text-xs mt-1">
                               {m.api_key_description()}
                             </FieldDescription>
                             {isInvalid && (
@@ -636,270 +574,90 @@ function ProviderFormDialog({
                         )
                       }}
                     />
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
-                {/* Models Section */}
-                <div className="space-y-4">
-                  <form.Field
-                    name="models"
-                    mode="array"
-                    children={(modelsField) => (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-lg font-bold">{m.models_configuration()}</Label>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              modelsField.pushValue({
-                                modelId: '',
-                                name: '',
-                                config: {
-                                  api: form.getFieldValue('config.api'),
-                                  reasoning: false,
-                                  input: ['text'],
-                                  contextWindow: 128000,
-                                  maxTokens: 4096,
-                                  cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-                                },
-                              })
-                            }
-                            className="gap-2"
-                          >
-                            <Plus className="w-4 h-4" />
-                            {m.add_model()}
-                          </Button>
-                        </div>
+                {/* Initial Models Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base font-semibold">{m.models()}</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {m.models_configuration()}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsAddModelOpen(true)}
+                      className="gap-1.5"
+                    >
+                      <Plus className="w-4 h-4" />
+                      {m.add_model()}
+                    </Button>
+                  </div>
 
-                        <div className="space-y-6">
-                          {modelsField.state.value.map((_, index) => (
-                            <div
-                              key={index}
-                              className="group relative p-6 bg-transparent rounded-2xl border shadow-sm animate-in fade-in zoom-in-95 duration-300"
-                            >
-                              {/* Row 1: ID and Name */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <form.Field
-                                  name={`models[${index}].modelId`}
-                                  children={(field) => {
-                                    const isInvalid =
-                                      !!field.state.meta.errors.length && field.state.meta.isTouched
-                                    return (
-                                      <Field data-invalid={isInvalid}>
-                                        <FieldLabel htmlFor={field.name}>{m.model_id()}</FieldLabel>
-                                        <Input
-                                          id={field.name}
-                                          name={field.name}
-                                          value={field.state.value}
-                                          onBlur={field.handleBlur}
-                                          onChange={(e) => field.handleChange(e.target.value)}
-                                          placeholder="gpt-4o"
-                                          aria-invalid={isInvalid}
-                                        />
-                                        {isInvalid && (
-                                          <FieldError errors={mapErrors(field.state.meta.errors)} />
-                                        )}
-                                      </Field>
-                                    )
-                                  }}
-                                />
-                                <form.Field
-                                  name={`models[${index}].name`}
-                                  children={(field) => {
-                                    const isInvalid =
-                                      !!field.state.meta.errors.length && field.state.meta.isTouched
-                                    return (
-                                      <Field data-invalid={isInvalid}>
-                                        <FieldLabel htmlFor={field.name}>
-                                          {m.display_name_optional()}
-                                        </FieldLabel>
-                                        <Input
-                                          id={field.name}
-                                          name={field.name}
-                                          value={field.state.value}
-                                          onBlur={field.handleBlur}
-                                          onChange={(e) => field.handleChange(e.target.value)}
-                                          placeholder="e.g., GPT-4o"
-                                          aria-invalid={isInvalid}
-                                          disabled={isBuiltin}
-                                        />
-                                        {isInvalid && (
-                                          <FieldError errors={mapErrors(field.state.meta.errors)} />
-                                        )}
-                                      </Field>
-                                    )
-                                  }}
-                                />
-                              </div>
-
-                              {/* Row 2: Reasoning and Context Window */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                                <form.Field
-                                  name={`models[${index}].config.reasoning`}
-                                  children={(field) => (
-                                    <Field
-                                      orientation="horizontal"
-                                      className="rounded-lg border border-border p-3 shadow-sm bg-muted/50 justify-between"
-                                    >
-                                      <FieldLabel htmlFor={field.name}>
-                                        {m.reasoning_support()}
-                                      </FieldLabel>
-                                      <Switch
-                                        id={field.name}
-                                        checked={field.state.value}
-                                        onCheckedChange={field.handleChange}
-                                        disabled={isBuiltin}
-                                      />
-                                    </Field>
-                                  )}
-                                />
-                                <form.Field
-                                  name={`models[${index}].config.contextWindow`}
-                                  children={(field) => {
-                                    const isInvalid =
-                                      !!field.state.meta.errors.length && field.state.meta.isTouched
-                                    return (
-                                      <Field data-invalid={isInvalid}>
-                                        <FieldLabel htmlFor={field.name} className="text-xs">
-                                          {m.context_window_tokens()}
-                                        </FieldLabel>
-                                        <Input
-                                          id={field.name}
-                                          name={field.name}
-                                          type="number"
-                                          value={field.state.value}
-                                          onBlur={field.handleBlur}
-                                          onChange={(e) =>
-                                            field.handleChange(parseInt(e.target.value) || 0)
-                                          }
-                                          aria-invalid={isInvalid}
-                                          disabled={isBuiltin}
-                                        />
-                                        {isInvalid && (
-                                          <FieldError errors={mapErrors(field.state.meta.errors)} />
-                                        )}
-                                      </Field>
-                                    )
-                                  }}
-                                />
-                              </div>
-
-                              {/* Row 3: Constraints and Cost */}
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                                <form.Field
-                                  name={`models[${index}].config.maxTokens`}
-                                  children={(field) => {
-                                    const isInvalid =
-                                      !!field.state.meta.errors.length && field.state.meta.isTouched
-                                    return (
-                                      <Field data-invalid={isInvalid}>
-                                        <FieldLabel htmlFor={field.name} className="text-xs">
-                                          {m.max_output_tokens()}
-                                        </FieldLabel>
-                                        <Input
-                                          id={field.name}
-                                          name={field.name}
-                                          type="number"
-                                          value={field.state.value}
-                                          onBlur={field.handleBlur}
-                                          onChange={(e) =>
-                                            field.handleChange(parseInt(e.target.value) || 0)
-                                          }
-                                          aria-invalid={isInvalid}
-                                          disabled={isBuiltin}
-                                        />
-                                        {isInvalid && (
-                                          <FieldError errors={mapErrors(field.state.meta.errors)} />
-                                        )}
-                                      </Field>
-                                    )
-                                  }}
-                                />
-                                <form.Field
-                                  name={`models[${index}].config.cost.input`}
-                                  children={(field) => {
-                                    const isInvalid =
-                                      !!field.state.meta.errors.length && field.state.meta.isTouched
-                                    return (
-                                      <Field data-invalid={isInvalid}>
-                                        <FieldLabel
-                                          htmlFor={field.name}
-                                          className="text-xs flex items-center gap-1"
-                                        >
-                                          <DollarSign className="w-3 h-3" /> {m.input_cost_1m()}
-                                        </FieldLabel>
-                                        <Input
-                                          id={field.name}
-                                          name={field.name}
-                                          type="number"
-                                          step="0.01"
-                                          value={field.state.value}
-                                          onBlur={field.handleBlur}
-                                          onChange={(e) =>
-                                            field.handleChange(parseFloat(e.target.value) || 0)
-                                          }
-                                          aria-invalid={isInvalid}
-                                          disabled={isBuiltin}
-                                        />
-                                        {isInvalid && (
-                                          <FieldError errors={mapErrors(field.state.meta.errors)} />
-                                        )}
-                                      </Field>
-                                    )
-                                  }}
-                                />
-                                <form.Field
-                                  name={`models[${index}].config.cost.output`}
-                                  children={(field) => {
-                                    const isInvalid =
-                                      !!field.state.meta.errors.length && field.state.meta.isTouched
-                                    return (
-                                      <Field data-invalid={isInvalid}>
-                                        <FieldLabel
-                                          htmlFor={field.name}
-                                          className="text-xs flex items-center gap-1"
-                                        >
-                                          <DollarSign className="w-3 h-3" /> {m.output_cost_1m()}
-                                        </FieldLabel>
-                                        <Input
-                                          id={field.name}
-                                          name={field.name}
-                                          type="number"
-                                          step="0.01"
-                                          value={field.state.value}
-                                          onBlur={field.handleBlur}
-                                          onChange={(e) =>
-                                            field.handleChange(parseFloat(e.target.value) || 0)
-                                          }
-                                          aria-invalid={isInvalid}
-                                          disabled={isBuiltin}
-                                        />
-                                        {isInvalid && (
-                                          <FieldError errors={mapErrors(field.state.meta.errors)} />
-                                        )}
-                                      </Field>
-                                    )
-                                  }}
-                                />
-                              </div>
-
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-background border border-border text-muted-foreground hover:text-destructive transition-colors shadow-sm"
-                                onClick={() => modelsField.removeValue(index)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                  {initialModels.length === 0 ? (
+                    <div className="text-center py-8 rounded-xl border border-dashed text-muted-foreground text-sm">
+                      {m.no_models_found()}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {initialModels.map((model, idx) => (
+                        <div
+                          key={model.modelId + idx}
+                          className="group cursor-pointer flex items-center justify-between p-3 rounded-xl border bg-card hover:border-primary/50 transition-all shadow-none hover:shadow-sm"
+                          onClick={() => setEditingModelIndex(idx)}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-foreground truncate">
+                                {model.name || model.modelId}
+                              </span>
+                              <Badge variant="secondary" className="font-mono text-[10px]">
+                                {model.modelId}
+                              </Badge>
+                              {model.config.reasoning && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] gap-1 bg-primary/10 text-primary border-primary/20"
+                                >
+                                  <Zap className="w-2.5 h-2.5" /> {m.reasoning_support()}
+                                </Badge>
+                              )}
                             </div>
-                          ))}
+                            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                              <span>
+                                {model.config.contextWindow?.toLocaleString()} {m.tokens()}
+                              </span>
+                              <span>·</span>
+                              <span>
+                                {m.cost_per_million({
+                                  input: model.config.cost?.input ?? 0,
+                                  output: model.config.cost?.output ?? 0,
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 ml-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setInitialModels((prev) => prev.filter((_, i) => i !== idx))
+                              }}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </ScrollArea>
@@ -920,39 +678,589 @@ function ProviderFormDialog({
                   {isSubmitting || isLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    m.save_configuration()
+                    m.add_provider()
                   )}
                 </Button>
               )}
             />
           </DialogFooter>
         </form>
-      </DialogContent>
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{m.are_you_absolutely_sure()}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {m.delete_provider_confirmation({ name: initialValues?.name ?? '' })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>
-              {m.cancel()}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-              onClick={() => {
-                onDelete?.()
-                setIsDeleteDialogOpen(false)
+        {/* Sub-dialog for adding/editing a model */}
+        {(isAddModelOpen || editingModelIndex !== null) && (
+          <ModelFormDialog
+            key={
+              editingModelIndex !== null
+                ? `edit-${editingModelIndex}-${initialModels[editingModelIndex]?.modelId}`
+                : 'add'
+            }
+            isOpen={true}
+            onClose={() => {
+              setIsAddModelOpen(false)
+              setEditingModelIndex(null)
+            }}
+            onSubmit={handleSaveModel}
+            title={editingModelIndex !== null ? m.edit_model() : m.add_model()}
+            initialValues={editingModelIndex !== null ? initialModels[editingModelIndex] : null}
+            defaultApi={form.getFieldValue('config.api') as string}
+            existingModelIds={initialModels
+              .filter((_, i) => i !== editingModelIndex)
+              .map((m) => m.modelId)}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Edit Provider Dialog (Tabs: General Settings & Models)
+// ---------------------------------------------------------------------------
+
+interface EditProviderDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  provider: Provider
+  teamId: string
+  existingProviderNames: string[]
+}
+
+function EditProviderDialog({
+  isOpen,
+  onClose,
+  provider,
+  teamId,
+  existingProviderNames,
+}: EditProviderDialogProps) {
+  const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState<'general' | 'models'>('general')
+  const [modelsSearchQuery, setModelsSearchQuery] = useState('')
+
+  // Sub-dialogs state
+  const [isAddModelOpen, setIsAddModelOpen] = useState(false)
+  const [editingModel, setEditingModel] = useState<ProviderModelItem | null>(null)
+  const [modelToDelete, setModelToDelete] = useState<ProviderModelItem | null>(null)
+
+  // Fetch models for this provider
+  const { data: models = [], isLoading: isModelsLoading } = useQuery({
+    queryKey: ['teams', teamId, 'providers', provider.id, 'models'],
+    queryFn: async () => {
+      const res = await client.api.providers[':id'].models.$get({
+        param: { id: provider.id },
+      })
+      if (!res.ok) throw new Error('Failed to fetch models')
+      return await res.json()
+    },
+    enabled: isOpen,
+  })
+
+  // Mutations
+  const updateProviderMutation = useMutation({
+    mutationFn: async (values: { name: string; config: z.infer<typeof providerConfigSchema> }) => {
+      const res = await client.api.providers[':id'].$put({
+        param: { id: provider.id },
+        json: {
+          name: values.name,
+          config: values.config,
+        },
+      })
+      if (!res.ok) throw new Error('Failed to update provider')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'providers'] })
+      toast.success(m.provider_updated_successfully())
+    },
+    onError: (error) => {
+      toast.error(m.error_message({ message: error.message }))
+    },
+  })
+
+  const createModelMutation = useMutation({
+    mutationFn: async (values: ModelFormValues) => {
+      const res = await client.api.providers[':id'].models.$post({
+        param: { id: provider.id },
+        json: values,
+      })
+      if (!res.ok) throw new Error('Failed to create model')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['teams', teamId, 'providers', provider.id, 'models'],
+      })
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'providers'] })
+      setIsAddModelOpen(false)
+      toast.success(m.model_created_successfully())
+    },
+    onError: (error) => {
+      toast.error(m.error_message({ message: error.message }))
+    },
+  })
+
+  const updateModelMutation = useMutation({
+    mutationFn: async ({ modelDbId, values }: { modelDbId: string; values: ModelFormValues }) => {
+      const res = await client.api.providers[':id'].models[':modelDbId'].$put({
+        param: { id: provider.id, modelDbId },
+        json: values,
+      })
+      if (!res.ok) throw new Error('Failed to update model')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['teams', teamId, 'providers', provider.id, 'models'],
+      })
+      setEditingModel(null)
+      toast.success(m.model_updated_successfully())
+    },
+    onError: (error) => {
+      toast.error(m.error_message({ message: error.message }))
+    },
+  })
+
+  const deleteModelMutation = useMutation({
+    mutationFn: async (modelDbId: string) => {
+      const res = await client.api.providers[':id'].models[':modelDbId'].$delete({
+        param: { id: provider.id, modelDbId },
+      })
+      if (!res.ok) throw new Error('Failed to delete model')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['teams', teamId, 'providers', provider.id, 'models'],
+      })
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'providers'] })
+      setModelToDelete(null)
+      toast.success(m.model_deleted_successfully())
+    },
+    onError: (error) => {
+      toast.error(m.error_message({ message: error.message }))
+    },
+  })
+
+  // General Settings Form
+  const generalSchema = useMemo(() => {
+    return z.object({
+      name: z
+        .string()
+        .min(1, m.provider_name_is_required())
+        .refine(
+          (name) => {
+            if (provider.name === name) return true
+            return !existingProviderNames.includes(name)
+          },
+          { message: m.provider_name_must_be_unique() },
+        ),
+      config: providerConfigSchema,
+    })
+  }, [existingProviderNames, provider.name])
+
+  const form = useForm({
+    defaultValues: {
+      name: provider.name,
+      config: provider.config,
+    } as z.input<typeof generalSchema>,
+    validators: {
+      onSubmit: generalSchema,
+    },
+    onSubmit: async ({ value }) => {
+      updateProviderMutation.mutate({
+        name: value.name,
+        config: value.config as z.infer<typeof providerConfigSchema>,
+      })
+    },
+  })
+
+  useEffect(() => {
+    if (isOpen) {
+      form.reset()
+      setActiveTab('general')
+      setModelsSearchQuery('')
+    }
+  }, [isOpen, form])
+
+  const mapErrors = (errors: unknown[]) => {
+    return errors.map((e) => {
+      if (typeof e === 'string') return { message: e }
+      if (e && typeof e === 'object' && 'message' in e) {
+        return { message: String(e.message) }
+      }
+      return { message: String(e || '') }
+    })
+  }
+
+  // Filtered models
+  const filteredModels = useMemo(() => {
+    if (!modelsSearchQuery.trim()) return models
+    const query = modelsSearchQuery.toLowerCase()
+    return models.filter(
+      (m) => m.modelId.toLowerCase().includes(query) || m.name?.toLowerCase().includes(query),
+    )
+  }, [models, modelsSearchQuery])
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-3xl h-[88vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2 shrink-0">
+          <DialogTitle className="text-xl">{m.edit_item({ name: provider.name })}</DialogTitle>
+          <DialogDescription>{m.configure_provider_description()}</DialogDescription>
+        </DialogHeader>
+
+        <Tabs
+          value={activeTab}
+          onValueChange={(val) => setActiveTab(val as 'general' | 'models')}
+          className="flex-1 flex flex-col min-h-0"
+        >
+          <div className="px-6 pb-2 shrink-0">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="general">{m.general_settings()}</TabsTrigger>
+              <TabsTrigger value="models" className="gap-2">
+                {m.models()}
+                <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
+                  {models.length}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* Tab 1: General Settings */}
+          <TabsContent value="general" className="flex-1 flex flex-col min-h-0 m-0">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                form.handleSubmit()
               }}
+              className="flex-1 flex flex-col min-h-0"
             >
-              {m.delete()}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <div className="flex-1 min-h-0">
+                <ScrollArea className="h-full">
+                  <div className="p-6 space-y-6 pr-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 rounded-2xl border bg-muted/10">
+                      <form.Field
+                        name="name"
+                        children={(field) => {
+                          const isInvalid =
+                            !!field.state.meta.errors.length && field.state.meta.isTouched
+                          return (
+                            <Field data-invalid={isInvalid}>
+                              <FieldLabel htmlFor={field.name}>{m.provider_name()}</FieldLabel>
+                              <Input
+                                id={field.name}
+                                name={field.name}
+                                value={field.state.value}
+                                onBlur={field.handleBlur}
+                                onChange={(e) => field.handleChange(e.target.value)}
+                                placeholder={m.provider_name_placeholder()}
+                                aria-invalid={isInvalid}
+                              />
+                              {isInvalid && (
+                                <FieldError errors={mapErrors(field.state.meta.errors)} />
+                              )}
+                            </Field>
+                          )
+                        }}
+                      />
+
+                      <form.Field
+                        name="config.api"
+                        children={(field) => {
+                          const isInvalid =
+                            !!field.state.meta.errors.length && field.state.meta.isTouched
+                          return (
+                            <Field data-invalid={isInvalid}>
+                              <FieldLabel htmlFor={field.name}>
+                                {m.global_api_protocol()}
+                              </FieldLabel>
+                              <Select
+                                onValueChange={field.handleChange as (value: string) => void}
+                                value={field.state.value}
+                              >
+                                <SelectTrigger id={field.name} aria-invalid={isInvalid}>
+                                  <SelectValue placeholder={m.select_api_protocol()} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {KNOWN_APIS.map((api) => (
+                                    <SelectItem key={api} value={api}>
+                                      {API_PROTOCOL_LABELS[api]}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {isInvalid && (
+                                <FieldError errors={mapErrors(field.state.meta.errors)} />
+                              )}
+                            </Field>
+                          )
+                        }}
+                      />
+
+                      <div className="md:col-span-2">
+                        <form.Field
+                          name="config.baseUrl"
+                          children={(field) => {
+                            const isInvalid =
+                              !!field.state.meta.errors.length && field.state.meta.isTouched
+                            return (
+                              <Field data-invalid={isInvalid}>
+                                <FieldLabel htmlFor={field.name}>
+                                  {m.base_url_optional()}
+                                </FieldLabel>
+                                <Input
+                                  id={field.name}
+                                  name={field.name}
+                                  value={field.state.value || ''}
+                                  onBlur={field.handleBlur}
+                                  onChange={(e) => field.handleChange(e.target.value)}
+                                  placeholder="https://api.openai.com/v1"
+                                  aria-invalid={isInvalid}
+                                />
+                                <FieldDescription>{m.override_default_endpoint()}</FieldDescription>
+                                {isInvalid && (
+                                  <FieldError errors={mapErrors(field.state.meta.errors)} />
+                                )}
+                              </Field>
+                            )
+                          }}
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <form.Field
+                          name="config.apiKey"
+                          children={(field) => {
+                            const isInvalid =
+                              !!field.state.meta.errors.length && field.state.meta.isTouched
+                            return (
+                              <Field data-invalid={isInvalid}>
+                                <FieldLabel htmlFor={field.name}>{m.api_key()}</FieldLabel>
+                                <Input
+                                  id={field.name}
+                                  name={field.name}
+                                  type="text"
+                                  value={field.state.value || ''}
+                                  onBlur={field.handleBlur}
+                                  onChange={(e) => field.handleChange(e.target.value)}
+                                  placeholder={m.api_key_placeholder()}
+                                  aria-invalid={isInvalid}
+                                />
+                                <FieldDescription className="text-xs mt-1">
+                                  {m.api_key_description()}
+                                </FieldDescription>
+                                {isInvalid && (
+                                  <FieldError errors={mapErrors(field.state.meta.errors)} />
+                                )}
+                              </Field>
+                            )
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </ScrollArea>
+              </div>
+
+              <DialogFooter className="p-6 pt-4 border-t border-border gap-2 shrink-0">
+                <Button type="button" variant="outline" onClick={onClose}>
+                  {m.cancel()}
+                </Button>
+                <form.Subscribe
+                  selector={(state) => [state.canSubmit, state.isSubmitting]}
+                  children={([canSubmit, isSubmitting]) => (
+                    <Button
+                      type="submit"
+                      className="min-w-[120px]"
+                      disabled={!canSubmit || isSubmitting || updateProviderMutation.isPending}
+                    >
+                      {isSubmitting || updateProviderMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        m.save_changes()
+                      )}
+                    </Button>
+                  )}
+                />
+              </DialogFooter>
+            </form>
+          </TabsContent>
+
+          {/* Tab 2: Models Management */}
+          <TabsContent value="models" className="flex-1 flex flex-col min-h-0 m-0">
+            {/* Search and Add Header */}
+            <div className="p-6 pb-3 flex items-center justify-between gap-3 shrink-0">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder={m.search_models_placeholder()}
+                  value={modelsSearchQuery}
+                  onChange={(e) => setModelsSearchQuery(e.target.value)}
+                  className="pl-9 h-9"
+                />
+              </div>
+
+              <Button
+                size="sm"
+                onClick={() => setIsAddModelOpen(true)}
+                className="gap-1.5 shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                {m.add_model()}
+              </Button>
+            </div>
+
+            {/* Models List */}
+            <div className="flex-1 min-h-0 px-6">
+              <ScrollArea className="h-full pr-4">
+                {isModelsLoading ? (
+                  <div className="flex h-48 items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : filteredModels.length === 0 ? (
+                  <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground text-sm">
+                    {m.no_models_found()}
+                  </div>
+                ) : (
+                  <div className="space-y-2 pb-4">
+                    {filteredModels.map((model) => (
+                      <div
+                        key={model.id}
+                        className="group cursor-pointer flex items-center justify-between p-3.5 rounded-xl border bg-card hover:border-primary/50 transition-all shadow-none hover:shadow-sm"
+                        onClick={() => setEditingModel(model)}
+                      >
+                        <div className="min-w-0 flex-1 pr-3">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-foreground text-sm">
+                              {model.name || model.modelId}
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="font-mono text-[10px] px-1.5 py-0.5"
+                            >
+                              {model.modelId}
+                            </Badge>
+                            {model.config?.reasoning && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] gap-1 bg-primary/10 text-primary border-primary/20 h-5"
+                              >
+                                <Zap className="w-2.5 h-2.5" /> {m.reasoning_support()}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span>
+                              {model.config?.contextWindow?.toLocaleString()} {m.tokens()}
+                            </span>
+                            <span>·</span>
+                            <span>
+                              {m.max_tokens_label({
+                                count: model.config?.maxTokens?.toLocaleString() ?? '0',
+                              })}
+                            </span>
+                            <span>·</span>
+                            <span>
+                              {m.cost_per_million({
+                                input: model.config?.cost?.input ?? 0,
+                                output: model.config?.cost?.output ?? 0,
+                              })}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setModelToDelete(model)
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Sub-dialog for adding a new model */}
+        {isAddModelOpen && (
+          <ModelFormDialog
+            isOpen={isAddModelOpen}
+            onClose={() => setIsAddModelOpen(false)}
+            onSubmit={(values) => createModelMutation.mutate(values)}
+            title={m.add_model()}
+            isLoading={createModelMutation.isPending}
+            defaultApi={provider.config.api}
+            existingModelIds={models.map((m) => m.modelId)}
+          />
+        )}
+
+        {/* Sub-dialog for editing an existing model */}
+        {editingModel && (
+          <ModelFormDialog
+            isOpen={!!editingModel}
+            onClose={() => setEditingModel(null)}
+            onSubmit={(values) =>
+              updateModelMutation.mutate({ modelDbId: editingModel.id, values })
+            }
+            title={m.edit_model()}
+            isLoading={updateModelMutation.isPending}
+            initialValues={{
+              modelId: editingModel.modelId,
+              name: editingModel.name,
+              config: editingModel.config,
+            }}
+            defaultApi={provider.config.api}
+            existingModelIds={models.filter((m) => m.id !== editingModel.id).map((m) => m.modelId)}
+          />
+        )}
+
+        {/* Alert Dialog for confirming model deletion */}
+        <AlertDialog
+          open={!!modelToDelete}
+          onOpenChange={(open) => !open && setModelToDelete(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{m.are_you_absolutely_sure()}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {m.delete_model_confirmation({
+                  name: modelToDelete?.name || modelToDelete?.modelId || '',
+                })}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setModelToDelete(null)}>
+                {m.cancel()}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                onClick={() => {
+                  if (modelToDelete) {
+                    deleteModelMutation.mutate(modelToDelete.id)
+                  }
+                }}
+              >
+                {deleteModelMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                {m.delete()}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </DialogContent>
     </Dialog>
   )
 }

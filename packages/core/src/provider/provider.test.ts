@@ -191,4 +191,159 @@ describe('ProviderService', () => {
     const updatedAgent = updatedAgents.find((a) => a.id === agent!.id)
     expect(updatedAgent?.modelId).toBe(initialModelId)
   })
+
+  it('should support granular model CRUD operations and order by id desc', async () => {
+    const team = await teamService.ensureDefaultTeam()
+    const provider = await providerService.create(
+      team.id,
+      'test-granular-provider',
+      { api: 'openai-completions', apiKey: 'key1' },
+      [],
+    )
+
+    // 1. createModel
+    const createdModel1 = await providerService.createModel(team.id, provider.id, {
+      modelId: 'custom-model-1',
+      name: 'Custom Model 1',
+      config: {
+        reasoning: true,
+        input: ['text', 'image'],
+        contextWindow: 200000,
+        maxTokens: 8192,
+        cost: { input: 1.5, output: 5, cacheRead: 0.1, cacheWrite: 0.5 },
+      },
+    })
+    expect(createdModel1.modelId).toBe('custom-model-1')
+    expect(createdModel1.name).toBe('Custom Model 1')
+    expect((createdModel1.config as { reasoning: boolean }).reasoning).toBe(true)
+
+    // Check duplicate modelId error
+    await expect(
+      providerService.createModel(team.id, provider.id, {
+        modelId: 'custom-model-1',
+        name: 'Duplicate',
+        config: {
+          reasoning: false,
+          input: ['text'],
+          contextWindow: 100000,
+          maxTokens: 4000,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        },
+      }),
+    ).rejects.toThrow('already exists')
+
+    // 2. createModel 2
+    const createdModel2 = await providerService.createModel(team.id, provider.id, {
+      modelId: 'custom-model-2',
+      name: 'Custom Model 2',
+      config: {
+        reasoning: false,
+        input: ['text'],
+        contextWindow: 100000,
+        maxTokens: 4000,
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      },
+    })
+
+    // 3. listModelsByProvider should return newest first (id desc)
+    const models = await providerService.listModelsByProvider(team.id, provider.id)
+    expect(models).toHaveLength(2)
+    expect(models[0].id).toBe(createdModel2.id)
+    expect(models[1].id).toBe(createdModel1.id)
+
+    // 4. updateModel
+    const updatedModel = await providerService.updateModel(team.id, provider.id, createdModel1.id, {
+      name: 'Updated Model 1',
+      config: {
+        reasoning: false,
+        input: ['text'],
+        contextWindow: 64000,
+        maxTokens: 2048,
+        cost: { input: 2, output: 8, cacheRead: 0.2, cacheWrite: 0.8 },
+      },
+    })
+    expect(updatedModel.name).toBe('Updated Model 1')
+    expect((updatedModel.config as { reasoning: boolean }).reasoning).toBe(false)
+    expect((updatedModel.config as { cost: { input: number } }).cost.input).toBe(2)
+
+    // 5. update provider config and name without touching models
+    const updatedProvider = await providerService.update(
+      team.id,
+      provider.id,
+      { api: 'openai-completions', apiKey: 'new-key' },
+      undefined,
+      'renamed-provider',
+    )
+    expect(updatedProvider.name).toBe('renamed-provider')
+    expect(updatedProvider.config.apiKey).toBe('new-key')
+    const modelsAfterProviderUpdate = await providerService.listModelsByProvider(
+      team.id,
+      provider.id,
+    )
+    expect(modelsAfterProviderUpdate).toHaveLength(2)
+
+    // 6. deleteModel
+    await providerService.deleteModel(team.id, provider.id, createdModel2.id)
+    const modelsAfterDelete = await providerService.listModelsByProvider(team.id, provider.id)
+    expect(modelsAfterDelete).toHaveLength(1)
+    expect(modelsAfterDelete[0].id).toBe(createdModel1.id)
+  })
+
+  it('should propagate provider API protocol change to existing models', async () => {
+    const team = await teamService.ensureDefaultTeam()
+
+    // 1. Create provider with openai-responses
+    const provider = await providerService.create(
+      team.id,
+      'test-protocol-provider',
+      { api: 'openai-responses', apiKey: 'key-1' },
+      [
+        {
+          modelId: 'm1',
+          name: 'Model 1',
+          config: {
+            api: 'openai-responses',
+            reasoning: false,
+            input: ['text'],
+            contextWindow: 128000,
+            maxTokens: 4096,
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          },
+        },
+        {
+          modelId: 'm2',
+          name: 'Model 2',
+          config: {
+            api: 'openai-responses',
+            reasoning: true,
+            input: ['text'],
+            contextWindow: 64000,
+            maxTokens: 2048,
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          },
+        },
+      ],
+    )
+
+    const initialModels = await providerService.listModelsByProvider(team.id, provider.id)
+    expect(initialModels).toHaveLength(2)
+    expect((initialModels[0].config as { api: string }).api).toBe('openai-responses')
+    expect((initialModels[1].config as { api: string }).api).toBe('openai-responses')
+
+    // 2. Update provider global API protocol to anthropic-messages without passing models
+    const updatedProvider = await providerService.update(
+      team.id,
+      provider.id,
+      { api: 'anthropic-messages', apiKey: 'key-2' },
+      undefined,
+      'test-protocol-provider',
+    )
+    expect(updatedProvider.config.api).toBe('anthropic-messages')
+
+    // 3. Verify that all existing models under this provider were updated
+    const modelsAfterUpdate = await providerService.listModelsByProvider(team.id, provider.id)
+    expect(modelsAfterUpdate).toHaveLength(2)
+    expect((modelsAfterUpdate[0].config as { api: string }).api).toBe('anthropic-messages')
+    expect((modelsAfterUpdate[1].config as { api: string }).api).toBe('anthropic-messages')
+  })
 })

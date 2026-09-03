@@ -12,6 +12,11 @@ test('owner manages resource quotas in settings and resets usage from the dashbo
   // 2. Click the Quotas sidebar tab
   await page.getByRole('button', { name: /Quotas|配额/i }).click()
 
+  // Verify URL contains #quotas and remains after reload
+  expect(page.url()).toContain('#quotas')
+  await page.reload()
+  expect(page.url()).toContain('#quotas')
+
   // 3. Verify Quotas settings card is displayed with empty state
   await expect(page.getByRole('heading', { name: /^(Resource Quotas|资源配额)$/i })).toBeVisible()
   await expect(page.getByText(/No resource quotas configured|暂未配置资源配额/i)).toBeVisible()
