@@ -189,4 +189,25 @@ describe('SyncProvidersDialog', () => {
     expect(screen.queryByText('m-new-1')).toBeNull()
     expect(screen.getByText('Existing Provider New Model 1')).toBeDefined()
   })
+
+  it('supports expand all and collapse all buttons', () => {
+    renderDialog()
+
+    // Models should be visible initially (all expanded)
+    expect(document.getElementById('model-check-test-new-provider-m-new-1')).toBeDefined()
+
+    // Click Collapse All
+    const collapseAllBtn = screen.getByRole('button', { name: /^collapse all$/i })
+    fireEvent.click(collapseAllBtn)
+
+    // Child models should be collapsed (not in DOM)
+    expect(document.getElementById('model-check-test-new-provider-m-new-1')).toBeNull()
+
+    // Click Expand All
+    const expandAllBtn = screen.getByRole('button', { name: /^expand all$/i })
+    fireEvent.click(expandAllBtn)
+
+    // Child models should be visible again
+    expect(document.getElementById('model-check-test-new-provider-m-new-1')).toBeDefined()
+  })
 })

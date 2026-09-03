@@ -113,6 +113,15 @@ export function SyncProvidersDialog({
     })
   }
 
+  const handleExpandAll = () => {
+    if (!syncData) return
+    setExpandedProviders(new Set(syncData.providers.map((p) => p.name)))
+  }
+
+  const handleCollapseAll = () => {
+    setExpandedProviders(new Set())
+  }
+
   const toggleModel = (providerName: string, modelId: string) => {
     const key = `${providerName}:${modelId}`
     setSelectedModels((prevModels) => {
@@ -243,7 +252,26 @@ export function SyncProvidersDialog({
                 className="pl-8 h-8 text-xs bg-background"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleExpandAll}
+                className="h-8 text-xs px-2.5"
+              >
+                {m.sync_providers_expand_all()}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCollapseAll}
+                className="h-8 text-xs px-2.5"
+              >
+                {m.sync_providers_collapse_all()}
+              </Button>
+              <div className="w-px h-4 bg-border mx-1" />
               <Button
                 type="button"
                 variant="outline"

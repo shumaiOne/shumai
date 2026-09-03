@@ -318,6 +318,8 @@
   "sync_providers_up_to_date": "所有提供商和模型均已是最新状态。",
   "sync_providers_select_all": "全选",
   "sync_providers_deselect_all": "取消全选",
+  "sync_providers_expand_all": "全部展开",
+  "sync_providers_collapse_all": "全部折叠",
   "sync_providers_search_placeholder": "筛选新提供商或模型...",
   "sync_providers_new_provider": "新提供商",
   "sync_providers_existing_provider": "现有提供商",
