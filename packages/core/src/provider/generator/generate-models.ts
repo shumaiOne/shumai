@@ -1,17 +1,3 @@
-#!/usr/bin/env node
-
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  renameSync,
-  rmSync,
-  writeFileSync,
-} from 'fs'
-import { dirname, join, resolve } from 'path'
-import { fileURLToPath } from 'url'
 import {
   getEffortThinkingLevelMap,
   type ModelsDevReasoningOption,
@@ -31,73 +17,14 @@ import type {
   OpenAICompletionsCompat,
   OpenAIResponsesCompat,
 } from '@earendil-works/pi-ai'
-import {
-  createModelDataManifest,
-  type ModelDataStructure,
-  MODEL_DATA_MANIFEST_FILE,
-  readModelDataProviderIds,
-  validateGeneratedModelData,
-  validateModelDataDirectory,
-} from './model-data.ts'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-const packageRoot = join(__dirname, '..')
 
 export interface GeneratorOptions {
   strict?: boolean
-  dataOnly?: boolean
   jsonOnly?: boolean
-  jsonOutputDir?: string | undefined
-  pretty?: boolean
-}
-
-function readGeneratorOptions(args: string[]): GeneratorOptions {
-  let strict = false
-  let dataOnly = false
-  let jsonOnly = false
-  let jsonOutputDir: string | undefined
-  let pretty = false
-
-  for (let index = 0; index < args.length; index++) {
-    const arg = args[index]
-    if (arg === '--strict') {
-      strict = true
-      continue
-    }
-    if (arg === '--data-only') {
-      dataOnly = true
-      continue
-    }
-    if (arg === '--json-only') {
-      jsonOnly = true
-      continue
-    }
-    if (arg === '--pretty') {
-      pretty = true
-      continue
-    }
-    if (arg === '--json-output') {
-      const value = args[++index]
-      if (!value) throw new Error('--json-output requires a directory')
-      jsonOutputDir = resolve(value)
-      continue
-    }
-    throw new Error(`Unknown argument: ${arg}`)
-  }
-
-  if (jsonOnly && !jsonOutputDir) throw new Error('--json-only requires --json-output')
-  if (dataOnly && (jsonOnly || jsonOutputDir))
-    throw new Error('--data-only cannot be combined with JSON catalog output')
-  return { strict, dataOnly, jsonOnly, jsonOutputDir, pretty }
 }
 
 let generatorOptions: GeneratorOptions = {
   strict: false,
-  dataOnly: false,
-  jsonOnly: true,
-  jsonOutputDir: undefined,
-  pretty: false,
 }
 
 interface ModelsDevModel {
@@ -2730,183 +2657,23 @@ export async function generateModels(
     }
   }
 
-  const serializeJson = (value: unknown) =>
-    `${JSON.stringify(value, null, generatorOptions.pretty ? 2 : undefined)}\n`
-  const writeJson = (path: string, value: unknown) => writeFileSync(path, serializeJson(value))
-  const generatedDataProviderIds = generatorOptions.dataOnly
-    ? readModelDataProviderIds(packageRoot)
-    : sortedProviderIds
-  const missingProviderIds = generatedDataProviderIds.filter(
-    (providerId) => !jsonProviders[providerId],
-  )
-  if (missingProviderIds.length > 0) {
-    throw new Error(`Cannot hydrate missing providers: ${missingProviderIds.join(', ')}`)
-  }
-
-  // Only the ignored internal data is grouped by API for type derivation. Public JSON catalog output stays flat.
   const generatedDataProviders: Record<string, Record<string, Record<string, Model<Api>>>> = {}
-  const modelDataStructure: ModelDataStructure = {}
-  for (const providerId of generatedDataProviderIds) {
+  for (const providerId of sortedProviderIds) {
     const models = jsonProviders[providerId]
     generatedDataProviders[providerId] = {}
-    modelDataStructure[providerId] = {}
     const apiIds = Array.from(new Set(Object.values(models).map((model) => model.api))).sort()
     for (const api of apiIds) {
       generatedDataProviders[providerId][api] = {}
       for (const [modelId, model] of Object.entries(models)) {
         if (model.api !== api) continue
         generatedDataProviders[providerId][api][modelId] = model
-        modelDataStructure[providerId][modelId] = api
       }
     }
   }
 
-  const generatedAt = new Date().toISOString()
-
-  if (!generatorOptions.jsonOnly) {
-    // Stage and validate all provider values before replacing the current generated data.
-    const providersDir = join(packageRoot, 'src/providers')
-    const dataDir = join(providersDir, 'data')
-    const stagingRoot = mkdtempSync(join(providersDir, '.model-generation-'))
-    const stagedDataDir = join(stagingRoot, 'data')
-    const previousDataDir = join(stagingRoot, 'previous-data')
-    let restoreGeneratedCatalog: (() => void) | undefined
-    try {
-      mkdirSync(stagedDataDir, { recursive: true })
-      const fileContents: Record<string, string> = {}
-      for (const providerId of generatedDataProviderIds) {
-        const filename = `${providerId}.json`
-        const content = serializeJson(generatedDataProviders[providerId])
-        fileContents[filename] = content
-        writeFileSync(join(stagedDataDir, filename), content)
-      }
-      writeJson(
-        join(stagedDataDir, MODEL_DATA_MANIFEST_FILE),
-        createModelDataManifest(modelDataStructure, fileContents, generatedAt),
-      )
-      validateModelDataDirectory(modelDataStructure, stagedDataDir)
-
-      if (!generatorOptions.dataOnly) {
-        const previousShardContents = new Map(
-          readdirSync(providersDir)
-            .filter((entry) => entry.endsWith('.models.ts'))
-            .map((entry) => [entry, readFileSync(join(providersDir, entry), 'utf8')] as const),
-        )
-        const aggregatorPath = join(packageRoot, 'src/models.generated.ts')
-        const previousAggregator = readFileSync(aggregatorPath, 'utf8')
-        restoreGeneratedCatalog = () => {
-          for (const entry of readdirSync(providersDir)) {
-            if (entry.endsWith('.models.ts')) rmSync(join(providersDir, entry))
-          }
-          for (const [entry, content] of previousShardContents) {
-            writeFileSync(join(providersDir, entry), content)
-          }
-          writeFileSync(aggregatorPath, previousAggregator)
-        }
-
-        const generatedHeader = `// This file is auto-generated by scripts/generate-models.ts
-// Do not edit manually - run 'npm run generate-models' to update
-
-`
-        const catalogConstName = (providerId: string) =>
-          `${providerId.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}_MODELS`
-        const generatedShardFiles = new Set<string>()
-        for (const providerId of sortedProviderIds) {
-          let output = generatedHeader
-          output += `import values from "./data/${providerId}.json" with { type: "json" };\n`
-          output += `import { flattenModelCatalog, type ModelCatalog } from "../model-catalog.ts";\n\n`
-          output += `export const ${catalogConstName(providerId)}: ModelCatalog<typeof values, ${JSON.stringify(providerId)}> =\n`
-          output += `\tflattenModelCatalog(${JSON.stringify(providerId)}, values);\n`
-          const filename = `${providerId}.models.ts`
-          generatedShardFiles.add(filename)
-          writeFileSync(join(providersDir, filename), output)
-        }
-        for (const entry of readdirSync(providersDir)) {
-          if (entry.endsWith('.models.ts') && !generatedShardFiles.has(entry))
-            rmSync(join(providersDir, entry))
-        }
-
-        let output = generatedHeader
-        for (const providerId of sortedProviderIds) {
-          output += `import { ${catalogConstName(providerId)} } from "./providers/${providerId}.models.ts";\n`
-        }
-        output += `\nexport const MODELS: {\n`
-        for (const providerId of sortedProviderIds) {
-          output += `\treadonly ${JSON.stringify(providerId)}: typeof ${catalogConstName(providerId)};\n`
-        }
-        output += `} = {\n`
-        for (const providerId of sortedProviderIds) {
-          output += `\t${JSON.stringify(providerId)}: ${catalogConstName(providerId)},\n`
-        }
-        output += `};\n`
-        writeFileSync(aggregatorPath, output)
-        console.log('Generated provider catalogs and src/models.generated.ts')
-      }
-
-      const hadPreviousData = existsSync(dataDir)
-      if (hadPreviousData) renameSync(dataDir, previousDataDir)
-      try {
-        renameSync(stagedDataDir, dataDir)
-        validateGeneratedModelData(packageRoot)
-      } catch (error) {
-        rmSync(dataDir, { recursive: true, force: true })
-        if (hadPreviousData && existsSync(previousDataDir)) renameSync(previousDataDir, dataDir)
-        throw error
-      }
-      restoreGeneratedCatalog = undefined
-      console.log(
-        generatorOptions.dataOnly
-          ? 'Hydrated JSON model values under src/providers/data/'
-          : 'Generated JSON model values under src/providers/data/',
-      )
-    } catch (error) {
-      restoreGeneratedCatalog?.()
-      throw error
-    } finally {
-      rmSync(stagingRoot, { recursive: true, force: true })
-    }
-  }
-
-  if (generatorOptions.jsonOutputDir) {
-    const providerOutputDir = join(generatorOptions.jsonOutputDir, 'providers')
-    rmSync(generatorOptions.jsonOutputDir, { recursive: true, force: true })
-    mkdirSync(providerOutputDir, { recursive: true })
-    writeJson(join(generatorOptions.jsonOutputDir, 'models.json'), jsonProviders)
-    writeJson(join(generatorOptions.jsonOutputDir, 'providers.json'), sortedProviderIds)
-    for (const providerId of sortedProviderIds) {
-      writeJson(join(providerOutputDir, `${providerId}.json`), jsonProviders[providerId])
-    }
-    console.log(`Generated JSON model catalog under ${generatorOptions.jsonOutputDir}`)
-  }
-
-  // Print statistics
-  const totalModels = allModels.length
-  const reasoningModels = allModels.filter((m) => m.reasoning).length
-
-  console.log(`\nModel Statistics:`)
-  console.log(`  Total tool-capable models: ${totalModels}`)
-  console.log(`  Reasoning-capable models: ${reasoningModels}`)
-
-  for (const [provider, models] of Object.entries(providers)) {
-    console.log(`  ${provider}: ${Object.keys(models).length} models`)
-  }
   return {
     providers: jsonProviders,
     groupedProviders: generatedDataProviders,
     sortedProviderIds,
   }
-}
-
-const isMain =
-  Boolean(process.argv[1]) &&
-  (import.meta.url === `file://${process.argv[1]}` ||
-    process.argv[1].endsWith('generate-models.ts') ||
-    process.argv[1].endsWith('generate-models.js'))
-
-if (isMain) {
-  const cliOptions = readGeneratorOptions(process.argv.slice(2))
-  generateModels(cliOptions).catch((error) => {
-    console.error(error)
-    process.exitCode = 1
-  })
 }

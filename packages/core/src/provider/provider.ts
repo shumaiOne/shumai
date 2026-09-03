@@ -306,7 +306,7 @@ export class ProviderService {
   }
 
   async checkUpdates(teamId: string): Promise<SyncCheckResponse> {
-    const catalog = await generateModels({ jsonOnly: true })
+    const catalog = await generateModels()
 
     const existingProviders = await this.prismaClient.provider.findMany({
       where: { teamId },
