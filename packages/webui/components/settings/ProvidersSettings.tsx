@@ -43,7 +43,6 @@ import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { InferResponseType } from 'hono/client'
 import {
-  ChevronLeft,
   ChevronRight,
   Cpu,
   Globe,
@@ -717,8 +716,6 @@ interface EditProviderDialogProps {
   existingProviderNames: string[]
 }
 
-const PAGE_SIZE = 20
-
 function EditProviderDialog({
   isOpen,
   onClose,
@@ -729,7 +726,6 @@ function EditProviderDialog({
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'general' | 'models'>('general')
   const [modelsSearchQuery, setModelsSearchQuery] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
 
   // Sub-dialogs state
   const [isAddModelOpen, setIsAddModelOpen] = useState(false)
@@ -786,7 +782,6 @@ function EditProviderDialog({
       })
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'providers'] })
       setIsAddModelOpen(false)
-      setCurrentPage(1)
       toast.success(m.model_created_successfully())
     },
     onError: (error) => {
@@ -874,7 +869,6 @@ function EditProviderDialog({
       form.reset()
       setActiveTab('general')
       setModelsSearchQuery('')
-      setCurrentPage(1)
     }
   }, [isOpen, form])
 
@@ -888,7 +882,7 @@ function EditProviderDialog({
     })
   }
 
-  // Filtered and paginated models
+  // Filtered models
   const filteredModels = useMemo(() => {
     if (!modelsSearchQuery.trim()) return models
     const query = modelsSearchQuery.toLowerCase()
@@ -896,12 +890,6 @@ function EditProviderDialog({
       (m) => m.modelId.toLowerCase().includes(query) || m.name?.toLowerCase().includes(query),
     )
   }, [models, modelsSearchQuery])
-
-  const totalPages = Math.ceil(filteredModels.length / PAGE_SIZE) || 1
-  const displayedModels = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE
-    return filteredModels.slice(start, start + PAGE_SIZE)
-  }, [filteredModels, currentPage])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -1098,10 +1086,7 @@ function EditProviderDialog({
                 <Input
                   placeholder={m.search_models_placeholder()}
                   value={modelsSearchQuery}
-                  onChange={(e) => {
-                    setModelsSearchQuery(e.target.value)
-                    setCurrentPage(1)
-                  }}
+                  onChange={(e) => setModelsSearchQuery(e.target.value)}
                   className="pl-9 h-9"
                 />
               </div>
@@ -1123,13 +1108,13 @@ function EditProviderDialog({
                   <div className="flex h-48 items-center justify-center">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>
-                ) : displayedModels.length === 0 ? (
+                ) : filteredModels.length === 0 ? (
                   <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground text-sm">
                     {m.no_models_found()}
                   </div>
                 ) : (
                   <div className="space-y-2 pb-4">
-                    {displayedModels.map((model) => (
+                    {filteredModels.map((model) => (
                       <div
                         key={model.id}
                         className="group cursor-pointer flex items-center justify-between p-3.5 rounded-xl border bg-card hover:border-primary/50 transition-all shadow-none hover:shadow-sm"
@@ -1188,37 +1173,6 @@ function EditProviderDialog({
                 )}
               </ScrollArea>
             </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="p-4 border-t border-border flex items-center justify-between shrink-0 px-6">
-                <span className="text-xs text-muted-foreground">
-                  {m.page_info({ current: currentPage, total: totalPages })}
-                </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage <= 1}
-                    className="h-8 gap-1"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                    {m.previous()}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage >= totalPages}
-                    className="h-8 gap-1"
-                  >
-                    {m.next()}
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </div>
-            )}
           </TabsContent>
         </Tabs>
 
