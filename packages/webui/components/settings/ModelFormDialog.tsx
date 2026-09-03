@@ -50,13 +50,13 @@ export function ModelFormDialog({
             if (initialValues?.modelId === id) return true
             return !existingModelIds.includes(id)
           },
-          { message: 'Model ID already exists for this provider' },
+          { message: m.model_id_already_exists() },
         ),
     })
   }, [existingModelIds, initialValues])
 
-  const form = useForm({
-    defaultValues: (initialValues || {
+  const getDefaultValues = () =>
+    (initialValues || {
       modelId: '',
       name: '',
       config: {
@@ -72,7 +72,10 @@ export function ModelFormDialog({
           cacheWrite: 0,
         },
       },
-    }) as z.input<typeof schema>,
+    }) as z.input<typeof schema>
+
+  const form = useForm({
+    defaultValues: getDefaultValues(),
     validators: {
       onSubmit: schema,
     },
@@ -83,9 +86,9 @@ export function ModelFormDialog({
 
   useEffect(() => {
     if (isOpen) {
-      form.reset()
+      form.reset(getDefaultValues())
     }
-  }, [isOpen, form])
+  }, [isOpen, initialValues, defaultApi, form])
 
   const mapErrors = (errors: unknown[]) => {
     return errors.map((e) => {
@@ -131,7 +134,7 @@ export function ModelFormDialog({
                             value={field.state.value}
                             onBlur={field.handleBlur}
                             onChange={(e) => field.handleChange(e.target.value)}
-                            placeholder="e.g., gpt-4o, claude-3-5-sonnet-20241022"
+                            placeholder={m.model_id_placeholder()}
                             aria-invalid={isInvalid}
                           />
                           {isInvalid && <FieldError errors={mapErrors(field.state.meta.errors)} />}
@@ -154,7 +157,7 @@ export function ModelFormDialog({
                             value={field.state.value || ''}
                             onBlur={field.handleBlur}
                             onChange={(e) => field.handleChange(e.target.value)}
-                            placeholder="e.g., GPT-4o"
+                            placeholder={m.model_name_placeholder()}
                             aria-invalid={isInvalid}
                           />
                           {isInvalid && <FieldError errors={mapErrors(field.state.meta.errors)} />}

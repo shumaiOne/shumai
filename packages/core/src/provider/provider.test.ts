@@ -288,4 +288,62 @@ describe('ProviderService', () => {
     expect(modelsAfterDelete).toHaveLength(1)
     expect(modelsAfterDelete[0].id).toBe(createdModel1.id)
   })
+
+  it('should propagate provider API protocol change to existing models', async () => {
+    const team = await teamService.ensureDefaultTeam()
+
+    // 1. Create provider with openai-responses
+    const provider = await providerService.create(
+      team.id,
+      'test-protocol-provider',
+      { api: 'openai-responses', apiKey: 'key-1' },
+      [
+        {
+          modelId: 'm1',
+          name: 'Model 1',
+          config: {
+            api: 'openai-responses',
+            reasoning: false,
+            input: ['text'],
+            contextWindow: 128000,
+            maxTokens: 4096,
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          },
+        },
+        {
+          modelId: 'm2',
+          name: 'Model 2',
+          config: {
+            api: 'openai-responses',
+            reasoning: true,
+            input: ['text'],
+            contextWindow: 64000,
+            maxTokens: 2048,
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          },
+        },
+      ],
+    )
+
+    const initialModels = await providerService.listModelsByProvider(team.id, provider.id)
+    expect(initialModels).toHaveLength(2)
+    expect((initialModels[0].config as { api: string }).api).toBe('openai-responses')
+    expect((initialModels[1].config as { api: string }).api).toBe('openai-responses')
+
+    // 2. Update provider global API protocol to anthropic-messages without passing models
+    const updatedProvider = await providerService.update(
+      team.id,
+      provider.id,
+      { api: 'anthropic-messages', apiKey: 'key-2' },
+      undefined,
+      'test-protocol-provider',
+    )
+    expect(updatedProvider.config.api).toBe('anthropic-messages')
+
+    // 3. Verify that all existing models under this provider were updated
+    const modelsAfterUpdate = await providerService.listModelsByProvider(team.id, provider.id)
+    expect(modelsAfterUpdate).toHaveLength(2)
+    expect((modelsAfterUpdate[0].config as { api: string }).api).toBe('anthropic-messages')
+    expect((modelsAfterUpdate[1].config as { api: string }).api).toBe('anthropic-messages')
+  })
 })

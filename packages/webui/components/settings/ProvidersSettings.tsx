@@ -633,8 +633,10 @@ function CreateProviderDialog({
                               </span>
                               <span>·</span>
                               <span>
-                                ${model.config.cost?.input}/1M in · ${model.config.cost?.output}/1M
-                                out
+                                {m.cost_per_million({
+                                  input: model.config.cost?.input ?? 0,
+                                  output: model.config.cost?.output ?? 0,
+                                })}
                               </span>
                             </div>
                           </div>
@@ -685,20 +687,27 @@ function CreateProviderDialog({
         </form>
 
         {/* Sub-dialog for adding/editing a model */}
-        <ModelFormDialog
-          isOpen={isAddModelOpen || editingModelIndex !== null}
-          onClose={() => {
-            setIsAddModelOpen(false)
-            setEditingModelIndex(null)
-          }}
-          onSubmit={handleSaveModel}
-          title={editingModelIndex !== null ? m.edit_model() : m.add_model()}
-          initialValues={editingModelIndex !== null ? initialModels[editingModelIndex] : null}
-          defaultApi={form.getFieldValue('config.api') as string}
-          existingModelIds={initialModels
-            .filter((_, i) => i !== editingModelIndex)
-            .map((m) => m.modelId)}
-        />
+        {(isAddModelOpen || editingModelIndex !== null) && (
+          <ModelFormDialog
+            key={
+              editingModelIndex !== null
+                ? `edit-${editingModelIndex}-${initialModels[editingModelIndex]?.modelId}`
+                : 'add'
+            }
+            isOpen={true}
+            onClose={() => {
+              setIsAddModelOpen(false)
+              setEditingModelIndex(null)
+            }}
+            onSubmit={handleSaveModel}
+            title={editingModelIndex !== null ? m.edit_model() : m.add_model()}
+            initialValues={editingModelIndex !== null ? initialModels[editingModelIndex] : null}
+            defaultApi={form.getFieldValue('config.api') as string}
+            existingModelIds={initialModels
+              .filter((_, i) => i !== editingModelIndex)
+              .map((m) => m.modelId)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -1145,11 +1154,17 @@ function EditProviderDialog({
                               {model.config?.contextWindow?.toLocaleString()} {m.tokens()}
                             </span>
                             <span>·</span>
-                            <span>max {model.config?.maxTokens?.toLocaleString()}</span>
+                            <span>
+                              {m.max_tokens_label({
+                                count: model.config?.maxTokens?.toLocaleString() ?? '0',
+                              })}
+                            </span>
                             <span>·</span>
                             <span>
-                              ${model.config?.cost?.input ?? 0}/1M in · $
-                              {model.config?.cost?.output ?? 0}/1M out
+                              {m.cost_per_million({
+                                input: model.config?.cost?.input ?? 0,
+                                output: model.config?.cost?.output ?? 0,
+                              })}
                             </span>
                           </div>
                         </div>

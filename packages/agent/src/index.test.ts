@@ -1257,3 +1257,31 @@ describe('createAgentSession enabled skill filtering', () => {
     }
   })
 })
+
+describe('getModelFromDb', () => {
+  it('should prioritize provider active api protocol over model config api', () => {
+    const providers: DbProviderInfo[] = [
+      {
+        name: 'custom-provider',
+        config: { api: 'anthropic-messages', apiKey: 'KEY' },
+        models: [
+          {
+            modelId: 'my-model',
+            name: 'My Model',
+            config: {
+              api: 'openai-responses', // stale model config
+              reasoning: false,
+              input: ['text'],
+              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+              contextWindow: 128000,
+              maxTokens: 4096,
+            },
+          },
+        ],
+      },
+    ]
+
+    const model = getModelFromDb(providers, 'custom-provider', 'my-model')
+    expect(model.api).toBe('anthropic-messages')
+  })
+})

@@ -135,12 +135,16 @@ export class ProviderService {
         // Update existing models or create new ones
         for (const m of models) {
           const existing = existingByModelId.get(m.modelId)
+          const modelConfig = {
+            ...m.config,
+            api: m.config?.api || config.api,
+          }
           if (existing) {
             await tx.model.update({
               where: { id: existing.id },
               data: {
                 name: m.name,
-                config: m.config,
+                config: modelConfig,
               },
             })
           } else {
@@ -149,7 +153,26 @@ export class ProviderService {
                 providerId: id,
                 modelId: m.modelId,
                 name: m.name,
-                config: m.config,
+                config: modelConfig,
+              },
+            })
+          }
+        }
+      } else if (config.api) {
+        // Propagate provider API protocol change to all existing models
+        const existingModels = await tx.model.findMany({
+          where: { providerId: id },
+        })
+        for (const m of existingModels) {
+          const currentConfig = m.config
+          if (currentConfig.api !== config.api) {
+            await tx.model.update({
+              where: { id: m.id },
+              data: {
+                config: {
+                  ...currentConfig,
+                  api: config.api,
+                },
               },
             })
           }

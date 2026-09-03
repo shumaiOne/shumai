@@ -70,10 +70,10 @@ export function getModelFromDb(providers: DbProviderInfo[], providerName: string
   if (dbProvider.config.baseUrl) {
     m.baseUrl = dbProvider.config.baseUrl
   }
+  Object.assign(m, dbModel.config)
   if (dbProvider.config.api) {
     m.api = dbProvider.config.api
   }
-  Object.assign(m, dbModel.config)
   if (dbModel.name) {
     m.name = dbModel.name
   }
