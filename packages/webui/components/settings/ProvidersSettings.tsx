@@ -51,7 +51,6 @@ import {
   Loader2,
   Maximize2,
   MoreVertical,
-  Pencil,
   Plus,
   Search,
   Trash2,
@@ -609,7 +608,8 @@ function CreateProviderDialog({
                       {initialModels.map((model, idx) => (
                         <div
                           key={model.modelId + idx}
-                          className="flex items-center justify-between p-3 rounded-xl border bg-card hover:border-primary/40 transition-colors"
+                          className="group cursor-pointer flex items-center justify-between p-3 rounded-xl border bg-card hover:border-primary/50 transition-all shadow-none hover:shadow-sm"
+                          onClick={() => setEditingModelIndex(idx)}
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
@@ -644,19 +644,11 @@ function CreateProviderDialog({
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                              onClick={() => setEditingModelIndex(idx)}
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
                               className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                              onClick={() =>
+                              onClick={(e) => {
+                                e.stopPropagation()
                                 setInitialModels((prev) => prev.filter((_, i) => i !== idx))
-                              }
+                              }}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
@@ -1140,7 +1132,8 @@ function EditProviderDialog({
                     {displayedModels.map((model) => (
                       <div
                         key={model.id}
-                        className="group flex items-center justify-between p-3.5 rounded-xl border bg-card hover:border-primary/40 transition-colors"
+                        className="group cursor-pointer flex items-center justify-between p-3.5 rounded-xl border bg-card hover:border-primary/50 transition-all shadow-none hover:shadow-sm"
+                        onClick={() => setEditingModel(model)}
                       >
                         <div className="min-w-0 flex-1 pr-3">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -1180,16 +1173,11 @@ function EditProviderDialog({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                            onClick={() => setEditingModel(model)}
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                            onClick={() => setModelToDelete(model)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setModelToDelete(model)
+                            }}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
