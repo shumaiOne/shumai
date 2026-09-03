@@ -74,6 +74,7 @@ export default tseslint.config(
       '**/packages/db/src/generated/**',
       '**/packages/core/src/generated/**',
       '**/data/**',
+      '**/packages/core/src/provider/generator/**',
       '**/packages/webui/components/ui/**',
       '**/packages/webui/paraglide/**',
       '**/packages/webui/public/**',
