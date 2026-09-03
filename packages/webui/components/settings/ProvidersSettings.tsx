@@ -925,7 +925,7 @@ function EditProviderDialog({
           className="flex-1 flex flex-col min-h-0"
         >
           <div className="px-6 pb-2 shrink-0">
-            <TabsList>
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="general">{m.general_settings()}</TabsTrigger>
               <TabsTrigger value="models" className="gap-2">
                 {m.models()}
