@@ -49,13 +49,34 @@ export type ProviderConfigSerializable = z.infer<typeof providerConfigSchema>
 export const createProviderRequestSchema = z.object({
   name: z.string().min(1, 'Provider name is required'),
   config: providerConfigSchema,
-  models: z.array(providerModelSchema).min(1, 'At least one model is required'),
+  models: z.array(providerModelSchema).default([]),
 })
 
+export type CreateProviderRequest = z.infer<typeof createProviderRequestSchema>
+
 export const updateProviderRequestSchema = z.object({
+  name: z.string().min(1, 'Provider name is required').optional(),
   config: providerConfigSchema,
-  models: z.array(providerModelSchema).min(1, 'At least one model is required'),
+  models: z.array(providerModelSchema).optional(),
 })
+
+export type UpdateProviderRequest = z.infer<typeof updateProviderRequestSchema>
+
+export const createModelRequestSchema = z.object({
+  modelId: z.string().min(1, 'Model ID is required'),
+  name: z.string().min(0).default(''),
+  config: providerModelConfigSchema,
+})
+
+export type CreateModelRequest = z.infer<typeof createModelRequestSchema>
+
+export const updateModelRequestSchema = z.object({
+  modelId: z.string().min(1, 'Model ID is required').optional(),
+  name: z.string().min(0).optional(),
+  config: providerModelConfigSchema.optional(),
+})
+
+export type UpdateModelRequest = z.infer<typeof updateModelRequestSchema>
 
 export const providerResponseSchema = z.object({
   id: z.string(),

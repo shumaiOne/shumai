@@ -1,5 +1,10 @@
 import { prisma } from '@shumai/db'
-import { ProviderConfigSerializable, providerModelSchema } from '@shumai/dtos'
+import {
+  CreateModelRequest,
+  ProviderConfigSerializable,
+  providerModelSchema,
+  UpdateModelRequest,
+} from '@shumai/dtos'
 import { getBuiltinProvidersMap } from '@shumai/core/src/provider/builtin'
 import { z } from 'zod'
 
@@ -74,7 +79,7 @@ export class ProviderService {
         providerId,
         provider: { teamId },
       },
-      orderBy: { id: 'asc' },
+      orderBy: { id: 'desc' },
     })
   }
 
@@ -82,7 +87,7 @@ export class ProviderService {
     teamId: string,
     name: string,
     config: ProviderConfigSerializable,
-    models: ProviderModel[],
+    models: ProviderModel[] = [],
   ) {
     return this.prismaClient.provider.create({
       data: {
@@ -105,57 +110,151 @@ export class ProviderService {
     teamId: string,
     id: string,
     config: ProviderConfigSerializable,
-    models: ProviderModel[],
+    models?: ProviderModel[],
+    name?: string,
   ) {
     return this.prismaClient.$transaction(async (tx) => {
-      const existingModels = await tx.model.findMany({
-        where: { providerId: id },
-      })
-
-      const existingByModelId = new Map(existingModels.map((m) => [m.modelId, m]))
-      const incomingModelIds = new Set(models.map((m) => m.modelId))
-
-      // Delete models that are no longer in the incoming list
-      const modelsToDelete = existingModels.filter((m) => !incomingModelIds.has(m.modelId))
-      if (modelsToDelete.length > 0) {
-        await tx.model.deleteMany({
-          where: {
-            id: { in: modelsToDelete.map((m) => m.id) },
-          },
+      if (models !== undefined) {
+        const existingModels = await tx.model.findMany({
+          where: { providerId: id },
         })
-      }
 
-      // Update existing models or create new ones
-      for (const m of models) {
-        const existing = existingByModelId.get(m.modelId)
-        if (existing) {
-          await tx.model.update({
-            where: { id: existing.id },
-            data: {
-              name: m.name,
-              config: m.config,
-            },
-          })
-        } else {
-          await tx.model.create({
-            data: {
-              providerId: id,
-              modelId: m.modelId,
-              name: m.name,
-              config: m.config,
+        const existingByModelId = new Map(existingModels.map((m) => [m.modelId, m]))
+        const incomingModelIds = new Set(models.map((m) => m.modelId))
+
+        // Delete models that are no longer in the incoming list
+        const modelsToDelete = existingModels.filter((m) => !incomingModelIds.has(m.modelId))
+        if (modelsToDelete.length > 0) {
+          await tx.model.deleteMany({
+            where: {
+              id: { in: modelsToDelete.map((m) => m.id) },
             },
           })
         }
+
+        // Update existing models or create new ones
+        for (const m of models) {
+          const existing = existingByModelId.get(m.modelId)
+          if (existing) {
+            await tx.model.update({
+              where: { id: existing.id },
+              data: {
+                name: m.name,
+                config: m.config,
+              },
+            })
+          } else {
+            await tx.model.create({
+              data: {
+                providerId: id,
+                modelId: m.modelId,
+                name: m.name,
+                config: m.config,
+              },
+            })
+          }
+        }
       }
 
-      // Update provider config
+      // Update provider config and optional name
       return tx.provider.update({
         where: { id, teamId },
         data: {
           config,
+          ...(name ? { name } : {}),
         },
         include: { models: true },
       })
+    })
+  }
+
+  async createModel(teamId: string, providerId: string, data: CreateModelRequest) {
+    const provider = await this.prismaClient.provider.findUnique({
+      where: { id: providerId, teamId },
+    })
+    if (!provider) {
+      throw new Error('Provider not found')
+    }
+
+    const existing = await this.prismaClient.model.findFirst({
+      where: {
+        providerId,
+        modelId: data.modelId,
+      },
+    })
+    if (existing) {
+      throw new Error(`Model with id "${data.modelId}" already exists for this provider`)
+    }
+
+    return this.prismaClient.model.create({
+      data: {
+        providerId,
+        modelId: data.modelId,
+        name: data.name ?? '',
+        config: data.config,
+      },
+    })
+  }
+
+  async updateModel(
+    teamId: string,
+    providerId: string,
+    modelDbId: string,
+    data: UpdateModelRequest,
+  ) {
+    const provider = await this.prismaClient.provider.findUnique({
+      where: { id: providerId, teamId },
+    })
+    if (!provider) {
+      throw new Error('Provider not found')
+    }
+
+    const model = await this.prismaClient.model.findFirst({
+      where: { id: modelDbId, providerId },
+    })
+    if (!model) {
+      throw new Error('Model not found')
+    }
+
+    if (data.modelId && data.modelId !== model.modelId) {
+      const existingWithNewId = await this.prismaClient.model.findFirst({
+        where: {
+          providerId,
+          modelId: data.modelId,
+        },
+      })
+      if (existingWithNewId) {
+        throw new Error(`Model with id "${data.modelId}" already exists for this provider`)
+      }
+    }
+
+    return this.prismaClient.model.update({
+      where: { id: modelDbId },
+      data: {
+        ...(data.modelId ? { modelId: data.modelId } : {}),
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.config ? { config: data.config } : {}),
+      },
+    })
+  }
+
+  async deleteModel(teamId: string, providerId: string, modelDbId: string) {
+    const provider = await this.prismaClient.provider.findUnique({
+      where: { id: providerId, teamId },
+    })
+    if (!provider) {
+      throw new Error('Provider not found')
+    }
+
+    const model = await this.prismaClient.model.findFirst({
+      where: { id: modelDbId, providerId },
+    })
+    if (!model) {
+      throw new Error('Model not found')
+    }
+
+    return this.prismaClient.model.delete({
+      where: { id: modelDbId },
     })
   }
 
