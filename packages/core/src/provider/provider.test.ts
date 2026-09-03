@@ -3,7 +3,8 @@ import { setupTestDbHooks } from '@shumai/db/test'
 import { teamService } from '@shumai/core/src/team/team'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { providerService } from './provider'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import * as generateModelsModule from './generator/generate-models'
 import { ProviderConfigSerializable, providerModelSchema } from '@shumai/dtos'
 import { getBuiltinProvidersMap } from '@shumai/core/src/provider/builtin'
 import { z } from 'zod'
@@ -382,6 +383,32 @@ describe('ProviderService', () => {
       }
     },
   )
+
+  it('should throw an error when upstream catalog fetch fails in checkUpdates', async () => {
+    const team = await teamService.ensureDefaultTeam()
+    const spy = vi
+      .spyOn(generateModelsModule, 'generateModels')
+      .mockRejectedValueOnce(new Error('Failed to load models.dev catalog: 502 Bad Gateway'))
+
+    await expect(providerService.checkUpdates(team.id)).rejects.toThrow(
+      'Failed to load models.dev catalog: 502 Bad Gateway',
+    )
+    spy.mockRestore()
+  })
+
+  it('should throw an error when upstream catalog is empty in checkUpdates', async () => {
+    const team = await teamService.ensureDefaultTeam()
+    const spy = vi.spyOn(generateModelsModule, 'generateModels').mockResolvedValueOnce({
+      providers: {},
+      groupedProviders: {},
+      sortedProviderIds: [],
+    })
+
+    await expect(providerService.checkUpdates(team.id)).rejects.toThrow(
+      'Failed to retrieve model catalog from upstream services',
+    )
+    spy.mockRestore()
+  })
 
   it('should apply sync by adding selected providers and models without modifying existing ones', async () => {
     const team = await teamService.ensureDefaultTeam()

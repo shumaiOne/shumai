@@ -210,4 +210,66 @@ describe('SyncProvidersDialog', () => {
     // Child models should be visible again
     expect(document.getElementById('model-check-test-new-provider-m-new-1')).toBeDefined()
   })
+
+  it('updates selection and expansion state when syncData prop changes while mounted', () => {
+    const { rerender } = renderDialog()
+
+    // Initially, test-new-provider is present
+    expect(screen.getByText('test-new-provider')).toBeDefined()
+
+    // Deselect all models to change internal state
+    const deselectAllBtn = screen.getByRole('button', { name: /^deselect all$/i })
+    fireEvent.click(deselectAllBtn)
+    const mNew1Check = document.getElementById('model-check-test-new-provider-m-new-1')
+    expect(mNew1Check?.getAttribute('data-state')).toBe('unchecked')
+
+    // Now supply new syncData prop with different providers and models
+    const updatedSyncData: SyncCheckResponse = {
+      totalNewProviders: 1,
+      totalNewModels: 1,
+      providers: [
+        {
+          name: 'updated-provider',
+          isNewProvider: true,
+          config: { api: 'openai-responses' },
+          models: [
+            {
+              modelId: 'm-updated-1',
+              name: 'Updated Model 1',
+              config: {
+                api: 'openai-responses',
+                reasoning: false,
+                input: ['text'],
+                contextWindow: 32000,
+                maxTokens: 1024,
+                cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+              },
+            },
+          ],
+        },
+      ],
+    }
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <SyncProvidersDialog
+          isOpen={true}
+          onClose={vi.fn()}
+          teamId="team-1"
+          syncData={updatedSyncData}
+          onSuccess={vi.fn()}
+        />
+      </QueryClientProvider>,
+    )
+
+    // New provider should be rendered, expanded by default, and model should be pre-selected
+    expect(screen.getByText('updated-provider')).toBeDefined()
+    const updatedModelCheck = document.getElementById('model-check-updated-provider-m-updated-1')
+    expect(updatedModelCheck).toBeDefined()
+    expect(updatedModelCheck?.getAttribute('data-state')).toBe('checked')
+  })
 })

@@ -21,10 +21,14 @@ import type {
 export interface GeneratorOptions {
   strict?: boolean
   jsonOnly?: boolean
+  timeoutMs?: number
 }
 
+export const DEFAULT_CATALOG_TIMEOUT_MS = 30000
+
 let generatorOptions: GeneratorOptions = {
-  strict: false,
+  strict: true,
+  timeoutMs: DEFAULT_CATALOG_TIMEOUT_MS,
 }
 
 interface ModelsDevModel {
@@ -935,9 +939,12 @@ function getModelsDevCost(cost: ModelsDevModel['cost']): ModelCost {
 }
 
 async function fetchNvidiaNimModelIds(): Promise<Map<string, string>> {
+  const timeout = generatorOptions.timeoutMs ?? DEFAULT_CATALOG_TIMEOUT_MS
   try {
     console.log('Fetching models from NVIDIA NIM API...')
-    const response = await fetch(`${NVIDIA_BASE_URL}/models`)
+    const response = await fetch(`${NVIDIA_BASE_URL}/models`, {
+      signal: AbortSignal.timeout(timeout),
+    })
     if (!response.ok) throw new Error(`NVIDIA NIM API returned ${response.status}`)
     const data = (await response.json()) as { data?: NvidiaNimModelListItem[] }
     const modelIds = new Map<string, string>()
@@ -957,9 +964,12 @@ async function fetchNvidiaNimModelIds(): Promise<Map<string, string>> {
 }
 
 async function fetchOpenRouterModels(): Promise<Model<any>[]> {
+  const timeout = generatorOptions.timeoutMs ?? DEFAULT_CATALOG_TIMEOUT_MS
   try {
     console.log('Fetching models from OpenRouter API...')
-    const response = await fetch('https://openrouter.ai/api/v1/models')
+    const response = await fetch('https://openrouter.ai/api/v1/models', {
+      signal: AbortSignal.timeout(timeout),
+    })
     if (!response.ok) throw new Error(`OpenRouter API returned ${response.status}`)
     const data = await response.json()
 
@@ -1017,15 +1027,20 @@ async function fetchOpenRouterModels(): Promise<Model<any>[]> {
     return models
   } catch (error) {
     console.error('Failed to fetch OpenRouter models:', error)
-    if (generatorOptions.strict) throw error
+    if (generatorOptions.strict) {
+      throw new Error(`Failed to fetch OpenRouter models: ${(error as Error).message}`)
+    }
     return []
   }
 }
 
 async function fetchAiGatewayModels(): Promise<Model<any>[]> {
+  const timeout = generatorOptions.timeoutMs ?? DEFAULT_CATALOG_TIMEOUT_MS
   try {
     console.log('Fetching models from Vercel AI Gateway API...')
-    const response = await fetch(`${AI_GATEWAY_MODELS_URL}/models`)
+    const response = await fetch(`${AI_GATEWAY_MODELS_URL}/models`, {
+      signal: AbortSignal.timeout(timeout),
+    })
     if (!response.ok) throw new Error(`Vercel AI Gateway API returned ${response.status}`)
     const data = await response.json()
     const models: Model<any>[] = []
@@ -1077,15 +1092,20 @@ async function fetchAiGatewayModels(): Promise<Model<any>[]> {
     return models
   } catch (error) {
     console.error('Failed to fetch Vercel AI Gateway models:', error)
-    if (generatorOptions.strict) throw error
+    if (generatorOptions.strict) {
+      throw new Error(`Failed to fetch Vercel AI Gateway models: ${(error as Error).message}`)
+    }
     return []
   }
 }
 
 async function loadModelsDevData(): Promise<Model<any>[]> {
+  const timeout = generatorOptions.timeoutMs ?? DEFAULT_CATALOG_TIMEOUT_MS
   try {
     console.log('Fetching models from models.dev API...')
-    const response = await fetch('https://models.dev/api.json')
+    const response = await fetch('https://models.dev/api.json', {
+      signal: AbortSignal.timeout(timeout),
+    })
     if (!response.ok) throw new Error(`models.dev API returned ${response.status}`)
     const data = (await response.json()) as ModelsDevCatalog
 
@@ -2071,13 +2091,15 @@ async function loadModelsDevData(): Promise<Model<any>[]> {
     return models
   } catch (error) {
     console.error('Failed to load models.dev data:', error)
-    if (generatorOptions.strict) throw error
+    if (generatorOptions.strict) {
+      throw new Error(`Failed to load models.dev catalog: ${(error as Error).message}`)
+    }
     return []
   }
 }
 export interface GenerateModelsResult {
   providers: Record<string, Record<string, Model<Api>>>
-  groupedProviders: Record<string, Record<string, Record<string, Model<Api>>>>
+  groupedProviders?: Record<string, Record<string, Record<string, Model<Api>>>>
   sortedProviderIds: string[]
 }
 
@@ -2104,6 +2126,10 @@ export async function generateModels(
         model.id === 'gpt-5.3-codex-spark'
       ),
   )
+
+  if (allModels.length === 0) {
+    throw new Error('Failed to retrieve any models from upstream catalogs')
+  }
 
   // Temporary overrides until upstream model metadata is corrected.
   for (const candidate of allModels) {

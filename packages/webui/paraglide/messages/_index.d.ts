@@ -309,6 +309,8 @@ export * from "./sync_providers_new_provider.js";
 export * from "./sync_providers_existing_provider.js";
 export * from "./sync_providers_new_models_count.js";
 export * from "./sync_providers_selected_count.js";
+export * from "./sync_providers_reasoning.js";
+export * from "./sync_providers_context_window.js";
 export * from "./sync_providers_add_selected.js";
 export * from "./sync_providers_adding.js";
 export * from "./sync_providers_success.js";

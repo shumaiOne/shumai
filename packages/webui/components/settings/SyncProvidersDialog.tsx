@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -51,7 +51,7 @@ export function SyncProvidersDialog({
   })
 
   // Sync state if syncData changes
-  useMemo(() => {
+  useEffect(() => {
     if (syncData) {
       setExpandedProviders(new Set(syncData.providers.map((p) => p.name)))
       const modelSet = new Set<string>()
@@ -410,11 +410,13 @@ export function SyncProvidersDialog({
                                       variant="outline"
                                       className="text-[10px] px-1.5 py-0 font-normal border-amber-500/30 text-amber-600 dark:text-amber-400"
                                     >
-                                      reasoning
+                                      {m.sync_providers_reasoning()}
                                     </Badge>
                                   )}
                                   <span className="text-[11px] text-muted-foreground font-mono">
-                                    {Math.round(model.config.contextWindow / 1000)}k ctx
+                                    {m.sync_providers_context_window({
+                                      count: Math.round(model.config.contextWindow / 1000),
+                                    })}
                                   </span>
                                 </div>
                               </div>

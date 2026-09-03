@@ -306,7 +306,11 @@ export class ProviderService {
   }
 
   async checkUpdates(teamId: string): Promise<SyncCheckResponse> {
-    const catalog = await generateModels()
+    const catalog = await generateModels({ strict: true, timeoutMs: 30000 })
+
+    if (!catalog || catalog.sortedProviderIds.length === 0) {
+      throw new Error('Failed to retrieve model catalog from upstream services')
+    }
 
     const existingProviders = await this.prismaClient.provider.findMany({
       where: { teamId },

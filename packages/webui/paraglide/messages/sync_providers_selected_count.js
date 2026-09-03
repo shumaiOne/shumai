@@ -10,7 +10,7 @@ const en_sync_providers_selected_count = /** @type {(inputs: Sync_Providers_Sele
 };
 
 const zh_sync_providers_selected_count = /** @type {(inputs: Sync_Providers_Selected_CountInputs) => LocalizedString} */ (i) => {
-	return /** @type {LocalizedString} */ (`已选 ${i?.providerCount} 个提供商中的 ${i?.modelCount} 个模型`)
+	return /** @type {LocalizedString} */ (`已选 ${i?.modelCount} 个模型，分布在 ${i?.providerCount} 个提供商中`)
 };
 
 /**
