@@ -189,6 +189,7 @@ export function FileListItem({
           e.preventDefault()
         }
       }}
+      data-testid="file-card"
       className="group cursor-pointer select-none transition-colors whitespace-nowrap flex w-full outline-none focus:outline-none focus-visible:outline-none"
     >
       <div

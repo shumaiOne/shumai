@@ -13,7 +13,7 @@ interface CreateShareResponse {
  */
 export function fileCard(page: Page, name: string): Locator {
   return page
-    .locator('div.group')
+    .locator('[data-testid="file-card"]')
     .filter({
       has: page.locator(`input[value="${name}"]`).or(page.getByText(name, { exact: true })),
     })

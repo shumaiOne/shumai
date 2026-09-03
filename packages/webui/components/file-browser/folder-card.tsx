@@ -276,6 +276,7 @@ export function FolderCard({
             }
           : undefined
       }
+      data-testid="file-card"
       className={cn(
         'group relative w-full md:max-w-[340px] select-none cursor-pointer isolate flex flex-col items-center h-full outline-none focus:outline-none focus-visible:outline-none',
       )}

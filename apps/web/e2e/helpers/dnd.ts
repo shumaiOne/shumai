@@ -24,14 +24,32 @@ export async function dragCard(page: Page, source: Locator, target: Locator): Pr
   await page.mouse.move(fromX, fromY)
   await page.mouse.down()
 
-  // Move in several chunks so the dnd-kit sensor activates mid-drag
+  const dx = toX - fromX
+  const dy = toY - fromY
+  const dist = Math.hypot(dx, dy)
+
+  // Step past the 10px activation constraint to trigger drag activation
+  // and give the browser a brief moment for status to become 'dragging'
+  const activationRatio = dist > 0 ? Math.min(1, 15 / dist) : 1
+  await page.mouse.move(fromX + dx * activationRatio, fromY + dy * activationRatio)
+  await page.waitForTimeout(50)
+
+  // Move in several chunks so the intermediate dragmove handlers run
   const chunks = 8
   for (let i = 1; i <= chunks; i++) {
-    const x = fromX + ((toX - fromX) * i) / chunks
-    const y = fromY + ((toY - fromY) * i) / chunks
+    const x = fromX + (dx * i) / chunks
+    const y = fromY + (dy * i) / chunks
     await page.mouse.move(x, y)
-    await page.waitForTimeout(15)
+    await page.waitForTimeout(20)
   }
+
+  // Ensure pointer is directly over target center and allow requestAnimationFrame
+  // and collision microtasks to settle before triggering drop
+  await page.mouse.move(toX, toY)
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  )
+  await page.waitForTimeout(100)
 
   await page.mouse.up()
 }
