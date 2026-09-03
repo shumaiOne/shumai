@@ -71,28 +71,24 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
     <ScrollArea className="h-full">
       <div className="space-y-6 pr-4 pb-8">
         {/* Comments Settings */}
-        <Card className="border border-slate-200 dark:border-slate-800">
-          <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+        <Card className="overflow-hidden gap-0 py-0">
+          <CardHeader className="border-b border-border bg-muted/30 py-5">
             <div className="flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-blue-500" />
+              <MessageSquare className="w-5 h-5 text-primary" />
               <CardTitle className="text-lg">{m.comments_and_replies()}</CardTitle>
             </div>
             <CardDescription>{m.comments_notification_description()}</CardDescription>
           </CardHeader>
-          <CardContent className="divide-y divide-slate-100 dark:divide-slate-800 p-0">
+          <CardContent className="divide-y divide-border p-0">
             {/* General Comments */}
             <div className="flex items-center justify-between p-6">
               <div className="flex gap-4">
-                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-foreground">
                   <MessageSquare className="w-4 h-4" />
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {m.general_comments()}
-                  </h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {m.when_someone_comments()}
-                  </p>
+                  <h4 className="text-sm font-semibold text-foreground">{m.general_comments()}</h4>
+                  <p className="text-sm text-muted-foreground">{m.when_someone_comments()}</p>
                 </div>
               </div>
               <Switch
@@ -105,16 +101,12 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
             {/* Comment Replies */}
             <div className="flex items-center justify-between p-6">
               <div className="flex gap-4">
-                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400">
+                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-foreground">
                   <MessageCircle className="w-4 h-4" />
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {m.comment_replies()}
-                  </h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {m.when_someone_replies()}
-                  </p>
+                  <h4 className="text-sm font-semibold text-foreground">{m.comment_replies()}</h4>
+                  <p className="text-sm text-muted-foreground">{m.when_someone_replies()}</p>
                 </div>
               </div>
               <Switch
@@ -127,16 +119,12 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
             {/* Mentions */}
             <div className="flex items-center justify-between p-6">
               <div className="flex gap-4">
-                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400">
+                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-foreground">
                   <AtSign className="w-4 h-4" />
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {m.at_mentions()}
-                  </h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {m.when_someone_mentions()}
-                  </p>
+                  <h4 className="text-sm font-semibold text-foreground">{m.at_mentions()}</h4>
+                  <p className="text-sm text-muted-foreground">{m.when_someone_mentions()}</p>
                 </div>
               </div>
               <Switch
@@ -149,28 +137,24 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
         </Card>
 
         {/* Assets Settings */}
-        <Card className="border border-slate-200 dark:border-slate-800">
-          <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+        <Card className="overflow-hidden gap-0 py-0">
+          <CardHeader className="border-b border-border bg-muted/30 py-5">
             <div className="flex items-center gap-2">
-              <UploadCloud className="w-5 h-5 text-emerald-500" />
+              <UploadCloud className="w-5 h-5 text-primary" />
               <CardTitle className="text-lg">{m.assets_and_statuses()}</CardTitle>
             </div>
             <CardDescription>{m.assets_notification_description()}</CardDescription>
           </CardHeader>
-          <CardContent className="divide-y divide-slate-100 dark:divide-slate-800 p-0">
+          <CardContent className="divide-y divide-border p-0">
             {/* Your Uploads */}
             <div className="flex items-center justify-between p-6">
               <div className="flex gap-4">
-                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-foreground">
                   <Bell className="w-4 h-4" />
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {m.your_uploads()}
-                  </h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {m.when_you_upload_assets()}
-                  </p>
+                  <h4 className="text-sm font-semibold text-foreground">{m.your_uploads()}</h4>
+                  <p className="text-sm text-muted-foreground">{m.when_you_upload_assets()}</p>
                 </div>
               </div>
               <Switch
@@ -183,14 +167,12 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
             {/* Other Uploads */}
             <div className="flex items-center justify-between p-6">
               <div className="flex gap-4">
-                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400">
+                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-foreground">
                   <UploadCloud className="w-4 h-4" />
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {m.other_uploads()}
-                  </h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <h4 className="text-sm font-semibold text-foreground">{m.other_uploads()}</h4>
+                  <p className="text-sm text-muted-foreground">
                     {m.when_other_users_upload_assets()}
                   </p>
                 </div>
@@ -205,16 +187,12 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
             {/* Status Updates */}
             <div className="flex items-center justify-between p-6">
               <div className="flex gap-4">
-                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400">
+                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-foreground">
                   <Activity className="w-4 h-4" />
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {m.status_updates()}
-                  </h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {m.when_someone_changes_status()}
-                  </p>
+                  <h4 className="text-sm font-semibold text-foreground">{m.status_updates()}</h4>
+                  <p className="text-sm text-muted-foreground">{m.when_someone_changes_status()}</p>
                 </div>
               </div>
               <Switch
@@ -227,28 +205,24 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
         </Card>
 
         {/* Kanban Settings */}
-        <Card className="border border-slate-200 dark:border-slate-800">
-          <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+        <Card className="overflow-hidden gap-0 py-0">
+          <CardHeader className="border-b border-border bg-muted/30 py-5">
             <div className="flex items-center gap-2">
-              <LayoutDashboard className="w-5 h-5 text-indigo-500" />
+              <LayoutDashboard className="w-5 h-5 text-primary" />
               <CardTitle className="text-lg">{m.kanban_notifications()}</CardTitle>
             </div>
             <CardDescription>{m.kanban_notification_description()}</CardDescription>
           </CardHeader>
-          <CardContent className="divide-y divide-slate-100 dark:divide-slate-800 p-0">
+          <CardContent className="divide-y divide-border p-0">
             {/* Kanban Tasks */}
             <div className="flex items-center justify-between p-6">
               <div className="flex gap-4">
-                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400">
+                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-foreground">
                   <LayoutDashboard className="w-4 h-4" />
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {m.kanban_tasks()}
-                  </h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {m.when_kanban_task_events()}
-                  </p>
+                  <h4 className="text-sm font-semibold text-foreground">{m.kanban_tasks()}</h4>
+                  <p className="text-sm text-muted-foreground">{m.when_kanban_task_events()}</p>
                 </div>
               </div>
               <Switch
@@ -261,16 +235,12 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
             {/* Kanban Comments */}
             <div className="flex items-center justify-between p-6">
               <div className="flex gap-4">
-                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400">
+                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-foreground">
                   <MessageSquare className="w-4 h-4" />
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {m.kanban_comments()}
-                  </h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {m.when_kanban_task_commented()}
-                  </p>
+                  <h4 className="text-sm font-semibold text-foreground">{m.kanban_comments()}</h4>
+                  <p className="text-sm text-muted-foreground">{m.when_kanban_task_commented()}</p>
                 </div>
               </div>
               <Switch
