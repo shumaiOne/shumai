@@ -924,18 +924,10 @@ function EditProviderDialog({
           onValueChange={(val) => setActiveTab(val as 'general' | 'models')}
           className="flex-1 flex flex-col min-h-0"
         >
-          <div className="px-6 border-b border-border shrink-0">
-            <TabsList variant="line" className="w-full justify-start h-10 p-0 gap-6">
-              <TabsTrigger
-                value="general"
-                className="data-[state=active]:border-primary text-sm font-medium pb-2 pt-1"
-              >
-                {m.general_settings()}
-              </TabsTrigger>
-              <TabsTrigger
-                value="models"
-                className="data-[state=active]:border-primary text-sm font-medium pb-2 pt-1 gap-2"
-              >
+          <div className="px-6 pb-2 shrink-0">
+            <TabsList>
+              <TabsTrigger value="general">{m.general_settings()}</TabsTrigger>
+              <TabsTrigger value="models" className="gap-2">
                 {m.models()}
                 <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
                   {models.length}
