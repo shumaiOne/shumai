@@ -1,0 +1,19 @@
+/**
+* | output |
+* | --- |
+* | "{modelCount} models selected across {providerCount} providers" |
+*
+* @param {Sync_Providers_Selected_CountInputs} inputs
+* @param {{ locale?: "en" | "zh" }} options
+* @returns {LocalizedString}
+*/
+export const sync_providers_selected_count: ((inputs: Sync_Providers_Selected_CountInputs, options?: {
+    locale?: "en" | "zh";
+}) => LocalizedString) & import("../runtime.js").MessageMetadata<Sync_Providers_Selected_CountInputs, {
+    locale?: "en" | "zh";
+}, {}>;
+export type LocalizedString = import("../runtime.js").LocalizedString;
+export type Sync_Providers_Selected_CountInputs = {
+    modelCount: NonNullable<unknown>;
+    providerCount: NonNullable<unknown>;
+};

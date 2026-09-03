@@ -5,6 +5,7 @@ import { providerService } from '@shumai/core/src/provider/provider'
 import {
   createModelRequestSchema,
   createProviderRequestSchema,
+  syncApplyRequestSchema,
   updateModelRequestSchema,
   updateProviderRequestSchema,
   AuditAction,
@@ -29,6 +30,46 @@ const route = new Hono<{ Variables: { user: User } }>()
     const providers = await providerService.listByTeam(teamId)
     return c.json(providers)
   })
+
+  .post('/teams/:teamId/providers/sync-check', async (c) => {
+    const teamId = c.req.param('teamId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const result = await providerService.checkUpdates(teamId)
+    return c.json(result)
+  })
+
+  .post(
+    '/teams/:teamId/providers/sync-apply',
+    zValidator('json', syncApplyRequestSchema),
+    async (c) => {
+      const teamId = c.req.param('teamId')
+      const user = c.get('user')
+      const body = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
+      })
+
+      const result = await providerService.applySync(teamId, body)
+      await auditLogService.logAction({
+        action: AuditAction.provider_update,
+        teamId,
+        userId: user?.id,
+      })
+      return c.json(result)
+    },
+  )
 
   .get('/providers/:id/models', async (c) => {
     const id = c.req.param('id')

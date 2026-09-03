@@ -1,3 +1,4 @@
+import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { teamService } from '@shumai/core/src/team/team'
 import { agentService } from '@shumai/core/src/agent/agent'
@@ -345,5 +346,156 @@ describe('ProviderService', () => {
     expect(modelsAfterUpdate).toHaveLength(2)
     expect((modelsAfterUpdate[0].config as { api: string }).api).toBe('anthropic-messages')
     expect((modelsAfterUpdate[1].config as { api: string }).api).toBe('anthropic-messages')
+  })
+
+  it(
+    'should check for updates and correctly segregate new vs existing providers',
+    { timeout: 30000 },
+    async () => {
+      // 1. Check updates with empty team: all discovered providers are new
+      const emptyTeam = await prisma.team.create({
+        data: { name: 'Empty Provider Team' },
+      })
+      const initialCheck = await providerService.checkUpdates(emptyTeam.id)
+      expect(initialCheck.totalNewProviders).toBeGreaterThan(0)
+      expect(initialCheck.totalNewModels).toBeGreaterThan(0)
+      expect(initialCheck.providers.every((p) => p.isNewProvider)).toBe(true)
+
+      // 2. With default team (which has builtin providers initialized)
+      const teamWithBuiltins = await teamService.ensureDefaultTeam()
+
+      // 3. Check updates after init: existing providers should have isNewProvider: false
+      const afterInitCheck = await providerService.checkUpdates(teamWithBuiltins.id)
+      const existing = afterInitCheck.providers.find((p) => !p.isNewProvider)
+      if (existing) {
+        expect(existing.isNewProvider).toBe(false)
+        const dbModels = await providerService.listModelsByProvider(
+          teamWithBuiltins.id,
+          (await providerService.listByTeam(teamWithBuiltins.id)).find(
+            (p) => p.name === existing.name,
+          )!.id,
+        )
+        const dbModelIds = new Set(dbModels.map((m) => m.modelId))
+        for (const m of existing.models) {
+          expect(dbModelIds.has(m.modelId)).toBe(false)
+        }
+      }
+    },
+  )
+
+  it('should apply sync by adding selected providers and models without modifying existing ones', async () => {
+    const team = await teamService.ensureDefaultTeam()
+
+    // Create an existing provider with 1 model and a custom apiKey
+    const existingProvider = await providerService.create(
+      team.id,
+      'test-existing-provider',
+      { api: 'openai-responses', apiKey: 'custom-api-key', baseUrl: 'https://example.com' },
+      [
+        {
+          modelId: 'existing-m1',
+          name: 'Existing Model 1',
+          config: {
+            api: 'openai-responses',
+            reasoning: false,
+            input: ['text'],
+            contextWindow: 128000,
+            maxTokens: 4096,
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          },
+        },
+      ],
+    )
+
+    // Apply sync with 1 new provider and 1 new model on the existing provider
+    const syncResult = await providerService.applySync(team.id, {
+      providers: [
+        {
+          name: 'test-new-synced-provider',
+          isNewProvider: true,
+          config: {
+            api: 'anthropic-messages',
+            apiKey: 'ENV_SYNC_KEY',
+            baseUrl: 'https://api.anthropic.com',
+          },
+          models: [
+            {
+              modelId: 'new-p-m1',
+              name: 'New Provider Model 1',
+              config: {
+                api: 'anthropic-messages',
+                reasoning: false,
+                input: ['text'],
+                contextWindow: 200000,
+                maxTokens: 8192,
+                cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
+              },
+            },
+          ],
+        },
+        {
+          name: 'test-existing-provider',
+          isNewProvider: false,
+          config: { api: 'openai-responses', apiKey: 'should-not-override' },
+          models: [
+            {
+              modelId: 'existing-m2',
+              name: 'Newly Added Model 2',
+              config: {
+                api: 'openai-responses',
+                reasoning: true,
+                input: ['text'],
+                contextWindow: 128000,
+                maxTokens: 4096,
+                cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+              },
+            },
+            // Duplicate model that already exists: should be ignored
+            {
+              modelId: 'existing-m1',
+              name: 'Existing Model 1 Overwrite Attempt',
+              config: {
+                api: 'openai-responses',
+                reasoning: false,
+                input: ['text'],
+                contextWindow: 999999,
+                maxTokens: 999999,
+                cost: { input: 9, output: 9, cacheRead: 9, cacheWrite: 9 },
+              },
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(syncResult.addedProviders).toBe(1)
+    expect(syncResult.addedModels).toBe(2)
+
+    // Verify existing provider config was NOT modified
+    const reloadedExisting = await providerService.getById(existingProvider.id)
+    expect((reloadedExisting?.config as { apiKey: string }).apiKey).toBe('custom-api-key')
+
+    // Verify existing model was NOT modified
+    const existingModels = await providerService.listModelsByProvider(team.id, existingProvider.id)
+    expect(existingModels).toHaveLength(2)
+    const m1 = existingModels.find((m) => m.modelId === 'existing-m1')
+    expect(m1?.name).toBe('Existing Model 1')
+    expect((m1?.config as { contextWindow: number }).contextWindow).toBe(128000)
+
+    // Verify newly added model on existing provider
+    const m2 = existingModels.find((m) => m.modelId === 'existing-m2')
+    expect(m2).toBeDefined()
+    expect(m2?.name).toBe('Newly Added Model 2')
+
+    // Verify newly added provider
+    const providers = await providerService.listByTeam(team.id)
+    const newProvider = providers.find((p) => p.name === 'test-new-synced-provider')
+    expect(newProvider).toBeDefined()
+    expect(newProvider?.isBuiltin).toBe(true)
+    expect((newProvider?.config as { apiKey: string }).apiKey).toBe('ENV_SYNC_KEY')
+
+    const newProviderModels = await providerService.listModelsByProvider(team.id, newProvider!.id)
+    expect(newProviderModels).toHaveLength(1)
+    expect(newProviderModels[0].modelId).toBe('new-p-m1')
   })
 })

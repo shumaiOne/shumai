@@ -38,7 +38,7 @@ import {
   SelectValue,
 } from '@/ui/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs'
-import { providerConfigSchema, KNOWN_APIS } from '@shumai/dtos'
+import { providerConfigSchema, KNOWN_APIS, type SyncCheckResponse } from '@shumai/dtos'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { InferResponseType } from 'hono/client'
@@ -51,6 +51,7 @@ import {
   Maximize2,
   MoreVertical,
   Plus,
+  RefreshCw,
   Search,
   Trash2,
   Zap,
@@ -60,6 +61,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import { m } from '@/ui/paraglide/messages.js'
 import { ModelFormDialog, ModelFormValues } from './ModelFormDialog'
+import { SyncProvidersDialog } from './SyncProvidersDialog'
 
 const API_PROTOCOL_LABELS: Record<(typeof KNOWN_APIS)[number], string> = {
   'openai-completions': 'OpenAI Completions',
@@ -92,6 +94,33 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [providerToDelete, setProviderToDelete] = useState<Provider | null>(null)
+  const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false)
+  const [syncData, setSyncData] = useState<SyncCheckResponse | null>(null)
+
+  // Check updates mutation
+  const syncCheckMutation = useMutation({
+    mutationFn: async () => {
+      const res = await client.api.teams[':teamId'].providers['sync-check'].$post({
+        param: { teamId },
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: 'Failed to check updates' }))
+        throw new Error((err as { message?: string }).message || 'Failed to check updates')
+      }
+      return await res.json()
+    },
+    onSuccess: (data) => {
+      if (data.totalNewModels === 0 && data.totalNewProviders === 0) {
+        toast.info(m.sync_providers_up_to_date())
+        return
+      }
+      setSyncData(data)
+      setIsSyncDialogOpen(true)
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
 
   // Fetch Providers
   const { data: providers, isLoading } = useQuery({
@@ -184,13 +213,33 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
             <Cpu className="w-5 h-5 text-primary" />
             {m.configured_ai_providers()}
           </h3>
-          <Button
-            onClick={() => setIsCreateDialogOpen(true)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            {m.add_provider()}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => syncCheckMutation.mutate()}
+              disabled={syncCheckMutation.isPending}
+              className="gap-2"
+            >
+              {syncCheckMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {m.sync_providers_checking()}
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  {m.sync_providers()}
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => setIsCreateDialogOpen(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              {m.add_provider()}
+            </Button>
+          </div>
         </div>
 
         <div className="relative px-0.5">
@@ -350,6 +399,16 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SyncProvidersDialog
+        isOpen={isSyncDialogOpen}
+        onClose={() => setIsSyncDialogOpen(false)}
+        teamId={teamId}
+        syncData={syncData}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'providers'] })
+        }}
+      />
     </div>
   )
 }

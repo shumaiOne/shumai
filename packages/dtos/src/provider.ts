@@ -90,3 +90,48 @@ export const providerResponseSchema = z.object({
 })
 
 export type ProviderResponse = z.infer<typeof providerResponseSchema>
+
+export const syncModelItemSchema = z.object({
+  modelId: z.string().min(1),
+  name: z.string().default(''),
+  config: providerModelConfigSchema,
+})
+
+export type SyncModelItem = z.infer<typeof syncModelItemSchema>
+
+export const syncProviderItemSchema = z.object({
+  name: z.string(),
+  isNewProvider: z.boolean(),
+  config: providerConfigSchema,
+  models: z.array(syncModelItemSchema),
+})
+
+export type SyncProviderItem = z.infer<typeof syncProviderItemSchema>
+
+export const syncCheckResponseSchema = z.object({
+  providers: z.array(syncProviderItemSchema),
+  totalNewProviders: z.number(),
+  totalNewModels: z.number(),
+})
+
+export type SyncCheckResponse = z.infer<typeof syncCheckResponseSchema>
+
+export const syncApplyRequestSchema = z.object({
+  providers: z.array(
+    z.object({
+      name: z.string(),
+      isNewProvider: z.boolean(),
+      config: providerConfigSchema,
+      models: z.array(syncModelItemSchema),
+    }),
+  ),
+})
+
+export type SyncApplyRequest = z.infer<typeof syncApplyRequestSchema>
+
+export const syncApplyResponseSchema = z.object({
+  addedProviders: z.number(),
+  addedModels: z.number(),
+})
+
+export type SyncApplyResponse = z.infer<typeof syncApplyResponseSchema>
