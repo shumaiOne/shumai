@@ -3,9 +3,19 @@ import {
   CreateModelRequest,
   ProviderConfigSerializable,
   providerModelSchema,
+  SyncApplyRequest,
+  SyncApplyResponse,
+  SyncCheckResponse,
+  SyncModelItem,
+  SyncProviderItem,
   UpdateModelRequest,
 } from '@shumai/dtos'
-import { getBuiltinProvidersMap } from '@shumai/core/src/provider/builtin'
+import {
+  ENV_MAP,
+  getBuiltinProvidersMap,
+  PRIORITY_PROVIDERS,
+} from '@shumai/core/src/provider/builtin'
+import { generateModels } from '@shumai/core/src/provider/generator/generate-models'
 import { z } from 'zod'
 
 type ProviderModel = z.infer<typeof providerModelSchema>
@@ -293,6 +303,181 @@ export class ProviderService {
     return this.prismaClient.provider.delete({
       where: { id, teamId },
     })
+  }
+
+  async checkUpdates(teamId: string): Promise<SyncCheckResponse> {
+    const catalog = await generateModels({ strict: true, timeoutMs: 30000 })
+
+    if (!catalog || catalog.sortedProviderIds.length === 0) {
+      throw new Error('Failed to retrieve model catalog from upstream services')
+    }
+
+    const existingProviders = await this.prismaClient.provider.findMany({
+      where: { teamId },
+      include: { models: true },
+    })
+
+    const existingProviderMap = new Map<string, (typeof existingProviders)[number]>()
+    for (const p of existingProviders) {
+      existingProviderMap.set(p.name, p)
+    }
+
+    const items: SyncProviderItem[] = []
+    let totalNewProviders = 0
+    let totalNewModels = 0
+
+    for (const providerId of catalog.sortedProviderIds) {
+      const modelsMap = catalog.providers[providerId]
+      if (!modelsMap) continue
+      const modelList = Object.values(modelsMap)
+      if (modelList.length === 0) continue
+
+      const existingProvider = existingProviderMap.get(providerId)
+
+      if (!existingProvider) {
+        const firstModel = modelList[0]
+        const newModels: SyncModelItem[] = modelList.map((m) => ({
+          modelId: m.id,
+          name: m.name || m.id,
+          config: {
+            api: m.api as ProviderConfigSerializable['api'],
+            reasoning: m.reasoning ?? false,
+            input: (m.input ?? ['text']) as ('text' | 'image')[],
+            contextWindow: m.contextWindow,
+            maxTokens: m.maxTokens,
+            cost: {
+              input: m.cost?.input ?? 0,
+              output: m.cost?.output ?? 0,
+              cacheRead: m.cost?.cacheRead ?? 0,
+              cacheWrite: m.cost?.cacheWrite ?? 0,
+            },
+          },
+        }))
+
+        items.push({
+          name: providerId,
+          isNewProvider: true,
+          config: {
+            api: firstModel.api as ProviderConfigSerializable['api'],
+            baseUrl: firstModel.baseUrl,
+            apiKey: ENV_MAP[providerId] || '',
+          },
+          models: newModels,
+        })
+
+        totalNewProviders++
+        totalNewModels += newModels.length
+      } else {
+        const existingModelIds = new Set(existingProvider.models.map((m) => m.modelId))
+        const newModels: SyncModelItem[] = []
+
+        for (const m of modelList) {
+          if (!existingModelIds.has(m.id)) {
+            newModels.push({
+              modelId: m.id,
+              name: m.name || m.id,
+              config: {
+                api: m.api as ProviderConfigSerializable['api'],
+                reasoning: m.reasoning ?? false,
+                input: (m.input ?? ['text']) as ('text' | 'image')[],
+                contextWindow: m.contextWindow,
+                maxTokens: m.maxTokens,
+                cost: {
+                  input: m.cost?.input ?? 0,
+                  output: m.cost?.output ?? 0,
+                  cacheRead: m.cost?.cacheRead ?? 0,
+                  cacheWrite: m.cost?.cacheWrite ?? 0,
+                },
+              },
+            })
+          }
+        }
+
+        if (newModels.length > 0) {
+          items.push({
+            name: providerId,
+            isNewProvider: false,
+            config: existingProvider.config as ProviderConfigSerializable,
+            models: newModels,
+          })
+          totalNewModels += newModels.length
+        }
+      }
+    }
+
+    items.sort((a, b) => {
+      const indexA = PRIORITY_PROVIDERS.indexOf(a.name)
+      const indexB = PRIORITY_PROVIDERS.indexOf(b.name)
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB
+      if (indexA !== -1) return -1
+      if (indexB !== -1) return 1
+      return a.name.localeCompare(b.name)
+    })
+
+    return {
+      providers: items,
+      totalNewProviders,
+      totalNewModels,
+    }
+  }
+
+  async applySync(teamId: string, payload: SyncApplyRequest): Promise<SyncApplyResponse> {
+    let addedProviders = 0
+    let addedModels = 0
+
+    await this.prismaClient.$transaction(async (tx) => {
+      for (const providerItem of payload.providers) {
+        let providerId: string
+
+        if (providerItem.isNewProvider) {
+          const existing = await tx.provider.findFirst({
+            where: { teamId, name: providerItem.name },
+          })
+          if (!existing) {
+            const created = await tx.provider.create({
+              data: {
+                teamId,
+                name: providerItem.name,
+                isBuiltin: true,
+                config: providerItem.config,
+              },
+            })
+            providerId = created.id
+            addedProviders++
+          } else {
+            providerId = existing.id
+          }
+        } else {
+          const existing = await tx.provider.findFirst({
+            where: { teamId, name: providerItem.name },
+          })
+          if (!existing) continue
+          providerId = existing.id
+        }
+
+        for (const modelItem of providerItem.models) {
+          const existingModel = await tx.model.findFirst({
+            where: {
+              providerId,
+              modelId: modelItem.modelId,
+            },
+          })
+          if (!existingModel) {
+            await tx.model.create({
+              data: {
+                providerId,
+                modelId: modelItem.modelId,
+                name: modelItem.name || modelItem.modelId,
+                config: modelItem.config,
+              },
+            })
+            addedModels++
+          }
+        }
+      }
+    })
+
+    return { addedProviders, addedModels }
   }
 }
 

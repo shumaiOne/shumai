@@ -319,4 +319,89 @@ describe('provider api', () => {
       itemId: 'p1',
     })
   })
+
+  it('POST /teams/:teamId/providers/sync-check checks for updates', async () => {
+    vi.mocked(providerService.checkUpdates).mockResolvedValue({
+      providers: [
+        {
+          name: 'deepseek',
+          isNewProvider: true,
+          config: { api: 'openai-responses', apiKey: 'DEEPSEEK_API_KEY' },
+          models: [],
+        },
+      ],
+      totalNewProviders: 1,
+      totalNewModels: 0,
+    })
+
+    const res = await app.request('/teams/t1/providers/sync-check', {
+      method: 'POST',
+    })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.totalNewProviders).toBe(1)
+    expect(data.providers).toHaveLength(1)
+    expect(providerService.checkUpdates).toHaveBeenCalledWith('t1')
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: 't1',
+    })
+  })
+
+  it('POST /teams/:teamId/providers/sync-apply applies sync selection', async () => {
+    vi.mocked(providerService.applySync).mockResolvedValue({
+      addedProviders: 1,
+      addedModels: 3,
+    })
+
+    const payload = {
+      providers: [
+        {
+          name: 'deepseek',
+          isNewProvider: true,
+          config: { api: 'openai-responses', apiKey: 'KEY' },
+          models: [
+            {
+              modelId: 'deepseek-v4-flash',
+              name: 'DeepSeek V4 Flash',
+              config: {
+                api: 'openai-responses',
+                reasoning: true,
+                input: ['text'],
+                contextWindow: 128000,
+                maxTokens: 4096,
+                cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+              },
+            },
+          ],
+        },
+      ],
+    }
+
+    const res = await app.request('/teams/t1/providers/sync-apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.addedProviders).toBe(1)
+    expect(data.addedModels).toBe(3)
+    expect(providerService.applySync).toHaveBeenCalledWith('t1', payload)
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: 't1',
+    })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'provider_update',
+      teamId: 't1',
+      userId: 'user1',
+    })
+  })
 })
