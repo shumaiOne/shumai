@@ -16,7 +16,7 @@ import { isSortable, useSortable } from '@dnd-kit/react/sortable'
 import type { StackVersionInfo } from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
-import { FileIcon, GripVertical, MoreVertical, Trash2 } from 'lucide-react'
+import { Bot, FileIcon, GripVertical, MoreVertical, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -107,7 +107,19 @@ function SortableVersionRow({
         </span>
         {/* Row 2: Creator & Create Date */}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
-          <span>{version.creator?.name || m.unknown()}</span>
+          {version.agent ? (
+            <span className="flex items-center gap-1 truncate">
+              <Bot className="h-3 w-3 shrink-0" />
+              <span className="truncate">
+                {m.user_via_agent({
+                  user: version.creator?.name || m.unknown(),
+                  agent: version.agent.name,
+                })}
+              </span>
+            </span>
+          ) : (
+            <span>{version.creator?.name || m.unknown()}</span>
+          )}
           {formattedDate && (
             <>
               <span>•</span>

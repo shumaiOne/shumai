@@ -391,6 +391,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       teamId,
       actions: query.actions,
       userIds: query.userIds,
+      agentIds: query.agentIds,
       itemId: query.itemId,
       first: query.first,
       after: query.after,

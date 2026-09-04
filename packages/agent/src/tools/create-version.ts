@@ -1,10 +1,12 @@
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { readFileMimeType } from '@shumai/core/src/utils/file-mime'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
 import { type User } from '@shumai/db'
+import { AuditAction } from '@shumai/dtos'
 import { Type, type TSchema } from 'typebox'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -16,7 +18,11 @@ interface CreateVersionToolParams {
   metadata?: Record<string, unknown> | null
 }
 
-export function createCreateVersionTool(userId: string, metadataSchema?: TSchema): AgentTool {
+export function createCreateVersionTool(
+  userId: string,
+  metadataSchema?: TSchema,
+  agentContext?: { teamId?: string; agentId?: string },
+): AgentTool {
   const createVersionSchema = Type.Object(
     {
       parent: Type.String({
@@ -70,8 +76,20 @@ export function createCreateVersionTool(userId: string, metadataSchema?: TSchema
         sizeByte: fileSize,
         contentType: mimeType,
         creatorId: userId,
+        agentId: agentContext?.agentId,
         metadata: p.metadata ?? undefined,
       })
+
+      if (agentContext?.teamId) {
+        await auditLogService.logAction({
+          action: AuditAction.file_create,
+          teamId: agentContext.teamId,
+          userId,
+          agentId: agentContext.agentId,
+          projectId: asset.projectId ?? undefined,
+          itemId: asset.id,
+        })
+      }
 
       const result = {
         id: asset.id,

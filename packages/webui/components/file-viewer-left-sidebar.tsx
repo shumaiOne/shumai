@@ -136,13 +136,22 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
                 params={{ projectId, fileId: file.id }}
                 search={{ version: undefined }}
                 className={cn(
-                  'rounded-lg border overflow-hidden flex items-center justify-center transition-all bg-muted/30 block',
+                  'rounded-lg border overflow-hidden flex items-center justify-center transition-all bg-muted/30 block relative',
                   isActive
                     ? 'w-[62px] h-[62px] opacity-100'
                     : 'w-[52px] h-[52px] opacity-60 hover:opacity-100',
                 )}
               >
                 <CarouselFilePreview item={file} />
+                {file.agent && (
+                  <span
+                    className="absolute top-1 right-1 z-10 pointer-events-none select-none rounded bg-black/60 px-1 py-0.5 text-[10px] font-medium leading-none text-white"
+                    title={file.agent.name}
+                    data-testid="carousel-agent-badge"
+                  >
+                    AI
+                  </span>
+                )}
               </Link>
             </div>
           )

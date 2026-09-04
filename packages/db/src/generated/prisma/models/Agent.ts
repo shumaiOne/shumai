@@ -235,6 +235,8 @@ export type AgentWhereInput = {
   agentSessions?: Prisma.AgentSessionListRelationFilter
   skills?: Prisma.AgentSkillListRelationFilter
   mcpServers?: Prisma.AgentMcpServerListRelationFilter
+  assets?: Prisma.AssetListRelationFilter
+  auditLogs?: Prisma.AuditLogListRelationFilter
 }
 
 export type AgentOrderByWithRelationInput = {
@@ -256,6 +258,8 @@ export type AgentOrderByWithRelationInput = {
   agentSessions?: Prisma.AgentSessionOrderByRelationAggregateInput
   skills?: Prisma.AgentSkillOrderByRelationAggregateInput
   mcpServers?: Prisma.AgentMcpServerOrderByRelationAggregateInput
+  assets?: Prisma.AssetOrderByRelationAggregateInput
+  auditLogs?: Prisma.AuditLogOrderByRelationAggregateInput
 }
 
 export type AgentWhereUniqueInput = Prisma.AtLeast<{
@@ -280,6 +284,8 @@ export type AgentWhereUniqueInput = Prisma.AtLeast<{
   agentSessions?: Prisma.AgentSessionListRelationFilter
   skills?: Prisma.AgentSkillListRelationFilter
   mcpServers?: Prisma.AgentMcpServerListRelationFilter
+  assets?: Prisma.AssetListRelationFilter
+  auditLogs?: Prisma.AuditLogListRelationFilter
 }, "id">
 
 export type AgentOrderByWithAggregationInput = {
@@ -331,6 +337,8 @@ export type AgentCreateInput = {
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateInput = {
@@ -348,6 +356,8 @@ export type AgentUncheckedCreateInput = {
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillUncheckedCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerUncheckedCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUpdateInput = {
@@ -365,6 +375,8 @@ export type AgentUpdateInput = {
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateInput = {
@@ -382,6 +394,8 @@ export type AgentUncheckedUpdateInput = {
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUncheckedUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUncheckedUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentCreateManyInput = {
@@ -556,6 +570,22 @@ export type AgentUncheckedUpdateManyWithoutTeamNestedInput = {
   deleteMany?: Prisma.AgentScalarWhereInput | Prisma.AgentScalarWhereInput[]
 }
 
+export type AgentCreateNestedOneWithoutAssetsInput = {
+  create?: Prisma.XOR<Prisma.AgentCreateWithoutAssetsInput, Prisma.AgentUncheckedCreateWithoutAssetsInput>
+  connectOrCreate?: Prisma.AgentCreateOrConnectWithoutAssetsInput
+  connect?: Prisma.AgentWhereUniqueInput
+}
+
+export type AgentUpdateOneWithoutAssetsNestedInput = {
+  create?: Prisma.XOR<Prisma.AgentCreateWithoutAssetsInput, Prisma.AgentUncheckedCreateWithoutAssetsInput>
+  connectOrCreate?: Prisma.AgentCreateOrConnectWithoutAssetsInput
+  upsert?: Prisma.AgentUpsertWithoutAssetsInput
+  disconnect?: Prisma.AgentWhereInput | boolean
+  delete?: Prisma.AgentWhereInput | boolean
+  connect?: Prisma.AgentWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AgentUpdateToOneWithWhereWithoutAssetsInput, Prisma.AgentUpdateWithoutAssetsInput>, Prisma.AgentUncheckedUpdateWithoutAssetsInput>
+}
+
 export type EnumAgentTypeFieldUpdateOperationsInput = {
   set?: $Enums.AgentType
 }
@@ -686,6 +716,22 @@ export type AgentUncheckedUpdateManyWithoutProviderNestedInput = {
   deleteMany?: Prisma.AgentScalarWhereInput | Prisma.AgentScalarWhereInput[]
 }
 
+export type AgentCreateNestedOneWithoutAuditLogsInput = {
+  create?: Prisma.XOR<Prisma.AgentCreateWithoutAuditLogsInput, Prisma.AgentUncheckedCreateWithoutAuditLogsInput>
+  connectOrCreate?: Prisma.AgentCreateOrConnectWithoutAuditLogsInput
+  connect?: Prisma.AgentWhereUniqueInput
+}
+
+export type AgentUpdateOneWithoutAuditLogsNestedInput = {
+  create?: Prisma.XOR<Prisma.AgentCreateWithoutAuditLogsInput, Prisma.AgentUncheckedCreateWithoutAuditLogsInput>
+  connectOrCreate?: Prisma.AgentCreateOrConnectWithoutAuditLogsInput
+  upsert?: Prisma.AgentUpsertWithoutAuditLogsInput
+  disconnect?: Prisma.AgentWhereInput | boolean
+  delete?: Prisma.AgentWhereInput | boolean
+  connect?: Prisma.AgentWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AgentUpdateToOneWithWhereWithoutAuditLogsInput, Prisma.AgentUpdateWithoutAuditLogsInput>, Prisma.AgentUncheckedUpdateWithoutAuditLogsInput>
+}
+
 export type AgentCreateWithoutUserInput = {
   type: $Enums.AgentType
   enabled?: boolean
@@ -700,6 +746,8 @@ export type AgentCreateWithoutUserInput = {
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutUserInput = {
@@ -716,6 +764,8 @@ export type AgentUncheckedCreateWithoutUserInput = {
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillUncheckedCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerUncheckedCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutUserInput = {
@@ -748,6 +798,8 @@ export type AgentUpdateWithoutUserInput = {
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutUserInput = {
@@ -764,6 +816,8 @@ export type AgentUncheckedUpdateWithoutUserInput = {
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUncheckedUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUncheckedUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentCreateWithoutTeamInput = {
@@ -780,6 +834,8 @@ export type AgentCreateWithoutTeamInput = {
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutTeamInput = {
@@ -796,6 +852,8 @@ export type AgentUncheckedCreateWithoutTeamInput = {
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillUncheckedCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerUncheckedCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutTeamInput = {
@@ -841,6 +899,94 @@ export type AgentScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Agent"> | Date | string
 }
 
+export type AgentCreateWithoutAssetsInput = {
+  type: $Enums.AgentType
+  enabled?: boolean
+  permission?: $Enums.TeamMemberRole
+  soul?: string | null
+  config:PrismaJson.AgentConfig
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutAgentInput
+  provider?: Prisma.ProviderCreateNestedOneWithoutAgentsInput
+  modelRef?: Prisma.ModelCreateNestedOneWithoutAgentsInput
+  team: Prisma.TeamCreateNestedOneWithoutAgentsInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
+  skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
+  mcpServers?: Prisma.AgentMcpServerCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutAgentInput
+}
+
+export type AgentUncheckedCreateWithoutAssetsInput = {
+  id: string
+  type: $Enums.AgentType
+  enabled?: boolean
+  permission?: $Enums.TeamMemberRole
+  soul?: string | null
+  providerId?: string | null
+  modelId?: string | null
+  teamId: string
+  config:PrismaJson.AgentConfig
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAgentInput
+  skills?: Prisma.AgentSkillUncheckedCreateNestedManyWithoutAgentInput
+  mcpServers?: Prisma.AgentMcpServerUncheckedCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutAgentInput
+}
+
+export type AgentCreateOrConnectWithoutAssetsInput = {
+  where: Prisma.AgentWhereUniqueInput
+  create: Prisma.XOR<Prisma.AgentCreateWithoutAssetsInput, Prisma.AgentUncheckedCreateWithoutAssetsInput>
+}
+
+export type AgentUpsertWithoutAssetsInput = {
+  update: Prisma.XOR<Prisma.AgentUpdateWithoutAssetsInput, Prisma.AgentUncheckedUpdateWithoutAssetsInput>
+  create: Prisma.XOR<Prisma.AgentCreateWithoutAssetsInput, Prisma.AgentUncheckedCreateWithoutAssetsInput>
+  where?: Prisma.AgentWhereInput
+}
+
+export type AgentUpdateToOneWithWhereWithoutAssetsInput = {
+  where?: Prisma.AgentWhereInput
+  data: Prisma.XOR<Prisma.AgentUpdateWithoutAssetsInput, Prisma.AgentUncheckedUpdateWithoutAssetsInput>
+}
+
+export type AgentUpdateWithoutAssetsInput = {
+  type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
+  soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  config?:PrismaJson.AgentConfig
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutAgentNestedInput
+  provider?: Prisma.ProviderUpdateOneWithoutAgentsNestedInput
+  modelRef?: Prisma.ModelUpdateOneWithoutAgentsNestedInput
+  team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
+  skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
+  mcpServers?: Prisma.AgentMcpServerUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutAgentNestedInput
+}
+
+export type AgentUncheckedUpdateWithoutAssetsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
+  soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  config?:PrismaJson.AgentConfig
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAgentNestedInput
+  skills?: Prisma.AgentSkillUncheckedUpdateManyWithoutAgentNestedInput
+  mcpServers?: Prisma.AgentMcpServerUncheckedUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutAgentNestedInput
+}
+
 export type AgentCreateWithoutSkillsInput = {
   type: $Enums.AgentType
   enabled?: boolean
@@ -855,6 +1001,8 @@ export type AgentCreateWithoutSkillsInput = {
   team: Prisma.TeamCreateNestedOneWithoutAgentsInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutSkillsInput = {
@@ -871,6 +1019,8 @@ export type AgentUncheckedCreateWithoutSkillsInput = {
   updatedAt?: Date | string
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerUncheckedCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutSkillsInput = {
@@ -903,6 +1053,8 @@ export type AgentUpdateWithoutSkillsInput = {
   team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutSkillsInput = {
@@ -919,6 +1071,8 @@ export type AgentUncheckedUpdateWithoutSkillsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUncheckedUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentCreateWithoutMcpServersInput = {
@@ -935,6 +1089,8 @@ export type AgentCreateWithoutMcpServersInput = {
   team: Prisma.TeamCreateNestedOneWithoutAgentsInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutMcpServersInput = {
@@ -951,6 +1107,8 @@ export type AgentUncheckedCreateWithoutMcpServersInput = {
   updatedAt?: Date | string
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillUncheckedCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutMcpServersInput = {
@@ -983,6 +1141,8 @@ export type AgentUpdateWithoutMcpServersInput = {
   team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutMcpServersInput = {
@@ -999,6 +1159,8 @@ export type AgentUncheckedUpdateWithoutMcpServersInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUncheckedUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentCreateWithoutAgentSessionsInput = {
@@ -1015,6 +1177,8 @@ export type AgentCreateWithoutAgentSessionsInput = {
   team: Prisma.TeamCreateNestedOneWithoutAgentsInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutAgentSessionsInput = {
@@ -1031,6 +1195,8 @@ export type AgentUncheckedCreateWithoutAgentSessionsInput = {
   updatedAt?: Date | string
   skills?: Prisma.AgentSkillUncheckedCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerUncheckedCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutAgentSessionsInput = {
@@ -1063,6 +1229,8 @@ export type AgentUpdateWithoutAgentSessionsInput = {
   team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutAgentSessionsInput = {
@@ -1079,6 +1247,8 @@ export type AgentUncheckedUpdateWithoutAgentSessionsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   skills?: Prisma.AgentSkillUncheckedUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUncheckedUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentCreateWithoutModelRefInput = {
@@ -1095,6 +1265,8 @@ export type AgentCreateWithoutModelRefInput = {
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutModelRefInput = {
@@ -1111,6 +1283,8 @@ export type AgentUncheckedCreateWithoutModelRefInput = {
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillUncheckedCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerUncheckedCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutModelRefInput = {
@@ -1153,6 +1327,8 @@ export type AgentCreateWithoutProviderInput = {
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutProviderInput = {
@@ -1169,6 +1345,8 @@ export type AgentUncheckedCreateWithoutProviderInput = {
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillUncheckedCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerUncheckedCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutProviderInput = {
@@ -1195,6 +1373,94 @@ export type AgentUpdateWithWhereUniqueWithoutProviderInput = {
 export type AgentUpdateManyWithWhereWithoutProviderInput = {
   where: Prisma.AgentScalarWhereInput
   data: Prisma.XOR<Prisma.AgentUpdateManyMutationInput, Prisma.AgentUncheckedUpdateManyWithoutProviderInput>
+}
+
+export type AgentCreateWithoutAuditLogsInput = {
+  type: $Enums.AgentType
+  enabled?: boolean
+  permission?: $Enums.TeamMemberRole
+  soul?: string | null
+  config:PrismaJson.AgentConfig
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutAgentInput
+  provider?: Prisma.ProviderCreateNestedOneWithoutAgentsInput
+  modelRef?: Prisma.ModelCreateNestedOneWithoutAgentsInput
+  team: Prisma.TeamCreateNestedOneWithoutAgentsInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
+  skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
+  mcpServers?: Prisma.AgentMcpServerCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetCreateNestedManyWithoutAgentInput
+}
+
+export type AgentUncheckedCreateWithoutAuditLogsInput = {
+  id: string
+  type: $Enums.AgentType
+  enabled?: boolean
+  permission?: $Enums.TeamMemberRole
+  soul?: string | null
+  providerId?: string | null
+  modelId?: string | null
+  teamId: string
+  config:PrismaJson.AgentConfig
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAgentInput
+  skills?: Prisma.AgentSkillUncheckedCreateNestedManyWithoutAgentInput
+  mcpServers?: Prisma.AgentMcpServerUncheckedCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutAgentInput
+}
+
+export type AgentCreateOrConnectWithoutAuditLogsInput = {
+  where: Prisma.AgentWhereUniqueInput
+  create: Prisma.XOR<Prisma.AgentCreateWithoutAuditLogsInput, Prisma.AgentUncheckedCreateWithoutAuditLogsInput>
+}
+
+export type AgentUpsertWithoutAuditLogsInput = {
+  update: Prisma.XOR<Prisma.AgentUpdateWithoutAuditLogsInput, Prisma.AgentUncheckedUpdateWithoutAuditLogsInput>
+  create: Prisma.XOR<Prisma.AgentCreateWithoutAuditLogsInput, Prisma.AgentUncheckedCreateWithoutAuditLogsInput>
+  where?: Prisma.AgentWhereInput
+}
+
+export type AgentUpdateToOneWithWhereWithoutAuditLogsInput = {
+  where?: Prisma.AgentWhereInput
+  data: Prisma.XOR<Prisma.AgentUpdateWithoutAuditLogsInput, Prisma.AgentUncheckedUpdateWithoutAuditLogsInput>
+}
+
+export type AgentUpdateWithoutAuditLogsInput = {
+  type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
+  soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  config?:PrismaJson.AgentConfig
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutAgentNestedInput
+  provider?: Prisma.ProviderUpdateOneWithoutAgentsNestedInput
+  modelRef?: Prisma.ModelUpdateOneWithoutAgentsNestedInput
+  team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
+  skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
+  mcpServers?: Prisma.AgentMcpServerUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutAgentNestedInput
+}
+
+export type AgentUncheckedUpdateWithoutAuditLogsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
+  soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  config?:PrismaJson.AgentConfig
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAgentNestedInput
+  skills?: Prisma.AgentSkillUncheckedUpdateManyWithoutAgentNestedInput
+  mcpServers?: Prisma.AgentMcpServerUncheckedUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentCreateManyTeamInput = {
@@ -1224,6 +1490,8 @@ export type AgentUpdateWithoutTeamInput = {
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutTeamInput = {
@@ -1240,6 +1508,8 @@ export type AgentUncheckedUpdateWithoutTeamInput = {
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUncheckedUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUncheckedUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateManyWithoutTeamInput = {
@@ -1282,6 +1552,8 @@ export type AgentUpdateWithoutModelRefInput = {
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutModelRefInput = {
@@ -1298,6 +1570,8 @@ export type AgentUncheckedUpdateWithoutModelRefInput = {
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUncheckedUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUncheckedUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateManyWithoutModelRefInput = {
@@ -1340,6 +1614,8 @@ export type AgentUpdateWithoutProviderInput = {
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutProviderInput = {
@@ -1356,6 +1632,8 @@ export type AgentUncheckedUpdateWithoutProviderInput = {
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUncheckedUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUncheckedUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateManyWithoutProviderInput = {
@@ -1380,12 +1658,16 @@ export type AgentCountOutputType = {
   agentSessions: number
   skills: number
   mcpServers: number
+  assets: number
+  auditLogs: number
 }
 
 export type AgentCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   agentSessions?: boolean | AgentCountOutputTypeCountAgentSessionsArgs
   skills?: boolean | AgentCountOutputTypeCountSkillsArgs
   mcpServers?: boolean | AgentCountOutputTypeCountMcpServersArgs
+  assets?: boolean | AgentCountOutputTypeCountAssetsArgs
+  auditLogs?: boolean | AgentCountOutputTypeCountAuditLogsArgs
 }
 
 /**
@@ -1419,6 +1701,20 @@ export type AgentCountOutputTypeCountMcpServersArgs<ExtArgs extends runtime.Type
   where?: Prisma.AgentMcpServerWhereInput
 }
 
+/**
+ * AgentCountOutputType without action
+ */
+export type AgentCountOutputTypeCountAssetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AssetWhereInput
+}
+
+/**
+ * AgentCountOutputType without action
+ */
+export type AgentCountOutputTypeCountAuditLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AuditLogWhereInput
+}
+
 
 export type AgentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1439,6 +1735,8 @@ export type AgentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   agentSessions?: boolean | Prisma.Agent$agentSessionsArgs<ExtArgs>
   skills?: boolean | Prisma.Agent$skillsArgs<ExtArgs>
   mcpServers?: boolean | Prisma.Agent$mcpServersArgs<ExtArgs>
+  assets?: boolean | Prisma.Agent$assetsArgs<ExtArgs>
+  auditLogs?: boolean | Prisma.Agent$auditLogsArgs<ExtArgs>
   _count?: boolean | Prisma.AgentCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["agent"]>
 
@@ -1501,6 +1799,8 @@ export type AgentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   agentSessions?: boolean | Prisma.Agent$agentSessionsArgs<ExtArgs>
   skills?: boolean | Prisma.Agent$skillsArgs<ExtArgs>
   mcpServers?: boolean | Prisma.Agent$mcpServersArgs<ExtArgs>
+  assets?: boolean | Prisma.Agent$assetsArgs<ExtArgs>
+  auditLogs?: boolean | Prisma.Agent$auditLogsArgs<ExtArgs>
   _count?: boolean | Prisma.AgentCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AgentIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1526,6 +1826,8 @@ export type $AgentPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     agentSessions: Prisma.$AgentSessionPayload<ExtArgs>[]
     skills: Prisma.$AgentSkillPayload<ExtArgs>[]
     mcpServers: Prisma.$AgentMcpServerPayload<ExtArgs>[]
+    assets: Prisma.$AssetPayload<ExtArgs>[]
+    auditLogs: Prisma.$AuditLogPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1943,6 +2245,8 @@ export interface Prisma__AgentClient<T, Null = never, ExtArgs extends runtime.Ty
   agentSessions<T extends Prisma.Agent$agentSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$agentSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   skills<T extends Prisma.Agent$skillsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$skillsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentSkillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   mcpServers<T extends Prisma.Agent$mcpServersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$mcpServersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentMcpServerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  assets<T extends Prisma.Agent$assetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$assetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  auditLogs<T extends Prisma.Agent$auditLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2491,6 +2795,54 @@ export type Agent$mcpServersArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.AgentMcpServerScalarFieldEnum | Prisma.AgentMcpServerScalarFieldEnum[]
+}
+
+/**
+ * Agent.assets
+ */
+export type Agent$assetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Asset
+   */
+  select?: Prisma.AssetSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Asset
+   */
+  omit?: Prisma.AssetOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AssetInclude<ExtArgs> | null
+  where?: Prisma.AssetWhereInput
+  orderBy?: Prisma.AssetOrderByWithRelationInput | Prisma.AssetOrderByWithRelationInput[]
+  cursor?: Prisma.AssetWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AssetScalarFieldEnum | Prisma.AssetScalarFieldEnum[]
+}
+
+/**
+ * Agent.auditLogs
+ */
+export type Agent$auditLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AuditLog
+   */
+  select?: Prisma.AuditLogSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AuditLog
+   */
+  omit?: Prisma.AuditLogOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditLogInclude<ExtArgs> | null
+  where?: Prisma.AuditLogWhereInput
+  orderBy?: Prisma.AuditLogOrderByWithRelationInput | Prisma.AuditLogOrderByWithRelationInput[]
+  cursor?: Prisma.AuditLogWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AuditLogScalarFieldEnum | Prisma.AuditLogScalarFieldEnum[]
 }
 
 /**

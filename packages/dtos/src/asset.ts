@@ -31,6 +31,12 @@ export const assetUserInfoSchema = z.object({
 })
 export type AssetUserInfo = z.infer<typeof assetUserInfoSchema>
 
+export const assetAgentInfoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+})
+export type AssetAgentInfo = z.infer<typeof assetAgentInfoSchema>
+
 export const fieldValueInfoSchema = z.object({
   fieldId: z.string(),
 
@@ -70,6 +76,8 @@ export const assetInfoSchema = z.object({
   deletedAt: z.string().nullable().optional(),
   projectId: z.string().optional().nullable(),
   creator: assetUserInfoSchema.nullable().optional(),
+  agentId: z.string().optional().nullable(),
+  agent: assetAgentInfoSchema.optional().nullable(),
   fieldValues: z.array(fieldValueInfoSchema).optional(),
   sortIndex: z.string().optional().nullable(),
   startTime: z.number().optional().nullable(),
@@ -129,6 +137,7 @@ export const assetInfoSchema = z.object({
             })
             .nullable()
             .optional(),
+          agent: assetAgentInfoSchema.optional().nullable(),
         }),
       ),
     })
@@ -146,6 +155,7 @@ export const createAssetRequestSchema = z.object({
   sizeByte: z.number().optional(),
   contentType: z.string().optional(),
   creatorId: z.string().optional(),
+  agentId: z.string().optional(),
 })
 export type CreateAssetRequest = z.infer<typeof createAssetRequestSchema>
 

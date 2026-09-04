@@ -34,20 +34,38 @@ import { uploadService } from '@shumai/core/src/upload/upload'
 
 export const assetInclude = {
   creator: true,
+  agent: { include: { user: true } },
   metadataValues: true,
   storageKey: true,
   target: {
     include: {
       creator: true,
+      agent: { include: { user: true } },
       metadataValues: true,
       storageKey: true,
       children: {
-        include: { creator: true, metadataValues: true, storageKey: true },
+        where: { isDeleted: false },
+        include: {
+          creator: true,
+          agent: { include: { user: true } },
+          metadataValues: true,
+          storageKey: true,
+        },
+        take: 3,
+        orderBy: { sortIndex: 'asc' },
       },
     },
   },
   children: {
-    include: { creator: true, metadataValues: true, storageKey: true },
+    where: { isDeleted: false },
+    include: {
+      creator: true,
+      agent: { include: { user: true } },
+      metadataValues: true,
+      storageKey: true,
+    },
+    take: 3,
+    orderBy: { sortIndex: 'asc' },
   },
 } as const
 
@@ -101,30 +119,7 @@ export class AssetService {
 
     const assets = await this.prismaClient.asset.findMany({
       where: { id: { in: ids } },
-      include: {
-        creator: true,
-        metadataValues: true,
-        storageKey: true,
-        target: {
-          include: {
-            creator: true,
-            metadataValues: true,
-            storageKey: true,
-            children: {
-              where: { isDeleted: false },
-              include: { creator: true, metadataValues: true, storageKey: true },
-              take: 3,
-              orderBy: { sortIndex: 'asc' },
-            },
-          },
-        },
-        children: {
-          where: { isDeleted: false },
-          include: { creator: true, metadataValues: true, storageKey: true },
-          take: 3,
-          orderBy: { sortIndex: 'asc' },
-        },
-      },
+      include: assetInclude,
     })
 
     const assetMap = new Map(assets.map((a) => [a.id, a]))
@@ -711,30 +706,7 @@ export class AssetService {
       async (skip, take) => {
         return this.prismaClient.asset.findMany({
           where,
-          include: {
-            creator: true,
-            metadataValues: true,
-            storageKey: true,
-            target: {
-              include: {
-                creator: true,
-                metadataValues: true,
-                storageKey: true,
-                children: {
-                  where: { isDeleted: false },
-                  include: { creator: true, metadataValues: true, storageKey: true },
-                  take: 3,
-                  orderBy: { sortIndex: 'asc' },
-                },
-              },
-            },
-            children: {
-              where: { isDeleted: false },
-              include: { creator: true, metadataValues: true, storageKey: true },
-              take: 3,
-              orderBy: { sortIndex: 'asc' },
-            },
-          },
+          include: assetInclude,
           orderBy,
           skip,
           take,
@@ -798,22 +770,30 @@ export class AssetService {
     if (req.sizeByte) data.sizeByte = req.sizeByte
     if (req.contentType) data.mediaType = req.contentType
     if (req.creatorId) data.creator = { connect: { id: req.creatorId } }
+    if (req.agentId) data.agent = { connect: { id: req.agentId } }
 
     const executeInTx = async (tx: Prisma.TransactionClient) => {
       const createdAsset = await tx.asset.create({
         data,
         include: {
           creator: true,
+          agent: { include: { user: true } },
           metadataValues: true,
           storageKey: true,
           target: {
             include: {
               creator: true,
+              agent: { include: { user: true } },
               metadataValues: true,
               storageKey: true,
               children: {
                 where: { isDeleted: false },
-                include: { creator: true, metadataValues: true, storageKey: true },
+                include: {
+                  creator: true,
+                  agent: { include: { user: true } },
+                  metadataValues: true,
+                  storageKey: true,
+                },
                 take: 3,
                 orderBy: { sortIndex: 'asc' },
               },
@@ -821,7 +801,12 @@ export class AssetService {
           },
           children: {
             where: { isDeleted: false },
-            include: { creator: true, metadataValues: true, storageKey: true },
+            include: {
+              creator: true,
+              agent: { include: { user: true } },
+              metadataValues: true,
+              storageKey: true,
+            },
             take: 3,
             orderBy: { sortIndex: 'asc' },
           },
@@ -853,9 +838,10 @@ export class AssetService {
     sizeByte: number
     contentType: string
     creatorId: string
+    agentId?: string
     metadata?: Record<string, unknown>
   }): Promise<AssetInfo> {
-    const { parentId, name, key, sizeByte, contentType, creatorId, metadata } = params
+    const { parentId, name, key, sizeByte, contentType, creatorId, agentId, metadata } = params
 
     const parentAsset = await this.prismaClient.asset.findUnique({
       where: { id: parentId },
@@ -884,6 +870,7 @@ export class AssetService {
           sizeByte,
           contentType,
           creatorId,
+          agentId,
         },
         tx,
       )
@@ -916,9 +903,10 @@ export class AssetService {
     sizeByte: number
     contentType: string
     creatorId: string
+    agentId?: string
     metadata?: Record<string, unknown>
   }): Promise<AssetInfo> {
-    const { parentId, name, key, sizeByte, contentType, creatorId, metadata } = params
+    const { parentId, name, key, sizeByte, contentType, creatorId, agentId, metadata } = params
 
     const targetAsset = await this.prismaClient.asset.findUnique({
       where: { id: parentId },
@@ -961,6 +949,7 @@ export class AssetService {
           sizeByte,
           contentType,
           creatorId,
+          agentId,
         },
         tx,
       )
@@ -1006,30 +995,7 @@ export class AssetService {
   async getAsset(req: GetAssetRequest): Promise<AssetInfo> {
     const a = await this.prismaClient.asset.findUnique({
       where: { id: req.assetId },
-      include: {
-        creator: true,
-        metadataValues: true,
-        storageKey: true,
-        target: {
-          include: {
-            creator: true,
-            metadataValues: true,
-            storageKey: true,
-            children: {
-              where: { isDeleted: false },
-              include: { creator: true, metadataValues: true, storageKey: true },
-              take: 3,
-              orderBy: { sortIndex: 'asc' },
-            },
-          },
-        },
-        children: {
-          where: { isDeleted: false },
-          include: { creator: true, metadataValues: true, storageKey: true },
-          take: 3,
-          orderBy: { sortIndex: 'asc' },
-        },
-      },
+      include: assetInclude,
     })
     if (!a) throw new Error('Asset not found')
 
@@ -1914,7 +1880,12 @@ export class AssetService {
     if (stackIds.size > 0) {
       const allVersions = await this.prismaClient.asset.findMany({
         where: { parentId: { in: Array.from(stackIds) }, isDeleted: false },
-        include: { creator: true, metadataValues: true, storageKey: true },
+        include: {
+          creator: true,
+          agent: { include: { user: true } },
+          metadataValues: true,
+          storageKey: true,
+        },
       })
       for (const v of allVersions) {
         const list = versionsMap.get(v.parentId!) || []
@@ -1974,6 +1945,12 @@ export class AssetService {
                         image: await getAvatarUrl(v.creator.image),
                       }
                     : null,
+                  agent: v.agent
+                    ? {
+                        id: v.agent.id,
+                        name: v.agent.user.name,
+                      }
+                    : null,
                 }
               }),
             ),
@@ -2023,6 +2000,13 @@ export class AssetService {
             id: latestVersion.creator.id,
             name: latestVersion.creator.name,
             image: await getAvatarUrl(latestVersion.creator.image),
+          }
+        : null
+
+      const agent = latestVersion.agent
+        ? {
+            id: latestVersion.agent.id,
+            name: latestVersion.agent.user.name,
           }
         : null
 
@@ -2101,6 +2085,8 @@ export class AssetService {
         deletedAt: a.deletedAt ? a.deletedAt.toISOString() : null,
         projectId: a.projectId,
         creator,
+        agentId: latestVersion.agentId ?? null,
+        agent,
         fieldValues,
         sortIndex: a.sortIndex,
         hasAgentsMd: hasAgentMdSet.has(a.id),
@@ -2119,11 +2105,12 @@ export class AssetService {
       previewUrl: string | null
       createdAt: string
       creator: { id: string; name: string | null; image?: string | null } | null
+      agent?: { id: string; name: string } | null
     }>
   > {
     const versions = await this.prismaClient.asset.findMany({
       where: { parentId: stackId, isDeleted: false },
-      include: { creator: true },
+      include: { creator: true, agent: { include: { user: true } } },
     })
 
     versions.sort((x, y) => {
@@ -2145,6 +2132,12 @@ export class AssetService {
                 id: v.creator.id,
                 name: v.creator.name,
                 image: await getAvatarUrl(v.creator.image),
+              }
+            : null,
+          agent: v.agent
+            ? {
+                id: v.agent.id,
+                name: v.agent.user.name,
               }
             : null,
         }

@@ -200,4 +200,31 @@ describe('FileViewerLeftSidebar', () => {
       behavior: 'auto',
     })
   })
+
+  it('renders AI badge on carousel thumbnail when asset has agent', () => {
+    const filesWithAgent: AssetInfo[] = [
+      {
+        id: 'file-agent',
+        name: 'Agent File.png',
+        proxyType: 'image',
+        agentId: 'agent-1',
+        agent: { id: 'agent-1', name: 'DrawBot' },
+      } as AssetInfo,
+    ]
+
+    const { container } = render(
+      <FileViewerLeftSidebar
+        projectId="proj-1"
+        currentAssetId="file-agent"
+        parentFolderId="folder-1"
+        initialFiles={filesWithAgent}
+        initialNextCursor={undefined}
+      />,
+    )
+
+    const agentBadge = container.querySelector('[data-testid="carousel-agent-badge"]')
+    expect(agentBadge).toBeTruthy()
+    expect(agentBadge?.getAttribute('title')).toBe('DrawBot')
+    expect(agentBadge?.textContent).toBe('AI')
+  })
 })

@@ -19,7 +19,7 @@ import { Input } from '@/ui/components/ui/input'
 import { Button } from '@/ui/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
 import { Checkbox } from '@/ui/components/ui/checkbox'
-import { Loader2, Search, Filter, Activity, X } from 'lucide-react'
+import { Loader2, Search, Filter, Activity, X, Bot } from 'lucide-react'
 import { formatTimeAgo } from '@/ui/lib/time'
 
 const ALL_AUDIT_ACTIONS = Object.values(AuditAction)
@@ -353,9 +353,17 @@ export function AuditLogsDashboard({ teamId }: AuditLogsDashboardProps) {
                               {userName.slice(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-xs font-medium text-foreground truncate max-w-[140px]">
-                            {userName}
+                          <span className="text-xs font-medium text-foreground truncate max-w-[160px]">
+                            {log.agent
+                              ? m.user_via_agent({
+                                  user: userName,
+                                  agent: log.agent.name,
+                                })
+                              : userName}
                           </span>
+                          {log.agent && (
+                            <Bot className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="py-3 text-xs font-mono text-muted-foreground">

@@ -244,6 +244,16 @@ export function FileListItem({
             </span>
           )}
 
+          {displayItem.agent && (
+            <span
+              className="select-none rounded bg-black/60 px-1 py-0.5 text-xs font-medium text-white shrink-0"
+              title={displayItem.agent.name}
+              data-testid="agent-badge"
+            >
+              AI
+            </span>
+          )}
+
           {displayItem.versionStack && (
             <Badge variant="outline" className="px-1 py-0 text-xs shrink-0">
               v

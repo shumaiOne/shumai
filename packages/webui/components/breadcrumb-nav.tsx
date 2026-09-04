@@ -92,6 +92,7 @@ interface BreadcrumbNavProps {
     name?: string | null
     previewUrl?: string | null
     creator?: { id: string; name: string | null } | null
+    agent?: { id: string; name: string } | null
   }>
   compareMode?: boolean
   canCompareVersions?: boolean
@@ -376,8 +377,20 @@ export function BreadcrumbNav({
                                 <span className="truncate text-sm font-semibold text-foreground">
                                   {v.name}
                                 </span>
-                                <span className="truncate text-xs text-muted-foreground">
-                                  {v.creator?.name || 'Unknown'}
+                                <span className="truncate text-xs text-muted-foreground flex items-center gap-1">
+                                  {v.agent ? (
+                                    <>
+                                      <Bot className="h-3 w-3 shrink-0" />
+                                      <span className="truncate">
+                                        {m.user_via_agent({
+                                          user: v.creator?.name || m.unknown_user(),
+                                          agent: v.agent.name,
+                                        })}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    v.creator?.name || m.unknown_user()
+                                  )}
                                 </span>
                               </div>
 

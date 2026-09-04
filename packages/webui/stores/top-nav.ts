@@ -31,6 +31,7 @@ export interface TopNavProjectState {
     name?: string | null
     previewUrl?: string | null
     creator?: { id: string; name: string | null } | null
+    agent?: { id: string; name: string } | null
   }>
   isPublic?: boolean
   shareId?: string

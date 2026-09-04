@@ -42,5 +42,12 @@ export const stackVersionInfoSchema = z.object({
     })
     .nullable()
     .optional(),
+  agent: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+    })
+    .nullable()
+    .optional(),
 })
 export type StackVersionInfo = z.infer<typeof stackVersionInfoSchema>

@@ -116,4 +116,57 @@ describe('AuditLogService', () => {
     expect(result.nodes.map((n) => n.action)).toContain(AuditAction.kanban_task_create)
     expect(result.nodes.map((n) => n.action)).toContain(AuditAction.kanban_goal_create)
   })
+
+  it('records and filters agent provenance in audit logs', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Audit Human User', email: 'audit_human@example.com', password: 'password' },
+    })
+    const team = await prisma.team.create({
+      data: { name: 'Agent Audit Team' },
+    })
+    const agentUser = await prisma.user.create({
+      data: {
+        name: 'Creation Bot',
+        email: 'creation_bot@example.com',
+        type: 'agent',
+      },
+    })
+    const agent = await prisma.agent.create({
+      data: {
+        id: agentUser.id,
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'test', model: 'test' },
+      },
+    })
+
+    const log = await auditLogService.logAction({
+      action: AuditAction.file_create,
+      teamId: team.id,
+      userId: user.id,
+      agentId: agent.id,
+      itemId: 'file-xyz',
+    })
+
+    expect(log).toBeDefined()
+    expect(log?.agentId).toBe(agent.id)
+
+    const resultWithAgent = await auditLogService.listAuditLogs({
+      teamId: team.id,
+      agentIds: [agent.id],
+    })
+
+    expect(resultWithAgent.total).toBe(1)
+    expect(resultWithAgent.nodes[0].agentId).toBe(agent.id)
+    expect(resultWithAgent.nodes[0].agent).toEqual({
+      id: agent.id,
+      name: 'Creation Bot',
+    })
+
+    const resultOtherAgent = await auditLogService.listAuditLogs({
+      teamId: team.id,
+      agentIds: ['non-existent-agent'],
+    })
+    expect(resultOtherAgent.total).toBe(0)
+  })
 })
