@@ -431,7 +431,7 @@ export function AgentFormDialog({
                               )}
                             >
                               <img
-                                src={preset.src}
+                                src={preset.preview}
                                 className="w-full h-full object-cover"
                                 alt={m.preset_avatar_option()}
                               />
