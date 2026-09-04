@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { AgentType } from '@shumai/db/enums'
 
+export * from './agent-avatar'
+
 export { AgentType }
 export const agentTypeSchema = z.nativeEnum(AgentType)
 
@@ -29,6 +31,7 @@ export const agentInfoSchema = z.object({
   enabled: z.boolean(),
   permission: agentPermissionSchema.optional().default('reviewer'),
   avatar: z.string().optional(),
+  avatarPreset: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
   thinkingLevel: thinkingLevelSchema.optional().default('off'),

@@ -1,4 +1,5 @@
 export * from './agent'
+export * from './agent-avatar'
 export * from './ai'
 export * from './asset'
 export * from './auth'

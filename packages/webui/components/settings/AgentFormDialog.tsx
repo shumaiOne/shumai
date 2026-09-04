@@ -179,7 +179,7 @@ export function AgentFormDialog({
       name: initialValues?.name || '',
       type: initialValues?.type || type || 'chat',
       permission: initialValues?.permission || 'reviewer',
-      avatar: initialValues?.avatar || AVAILABLE_AVATARS[0],
+      avatar: initialValues?.avatarPreset || initialValues?.avatar || AVAILABLE_AVATARS[0].id,
       providerId: initialValues?.providerId || '',
       modelId: initialValues?.modelId || '',
       soul: initialValues?.soul || '',
@@ -415,14 +415,14 @@ export function AgentFormDialog({
                   children={(field) => (
                     <Field className="md:col-span-2">
                       <FieldLabel>{m.agent_avatar()}</FieldLabel>
-                      <div className="flex gap-4 mt-2">
-                        {AVAILABLE_AVATARS.map((avatarPath) => {
-                          const isSelected = field.state.value === avatarPath
+                      <div className="flex flex-wrap gap-4 mt-2">
+                        {AVAILABLE_AVATARS.map((preset) => {
+                          const isSelected = field.state.value === preset.id
                           return (
                             <button
-                              key={avatarPath}
+                              key={preset.id}
                               type="button"
-                              onClick={() => field.handleChange(avatarPath)}
+                              onClick={() => field.handleChange(preset.id)}
                               className={cn(
                                 'relative w-14 h-14 rounded-full overflow-hidden border-2 transition-all hover:scale-105',
                                 isSelected
@@ -431,25 +431,26 @@ export function AgentFormDialog({
                               )}
                             >
                               <img
-                                src={avatarPath}
+                                src={preset.preview}
                                 className="w-full h-full object-cover"
                                 alt={m.preset_avatar_option()}
                               />
                             </button>
                           )
                         })}
-                        {field.state.value && !AVAILABLE_AVATARS.includes(field.state.value) && (
-                          <button
-                            type="button"
-                            className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-primary ring-2 ring-primary ring-offset-2 scale-105"
-                          >
-                            <img
-                              src={field.state.value}
-                              className="w-full h-full object-cover"
-                              alt={m.current_custom_avatar()}
-                            />
-                          </button>
-                        )}
+                        {field.state.value &&
+                          !AVAILABLE_AVATARS.some((p) => p.id === field.state.value) && (
+                            <button
+                              type="button"
+                              className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-primary ring-2 ring-primary ring-offset-2 scale-105"
+                            >
+                              <img
+                                src={field.state.value}
+                                className="w-full h-full object-cover"
+                                alt={m.current_custom_avatar()}
+                              />
+                            </button>
+                          )}
                       </div>
                     </Field>
                   )}

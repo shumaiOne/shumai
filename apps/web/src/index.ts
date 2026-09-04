@@ -11,6 +11,7 @@ import { assetService } from '@shumai/core/src/asset/asset'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { workflowService } from '@shumai/workflow-core'
+import { migrateLegacyAgentAvatars } from '@shumai/core/src/agent/migration'
 
 import { handleDaemonCommands } from '@shumai/core/src/utils/daemon'
 import { authService } from '@shumai/core/src/auth/auth'
@@ -51,6 +52,7 @@ async function run() {
 
   // Start services
   await metadataService.syncSystemFields().catch(console.error)
+  await migrateLegacyAgentAvatars().catch(console.error)
   assetService.startCleanupJob()
   workflowService.start()
   if (process.env.WORKFLOW_EXECUTOR === 'temporal') {
