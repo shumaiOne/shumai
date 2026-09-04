@@ -18,6 +18,8 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 import { getAllowedAgentRoles } from './permissions'
+import { ulid } from 'ulid'
+import { isPresetAvatarId, getPresetAvatarBuffer } from './presets'
 import AdmZip from 'adm-zip'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -45,44 +47,10 @@ interface AgentInfoSource {
   mcpServers: Array<{ mcpServerId: string }>
 }
 
-import { ulid } from 'ulid'
-import { isPresetAvatarId, getPresetAvatarBuffer } from './presets'
-
 function extractS3Key(urlOrKey?: string | null): string | null | undefined {
   if (!urlOrKey) return urlOrKey
   const match = urlOrKey.match(/files\/[A-Z0-9]{26}(\.[a-zA-Z0-9]+)?/)
   return match ? match[0] : urlOrKey
-}
-
-async function resolveAvatarKey(avatar?: string | null): Promise<string | null | undefined> {
-  const target = avatar || 'avatar-1'
-  if (isPresetAvatarId(target)) {
-    const buffer = getPresetAvatarBuffer(target)
-    if (buffer) {
-      const bucket = process.env.S3_BUCKET || 'shumai'
-      const key = `files/${ulid()}.webp`
-      await s3Service.putObject(bucket, key, buffer, buffer.length, 'image/webp')
-      return key
-    }
-  }
-  return extractS3Key(avatar)
-}
-
-async function resolveAvatarKeyForUpdate(
-  avatar?: string | null,
-): Promise<string | null | undefined> {
-  if (avatar === undefined) return undefined
-  if (!avatar) return null
-  if (isPresetAvatarId(avatar)) {
-    const buffer = getPresetAvatarBuffer(avatar)
-    if (buffer) {
-      const bucket = process.env.S3_BUCKET || 'shumai'
-      const key = `files/${ulid()}.webp`
-      await s3Service.putObject(bucket, key, buffer, buffer.length, 'image/webp')
-      return key
-    }
-  }
-  return extractS3Key(avatar)
 }
 
 export class AgentService {
@@ -212,7 +180,22 @@ export class AgentService {
       }
     }
 
-    const imageKey = await resolveAvatarKey(avatar)
+    const targetAvatar = avatar || 'avatar-1'
+    let avatarPreset: string | undefined
+    let imageKey: string | null | undefined
+
+    if (isPresetAvatarId(targetAvatar)) {
+      avatarPreset = targetAvatar
+      const buffer = getPresetAvatarBuffer(targetAvatar)
+      if (buffer) {
+        const bucket = process.env.S3_BUCKET || 'shumai'
+        const key = `files/${ulid()}.webp`
+        await s3Service.putObject(bucket, key, buffer, buffer.length, 'image/webp')
+        imageKey = key
+      }
+    } else {
+      imageKey = extractS3Key(avatar)
+    }
 
     return this.prismaClient.$transaction(async (tx) => {
       const team = await tx.team.findUnique({
@@ -226,6 +209,7 @@ export class AgentService {
         thinkingLevel,
         systemPrompt,
         deniedTools: deniedTools || [],
+        avatarPreset,
       }
 
       const user = await tx.user.create({
@@ -334,15 +318,42 @@ export class AgentService {
       }
     }
 
+    const currentConfig = (agent.config as unknown as PrismaJson.AgentConfig) || {}
+    let newAvatarPreset: string | undefined = currentConfig.avatarPreset
+    let imageKey: string | null | undefined
+
+    if (avatar !== undefined) {
+      if (!avatar) {
+        imageKey = null
+        newAvatarPreset = undefined
+      } else if (isPresetAvatarId(avatar)) {
+        if (avatar === currentConfig.avatarPreset && agent.user.image) {
+          imageKey = agent.user.image
+          newAvatarPreset = avatar
+        } else {
+          const buffer = getPresetAvatarBuffer(avatar)
+          if (buffer) {
+            const bucket = process.env.S3_BUCKET || 'shumai'
+            const key = `files/${ulid()}.webp`
+            await s3Service.putObject(bucket, key, buffer, buffer.length, 'image/webp')
+            imageKey = key
+            newAvatarPreset = avatar
+          }
+        }
+      } else {
+        imageKey = extractS3Key(avatar)
+        newAvatarPreset = undefined
+      }
+    }
+
     const agentConfig: PrismaJson.AgentConfig = {
       provider: providerId || '',
       model: modelId || '',
       thinkingLevel,
       systemPrompt,
       deniedTools: deniedTools || [],
+      avatarPreset: newAvatarPreset,
     }
-
-    const imageKey = await resolveAvatarKeyForUpdate(avatar)
 
     return this.prismaClient.$transaction(async (tx) => {
       await tx.user.update({
@@ -453,6 +464,7 @@ export class AgentService {
       enabled: agent.enabled,
       permission: agent.permission,
       avatar: (await getAvatarUrl(agent.user.image)) || undefined,
+      avatarPreset: config.avatarPreset,
       providerId: agent.providerId || undefined,
       modelId: agent.modelId || undefined,
       thinkingLevel: config.thinkingLevel || 'off',

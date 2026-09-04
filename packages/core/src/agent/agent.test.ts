@@ -274,6 +274,7 @@ describe('AgentService', () => {
         modelId: model.id,
       })
       expect(agent2!.user.image).toMatch(/^files\/[A-Z0-9]{26}\.webp$/)
+      expect((agent2!.config as unknown as PrismaJson.AgentConfig).avatarPreset).toBe('avatar-2')
       const initialKey = agent2!.user.image
 
       // 2. Create without avatar (should default to avatar-1)
@@ -287,6 +288,12 @@ describe('AgentService', () => {
         modelId: model.id,
       })
       expect(agentDefault!.user.image).toMatch(/^files\/[A-Z0-9]{26}\.webp$/)
+      expect((agentDefault!.config as unknown as PrismaJson.AgentConfig).avatarPreset).toBe(
+        'avatar-1',
+      )
+
+      const agentInfo = await svc.toAgentInfo(agentDefault!)
+      expect(agentInfo.avatarPreset).toBe('avatar-1')
 
       // 3. Update agent with a different preset avatar
       const updatedPreset = await svc.updateAgent({
@@ -301,6 +308,26 @@ describe('AgentService', () => {
       })
       expect(updatedPreset.user.image).toMatch(/^files\/[A-Z0-9]{26}\.webp$/)
       expect(updatedPreset.user.image).not.toBe(initialKey)
+      expect((updatedPreset.config as unknown as PrismaJson.AgentConfig).avatarPreset).toBe(
+        'avatar-3',
+      )
+
+      // 3b. Update agent with the SAME preset avatar (should preserve image key without re-upload)
+      const keyBeforeSameUpdate = updatedPreset.user.image
+      const updatedSamePreset = await svc.updateAgent({
+        agentId: agent2!.id,
+        name: 'Agent Same Preset 3',
+        type: 'chat',
+        enabled: true,
+        thinkingLevel: 'off',
+        avatar: 'avatar-3',
+        providerId: provider.id,
+        modelId: model.id,
+      })
+      expect(updatedSamePreset.user.image).toBe(keyBeforeSameUpdate)
+      expect((updatedSamePreset.config as unknown as PrismaJson.AgentConfig).avatarPreset).toBe(
+        'avatar-3',
+      )
 
       // 4. Update with presigned URL containing .webp extension
       const updatedPresigned = await svc.updateAgent({
@@ -314,6 +341,9 @@ describe('AgentService', () => {
         modelId: model.id,
       })
       expect(updatedPresigned.user.image).toBe('files/01JK23456789ABCDEF01234567.webp')
+      expect(
+        (updatedPresigned.config as unknown as PrismaJson.AgentConfig).avatarPreset,
+      ).toBeUndefined()
 
       // 5. Update without avatar specified (avatar undefined) - preserves image
       const updatedWithoutAvatar = await svc.updateAgent({

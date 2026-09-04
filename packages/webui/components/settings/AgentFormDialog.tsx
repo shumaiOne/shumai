@@ -179,7 +179,7 @@ export function AgentFormDialog({
       name: initialValues?.name || '',
       type: initialValues?.type || type || 'chat',
       permission: initialValues?.permission || 'reviewer',
-      avatar: initialValues?.avatar || AVAILABLE_AVATARS[0].id,
+      avatar: initialValues?.avatarPreset || initialValues?.avatar || AVAILABLE_AVATARS[0].id,
       providerId: initialValues?.providerId || '',
       modelId: initialValues?.modelId || '',
       soul: initialValues?.soul || '',
@@ -415,7 +415,7 @@ export function AgentFormDialog({
                   children={(field) => (
                     <Field className="md:col-span-2">
                       <FieldLabel>{m.agent_avatar()}</FieldLabel>
-                      <div className="flex gap-4 mt-2">
+                      <div className="flex flex-wrap gap-4 mt-2">
                         {AVAILABLE_AVATARS.map((preset) => {
                           const isSelected = field.state.value === preset.id
                           return (

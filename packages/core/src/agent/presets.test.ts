@@ -8,6 +8,7 @@ import {
 
 describe('agent presets', () => {
   it('identifies preset avatar IDs correctly', () => {
+    expect(PRESET_AVATAR_IDS).toHaveLength(8)
     for (const id of PRESET_AVATAR_IDS) {
       expect(isPresetAvatarId(id)).toBe(true)
     }

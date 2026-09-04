@@ -29,6 +29,7 @@ export const agentInfoSchema = z.object({
   enabled: z.boolean(),
   permission: agentPermissionSchema.optional().default('reviewer'),
   avatar: z.string().optional(),
+  avatarPreset: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
   thinkingLevel: thinkingLevelSchema.optional().default('off'),

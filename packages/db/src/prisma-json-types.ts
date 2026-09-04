@@ -31,6 +31,7 @@ declare global {
       systemPrompt?: string
       appendSystemPrompt?: string[]
       deniedTools?: string[]
+      avatarPreset?: string
     }
 
     // ----------------------------------------------------------------------
