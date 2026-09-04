@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { AgentType } from '@shumai/db/enums'
 
+export * from './agent-avatar'
+
 export { AgentType }
 export const agentTypeSchema = z.nativeEnum(AgentType)
 

@@ -26,4 +26,13 @@ describe('agent presets', () => {
     }
     expect(getPresetAvatarBuffer('unknown' as PresetAvatarId)).toBeNull()
   })
+
+  it('provides AVAILABLE_AVATARS with 8 previews via dtos', async () => {
+    const { AVAILABLE_AVATARS } = await import('@shumai/dtos')
+    expect(AVAILABLE_AVATARS).toHaveLength(8)
+    for (const avatar of AVAILABLE_AVATARS) {
+      expect(avatar.id).toMatch(/^avatar-[1-8]$/)
+      expect(avatar.preview).toMatch(/^data:image\/webp;base64,/)
+    }
+  })
 })
