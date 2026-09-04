@@ -2,7 +2,7 @@ import { client } from '@/ui/api/client'
 import { cn } from '@/ui/lib/utils'
 import type { AssetInfo, AssetInfoPaginatedList } from '@shumai/dtos'
 import { Link } from '@tanstack/react-router'
-import { File, Loader2, AudioLines } from 'lucide-react'
+import { File, Loader2, AudioLines, Bot } from 'lucide-react'
 import type { FC } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
@@ -136,13 +136,22 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
                 params={{ projectId, fileId: file.id }}
                 search={{ version: undefined }}
                 className={cn(
-                  'rounded-lg border overflow-hidden flex items-center justify-center transition-all bg-muted/30 block',
+                  'rounded-lg border overflow-hidden flex items-center justify-center transition-all bg-muted/30 block relative',
                   isActive
                     ? 'w-[62px] h-[62px] opacity-100'
                     : 'w-[52px] h-[52px] opacity-60 hover:opacity-100',
                 )}
               >
                 <CarouselFilePreview item={file} />
+                {file.agent && (
+                  <div
+                    className="absolute top-1 right-1 z-10 pointer-events-none rounded-md bg-background/80 backdrop-blur-sm p-0.5 border border-border/50 text-foreground"
+                    title={file.agent.name}
+                    data-testid="carousel-agent-badge"
+                  >
+                    <Bot className="h-3 w-3" />
+                  </div>
+                )}
               </Link>
             </div>
           )

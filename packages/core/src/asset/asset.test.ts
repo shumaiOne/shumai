@@ -3821,6 +3821,65 @@ describe('AssetService — natural sort by name', () => {
       expect(triggerSpy).toHaveBeenCalledWith(expect.anything(), fileInfo.id, team.id, project.id)
     })
 
+    it('creates a file with agentId and returns agent info in toAssetInfos', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'HumanUser', email: `human-${Date.now()}@example.com` },
+      })
+      const team = await prisma.team.create({ data: { name: 'AgentFileTeam' } })
+      const project = await prisma.project.create({
+        data: { name: 'AgentFileProject', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'RootFolder',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const agentUser = await prisma.user.create({
+        data: {
+          name: 'AssetBot',
+          email: `bot-${Date.now()}@example.com`,
+          type: 'agent',
+        },
+      })
+      const agent = await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: team.id,
+          type: 'chat',
+          config: { provider: 'test', model: 'test' },
+        },
+      })
+
+      vi.spyOn(uploadService, 'triggerPostUploadWorkflows').mockResolvedValue(undefined)
+
+      const fileInfo = await assetService.createFile({
+        parentId: rootFolder.id,
+        name: 'generated.png',
+        key: 'files/test/generated.png',
+        sizeByte: 2048,
+        contentType: 'image/png',
+        creatorId: user.id,
+        agentId: agent.id,
+      })
+
+      expect(fileInfo.id).toBeDefined()
+      expect(fileInfo.agentId).toBe(agent.id)
+      expect(fileInfo.agent).toEqual({
+        id: agent.id,
+        name: 'AssetBot',
+      })
+
+      const fetched = await assetService.getAsset({ assetId: fileInfo.id })
+      expect(fetched.agentId).toBe(agent.id)
+      expect(fetched.agent).toEqual({
+        id: agent.id,
+        name: 'AssetBot',
+      })
+    })
+
     it('rejects if metadata contains invalid keys', async () => {
       const user = await prisma.user.create({
         data: { name: 'FileUser2', email: `fileuser2-${Date.now()}@example.com` },
@@ -4084,6 +4143,83 @@ describe('AssetService — natural sort by name', () => {
       const rootFolderAfter = await prisma.asset.findUnique({ where: { id: rootFolder.id } })
       expect(rootFolderAfter?.fileCount).toBe(1)
       expect(rootFolderAfter?.sizeByte).toBe(2000n)
+    })
+
+    it('creates a version with agentId and preserves agent provenance in version stack', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'VersionUser2', email: `veruser2-${Date.now()}@example.com` },
+      })
+      const team = await prisma.team.create({ data: { name: 'VersionTeam2' } })
+      const project = await prisma.project.create({
+        data: { name: 'VersionProject2', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'RootFolder',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const agentUser = await prisma.user.create({
+        data: {
+          name: 'VersionBot',
+          email: `verbot-${Date.now()}@example.com`,
+          type: 'agent',
+        },
+      })
+      const agent = await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: team.id,
+          type: 'chat',
+          config: { provider: 'test', model: 'test' },
+        },
+      })
+
+      const v1 = await prisma.asset.create({
+        data: {
+          name: 'document.txt',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 100n,
+          creatorId: user.id,
+        },
+      })
+
+      vi.spyOn(uploadService, 'triggerPostUploadWorkflows').mockResolvedValue(undefined)
+
+      const v2Info = await assetService.createVersion({
+        parentId: v1.id,
+        name: 'document.txt',
+        key: 'files/test/v2.txt',
+        sizeByte: 200,
+        contentType: 'text/plain',
+        creatorId: user.id,
+        agentId: agent.id,
+      })
+
+      expect(v2Info.id).toBeDefined()
+      expect(v2Info.agentId).toBe(agent.id)
+      expect(v2Info.agent).toEqual({
+        id: agent.id,
+        name: 'VersionBot',
+      })
+
+      const stack = await prisma.asset.findFirst({
+        where: { parentId: rootFolder.id, type: AssetType.version_stack },
+      })
+      expect(stack).toBeDefined()
+
+      const stackVersions = await assetService.getStackVersions(stack!.id)
+      expect(stackVersions).toHaveLength(2)
+      const v2StackVersion = stackVersions.find((v) => v.id === v2Info.id)
+      expect(v2StackVersion?.agent).toEqual({
+        id: agent.id,
+        name: 'VersionBot',
+      })
     })
   })
 

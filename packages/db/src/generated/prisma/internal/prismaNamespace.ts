@@ -4498,6 +4498,7 @@ export const AssetScalarFieldEnum = {
   targetId: 'targetId',
   storageKeyId: 'storageKeyId',
   creatorId: 'creatorId',
+  agentId: 'agentId',
   taskId: 'taskId',
   projectId: 'projectId'
 } as const
@@ -4868,6 +4869,7 @@ export const AuditLogScalarFieldEnum = {
   action: 'action',
   teamId: 'teamId',
   userId: 'userId',
+  agentId: 'agentId',
   projectId: 'projectId',
   itemId: 'itemId',
   createdAt: 'createdAt'

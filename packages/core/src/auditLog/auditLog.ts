@@ -8,6 +8,7 @@ export interface LogActionParams {
   action: AuditAction
   teamId: string
   userId?: string
+  agentId?: string
   projectId?: string
   itemId?: string
 }
@@ -16,6 +17,7 @@ export interface ListAuditLogsParams {
   teamId: string
   actions?: AuditAction[]
   userIds?: string[]
+  agentIds?: string[]
   itemId?: string
   first?: number
   after?: string
@@ -29,6 +31,7 @@ export class AuditLogService {
           action: params.action,
           teamId: params.teamId,
           userId: params.userId,
+          agentId: params.agentId,
           projectId: params.projectId,
           itemId: params.itemId,
         },
@@ -52,6 +55,10 @@ export class AuditLogService {
       where.userId = { in: params.userIds }
     }
 
+    if (params.agentIds && params.agentIds.length > 0) {
+      where.agentId = { in: params.agentIds }
+    }
+
     if (params.itemId && params.itemId.trim() !== '') {
       where.itemId = { contains: params.itemId.trim(), mode: 'insensitive' }
     }
@@ -60,6 +67,7 @@ export class AuditLogService {
       (skip, take) =>
         prisma.auditLog.findMany({
           where,
+          include: { agent: { include: { user: true } } },
           orderBy: { id: 'desc' },
           skip,
           take,
@@ -74,6 +82,8 @@ export class AuditLogService {
         action: item.action,
         teamId: item.teamId,
         userId: item.userId,
+        agentId: item.agentId,
+        agent: item.agent ? { id: item.agent.id, name: item.agent.user.name } : null,
         projectId: item.projectId,
         itemId: item.itemId,
         createdAt: item.createdAt.toISOString(),

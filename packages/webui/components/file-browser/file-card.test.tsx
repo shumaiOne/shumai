@@ -110,4 +110,43 @@ describe('FileCard', () => {
 
     expect(screen.queryByText(/Manage versions|管理版本/i)).toBeNull()
   })
+
+  it('renders Bot icon badge and user via agent creator when agent created the asset', () => {
+    const agentCreatedItem: AssetInfo = {
+      ...fileItem,
+      creator: { id: 'u1', name: 'Alice' },
+      agentId: 'agent-1',
+      agent: { id: 'agent-1', name: 'Copilot Bot' },
+    } as AssetInfo
+
+    renderComponent({ item: agentCreatedItem })
+
+    const agentBadge = screen.getByTestId('agent-badge')
+    expect(agentBadge).toBeTruthy()
+    expect(agentBadge.getAttribute('title')).toBe('Copilot Bot')
+
+    // Should show user via agent in author line
+    expect(screen.getByText(/Alice via Copilot Bot|Alice 通过 Copilot Bot/i)).toBeTruthy()
+  })
+
+  it('renders both Bot icon badge and version badge side-by-side on version stack', () => {
+    const agentStackItem: AssetInfo = {
+      ...stackItem,
+      creator: { id: 'u1', name: 'Alice' },
+      agentId: 'agent-1',
+      agent: { id: 'agent-1', name: 'Copilot Bot' },
+      versionStack: {
+        versions: [
+          { id: 'v1', version: 1, name: 'v1' },
+          { id: 'stack-123', version: 2, name: 'v2' },
+        ],
+      },
+    } as AssetInfo
+
+    renderComponent({ item: agentStackItem })
+
+    const agentBadge = screen.getByTestId('agent-badge')
+    expect(agentBadge).toBeTruthy()
+    expect(screen.getByText('v2')).toBeTruthy()
+  })
 })

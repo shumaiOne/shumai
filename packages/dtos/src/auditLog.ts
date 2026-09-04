@@ -70,6 +70,14 @@ export const auditLogSchema = z.object({
   action: z.nativeEnum(AuditAction),
   teamId: z.string(),
   userId: z.string().nullable().optional(),
+  agentId: z.string().nullable().optional(),
+  agent: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+    })
+    .nullable()
+    .optional(),
   projectId: z.string().nullable().optional(),
   itemId: z.string().nullable().optional(),
   createdAt: z.string(),
@@ -85,6 +93,10 @@ export const listAuditLogsQuerySchema = z.object({
     .transform((val) => (Array.isArray(val) ? val : [val]))
     .optional(),
   userIds: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) => (Array.isArray(val) ? val : [val]))
+    .optional(),
+  agentIds: z
     .union([z.string(), z.array(z.string())])
     .transform((val) => (Array.isArray(val) ? val : [val]))
     .optional(),

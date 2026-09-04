@@ -56,6 +56,7 @@ export type AssetMinAggregateOutputType = {
   targetId: string | null
   storageKeyId: string | null
   creatorId: string | null
+  agentId: string | null
   taskId: string | null
   projectId: string | null
 }
@@ -78,6 +79,7 @@ export type AssetMaxAggregateOutputType = {
   targetId: string | null
   storageKeyId: string | null
   creatorId: string | null
+  agentId: string | null
   taskId: string | null
   projectId: string | null
 }
@@ -102,6 +104,7 @@ export type AssetCountAggregateOutputType = {
   targetId: number
   storageKeyId: number
   creatorId: number
+  agentId: number
   taskId: number
   projectId: number
   _all: number
@@ -136,6 +139,7 @@ export type AssetMinAggregateInputType = {
   targetId?: true
   storageKeyId?: true
   creatorId?: true
+  agentId?: true
   taskId?: true
   projectId?: true
 }
@@ -158,6 +162,7 @@ export type AssetMaxAggregateInputType = {
   targetId?: true
   storageKeyId?: true
   creatorId?: true
+  agentId?: true
   taskId?: true
   projectId?: true
 }
@@ -182,6 +187,7 @@ export type AssetCountAggregateInputType = {
   targetId?: true
   storageKeyId?: true
   creatorId?: true
+  agentId?: true
   taskId?: true
   projectId?: true
   _all?: true
@@ -293,6 +299,7 @@ export type AssetGroupByOutputType = {
   targetId: string | null
   storageKeyId: string | null
   creatorId: string | null
+  agentId: string | null
   taskId: string | null
   projectId: string | null
   _count: AssetCountAggregateOutputType | null
@@ -340,6 +347,7 @@ export type AssetWhereInput = {
   targetId?: Prisma.StringNullableFilter<"Asset"> | string | null
   storageKeyId?: Prisma.StringNullableFilter<"Asset"> | string | null
   creatorId?: Prisma.StringNullableFilter<"Asset"> | string | null
+  agentId?: Prisma.StringNullableFilter<"Asset"> | string | null
   taskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   projectId?: Prisma.StringNullableFilter<"Asset"> | string | null
   parent?: Prisma.XOR<Prisma.AssetNullableScalarRelationFilter, Prisma.AssetWhereInput> | null
@@ -349,6 +357,7 @@ export type AssetWhereInput = {
   storageKey?: Prisma.XOR<Prisma.StorageKeyNullableScalarRelationFilter, Prisma.StorageKeyWhereInput> | null
   metadataValues?: Prisma.AssetMetadataValueListRelationFilter
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  agent?: Prisma.XOR<Prisma.AgentNullableScalarRelationFilter, Prisma.AgentWhereInput> | null
   task?: Prisma.XOR<Prisma.TaskNullableScalarRelationFilter, Prisma.TaskWhereInput> | null
   project?: Prisma.XOR<Prisma.ProjectNullableScalarRelationFilter, Prisma.ProjectWhereInput> | null
   comments?: Prisma.AssetCommentListRelationFilter
@@ -387,6 +396,7 @@ export type AssetOrderByWithRelationInput = {
   targetId?: Prisma.SortOrderInput | Prisma.SortOrder
   storageKeyId?: Prisma.SortOrderInput | Prisma.SortOrder
   creatorId?: Prisma.SortOrderInput | Prisma.SortOrder
+  agentId?: Prisma.SortOrderInput | Prisma.SortOrder
   taskId?: Prisma.SortOrderInput | Prisma.SortOrder
   projectId?: Prisma.SortOrderInput | Prisma.SortOrder
   parent?: Prisma.AssetOrderByWithRelationInput
@@ -396,6 +406,7 @@ export type AssetOrderByWithRelationInput = {
   storageKey?: Prisma.StorageKeyOrderByWithRelationInput
   metadataValues?: Prisma.AssetMetadataValueOrderByRelationAggregateInput
   creator?: Prisma.UserOrderByWithRelationInput
+  agent?: Prisma.AgentOrderByWithRelationInput
   task?: Prisma.TaskOrderByWithRelationInput
   project?: Prisma.ProjectOrderByWithRelationInput
   comments?: Prisma.AssetCommentOrderByRelationAggregateInput
@@ -438,6 +449,7 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<{
   targetId?: Prisma.StringNullableFilter<"Asset"> | string | null
   storageKeyId?: Prisma.StringNullableFilter<"Asset"> | string | null
   creatorId?: Prisma.StringNullableFilter<"Asset"> | string | null
+  agentId?: Prisma.StringNullableFilter<"Asset"> | string | null
   taskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   projectId?: Prisma.StringNullableFilter<"Asset"> | string | null
   parent?: Prisma.XOR<Prisma.AssetNullableScalarRelationFilter, Prisma.AssetWhereInput> | null
@@ -447,6 +459,7 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<{
   storageKey?: Prisma.XOR<Prisma.StorageKeyNullableScalarRelationFilter, Prisma.StorageKeyWhereInput> | null
   metadataValues?: Prisma.AssetMetadataValueListRelationFilter
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  agent?: Prisma.XOR<Prisma.AgentNullableScalarRelationFilter, Prisma.AgentWhereInput> | null
   task?: Prisma.XOR<Prisma.TaskNullableScalarRelationFilter, Prisma.TaskWhereInput> | null
   project?: Prisma.XOR<Prisma.ProjectNullableScalarRelationFilter, Prisma.ProjectWhereInput> | null
   comments?: Prisma.AssetCommentListRelationFilter
@@ -485,6 +498,7 @@ export type AssetOrderByWithAggregationInput = {
   targetId?: Prisma.SortOrderInput | Prisma.SortOrder
   storageKeyId?: Prisma.SortOrderInput | Prisma.SortOrder
   creatorId?: Prisma.SortOrderInput | Prisma.SortOrder
+  agentId?: Prisma.SortOrderInput | Prisma.SortOrder
   taskId?: Prisma.SortOrderInput | Prisma.SortOrder
   projectId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.AssetCountOrderByAggregateInput
@@ -517,6 +531,7 @@ export type AssetScalarWhereWithAggregatesInput = {
   targetId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   storageKeyId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   creatorId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  agentId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   taskId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   projectId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
 }
@@ -544,6 +559,7 @@ export type AssetCreateInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -582,6 +598,7 @@ export type AssetUncheckedCreateInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -626,6 +643,7 @@ export type AssetUpdateInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -664,6 +682,7 @@ export type AssetUncheckedUpdateInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -705,6 +724,7 @@ export type AssetCreateManyInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
 }
@@ -747,6 +767,7 @@ export type AssetUncheckedUpdateManyInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -796,6 +817,7 @@ export type AssetCountOrderByAggregateInput = {
   targetId?: Prisma.SortOrder
   storageKeyId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrder
+  agentId?: Prisma.SortOrder
   taskId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
 }
@@ -823,6 +845,7 @@ export type AssetMaxOrderByAggregateInput = {
   targetId?: Prisma.SortOrder
   storageKeyId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrder
+  agentId?: Prisma.SortOrder
   taskId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
 }
@@ -845,6 +868,7 @@ export type AssetMinOrderByAggregateInput = {
   targetId?: Prisma.SortOrder
   storageKeyId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrder
+  agentId?: Prisma.SortOrder
   taskId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
 }
@@ -1333,6 +1357,48 @@ export type AssetUncheckedUpdateManyWithoutTaskNestedInput = {
   deleteMany?: Prisma.AssetScalarWhereInput | Prisma.AssetScalarWhereInput[]
 }
 
+export type AssetCreateNestedManyWithoutAgentInput = {
+  create?: Prisma.XOR<Prisma.AssetCreateWithoutAgentInput, Prisma.AssetUncheckedCreateWithoutAgentInput> | Prisma.AssetCreateWithoutAgentInput[] | Prisma.AssetUncheckedCreateWithoutAgentInput[]
+  connectOrCreate?: Prisma.AssetCreateOrConnectWithoutAgentInput | Prisma.AssetCreateOrConnectWithoutAgentInput[]
+  createMany?: Prisma.AssetCreateManyAgentInputEnvelope
+  connect?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+}
+
+export type AssetUncheckedCreateNestedManyWithoutAgentInput = {
+  create?: Prisma.XOR<Prisma.AssetCreateWithoutAgentInput, Prisma.AssetUncheckedCreateWithoutAgentInput> | Prisma.AssetCreateWithoutAgentInput[] | Prisma.AssetUncheckedCreateWithoutAgentInput[]
+  connectOrCreate?: Prisma.AssetCreateOrConnectWithoutAgentInput | Prisma.AssetCreateOrConnectWithoutAgentInput[]
+  createMany?: Prisma.AssetCreateManyAgentInputEnvelope
+  connect?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+}
+
+export type AssetUpdateManyWithoutAgentNestedInput = {
+  create?: Prisma.XOR<Prisma.AssetCreateWithoutAgentInput, Prisma.AssetUncheckedCreateWithoutAgentInput> | Prisma.AssetCreateWithoutAgentInput[] | Prisma.AssetUncheckedCreateWithoutAgentInput[]
+  connectOrCreate?: Prisma.AssetCreateOrConnectWithoutAgentInput | Prisma.AssetCreateOrConnectWithoutAgentInput[]
+  upsert?: Prisma.AssetUpsertWithWhereUniqueWithoutAgentInput | Prisma.AssetUpsertWithWhereUniqueWithoutAgentInput[]
+  createMany?: Prisma.AssetCreateManyAgentInputEnvelope
+  set?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  disconnect?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  delete?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  connect?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  update?: Prisma.AssetUpdateWithWhereUniqueWithoutAgentInput | Prisma.AssetUpdateWithWhereUniqueWithoutAgentInput[]
+  updateMany?: Prisma.AssetUpdateManyWithWhereWithoutAgentInput | Prisma.AssetUpdateManyWithWhereWithoutAgentInput[]
+  deleteMany?: Prisma.AssetScalarWhereInput | Prisma.AssetScalarWhereInput[]
+}
+
+export type AssetUncheckedUpdateManyWithoutAgentNestedInput = {
+  create?: Prisma.XOR<Prisma.AssetCreateWithoutAgentInput, Prisma.AssetUncheckedCreateWithoutAgentInput> | Prisma.AssetCreateWithoutAgentInput[] | Prisma.AssetUncheckedCreateWithoutAgentInput[]
+  connectOrCreate?: Prisma.AssetCreateOrConnectWithoutAgentInput | Prisma.AssetCreateOrConnectWithoutAgentInput[]
+  upsert?: Prisma.AssetUpsertWithWhereUniqueWithoutAgentInput | Prisma.AssetUpsertWithWhereUniqueWithoutAgentInput[]
+  createMany?: Prisma.AssetCreateManyAgentInputEnvelope
+  set?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  disconnect?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  delete?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  connect?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  update?: Prisma.AssetUpdateWithWhereUniqueWithoutAgentInput | Prisma.AssetUpdateWithWhereUniqueWithoutAgentInput[]
+  updateMany?: Prisma.AssetUpdateManyWithWhereWithoutAgentInput | Prisma.AssetUpdateManyWithWhereWithoutAgentInput[]
+  deleteMany?: Prisma.AssetScalarWhereInput | Prisma.AssetScalarWhereInput[]
+}
+
 export type AssetCreateNestedOneWithoutAgentSessionsInput = {
   create?: Prisma.XOR<Prisma.AssetCreateWithoutAgentSessionsInput, Prisma.AssetUncheckedCreateWithoutAgentSessionsInput>
   connectOrCreate?: Prisma.AssetCreateOrConnectWithoutAgentSessionsInput
@@ -1415,6 +1481,7 @@ export type AssetCreateWithoutCreatorInput = {
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -1452,6 +1519,7 @@ export type AssetUncheckedCreateWithoutCreatorInput = {
   parentId?: string | null
   targetId?: string | null
   storageKeyId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -1522,6 +1590,7 @@ export type AssetScalarWhereInput = {
   targetId?: Prisma.StringNullableFilter<"Asset"> | string | null
   storageKeyId?: Prisma.StringNullableFilter<"Asset"> | string | null
   creatorId?: Prisma.StringNullableFilter<"Asset"> | string | null
+  agentId?: Prisma.StringNullableFilter<"Asset"> | string | null
   taskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   projectId?: Prisma.StringNullableFilter<"Asset"> | string | null
 }
@@ -1549,6 +1618,7 @@ export type AssetCreateWithoutTeamRootFolderInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -1586,6 +1656,7 @@ export type AssetUncheckedCreateWithoutTeamRootFolderInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -1645,6 +1716,7 @@ export type AssetUpdateWithoutTeamRootFolderInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -1682,6 +1754,7 @@ export type AssetUncheckedUpdateWithoutTeamRootFolderInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -1725,6 +1798,7 @@ export type AssetCreateWithoutProjectRootFolderInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -1762,6 +1836,7 @@ export type AssetUncheckedCreateWithoutProjectRootFolderInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -1810,6 +1885,7 @@ export type AssetCreateWithoutProjectShareRootInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -1847,6 +1923,7 @@ export type AssetUncheckedCreateWithoutProjectShareRootInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -1895,6 +1972,7 @@ export type AssetCreateWithoutProjectInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
@@ -1932,6 +2010,7 @@ export type AssetUncheckedCreateWithoutProjectInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
   symlinks?: Prisma.AssetUncheckedCreateNestedManyWithoutTargetInput
@@ -1996,6 +2075,7 @@ export type AssetUpdateWithoutProjectRootFolderInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -2033,6 +2113,7 @@ export type AssetUncheckedUpdateWithoutProjectRootFolderInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -2087,6 +2168,7 @@ export type AssetUpdateWithoutProjectShareRootInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -2124,6 +2206,7 @@ export type AssetUncheckedUpdateWithoutProjectShareRootInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -2183,6 +2266,7 @@ export type AssetCreateWithoutShareLinkRootFolderInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -2220,6 +2304,7 @@ export type AssetUncheckedCreateWithoutShareLinkRootFolderInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -2279,6 +2364,7 @@ export type AssetUpdateWithoutShareLinkRootFolderInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -2316,6 +2402,7 @@ export type AssetUncheckedUpdateWithoutShareLinkRootFolderInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -2359,6 +2446,7 @@ export type AssetCreateWithoutWatermarkFilesInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -2396,6 +2484,7 @@ export type AssetUncheckedCreateWithoutWatermarkFilesInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -2455,6 +2544,7 @@ export type AssetUpdateWithoutWatermarkFilesInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -2492,6 +2582,7 @@ export type AssetUncheckedUpdateWithoutWatermarkFilesInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -2534,6 +2625,7 @@ export type AssetCreateWithoutChildrenInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -2572,6 +2664,7 @@ export type AssetUncheckedCreateWithoutChildrenInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   symlinks?: Prisma.AssetUncheckedCreateNestedManyWithoutTargetInput
@@ -2619,6 +2712,7 @@ export type AssetCreateWithoutParentInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -2656,6 +2750,7 @@ export type AssetUncheckedCreateWithoutParentInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -2709,6 +2804,7 @@ export type AssetCreateWithoutSymlinksInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -2747,6 +2843,7 @@ export type AssetUncheckedCreateWithoutSymlinksInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -2794,6 +2891,7 @@ export type AssetCreateWithoutTargetInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -2831,6 +2929,7 @@ export type AssetUncheckedCreateWithoutTargetInput = {
   parentId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -2895,6 +2994,7 @@ export type AssetUpdateWithoutChildrenInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -2933,6 +3033,7 @@ export type AssetUncheckedUpdateWithoutChildrenInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   symlinks?: Prisma.AssetUncheckedUpdateManyWithoutTargetNestedInput
@@ -3002,6 +3103,7 @@ export type AssetUpdateWithoutSymlinksInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -3040,6 +3142,7 @@ export type AssetUncheckedUpdateWithoutSymlinksInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -3098,6 +3201,7 @@ export type AssetCreateWithoutStorageKeyInput = {
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -3135,6 +3239,7 @@ export type AssetUncheckedCreateWithoutStorageKeyInput = {
   parentId?: string | null
   targetId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -3204,6 +3309,7 @@ export type AssetCreateWithoutMetadataValuesInput = {
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -3242,6 +3348,7 @@ export type AssetUncheckedCreateWithoutMetadataValuesInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -3300,6 +3407,7 @@ export type AssetUpdateWithoutMetadataValuesInput = {
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -3338,6 +3446,7 @@ export type AssetUncheckedUpdateWithoutMetadataValuesInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -3381,6 +3490,7 @@ export type AssetCreateWithoutAgentMdInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -3418,6 +3528,7 @@ export type AssetUncheckedCreateWithoutAgentMdInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -3477,6 +3588,7 @@ export type AssetUpdateWithoutAgentMdInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -3514,6 +3626,7 @@ export type AssetUncheckedUpdateWithoutAgentMdInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -3557,6 +3670,7 @@ export type AssetCreateWithoutCommentsInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
@@ -3594,6 +3708,7 @@ export type AssetUncheckedCreateWithoutCommentsInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -3653,6 +3768,7 @@ export type AssetUpdateWithoutCommentsInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
@@ -3690,6 +3806,7 @@ export type AssetUncheckedUpdateWithoutCommentsInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -3733,6 +3850,7 @@ export type AssetCreateWithoutCommentAttachmentsInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -3770,6 +3888,7 @@ export type AssetUncheckedCreateWithoutCommentAttachmentsInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -3829,6 +3948,7 @@ export type AssetUpdateWithoutCommentAttachmentsInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -3866,6 +3986,7 @@ export type AssetUncheckedUpdateWithoutCommentAttachmentsInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -3909,6 +4030,7 @@ export type AssetCreateWithoutEmbeddingsInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -3946,6 +4068,7 @@ export type AssetUncheckedCreateWithoutEmbeddingsInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -4005,6 +4128,7 @@ export type AssetUpdateWithoutEmbeddingsInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -4042,6 +4166,7 @@ export type AssetUncheckedUpdateWithoutEmbeddingsInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -4085,6 +4210,7 @@ export type AssetCreateWithoutNotificationsInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -4122,6 +4248,7 @@ export type AssetUncheckedCreateWithoutNotificationsInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -4181,6 +4308,7 @@ export type AssetUpdateWithoutNotificationsInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -4218,6 +4346,7 @@ export type AssetUncheckedUpdateWithoutNotificationsInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -4261,6 +4390,7 @@ export type AssetCreateWithoutTaskInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
@@ -4298,6 +4428,7 @@ export type AssetUncheckedCreateWithoutTaskInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
   symlinks?: Prisma.AssetUncheckedCreateNestedManyWithoutTargetInput
@@ -4344,6 +4475,114 @@ export type AssetUpdateManyWithWhereWithoutTaskInput = {
   data: Prisma.XOR<Prisma.AssetUpdateManyMutationInput, Prisma.AssetUncheckedUpdateManyWithoutTaskInput>
 }
 
+export type AssetCreateWithoutAgentInput = {
+  id?: string
+  name?: string
+  nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
+  type: $Enums.AssetType
+  mediaType?: string | null
+  fileCount?: number
+  sizeByte?: bigint | number
+  status: $Enums.AssetStatus
+  transcodeTaskId?: string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: boolean
+  deletedAt?: Date | string | null
+  sortIndex?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
+  children?: Prisma.AssetCreateNestedManyWithoutParentInput
+  target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
+  symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
+  metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
+  creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
+  project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
+  commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
+  embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
+  projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
+  projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
+  shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
+  watermarkFiles?: Prisma.WatermarkFileCreateNestedManyWithoutAssetInput
+  agentMd?: Prisma.AssetAgentMdCreateNestedOneWithoutAssetInput
+  kanbanTargetTasks?: Prisma.KanbanTaskCreateNestedManyWithoutTargetFolderInput
+  kanbanTasks?: Prisma.KanbanTaskAssetCreateNestedManyWithoutAssetInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutAssetInput
+}
+
+export type AssetUncheckedCreateWithoutAgentInput = {
+  id?: string
+  name?: string
+  nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
+  type: $Enums.AssetType
+  mediaType?: string | null
+  fileCount?: number
+  sizeByte?: bigint | number
+  status: $Enums.AssetStatus
+  transcodeTaskId?: string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: boolean
+  deletedAt?: Date | string | null
+  sortIndex?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parentId?: string | null
+  targetId?: string | null
+  storageKeyId?: string | null
+  creatorId?: string | null
+  taskId?: string | null
+  projectId?: string | null
+  children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
+  symlinks?: Prisma.AssetUncheckedCreateNestedManyWithoutTargetInput
+  metadataValues?: Prisma.AssetMetadataValueUncheckedCreateNestedManyWithoutAssetInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutAssetInput
+  commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
+  embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
+  projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
+  projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
+  shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
+  watermarkFiles?: Prisma.WatermarkFileUncheckedCreateNestedManyWithoutAssetInput
+  agentMd?: Prisma.AssetAgentMdUncheckedCreateNestedOneWithoutAssetInput
+  kanbanTargetTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutTargetFolderInput
+  kanbanTasks?: Prisma.KanbanTaskAssetUncheckedCreateNestedManyWithoutAssetInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutAssetInput
+}
+
+export type AssetCreateOrConnectWithoutAgentInput = {
+  where: Prisma.AssetWhereUniqueInput
+  create: Prisma.XOR<Prisma.AssetCreateWithoutAgentInput, Prisma.AssetUncheckedCreateWithoutAgentInput>
+}
+
+export type AssetCreateManyAgentInputEnvelope = {
+  data: Prisma.AssetCreateManyAgentInput | Prisma.AssetCreateManyAgentInput[]
+  skipDuplicates?: boolean
+}
+
+export type AssetUpsertWithWhereUniqueWithoutAgentInput = {
+  where: Prisma.AssetWhereUniqueInput
+  update: Prisma.XOR<Prisma.AssetUpdateWithoutAgentInput, Prisma.AssetUncheckedUpdateWithoutAgentInput>
+  create: Prisma.XOR<Prisma.AssetCreateWithoutAgentInput, Prisma.AssetUncheckedCreateWithoutAgentInput>
+}
+
+export type AssetUpdateWithWhereUniqueWithoutAgentInput = {
+  where: Prisma.AssetWhereUniqueInput
+  data: Prisma.XOR<Prisma.AssetUpdateWithoutAgentInput, Prisma.AssetUncheckedUpdateWithoutAgentInput>
+}
+
+export type AssetUpdateManyWithWhereWithoutAgentInput = {
+  where: Prisma.AssetScalarWhereInput
+  data: Prisma.XOR<Prisma.AssetUpdateManyMutationInput, Prisma.AssetUncheckedUpdateManyWithoutAgentInput>
+}
+
 export type AssetCreateWithoutAgentSessionsInput = {
   id?: string
   name?: string
@@ -4367,6 +4606,7 @@ export type AssetCreateWithoutAgentSessionsInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -4404,6 +4644,7 @@ export type AssetUncheckedCreateWithoutAgentSessionsInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -4463,6 +4704,7 @@ export type AssetUpdateWithoutAgentSessionsInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -4500,6 +4742,7 @@ export type AssetUncheckedUpdateWithoutAgentSessionsInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -4543,6 +4786,7 @@ export type AssetCreateWithoutKanbanTargetTasksInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -4580,6 +4824,7 @@ export type AssetUncheckedCreateWithoutKanbanTargetTasksInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -4639,6 +4884,7 @@ export type AssetUpdateWithoutKanbanTargetTasksInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -4676,6 +4922,7 @@ export type AssetUncheckedUpdateWithoutKanbanTargetTasksInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -4719,6 +4966,7 @@ export type AssetCreateWithoutKanbanTasksInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -4756,6 +5004,7 @@ export type AssetUncheckedCreateWithoutKanbanTasksInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -4815,6 +5064,7 @@ export type AssetUpdateWithoutKanbanTasksInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -4852,6 +5102,7 @@ export type AssetUncheckedUpdateWithoutKanbanTasksInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -4895,6 +5146,7 @@ export type AssetCreateWithoutRecentFilesInput = {
   storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
@@ -4932,6 +5184,7 @@ export type AssetUncheckedCreateWithoutRecentFilesInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -4991,6 +5244,7 @@ export type AssetUpdateWithoutRecentFilesInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -5028,6 +5282,7 @@ export type AssetUncheckedUpdateWithoutRecentFilesInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -5067,6 +5322,7 @@ export type AssetCreateManyCreatorInput = {
   parentId?: string | null
   targetId?: string | null
   storageKeyId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
 }
@@ -5093,6 +5349,7 @@ export type AssetUpdateWithoutCreatorInput = {
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -5130,6 +5387,7 @@ export type AssetUncheckedUpdateWithoutCreatorInput = {
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -5170,6 +5428,7 @@ export type AssetUncheckedUpdateManyWithoutCreatorInput = {
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -5194,6 +5453,7 @@ export type AssetCreateManyProjectInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
 }
 
@@ -5220,6 +5480,7 @@ export type AssetUpdateWithoutProjectInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
@@ -5257,6 +5518,7 @@ export type AssetUncheckedUpdateWithoutProjectInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
   symlinks?: Prisma.AssetUncheckedUpdateManyWithoutTargetNestedInput
@@ -5297,6 +5559,7 @@ export type AssetUncheckedUpdateManyWithoutProjectInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -5319,6 +5582,7 @@ export type AssetCreateManyParentInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
 }
@@ -5342,6 +5606,7 @@ export type AssetCreateManyTargetInput = {
   parentId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
 }
@@ -5368,6 +5633,7 @@ export type AssetUpdateWithoutParentInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -5405,6 +5671,7 @@ export type AssetUncheckedUpdateWithoutParentInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -5445,6 +5712,7 @@ export type AssetUncheckedUpdateManyWithoutParentInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -5471,6 +5739,7 @@ export type AssetUpdateWithoutTargetInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -5508,6 +5777,7 @@ export type AssetUncheckedUpdateWithoutTargetInput = {
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -5548,6 +5818,7 @@ export type AssetUncheckedUpdateManyWithoutTargetInput = {
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -5571,6 +5842,7 @@ export type AssetCreateManyStorageKeyInput = {
   parentId?: string | null
   targetId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   taskId?: string | null
   projectId?: string | null
 }
@@ -5597,6 +5869,7 @@ export type AssetUpdateWithoutStorageKeyInput = {
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
@@ -5634,6 +5907,7 @@ export type AssetUncheckedUpdateWithoutStorageKeyInput = {
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -5674,6 +5948,7 @@ export type AssetUncheckedUpdateManyWithoutStorageKeyInput = {
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -5698,6 +5973,7 @@ export type AssetCreateManyTaskInput = {
   targetId?: string | null
   storageKeyId?: string | null
   creatorId?: string | null
+  agentId?: string | null
   projectId?: string | null
 }
 
@@ -5724,6 +6000,7 @@ export type AssetUpdateWithoutTaskInput = {
   storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
@@ -5761,6 +6038,7 @@ export type AssetUncheckedUpdateWithoutTaskInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
   symlinks?: Prisma.AssetUncheckedUpdateManyWithoutTargetNestedInput
@@ -5801,6 +6079,137 @@ export type AssetUncheckedUpdateManyWithoutTaskInput = {
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type AssetCreateManyAgentInput = {
+  id?: string
+  name?: string
+  nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
+  type: $Enums.AssetType
+  mediaType?: string | null
+  fileCount?: number
+  sizeByte?: bigint | number
+  status: $Enums.AssetStatus
+  transcodeTaskId?: string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: boolean
+  deletedAt?: Date | string | null
+  sortIndex?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parentId?: string | null
+  targetId?: string | null
+  storageKeyId?: string | null
+  creatorId?: string | null
+  taskId?: string | null
+  projectId?: string | null
+}
+
+export type AssetUpdateWithoutAgentInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
+  type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
+  mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
+  transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
+  children?: Prisma.AssetUpdateManyWithoutParentNestedInput
+  target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
+  symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
+  metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
+  creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
+  project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
+  commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
+  embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
+  projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
+  projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
+  shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
+  watermarkFiles?: Prisma.WatermarkFileUpdateManyWithoutAssetNestedInput
+  agentMd?: Prisma.AssetAgentMdUpdateOneWithoutAssetNestedInput
+  kanbanTargetTasks?: Prisma.KanbanTaskUpdateManyWithoutTargetFolderNestedInput
+  kanbanTasks?: Prisma.KanbanTaskAssetUpdateManyWithoutAssetNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutAssetNestedInput
+}
+
+export type AssetUncheckedUpdateWithoutAgentInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
+  type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
+  mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
+  transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
+  symlinks?: Prisma.AssetUncheckedUpdateManyWithoutTargetNestedInput
+  metadataValues?: Prisma.AssetMetadataValueUncheckedUpdateManyWithoutAssetNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutAssetNestedInput
+  commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
+  embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
+  projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
+  projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
+  shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
+  watermarkFiles?: Prisma.WatermarkFileUncheckedUpdateManyWithoutAssetNestedInput
+  agentMd?: Prisma.AssetAgentMdUncheckedUpdateOneWithoutAssetNestedInput
+  kanbanTargetTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutTargetFolderNestedInput
+  kanbanTasks?: Prisma.KanbanTaskAssetUncheckedUpdateManyWithoutAssetNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutAssetNestedInput
+}
+
+export type AssetUncheckedUpdateManyWithoutAgentInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
+  type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
+  mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
+  transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -5954,6 +6363,7 @@ export type AssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   targetId?: boolean
   storageKeyId?: boolean
   creatorId?: boolean
+  agentId?: boolean
   taskId?: boolean
   projectId?: boolean
   parent?: boolean | Prisma.Asset$parentArgs<ExtArgs>
@@ -5963,6 +6373,7 @@ export type AssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   storageKey?: boolean | Prisma.Asset$storageKeyArgs<ExtArgs>
   metadataValues?: boolean | Prisma.Asset$metadataValuesArgs<ExtArgs>
   creator?: boolean | Prisma.Asset$creatorArgs<ExtArgs>
+  agent?: boolean | Prisma.Asset$agentArgs<ExtArgs>
   task?: boolean | Prisma.Asset$taskArgs<ExtArgs>
   project?: boolean | Prisma.Asset$projectArgs<ExtArgs>
   comments?: boolean | Prisma.Asset$commentsArgs<ExtArgs>
@@ -6002,12 +6413,14 @@ export type AssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   targetId?: boolean
   storageKeyId?: boolean
   creatorId?: boolean
+  agentId?: boolean
   taskId?: boolean
   projectId?: boolean
   parent?: boolean | Prisma.Asset$parentArgs<ExtArgs>
   target?: boolean | Prisma.Asset$targetArgs<ExtArgs>
   storageKey?: boolean | Prisma.Asset$storageKeyArgs<ExtArgs>
   creator?: boolean | Prisma.Asset$creatorArgs<ExtArgs>
+  agent?: boolean | Prisma.Asset$agentArgs<ExtArgs>
   task?: boolean | Prisma.Asset$taskArgs<ExtArgs>
   project?: boolean | Prisma.Asset$projectArgs<ExtArgs>
 }, ExtArgs["result"]["asset"]>
@@ -6032,12 +6445,14 @@ export type AssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   targetId?: boolean
   storageKeyId?: boolean
   creatorId?: boolean
+  agentId?: boolean
   taskId?: boolean
   projectId?: boolean
   parent?: boolean | Prisma.Asset$parentArgs<ExtArgs>
   target?: boolean | Prisma.Asset$targetArgs<ExtArgs>
   storageKey?: boolean | Prisma.Asset$storageKeyArgs<ExtArgs>
   creator?: boolean | Prisma.Asset$creatorArgs<ExtArgs>
+  agent?: boolean | Prisma.Asset$agentArgs<ExtArgs>
   task?: boolean | Prisma.Asset$taskArgs<ExtArgs>
   project?: boolean | Prisma.Asset$projectArgs<ExtArgs>
 }, ExtArgs["result"]["asset"]>
@@ -6062,11 +6477,12 @@ export type AssetSelectScalar = {
   targetId?: boolean
   storageKeyId?: boolean
   creatorId?: boolean
+  agentId?: boolean
   taskId?: boolean
   projectId?: boolean
 }
 
-export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameNgram" | "type" | "mediaType" | "fileCount" | "sizeByte" | "status" | "transcodeTaskId" | "media" | "isDeleted" | "deletedAt" | "sortIndex" | "createdAt" | "updatedAt" | "parentId" | "targetId" | "storageKeyId" | "creatorId" | "taskId" | "projectId", ExtArgs["result"]["asset"]>
+export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameNgram" | "type" | "mediaType" | "fileCount" | "sizeByte" | "status" | "transcodeTaskId" | "media" | "isDeleted" | "deletedAt" | "sortIndex" | "createdAt" | "updatedAt" | "parentId" | "targetId" | "storageKeyId" | "creatorId" | "agentId" | "taskId" | "projectId", ExtArgs["result"]["asset"]>
 export type AssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   parent?: boolean | Prisma.Asset$parentArgs<ExtArgs>
   children?: boolean | Prisma.Asset$childrenArgs<ExtArgs>
@@ -6075,6 +6491,7 @@ export type AssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   storageKey?: boolean | Prisma.Asset$storageKeyArgs<ExtArgs>
   metadataValues?: boolean | Prisma.Asset$metadataValuesArgs<ExtArgs>
   creator?: boolean | Prisma.Asset$creatorArgs<ExtArgs>
+  agent?: boolean | Prisma.Asset$agentArgs<ExtArgs>
   task?: boolean | Prisma.Asset$taskArgs<ExtArgs>
   project?: boolean | Prisma.Asset$projectArgs<ExtArgs>
   comments?: boolean | Prisma.Asset$commentsArgs<ExtArgs>
@@ -6098,6 +6515,7 @@ export type AssetIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   target?: boolean | Prisma.Asset$targetArgs<ExtArgs>
   storageKey?: boolean | Prisma.Asset$storageKeyArgs<ExtArgs>
   creator?: boolean | Prisma.Asset$creatorArgs<ExtArgs>
+  agent?: boolean | Prisma.Asset$agentArgs<ExtArgs>
   task?: boolean | Prisma.Asset$taskArgs<ExtArgs>
   project?: boolean | Prisma.Asset$projectArgs<ExtArgs>
 }
@@ -6106,6 +6524,7 @@ export type AssetIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   target?: boolean | Prisma.Asset$targetArgs<ExtArgs>
   storageKey?: boolean | Prisma.Asset$storageKeyArgs<ExtArgs>
   creator?: boolean | Prisma.Asset$creatorArgs<ExtArgs>
+  agent?: boolean | Prisma.Asset$agentArgs<ExtArgs>
   task?: boolean | Prisma.Asset$taskArgs<ExtArgs>
   project?: boolean | Prisma.Asset$projectArgs<ExtArgs>
 }
@@ -6120,6 +6539,7 @@ export type $AssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     storageKey: Prisma.$StorageKeyPayload<ExtArgs> | null
     metadataValues: Prisma.$AssetMetadataValuePayload<ExtArgs>[]
     creator: Prisma.$UserPayload<ExtArgs> | null
+    agent: Prisma.$AgentPayload<ExtArgs> | null
     task: Prisma.$TaskPayload<ExtArgs> | null
     project: Prisma.$ProjectPayload<ExtArgs> | null
     comments: Prisma.$AssetCommentPayload<ExtArgs>[]
@@ -6160,6 +6580,7 @@ export type $AssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     targetId: string | null
     storageKeyId: string | null
     creatorId: string | null
+    agentId: string | null
     taskId: string | null
     projectId: string | null
   }, ExtArgs["result"]["asset"]>
@@ -6563,6 +6984,7 @@ export interface Prisma__AssetClient<T, Null = never, ExtArgs extends runtime.Ty
   storageKey<T extends Prisma.Asset$storageKeyArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$storageKeyArgs<ExtArgs>>): Prisma.Prisma__StorageKeyClient<runtime.Types.Result.GetResult<Prisma.$StorageKeyPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   metadataValues<T extends Prisma.Asset$metadataValuesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$metadataValuesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetMetadataValuePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   creator<T extends Prisma.Asset$creatorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$creatorArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  agent<T extends Prisma.Asset$agentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$agentArgs<ExtArgs>>): Prisma.Prisma__AgentClient<runtime.Types.Result.GetResult<Prisma.$AgentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   task<T extends Prisma.Asset$taskArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$taskArgs<ExtArgs>>): Prisma.Prisma__TaskClient<runtime.Types.Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   project<T extends Prisma.Asset$projectArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$projectArgs<ExtArgs>>): Prisma.Prisma__ProjectClient<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   comments<T extends Prisma.Asset$commentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$commentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -6627,6 +7049,7 @@ export interface AssetFieldRefs {
   readonly targetId: Prisma.FieldRef<"Asset", 'String'>
   readonly storageKeyId: Prisma.FieldRef<"Asset", 'String'>
   readonly creatorId: Prisma.FieldRef<"Asset", 'String'>
+  readonly agentId: Prisma.FieldRef<"Asset", 'String'>
   readonly taskId: Prisma.FieldRef<"Asset", 'String'>
   readonly projectId: Prisma.FieldRef<"Asset", 'String'>
 }
@@ -7175,6 +7598,25 @@ export type Asset$creatorArgs<ExtArgs extends runtime.Types.Extensions.InternalA
    */
   include?: Prisma.UserInclude<ExtArgs> | null
   where?: Prisma.UserWhereInput
+}
+
+/**
+ * Asset.agent
+ */
+export type Asset$agentArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Agent
+   */
+  select?: Prisma.AgentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Agent
+   */
+  omit?: Prisma.AgentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AgentInclude<ExtArgs> | null
+  where?: Prisma.AgentWhereInput
 }
 
 /**

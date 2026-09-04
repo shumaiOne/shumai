@@ -1,8 +1,10 @@
 import { Type } from 'typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { type User } from '@shumai/db'
+import { AuditAction } from '@shumai/dtos'
 
 const createFolderSchema = Type.Object({
   parent: Type.String({
@@ -14,7 +16,10 @@ const createFolderSchema = Type.Object({
   }),
 })
 
-export function createCreateFolderTool(userId: string): AgentTool<typeof createFolderSchema> {
+export function createCreateFolderTool(
+  userId: string,
+  agentContext?: { teamId?: string; agentId?: string },
+): AgentTool<typeof createFolderSchema> {
   return {
     name: 'create_folder',
     label: 'Create Folder',
@@ -33,7 +38,19 @@ export function createCreateFolderTool(userId: string): AgentTool<typeof createF
         parentId: params.parent,
         type: 'folder',
         creatorId: userId,
+        agentId: agentContext?.agentId,
       })
+
+      if (agentContext?.teamId) {
+        await auditLogService.logAction({
+          action: AuditAction.folder_create,
+          teamId: agentContext.teamId,
+          userId,
+          agentId: agentContext.agentId,
+          projectId: newFolder.projectId ?? undefined,
+          itemId: newFolder.id,
+        })
+      }
 
       const result = {
         id: newFolder.id,

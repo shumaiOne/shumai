@@ -362,11 +362,12 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const systemTools: AgentTool[] = []
   if (userId) {
     const metadataSchema = await buildProjectMetadataSchema(projectId)
+    const agentContext = { teamId, agentId }
     systemTools.push(
       createListAssetsTool(userId),
-      createCreateFolderTool(userId),
-      createCreateFileTool(userId, metadataSchema),
-      createCreateVersionTool(userId, metadataSchema),
+      createCreateFolderTool(userId, agentContext),
+      createCreateFileTool(userId, metadataSchema, agentContext),
+      createCreateVersionTool(userId, metadataSchema, agentContext),
       createDownloadAssetTool(userId),
     )
   }

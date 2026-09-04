@@ -513,6 +513,8 @@ describe('team api', () => {
             action: AuditAction.project_create,
             teamId: 't1',
             userId: 'user1',
+            agentId: null,
+            agent: null,
             projectId: 'p1',
             itemId: 'p1',
             createdAt: new Date().toISOString(),

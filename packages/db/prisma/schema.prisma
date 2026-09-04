@@ -546,6 +546,9 @@ model Asset {
   creatorId         String?      @map("creator_id")
   creator           User?        @relation("UserToAsset", fields: [creatorId], references: [id])
 
+  agentId           String?      @map("agent_id")
+  agent             Agent?       @relation("AgentToAsset", fields: [agentId], references: [id], onDelete: SetNull)
+
   taskId            String?      @map("task_id")
   task              Task?        @relation("TaskToAsset", fields: [taskId], references: [id])
 
@@ -576,6 +579,7 @@ model Asset {
   @@index([sortIndex])
   @@index([isDeleted])
   @@index([deletedAt])
+  @@index([agentId])
   @@index([name], name: "assets_name_idx")
   @@index([nameNgram], type: Gin)
   @@unique([parentId, targetId], name: "parentIdTargetId")
@@ -848,6 +852,8 @@ model Agent {
   agentSessions AgentSession[]
   skills        AgentSkill[]
   mcpServers    AgentMcpServer[]
+  assets        Asset[]          @relation("AgentToAsset")
+  auditLogs     AuditLog[]       @relation("AgentToAuditLog")
 
   @@map("agents")
 }
@@ -1083,16 +1089,19 @@ model AuditLog {
   action    String
   teamId    String   @map("team_id")
   userId    String?     @map("user_id")
+  agentId   String?     @map("agent_id")
   projectId String?     @map("project_id")
   itemId    String?     @map("item_id")
   createdAt DateTime    @default(now()) @map("created_at")
 
   team    Team     @relation("TeamToAuditLog", fields: [teamId], references: [id], onDelete: Cascade)
   user    User?    @relation("UserToAuditLog", fields: [userId], references: [id], onDelete: SetNull)
+  agent   Agent?   @relation("AgentToAuditLog", fields: [agentId], references: [id], onDelete: SetNull)
   project Project? @relation("ProjectToAuditLog", fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([teamId, id(sort: Desc)])
   @@index([userId])
+  @@index([agentId])
   @@index([action])
   @@index([itemId])
   @@map("audit_logs")

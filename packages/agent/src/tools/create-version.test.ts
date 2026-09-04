@@ -3,7 +3,9 @@ import { createCreateVersionTool } from './create-version'
 import { fieldsToTypeBoxSchema } from '../index'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { authzService } from '@shumai/core/src/authz/authz'
+import { AuditAction } from '@shumai/dtos'
 import { Value } from 'typebox/value'
 import * as fs from 'fs'
 import * as os from 'os'
@@ -28,6 +30,12 @@ vi.mock('@shumai/core/src/asset/asset', () => ({
     createVersion: vi
       .fn()
       .mockResolvedValue({ id: 'file-1', name: 'v2', type: 'file', sizeByte: 100 }),
+  },
+}))
+
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -203,5 +211,31 @@ describe('createCreateVersionTool', () => {
     const tool = createCreateVersionTool('user-1')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inspecting the runtime schema shape of the dynamically-built tool
     expect((tool.parameters as any).properties.metadata).toBeUndefined()
+  })
+
+  it('should pass agentId and record audit log when agentContext is provided', async () => {
+    const filePath = createTempFile('# Agent version file', 'agent-ver-file.md')
+
+    const tool = createCreateVersionTool('user-1', undefined, {
+      teamId: 'team-1',
+      agentId: 'agent-1',
+    })
+    await tool.execute('call-1', { parent: 'file-1', path: filePath })
+
+    expect(assetService.createVersion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        creatorId: 'user-1',
+        agentId: 'agent-1',
+      }),
+    )
+
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: AuditAction.file_create,
+      teamId: 'team-1',
+      userId: 'user-1',
+      agentId: 'agent-1',
+      projectId: undefined,
+      itemId: 'file-1',
+    })
   })
 })

@@ -1013,6 +1013,7 @@
   "n_items_plural": "{count} Items",
   "fullscreen": "Fullscreen",
   "created_by_at": "{time} by {author}",
+  "user_via_agent": "{user} via {agent}",
   "date_format_long": "MMMM d, yyyy",
   "tool_result_with_name": "Tool Result: {name}",
   "reply_to_message": "reply to: {message}",

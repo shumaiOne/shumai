@@ -3,7 +3,7 @@ import { client } from '@/ui/api/client'
 import { useQuery } from '@tanstack/react-query'
 
 import { useDraggable } from '@dnd-kit/react'
-import { File, Folder, MoreVertical, AudioLines } from 'lucide-react'
+import { Bot, File, Folder, MoreVertical, AudioLines } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/ui/lib/utils'
 import { formatSize } from '@/ui/lib/format'
@@ -242,6 +242,16 @@ export function FileListItem({
             <span className="text-xs text-destructive font-semibold shrink-0">
               (Failed to upload)
             </span>
+          )}
+
+          {displayItem.agent && (
+            <div
+              className="rounded-md bg-background/80 backdrop-blur-sm p-1 shadow-xs border border-border/50 text-foreground shrink-0"
+              title={displayItem.agent.name}
+              data-testid="agent-badge"
+            >
+              <Bot className="h-3.5 w-3.5" />
+            </div>
           )}
 
           {displayItem.versionStack && (

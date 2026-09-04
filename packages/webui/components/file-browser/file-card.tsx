@@ -21,7 +21,7 @@ import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
 import { cn } from '@/ui/lib/utils'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
-import { Download, Edit, History, Layers, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Bot, Download, Edit, History, Layers, MoreHorizontal, Trash2 } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
 import FieldRenderer from '../field-renderer'
@@ -254,13 +254,24 @@ export function FileCard({
         />
       </div>
 
-      {displayItem.versionStack && (
-        <Badge className="absolute right-2 top-2 z-10">
-          v
-          {displayItem.versionStack.versions.find((v) => v.id === displayItem.id)?.version ??
-            displayItem.versionStack.versions.length}
-        </Badge>
-      )}
+      <div className="absolute right-2 top-2 z-10 flex items-center gap-1.5">
+        {displayItem.agent && (
+          <div
+            className="rounded-md bg-background/80 backdrop-blur-sm p-1 shadow-xs border border-border/50 text-foreground"
+            title={displayItem.agent.name}
+            data-testid="agent-badge"
+          >
+            <Bot className="h-3.5 w-3.5" />
+          </div>
+        )}
+        {displayItem.versionStack && (
+          <Badge>
+            v
+            {displayItem.versionStack.versions.find((v) => v.id === displayItem.id)?.version ??
+              displayItem.versionStack.versions.length}
+          </Badge>
+        )}
+      </div>
 
       <div className="relative aspect-square overflow-hidden bg-muted/30">
         {displayItem.status === 'uploading' ||
@@ -310,7 +321,12 @@ export function FileCard({
             {displayItem.createdAt &&
               m.created_by_at({
                 time: formatTimeAgo(displayItem.createdAt),
-                author: displayItem.creator?.name || m.unknown_user(),
+                author: displayItem.agent
+                  ? m.user_via_agent({
+                      user: displayItem.creator?.name || m.unknown_user(),
+                      agent: displayItem.agent.name,
+                    })
+                  : displayItem.creator?.name || m.unknown_user(),
               })}
           </p>
         </div>
