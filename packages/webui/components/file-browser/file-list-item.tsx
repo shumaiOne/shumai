@@ -246,7 +246,7 @@ export function FileListItem({
 
           {displayItem.agent && (
             <div
-              className="rounded-md bg-background/80 backdrop-blur-sm p-1 shadow-xs border border-border/50 text-foreground shrink-0"
+              className="rounded-md bg-background/30 backdrop-blur-md p-1 shadow-xs border border-border/50 text-foreground shrink-0"
               title={displayItem.agent.name}
               data-testid="agent-badge"
             >
