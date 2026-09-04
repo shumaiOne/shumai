@@ -201,7 +201,7 @@ describe('FileViewerLeftSidebar', () => {
     })
   })
 
-  it('renders Bot badge on carousel thumbnail when asset has agent', () => {
+  it('renders AI badge on carousel thumbnail when asset has agent', () => {
     const filesWithAgent: AssetInfo[] = [
       {
         id: 'file-agent',
@@ -225,5 +225,6 @@ describe('FileViewerLeftSidebar', () => {
     const agentBadge = container.querySelector('[data-testid="carousel-agent-badge"]')
     expect(agentBadge).toBeTruthy()
     expect(agentBadge?.getAttribute('title')).toBe('DrawBot')
+    expect(agentBadge?.textContent).toBe('AI')
   })
 })

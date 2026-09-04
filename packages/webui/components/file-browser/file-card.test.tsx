@@ -124,12 +124,13 @@ describe('FileCard', () => {
     const agentBadge = screen.getByTestId('agent-badge')
     expect(agentBadge).toBeTruthy()
     expect(agentBadge.getAttribute('title')).toBe('Copilot Bot')
+    expect(agentBadge.textContent).toBe('AI')
 
     // Should show user via agent in author line
     expect(screen.getByText(/Alice via Copilot Bot|Alice 通过 Copilot Bot/i)).toBeTruthy()
   })
 
-  it('renders both Bot icon badge and version badge side-by-side on version stack', () => {
+  it('renders both AI text badge and version badge side-by-side on version stack', () => {
     const agentStackItem: AssetInfo = {
       ...stackItem,
       creator: { id: 'u1', name: 'Alice' },
@@ -147,6 +148,7 @@ describe('FileCard', () => {
 
     const agentBadge = screen.getByTestId('agent-badge')
     expect(agentBadge).toBeTruthy()
+    expect(agentBadge.textContent).toBe('AI')
     expect(screen.getByText('v2')).toBeTruthy()
   })
 })

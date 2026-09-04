@@ -21,7 +21,7 @@ import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
 import { cn } from '@/ui/lib/utils'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
-import { Bot, Download, Edit, History, Layers, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Download, Edit, History, Layers, MoreHorizontal, Trash2 } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
 import FieldRenderer from '../field-renderer'
@@ -256,13 +256,13 @@ export function FileCard({
 
       <div className="absolute right-2 top-2 z-10 flex items-center gap-1.5">
         {displayItem.agent && (
-          <div
-            className="rounded bg-black/60 backdrop-blur-xs p-1 text-white"
+          <span
+            className="select-none rounded bg-black/60 px-1 py-0.5 text-xs font-medium text-white"
             title={displayItem.agent.name}
             data-testid="agent-badge"
           >
-            <Bot className="h-3.5 w-3.5" />
-          </div>
+            AI
+          </span>
         )}
         {displayItem.versionStack && (
           <Badge>
