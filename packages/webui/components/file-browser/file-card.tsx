@@ -257,7 +257,7 @@ export function FileCard({
       <div className="absolute right-2 top-2 z-10 flex items-center gap-1.5">
         {displayItem.agent && (
           <div
-            className="rounded-md bg-background/30 backdrop-blur-md p-1 shadow-xs border border-border/50 text-foreground"
+            className="rounded bg-black/60 backdrop-blur-xs p-1 text-white"
             title={displayItem.agent.name}
             data-testid="agent-badge"
           >

@@ -145,7 +145,7 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
                 <CarouselFilePreview item={file} />
                 {file.agent && (
                   <div
-                    className="absolute top-1 right-1 z-10 pointer-events-none rounded-md bg-background/30 backdrop-blur-md p-0.5 border border-border/50 text-foreground"
+                    className="absolute top-1 right-1 z-10 pointer-events-none rounded bg-black/60 backdrop-blur-xs p-0.5 text-white"
                     title={file.agent.name}
                     data-testid="carousel-agent-badge"
                   >
