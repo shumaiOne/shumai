@@ -8,11 +8,7 @@ export async function getAvatarUrl(
   imageKeyOrUrl: string | null | undefined,
 ): Promise<string | undefined> {
   if (!imageKeyOrUrl) return undefined
-  if (
-    imageKeyOrUrl.startsWith('data:') ||
-    imageKeyOrUrl.startsWith('http://') ||
-    imageKeyOrUrl.startsWith('https://')
-  ) {
+  if (imageKeyOrUrl.startsWith('http://') || imageKeyOrUrl.startsWith('https://')) {
     return imageKeyOrUrl
   }
   try {

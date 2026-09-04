@@ -257,6 +257,77 @@ describe('AgentService', () => {
       expect(updated.user.image).toBe('files/01JK23456789ABCDEF01234567')
     })
 
+    test('Create and Update Agent with Preset Avatars', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { team, provider, model } = await setupTestData(db)
+
+      // 1. Create with specific preset avatar
+      const agent2 = await svc.createAgent({
+        teamId: team.id,
+        name: 'Agent Preset 2',
+        type: 'chat',
+        enabled: true,
+        thinkingLevel: 'off',
+        avatar: 'avatar-2',
+        providerId: provider.id,
+        modelId: model.id,
+      })
+      expect(agent2!.user.image).toMatch(/^files\/[A-Z0-9]{26}\.webp$/)
+      const initialKey = agent2!.user.image
+
+      // 2. Create without avatar (should default to avatar-1)
+      const agentDefault = await svc.createAgent({
+        teamId: team.id,
+        name: 'Agent Default',
+        type: 'chat',
+        enabled: true,
+        thinkingLevel: 'off',
+        providerId: provider.id,
+        modelId: model.id,
+      })
+      expect(agentDefault!.user.image).toMatch(/^files\/[A-Z0-9]{26}\.webp$/)
+
+      // 3. Update agent with a different preset avatar
+      const updatedPreset = await svc.updateAgent({
+        agentId: agent2!.id,
+        name: 'Agent Preset 3',
+        type: 'chat',
+        enabled: true,
+        thinkingLevel: 'off',
+        avatar: 'avatar-3',
+        providerId: provider.id,
+        modelId: model.id,
+      })
+      expect(updatedPreset.user.image).toMatch(/^files\/[A-Z0-9]{26}\.webp$/)
+      expect(updatedPreset.user.image).not.toBe(initialKey)
+
+      // 4. Update with presigned URL containing .webp extension
+      const updatedPresigned = await svc.updateAgent({
+        agentId: agent2!.id,
+        name: 'Agent Presigned',
+        type: 'chat',
+        enabled: true,
+        thinkingLevel: 'off',
+        avatar: 'https://shumai.s3.amazonaws.com/files/01JK23456789ABCDEF01234567.webp?foo=bar',
+        providerId: provider.id,
+        modelId: model.id,
+      })
+      expect(updatedPresigned.user.image).toBe('files/01JK23456789ABCDEF01234567.webp')
+
+      // 5. Update without avatar specified (avatar undefined) - preserves image
+      const updatedWithoutAvatar = await svc.updateAgent({
+        agentId: agent2!.id,
+        name: 'Agent Without Avatar Change',
+        type: 'chat',
+        enabled: true,
+        thinkingLevel: 'off',
+        providerId: provider.id,
+        modelId: model.id,
+      })
+      expect(updatedWithoutAvatar.user.image).toBe('files/01JK23456789ABCDEF01234567.webp')
+    })
+
     test('Delete Agent', async () => {
       const db = prisma
       const svc = new AgentService()
