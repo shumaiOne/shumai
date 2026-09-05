@@ -74,6 +74,8 @@ const STANDARD_TOOLS = [
   { value: 'create_folder', label: () => m.agent_tool_create_folder_name() },
   { value: 'create_file', label: () => m.agent_tool_create_file_name() },
   { value: 'create_version', label: () => m.agent_tool_create_version_name() },
+  { value: 'generate_image', label: () => m.agent_tool_generate_image_name() },
+  { value: 'generate_video', label: () => m.agent_tool_generate_video_name() },
 ]
 
 /* eslint-disable @typescript-eslint/naming-convention */

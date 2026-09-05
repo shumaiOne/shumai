@@ -252,16 +252,6 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
   return (
     <ScrollArea className="h-full pr-1">
       <div className="space-y-8 pb-12">
-        {/* Header Description */}
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">
-            {m.image_video_generation()}
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            {m.media_generation_settings_description()}
-          </p>
-        </div>
-
         {/* Section 1: Media Providers */}
         <Card className="border-border">
           <CardHeader>
@@ -269,7 +259,7 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
             <CardDescription>{m.media_providers_description()}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-2.5">
               {providers.map((provider) => {
                 const displayName = PROVIDER_NAMES[provider.provider] || provider.provider
                 const isCustom = provider.status === 'configured_custom'
@@ -278,15 +268,17 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                 return (
                   <div
                     key={provider.provider}
-                    className="flex flex-col justify-between p-3.5 rounded-lg border border-border bg-card/50 hover:bg-card/80 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg border border-border bg-card/50 hover:bg-card/80 transition-colors"
                   >
-                    <div>
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="font-medium text-sm text-foreground">{displayName}</div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                      <div className="min-w-[160px] flex items-center gap-2">
+                        <span className="font-medium text-sm text-foreground truncate">
+                          {displayName}
+                        </span>
                         {isCustom && (
                           <Badge
                             variant="outline"
-                            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[11px]"
+                            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[11px] shrink-0"
                           >
                             <CheckCircle2 className="w-3 h-3 mr-1" />
                             {m.provider_status_configured_custom()}
@@ -295,7 +287,7 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                         {isEnv && (
                           <Badge
                             variant="outline"
-                            className="bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20 text-[11px]"
+                            className="bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20 text-[11px] shrink-0"
                           >
                             <CheckCircle2 className="w-3 h-3 mr-1" />
                             {m.provider_status_configured_env()}
@@ -304,42 +296,45 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                         {!isCustom && !isEnv && (
                           <Badge
                             variant="outline"
-                            className="bg-muted text-muted-foreground border-border text-[11px]"
+                            className="bg-muted text-muted-foreground border-border text-[11px] shrink-0"
                           >
                             {m.provider_status_not_configured()}
                           </Badge>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1.5 mb-3">
-                        {provider.supportedTypes.includes('image') && (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-accent/60 px-1.5 py-0.5 rounded">
-                            <ImageIcon className="w-3 h-3" />
-                            {m.media_type_image()}
-                          </span>
-                        )}
-                        {provider.supportedTypes.includes('video') && (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-accent/60 px-1.5 py-0.5 rounded">
-                            <VideoIcon className="w-3 h-3" />
-                            {m.media_type_video()}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="text-xs text-muted-foreground truncate mb-3">
-                        <span className="opacity-70">{provider.defaultEnvKey}</span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          {provider.supportedTypes.includes('image') && (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-accent/60 px-1.5 py-0.5 rounded">
+                              <ImageIcon className="w-3 h-3" />
+                              {m.media_type_image()}
+                            </span>
+                          )}
+                          {provider.supportedTypes.includes('video') && (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-accent/60 px-1.5 py-0.5 rounded">
+                              <VideoIcon className="w-3 h-3" />
+                              {m.media_type_video()}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground font-mono opacity-70">
+                          {provider.defaultEnvKey}
+                        </span>
                       </div>
                     </div>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-xs h-8"
-                      onClick={() => handleOpenKeyDialog(provider)}
-                    >
-                      <Key className="w-3.5 h-3.5 mr-1.5" />
-                      {provider.apiKeyConfigured ? m.edit_api_key() : m.configure_api_key()}
-                    </Button>
+                    <div className="flex items-center justify-end shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-8 whitespace-nowrap"
+                        onClick={() => handleOpenKeyDialog(provider)}
+                      >
+                        <Key className="w-3.5 h-3.5 mr-1.5" />
+                        {provider.apiKeyConfigured ? m.edit_api_key() : m.configure_api_key()}
+                      </Button>
+                    </div>
                   </div>
                 )
               })}

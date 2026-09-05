@@ -547,6 +547,7 @@ function TeamSettingsPage() {
                   {activeTab === 'skills' && m.skills_management()}
                   {activeTab === 'mcp' && m.mcp_servers()}
                   {activeTab === 'providers' && m.ai_providers()}
+                  {activeTab === 'image-video' && m.image_video_generation()}
                   {activeTab === 'agents' && m.ai_agents()}
                   {activeTab === 'sandbox' && m.agent_sandbox_settings()}
                   {activeTab === 'notifications' && m.notification_settings()}
@@ -559,6 +560,7 @@ function TeamSettingsPage() {
                   {activeTab === 'skills' && m.skills_description()}
                   {activeTab === 'mcp' && m.mcp_servers_description()}
                   {activeTab === 'providers' && m.providers_description()}
+                  {activeTab === 'image-video' && m.media_generation_settings_description()}
                   {activeTab === 'agents' && m.agents_description()}
                   {activeTab === 'sandbox' && m.sandbox_description()}
                   {activeTab === 'notifications' && m.notifications_description()}
