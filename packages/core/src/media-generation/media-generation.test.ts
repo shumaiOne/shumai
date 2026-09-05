@@ -247,12 +247,29 @@ describe('MediaGenerationService', () => {
       apiKey: 'test-gemini-key',
       mode: 'text_to_video',
       prompt: 'A cinematic drone shot over rolling hills',
+      aspectRatio: '16:9',
+      resolution: '1280x720',
+      duration: 5,
+      fps: 24,
+      generateAudio: true,
       seed: 42,
     })
 
     expect(mockGenerateText).toHaveBeenCalledTimes(1)
     const callArgs = mockGenerateText.mock.calls[0][0]
     expect(callArgs.seed).toBe(42)
+    expect(callArgs.system).toContain('Aspect ratio: 16:9')
+    expect(callArgs.system).toContain('Resolution: 720p (1280x720)')
+    expect(callArgs.system).toContain('Duration: 5 seconds')
+    expect(callArgs.system).toContain('Frame rate: 24 fps')
+    expect(callArgs.system).toContain('Audio: generate synchronized audio')
+    const messages = callArgs.messages as Array<{
+      role: string
+      content: Array<{ type: string; text?: string }>
+    }>
+    expect(messages[0].content[0].text).toContain(
+      '[Video parameters: Aspect ratio: 16:9, Resolution: 720p (1280x720), Duration: 5 seconds, Frame rate: 24 fps, Audio: generate synchronized audio]',
+    )
     expect(callArgs.providerOptions).toEqual({
       google: {
         responseModalities: ['video'],

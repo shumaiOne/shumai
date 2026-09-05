@@ -863,8 +863,45 @@ export class MediaGenerationService {
       | { type: 'file'; data: Buffer | Uint8Array; mediaType: string }
     > = []
 
-    if (params.prompt && params.prompt.trim()) {
-      content.push({ type: 'text', text: params.prompt.trim() })
+    const specs: string[] = []
+    if (params.aspectRatio) {
+      specs.push(`- Aspect ratio: ${params.aspectRatio}`)
+    }
+    if (params.resolution) {
+      const resolutionMap: Record<string, string> = {
+        '640x360': '360p',
+        '1280x720': '720p',
+        '1920x1080': '1080p',
+        '3840x2160': '4K',
+      }
+      const resName = resolutionMap[params.resolution] || params.resolution
+      specs.push(`- Resolution: ${resName} (${params.resolution})`)
+    }
+    if (params.duration) {
+      specs.push(`- Duration: ${params.duration} seconds`)
+    }
+    if (params.fps) {
+      specs.push(`- Frame rate: ${params.fps} fps`)
+    }
+    if (params.generateAudio !== undefined) {
+      specs.push(
+        `- Audio: ${params.generateAudio ? 'generate synchronized audio' : 'silent / no audio'}`,
+      )
+    }
+
+    const systemInstruction =
+      specs.length > 0
+        ? `You are generating a video with Gemini Omni Flash. Follow the user request and strictly adhere to these video generation specifications:\n${specs.join('\n')}`
+        : undefined
+
+    let userPrompt = params.prompt?.trim() || ''
+    if (specs.length > 0) {
+      const specLine = `[Video parameters: ${specs.map((s) => s.replace(/^- /, '')).join(', ')}]`
+      userPrompt = userPrompt ? `${userPrompt}\n\n${specLine}` : specLine
+    }
+
+    if (userPrompt) {
+      content.push({ type: 'text', text: userPrompt })
     }
 
     const addImagePart = (input?: string | Uint8Array | Buffer) => {
@@ -894,6 +931,7 @@ export class MediaGenerationService {
 
     const result = await aiGenerateText({
       model,
+      system: systemInstruction,
       messages: [{ role: 'user', content }],
       providerOptions: {
         google: {
