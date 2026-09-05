@@ -146,7 +146,7 @@ describe('ImageVideoGenerationSettings', () => {
       </QueryClientProvider>,
     )
 
-  it('renders provider list and enabled models', async () => {
+  it('renders 2 tabs and switches between Providers and Enabled Models', async () => {
     renderComponent()
 
     await waitFor(() => {
@@ -155,12 +155,23 @@ describe('ImageVideoGenerationSettings', () => {
       expect(screen.getAllByText('Fal').length).toBeGreaterThan(0)
     })
 
-    // Verify enabled models table
-    expect(screen.getByText('dall-e-3')).toBeDefined()
-    expect(screen.getByText('kling-v1-standard')).toBeDefined()
+    const openaiProvider = screen.getByText('OpenAI')
+    expect(openaiProvider.className).toContain('whitespace-nowrap')
+    const keySpan = screen.getByText('OPENAI_API_KEY')
+    expect(keySpan.className).toContain('truncate')
+
+    // Switch to Enabled Models tab
+    const modelsTab = screen.getByRole('tab', { name: /Enabled Models/i })
+    fireEvent.click(modelsTab)
+
+    // Verify enabled models table content is displayed
+    await waitFor(() => {
+      expect(screen.getByText('dall-e-3')).toBeDefined()
+      expect(screen.getByText('kling-v1-standard')).toBeDefined()
+    })
   })
 
-  it('opens configure API key dialog and saves new key', async () => {
+  it('opens configure API key dialog and saves new key or env var override', async () => {
     renderComponent()
 
     await waitFor(() => {
@@ -174,9 +185,16 @@ describe('ImageVideoGenerationSettings', () => {
       expect(screen.getByRole('dialog')).toBeDefined()
     })
 
-    const input = document.querySelector('input[type="password"]') as HTMLInputElement
+    // Input is type="text" and displays description
+    const input = document.querySelector('input[type="text"]') as HTMLInputElement
     expect(input).toBeDefined()
-    fireEvent.change(input, { target: { value: 'sk-new-openai-test-key' } })
+    expect(
+      screen.getByText(
+        'You can provide a literal value (e.g. sk-...) or an Environment variable name (e.g. MY_API_KEY).',
+      ),
+    ).toBeDefined()
+
+    fireEvent.change(input, { target: { value: 'OPENAI_API_NEW_KEY' } })
 
     const saveButton = screen.getByRole('button', { name: 'Save' })
     fireEvent.click(saveButton)
@@ -184,35 +202,20 @@ describe('ImageVideoGenerationSettings', () => {
     await waitFor(() => {
       expect(mockPutProvider).toHaveBeenCalledWith({
         param: { teamId: 'team-123', provider: 'openai' },
-        json: { apiKey: 'sk-new-openai-test-key' },
+        json: { apiKey: 'OPENAI_API_NEW_KEY' },
       })
     })
   })
 
-  it('opens add model dialog and enables adding model', async () => {
-    renderComponent()
-
-    await waitFor(() => {
-      expect(screen.getAllByText('OpenAI').length).toBeGreaterThan(0)
-    })
-
-    const addModelButtons = screen.getAllByRole('button', { name: /Add Model/i })
-    fireEvent.click(addModelButtons[0])
-
-    await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeDefined()
-    })
-    expect(
-      screen.getByText('Select the media generation type, provider, and model to enable.'),
-    ).toBeDefined()
-  })
-
-  it('masks existing custom key and allows removing custom key', async () => {
+  it('shows unmasked custom key/env in dialog and allows removing custom override', async () => {
     renderComponent()
 
     await waitFor(() => {
       expect(screen.getAllByText('Kling AI').length).toBeGreaterThan(0)
     })
+
+    // In the providers list row, Kling AI shows custom override
+    expect(screen.getByText('my-custom-key')).toBeDefined()
 
     const editButtons = screen.getAllByRole('button', { name: /Edit API Key/i })
     // Kling AI is index 1
@@ -222,11 +225,12 @@ describe('ImageVideoGenerationSettings', () => {
       expect(screen.getByRole('dialog')).toBeDefined()
     })
 
-    const input = document.querySelector('input[type="password"]') as HTMLInputElement
+    // Input displays raw text 'my-custom-key'
+    const input = document.querySelector('input[type="text"]') as HTMLInputElement
     expect(input).toBeDefined()
-    expect(input.value).toBe('') // Secret is not prefilled in the input
-    expect(input.placeholder).toBe('••••••••') // Masked indicator
+    expect(input.value).toBe('my-custom-key')
 
+    // Click Remove Key
     const removeButton = screen.getByRole('button', { name: 'Remove Key' })
     fireEvent.click(removeButton)
 
@@ -234,6 +238,129 @@ describe('ImageVideoGenerationSettings', () => {
       expect(mockPutProvider).toHaveBeenCalledWith({
         param: { teamId: 'team-123', provider: 'klingai' },
         json: { apiKey: '' },
+      })
+    })
+  })
+
+  it('opens add model dialog with 2-card switch and 2-box provider/model selector', async () => {
+    renderComponent()
+
+    await waitFor(() => {
+      expect(screen.getAllByText('OpenAI').length).toBeGreaterThan(0)
+    })
+
+    // Switch to Enabled Models tab
+    const modelsTab = screen.getByRole('tab', { name: /Enabled Models/i })
+    fireEvent.click(modelsTab)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Add Model/i })).toBeDefined()
+    })
+
+    const addModelButton = screen.getByRole('button', { name: /Add Model/i })
+    fireEvent.click(addModelButton)
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeDefined()
+    })
+
+    // 2-card model type selector
+    expect(screen.getByRole('button', { name: /Image/i })).toBeDefined()
+    expect(screen.getByRole('button', { name: /Video/i })).toBeDefined()
+
+    // Left box should show compatible providers for Image (OpenAI and Fal)
+    expect(screen.getByText('Select a provider on the left to view available models')).toBeDefined()
+
+    // Click OpenAI in providers list
+    const openaiProviderBtn = screen.getByRole('button', { name: /OpenAI/i })
+    fireEvent.click(openaiProviderBtn)
+
+    // Right box loads curated models
+    await waitFor(() => {
+      expect(mockGetCurated).toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: /DALL-E 2/i })).toBeDefined()
+    })
+
+    // Select DALL-E 2
+    const modelBtn = screen.getByRole('button', { name: /DALL-E 2/i })
+    fireEvent.click(modelBtn)
+
+    // Display name input should be prefilled
+    const displayNameInput = screen.getByPlaceholderText(
+      'Friendly name for this model',
+    ) as HTMLInputElement
+    expect(displayNameInput.value).toBe('DALL-E 2')
+
+    // Click Add
+    const submitBtn = screen.getByRole('button', { name: /^Add$/ })
+    fireEvent.click(submitBtn)
+
+    await waitFor(() => {
+      expect(mockPostModel).toHaveBeenCalledWith({
+        param: { teamId: 'team-123' },
+        json: {
+          type: 'image',
+          provider: 'openai',
+          modelId: 'dall-e-2',
+          name: 'DALL-E 2',
+        },
+      })
+    })
+  })
+
+  it('supports selecting video type and custom model option', async () => {
+    mockGetCurated.mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    })
+
+    renderComponent()
+
+    await waitFor(() => {
+      expect(screen.getAllByText('OpenAI').length).toBeGreaterThan(0)
+    })
+
+    // Switch to Enabled Models tab and open Add Model dialog
+    fireEvent.click(screen.getByRole('tab', { name: /Enabled Models/i }))
+    await waitFor(() => screen.getByRole('button', { name: /Add Model/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Add Model/i }))
+
+    await waitFor(() => screen.getByRole('dialog'))
+
+    // Switch to Video card
+    const videoCard = screen.getByRole('button', { name: /Video/i })
+    fireEvent.click(videoCard)
+
+    // Select Kling AI
+    await waitFor(() => screen.getByRole('button', { name: /Kling AI/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Kling AI/i }))
+
+    // Select Custom Model option
+    await waitFor(() => screen.getByRole('button', { name: /Custom Model\.\.\./i }))
+    fireEvent.click(screen.getByRole('button', { name: /Custom Model\.\.\./i }))
+
+    // Fill in custom model ID and display name
+    const customIdInput = screen.getByPlaceholderText('Enter custom model ID') as HTMLInputElement
+    fireEvent.change(customIdInput, { target: { value: 'kling-v2-custom' } })
+
+    const displayNameInput = screen.getByPlaceholderText(
+      'Friendly name for this model',
+    ) as HTMLInputElement
+    fireEvent.change(displayNameInput, { target: { value: 'My Kling Model' } })
+
+    // Click Add
+    const submitBtn = screen.getByRole('button', { name: /^Add$/ })
+    fireEvent.click(submitBtn)
+
+    await waitFor(() => {
+      expect(mockPostModel).toHaveBeenCalledWith({
+        param: { teamId: 'team-123' },
+        json: {
+          type: 'video',
+          provider: 'klingai',
+          modelId: 'kling-v2-custom',
+          name: 'My Kling Model',
+        },
       })
     })
   })

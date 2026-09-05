@@ -437,7 +437,7 @@ export class MediaGenerationService {
         defaultEnvKey: def.defaultEnvKey,
         apiKeyConfigured: !!resolvedKey,
         status,
-        customApiKeyOrEnv: customKey ? '••••••••' : undefined,
+        customApiKeyOrEnv: customKey || undefined,
         supportedTypes: def.supportedTypes,
       }
     })

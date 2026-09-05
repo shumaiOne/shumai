@@ -1404,5 +1404,9 @@
   "add_media_model_desc": "Select the media generation type, provider, and model to enable.",
   "loading_models": "Loading models...",
   "remove_model_prompt": "Remove model {modelId} ({provider}) from enabled models?",
-  "remove_key": "Remove Key"
+  "remove_key": "Remove Key",
+  "select_provider_first": "Select a provider on the left to view available models",
+  "search_providers": "Search providers...",
+  "search_models": "Search models...",
+  "default_env_var_desc": "Default: {envKey}"
 }

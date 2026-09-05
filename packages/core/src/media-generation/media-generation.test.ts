@@ -56,7 +56,7 @@ describe('MediaGenerationService', () => {
 
     expect(openai?.apiKeyConfigured).toBe(true)
     expect(openai?.status).toBe('configured_custom')
-    expect(openai?.customApiKeyOrEnv).toBe('••••••••')
+    expect(openai?.customApiKeyOrEnv).toBe('sk-literal-key')
 
     // 2. Set custom ENV var name
     process.env.MY_CUSTOM_OPENAI_ENV = 'sk-resolved-custom-env'
@@ -66,7 +66,7 @@ describe('MediaGenerationService', () => {
 
     expect(openai?.apiKeyConfigured).toBe(true)
     expect(openai?.status).toBe('configured_custom')
-    expect(openai?.customApiKeyOrEnv).toBe('••••••••')
+    expect(openai?.customApiKeyOrEnv).toBe('MY_CUSTOM_OPENAI_ENV')
     expect(mediaGenerationService.resolveApiKey('openai', 'MY_CUSTOM_OPENAI_ENV')).toBe(
       'sk-resolved-custom-env',
     )
