@@ -1400,5 +1400,9 @@
   "model_removed_successfully": "模型移除成功",
   "failed_to_remove_model": "移除模型失败",
   "remove_model_confirm": "确定要移除此模型吗？",
-  "model_requires_api_key_warning": "此提供商尚未配置。在配置 API 密钥之前，使用此模型的工具将不可用。"
+  "model_requires_api_key_warning": "此提供商尚未配置。在配置 API 密钥之前，使用此模型的工具将不可用。",
+  "add_media_model_desc": "选择要启用的媒体生成类型、提供商和模型。",
+  "loading_models": "正在加载模型...",
+  "remove_model_prompt": "确定要从已启用模型中移除模型 {modelId}（{provider}）吗？",
+  "remove_key": "移除密钥"
 }

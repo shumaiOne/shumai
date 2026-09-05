@@ -167,6 +167,7 @@ function TeamSettingsPage() {
       'transcode',
       'quotas',
       'providers',
+      'image-video',
       'skills',
       'mcp',
       'agents',

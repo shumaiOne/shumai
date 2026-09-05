@@ -2,21 +2,23 @@ import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { EnabledMediaModel } from '@shumai/dtos'
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
-import { Type, type TSchema } from 'typebox'
+import { Type, type Static, type TSchema } from 'typebox'
 import * as fs from 'fs'
 import * as path from 'path'
 import { ulid } from 'ulid'
-import { resolveMediaData } from './generate-image'
+import { resolveS3MediaBuffer } from './download-asset'
 
 export function createGenerateVideoTool(
   enabledModels: EnabledMediaModel[],
   providerKeys: Record<string, { apiKey?: string }>,
+  userId?: string,
 ): AgentTool {
+  const modelIdentifiers = enabledModels.map((m) => `${m.provider}:${m.modelId}`)
   const modelSchemas =
-    enabledModels.length === 1
-      ? Type.Literal(enabledModels[0].modelId)
+    modelIdentifiers.length === 1
+      ? Type.Literal(modelIdentifiers[0])
       : Type.Union(
-          enabledModels.map((m) => Type.Literal(m.modelId)) as unknown as [
+          modelIdentifiers.map((id) => Type.Literal(id)) as unknown as [
             TSchema,
             TSchema,
             ...TSchema[],
@@ -38,7 +40,7 @@ export function createGenerateVideoTool(
         },
       ),
       model: Type.Union([modelSchemas, Type.Null()], {
-        description: `The video model to use. Available enabled models: ${enabledModels.map((m) => m.modelId).join(', ')}. Pass null to use the first enabled model (${enabledModels[0].modelId}).`,
+        description: `The video model to use, in "provider:modelId" format. Available enabled models: ${modelIdentifiers.join(', ')}. Pass null to use the first enabled model (${modelIdentifiers[0]}).`,
       }),
       outputFileName: Type.Union([
         Type.String({
@@ -63,7 +65,7 @@ export function createGenerateVideoTool(
           {
             image: Type.String({
               description:
-                'Path (e.g. in .pi/), workspace asset ID, or URL of the image to animate.',
+                'Storage S3 key of the image to animate. Call read_asset with s3KeyOnly: true to obtain the S3 key of an image asset or video frame without loading its content into context.',
             }),
             prompt: Type.Union([
               Type.String({
@@ -80,11 +82,17 @@ export function createGenerateVideoTool(
         Type.Object(
           {
             firstFrame: Type.Union([
-              Type.String({ description: 'Starting frame image path, asset ID, or URL.' }),
+              Type.String({
+                description:
+                  'Storage S3 key of the starting frame image. Call read_asset with s3KeyOnly: true to obtain the S3 key.',
+              }),
               Type.Null(),
             ]),
             lastFrame: Type.Union([
-              Type.String({ description: 'Ending frame image path, asset ID, or URL.' }),
+              Type.String({
+                description:
+                  'Storage S3 key of the ending frame image. Call read_asset with s3KeyOnly: true to obtain the S3 key.',
+              }),
               Type.Null(),
             ]),
             prompt: Type.Union([
@@ -101,7 +109,7 @@ export function createGenerateVideoTool(
           {
             references: Type.Array(Type.String(), {
               description:
-                'List of image/video paths, asset IDs, or URLs for style/motion/character reference.',
+                'List of storage S3 keys for style/motion/character reference images. Call read_asset with s3KeyOnly: true to obtain the S3 keys.',
             }),
             prompt: Type.Union([
               Type.String({ description: 'Prompt describing the video to generate.' }),
@@ -150,21 +158,26 @@ export function createGenerateVideoTool(
     { additionalProperties: false },
   )
 
+  type GenerateVideoParams = Static<typeof generateVideoSchema>
+
   return {
     name: 'generate_video',
     label: 'Generate Video',
     description:
-      'Generate a video using a configured video model. Supports text-to-video, image-to-video, first/last frame, and reference-to-video. The generated file is saved in the local .pi/ directory.',
+      'Generate a video using a configured video model. Supports text-to-video, image-to-video (using an S3 image key from read_asset), first/last frame (using S3 image keys from read_asset), and reference-to-video (using S3 image keys from read_asset). The generated file is saved in the local .pi/ directory.',
     parameters: generateVideoSchema,
     execute: async (_toolCallId, params) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const p = params as any
+      const p = params as GenerateVideoParams
 
-      const selectedModelId = p.model || enabledModels[0].modelId
-      const modelConfig = enabledModels.find((m) => m.modelId === selectedModelId)
+      const defaultModel = `${enabledModels[0].provider}:${enabledModels[0].modelId}`
+      const selected = p.model || defaultModel
+      const modelConfig =
+        enabledModels.find((m) => `${m.provider}:${m.modelId}` === selected) ||
+        enabledModels.find((m) => m.modelId === selected)
+
       if (!modelConfig) {
         throw new Error(
-          `Video model "${selectedModelId}" is not enabled. Available enabled models: ${enabledModels.map((m) => m.modelId).join(', ')}`,
+          `Video model "${selected}" is not enabled. Available enabled models: ${modelIdentifiers.join(', ')}`,
         )
       }
 
@@ -177,10 +190,10 @@ export function createGenerateVideoTool(
       }
 
       let promptText = ''
-      let resolvedImage: string | Buffer | undefined
-      let resolvedFirstFrame: string | Buffer | undefined
-      let resolvedLastFrame: string | Buffer | undefined
-      let resolvedReferences: Array<string | Buffer> | undefined
+      let resolvedImage: Buffer | undefined
+      let resolvedFirstFrame: Buffer | undefined
+      let resolvedLastFrame: Buffer | undefined
+      let resolvedReferences: Buffer[] | undefined
 
       if (p.mode === 'text_to_video') {
         if (!p.textToVideoConfig?.prompt) {
@@ -191,7 +204,8 @@ export function createGenerateVideoTool(
         if (!p.imageToVideoConfig?.image) {
           throw new Error('imageToVideoConfig.image is required when mode is "image_to_video"')
         }
-        resolvedImage = await resolveMediaData(p.imageToVideoConfig.image)
+        const { buffer } = await resolveS3MediaBuffer(p.imageToVideoConfig.image, userId || '')
+        resolvedImage = buffer
         promptText = p.imageToVideoConfig.prompt || ''
       } else if (p.mode === 'first_last_frame') {
         if (!p.firstLastFrameConfig?.firstFrame && !p.firstLastFrameConfig?.lastFrame) {
@@ -200,10 +214,18 @@ export function createGenerateVideoTool(
           )
         }
         if (p.firstLastFrameConfig.firstFrame) {
-          resolvedFirstFrame = await resolveMediaData(p.firstLastFrameConfig.firstFrame)
+          const { buffer } = await resolveS3MediaBuffer(
+            p.firstLastFrameConfig.firstFrame,
+            userId || '',
+          )
+          resolvedFirstFrame = buffer
         }
         if (p.firstLastFrameConfig.lastFrame) {
-          resolvedLastFrame = await resolveMediaData(p.firstLastFrameConfig.lastFrame)
+          const { buffer } = await resolveS3MediaBuffer(
+            p.firstLastFrameConfig.lastFrame,
+            userId || '',
+          )
+          resolvedLastFrame = buffer
         }
         promptText = p.firstLastFrameConfig.prompt || ''
       } else if (p.mode === 'reference_to_video') {
@@ -214,7 +236,10 @@ export function createGenerateVideoTool(
           throw new Error('referenceToVideoConfig.references list is required')
         }
         resolvedReferences = await Promise.all(
-          p.referenceToVideoConfig.references.map((ref: string) => resolveMediaData(ref)),
+          p.referenceToVideoConfig.references.map(async (ref: string) => {
+            const { buffer } = await resolveS3MediaBuffer(ref, userId || '')
+            return buffer
+          }),
         )
         promptText = p.referenceToVideoConfig.prompt || ''
       }
@@ -229,8 +254,8 @@ export function createGenerateVideoTool(
         firstFrame: resolvedFirstFrame,
         lastFrame: resolvedLastFrame,
         inputReferences: resolvedReferences,
-        aspectRatio: p.aspectRatio || undefined,
-        resolution: p.resolution || undefined,
+        aspectRatio: (p.aspectRatio as `${number}:${number}` | 'adaptive') || undefined,
+        resolution: (p.resolution as `${number}x${number}`) || undefined,
         duration: p.duration !== null && p.duration !== undefined ? p.duration : undefined,
         fps: p.fps !== null && p.fps !== undefined ? p.fps : undefined,
         generateAudio: p.generateAudio !== null ? p.generateAudio : undefined,

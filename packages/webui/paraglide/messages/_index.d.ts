@@ -1335,4 +1335,8 @@ export * from "./model_removed_successfully.js";
 export * from "./failed_to_remove_model.js";
 export * from "./remove_model_confirm.js";
 export * from "./model_requires_api_key_warning.js";
+export * from "./add_media_model_desc.js";
+export * from "./loading_models.js";
+export * from "./remove_model_prompt.js";
+export * from "./remove_key.js";
 export type LocalizedString = import("../runtime.js").LocalizedString;

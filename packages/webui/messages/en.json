@@ -1400,5 +1400,9 @@
   "model_removed_successfully": "Model removed successfully",
   "failed_to_remove_model": "Failed to remove model",
   "remove_model_confirm": "Are you sure you want to remove this model?",
-  "model_requires_api_key_warning": "This provider is not configured. Tools using this model will not be available until an API key is configured."
+  "model_requires_api_key_warning": "This provider is not configured. Tools using this model will not be available until an API key is configured.",
+  "add_media_model_desc": "Select the media generation type, provider, and model to enable.",
+  "loading_models": "Loading models...",
+  "remove_model_prompt": "Remove model {modelId} ({provider}) from enabled models?",
+  "remove_key": "Remove Key"
 }

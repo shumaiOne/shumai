@@ -437,7 +437,7 @@ export class MediaGenerationService {
         defaultEnvKey: def.defaultEnvKey,
         apiKeyConfigured: !!resolvedKey,
         status,
-        customApiKeyOrEnv: customKey || undefined,
+        customApiKeyOrEnv: customKey ? '••••••••' : undefined,
         supportedTypes: def.supportedTypes,
       }
     })
@@ -606,48 +606,63 @@ export class MediaGenerationService {
   getImageModel(provider: string, modelId: string, apiKey: string) {
     switch (provider) {
       case 'openai':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createOpenAI({ apiKey }).image(modelId as any)
       case 'google':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createGoogleGenerativeAI({ apiKey }).image(modelId as any)
       case 'google-vertex':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createGoogleVertex({ apiKey }).image(modelId as any)
       case 'xai':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createXai({ apiKey }).image(modelId as any)
       case 'fal':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createFal({ apiKey }).image(modelId as any)
       case 'replicate':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createReplicate({ apiToken: apiKey }).image(modelId as any)
       case 'black-forest-labs':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createBlackForestLabs({ apiKey }).image(modelId as any)
       case 'togetherai':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createTogetherAI({ apiKey }).image(modelId as any)
       case 'fireworks':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createFireworks({ apiKey }).image(modelId as any)
       case 'deepinfra':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createDeepInfra({ apiKey }).image(modelId as any)
       case 'luma':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createLuma({ apiKey }).image(modelId as any)
       case 'amazon-bedrock':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createAmazonBedrock({ apiKey }).image(modelId as any)
       case 'bytedance':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createByteDance({ apiKey }).image(modelId as any)
       case 'prodia':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createProdia({ apiKey }).image(modelId as any)
       case 'azure':
+        // AI SDK provider image method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createAzure({ apiKey }).image(modelId as any)
       default:
@@ -658,36 +673,47 @@ export class MediaGenerationService {
   getVideoModel(provider: string, modelId: string, apiKey: string) {
     switch (provider) {
       case 'google':
+        // AI SDK provider video method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createGoogleGenerativeAI({ apiKey }).video(modelId as any)
       case 'google-vertex':
+        // AI SDK provider video method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createGoogleVertex({ apiKey }).video(modelId as any)
       case 'xai':
+        // AI SDK provider video method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createXai({ apiKey }).video(modelId as any)
       case 'fal':
+        // AI SDK provider video method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createFal({ apiKey }).video(modelId as any)
       case 'replicate':
+        // AI SDK provider video method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createReplicate({ apiToken: apiKey }).video(modelId as any)
       case 'black-forest-labs':
+        // AI SDK provider video method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createBlackForestLabs({ apiKey }).video(modelId as any)
       case 'klingai':
+        // AI SDK provider video method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createKlingAI({ apiKey }).video(modelId as any)
       case 'alibaba':
+        // AI SDK provider video method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createAlibaba({ apiKey }).video(modelId as any)
       case 'bytedance':
+        // AI SDK provider video method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createByteDance({ apiKey }).video(modelId as any)
       case 'minimax':
+        // AI SDK provider video method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createMiniMax({ apiKey }).video(modelId as any)
       case 'prodia':
+        // AI SDK provider video method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createProdia({ apiKey }).video(modelId as any)
       default:
@@ -702,14 +728,14 @@ export class MediaGenerationService {
   }> {
     const model = this.getImageModel(params.provider, params.modelId, params.apiKey)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let promptPayload: any = params.prompt
+    type GenerateImageOptions = Parameters<typeof aiGenerateImage>[0]
+    let promptPayload: GenerateImageOptions['prompt'] = params.prompt
     if ((params.images && params.images.length > 0) || params.mask) {
       promptPayload = {
         text: params.prompt,
         images: params.images || [],
         mask: params.mask,
-      }
+      } as unknown as GenerateImageOptions['prompt']
     }
 
     const { image, warnings } = await aiGenerateImage({
@@ -729,8 +755,8 @@ export class MediaGenerationService {
       throw new Error('No image binary data returned by provider')
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mimeType = (image as any).mediaType || (image as any).mimeType || 'image/png'
+    const imageInfo = image as unknown as { mediaType?: string; mimeType?: string }
+    const mimeType = imageInfo.mediaType || imageInfo.mimeType || 'image/png'
 
     return {
       buffer,
@@ -746,25 +772,29 @@ export class MediaGenerationService {
   }> {
     const model = this.getVideoModel(params.provider, params.modelId, params.apiKey)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let promptPayload: any = params.prompt || ''
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let frameImages: any = undefined
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let inputReferences: any = undefined
+    type GenerateVideoOptions = Parameters<typeof aiGenerateVideo>[0]
+    let promptPayload: GenerateVideoOptions['prompt'] = params.prompt || ''
+    let frameImages: GenerateVideoOptions['frameImages'] = undefined
+    let inputReferences: GenerateVideoOptions['inputReferences'] = undefined
 
     if (params.mode === 'image_to_video' && params.image) {
       promptPayload = {
         text: params.prompt || '',
         image: params.image,
-      }
+      } as unknown as GenerateVideoOptions['prompt']
     } else if (params.mode === 'first_last_frame') {
-      const frames = []
+      const frames: NonNullable<GenerateVideoOptions['frameImages']> = []
       if (params.firstFrame) {
-        frames.push({ image: params.firstFrame, frameType: 'first_frame' as const })
+        frames.push({
+          image: params.firstFrame,
+          frameType: 'first_frame',
+        } as unknown as NonNullable<GenerateVideoOptions['frameImages']>[number])
       }
       if (params.lastFrame) {
-        frames.push({ image: params.lastFrame, frameType: 'last_frame' as const })
+        frames.push({
+          image: params.lastFrame,
+          frameType: 'last_frame',
+        } as unknown as NonNullable<GenerateVideoOptions['frameImages']>[number])
       }
       if (frames.length > 0) {
         frameImages = frames
@@ -774,7 +804,7 @@ export class MediaGenerationService {
       params.inputReferences &&
       params.inputReferences.length > 0
     ) {
-      inputReferences = params.inputReferences
+      inputReferences = params.inputReferences as unknown as GenerateVideoOptions['inputReferences']
     }
 
     const { video, warnings } = await aiGenerateVideo({
@@ -799,8 +829,8 @@ export class MediaGenerationService {
       throw new Error('No video binary data returned by provider')
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mimeType = (video as any).mediaType || (video as any).mimeType || 'video/mp4'
+    const videoInfo = video as unknown as { mediaType?: string; mimeType?: string }
+    const mimeType = videoInfo.mediaType || videoInfo.mimeType || 'video/mp4'
 
     return {
       buffer,

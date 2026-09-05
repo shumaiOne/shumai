@@ -2,69 +2,23 @@ import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { EnabledMediaModel } from '@shumai/dtos'
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
-import { s3Service } from '@shumai/core/src/s3/s3'
-import { prisma } from '@shumai/db'
-import { Type, type TSchema } from 'typebox'
+import { Type, type Static, type TSchema } from 'typebox'
 import * as fs from 'fs'
 import * as path from 'path'
 import { ulid } from 'ulid'
-
-export async function resolveMediaData(input: string): Promise<string | Buffer> {
-  const trimmed = input.trim()
-  if (
-    trimmed.startsWith('http://') ||
-    trimmed.startsWith('https://') ||
-    trimmed.startsWith('data:')
-  ) {
-    return trimmed
-  }
-
-  // Check direct local path
-  const absPath = path.resolve(process.cwd(), trimmed)
-  if (fs.existsSync(absPath)) {
-    return fs.readFileSync(absPath)
-  }
-
-  // Check path relative to .pi
-  const piPath = path.resolve(process.cwd(), '.pi', trimmed)
-  if (fs.existsSync(piPath)) {
-    return fs.readFileSync(piPath)
-  }
-
-  // Check if it is a storage key
-  if (trimmed.startsWith('files/')) {
-    const bucket = process.env.S3_BUCKET || 'shumai'
-    const { buffer } = await s3Service.getObject(bucket, trimmed)
-    return buffer
-  }
-
-  // Check if it is an asset ID
-  try {
-    const asset = await prisma.asset.findUnique({
-      where: { id: trimmed, isDeleted: false },
-      include: { storageKey: true },
-    })
-    if (asset?.storageKey?.key) {
-      const bucket = process.env.S3_BUCKET || 'shumai'
-      const { buffer } = await s3Service.getObject(bucket, asset.storageKey.key)
-      return buffer
-    }
-  } catch {
-    // ignore db lookup failure
-  }
-
-  throw new Error(`Could not resolve media input "${input}" from disk, URL, or asset library.`)
-}
+import { resolveS3MediaBuffer } from './download-asset'
 
 export function createGenerateImageTool(
   enabledModels: EnabledMediaModel[],
   providerKeys: Record<string, { apiKey?: string }>,
+  userId?: string,
 ): AgentTool {
+  const modelIdentifiers = enabledModels.map((m) => `${m.provider}:${m.modelId}`)
   const modelSchemas =
-    enabledModels.length === 1
-      ? Type.Literal(enabledModels[0].modelId)
+    modelIdentifiers.length === 1
+      ? Type.Literal(modelIdentifiers[0])
       : Type.Union(
-          enabledModels.map((m) => Type.Literal(m.modelId)) as unknown as [
+          modelIdentifiers.map((id) => Type.Literal(id)) as unknown as [
             TSchema,
             TSchema,
             ...TSchema[],
@@ -77,7 +31,7 @@ export function createGenerateImageTool(
         description: 'The text prompt describing the image to generate in detail.',
       }),
       model: Type.Union([modelSchemas, Type.Null()], {
-        description: `The image model to use. Available enabled models: ${enabledModels.map((m) => m.modelId).join(', ')}. Pass null to use the first enabled model (${enabledModels[0].modelId}).`,
+        description: `The image model to use, in "provider:modelId" format. Available enabled models: ${modelIdentifiers.join(', ')}. Pass null to use the first enabled model (${modelIdentifiers[0]}).`,
       }),
       outputFileName: Type.Union([
         Type.String({
@@ -89,14 +43,14 @@ export function createGenerateImageTool(
       images: Type.Union([
         Type.Array(Type.String(), {
           description:
-            'Optional list of reference image paths (e.g. in .pi/), workspace asset IDs, or URLs for image-to-image or style reference. Set to null if not using.',
+            'Optional list of storage S3 keys of images to use as image-to-image or style reference. Call read_asset with s3KeyOnly: true to obtain the S3 key of an asset or video frame without loading its content into context. Set to null if not using.',
         }),
         Type.Null(),
       ]),
       mask: Type.Union([
         Type.String({
           description:
-            'Optional path or URL to an inpainting mask image (white=inpaint, black=keep). Set to null if not inpainting.',
+            'Optional storage S3 key of an inpainting mask image (white=inpaint, black=keep). Call read_asset with s3KeyOnly: true to obtain the S3 key. Set to null if not inpainting.',
         }),
         Type.Null(),
       ]),
@@ -125,21 +79,26 @@ export function createGenerateImageTool(
     { additionalProperties: false },
   )
 
+  type GenerateImageParams = Static<typeof generateImageSchema>
+
   return {
     name: 'generate_image',
     label: 'Generate Image',
     description:
-      'Generate an image using a configured image model. Supports text-to-image, reference images (image-to-image), and inpainting. The generated file is saved in the local .pi/ directory.',
+      'Generate an image using a configured image model. Supports text-to-image, reference images (image-to-image using S3 keys from read_asset), and inpainting (using a mask image S3 key from read_asset). The generated file is saved in the local .pi/ directory.',
     parameters: generateImageSchema,
     execute: async (_toolCallId, params) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const p = params as any
+      const p = params as GenerateImageParams
 
-      const selectedModelId = p.model || enabledModels[0].modelId
-      const modelConfig = enabledModels.find((m) => m.modelId === selectedModelId)
+      const defaultModel = `${enabledModels[0].provider}:${enabledModels[0].modelId}`
+      const selected = p.model || defaultModel
+      const modelConfig =
+        enabledModels.find((m) => `${m.provider}:${m.modelId}` === selected) ||
+        enabledModels.find((m) => m.modelId === selected)
+
       if (!modelConfig) {
         throw new Error(
-          `Image model "${selectedModelId}" is not enabled. Available enabled models: ${enabledModels.map((m) => m.modelId).join(', ')}`,
+          `Image model "${selected}" is not enabled. Available enabled models: ${modelIdentifiers.join(', ')}`,
         )
       }
 
@@ -151,14 +110,20 @@ export function createGenerateImageTool(
         )
       }
 
-      let resolvedImages: Array<string | Buffer> | undefined
+      let resolvedImages: Buffer[] | undefined
       if (p.images && Array.isArray(p.images) && p.images.length > 0) {
-        resolvedImages = await Promise.all(p.images.map((img: string) => resolveMediaData(img)))
+        resolvedImages = await Promise.all(
+          p.images.map(async (key: string) => {
+            const { buffer } = await resolveS3MediaBuffer(key, userId || '')
+            return buffer
+          }),
+        )
       }
 
-      let resolvedMask: string | Buffer | undefined
+      let resolvedMask: Buffer | undefined
       if (p.mask) {
-        resolvedMask = await resolveMediaData(p.mask)
+        const { buffer } = await resolveS3MediaBuffer(p.mask, userId || '')
+        resolvedMask = buffer
       }
 
       const { buffer, mimeType } = await mediaGenerationService.generateImage({
@@ -168,8 +133,8 @@ export function createGenerateImageTool(
         prompt: p.prompt,
         images: resolvedImages,
         mask: resolvedMask,
-        aspectRatio: p.aspectRatio || undefined,
-        size: p.size || undefined,
+        aspectRatio: (p.aspectRatio as `${number}:${number}`) || undefined,
+        size: (p.size as `${number}x${number}`) || undefined,
         seed: p.seed !== null && p.seed !== undefined ? p.seed : undefined,
       })
 

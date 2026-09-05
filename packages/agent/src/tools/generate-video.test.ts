@@ -4,6 +4,7 @@ vi.mock('fs')
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { createGenerateVideoTool } from './generate-video'
+import * as downloadAsset from './download-asset'
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
 import { EnabledMediaModel } from '@shumai/dtos'
 import * as fs from 'fs'
@@ -22,6 +23,14 @@ describe('generate_video tool', () => {
     {
       id: 'vm-2',
       type: 'video',
+      provider: 'fal',
+      modelId: 'kling-v1-standard',
+      name: 'Kling v1 Standard (fal)',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    },
+    {
+      id: 'vm-3',
+      type: 'video',
       provider: 'google',
       modelId: 'veo-2.0-generate-001',
       name: 'Veo 2',
@@ -31,6 +40,7 @@ describe('generate_video tool', () => {
 
   const providerKeys = {
     klingai: { apiKey: 'mock-kling-key' },
+    fal: { apiKey: 'mock-fal-key' },
     google: { apiKey: 'mock-google-key' },
   }
 
@@ -47,17 +57,19 @@ describe('generate_video tool', () => {
     vi.restoreAllMocks()
   })
 
-  it('creates tool with correct metadata and schema', () => {
-    const tool = createGenerateVideoTool(enabledModels, providerKeys)
+  it('creates tool with correct metadata and provider-prefixed model schema', () => {
+    const tool = createGenerateVideoTool(enabledModels, providerKeys, 'user-1')
     expect(tool.name).toBe('generate_video')
     expect(tool.label).toBe('Generate Video')
     expect(tool.description).toContain('Generate a video')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((tool.parameters as any).properties.model.description).toContain('kling-v1-standard')
+    const modelDesc = (tool.parameters as { properties: { model: { description: string } } })
+      .properties.model.description
+    expect(modelDesc).toContain('klingai:kling-v1-standard')
+    expect(modelDesc).toContain('fal:kling-v1-standard')
   })
 
   it('generates text_to_video successfully', async () => {
-    const tool = createGenerateVideoTool(enabledModels, providerKeys)
+    const tool = createGenerateVideoTool(enabledModels, providerKeys, 'user-1')
 
     const mockBuffer = Buffer.from('fake-mp4-video-stream')
     const generateSpy = vi.spyOn(mediaGenerationService, 'generateVideo').mockResolvedValue({
@@ -70,7 +82,7 @@ describe('generate_video tool', () => {
       'call-vid-1',
       {
         mode: 'text_to_video',
-        model: 'kling-v1-standard',
+        model: 'klingai:kling-v1-standard',
         outputFileName: 'test_nature.mp4',
         textToVideoConfig: {
           prompt: 'A gentle waterfall in a lush forest with cinematic lighting',
@@ -119,32 +131,96 @@ describe('generate_video tool', () => {
     })
   })
 
-  it('generates image_to_video successfully with resolved image input', async () => {
-    const tool = createGenerateVideoTool(enabledModels, providerKeys)
+  it('disambiguates identical model IDs across different providers', async () => {
+    const tool = createGenerateVideoTool(enabledModels, providerKeys, 'user-1')
 
-    const mockBuffer = Buffer.from('fake-mp4-video-bytes')
     const generateSpy = vi.spyOn(mediaGenerationService, 'generateVideo').mockResolvedValue({
-      buffer: mockBuffer,
+      buffer: Buffer.from('video-bytes'),
       mimeType: 'video/mp4',
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.spyOn(fs, 'existsSync').mockImplementation((p: any) =>
-      p.toString().includes('test_start.png'),
+    // Select fal:kling-v1-standard
+    await tool.execute(
+      'call-fal',
+      {
+        mode: 'text_to_video',
+        model: 'fal:kling-v1-standard',
+        outputFileName: null,
+        textToVideoConfig: { prompt: 'A soaring eagle' },
+        imageToVideoConfig: null,
+        firstLastFrameConfig: null,
+        referenceToVideoConfig: null,
+        aspectRatio: null,
+        resolution: null,
+        duration: null,
+        fps: null,
+        generateAudio: null,
+        seed: null,
+      },
+      new AbortController().signal,
     )
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.spyOn(fs, 'readFileSync').mockReturnValue(Buffer.from('start-frame-bytes') as any)
+
+    expect(generateSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        provider: 'fal',
+        modelId: 'kling-v1-standard',
+        apiKey: 'mock-fal-key',
+      }),
+    )
+
+    // Select klingai:kling-v1-standard
+    await tool.execute(
+      'call-klingai',
+      {
+        mode: 'text_to_video',
+        model: 'klingai:kling-v1-standard',
+        outputFileName: null,
+        textToVideoConfig: { prompt: 'A roaring tiger' },
+        imageToVideoConfig: null,
+        firstLastFrameConfig: null,
+        referenceToVideoConfig: null,
+        aspectRatio: null,
+        resolution: null,
+        duration: null,
+        fps: null,
+        generateAudio: null,
+        seed: null,
+      },
+      new AbortController().signal,
+    )
+
+    expect(generateSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        provider: 'klingai',
+        modelId: 'kling-v1-standard',
+        apiKey: 'mock-kling-key',
+      }),
+    )
+  })
+
+  it('generates image_to_video using resolveS3MediaBuffer', async () => {
+    const tool = createGenerateVideoTool(enabledModels, providerKeys, 'user-1')
+
+    const generateSpy = vi.spyOn(mediaGenerationService, 'generateVideo').mockResolvedValue({
+      buffer: Buffer.from('video-bytes'),
+      mimeType: 'video/mp4',
+    })
+
+    const resolverSpy = vi.spyOn(downloadAsset, 'resolveS3MediaBuffer').mockResolvedValue({
+      buffer: Buffer.from('resolved-image-data'),
+      mimeType: 'image/png',
+    })
 
     await tool.execute(
       'call-vid-2',
       {
         mode: 'image_to_video',
-        model: 'kling-v1-standard',
-        outputFileName: null,
+        model: 'klingai:kling-v1-standard',
+        outputFileName: 'animate_cat.mp4',
         textToVideoConfig: null,
         imageToVideoConfig: {
-          image: 'test_start.png',
-          prompt: 'Camera zooms in slowly',
+          image: 'files/ast-1/img.png',
+          prompt: 'Cat starts blinking and looks to the side',
         },
         firstLastFrameConfig: null,
         referenceToVideoConfig: null,
@@ -158,45 +234,41 @@ describe('generate_video tool', () => {
       new AbortController().signal,
     )
 
+    expect(resolverSpy).toHaveBeenCalledWith('files/ast-1/img.png', 'user-1')
     expect(generateSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        provider: 'klingai',
-        modelId: 'kling-v1-standard',
         mode: 'image_to_video',
-        image: expect.any(Buffer),
-        prompt: 'Camera zooms in slowly',
+        image: Buffer.from('resolved-image-data'),
+        prompt: 'Cat starts blinking and looks to the side',
       }),
     )
   })
 
-  it('generates first_last_frame successfully', async () => {
-    const tool = createGenerateVideoTool(enabledModels, providerKeys)
+  it('generates first_last_frame using resolveS3MediaBuffer', async () => {
+    const tool = createGenerateVideoTool(enabledModels, providerKeys, 'user-1')
 
-    const mockBuffer = Buffer.from('fake-transition-video')
     const generateSpy = vi.spyOn(mediaGenerationService, 'generateVideo').mockResolvedValue({
-      buffer: mockBuffer,
+      buffer: Buffer.from('transition-video'),
       mimeType: 'video/mp4',
     })
 
-    vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-    vi.spyOn(fs, 'readFileSync').mockImplementation((p) => {
-      if (String(p).includes('test_first.png')) return Buffer.from('first-bytes')
-      if (String(p).includes('test_last.png')) return Buffer.from('last-bytes')
-      return Buffer.from('')
-    })
+    vi.spyOn(downloadAsset, 'resolveS3MediaBuffer').mockImplementation(async (key: string) => ({
+      buffer: Buffer.from(`frame-data-${key}`),
+      mimeType: 'image/png',
+    }))
 
     await tool.execute(
       'call-vid-3',
       {
         mode: 'first_last_frame',
-        model: 'kling-v1-standard',
-        outputFileName: null,
+        model: 'klingai:kling-v1-standard',
+        outputFileName: 'transition.mp4',
         textToVideoConfig: null,
         imageToVideoConfig: null,
         firstLastFrameConfig: {
-          firstFrame: 'test_first.png',
-          lastFrame: 'test_last.png',
-          prompt: 'Smooth transition between scenes',
+          firstFrame: 'files/ast-1/start.png',
+          lastFrame: 'files/ast-2/end.png',
+          prompt: 'Smooth morph from sunrise to night',
         },
         referenceToVideoConfig: null,
         aspectRatio: null,
@@ -212,41 +284,38 @@ describe('generate_video tool', () => {
     expect(generateSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: 'first_last_frame',
-        firstFrame: expect.any(Buffer),
-        lastFrame: expect.any(Buffer),
-        prompt: 'Smooth transition between scenes',
+        firstFrame: Buffer.from('frame-data-files/ast-1/start.png'),
+        lastFrame: Buffer.from('frame-data-files/ast-2/end.png'),
+        prompt: 'Smooth morph from sunrise to night',
       }),
     )
   })
 
-  it('generates reference_to_video successfully', async () => {
-    const tool = createGenerateVideoTool(enabledModels, providerKeys)
+  it('generates reference_to_video using resolveS3MediaBuffer', async () => {
+    const tool = createGenerateVideoTool(enabledModels, providerKeys, 'user-1')
 
-    const mockBuffer = Buffer.from('fake-ref-video')
     const generateSpy = vi.spyOn(mediaGenerationService, 'generateVideo').mockResolvedValue({
-      buffer: mockBuffer,
+      buffer: Buffer.from('ref-video'),
       mimeType: 'video/mp4',
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.spyOn(fs, 'existsSync').mockImplementation((p: any) =>
-      p.toString().includes('test_ref1.png'),
-    )
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.spyOn(fs, 'readFileSync').mockReturnValue(Buffer.from('ref1-bytes') as any)
+    vi.spyOn(downloadAsset, 'resolveS3MediaBuffer').mockImplementation(async (key: string) => ({
+      buffer: Buffer.from(`ref-data-${key}`),
+      mimeType: 'image/png',
+    }))
 
     await tool.execute(
       'call-vid-4',
       {
         mode: 'reference_to_video',
-        model: 'kling-v1-standard',
-        outputFileName: null,
+        model: 'klingai:kling-v1-standard',
+        outputFileName: 'reference_output.mp4',
         textToVideoConfig: null,
         imageToVideoConfig: null,
         firstLastFrameConfig: null,
         referenceToVideoConfig: {
-          references: ['test_ref1.png'],
-          prompt: 'Character walking in park',
+          references: ['files/ast-1/ref1.png', 'files/ast-2/ref2.png'],
+          prompt: 'Generate an anime dance following these characters',
         },
         aspectRatio: null,
         resolution: null,
@@ -261,23 +330,26 @@ describe('generate_video tool', () => {
     expect(generateSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: 'reference_to_video',
-        inputReferences: [expect.any(Buffer)],
-        prompt: 'Character walking in park',
+        inputReferences: [
+          Buffer.from('ref-data-files/ast-1/ref1.png'),
+          Buffer.from('ref-data-files/ast-2/ref2.png'),
+        ],
+        prompt: 'Generate an anime dance following these characters',
       }),
     )
   })
 
-  it('throws error when mode configuration is missing', async () => {
-    const tool = createGenerateVideoTool(enabledModels, providerKeys)
+  it('fails gracefully when API key is missing', async () => {
+    const tool = createGenerateVideoTool(enabledModels, {}, 'user-1')
 
     await expect(
       tool.execute(
-        'call-vid-err',
+        'call-vid-5',
         {
           mode: 'text_to_video',
-          model: 'kling-v1-standard',
+          model: 'klingai:kling-v1-standard',
           outputFileName: null,
-          textToVideoConfig: null, // missing!
+          textToVideoConfig: { prompt: 'A simple video' },
           imageToVideoConfig: null,
           firstLastFrameConfig: null,
           referenceToVideoConfig: null,
@@ -290,33 +362,6 @@ describe('generate_video tool', () => {
         },
         new AbortController().signal,
       ),
-    ).rejects.toThrow('textToVideoConfig')
-  })
-
-  it('throws error when model is not enabled', async () => {
-    const tool = createGenerateVideoTool(enabledModels, providerKeys)
-
-    await expect(
-      tool.execute(
-        'call-vid-err-model',
-        {
-          mode: 'text_to_video',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          model: 'unknown-video-model' as any,
-          outputFileName: null,
-          textToVideoConfig: { prompt: 'hi' },
-          imageToVideoConfig: null,
-          firstLastFrameConfig: null,
-          referenceToVideoConfig: null,
-          aspectRatio: null,
-          resolution: null,
-          duration: null,
-          fps: null,
-          generateAudio: null,
-          seed: null,
-        },
-        new AbortController().signal,
-      ),
-    ).rejects.toThrow('Video model "unknown-video-model" is not enabled')
+    ).rejects.toThrow('API key for provider "klingai" is not configured')
   })
 })

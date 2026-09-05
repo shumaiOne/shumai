@@ -329,10 +329,10 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       const { imageModels, videoModels, providerKeys } =
         await mediaGenerationService.getValidModels(teamId)
       if (imageModels.length > 0 && !deniedTools.includes('generate_image')) {
-        mediaTools.push(createGenerateImageTool(imageModels, providerKeys))
+        mediaTools.push(createGenerateImageTool(imageModels, providerKeys, userId))
       }
       if (videoModels.length > 0 && !deniedTools.includes('generate_video')) {
-        mediaTools.push(createGenerateVideoTool(videoModels, providerKeys))
+        mediaTools.push(createGenerateVideoTool(videoModels, providerKeys, userId))
       }
     } catch (err) {
       logger.error({ err, teamId }, 'Failed to initialize media generation tools')

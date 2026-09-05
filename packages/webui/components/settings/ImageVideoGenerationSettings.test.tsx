@@ -206,4 +206,35 @@ describe('ImageVideoGenerationSettings', () => {
       screen.getByText('Select the media generation type, provider, and model to enable.'),
     ).toBeDefined()
   })
+
+  it('masks existing custom key and allows removing custom key', async () => {
+    renderComponent()
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Kling AI').length).toBeGreaterThan(0)
+    })
+
+    const editButtons = screen.getAllByRole('button', { name: /Edit API Key/i })
+    // Kling AI is index 1
+    fireEvent.click(editButtons[1])
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeDefined()
+    })
+
+    const input = document.querySelector('input[type="password"]') as HTMLInputElement
+    expect(input).toBeDefined()
+    expect(input.value).toBe('') // Secret is not prefilled in the input
+    expect(input.placeholder).toBe('••••••••') // Masked indicator
+
+    const removeButton = screen.getByRole('button', { name: 'Remove Key' })
+    fireEvent.click(removeButton)
+
+    await waitFor(() => {
+      expect(mockPutProvider).toHaveBeenCalledWith({
+        param: { teamId: 'team-123', provider: 'klingai' },
+        json: { apiKey: '' },
+      })
+    })
+  })
 })

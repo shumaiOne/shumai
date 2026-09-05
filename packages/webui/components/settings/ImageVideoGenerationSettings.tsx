@@ -214,15 +214,28 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
 
   const handleOpenKeyDialog = (provider: MediaProviderStatus) => {
     setEditingProvider(provider)
-    setApiKeyInput(provider.customApiKeyOrEnv || '')
+    setApiKeyInput('')
     setKeyDialogOpen(true)
   }
 
   const handleSaveKey = () => {
     if (!editingProvider) return
+    const trimmed = apiKeyInput.trim()
+    if (!trimmed) {
+      setKeyDialogOpen(false)
+      return
+    }
     updateApiKey({
       provider: editingProvider.provider,
-      apiKey: apiKeyInput.trim() || undefined,
+      apiKey: trimmed,
+    })
+  }
+
+  const handleRemoveKey = () => {
+    if (!editingProvider) return
+    updateApiKey({
+      provider: editingProvider.provider,
+      apiKey: '',
     })
   }
 
@@ -379,7 +392,7 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                     <TableRow>
                       <TableHead className="w-[100px]">{m.model_type()}</TableHead>
                       <TableHead>{m.providers()}</TableHead>
-                      <TableHead>Model</TableHead>
+                      <TableHead>{m.model()}</TableHead>
                       <TableHead className="w-[80px] text-right"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -476,26 +489,44 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
                   placeholder={
-                    editingProvider
-                      ? m.api_key_or_env_var_placeholder({ envKey: editingProvider.defaultEnvKey })
-                      : ''
+                    editingProvider?.status === 'configured_custom'
+                      ? '••••••••'
+                      : editingProvider
+                        ? m.api_key_or_env_var_placeholder({
+                            envKey: editingProvider.defaultEnvKey,
+                          })
+                        : ''
                   }
                   className="font-mono text-sm"
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setKeyDialogOpen(false)}
-                disabled={isSavingKey}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleSaveKey} disabled={isSavingKey}>
-                {isSavingKey && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
-                Save
-              </Button>
+            <DialogFooter className="flex items-center justify-between w-full">
+              {editingProvider?.status === 'configured_custom' ? (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleRemoveKey}
+                  disabled={isSavingKey}
+                >
+                  {m.remove_key()}
+                </Button>
+              ) : (
+                <div />
+              )}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setKeyDialogOpen(false)}
+                  disabled={isSavingKey}
+                >
+                  {m.cancel()}
+                </Button>
+                <Button onClick={handleSaveKey} disabled={isSavingKey}>
+                  {isSavingKey && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
+                  {m.save()}
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -505,9 +536,7 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>{m.add_media_model()}</DialogTitle>
-              <DialogDescription>
-                Select the media generation type, provider, and model to enable.
-              </DialogDescription>
+              <DialogDescription>{m.add_media_model_desc()}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-3">
               {/* Type Select */}
@@ -580,7 +609,7 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                   {isLoadingCurated ? (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Loading models...</span>
+                      <span>{m.loading_models()}</span>
                     </div>
                   ) : (
                     <Select
@@ -655,7 +684,7 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                 onClick={() => setAddDialogOpen(false)}
                 disabled={isAddingModel}
               >
-                Cancel
+                {m.cancel()}
               </Button>
               <Button
                 onClick={handleAddModelSubmit}
@@ -667,7 +696,7 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                 }
               >
                 {isAddingModel && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
-                Add
+                {m.add()}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -684,17 +713,15 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
             <AlertDialogHeader>
               <AlertDialogTitle>{m.remove_model_confirm()}</AlertDialogTitle>
               <AlertDialogDescription>
-                {modelToDelete && (
-                  <span>
-                    Remove model <strong className="font-mono">{modelToDelete.modelId}</strong> (
-                    {PROVIDER_NAMES[modelToDelete.provider] || modelToDelete.provider}) from enabled
-                    models?
-                  </span>
-                )}
+                {modelToDelete &&
+                  m.remove_model_prompt({
+                    modelId: modelToDelete.modelId,
+                    provider: PROVIDER_NAMES[modelToDelete.provider] || modelToDelete.provider,
+                  })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={isRemovingModel}>Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={isRemovingModel}>{m.cancel()}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => {
                   if (modelToDelete) removeModel(modelToDelete.id)
@@ -703,7 +730,7 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 {isRemovingModel && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
-                Delete
+                {m.delete()}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
