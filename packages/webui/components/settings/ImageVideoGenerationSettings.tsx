@@ -42,7 +42,6 @@ import {
   VideoIcon,
   CheckCircle2,
   Loader2,
-  Search,
   Check,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -93,8 +92,6 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
   const [selectedModelId, setSelectedModelId] = useState<string>('')
   const [customModelId, setCustomModelId] = useState<string>('')
   const [modelDisplayName, setModelDisplayName] = useState<string>('')
-  const [providerSearch, setProviderSearch] = useState<string>('')
-  const [modelSearch, setModelSearch] = useState<string>('')
 
   // Delete Model Confirmation State
   const [modelToDelete, setModelToDelete] = useState<EnabledMediaModel | null>(null)
@@ -211,8 +208,6 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
     setSelectedModelId('')
     setCustomModelId('')
     setModelDisplayName('')
-    setProviderSearch('')
-    setModelSearch('')
   }
 
   const handleOpenKeyDialog = (provider: MediaProviderStatus) => {
@@ -277,24 +272,6 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
     () => providers.filter((p) => p.supportedTypes.includes(addType)),
     [providers, addType],
   )
-
-  const filteredProviders = useMemo(() => {
-    const q = providerSearch.toLowerCase().trim()
-    if (!q) return compatibleProviders
-    return compatibleProviders.filter((p) => {
-      const name = (PROVIDER_NAMES[p.provider] || p.provider).toLowerCase()
-      return name.includes(q) || p.provider.toLowerCase().includes(q)
-    })
-  }, [compatibleProviders, providerSearch])
-
-  const filteredModels = useMemo(() => {
-    if (!curatedModels) return []
-    const q = modelSearch.toLowerCase().trim()
-    if (!q) return curatedModels
-    return curatedModels.filter((m) => {
-      return m.name.toLowerCase().includes(q) || m.modelId.toLowerCase().includes(q)
-    })
-  }, [curatedModels, modelSearch])
 
   if (isLoading) {
     return (
@@ -624,10 +601,7 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                       <ImageIcon className="w-5 h-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-sm flex items-center justify-between">
-                        <span>{m.media_type_image()}</span>
-                        {addType === 'image' && <Check className="w-4 h-4 text-primary" />}
-                      </div>
+                      <div className="font-semibold text-sm">{m.media_type_image()}</div>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">Text-to-image</p>
                     </div>
                   </button>
@@ -652,10 +626,7 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                       <VideoIcon className="w-5 h-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-sm flex items-center justify-between">
-                        <span>{m.media_type_video()}</span>
-                        {addType === 'video' && <Check className="w-4 h-4 text-primary" />}
-                      </div>
+                      <div className="font-semibold text-sm">{m.media_type_video()}</div>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">Text-to-video</p>
                     </div>
                   </button>
@@ -666,7 +637,7 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Left Box: Providers */}
                 <div className="rounded-lg border border-border bg-card/40 flex flex-col h-[280px] overflow-hidden">
-                  <div className="p-2.5 border-b border-border flex items-center justify-between bg-muted/30">
+                  <div className="p-2.5 border-b border-border flex items-center justify-between bg-muted/30 shrink-0">
                     <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                       {m.providers()}
                       <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal">
@@ -674,20 +645,9 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                       </Badge>
                     </span>
                   </div>
-                  <div className="p-2 border-b border-border/60">
-                    <div className="relative">
-                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
-                      <Input
-                        placeholder={m.search_providers()}
-                        value={providerSearch}
-                        onChange={(e) => setProviderSearch(e.target.value)}
-                        className="h-8 pl-8 text-xs"
-                      />
-                    </div>
-                  </div>
-                  <ScrollArea className="flex-1 p-1 [&>div>div]:block!">
-                    <div className="space-y-1">
-                      {filteredProviders.map((p) => {
+                  <ScrollArea className="flex-1 min-h-0 overscroll-contain [&>div>div]:block!">
+                    <div className="p-1 space-y-1">
+                      {compatibleProviders.map((p) => {
                         const isSelected = addProvider === p.provider
                         const displayName = PROVIDER_NAMES[p.provider] || p.provider
                         return (
@@ -737,7 +697,7 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
 
                 {/* Right Box: Models */}
                 <div className="rounded-lg border border-border bg-card/40 flex flex-col h-[280px] overflow-hidden">
-                  <div className="p-2.5 border-b border-border flex items-center justify-between bg-muted/30">
+                  <div className="p-2.5 border-b border-border flex items-center justify-between bg-muted/30 shrink-0">
                     <span className="text-xs font-semibold text-foreground">{m.models()}</span>
                     {addProvider && (
                       <Badge variant="outline" className="text-[10px] h-4 px-1.5 font-normal">
@@ -755,73 +715,60 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                       <span className="text-xs">{m.loading_models()}</span>
                     </div>
                   ) : (
-                    <>
-                      <div className="p-2 border-b border-border/60">
-                        <div className="relative">
-                          <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
-                          <Input
-                            placeholder={m.search_models()}
-                            value={modelSearch}
-                            onChange={(e) => setModelSearch(e.target.value)}
-                            className="h-8 pl-8 text-xs"
-                          />
-                        </div>
-                      </div>
-                      <ScrollArea className="flex-1 p-1 [&>div>div]:block!">
-                        <div className="space-y-1">
-                          {filteredModels.map((curated) => {
-                            const isSelected = selectedModelId === curated.modelId
-                            return (
-                              <button
-                                key={curated.modelId}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedModelId(curated.modelId)
-                                  setModelDisplayName(curated.name)
-                                }}
-                                className={`w-full flex flex-col items-start p-2 rounded-md text-xs transition-colors text-left ${
+                    <ScrollArea className="flex-1 min-h-0 overscroll-contain [&>div>div]:block!">
+                      <div className="p-1 space-y-1">
+                        {(curatedModels || []).map((curated) => {
+                          const isSelected = selectedModelId === curated.modelId
+                          return (
+                            <button
+                              key={curated.modelId}
+                              type="button"
+                              onClick={() => {
+                                setSelectedModelId(curated.modelId)
+                                setModelDisplayName(curated.name)
+                              }}
+                              className={`w-full flex flex-col items-start p-2 rounded-md text-xs transition-colors text-left ${
+                                isSelected
+                                  ? 'bg-primary text-primary-foreground font-medium'
+                                  : 'hover:bg-accent text-foreground'
+                              }`}
+                            >
+                              <div className="w-full flex items-center justify-between">
+                                <span className="truncate">{curated.name}</span>
+                                {isSelected && <Check className="w-3.5 h-3.5 shrink-0" />}
+                              </div>
+                              <span
+                                className={`font-mono text-[10px] truncate ${
                                   isSelected
-                                    ? 'bg-primary text-primary-foreground font-medium'
-                                    : 'hover:bg-accent text-foreground'
+                                    ? 'text-primary-foreground/80'
+                                    : 'text-muted-foreground'
                                 }`}
                               >
-                                <div className="w-full flex items-center justify-between">
-                                  <span className="truncate">{curated.name}</span>
-                                  {isSelected && <Check className="w-3.5 h-3.5 shrink-0" />}
-                                </div>
-                                <span
-                                  className={`font-mono text-[10px] truncate ${
-                                    isSelected
-                                      ? 'text-primary-foreground/80'
-                                      : 'text-muted-foreground'
-                                  }`}
-                                >
-                                  {curated.modelId}
-                                </span>
-                              </button>
-                            )
-                          })}
-                          {/* Custom Model Option */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedModelId('__custom__')
-                              setModelDisplayName('')
-                            }}
-                            className={`w-full flex items-center justify-between p-2 rounded-md text-xs transition-colors border-t border-border/40 mt-1 ${
-                              selectedModelId === '__custom__'
-                                ? 'bg-primary text-primary-foreground font-medium'
-                                : 'hover:bg-accent text-muted-foreground italic'
-                            }`}
-                          >
-                            <span>{m.custom_model_option()}</span>
-                            {selectedModelId === '__custom__' && (
-                              <Check className="w-3.5 h-3.5 shrink-0" />
-                            )}
-                          </button>
-                        </div>
-                      </ScrollArea>
-                    </>
+                                {curated.modelId}
+                              </span>
+                            </button>
+                          )
+                        })}
+                        {/* Custom Model Option */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedModelId('__custom__')
+                            setModelDisplayName('')
+                          }}
+                          className={`w-full flex items-center justify-between p-2 rounded-md text-xs transition-colors border-t border-border/40 mt-1 ${
+                            selectedModelId === '__custom__'
+                              ? 'bg-primary text-primary-foreground font-medium'
+                              : 'hover:bg-accent text-muted-foreground italic'
+                          }`}
+                        >
+                          <span>{m.custom_model_option()}</span>
+                          {selectedModelId === '__custom__' && (
+                            <Check className="w-3.5 h-3.5 shrink-0" />
+                          )}
+                        </button>
+                      </div>
+                    </ScrollArea>
                   )}
                 </div>
               </div>
