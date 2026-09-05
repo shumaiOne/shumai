@@ -26,6 +26,7 @@ import teamRoute from './team'
 import uploadRoute, { localUploadRoute } from './upload'
 import versionStackRoute from './versionStack'
 import kanbanRoute from './kanban'
+import mediaGenerationRoute from './media-generation'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -69,6 +70,7 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', watermarkTemplateRoute)
   .route('/', quotaRoute)
   .route('/', kanbanRoute)
+  .route('/', mediaGenerationRoute)
 
 app.route('/files', s3Route)
 

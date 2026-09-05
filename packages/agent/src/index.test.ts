@@ -9,6 +9,7 @@ import {
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
 import { SandboxManager, type SandboxAskCallback } from '@anthropic-ai/sandbox-runtime'
 import { quotaService } from '@shumai/core/src/quota/quota-service'
+import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { type TSchema } from 'typebox'
@@ -1283,5 +1284,214 @@ describe('getModelFromDb', () => {
 
     const model = getModelFromDb(providers, 'custom-provider', 'my-model')
     expect(model.api).toBe('anthropic-messages')
+  })
+})
+
+describe('createAgentSession media generation tools injection', () => {
+  setupTestDbHooks()
+
+  it('omits generate_image and generate_video when no valid models are configured', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'No Media Team' },
+    })
+    const user = await prisma.user.create({
+      data: { name: 'User 1', email: 'user1@example.com', password: 'pw' },
+    })
+    const agentUser = await prisma.user.create({
+      data: {
+        id: 'agent-user-no-media',
+        name: 'Agent User 1',
+        email: 'agent1@test.com',
+        type: 'agent',
+      },
+    })
+    const agent = await prisma.agent.create({
+      data: {
+        id: agentUser.id,
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+
+    vi.spyOn(mediaGenerationService, 'getValidModels').mockResolvedValue({
+      imageModels: [],
+      videoModels: [],
+      providerKeys: {},
+    })
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      const { harness } = await createAgentSession({
+        teamId: team.id,
+        userId: user.id,
+        agentId: agent.id,
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        enabledSkillIds: [],
+        allowedDomains: [],
+        providers: mockProviders,
+      })
+
+      const tools = harness.getTools()
+      expect(tools.find((t) => t.name === 'generate_image')).toBeUndefined()
+      expect(tools.find((t) => t.name === 'generate_video')).toBeUndefined()
+    } finally {
+      initializeSpy.mockRestore()
+    }
+  })
+
+  it('injects generate_image and generate_video when valid models are present', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Media Team' },
+    })
+    const user = await prisma.user.create({
+      data: { name: 'User 2', email: 'user2@example.com', password: 'pw' },
+    })
+    const agentUser = await prisma.user.create({
+      data: {
+        id: 'agent-user-with-media',
+        name: 'Agent User 2',
+        email: 'agent2@test.com',
+        type: 'agent',
+      },
+    })
+    const agent = await prisma.agent.create({
+      data: {
+        id: agentUser.id,
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+
+    vi.spyOn(mediaGenerationService, 'getValidModels').mockResolvedValue({
+      imageModels: [
+        {
+          id: 'im-1',
+          type: 'image',
+          provider: 'openai',
+          modelId: 'dall-e-3',
+          name: 'DALL-E 3',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      videoModels: [
+        {
+          id: 'vm-1',
+          type: 'video',
+          provider: 'klingai',
+          modelId: 'kling-v1-standard',
+          name: 'Kling v1 Standard',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      providerKeys: {
+        openai: { apiKey: 'key-1' },
+        klingai: { apiKey: 'key-2' },
+      },
+    })
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      const { harness } = await createAgentSession({
+        teamId: team.id,
+        userId: user.id,
+        agentId: agent.id,
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        enabledSkillIds: [],
+        allowedDomains: [],
+        providers: mockProviders,
+      })
+
+      const tools = harness.getTools()
+      expect(tools.find((t) => t.name === 'generate_image')).toBeDefined()
+      expect(tools.find((t) => t.name === 'generate_video')).toBeDefined()
+    } finally {
+      initializeSpy.mockRestore()
+    }
+  })
+
+  it('respects deniedTools when generate_image is denied in agent config', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Denied Media Team' },
+    })
+    const user = await prisma.user.create({
+      data: { name: 'User 3', email: 'user3@example.com', password: 'pw' },
+    })
+    const agentUser = await prisma.user.create({
+      data: {
+        id: 'agent-user-denied-media',
+        name: 'Agent User 3',
+        email: 'agent3@test.com',
+        type: 'agent',
+      },
+    })
+    const agent = await prisma.agent.create({
+      data: {
+        id: agentUser.id,
+        teamId: team.id,
+        type: 'chat',
+        config: {
+          provider: 'google',
+          model: 'gemini',
+          deniedTools: ['generate_image'],
+        },
+      },
+    })
+
+    vi.spyOn(mediaGenerationService, 'getValidModels').mockResolvedValue({
+      imageModels: [
+        {
+          id: 'im-1',
+          type: 'image',
+          provider: 'openai',
+          modelId: 'dall-e-3',
+          name: 'DALL-E 3',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      videoModels: [
+        {
+          id: 'vm-1',
+          type: 'video',
+          provider: 'klingai',
+          modelId: 'kling-v1-standard',
+          name: 'Kling v1 Standard',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      providerKeys: {
+        openai: { apiKey: 'key-1' },
+        klingai: { apiKey: 'key-2' },
+      },
+    })
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      const { harness } = await createAgentSession({
+        teamId: team.id,
+        userId: user.id,
+        agentId: agent.id,
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        enabledSkillIds: [],
+        allowedDomains: [],
+        providers: mockProviders,
+      })
+
+      const tools = harness.getTools()
+      expect(tools.find((t) => t.name === 'generate_image')).toBeUndefined()
+      expect(tools.find((t) => t.name === 'generate_video')).toBeDefined()
+    } finally {
+      initializeSpy.mockRestore()
+    }
   })
 })

@@ -28,6 +28,9 @@ import { createReadAssetTool } from './tools/read-asset'
 import { createReadSkillTool } from './tools/read-skill'
 import { createReadThreadTool } from './tools/read-thread'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
+import { createGenerateImageTool } from './tools/generate-image'
+import { createGenerateVideoTool } from './tools/generate-video'
+import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
 import { serializeContextToXml } from './context/serialize-context'
 import type { ShumaiMessageContext } from '@shumai/dtos'
 
@@ -320,6 +323,21 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   })
   const agentConfig = agent?.config as PrismaJson.AgentConfig | null | undefined
   const deniedTools = agentConfig?.deniedTools || []
+
+  if (!deniedTools.includes('generate_image') || !deniedTools.includes('generate_video')) {
+    try {
+      const { imageModels, videoModels, providerKeys } =
+        await mediaGenerationService.getValidModels(teamId)
+      if (imageModels.length > 0 && !deniedTools.includes('generate_image')) {
+        mediaTools.push(createGenerateImageTool(imageModels, providerKeys))
+      }
+      if (videoModels.length > 0 && !deniedTools.includes('generate_video')) {
+        mediaTools.push(createGenerateVideoTool(videoModels, providerKeys))
+      }
+    } catch (err) {
+      logger.error({ err, teamId }, 'Failed to initialize media generation tools')
+    }
+  }
 
   const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs, {
     teamId,
@@ -660,3 +678,5 @@ export * from './workflows/agent-autofill'
 export * from './workflows/agent-chat'
 export * from './workflows/agent-embedding'
 export * from './workflows/query-embedding-for-search'
+export * from './tools/generate-image'
+export * from './tools/generate-video'

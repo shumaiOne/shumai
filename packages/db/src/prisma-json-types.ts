@@ -61,8 +61,27 @@ declare global {
       hardwareAcceleration?: HardwareAcceleration
     }
 
+    export interface MediaProviderConfig {
+      apiKey?: string
+    }
+
+    export interface EnabledMediaModelConfig {
+      id: string
+      type: 'image' | 'video'
+      provider: string
+      modelId: string
+      name?: string
+      createdAt: string
+    }
+
+    export interface MediaGenerationSettings {
+      providers?: Record<string, MediaProviderConfig>
+      enabledModels?: EnabledMediaModelConfig[]
+    }
+
     export interface Settings {
       transcode: TranscodeSettings
+      mediaGeneration?: MediaGenerationSettings
     }
 
     // ----------------------------------------------------------------------
