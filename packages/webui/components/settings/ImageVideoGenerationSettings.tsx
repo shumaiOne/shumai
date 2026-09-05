@@ -72,6 +72,11 @@ const PROVIDER_NAMES: Record<string, string> = {
   deepinfra: 'DeepInfra',
   luma: 'Luma',
   'amazon-bedrock': 'Amazon Bedrock',
+  alibaba: 'Alibaba',
+  bytedance: 'ByteDance',
+  minimax: 'MiniMax',
+  prodia: 'Prodia',
+  azure: 'Azure OpenAI',
 }
 
 export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {

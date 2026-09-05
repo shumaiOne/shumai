@@ -27,9 +27,9 @@ describe('MediaGenerationService', () => {
     vi.restoreAllMocks()
   })
 
-  it('should list all 13 providers in getSettings', async () => {
+  it('should list all 18 providers in getSettings', async () => {
     const settings = await mediaGenerationService.getSettings(teamId)
-    expect(settings.providers).toHaveLength(13)
+    expect(settings.providers).toHaveLength(18)
     expect(settings.enabledModels).toEqual([])
 
     const openai = settings.providers.find((p) => p.provider === 'openai')

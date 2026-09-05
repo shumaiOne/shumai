@@ -23,6 +23,11 @@ import { createFireworks } from '@ai-sdk/fireworks'
 import { createDeepInfra } from '@ai-sdk/deepinfra'
 import { createLuma } from '@ai-sdk/luma'
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock'
+import { createAlibaba } from '@ai-sdk/alibaba'
+import { createByteDance } from '@ai-sdk/bytedance'
+import { createMiniMax } from '@ai-sdk/minimax'
+import { createProdia } from '@ai-sdk/prodia'
+import { createAzure } from '@ai-sdk/azure'
 
 export interface CuratedModelItem {
   modelId: string
@@ -249,6 +254,83 @@ export const BUILTIN_MEDIA_PROVIDERS: Record<string, BuiltinMediaProviderDef> = 
     supportedTypes: ['image'],
     curatedModels: [
       { modelId: 'amazon.nova-canvas-v1:0', name: 'Amazon Nova Canvas v1', type: 'image' },
+    ],
+  },
+  alibaba: {
+    provider: 'alibaba',
+    displayName: 'Alibaba',
+    defaultEnvKey: 'ALIBABA_API_KEY',
+    supportedTypes: ['video'],
+    curatedModels: [
+      { modelId: 'wan2.6-t2v', name: 'Wan 2.6 T2V', type: 'video' },
+      { modelId: 'wan2.6-i2v', name: 'Wan 2.6 I2V', type: 'video' },
+      { modelId: 'wan2.6-r2v', name: 'Wan 2.6 R2V', type: 'video' },
+      { modelId: 'wan2.7-t2v', name: 'Wan 2.7 T2V', type: 'video' },
+      { modelId: 'wan2.7-r2v', name: 'Wan 2.7 R2V', type: 'video' },
+      { modelId: 'wan3.0-video', name: 'Wan 3.0 Video', type: 'video' },
+    ],
+  },
+  bytedance: {
+    provider: 'bytedance',
+    displayName: 'ByteDance',
+    defaultEnvKey: 'ARK_API_KEY',
+    supportedTypes: ['image', 'video'],
+    curatedModels: [
+      { modelId: 'seedream-5-0-260128', name: 'Seedream 5.0', type: 'image' },
+      { modelId: 'dola-seedream-5-0-pro-260628', name: 'Seedream 5.0 Pro', type: 'image' },
+      { modelId: 'seedream-4-5-251128', name: 'Seedream 4.5', type: 'image' },
+      { modelId: 'dreamina-seedance-2-0-260128', name: 'Seedance 2.0', type: 'video' },
+      { modelId: 'dreamina-seedance-2-0-fast-260128', name: 'Seedance 2.0 Fast', type: 'video' },
+      { modelId: 'seedance-1-5-pro-251215', name: 'Seedance 1.5 Pro', type: 'video' },
+      { modelId: 'seedance-1-0-pro-fast-251015', name: 'Seedance 1.0 Pro Fast', type: 'video' },
+    ],
+  },
+  minimax: {
+    provider: 'minimax',
+    displayName: 'MiniMax',
+    defaultEnvKey: 'MINIMAX_API_KEY',
+    supportedTypes: ['video'],
+    curatedModels: [
+      { modelId: 'MiniMax-H3', name: 'MiniMax H3', type: 'video' },
+      { modelId: 'MiniMax-H3-Max', name: 'MiniMax H3 Max', type: 'video' },
+    ],
+  },
+  prodia: {
+    provider: 'prodia',
+    displayName: 'Prodia',
+    defaultEnvKey: 'PRODIA_TOKEN',
+    supportedTypes: ['image', 'video'],
+    curatedModels: [
+      {
+        modelId: 'inference.flux.schnell.txt2img.v2',
+        name: 'FLUX Schnell',
+        type: 'image',
+      },
+      {
+        modelId: 'inference.flux-fast.schnell.txt2img.v2',
+        name: 'FLUX Fast Schnell',
+        type: 'image',
+      },
+      {
+        modelId: 'inference.wan2-2.lightning.txt2vid.v0',
+        name: 'Wan 2.2 Lightning T2V',
+        type: 'video',
+      },
+      {
+        modelId: 'inference.wan2-2.lightning.img2vid.v0',
+        name: 'Wan 2.2 Lightning I2V',
+        type: 'video',
+      },
+    ],
+  },
+  azure: {
+    provider: 'azure',
+    displayName: 'Azure OpenAI',
+    defaultEnvKey: 'AZURE_API_KEY',
+    supportedTypes: ['image'],
+    curatedModels: [
+      { modelId: 'dall-e-3', name: 'DALL-E 3', type: 'image' },
+      { modelId: 'dall-e-2', name: 'DALL-E 2', type: 'image' },
     ],
   },
 }
@@ -559,6 +641,15 @@ export class MediaGenerationService {
       case 'amazon-bedrock':
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createAmazonBedrock({ apiKey }).image(modelId as any)
+      case 'bytedance':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return createByteDance({ apiKey }).image(modelId as any)
+      case 'prodia':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return createProdia({ apiKey }).image(modelId as any)
+      case 'azure':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return createAzure({ apiKey }).image(modelId as any)
       default:
         throw new Error(`Unsupported image provider: "${provider}"`)
     }
@@ -587,6 +678,18 @@ export class MediaGenerationService {
       case 'klingai':
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return createKlingAI({ apiKey }).video(modelId as any)
+      case 'alibaba':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return createAlibaba({ apiKey }).video(modelId as any)
+      case 'bytedance':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return createByteDance({ apiKey }).video(modelId as any)
+      case 'minimax':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return createMiniMax({ apiKey }).video(modelId as any)
+      case 'prodia':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return createProdia({ apiKey }).video(modelId as any)
       default:
         throw new Error(`Unsupported video provider: "${provider}"`)
     }
