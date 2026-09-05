@@ -285,12 +285,6 @@ describe('ImageVideoGenerationSettings', () => {
     const modelBtn = screen.getByRole('button', { name: /DALL-E 2/i })
     fireEvent.click(modelBtn)
 
-    // Display name input should be prefilled
-    const displayNameInput = screen.getByPlaceholderText(
-      'Friendly name for this model',
-    ) as HTMLInputElement
-    expect(displayNameInput.value).toBe('DALL-E 2')
-
     // Click Add
     const submitBtn = screen.getByRole('button', { name: /^Add$/ })
     fireEvent.click(submitBtn)
@@ -339,14 +333,9 @@ describe('ImageVideoGenerationSettings', () => {
     await waitFor(() => screen.getByRole('button', { name: /Custom Model\.\.\./i }))
     fireEvent.click(screen.getByRole('button', { name: /Custom Model\.\.\./i }))
 
-    // Fill in custom model ID and display name
+    // Fill in custom model ID
     const customIdInput = screen.getByPlaceholderText('Enter custom model ID') as HTMLInputElement
     fireEvent.change(customIdInput, { target: { value: 'kling-v2-custom' } })
-
-    const displayNameInput = screen.getByPlaceholderText(
-      'Friendly name for this model',
-    ) as HTMLInputElement
-    fireEvent.change(displayNameInput, { target: { value: 'My Kling Model' } })
 
     // Click Add
     const submitBtn = screen.getByRole('button', { name: /^Add$/ })
@@ -359,7 +348,7 @@ describe('ImageVideoGenerationSettings', () => {
           type: 'video',
           provider: 'klingai',
           modelId: 'kling-v2-custom',
-          name: 'My Kling Model',
+          name: 'kling-v2-custom',
         },
       })
     })

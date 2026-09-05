@@ -91,7 +91,6 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
   const [addProvider, setAddProvider] = useState<string>('')
   const [selectedModelId, setSelectedModelId] = useState<string>('')
   const [customModelId, setCustomModelId] = useState<string>('')
-  const [modelDisplayName, setModelDisplayName] = useState<string>('')
 
   // Delete Model Confirmation State
   const [modelToDelete, setModelToDelete] = useState<EnabledMediaModel | null>(null)
@@ -207,7 +206,6 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
     setAddProvider('')
     setSelectedModelId('')
     setCustomModelId('')
-    setModelDisplayName('')
   }
 
   const handleOpenKeyDialog = (provider: MediaProviderStatus) => {
@@ -242,11 +240,9 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
       setAddProvider('')
       setSelectedModelId('')
       setCustomModelId('')
-      setModelDisplayName('')
     } else {
       setSelectedModelId('')
       setCustomModelId('')
-      setModelDisplayName('')
     }
   }
 
@@ -255,11 +251,14 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
       selectedModelId === '__custom__' ? customModelId.trim() : selectedModelId.trim()
     if (!addProvider || !finalModelId) return
 
+    const curated = curatedModels?.find((m) => m.modelId === finalModelId)
+    const finalName = curated?.name || finalModelId
+
     addModel({
       type: addType,
       provider: addProvider,
       modelId: finalModelId,
-      name: modelDisplayName.trim() || undefined,
+      name: finalName,
     })
   }
 
@@ -658,7 +657,6 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                               setAddProvider(p.provider)
                               setSelectedModelId('')
                               setCustomModelId('')
-                              setModelDisplayName('')
                             }}
                             className={`w-full flex items-center justify-between p-2 rounded-md text-xs transition-colors ${
                               isSelected
@@ -725,7 +723,6 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                               type="button"
                               onClick={() => {
                                 setSelectedModelId(curated.modelId)
-                                setModelDisplayName(curated.name)
                               }}
                               className={`w-full flex flex-col items-start p-2 rounded-md text-xs transition-colors text-left ${
                                 isSelected
@@ -754,7 +751,6 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                           type="button"
                           onClick={() => {
                             setSelectedModelId('__custom__')
-                            setModelDisplayName('')
                           }}
                           className={`w-full flex items-center justify-between p-2 rounded-md text-xs transition-colors border-t border-border/40 mt-1 ${
                             selectedModelId === '__custom__'
@@ -784,19 +780,6 @@ export function ImageVideoGenerationSettings({ teamId }: { teamId: string }) {
                     onChange={(e) => setCustomModelId(e.target.value)}
                     placeholder={m.enter_custom_model_id()}
                     className="font-mono text-sm"
-                  />
-                </div>
-              )}
-
-              {addProvider && selectedModelId && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">
-                    {m.model_display_name()}
-                  </label>
-                  <Input
-                    value={modelDisplayName}
-                    onChange={(e) => setModelDisplayName(e.target.value)}
-                    placeholder={m.model_display_name_placeholder()}
                   />
                 </div>
               )}
