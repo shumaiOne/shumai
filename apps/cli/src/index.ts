@@ -19,11 +19,10 @@ Commands:
   create-version <path> -p <id>   Create a new version of an existing file or version stack
   rename <assetId> <newName>      Rename an existing file or folder
   move <assetIds...> -p <target>  Move one or more assets to a destination parent folder (alias: mv)
-  delete <assetId> --allow-delete Delete a single file or folder (alias: rm)
+  delete <assetId>                Delete a single file or folder (alias: rm)
 
 Options:
   -p, --parent <id>              The parent folder/asset ID (required for ls, mkdir, upload, create-version, move)
-  --allow-delete                 Required flag to authorize deleting an asset
   -h, --help                     Show help details
 `)
 }
@@ -43,14 +42,10 @@ async function main() {
     parentId = args[parentIdx + 1]
   }
 
-  const allowDelete = args.includes('--allow-delete')
-
   const cleanArgs: string[] = []
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '-p' || args[i] === '--parent') {
       i++
-    } else if (args[i] === '--allow-delete') {
-      // skip flag
     } else {
       cleanArgs.push(args[i])
     }
@@ -129,12 +124,10 @@ async function main() {
   } else if (cmd === 'delete' || cmd === 'rm') {
     const assetIds = cleanArgs.slice(1)
     if (assetIds.length === 0) {
-      console.error(
-        'Error: Asset ID is required. Usage: shumai-cli delete <assetId> --allow-delete',
-      )
+      console.error('Error: Asset ID is required. Usage: shumai-cli delete <assetId>')
       process.exit(1)
     }
-    await deleteAsset(assetIds, allowDelete)
+    await deleteAsset(assetIds)
   } else {
     console.error(`Error: Unknown command "${cmd}". Run "shumai-cli --help" for usage.`)
     process.exit(1)

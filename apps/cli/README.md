@@ -20,6 +20,9 @@ export SHUMAI_API_SERVER="http://localhost:3000"
 
 # Your personal API Token (Generate this in the WebUI via Settings -> Developer tab)
 export SHUMAI_API_KEY="your-developer-api-token"
+
+# Optional: Enable asset deletion capability (disabled by default for safety)
+export SHUMAI_ALLOW_DELETE="true"
 ```
 
 ---
@@ -112,16 +115,13 @@ shumai-cli mv <assetId...> -p <parentId>
 
 #### 8. Delete an Asset
 
-Delete a single file or folder by moving it to the Trash bin. For safety, this command only deletes one asset at a time and strictly requires the `--allow-delete` flag.
+Delete a single file or folder by moving it to the Trash bin. For safety, this command only deletes one asset at a time and requires the `SHUMAI_ALLOW_DELETE="true"` environment variable to be set in your environment.
 
 ```bash
-shumai-cli delete <assetId> --allow-delete
+shumai-cli delete <assetId>
 # or using the short alias:
-shumai-cli rm <assetId> --allow-delete
+shumai-cli rm <assetId>
 ```
-
-- **Options:**
-  - `--allow-delete`: Required authorization flag to confirm asset deletion.
 
 ---
 
