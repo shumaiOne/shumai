@@ -36,7 +36,7 @@
     "csv-parse": "7.0.2",
     "date-fns": "4.4.0",
     "dotenv": "17.4.2",
-    "dotenv-expand": "1000.0.0",
+    "dotenv-expand": "13.0.0",
     "extract-zip": "2.0.1",
     "hono": "4.13.5",
     "jittered-fractional-indexing": "1.0.1",
