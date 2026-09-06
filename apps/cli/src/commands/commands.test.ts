@@ -75,6 +75,8 @@ describe('CLI Commands', () => {
     },
   }
 
+  const originalAllowDelete = process.env.SHUMAI_ALLOW_DELETE
+
   beforeEach(() => {
     vi.resetAllMocks()
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -94,6 +96,11 @@ describe('CLI Commands', () => {
     writeSpy.mockRestore()
     errorSpy.mockRestore()
     exitSpy.mockRestore()
+    if (originalAllowDelete !== undefined) {
+      process.env.SHUMAI_ALLOW_DELETE = originalAllowDelete
+    } else {
+      delete process.env.SHUMAI_ALLOW_DELETE
+    }
   })
 
   describe('project ls', () => {
@@ -481,34 +488,39 @@ describe('CLI Commands', () => {
   })
 
   describe('deleteAsset', () => {
-    it('exits with error when --allow-delete is false', async () => {
-      await expect(deleteAsset(['a-1'], false)).rejects.toThrow('process.exit(1)')
+    it('exits with error when SHUMAI_ALLOW_DELETE is not set or not true', async () => {
+      delete process.env.SHUMAI_ALLOW_DELETE
+      await expect(deleteAsset(['a-1'])).rejects.toThrow('process.exit(1)')
       expect(errorSpy).toHaveBeenCalledWith(
-        'Error: Deleting an asset requires the --allow-delete flag.',
+        'Error: Asset deletion is disabled in this environment.',
       )
     })
 
     it('exits with error when assetIds is empty', async () => {
-      await expect(deleteAsset([], true)).rejects.toThrow('process.exit(1)')
+      process.env.SHUMAI_ALLOW_DELETE = 'true'
+      await expect(deleteAsset([])).rejects.toThrow('process.exit(1)')
       expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Asset ID is required'))
     })
 
     it('exits with error when more than one asset ID is passed', async () => {
-      await expect(deleteAsset(['a-1', 'a-2'], true)).rejects.toThrow('process.exit(1)')
+      process.env.SHUMAI_ALLOW_DELETE = 'true'
+      await expect(deleteAsset(['a-1', 'a-2'])).rejects.toThrow('process.exit(1)')
       expect(errorSpy).toHaveBeenCalledWith('Error: Can only delete one asset at a time.')
     })
 
     it('exits with error when asset is not found', async () => {
+      process.env.SHUMAI_ALLOW_DELETE = 'true'
       mockClient.api.folders[':folderId'].$get.mockResolvedValue({
         ok: false,
         json: async () => ({ error: 'Asset not found' }),
       } as unknown as Response)
 
-      await expect(deleteAsset(['a-1'], true)).rejects.toThrow('process.exit(1)')
+      await expect(deleteAsset(['a-1'])).rejects.toThrow('process.exit(1)')
       expect(errorSpy).toHaveBeenCalledWith('Error: Asset not found')
     })
 
-    it('successfully deletes a file when --allow-delete is provided', async () => {
+    it('successfully deletes a file when SHUMAI_ALLOW_DELETE is true', async () => {
+      process.env.SHUMAI_ALLOW_DELETE = 'true'
       mockClient.api.folders[':folderId'].$get.mockResolvedValue({
         ok: true,
         json: async () => ({ id: 'a-1', type: 'file' }),
@@ -517,7 +529,7 @@ describe('CLI Commands', () => {
         ok: true,
       } as unknown as Response)
 
-      await deleteAsset(['a-1'], true)
+      await deleteAsset(['a-1'])
 
       expect(mockClient.api.files.$delete).toHaveBeenCalledWith({
         json: { ids: ['a-1'] },
@@ -526,7 +538,8 @@ describe('CLI Commands', () => {
       expect(logSpy).toHaveBeenCalledWith('Deleted asset a-1')
     })
 
-    it('successfully deletes a folder when --allow-delete is provided', async () => {
+    it('successfully deletes a folder when SHUMAI_ALLOW_DELETE is 1', async () => {
+      process.env.SHUMAI_ALLOW_DELETE = '1'
       mockClient.api.folders[':folderId'].$get.mockResolvedValue({
         ok: true,
         json: async () => ({ id: 'folder-1', type: 'folder' }),
@@ -535,7 +548,7 @@ describe('CLI Commands', () => {
         ok: true,
       } as unknown as Response)
 
-      await deleteAsset(['folder-1'], true)
+      await deleteAsset(['folder-1'])
 
       expect(mockClient.api.folders.$delete).toHaveBeenCalledWith({
         json: { ids: ['folder-1'] },
@@ -544,6 +557,7 @@ describe('CLI Commands', () => {
     })
 
     it('exits with error when delete API returns an error', async () => {
+      process.env.SHUMAI_ALLOW_DELETE = 'true'
       mockClient.api.folders[':folderId'].$get.mockResolvedValue({
         ok: true,
         json: async () => ({ id: 'a-1', type: 'file' }),
@@ -553,7 +567,7 @@ describe('CLI Commands', () => {
         json: async () => ({ error: 'Failed to delete' }),
       } as unknown as Response)
 
-      await expect(deleteAsset(['a-1'], true)).rejects.toThrow('process.exit(1)')
+      await expect(deleteAsset(['a-1'])).rejects.toThrow('process.exit(1)')
       expect(errorSpy).toHaveBeenCalledWith('Error: Failed to delete')
     })
   })

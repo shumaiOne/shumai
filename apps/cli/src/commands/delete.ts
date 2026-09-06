@@ -1,13 +1,15 @@
 import { getClient } from '../client'
 
-export async function deleteAsset(assetIds: string[], allowDelete: boolean) {
-  if (!allowDelete) {
-    console.error('Error: Deleting an asset requires the --allow-delete flag.')
+export async function deleteAsset(assetIds: string[]) {
+  const isAllowed =
+    process.env.SHUMAI_ALLOW_DELETE === 'true' || process.env.SHUMAI_ALLOW_DELETE === '1'
+  if (!isAllowed) {
+    console.error('Error: Asset deletion is disabled in this environment.')
     process.exit(1)
   }
 
   if (!assetIds || assetIds.length === 0) {
-    console.error('Error: Asset ID is required. Usage: shumai-cli delete <assetId> --allow-delete')
+    console.error('Error: Asset ID is required. Usage: shumai-cli delete <assetId>')
     process.exit(1)
   }
 
