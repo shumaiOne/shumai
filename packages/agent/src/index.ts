@@ -30,9 +30,12 @@ import { createReadThreadTool } from './tools/read-thread'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
 import { createGenerateImageTool } from './tools/generate-image'
 import { createGenerateVideoTool } from './tools/generate-video'
+import { createRenameAssetTool } from './tools/rename-asset'
+import { createMoveAssetsTool } from './tools/move-assets'
+import { createDeleteAssetTool } from './tools/delete-asset'
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
 import { serializeContextToXml } from './context/serialize-context'
-import type { ShumaiMessageContext } from '@shumai/dtos'
+import { DEFAULT_DENIED_TOOLS, type ShumaiMessageContext } from '@shumai/dtos'
 
 export interface DbModelInfo {
   modelId: string
@@ -322,7 +325,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     where: { id: agentId },
   })
   const agentConfig = agent?.config as PrismaJson.AgentConfig | null | undefined
-  const deniedTools = agentConfig?.deniedTools || []
+  const deniedTools = agentConfig?.deniedTools ?? [...DEFAULT_DENIED_TOOLS]
 
   if (!deniedTools.includes('generate_image') || !deniedTools.includes('generate_video')) {
     try {
@@ -387,6 +390,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       createCreateFileTool(userId, metadataSchema, agentContext),
       createCreateVersionTool(userId, metadataSchema, agentContext),
       createDownloadAssetTool(userId),
+      createRenameAssetTool(userId, agentContext),
+      createMoveAssetsTool(userId, agentContext),
+      createDeleteAssetTool(userId, agentContext),
     )
   }
 
@@ -680,3 +686,6 @@ export * from './workflows/agent-embedding'
 export * from './workflows/query-embedding-for-search'
 export * from './tools/generate-image'
 export * from './tools/generate-video'
+export * from './tools/rename-asset'
+export * from './tools/move-assets'
+export * from './tools/delete-asset'

@@ -257,6 +257,68 @@ describe('AgentService', () => {
       expect(updated.user.image).toBe('files/01JK23456789ABCDEF01234567')
     })
 
+    test('Update Agent preserves deniedTools when omitted, and allows explicit empty array', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { team, provider, model, agent: legacyAgent } = await setupTestData(db)
+
+      // Legacy agent has no deniedTools in config, update without deniedTools should fall back to DEFAULT_DENIED_TOOLS
+      const updatedLegacy = await svc.updateAgent({
+        agentId: legacyAgent.id,
+        name: 'Updated Legacy',
+        type: 'chat',
+        enabled: true,
+        providerId: legacyAgent.providerId!,
+        modelId: legacyAgent.modelId!,
+        thinkingLevel: 'medium',
+      })
+      expect((updatedLegacy.config as PrismaJson.AgentConfig).deniedTools).toEqual(['delete_asset'])
+
+      // Create new agent with default deniedTools
+      const agent = await svc.createAgent({
+        teamId: team.id,
+        name: 'New Agent with Defaults',
+        type: 'chat',
+        enabled: true,
+        providerId: provider.id,
+        modelId: model.id,
+        thinkingLevel: 'medium',
+      })
+
+      expect(agent).not.toBeNull()
+
+      // Agent created with default deniedTools: ['delete_asset']
+      const createdConfig = agent!.config as PrismaJson.AgentConfig
+      expect(createdConfig.deniedTools).toEqual(['delete_asset'])
+
+      // Update without deniedTools: should preserve ['delete_asset']
+      const updatedWithoutDenied = await svc.updateAgent({
+        agentId: agent!.id,
+        name: 'Updated Name',
+        type: 'chat',
+        enabled: true,
+        providerId: agent!.providerId!,
+        modelId: agent!.modelId!,
+        thinkingLevel: 'medium',
+      })
+      const config1 = updatedWithoutDenied.config as PrismaJson.AgentConfig
+      expect(config1.deniedTools).toEqual(['delete_asset'])
+
+      // Update with explicit deniedTools: []
+      const updatedWithEmptyDenied = await svc.updateAgent({
+        agentId: agent!.id,
+        name: 'Updated Name 2',
+        type: 'chat',
+        enabled: true,
+        providerId: agent!.providerId!,
+        modelId: agent!.modelId!,
+        thinkingLevel: 'medium',
+        deniedTools: [],
+      })
+      const config2 = updatedWithEmptyDenied.config as PrismaJson.AgentConfig
+      expect(config2.deniedTools).toEqual([])
+    })
+
     test('Create and Update Agent with Preset Avatars', async () => {
       const db = prisma
       const svc = new AgentService()

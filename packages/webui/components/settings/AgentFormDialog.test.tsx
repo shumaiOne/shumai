@@ -88,5 +88,8 @@ describe('AgentFormDialog', () => {
     expect(screen.getByText('Generate Video')).toBeDefined()
     expect(screen.getByText('Sandboxed Terminal')).toBeDefined()
     expect(screen.getByText('Read Asset')).toBeDefined()
+    expect(screen.getByText('Rename Asset')).toBeDefined()
+    expect(screen.getByText('Move Assets')).toBeDefined()
+    expect(screen.getByText('Delete Asset')).toBeDefined()
   })
 })

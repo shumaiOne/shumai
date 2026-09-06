@@ -5,7 +5,7 @@ description: Configure the tools and capabilities permitted for each agent.
 
 Shumai agents are equipped with built-in tools that allow them to interact with the file system, view files, extract video frames, and execute commands.
 
-By default, **all tools are enabled** for new agents. Team Owners can deny specific tools to restrict agent capabilities.
+By default, most tools are enabled for new agents, while sensitive or destructive tools (such as **Delete Asset**) are disabled by default. Team Owners can toggle specific tools to customize agent capabilities.
 
 <Warning>
   **Caution:** Disabling tools can cause agents or skills to fail. For example, disabling the
@@ -59,6 +59,21 @@ The following tools can be individually toggled in the agent configuration dialo
 
 - **Description:** Allows the agent to download a workspace asset or specific storage S3 key to the local `.pi` directory for processing with local scripts or bash commands.
 - **Why it matters:** Enables agents executing custom skill scripts to fetch files or intermediate transcode artifacts to local disk.
+
+### 9. Rename Asset (`rename_asset`)
+
+- **Description:** Allows the agent to rename an existing file or folder in Shumai.
+- **Why it matters:** Enables agents to keep project files neatly named and organized according to workspace naming conventions. Enabled by default.
+
+### 10. Move Assets (`move_assets`)
+
+- **Description:** Allows the agent to move one or more assets to a destination parent folder.
+- **Why it matters:** Enables agents to reorganize workspace structures, relocate generated outputs, or tidy up project folders. Enabled by default.
+
+### 11. Delete Asset (`delete_asset`)
+
+- **Description:** Allows the agent to delete a single file or folder by moving it to the Trash bin.
+- **Why it matters:** Provides agents with the ability to clean up outdated or redundant assets. To prevent accidental data loss, this tool is **disabled by default** and strictly limited to deleting one asset at a time. Team Owners must explicitly enable this tool for an agent.
 
 ---
 

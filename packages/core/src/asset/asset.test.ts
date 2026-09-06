@@ -626,6 +626,39 @@ describe('AssetService', () => {
     ).rejects.toThrow('Can only move one file at a time into a version stack')
   })
 
+  it('rejects reparenting a folder into itself', async () => {
+    const { user, assets } = await setupBasicAssets()
+    await expect(
+      assetService.reparentAssets({
+        assetIds: [assets.folderA.id],
+        newParentId: assets.folderA.id,
+        creatorId: user.id,
+      }),
+    ).rejects.toThrow('Cannot move an asset into itself or its own descendant')
+  })
+
+  it('rejects reparenting a folder into its own descendant', async () => {
+    const { user, assets, project } = await setupBasicAssets()
+    const subfolder = await prisma.asset.create({
+      data: {
+        name: 'subfolderA',
+        type: AssetType.folder,
+        projectId: project.id,
+        parentId: assets.folderA.id,
+        creatorId: user.id,
+        status: 'uploaded',
+      },
+    })
+
+    await expect(
+      assetService.reparentAssets({
+        assetIds: [assets.folderA.id],
+        newParentId: subfolder.id,
+        creatorId: user.id,
+      }),
+    ).rejects.toThrow('Cannot move an asset into itself or its own descendant')
+  })
+
   describe('fileCount verification', () => {
     it('createAsset should increment parent fileCount', async () => {
       const { user, assets, project } = await setupBasicAssets()

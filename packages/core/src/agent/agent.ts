@@ -7,6 +7,7 @@ import {
   AgentSessionInfo,
   AgentInfo,
   AgentType,
+  DEFAULT_DENIED_TOOLS,
 } from '@shumai/dtos'
 import {
   paginateQuery,
@@ -208,7 +209,7 @@ export class AgentService {
         model: modelId || '',
         thinkingLevel,
         systemPrompt,
-        deniedTools: deniedTools || [],
+        deniedTools: deniedTools ?? [...DEFAULT_DENIED_TOOLS],
         avatarPreset,
       }
 
@@ -351,7 +352,10 @@ export class AgentService {
       model: modelId || '',
       thinkingLevel,
       systemPrompt,
-      deniedTools: deniedTools || [],
+      deniedTools:
+        deniedTools !== undefined
+          ? deniedTools
+          : (currentConfig.deniedTools ?? [...DEFAULT_DENIED_TOOLS]),
       avatarPreset: newAvatarPreset,
     }
 

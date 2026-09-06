@@ -307,7 +307,14 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
                 if (
                   entryObj.role === 'toolResult' &&
                   typeof entryObj.toolName === 'string' &&
-                  ['create_file', 'create_folder', 'create_version'].includes(entryObj.toolName) &&
+                  [
+                    'create_file',
+                    'create_folder',
+                    'create_version',
+                    'rename_asset',
+                    'move_assets',
+                    'delete_asset',
+                  ].includes(entryObj.toolName) &&
                   !entryObj.isError
                 ) {
                   onAssetMutation?.()

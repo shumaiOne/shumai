@@ -223,6 +223,20 @@ export class AssetService {
 
       if (assetsToMove.length === 0) return
 
+      // Check if newParentId is equal to or a descendant of any asset being moved
+      const ancestors = await tx.$queryRaw<{ id: string }[]>`
+        WITH RECURSIVE ancestor AS (
+          SELECT id, parent_id FROM assets WHERE id = ${newParent.id}
+          UNION ALL
+          SELECT a.id, a.parent_id FROM assets a
+          INNER JOIN ancestor d ON a.id = d.parent_id
+        )
+        SELECT id FROM ancestor WHERE id IN (${Prisma.join(req.assetIds)}) LIMIT 1;
+      `
+      if (ancestors.length > 0) {
+        throw new Error('Cannot move an asset into itself or its own descendant')
+      }
+
       if (newParent.type === AssetType.version_stack) {
         for (const a of assetsToMove) {
           if (a.type !== AssetType.file) {

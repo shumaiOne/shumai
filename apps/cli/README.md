@@ -89,6 +89,40 @@ shumai-cli create-version <localFilePath> -p <parentAssetId>
 - **Options:**
   - `-p`, `--parent <id>`: The parent asset ID (file or version stack) to version (required).
 
+#### 6. Rename an Asset
+
+Rename an existing file or folder in Shumai.
+
+```bash
+shumai-cli rename <assetId> <newName>
+```
+
+#### 7. Move Assets
+
+Move one or more assets (files or folders) to a destination parent folder. Note that all assets to be moved must belong to the same current parent folder.
+
+```bash
+shumai-cli move <assetId...> -p <parentId>
+# or using the short alias:
+shumai-cli mv <assetId...> -p <parentId>
+```
+
+- **Options:**
+  - `-p`, `--parent <id>`: The destination parent folder ID (required).
+
+#### 8. Delete an Asset
+
+Delete a single file or folder by moving it to the Trash bin. For safety, this command only deletes one asset at a time and strictly requires the `--allow-delete` flag.
+
+```bash
+shumai-cli delete <assetId> --allow-delete
+# or using the short alias:
+shumai-cli rm <assetId> --allow-delete
+```
+
+- **Options:**
+  - `--allow-delete`: Required authorization flag to confirm asset deletion.
+
 ---
 
 ## Development

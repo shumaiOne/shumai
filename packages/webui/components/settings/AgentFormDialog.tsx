@@ -27,7 +27,13 @@ import { Check, ChevronDown, Loader2, Puzzle, Search, Server, Terminal, Zap } fr
 import { useEffect, useMemo, useState } from 'react'
 import { m } from '@/ui/paraglide/messages.js'
 import { toast } from 'sonner'
-import { AgentInfo, AgentType, ThinkingLevel, thinkingLevelSchema } from '@shumai/dtos'
+import {
+  AgentInfo,
+  AgentType,
+  DEFAULT_DENIED_TOOLS,
+  ThinkingLevel,
+  thinkingLevelSchema,
+} from '@shumai/dtos'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { Textarea } from '@/ui/components/ui/textarea'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
@@ -104,6 +110,21 @@ const BUILTIN_TOOLS = [
     id: 'generate_video',
     name: () => m.agent_tool_generate_video_name(),
     description: () => m.agent_tool_generate_video_desc(),
+  },
+  {
+    id: 'rename_asset',
+    name: () => m.agent_tool_rename_asset_name(),
+    description: () => m.agent_tool_rename_asset_desc(),
+  },
+  {
+    id: 'move_assets',
+    name: () => m.agent_tool_move_assets_name(),
+    description: () => m.agent_tool_move_assets_desc(),
+  },
+  {
+    id: 'delete_asset',
+    name: () => m.agent_tool_delete_asset_name(),
+    description: () => m.agent_tool_delete_asset_desc(),
   },
 ]
 
@@ -197,7 +218,7 @@ export function AgentFormDialog({
       systemPrompt: initialValues?.systemPrompt || '',
       skills: initialValues?.skills?.map((s) => s.skillId) || ([] as string[]),
       mcpServerIds: initialValues?.mcpServerIds || ([] as string[]),
-      deniedTools: initialValues?.deniedTools || ([] as string[]),
+      deniedTools: initialValues?.deniedTools ?? [...DEFAULT_DENIED_TOOLS],
     } as AgentFormValues,
     validators: {
       onChange: schema,
