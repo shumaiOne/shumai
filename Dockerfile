@@ -18,6 +18,9 @@ RUN ls -la packages/transcode/node_modules
 # Copy source code
 COPY . .
 
+# Compile i18n
+RUN bun run i18n:compile
+
 # Build API and Worker
 RUN bun run build.ts
 

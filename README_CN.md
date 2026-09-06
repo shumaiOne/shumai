@@ -357,17 +357,20 @@ bun install
 
 2. 启动 `pgvector` 数据库容器（参考**方案二中的第一步**）。
 3. 参照**方案二中的第五步**，在项目根目录下创建一个 `.env` 文件。
-4. 执行数据库结构迁移：
+4. 生成多语言国际化（i18n）代码：
+```bash
+bun run i18n:compile
+```
+> [!TIP]
+> 在前端开发过程中，可以在单独的终端窗口中运行 `bun run i18n:watch`，在修改 `packages/webui/messages/` 下的翻译文案时自动重新编译。
+
+5. 执行数据库结构迁移：
 ```bash
 bun run db:migrate
-
 ```
-
-
-5. 启动本地开发服务器：
+6. 启动本地开发服务器：
 ```bash
 bun run dev
-
 ```
 
 
