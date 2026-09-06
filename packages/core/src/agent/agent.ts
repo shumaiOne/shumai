@@ -352,7 +352,10 @@ export class AgentService {
       model: modelId || '',
       thinkingLevel,
       systemPrompt,
-      deniedTools: deniedTools || [],
+      deniedTools:
+        deniedTools !== undefined
+          ? deniedTools
+          : (currentConfig.deniedTools ?? [...DEFAULT_DENIED_TOOLS]),
       avatarPreset: newAvatarPreset,
     }
 

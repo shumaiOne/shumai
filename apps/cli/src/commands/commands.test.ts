@@ -44,6 +44,7 @@ describe('CLI Commands', () => {
       },
       folders: {
         $post: vi.fn(),
+        $delete: vi.fn(),
         ':folderId': {
           $get: vi.fn(),
           $put: vi.fn(),
@@ -497,7 +498,21 @@ describe('CLI Commands', () => {
       expect(errorSpy).toHaveBeenCalledWith('Error: Can only delete one asset at a time.')
     })
 
-    it('successfully deletes a single asset when --allow-delete is provided', async () => {
+    it('exits with error when asset is not found', async () => {
+      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: 'Asset not found' }),
+      } as unknown as Response)
+
+      await expect(deleteAsset(['a-1'], true)).rejects.toThrow('process.exit(1)')
+      expect(errorSpy).toHaveBeenCalledWith('Error: Asset not found')
+    })
+
+    it('successfully deletes a file when --allow-delete is provided', async () => {
+      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: 'a-1', type: 'file' }),
+      } as unknown as Response)
       mockClient.api.files.$delete.mockResolvedValue({
         ok: true,
       } as unknown as Response)
@@ -507,10 +522,32 @@ describe('CLI Commands', () => {
       expect(mockClient.api.files.$delete).toHaveBeenCalledWith({
         json: { ids: ['a-1'] },
       })
+      expect(mockClient.api.folders.$delete).not.toHaveBeenCalled()
       expect(logSpy).toHaveBeenCalledWith('Deleted asset a-1')
     })
 
+    it('successfully deletes a folder when --allow-delete is provided', async () => {
+      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: 'folder-1', type: 'folder' }),
+      } as unknown as Response)
+      mockClient.api.folders.$delete.mockResolvedValue({
+        ok: true,
+      } as unknown as Response)
+
+      await deleteAsset(['folder-1'], true)
+
+      expect(mockClient.api.folders.$delete).toHaveBeenCalledWith({
+        json: { ids: ['folder-1'] },
+      })
+      expect(logSpy).toHaveBeenCalledWith('Deleted asset folder-1')
+    })
+
     it('exits with error when delete API returns an error', async () => {
+      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: 'a-1', type: 'file' }),
+      } as unknown as Response)
       mockClient.api.files.$delete.mockResolvedValue({
         ok: false,
         json: async () => ({ error: 'Failed to delete' }),

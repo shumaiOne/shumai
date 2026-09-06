@@ -20,9 +20,29 @@ export async function deleteAsset(assetIds: string[], allowDelete: boolean) {
   const client = getClient()
 
   try {
-    const res = await client.api.files.$delete({
-      json: { ids: [assetId] },
+    // Inspect asset to determine whether it is a folder or file
+    const getRes = await client.api.folders[':folderId'].$get({
+      param: { folderId: assetId },
     })
+
+    if (!getRes.ok) {
+      const err = (await getRes.json().catch(() => ({ error: 'Asset not found' }))) as {
+        error?: string
+      }
+      console.error(`Error: ${err.error || 'Asset not found'}`)
+      process.exit(1)
+    }
+
+    const asset = await getRes.json()
+    const isFolder = asset.type === 'folder'
+
+    const res = isFolder
+      ? await client.api.folders.$delete({
+          json: { ids: [assetId] },
+        })
+      : await client.api.files.$delete({
+          json: { ids: [assetId] },
+        })
 
     if (!res.ok) {
       const err = (await res.json().catch(() => ({ error: 'Failed to delete asset' }))) as {
