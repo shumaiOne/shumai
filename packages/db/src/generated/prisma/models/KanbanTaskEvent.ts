@@ -53,7 +53,7 @@ export type KanbanTaskEventCountAggregateOutputType = {
   type: number
   fromStatus: number
   toStatus: number
-  data:PrismaJson.KanbanEventPayload
+  data: number
   createdAt: number
   _all: number
 }

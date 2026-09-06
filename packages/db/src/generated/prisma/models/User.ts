@@ -60,7 +60,7 @@ export type UserCountAggregateOutputType = {
   emailVerified: number
   image: number
   password: number
-  agentSettings:PrismaJson.AgentSettings
+  agentSettings: number
   guestEmail: number
   createdAt: number
   updatedAt: number

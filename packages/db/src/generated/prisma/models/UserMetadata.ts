@@ -47,7 +47,7 @@ export type UserMetadataMaxAggregateOutputType = {
 export type UserMetadataCountAggregateOutputType = {
   id: number
   key: number
-  value:PrismaJson.UserMetadataValue
+  value: number
   createdAt: number
   updatedAt: number
   userId: number

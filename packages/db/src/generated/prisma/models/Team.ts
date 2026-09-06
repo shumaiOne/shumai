@@ -45,7 +45,7 @@ export type TeamMaxAggregateOutputType = {
 export type TeamCountAggregateOutputType = {
   id: number
   name: number
-  settings:PrismaJson.Settings
+  settings: number
   createdAt: number
   updatedAt: number
   rootFolderId: number

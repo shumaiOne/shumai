@@ -1335,7 +1335,7 @@ export class TranscodeService {
         const localPngPath = path.join(tmpDir, files[i])
         const webpName = `${stem}-page-${pageNum}-${ulid()}.webp`
 
-        let webpBuffer = await sharp(localPngPath, { limitInputPixels: false })
+        let webpBuffer: Buffer = await sharp(localPngPath, { limitInputPixels: false })
           .toColorspace('srgb')
           .resize(1920, 1080, { fit: 'inside', withoutEnlargement: false })
           .webp({ quality: 85 })

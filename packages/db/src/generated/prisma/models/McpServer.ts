@@ -65,10 +65,10 @@ export type McpServerCountAggregateOutputType = {
   instructions: number
   url: number
   transport: number
-  authConfig:PrismaJson.McpServerAuthConfig
-  config:PrismaJson.McpServerConfig
+  authConfig: number
+  config: number
   permission: number
-  tools:PrismaJson.McpToolInfo[]
+  tools: number
   status: number
   lastError: number
   lastConnectedAt: number

@@ -13,15 +13,15 @@
     "./src/*": "./src/*.ts"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "7.8.0",
-    "@prisma/client": "7.8.0",
-    "pg": "8.21.0",
     "@earendil-works/pi-agent-core": "0.82.1",
-    "zod": "4.4.3"
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "pg": "8.23.0",
+    "zod": "4.5.4"
   },
   "devDependencies": {
-    "@types/pg": "8.20.0",
-    "prisma": "7.8.0",
-    "prisma-json-types-generator": "4.1.1"
+    "@types/pg": "8.23.1",
+    "prisma": "7.10.0",
+    "prisma-json-types-generator": "5.1.1"
   }
 }

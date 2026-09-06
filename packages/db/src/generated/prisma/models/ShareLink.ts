@@ -71,7 +71,7 @@ export type ShareLinkCountAggregateOutputType = {
   allowDownload: number
   defaultSortOrder: number
   viewMode: number
-  fieldVisibility:PrismaJson.ShareLinkFieldVisibility
+  fieldVisibility: number
   createdAt: number
   updatedAt: number
   projectId: number

@@ -42,7 +42,7 @@ export type WatermarkConfigMaxAggregateOutputType = {
 
 export type WatermarkConfigCountAggregateOutputType = {
   id: number
-  config:PrismaJson.WatermarkConfigSpec
+  config: number
   hash: number
   createdAt: number
   updatedAt: number

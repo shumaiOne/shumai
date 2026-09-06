@@ -50,7 +50,7 @@ export type MetadataFieldCountAggregateOutputType = {
   id: number
   key: number
   scope: number
-  config:PrismaJson.FieldConfig
+  config: number
   readOnly: number
   description: number
   teamId: number

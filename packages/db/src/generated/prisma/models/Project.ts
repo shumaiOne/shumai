@@ -54,7 +54,7 @@ export type ProjectCountAggregateOutputType = {
   id: number
   name: number
   coverImageKey: number
-  metadataOverrides:PrismaJson.MetadataOverrides
+  metadataOverrides: number
   enableNotification: number
   createdAt: number
   updatedAt: number

@@ -54,7 +54,7 @@ export type SkillCountAggregateOutputType = {
   id: number
   name: number
   description: number
-  config:PrismaJson.SkillConfig
+  config: number
   assetId: number
   hash: number
   permission: number

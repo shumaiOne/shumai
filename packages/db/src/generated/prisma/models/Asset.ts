@@ -94,7 +94,7 @@ export type AssetCountAggregateOutputType = {
   sizeByte: number
   status: number
   transcodeTaskId: number
-  media:PrismaJson.MediaInfo
+  media: number
   isDeleted: number
   deletedAt: number
   sortIndex: number

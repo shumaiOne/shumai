@@ -49,7 +49,7 @@ export type KanbanTaskCommentCountAggregateOutputType = {
   taskId: number
   authorId: number
   body: number
-  attachments:PrismaJson.KanbanCommentAttachmentList
+  attachments: number
   createdAt: number
   updatedAt: number
   _all: number
