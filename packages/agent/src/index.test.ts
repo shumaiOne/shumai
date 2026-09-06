@@ -1029,6 +1029,64 @@ describe('createAgentSession typed metadata schema', () => {
     expect('metadata' in fileProps).toBe(false)
     expect('metadata' in versionProps).toBe(false)
   })
+
+  it('should include rename_asset and move_assets by default, but exclude delete_asset', async () => {
+    const { harness } = await setupSessionWithProject({ withCreationFields: false })
+    const toolNames = harness.getTools().map((t) => t.name)
+
+    expect(toolNames).toContain('rename_asset')
+    expect(toolNames).toContain('move_assets')
+    expect(toolNames).not.toContain('delete_asset')
+  })
+
+  it('should include delete_asset when deniedTools is explicitly empty', async () => {
+    const team = await prisma.team.create({ data: { name: 'Delete Asset Team' } })
+    const user = await prisma.user.create({
+      data: { name: 'Owner', email: 'owner-del@shumai.ai' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: user.id, role: 'owner' },
+    })
+    await prisma.user.create({
+      data: {
+        id: 'del-agent',
+        name: 'Del Agent',
+        email: 'del-agent@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'del-agent',
+        teamId: team.id,
+        type: 'chat',
+        config: {
+          provider: 'google',
+          model: 'gemini',
+          deniedTools: [],
+        },
+      },
+    })
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      const { harness } = await createAgentSession({
+        teamId: team.id,
+        agentId: 'del-agent',
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        allowedDomains: [],
+        providers: mockProviders,
+        userId: user.id,
+      })
+      const toolNames = harness.getTools().map((t) => t.name)
+      expect(toolNames).toContain('delete_asset')
+    } finally {
+      initializeSpy.mockRestore()
+    }
+  })
 })
 
 describe('createAgentSession enabled skill filtering', () => {

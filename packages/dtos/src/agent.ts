@@ -12,6 +12,8 @@ export type ThinkingLevel = z.infer<typeof thinkingLevelSchema>
 export const agentPermissionSchema = z.enum(['owner', 'editor', 'reviewer'])
 export type AgentPermission = z.infer<typeof agentPermissionSchema>
 
+export const DEFAULT_DENIED_TOOLS = ['delete_asset'] as const
+
 export const agentSkillSchema = z.object({
   id: z.string().optional(),
   skillId: z.string(),

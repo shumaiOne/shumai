@@ -76,6 +76,9 @@ const STANDARD_TOOLS = [
   { value: 'create_version', label: () => m.agent_tool_create_version_name() },
   { value: 'generate_image', label: () => m.agent_tool_generate_image_name() },
   { value: 'generate_video', label: () => m.agent_tool_generate_video_name() },
+  { value: 'rename_asset', label: () => m.agent_tool_rename_asset_name() },
+  { value: 'move_assets', label: () => m.agent_tool_move_assets_name() },
+  { value: 'delete_asset', label: () => m.agent_tool_delete_asset_name() },
 ]
 
 /* eslint-disable @typescript-eslint/naming-convention */
