@@ -1407,6 +1407,13 @@
   "remove_key": "Remove Key",
   "select_provider_first": "Select a provider on the left to view available models",
   "search_providers": "Search providers...",
-  "search_models": "Search models...",
-  "default_env_var_desc": "Default: {envKey}"
+  "default_env_var_desc": "Default: {envKey}",
+  "image_models_count": "{count} enabled",
+  "video_models_count": "{count} enabled",
+  "clear_custom_key": "Clear Custom Key",
+  "add_custom_model": "Add Custom Model",
+  "provider_not_configured_warning": "This provider is not configured. Configure an API key in the API Key tab before using these models.",
+  "failed_to_update_provider": "Failed to update provider",
+  "manage_provider": "Manage",
+  "all_modalities": "All"
 }

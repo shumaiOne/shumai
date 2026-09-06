@@ -43,7 +43,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: teamId,
       })
 
-      await mediaGenerationService.updateProviderApiKey(teamId, provider, body.apiKey)
+      await mediaGenerationService.updateProvider(teamId, provider, body)
       return c.json({ success: true })
     },
   )

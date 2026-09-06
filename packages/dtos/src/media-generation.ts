@@ -10,10 +10,22 @@ export const mediaProviderStatusTypeSchema = z.enum([
 ])
 export type MediaProviderStatusType = z.infer<typeof mediaProviderStatusTypeSchema>
 
-export const updateMediaProviderApiKeySchema = z.object({
+export const updateMediaProviderConfigSchema = z.object({
   apiKey: z.string().optional().or(z.literal('')),
+  models: z
+    .array(
+      z.object({
+        type: mediaModelTypeSchema,
+        modelId: z.string().min(1, 'Model ID is required'),
+        name: z.string().optional(),
+      }),
+    )
+    .optional(),
 })
-export type UpdateMediaProviderApiKeyRequest = z.infer<typeof updateMediaProviderApiKeySchema>
+export type UpdateMediaProviderConfig = z.infer<typeof updateMediaProviderConfigSchema>
+
+export const updateMediaProviderApiKeySchema = updateMediaProviderConfigSchema
+export type UpdateMediaProviderApiKeyRequest = UpdateMediaProviderConfig
 
 export const createEnabledMediaModelSchema = z.object({
   type: mediaModelTypeSchema,

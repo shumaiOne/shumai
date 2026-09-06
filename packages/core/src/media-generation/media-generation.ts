@@ -453,7 +453,18 @@ export class MediaGenerationService {
     }
   }
 
-  async updateProviderApiKey(teamId: string, provider: string, apiKey?: string): Promise<void> {
+  async updateProvider(
+    teamId: string,
+    provider: string,
+    data: {
+      apiKey?: string
+      models?: Array<{
+        type: MediaModelType
+        modelId: string
+        name?: string
+      }>
+    },
+  ): Promise<void> {
     if (!BUILTIN_MEDIA_PROVIDERS[provider]) {
       throw new HTTPException(400, { message: `Unknown media provider: "${provider}"` })
     }
@@ -470,10 +481,44 @@ export class MediaGenerationService {
     const mediaGen = currentSettings.mediaGeneration || {}
     const providers = mediaGen.providers || {}
 
-    if (apiKey && apiKey.trim()) {
-      providers[provider] = { apiKey: apiKey.trim() }
-    } else {
-      delete providers[provider]
+    if (data.apiKey !== undefined) {
+      if (data.apiKey && data.apiKey.trim()) {
+        providers[provider] = { apiKey: data.apiKey.trim() }
+      } else {
+        delete providers[provider]
+      }
+    }
+
+    if (data.models !== undefined) {
+      const providerDef = BUILTIN_MEDIA_PROVIDERS[provider]
+      for (const m of data.models) {
+        if (!providerDef.supportedTypes.includes(m.type)) {
+          throw new HTTPException(400, {
+            message: `Provider "${provider}" does not support ${m.type} generation`,
+          })
+        }
+      }
+
+      const otherModels = (mediaGen.enabledModels || []).filter((m) => m.provider !== provider)
+      const existingForProvider = (mediaGen.enabledModels || []).filter(
+        (m) => m.provider === provider,
+      )
+
+      const updatedForProvider = data.models.map((m) => {
+        const existing = existingForProvider.find(
+          (e) => e.modelId === m.modelId && e.type === m.type,
+        )
+        return {
+          id: existing?.id || ulid(),
+          type: m.type,
+          provider,
+          modelId: m.modelId,
+          name: m.name || existing?.name || m.modelId,
+          createdAt: existing?.createdAt || new Date().toISOString(),
+        }
+      })
+
+      mediaGen.enabledModels = [...otherModels, ...updatedForProvider]
     }
 
     mediaGen.providers = providers
@@ -483,6 +528,10 @@ export class MediaGenerationService {
       where: { id: teamId },
       data: { settings: currentSettings },
     })
+  }
+
+  async updateProviderApiKey(teamId: string, provider: string, apiKey?: string): Promise<void> {
+    return this.updateProvider(teamId, provider, { apiKey })
   }
 
   async addEnabledModel(

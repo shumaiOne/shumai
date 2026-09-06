@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -8,8 +8,6 @@ import type { MediaGenerationSettingsResponse } from '@shumai/dtos'
 
 const mockGetSettings = vi.fn()
 const mockPutProvider = vi.fn()
-const mockPostModel = vi.fn()
-const mockDeleteModel = vi.fn()
 const mockGetCurated = vi.fn()
 
 vi.mock('@/ui/api/client', () => ({
@@ -25,10 +23,6 @@ vi.mock('@/ui/api/client', () => ({
               },
             },
             models: {
-              $post: (args: unknown) => mockPostModel(args),
-              ':modelId': {
-                $delete: (args: unknown) => mockDeleteModel(args),
-              },
               curated: {
                 $get: (args: unknown) => mockGetCurated(args),
               },
@@ -111,21 +105,6 @@ describe('ImageVideoGenerationSettings', () => {
       ok: true,
       json: async () => ({ success: true }),
     })
-    mockPostModel.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        id: 'new-model-id',
-        type: 'image',
-        provider: 'openai',
-        modelId: 'dall-e-2',
-        name: 'DALL-E 2',
-        createdAt: '2026-01-01T00:00:00.000Z',
-      }),
-    })
-    mockDeleteModel.mockResolvedValue({
-      ok: true,
-      json: async () => ({ success: true }),
-    })
     mockGetCurated.mockResolvedValue({
       ok: true,
       json: async () => [
@@ -146,211 +125,293 @@ describe('ImageVideoGenerationSettings', () => {
       </QueryClientProvider>,
     )
 
-  it('renders 2 tabs and switches between Providers and Enabled Models', async () => {
+  it('renders providers list with enabled model count badges and no outer tabs', async () => {
     renderComponent()
 
     await waitFor(() => {
-      expect(screen.getAllByText('OpenAI').length).toBeGreaterThan(0)
-      expect(screen.getAllByText('Kling AI').length).toBeGreaterThan(0)
-      expect(screen.getAllByText('Fal').length).toBeGreaterThan(0)
+      expect(screen.getByText('OpenAI')).toBeDefined()
+      expect(screen.getByText('Kling AI')).toBeDefined()
+      expect(screen.getByText('Fal')).toBeDefined()
     })
 
-    const openaiProvider = screen.getByText('OpenAI')
-    expect(openaiProvider.className).toContain('whitespace-nowrap')
-    const keySpan = screen.getByText('OPENAI_API_KEY')
-    expect(keySpan.className).toContain('truncate')
+    // No outer tabs should exist
+    expect(screen.queryByRole('tablist')).toBeNull()
 
-    // Switch to Enabled Models tab
-    const modelsTab = screen.getByRole('tab', { name: /Enabled Models/i })
-    fireEvent.click(modelsTab)
+    // OpenAI row shows 1 enabled (image)
+    const openaiRow = screen.getByText('OpenAI').closest('.group') as HTMLElement
+    expect(within(openaiRow).getByText('1 enabled')).toBeDefined()
 
-    // Verify enabled models table content is displayed
-    await waitFor(() => {
-      expect(screen.getByText('dall-e-3')).toBeDefined()
-      expect(screen.getByText('kling-v1-standard')).toBeDefined()
-    })
+    // Kling AI row shows 1 enabled (video)
+    const klingRow = screen.getByText('Kling AI').closest('.group') as HTMLElement
+    expect(within(klingRow).getByText('1 enabled')).toBeDefined()
+
+    // Fal row shows 0 enabled for both image and video
+    const falRow = screen.getByText('Fal').closest('.group') as HTMLElement
+    expect(within(falRow).getAllByText('0 enabled')).toHaveLength(2)
   })
 
-  it('opens configure API key dialog and saves new key or env var override', async () => {
+  it('opens dialog with smart default tab based on API key configuration', async () => {
     renderComponent()
 
     await waitFor(() => {
-      expect(screen.getAllByText('OpenAI').length).toBeGreaterThan(0)
+      expect(screen.getByText('OpenAI')).toBeDefined()
     })
 
-    const editButtons = screen.getAllByRole('button', { name: /Edit API Key/i })
-    fireEvent.click(editButtons[0])
+    // 1. OpenAI is configured -> opens to Models tab by default
+    const openaiRow = screen.getByText('OpenAI').closest('.cursor-pointer')!
+    fireEvent.click(openaiRow)
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeDefined()
+      // Models tab should be active
+      const modelsTab = screen.getByRole('tab', { name: /Models/i })
+      expect(modelsTab.getAttribute('data-state')).toBe('active')
     })
 
-    // Input is type="text" and displays description
-    const input = document.querySelector('input[type="text"]') as HTMLInputElement
-    expect(input).toBeDefined()
-    expect(
-      screen.getByText(
-        'You can provide a literal value (e.g. sk-...) or an Environment variable name (e.g. MY_API_KEY).',
-      ),
-    ).toBeDefined()
+    // Close dialog with Cancel
+    const cancelBtn = screen.getByRole('button', { name: 'Cancel' })
+    fireEvent.click(cancelBtn)
 
-    fireEvent.change(input, { target: { value: 'OPENAI_API_NEW_KEY' } })
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
 
-    const saveButton = screen.getByRole('button', { name: 'Save' })
-    fireEvent.click(saveButton)
+    // 2. Fal is not configured -> opens to API Key tab by default
+    const falRow = screen.getByText('Fal').closest('.cursor-pointer')!
+    fireEvent.click(falRow)
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeDefined()
+      const apiKeyTab = screen.getByRole('tab', { name: /API Key/i })
+      expect(apiKeyTab.getAttribute('data-state')).toBe('active')
+    })
+  })
+
+  it('stages API key changes and saves on global footer Save click', async () => {
+    renderComponent()
+
+    await waitFor(() => screen.getByText('OpenAI'))
+    fireEvent.click(screen.getByText('OpenAI').closest('.cursor-pointer')!)
+
+    await waitFor(() => screen.getByRole('dialog'))
+
+    // Switch to API Key tab
+    fireEvent.click(screen.getByRole('tab', { name: /API Key/i }))
+
+    await waitFor(() => {
+      expect(document.getElementById('provider-api-key')).not.toBeNull()
+    })
+
+    const input = document.getElementById('provider-api-key') as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'sk-new-key' } })
+
+    // Save button in footer
+    const saveBtn = screen.getByRole('button', { name: 'Save' })
+    fireEvent.click(saveBtn)
 
     await waitFor(() => {
       expect(mockPutProvider).toHaveBeenCalledWith({
         param: { teamId: 'team-123', provider: 'openai' },
-        json: { apiKey: 'OPENAI_API_NEW_KEY' },
+        json: {
+          apiKey: 'sk-new-key',
+          models: [
+            {
+              type: 'image',
+              modelId: 'dall-e-3',
+              name: 'DALL-E 3',
+            },
+          ],
+        },
       })
     })
   })
 
-  it('shows unmasked custom key/env in dialog and allows removing custom override', async () => {
+  it('allows clearing custom API key in API Key tab', async () => {
     renderComponent()
 
-    await waitFor(() => {
-      expect(screen.getAllByText('Kling AI').length).toBeGreaterThan(0)
-    })
+    await waitFor(() => screen.getByText('Kling AI'))
+    fireEvent.click(screen.getByText('Kling AI').closest('.cursor-pointer')!)
 
-    // In the providers list row, Kling AI shows custom override
-    expect(screen.getByText('my-custom-key')).toBeDefined()
+    await waitFor(() => screen.getByRole('dialog'))
 
-    const editButtons = screen.getAllByRole('button', { name: /Edit API Key/i })
-    // Kling AI is index 1
-    fireEvent.click(editButtons[1])
+    // Switch to API Key tab
+    fireEvent.click(screen.getByRole('tab', { name: /API Key/i }))
 
     await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeDefined()
+      expect(document.getElementById('provider-api-key')).not.toBeNull()
     })
 
-    // Input displays raw text 'my-custom-key'
-    const input = document.querySelector('input[type="text"]') as HTMLInputElement
-    expect(input).toBeDefined()
+    // Kling AI has custom key 'my-custom-key'
+    const input = document.getElementById('provider-api-key') as HTMLInputElement
     expect(input.value).toBe('my-custom-key')
 
-    // Click Remove Key
-    const removeButton = screen.getByRole('button', { name: 'Remove Key' })
-    fireEvent.click(removeButton)
+    // Click Clear Custom Key
+    const clearBtn = screen.getByRole('button', { name: /Clear Custom Key/i })
+    fireEvent.click(clearBtn)
+
+    expect(input.value).toBe('')
+
+    // Click Save
+    const saveBtn = screen.getByRole('button', { name: 'Save' })
+    fireEvent.click(saveBtn)
 
     await waitFor(() => {
       expect(mockPutProvider).toHaveBeenCalledWith({
         param: { teamId: 'team-123', provider: 'klingai' },
-        json: { apiKey: '' },
-      })
-    })
-  })
-
-  it('opens add model dialog with 2-card switch and 2-box provider/model selector', async () => {
-    renderComponent()
-
-    await waitFor(() => {
-      expect(screen.getAllByText('OpenAI').length).toBeGreaterThan(0)
-    })
-
-    // Switch to Enabled Models tab
-    const modelsTab = screen.getByRole('tab', { name: /Enabled Models/i })
-    fireEvent.click(modelsTab)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Add Model/i })).toBeDefined()
-    })
-
-    const addModelButton = screen.getByRole('button', { name: /Add Model/i })
-    fireEvent.click(addModelButton)
-
-    await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeDefined()
-    })
-
-    // 2-card model type selector
-    expect(screen.getByRole('button', { name: /Image/i })).toBeDefined()
-    expect(screen.getByRole('button', { name: /Video/i })).toBeDefined()
-
-    // Left box should show compatible providers for Image (OpenAI and Fal)
-    expect(screen.getByText('Select a provider on the left to view available models')).toBeDefined()
-
-    // Click OpenAI in providers list
-    const openaiProviderBtn = screen.getByRole('button', { name: /OpenAI/i })
-    fireEvent.click(openaiProviderBtn)
-
-    // Right box loads curated models
-    await waitFor(() => {
-      expect(mockGetCurated).toHaveBeenCalled()
-      expect(screen.getByRole('button', { name: /DALL-E 2/i })).toBeDefined()
-    })
-
-    // Select DALL-E 2
-    const modelBtn = screen.getByRole('button', { name: /DALL-E 2/i })
-    fireEvent.click(modelBtn)
-
-    // Click Add
-    const submitBtn = screen.getByRole('button', { name: /^Add$/ })
-    fireEvent.click(submitBtn)
-
-    await waitFor(() => {
-      expect(mockPostModel).toHaveBeenCalledWith({
-        param: { teamId: 'team-123' },
         json: {
-          type: 'image',
-          provider: 'openai',
-          modelId: 'dall-e-2',
-          name: 'DALL-E 2',
+          apiKey: '',
+          models: [
+            {
+              type: 'video',
+              modelId: 'kling-v1-standard',
+              name: 'Kling v1',
+            },
+          ],
         },
       })
     })
   })
 
-  it('supports selecting video type and custom model option', async () => {
-    mockGetCurated.mockResolvedValue({
-      ok: true,
-      json: async () => [],
-    })
-
+  it('stages model toggles and adds custom models before saving', async () => {
     renderComponent()
 
-    await waitFor(() => {
-      expect(screen.getAllByText('OpenAI').length).toBeGreaterThan(0)
-    })
-
-    // Switch to Enabled Models tab and open Add Model dialog
-    fireEvent.click(screen.getByRole('tab', { name: /Enabled Models/i }))
-    await waitFor(() => screen.getByRole('button', { name: /Add Model/i }))
-    fireEvent.click(screen.getByRole('button', { name: /Add Model/i }))
+    await waitFor(() => screen.getByText('OpenAI'))
+    fireEvent.click(screen.getByText('OpenAI').closest('.cursor-pointer')!)
 
     await waitFor(() => screen.getByRole('dialog'))
 
-    // Switch to Video card
-    const videoCard = screen.getByRole('button', { name: /Video/i })
-    fireEvent.click(videoCard)
+    // Wait for curated models to load
+    await waitFor(() => {
+      expect(screen.getByText('DALL-E 3')).toBeDefined()
+      expect(screen.getByText('DALL-E 2')).toBeDefined()
+    })
 
-    // Select Kling AI
-    await waitFor(() => screen.getByRole('button', { name: /Kling AI/i }))
-    fireEvent.click(screen.getByRole('button', { name: /Kling AI/i }))
+    // DALL-E 3 is initially enabled (checked)
+    const dalle3Switch = screen.getByLabelText('Toggle DALL-E 3')
+    expect(dalle3Switch.getAttribute('data-state')).toBe('checked')
 
-    // Select Custom Model option
-    await waitFor(() => screen.getByRole('button', { name: /Custom Model\.\.\./i }))
-    fireEvent.click(screen.getByRole('button', { name: /Custom Model\.\.\./i }))
+    // DALL-E 2 is initially disabled (unchecked)
+    const dalle2Switch = screen.getByLabelText('Toggle DALL-E 2')
+    expect(dalle2Switch.getAttribute('data-state')).toBe('unchecked')
 
-    // Fill in custom model ID
-    const customIdInput = screen.getByPlaceholderText('Enter custom model ID') as HTMLInputElement
-    fireEvent.change(customIdInput, { target: { value: 'kling-v2-custom' } })
+    // Toggle DALL-E 2 ON
+    fireEvent.click(dalle2Switch)
+    expect(dalle2Switch.getAttribute('data-state')).toBe('checked')
 
-    // Click Add
-    const submitBtn = screen.getByRole('button', { name: /^Add$/ })
-    fireEvent.click(submitBtn)
+    // Add a custom model
+    const customInput = screen.getByPlaceholderText('Enter custom model ID')
+    fireEvent.change(customInput, { target: { value: 'custom-gpt-image' } })
+
+    const addBtn = screen.getByRole('button', { name: 'Add' })
+    fireEvent.click(addBtn)
+
+    // Verify custom model is displayed in the list
+    await waitFor(() => {
+      expect(screen.getAllByText('custom-gpt-image').length).toBeGreaterThan(0)
+    })
+
+    // Click Save in the global footer
+    const saveBtn = screen.getByRole('button', { name: 'Save' })
+    fireEvent.click(saveBtn)
 
     await waitFor(() => {
-      expect(mockPostModel).toHaveBeenCalledWith({
-        param: { teamId: 'team-123' },
+      expect(mockPutProvider).toHaveBeenCalledWith({
+        param: { teamId: 'team-123', provider: 'openai' },
         json: {
-          type: 'video',
-          provider: 'klingai',
-          modelId: 'kling-v2-custom',
-          name: 'kling-v2-custom',
+          apiKey: '',
+          models: [
+            { type: 'image', modelId: 'dall-e-3', name: 'DALL-E 3' },
+            { type: 'image', modelId: 'dall-e-2', name: 'DALL-E 2' },
+            { type: 'image', modelId: 'custom-gpt-image', name: 'custom-gpt-image' },
+          ],
         },
       })
+    })
+  })
+
+  it('discards staged changes when clicking Cancel', async () => {
+    renderComponent()
+
+    await waitFor(() => screen.getByText('OpenAI'))
+    fireEvent.click(screen.getByText('OpenAI').closest('.cursor-pointer')!)
+
+    await waitFor(() => screen.getByRole('dialog'))
+
+    // Wait for curated models
+    await waitFor(() => screen.getByText('DALL-E 2'))
+
+    // Toggle DALL-E 2 ON
+    const dalle2Switch = screen.getByLabelText('Toggle DALL-E 2')
+    fireEvent.click(dalle2Switch)
+
+    // Click Cancel
+    const cancelBtn = screen.getByRole('button', { name: 'Cancel' })
+    fireEvent.click(cancelBtn)
+
+    // Dialog should be closed
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+
+    // mockPutProvider should NOT have been called
+    expect(mockPutProvider).not.toHaveBeenCalled()
+  })
+
+  it('filters models with search input and supports custom model deletion', async () => {
+    renderComponent()
+
+    await waitFor(() => screen.getByText('OpenAI'))
+    fireEvent.click(screen.getByText('OpenAI').closest('.cursor-pointer')!)
+
+    await waitFor(() => screen.getByRole('dialog'))
+    await waitFor(() => screen.getByText('DALL-E 3'))
+
+    // Add a custom model
+    const customInput = screen.getByPlaceholderText('Enter custom model ID')
+    fireEvent.change(customInput, { target: { value: 'custom-to-delete' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    await waitFor(() => {
+      expect(screen.getAllByText('custom-to-delete').length).toBeGreaterThan(0)
+    })
+
+    // Search for DALL-E 2
+    const searchInput = screen.getByPlaceholderText('Search models by ID or name...')
+    fireEvent.change(searchInput, { target: { value: 'DALL-E 2' } })
+
+    expect(screen.getByText('DALL-E 2')).toBeDefined()
+    expect(screen.queryByText('DALL-E 3')).toBeNull()
+    expect(screen.queryByText('custom-to-delete')).toBeNull()
+
+    // Clear search
+    fireEvent.change(searchInput, { target: { value: '' } })
+    expect(screen.getByText('DALL-E 3')).toBeDefined()
+    expect(screen.getAllByText('custom-to-delete').length).toBeGreaterThan(0)
+
+    // Delete custom model with trash button
+    const deleteBtn = screen.getByTitle('Delete')
+    fireEvent.click(deleteBtn)
+
+    expect(screen.queryByText('custom-to-delete')).toBeNull()
+  })
+
+  it('shows warning notice when provider is not configured', async () => {
+    renderComponent()
+
+    await waitFor(() => screen.getByText('Fal'))
+    fireEvent.click(screen.getByText('Fal').closest('.cursor-pointer')!)
+
+    await waitFor(() => screen.getByRole('dialog'))
+
+    // Fal opens to API Key by default, switch to Models tab
+    fireEvent.click(screen.getByRole('tab', { name: /Models/i }))
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'This provider is not configured. Configure an API key in the API Key tab before using these models.',
+        ),
+      ).toBeDefined()
     })
   })
 })

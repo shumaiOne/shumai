@@ -93,6 +93,52 @@ describe('MediaGenerationService', () => {
     expect(openai?.customApiKeyOrEnv).toBeUndefined()
   })
 
+  it('should update provider apiKey and models atomically with updateProvider', async () => {
+    // Enable a model for fal first
+    await mediaGenerationService.addEnabledModel(teamId, {
+      type: 'image',
+      provider: 'fal',
+      modelId: 'fal-ai/flux/dev',
+    })
+
+    // Update openai apiKey and models
+    await mediaGenerationService.updateProvider(teamId, 'openai', {
+      apiKey: 'sk-test-atomic',
+      models: [
+        { type: 'image', modelId: 'dall-e-3', name: 'DALL-E 3' },
+        { type: 'image', modelId: 'gpt-image-2', name: 'GPT Image 2' },
+      ],
+    })
+
+    let settings = await mediaGenerationService.getSettings(teamId)
+    let openai = settings.providers.find((p) => p.provider === 'openai')
+    expect(openai?.apiKeyConfigured).toBe(true)
+    expect(openai?.status).toBe('configured_custom')
+    expect(openai?.customApiKeyOrEnv).toBe('sk-test-atomic')
+
+    // Enabled models should have the 2 openai models plus the 1 fal model
+    expect(settings.enabledModels).toHaveLength(3)
+    const openaiModels = settings.enabledModels.filter((m) => m.provider === 'openai')
+    expect(openaiModels).toHaveLength(2)
+    expect(openaiModels.map((m) => m.modelId)).toContain('dall-e-3')
+    expect(openaiModels.map((m) => m.modelId)).toContain('gpt-image-2')
+
+    // Now update openai with only 1 model enabled (disable gpt-image-2)
+    await mediaGenerationService.updateProvider(teamId, 'openai', {
+      models: [{ type: 'image', modelId: 'dall-e-3', name: 'DALL-E 3' }],
+    })
+
+    settings = await mediaGenerationService.getSettings(teamId)
+    openai = settings.providers.find((p) => p.provider === 'openai')
+    // apiKey should remain unchanged
+    expect(openai?.customApiKeyOrEnv).toBe('sk-test-atomic')
+    const nextOpenaiModels = settings.enabledModels.filter((m) => m.provider === 'openai')
+    expect(nextOpenaiModels).toHaveLength(1)
+    expect(nextOpenaiModels[0].modelId).toBe('dall-e-3')
+    // Fal model is still there
+    expect(settings.enabledModels.find((m) => m.provider === 'fal')).toBeDefined()
+  })
+
   it('should add enabled models and reject invalid configurations', async () => {
     // Valid model addition
     const added = await mediaGenerationService.addEnabledModel(teamId, {
