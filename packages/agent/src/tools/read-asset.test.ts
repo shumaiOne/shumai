@@ -541,4 +541,104 @@ describe('readAssetTool', () => {
       expect(result.details.key).toBe('proxy/diagram_v2.webp')
     })
   })
+
+  describe('s3KeyOnly mode', () => {
+    it('returns only S3 key and MIME in text for image assets without fetching S3 buffer or attaching base64 image', async () => {
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'img-1',
+        name: 'photo.png',
+        mediaType: 'image/png',
+        storageKey: { key: 'raw/photo.png' },
+        media: {
+          proxyType: 'image',
+          imageTranscodes: [{ key: 'proxy/photo.webp' }],
+        },
+      } as unknown as Asset)
+
+      const tool = createReadAssetTool('user-1')
+      const result = await tool.execute('call-1', {
+        assetId: 'img-1',
+        annotationId: null,
+        s3KeyOnly: true,
+        imageConfig: null,
+        videoConfig: null,
+        docConfig: null,
+      })
+
+      expect(s3Service.getObject).not.toHaveBeenCalled()
+      expect(result.content.length).toBe(1)
+      expect(result.content[0].type).toBe('text')
+      expect((result.content[0] as { type: 'text'; text: string }).text).toBe(
+        'Image asset "photo.png" (ID: img-1, MIME: image/webp, S3 Key: "proxy/photo.webp")',
+      )
+      expect(result.details.key).toBe('proxy/photo.webp')
+    })
+
+    it('returns only frame S3 keys and MIME in text for video assets without fetching S3 buffers or attaching base64 images', async () => {
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'vid-1',
+        name: 'clip.mp4',
+        mediaType: 'video/mp4',
+        projectId: 'project-1',
+        media: { proxyType: 'video' },
+      } as unknown as Asset)
+
+      vi.mocked(prisma.workflowTask.create).mockResolvedValue({
+        id: 'task-shot',
+      } as unknown as WorkflowTask)
+      vi.mocked(workflowService.executeWait).mockResolvedValue({
+        id: 'task-shot',
+        output: {
+          screenshots: [{ key: 'screenshots/shot1.webp', timestamp: 1.5 }],
+        },
+      } as unknown as WorkflowTask)
+
+      const tool = createReadAssetTool('user-1')
+      const result = await tool.execute('call-1', {
+        assetId: 'vid-1',
+        annotationId: null,
+        s3KeyOnly: true,
+        imageConfig: null,
+        videoConfig: { start: 1.5, end: 1.5, count: 1 },
+        docConfig: null,
+      })
+
+      expect(s3Service.getObject).not.toHaveBeenCalled()
+      expect(result.content.length).toBe(1)
+      expect(result.content[0].type).toBe('text')
+      const text = (result.content[0] as { type: 'text'; text: string }).text
+      expect(text).toContain('- Frame at 1.5s (S3 Key: "screenshots/shot1.webp", MIME: image/webp)')
+      expect(result.details.keys).toEqual(['screenshots/shot1.webp'])
+    })
+
+    it('returns only document S3 key and MIME in text for text mode without fetching S3 buffer', async () => {
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'doc-md',
+        name: 'notes.md',
+        mediaType: 'text/markdown',
+        storageKey: { key: 'raw/notes.md' },
+        media: { proxyType: 'pdf' },
+      } as unknown as Asset)
+
+      const tool = createReadAssetTool('user-1')
+      const result = await tool.execute('call-1', {
+        assetId: 'doc-md',
+        annotationId: null,
+        s3KeyOnly: true,
+        imageConfig: null,
+        videoConfig: null,
+        docConfig: { mode: 'text', startPage: null, endPage: null },
+      })
+
+      expect(s3Service.getObject).not.toHaveBeenCalled()
+      expect(result.content.length).toBe(1)
+      expect(result.content[0].type).toBe('text')
+      expect((result.content[0] as { type: 'text'; text: string }).text).toBe(
+        'Document "notes.md" (ID: doc-md, MIME: text/markdown, S3 Key: "raw/notes.md")',
+      )
+    })
+  })
 })

@@ -95,6 +95,16 @@ const BUILTIN_TOOLS = [
     name: () => m.agent_tool_create_version_name(),
     description: () => m.agent_tool_create_version_desc(),
   },
+  {
+    id: 'generate_image',
+    name: () => m.agent_tool_generate_image_name(),
+    description: () => m.agent_tool_generate_image_desc(),
+  },
+  {
+    id: 'generate_video',
+    name: () => m.agent_tool_generate_video_name(),
+    description: () => m.agent_tool_generate_video_desc(),
+  },
 ]
 
 type AgentFormValues = z.infer<typeof agentFormSchema>

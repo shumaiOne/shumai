@@ -13,6 +13,7 @@ import { McpConfigCard } from '@/ui/components/settings/McpConfigCard'
 import { NotificationSettings } from '@/ui/components/settings/NotificationSettings'
 import { DeveloperSettings } from '@/ui/components/settings/DeveloperSettings'
 import { QuotasSettings } from '@/ui/components/settings/QuotasSettings'
+import { ImageVideoGenerationSettings } from '@/ui/components/settings/ImageVideoGenerationSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { cn } from '@/ui/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -24,6 +25,7 @@ import {
   Puzzle,
   Server,
   Shield,
+  Sparkles,
   User,
   Bell,
   Key,
@@ -53,6 +55,7 @@ type SettingsTab =
   | 'skills'
   | 'mcp'
   | 'providers'
+  | 'image-video'
   | 'agents'
   | 'sandbox'
   | 'notifications'
@@ -65,6 +68,7 @@ const VALID_SETTINGS_TABS: readonly SettingsTab[] = [
   'skills',
   'mcp',
   'providers',
+  'image-video',
   'agents',
   'sandbox',
   'notifications',
@@ -163,6 +167,7 @@ function TeamSettingsPage() {
       'transcode',
       'quotas',
       'providers',
+      'image-video',
       'skills',
       'mcp',
       'agents',
@@ -448,6 +453,22 @@ function TeamSettingsPage() {
                 </button>
 
                 <button
+                  onClick={() => handleTabChange('image-video')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                    activeTab === 'image-video'
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                      : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  )}
+                >
+                  <Sparkles className="w-5 h-5" />
+                  {m.image_video_generation()}
+                  {activeTab === 'image-video' && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+                  )}
+                </button>
+
+                <button
                   onClick={() => handleTabChange('skills')}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
@@ -527,6 +548,7 @@ function TeamSettingsPage() {
                   {activeTab === 'skills' && m.skills_management()}
                   {activeTab === 'mcp' && m.mcp_servers()}
                   {activeTab === 'providers' && m.ai_providers()}
+                  {activeTab === 'image-video' && m.image_video_generation()}
                   {activeTab === 'agents' && m.ai_agents()}
                   {activeTab === 'sandbox' && m.agent_sandbox_settings()}
                   {activeTab === 'notifications' && m.notification_settings()}
@@ -539,6 +561,7 @@ function TeamSettingsPage() {
                   {activeTab === 'skills' && m.skills_description()}
                   {activeTab === 'mcp' && m.mcp_servers_description()}
                   {activeTab === 'providers' && m.providers_description()}
+                  {activeTab === 'image-video' && m.media_generation_settings_description()}
                   {activeTab === 'agents' && m.agents_description()}
                   {activeTab === 'sandbox' && m.sandbox_description()}
                   {activeTab === 'notifications' && m.notifications_description()}
@@ -784,6 +807,8 @@ function TeamSettingsPage() {
               )}
 
               {activeTab === 'providers' && <ProvidersSettings teamId={teamId} />}
+
+              {activeTab === 'image-video' && <ImageVideoGenerationSettings teamId={teamId} />}
 
               {activeTab === 'agents' && (
                 <div className="h-full overflow-y-auto pr-1">

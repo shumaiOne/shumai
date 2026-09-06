@@ -6,6 +6,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { resolveAnnotationsById } from './annotation-resolver'
+import { getFileMimeType } from '@shumai/core/src/utils/file-mime'
 
 export const readAssetSchema = Type.Object(
   {
@@ -19,6 +20,13 @@ export const readAssetSchema = Type.Object(
       }),
       Type.Null(),
     ]),
+    s3KeyOnly: Type.Optional(
+      Type.Boolean({
+        description:
+          'When true, returns only the storage S3 key(s) and MIME types of the asset/frames without attaching base64 image or text content to the agent context. Use this to obtain S3 keys for generate_image or generate_video references without consuming context tokens.',
+        default: false,
+      }),
+    ),
     imageConfig: Type.Union([
       Type.Object(
         {},
@@ -144,7 +152,7 @@ export function createReadAssetTool(userId: string): AgentTool<typeof readAssetS
       'Optionally provide annotationId to view visual markups drawn on the asset.',
     parameters: readAssetSchema,
     execute: async (_toolCallId, params) => {
-      const { assetId, annotationId, videoConfig, docConfig } = params
+      const { assetId, annotationId, s3KeyOnly, videoConfig, docConfig } = params
 
       if (!userId) {
         throw new Error('User ID is required for authorization.')
@@ -196,38 +204,39 @@ export function createReadAssetTool(userId: string): AgentTool<typeof readAssetS
           throw new Error('No media content found for this asset.')
         }
 
-        const { annotations } = await resolveAnnotationsById(asset.id, annotationId)
         let keyToUse = mediaKey
+        let mimeType = getFileMimeType(null, keyToUse, asset.mediaType || 'image/png')
 
-        if (annotations) {
-          const task = await prisma.workflowTask.create({
-            data: {
-              assetId: asset.id,
-              projectId: asset.projectId || 'none',
-              type: WorkflowTaskType.transcode_image_annotation,
-              status: WorkflowTaskStatus.pending,
-              payload: {
+        if (annotationId) {
+          const { annotations } = await resolveAnnotationsById(asset.id, annotationId)
+          if (annotations && annotations.length > 0) {
+            const task = await prisma.workflowTask.create({
+              data: {
+                assetId: asset.id,
                 projectId: asset.projectId || 'none',
-                imageAnnotation: {
-                  annotations,
+                type: WorkflowTaskType.transcode_image_annotation,
+                status: WorkflowTaskStatus.pending,
+                payload: {
+                  projectId: asset.projectId || 'none',
+                  imageAnnotation: {
+                    annotations,
+                  },
                 },
               },
-            },
-          })
+            })
 
-          const completedTask = await workflowService.executeWait(task)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- transcode image annotation task output
-          const output = completedTask.output as any
-          if (output?.key) {
-            keyToUse = output.key
-          } else {
-            throw new Error('Image annotation transcode workflow failed to output S3 key.')
+            const completedTask = await workflowService.executeWait(task)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- transcode image annotation task output
+            const output = completedTask.output as any
+            if (output?.key) {
+              keyToUse = output.key
+              mimeType = 'image/webp'
+            } else {
+              throw new Error('Image annotation transcode workflow failed to output S3 key.')
+            }
           }
         }
 
-        const { buffer, contentType } = await s3Service.getObject(bucket, keyToUse)
-        const mimeType =
-          contentType && contentType !== 'application/octet-stream' ? contentType : 'image/webp'
         const downloadUrl = await s3Service.presign(
           bucket,
           keyToUse,
@@ -236,17 +245,27 @@ export function createReadAssetTool(userId: string): AgentTool<typeof readAssetS
           asset.name || undefined,
         )
 
-        const content: Array<TextContent | ImageContent> = [
-          {
+        const content: Array<TextContent | ImageContent> = []
+
+        if (s3KeyOnly) {
+          content.push({
             type: 'text',
-            text: `Image asset "${asset.name}" (ID: ${asset.id}):\n- S3 Key: "${keyToUse}"`,
-          },
-          {
+            text: `Image asset "${asset.name}" (ID: ${asset.id}, MIME: ${mimeType}, S3 Key: "${keyToUse}")`,
+          })
+        } else {
+          const { buffer, contentType } = await s3Service.getObject(bucket, keyToUse)
+          const actualMimeType =
+            contentType && contentType !== 'application/octet-stream' ? contentType : mimeType
+          content.push({
+            type: 'text',
+            text: `Image asset "${asset.name}" (ID: ${asset.id}, MIME: ${actualMimeType}, S3 Key: "${keyToUse}")`,
+          })
+          content.push({
             type: 'image',
             data: buffer.toString('base64'),
-            mimeType,
-          },
-        ]
+            mimeType: actualMimeType,
+          })
+        }
 
         return {
           content,
@@ -330,9 +349,6 @@ export function createReadAssetTool(userId: string): AgentTool<typeof readAssetS
         ]
 
         for (const shot of screenshots) {
-          const { buffer, contentType } = await s3Service.getObject(bucket, shot.key)
-          const mimeType =
-            contentType && contentType !== 'application/octet-stream' ? contentType : 'image/webp'
           const downloadUrl = await s3Service.presign(
             bucket,
             shot.key,
@@ -341,18 +357,33 @@ export function createReadAssetTool(userId: string): AgentTool<typeof readAssetS
             asset.name || undefined,
           )
 
-          textLines.push(`- Frame at ${shot.timestamp}s: S3 Key: "${shot.key}"`)
-          content.push({
-            type: 'image',
-            data: buffer.toString('base64'),
-            mimeType,
-          })
           sourceKeys.push(shot.key)
           results.push({
             key: shot.key,
             timestamp: shot.timestamp,
             downloadUrl,
           })
+
+          if (s3KeyOnly) {
+            const mimeType = getFileMimeType(null, shot.key, 'image/webp')
+            textLines.push(
+              `- Frame at ${shot.timestamp}s (S3 Key: "${shot.key}", MIME: ${mimeType})`,
+            )
+          } else {
+            const { buffer, contentType } = await s3Service.getObject(bucket, shot.key)
+            const mimeType =
+              contentType && contentType !== 'application/octet-stream'
+                ? contentType
+                : getFileMimeType(buffer, shot.key, 'image/webp')
+            textLines.push(
+              `- Frame at ${shot.timestamp}s (S3 Key: "${shot.key}", MIME: ${mimeType})`,
+            )
+            content.push({
+              type: 'image',
+              data: buffer.toString('base64'),
+              mimeType,
+            })
+          }
         }
 
         content.unshift({
@@ -411,6 +442,37 @@ export function createReadAssetTool(userId: string): AgentTool<typeof readAssetS
             throw new Error(`No media content found for asset ${asset.id}.`)
           }
 
+          const docMimeType =
+            asset.mediaType || getFileMimeType(null, asset.name || mediaKey, 'text/plain')
+          const downloadUrl = await s3Service.presign(
+            bucket,
+            mediaKey,
+            'GET',
+            true,
+            asset.name || undefined,
+          )
+
+          if (s3KeyOnly) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Document "${asset.name}" (ID: ${asset.id}, MIME: ${docMimeType}, S3 Key: "${mediaKey}")`,
+                },
+              ],
+              details: {
+                assetId: asset.id,
+                name: asset.name,
+                mediaType: asset.mediaType,
+                key: mediaKey,
+                downloadUrl,
+                sourceKeys: [mediaKey],
+                size: 0,
+                isTruncated: false,
+              },
+            }
+          }
+
           const { buffer } = await s3Service.getObject(bucket, mediaKey)
           const rawText = buffer.toString('utf-8')
           let text = rawText
@@ -431,19 +493,11 @@ export function createReadAssetTool(userId: string): AgentTool<typeof readAssetS
             text += `\n\n[Content truncated to ${MAX_TEXT_LINES} lines / ${MAX_TEXT_BYTES / 1024}KB limit. Use download_asset to process the full file.]`
           }
 
-          const downloadUrl = await s3Service.presign(
-            bucket,
-            mediaKey,
-            'GET',
-            true,
-            asset.name || undefined,
-          )
-
           return {
             content: [
               {
                 type: 'text',
-                text: `Document "${asset.name}" (ID: ${asset.id}, S3 Key: "${mediaKey}"):\n\n${text}`,
+                text: `Document "${asset.name}" (ID: ${asset.id}, MIME: ${docMimeType}, S3 Key: "${mediaKey}"):\n\n${text}`,
               },
             ],
             details: {
@@ -525,9 +579,6 @@ export function createReadAssetTool(userId: string): AgentTool<typeof readAssetS
         ]
 
         for (const pageItem of pages) {
-          const { buffer, contentType } = await s3Service.getObject(bucket, pageItem.key)
-          const mimeType =
-            contentType && contentType !== 'application/octet-stream' ? contentType : 'image/webp'
           const downloadUrl = await s3Service.presign(
             bucket,
             pageItem.key,
@@ -536,18 +587,29 @@ export function createReadAssetTool(userId: string): AgentTool<typeof readAssetS
             asset.name || undefined,
           )
 
-          textLines.push(`- Page ${pageItem.page}: S3 Key: "${pageItem.key}"`)
-          content.push({
-            type: 'image',
-            data: buffer.toString('base64'),
-            mimeType,
-          })
           sourceKeys.push(pageItem.key)
           results.push({
             key: pageItem.key,
             page: pageItem.page,
             downloadUrl,
           })
+
+          if (s3KeyOnly) {
+            const mimeType = getFileMimeType(null, pageItem.key, 'image/webp')
+            textLines.push(`- Page ${pageItem.page} (S3 Key: "${pageItem.key}", MIME: ${mimeType})`)
+          } else {
+            const { buffer, contentType } = await s3Service.getObject(bucket, pageItem.key)
+            const mimeType =
+              contentType && contentType !== 'application/octet-stream'
+                ? contentType
+                : getFileMimeType(buffer, pageItem.key, 'image/webp')
+            textLines.push(`- Page ${pageItem.page} (S3 Key: "${pageItem.key}", MIME: ${mimeType})`)
+            content.push({
+              type: 'image',
+              data: buffer.toString('base64'),
+              mimeType,
+            })
+          }
         }
 
         content.unshift({

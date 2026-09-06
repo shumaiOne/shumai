@@ -4,6 +4,7 @@ import { prisma, type User } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
+import { getFileMimeType } from '@shumai/core/src/utils/file-mime'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -83,6 +84,39 @@ export async function resolveAssetIdFromKey(key: string): Promise<string> {
   throw new Error(
     `Storage key "${key}" does not belong to any valid asset or the asset has been deleted.`,
   )
+}
+
+export async function resolveS3MediaBuffer(
+  key: string,
+  userId: string,
+): Promise<{ buffer: Buffer; mimeType: string }> {
+  if (!userId) {
+    throw new Error('User ID is required for authorization.')
+  }
+  const owningAssetId = await resolveAssetIdFromKey(key)
+
+  await authzService.hasPermission({
+    user: { id: userId } as User,
+    permission: Permission.Read,
+    type: ResourceType.Asset,
+    id: owningAssetId,
+  })
+
+  const bucket = process.env.S3_BUCKET || 'shumai'
+  const { buffer, contentType } = await s3Service.getObject(bucket, key)
+  const mimeType = getFileMimeType(
+    buffer,
+    key,
+    contentType && contentType !== 'application/octet-stream'
+      ? contentType
+      : 'application/octet-stream',
+  )
+
+  if (!mimeType.startsWith('image/')) {
+    throw new Error(`Storage key "${key}" has MIME type "${mimeType}", but an image is required.`)
+  }
+
+  return { buffer, mimeType }
 }
 
 export function createDownloadAssetTool(userId: string): AgentTool<typeof downloadAssetSchema> {
