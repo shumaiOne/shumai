@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FileCard } from './file-card'
@@ -150,5 +150,68 @@ describe('FileCard', () => {
     expect(agentBadge).toBeTruthy()
     expect(agentBadge.textContent).toBe('AI')
     expect(screen.getByText('v2')).toBeTruthy()
+  })
+
+  it('applies line-clamp-2 and h-[2lh] to creation info paragraph', () => {
+    const itemWithCreator: AssetInfo = {
+      ...fileItem,
+      creator: { id: 'u1', name: 'Alice' },
+    } as AssetInfo
+
+    renderComponent({ item: itemWithCreator })
+
+    const creatorParagraph = screen.getByText(/Alice/i)
+    expect(creatorParagraph.className).toContain('line-clamp-2')
+    expect(creatorParagraph.className).toContain('h-[2lh]')
+  })
+
+  it('does not show tooltip on hover when creator text is not truncated', () => {
+    vi.useFakeTimers()
+    const itemWithCreator: AssetInfo = {
+      ...fileItem,
+      creator: { id: 'u1', name: 'Alice' },
+    } as AssetInfo
+
+    renderComponent({ item: itemWithCreator })
+
+    const creatorParagraph = screen.getByText(/Alice/i)
+    Object.defineProperty(creatorParagraph, 'scrollHeight', { value: 30, configurable: true })
+    Object.defineProperty(creatorParagraph, 'clientHeight', { value: 40, configurable: true })
+    Object.defineProperty(creatorParagraph, 'scrollWidth', { value: 100, configurable: true })
+    Object.defineProperty(creatorParagraph, 'clientWidth', { value: 150, configurable: true })
+
+    fireEvent.pointerMove(creatorParagraph, { pointerType: 'mouse' })
+
+    act(() => {
+      vi.advanceTimersByTime(200)
+    })
+
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    vi.useRealTimers()
+  })
+
+  it('shows tooltip on hover when creator text is truncated', () => {
+    vi.useFakeTimers()
+    const itemWithCreator: AssetInfo = {
+      ...fileItem,
+      creator: { id: 'u1', name: 'Very Long Creator Name That Wraps' },
+    } as AssetInfo
+
+    renderComponent({ item: itemWithCreator })
+
+    const creatorParagraph = screen.getByText(/Very Long Creator Name/i)
+    Object.defineProperty(creatorParagraph, 'scrollHeight', { value: 80, configurable: true })
+    Object.defineProperty(creatorParagraph, 'clientHeight', { value: 40, configurable: true })
+
+    fireEvent.pointerMove(creatorParagraph, { pointerType: 'mouse' })
+
+    act(() => {
+      vi.advanceTimersByTime(200)
+    })
+
+    const tooltip = screen.getByRole('tooltip')
+    expect(tooltip).toBeTruthy()
+    expect(tooltip.textContent).toContain('Very Long Creator Name')
+    vi.useRealTimers()
   })
 })

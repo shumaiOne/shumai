@@ -14,6 +14,12 @@ import {
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { EditableText } from '@/ui/components/ui/editable-text'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/ui/components/ui/tooltip'
 import { ProgressCircle } from '@/ui/components/ui/progress-circle'
 import { Skeleton } from '@/ui/components/ui/skeleton'
 import { formatTimeAgo } from '@/ui/lib/time'
@@ -90,6 +96,8 @@ export function FileCard({
 }: FileCardProps) {
   const [name, setName] = useState(item.name)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [isCreatorTooltipOpen, setIsCreatorTooltipOpen] = useState(false)
+  const creatorRef = useRef<HTMLParagraphElement>(null)
 
   const fileUploadState = useUploadStore((state) => state.fileProgress[item.id || ''])
   const uploadPercent = fileUploadState
@@ -223,6 +231,19 @@ export function FileCard({
     }
   }
 
+  const creatorText = useMemo(() => {
+    if (!displayItem.createdAt) return ''
+    return m.created_by_at({
+      time: formatTimeAgo(displayItem.createdAt),
+      author: displayItem.agent
+        ? m.user_via_agent({
+            user: displayItem.creator?.name || m.unknown_user(),
+            agent: displayItem.agent.name,
+          })
+        : displayItem.creator?.name || m.unknown_user(),
+    })
+  }, [displayItem.createdAt, displayItem.agent, displayItem.creator?.name])
+
   return (
     <div
       ref={setNodeRef}
@@ -307,7 +328,7 @@ export function FileCard({
       </div>
 
       <div className="flex items-center justify-between gap-2 p-3">
-        <div className="min-w-0 flex-1 line-clamp-3 h-[3lh]">
+        <div className="min-w-0 flex-1">
           <EditableText
             ref={inputRef}
             value={name}
@@ -317,18 +338,40 @@ export function FileCard({
             disabled={!isEditing}
             className="h-auto p-0 text-sm font-medium text-foreground truncate !bg-transparent"
           />
-          <p className="text-sm text-muted-foreground">
-            {displayItem.createdAt &&
-              m.created_by_at({
-                time: formatTimeAgo(displayItem.createdAt),
-                author: displayItem.agent
-                  ? m.user_via_agent({
-                      user: displayItem.creator?.name || m.unknown_user(),
-                      agent: displayItem.agent.name,
-                    })
-                  : displayItem.creator?.name || m.unknown_user(),
-              })}
-          </p>
+          <TooltipProvider delayDuration={100}>
+            <Tooltip
+              open={isCreatorTooltipOpen}
+              onOpenChange={(nextOpen) => {
+                if (nextOpen) {
+                  if (
+                    creatorRef.current &&
+                    (creatorRef.current.scrollHeight > creatorRef.current.clientHeight ||
+                      creatorRef.current.scrollWidth > creatorRef.current.clientWidth)
+                  ) {
+                    setIsCreatorTooltipOpen(true)
+                  } else {
+                    setIsCreatorTooltipOpen(false)
+                  }
+                } else {
+                  setIsCreatorTooltipOpen(false)
+                }
+              }}
+            >
+              <TooltipTrigger asChild>
+                <p ref={creatorRef} className="text-sm text-muted-foreground line-clamp-2 h-[2lh]">
+                  {creatorText}
+                </p>
+              </TooltipTrigger>
+              {isCreatorTooltipOpen && (
+                <TooltipContent
+                  side="bottom"
+                  className="max-w-md break-all text-wrap [text-wrap:normal] text-left"
+                >
+                  {creatorText}
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
         {!isRecents && (
           <DropdownMenu modal={false}>
