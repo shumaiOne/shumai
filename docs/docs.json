@@ -42,6 +42,7 @@
         "group": "Shumai Agent Settings",
         "pages": [
           "using-shumai/agent-providers",
+          "using-shumai/image-video-generation",
           "using-shumai/agents",
           "using-shumai/agents-md",
           "using-shumai/agent-skills",

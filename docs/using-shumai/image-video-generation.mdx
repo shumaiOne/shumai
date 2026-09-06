@@ -1,0 +1,141 @@
+---
+title: Image / Video Generation
+description: Configure image and video generation providers and models for built-in AI agent tools.
+---
+
+Shumai agents can generate creative visual assets directly within your workspace using built-in agent tools: **Generate Image** (`generate_image`) and **Generate Video** (`generate_video`).
+
+Because generating visual media requires specialized foundation models, you must configure upstream media providers and enable specific models in your team settings before agents can use these capabilities.
+
+> 🔒 **Access Control:** Only **Team Owners** can view and configure media generation settings. To access this page, click your avatar, navigate to **Settings**, and select **Image / Video Generation** from the left sidebar (or navigate to `teams/<teamId>/settings#image-video`).
+
+---
+
+## Why This Setting Is Needed
+
+Conversational AI models (configured under **AI Providers**) handle text reasoning and chat interactions, but image and video generation require dedicated multimodal generative models (such as DALL-E, FLUX, Gemini Image, Veo, Kling AI, Luma Ray, Wan, and others).
+
+The **Image / Video Generation** settings page allows team owners to:
+
+1. Authenticate with one or more supported image and video generation providers.
+2. Select which curated models to enable for your team, or register custom model IDs.
+3. Establish default models for agents when generating visual assets.
+
+---
+
+## Tool Availability & Activation Rules
+
+<Warning>
+  **Important:** Enabling `generate_image` or `generate_video` in an agent's configuration dialog is
+  **not enough** on its own. The tool will only be available to the agent if all three of the
+  following conditions are met:
+</Warning>
+
+1. **Provider Configured:** The provider must have a valid API key (either set via server environment variables or configured with a custom team key).
+2. **At Least One Model Enabled:** There must be **at least one enabled model** for that modality (`image` or `video`) under an active provider.
+3. **Tool Permitted for Agent:** The tool must not be disabled in the agent's tool permissions list under **Team Settings** > **Agents** > **Tools**.
+
+### What Happens If No Models Are Configured?
+
+If no image models are enabled under a configured provider, the `generate_image` tool is **completely omitted** from the agent's runtime environment. Similarly, if no video models are enabled, the `generate_video` tool is omitted.
+
+In this state:
+
+- The agent **cannot call** the generation tool.
+- The tool will not appear in the agent's tool catalog or prompt definition.
+- Even if a Team Owner has toggled **Generate Image** or **Generate Video** ON in the agent's settings dialog, the agent will not have access to the tool until a model is enabled.
+
+---
+
+## Supported Providers
+
+Shumai provides built-in support for 18 media generation providers:
+
+| Provider              | Supported Modalities | Default Environment Variable |
+| :-------------------- | :------------------- | :--------------------------- |
+| **OpenAI**            | Image                | `OPENAI_API_KEY`             |
+| **Google**            | Image, Video         | `GEMINI_API_KEY`             |
+| **Google Vertex AI**  | Image, Video         | `GOOGLE_CLOUD_API_KEY`       |
+| **xAI**               | Image, Video         | `XAI_API_KEY`                |
+| **Fal**               | Image, Video         | `FAL_KEY`                    |
+| **Replicate**         | Image, Video         | `REPLICATE_API_TOKEN`        |
+| **Black Forest Labs** | Image, Video         | `BFL_API_KEY`                |
+| **Kling AI**          | Video                | `KLINGAI_API_KEY`            |
+| **Together AI**       | Image                | `TOGETHER_API_KEY`           |
+| **Fireworks AI**      | Image                | `FIREWORKS_API_KEY`          |
+| **DeepInfra**         | Image                | `DEEPINFRA_API_KEY`          |
+| **Luma**              | Image                | `LUMA_API_KEY`               |
+| **Amazon Bedrock**    | Image                | `AWS_ACCESS_KEY_ID`          |
+| **Alibaba**           | Video                | `ALIBABA_API_KEY`            |
+| **ByteDance**         | Image, Video         | `ARK_API_KEY`                |
+| **MiniMax**           | Video                | `MINIMAX_API_KEY`            |
+| **Prodia**            | Image, Video         | `PRODIA_TOKEN`               |
+| **Azure OpenAI**      | Image                | `AZURE_API_KEY`              |
+
+---
+
+## Configuring Providers & API Keys
+
+Clicking on any provider in the **Media Providers** list opens its configuration dialog:
+
+### Provider Statuses
+
+- **Configured (Custom)**: A team-specific API key or custom environment variable name was entered in this dialog.
+- **Configured (Environment)**: The system detected a server-level default environment variable (e.g. `OPENAI_API_KEY`). No team key is required unless you want to override it.
+- **Not Configured**: No API key is available. You must provide an API key or an environment variable name to use this provider.
+
+### Overriding API Keys
+
+In the **API Key** tab of the provider dialog:
+
+- Enter an API key literal (e.g. `sk-...`) or a custom environment variable name available on the host system.
+- Click **Clear Custom Key** to revert back to using the default environment variable if one exists.
+
+---
+
+## Managing Models
+
+In the **Models** tab of the provider dialog:
+
+### Curated Models
+
+Shumai comes pre-configured with popular curated models (such as `dall-e-3`, `fal-ai/flux/dev`, `veo-3.1-generate`, `kling-v3.0-t2v`, etc.). Toggle the switch next to any model to enable or disable it for your team.
+
+### Custom Models
+
+If your provider supports a new or fine-tuned model not listed in the curated models:
+
+1. Select the modality (**Image** or **Video**).
+2. Enter the exact **Model ID** recognized by the upstream provider.
+3. Click **Add**.
+
+### Default Model Selection
+
+The **first enabled model** of each type (`image` or `video`) automatically becomes the default model. When an agent calls `generate_image` or `generate_video` without explicitly specifying a `model` parameter, Shumai automatically directs the generation request to this default model.
+
+---
+
+## How Agents Use Generation Tools
+
+Once enabled, agents can invoke the tools during conversations or automated workflows:
+
+### 1. Generate Image (`generate_image`)
+
+- **Prompt:** Detailed text description of the image.
+- **Model Selection:** Automatically defaults to your first enabled image model, or the agent can choose any enabled model in `provider:modelId` format (e.g. `openai:dall-e-3` or `fal:fal-ai/flux/dev`).
+- **Image References:** Agents can use existing workspace assets as style or composition references by passing S3 storage keys obtained from the `read_asset` tool (`s3KeyOnly: true`).
+- **Inpainting:** Supports mask-guided localized image editing using an S3 mask key.
+- **Parameters:** Custom aspect ratios (`1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `2:3`, `3:2`), dimensions, and seeds.
+
+### 2. Generate Video (`generate_video`)
+
+- **Generation Modes:**
+  - `text_to_video`: Generate a clip from a descriptive motion prompt.
+  - `image_to_video`: Animate an existing still image asset.
+  - `first_last_frame`: Seamlessly interpolate and transition between two keyframe assets.
+  - `reference_to_video`: Use reference images for consistent characters or environments.
+- **Parameters:** Aspect ratio (`16:9`, `9:16`, `1:1`, `adaptive`), resolution, duration, frame rate (FPS), and audio generation.
+
+### Asset Creation Workflow
+
+All generated media files are initially saved to the local sandboxed directory (`.pi/`). Agents can then use **Create File** (`create_file`) to upload the output as a new project asset or **Create Version** (`create_version`) to stack it onto an existing revision history.

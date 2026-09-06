@@ -55,22 +55,34 @@ The following tools can be individually toggled in the agent configuration dialo
 - **Description:** Allows the agent to upload and stack a new version of an existing file in Shumai.
 - **Why it matters:** Allows the agent to update files in a clean, non-destructive way by stacking revisions rather than creating duplicate files.
 
-### 8. Download Asset (`download_asset`)
+### 8. Generate Image (`generate_image`)
+
+- **Description:** Allows the agent to generate still images from text prompts and reference images using configured AI image models.
+- **Why it matters:** Enables agents to create concept art, mockups, textures, and illustrations directly inside Shumai.
+- **Prerequisite:** This tool requires at least one image model to be configured and enabled in [Image / Video Generation](/using-shumai/image-video-generation). If no image models are enabled under a configured provider, this tool is omitted from the agent session even if enabled in the agent settings dialog.
+
+### 9. Generate Video (`generate_video`)
+
+- **Description:** Allows the agent to generate video clips from text prompts, image animation, or transition keyframes using configured AI video models.
+- **Why it matters:** Enables agents to produce short animated clips, camera motion shots, and video transitions.
+- **Prerequisite:** This tool requires at least one video model to be configured and enabled in [Image / Video Generation](/using-shumai/image-video-generation). If no video models are enabled under a configured provider, this tool is omitted from the agent session even if enabled in the agent settings dialog.
+
+### 10. Download Asset (`download_asset`)
 
 - **Description:** Allows the agent to download a workspace asset or specific storage S3 key to the local `.pi` directory for processing with local scripts or bash commands.
 - **Why it matters:** Enables agents executing custom skill scripts to fetch files or intermediate transcode artifacts to local disk.
 
-### 9. Rename Asset (`rename_asset`)
+### 11. Rename Asset (`rename_asset`)
 
 - **Description:** Allows the agent to rename an existing file or folder in Shumai.
 - **Why it matters:** Enables agents to keep project files neatly named and organized according to workspace naming conventions. Enabled by default.
 
-### 10. Move Assets (`move_assets`)
+### 12. Move Assets (`move_assets`)
 
 - **Description:** Allows the agent to move one or more assets to a destination parent folder.
 - **Why it matters:** Enables agents to reorganize workspace structures, relocate generated outputs, or tidy up project folders. Enabled by default.
 
-### 11. Delete Asset (`delete_asset`)
+### 13. Delete Asset (`delete_asset`)
 
 - **Description:** Allows the agent to delete a single file or folder by moving it to the Trash bin.
 - **Why it matters:** Provides agents with the ability to clean up outdated or redundant assets. To prevent accidental data loss, this tool is **disabled by default** and strictly limited to deleting one asset at a time. Team Owners must explicitly enable this tool for an agent.
