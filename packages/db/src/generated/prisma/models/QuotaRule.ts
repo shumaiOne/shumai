@@ -67,9 +67,9 @@ export type QuotaRuleCountAggregateOutputType = {
   teamId: number
   scopeMode: number
   role: number
-  userIds:PrismaJson.QuotaUserIds
+  userIds: number
   resource: number
-  resourceData:PrismaJson.QuotaResourceData
+  resourceData: number
   limit: number
   period: number
   enabled: number

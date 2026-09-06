@@ -6,13 +6,13 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
+    "@hono/zod-validator": "0.7.6",
     "@shumai/core": "workspace:*",
     "@shumai/db": "workspace:*",
     "@shumai/dtos": "workspace:*",
-    "hono": "4.12.23",
-    "@hono/zod-validator": "0.7.6",
-    "zod": "4.4.3",
+    "hono": "4.13.5",
     "pino": "10.3.1",
-    "ulid": "3.0.2"
+    "ulid": "3.0.2",
+    "zod": "4.5.4"
   }
 }

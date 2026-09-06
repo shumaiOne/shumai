@@ -48,7 +48,7 @@ export type ModelCountAggregateOutputType = {
   id: number
   modelId: number
   name: number
-  config:PrismaJson.ModelConfig
+  config: number
   createdAt: number
   updatedAt: number
   providerId: number

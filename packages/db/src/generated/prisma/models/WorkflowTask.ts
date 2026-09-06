@@ -80,8 +80,8 @@ export type WorkflowTaskCountAggregateOutputType = {
   assetId: number
   type: number
   status: number
-  payload:PrismaJson.WorkflowTaskPayload
-  output:PrismaJson.WorkflowTaskOutput
+  payload: number
+  output: number
   heartbeat: number
   inputTokens: number
   outputTokens: number

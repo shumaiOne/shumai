@@ -43,7 +43,7 @@ export type SystemSettingsMaxAggregateOutputType = {
 export type SystemSettingsCountAggregateOutputType = {
   id: number
   key: number
-  value:PrismaJson.SystemSettingsValue
+  value: number
   createdAt: number
   updatedAt: number
   _all: number

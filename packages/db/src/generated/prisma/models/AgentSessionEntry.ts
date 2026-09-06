@@ -50,7 +50,7 @@ export type AgentSessionEntryCountAggregateOutputType = {
   assetId: number
   type: number
   parentId: number
-  data:PrismaJson.PiSessionEntryData
+  data: number
   createdAt: number
   _all: number
 }

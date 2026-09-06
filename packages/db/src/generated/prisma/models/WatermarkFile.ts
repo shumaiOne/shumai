@@ -48,7 +48,7 @@ export type WatermarkFileCountAggregateOutputType = {
   id: number
   assetId: number
   watermarkConfigId: number
-  media:PrismaJson.MediaInfo
+  media: number
   status: number
   createdAt: number
   updatedAt: number

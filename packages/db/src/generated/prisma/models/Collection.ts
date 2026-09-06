@@ -47,7 +47,7 @@ export type CollectionMaxAggregateOutputType = {
 export type CollectionCountAggregateOutputType = {
   id: number
   name: number
-  filter:PrismaJson.CollectionFilter
+  filter: number
   createdAt: number
   updatedAt: number
   projectId: number

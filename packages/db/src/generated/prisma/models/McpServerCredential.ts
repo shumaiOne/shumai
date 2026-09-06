@@ -50,11 +50,11 @@ export type McpServerCredentialCountAggregateOutputType = {
   id: number
   serverId: number
   serverUrl: number
-  tokens:PrismaJson.McpStoredTokens
-  clientInfo:PrismaJson.McpStoredClientInfo
+  tokens: number
+  clientInfo: number
   codeVerifier: number
   oauthState: number
-  pendingAuth:PrismaJson.McpPendingAuth
+  pendingAuth: number
   createdAt: number
   updatedAt: number
   _all: number

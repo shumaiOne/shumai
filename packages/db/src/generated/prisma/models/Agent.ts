@@ -61,7 +61,7 @@ export type AgentCountAggregateOutputType = {
   providerId: number
   modelId: number
   teamId: number
-  config:PrismaJson.AgentConfig
+  config: number
   createdAt: number
   updatedAt: number
   _all: number

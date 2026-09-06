@@ -67,7 +67,7 @@ export type AssetCommentMaxAggregateOutputType = {
 export type AssetCommentCountAggregateOutputType = {
   id: number
   message: number
-  annotation:PrismaJson.AnnotationList
+  annotation: number
   second: number
   sessionId: number
   createdAt: number

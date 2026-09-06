@@ -48,7 +48,7 @@ export type ProviderCountAggregateOutputType = {
   id: number
   name: number
   isBuiltin: number
-  config:PrismaJson.ProviderConfig
+  config: number
   createdAt: number
   updatedAt: number
   teamId: number
