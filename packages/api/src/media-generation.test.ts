@@ -49,13 +49,16 @@ describe('media-generation api', () => {
     expect(mediaGenerationService.getSettings).toHaveBeenCalledWith('t1')
   })
 
-  it('PUT /teams/:teamId/media-generation/providers/:provider updates api key', async () => {
-    vi.mocked(mediaGenerationService.updateProviderApiKey).mockResolvedValue(undefined)
+  it('PUT /teams/:teamId/media-generation/providers/:provider updates api key and models', async () => {
+    vi.mocked(mediaGenerationService.updateProvider).mockResolvedValue(undefined)
 
     const res = await app.request('/teams/t1/media-generation/providers/openai', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey: 'sk-new-key' }),
+      body: JSON.stringify({
+        apiKey: 'sk-new-key',
+        models: [{ type: 'image', modelId: 'dall-e-3', name: 'DALL-E 3' }],
+      }),
     })
 
     expect(res.status).toBe(200)
@@ -67,11 +70,10 @@ describe('media-generation api', () => {
       type: ResourceType.Team,
       id: 't1',
     })
-    expect(mediaGenerationService.updateProviderApiKey).toHaveBeenCalledWith(
-      't1',
-      'openai',
-      'sk-new-key',
-    )
+    expect(mediaGenerationService.updateProvider).toHaveBeenCalledWith('t1', 'openai', {
+      apiKey: 'sk-new-key',
+      models: [{ type: 'image', modelId: 'dall-e-3', name: 'DALL-E 3' }],
+    })
   })
 
   it('POST /teams/:teamId/media-generation/models adds an enabled model', async () => {

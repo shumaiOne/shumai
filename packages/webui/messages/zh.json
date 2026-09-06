@@ -1407,6 +1407,13 @@
   "remove_key": "移除密钥",
   "select_provider_first": "请先在左侧选择一个提供商以查看可用模型",
   "search_providers": "搜索提供商...",
-  "search_models": "搜索模型...",
-  "default_env_var_desc": "默认：{envKey}"
+  "default_env_var_desc": "默认：{envKey}",
+  "image_models_count": "{count} 个已启用",
+  "video_models_count": "{count} 个已启用",
+  "clear_custom_key": "清除自定义密钥",
+  "add_custom_model": "添加自定义模型",
+  "provider_not_configured_warning": "此提供商尚未配置。在使用这些模型前，请在 API 密钥标签页中配置密钥。",
+  "failed_to_update_provider": "更新提供商失败",
+  "manage_provider": "管理",
+  "all_modalities": "全部"
 }
