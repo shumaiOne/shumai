@@ -19,3 +19,7 @@ code_quality.md
 /test-results/
 /blob-report/
 /playwright/.cache/
+
+# Paraglide JS
+packages/webui/paraglide
+

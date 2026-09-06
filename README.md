@@ -314,11 +314,17 @@ To set up Shumai locally for development:
    ```
 2. Start the `pgvector` database container (as described in **Option 2, Step 1**).
 3. Create a `.env` file at the root of the workspace using the configuration from **Option 2, Step 5**.
-4. Apply the database schema migrations:
+4. Generate i18n translation files:
+   ```bash
+   bun run i18n:compile
+   ```
+   > [!TIP]
+   > During frontend development, you can run `bun run i18n:watch` in a separate terminal to automatically recompile translation files whenever you edit strings in `packages/webui/messages/`.
+5. Apply the database schema migrations:
    ```bash
    bun run db:migrate
    ```
-5. Start the local development server:
+6. Start the local development server:
    ```bash
    bun run dev
    ```

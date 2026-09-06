@@ -34,6 +34,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ripgrep bubblewrap socat ffmpeg poppler-utils imagemagick
 
+      - name: Compile i18n
+        run: bun run i18n:compile
+
       - name: Lint
         run: bun run lint
 
@@ -83,6 +86,9 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Compile i18n
+        run: bun run i18n:compile
+
       - name: Install Playwright browser (${{ matrix.project }})
         run: bunx playwright install --with-deps ${{ matrix.project }}
 
@@ -129,6 +135,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ripgrep bubblewrap socat ffmpeg poppler-utils imagemagick
+
+      - name: Compile i18n
+        run: bun run i18n:compile
 
       - name: Install Playwright browser (${{ matrix.project }})
         run: bunx playwright install --with-deps ${{ matrix.project }}
