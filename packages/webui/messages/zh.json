@@ -1404,5 +1404,9 @@
   "add_media_model_desc": "选择要启用的媒体生成类型、提供商和模型。",
   "loading_models": "正在加载模型...",
   "remove_model_prompt": "确定要从已启用模型中移除模型 {modelId}（{provider}）吗？",
-  "remove_key": "移除密钥"
+  "remove_key": "移除密钥",
+  "select_provider_first": "请先在左侧选择一个提供商以查看可用模型",
+  "search_providers": "搜索提供商...",
+  "search_models": "搜索模型...",
+  "default_env_var_desc": "默认：{envKey}"
 }

@@ -2,6 +2,15 @@ import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { mediaGenerationService, BUILTIN_MEDIA_PROVIDERS } from './media-generation'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import * as aiModule from 'ai'
+
+vi.mock('ai', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('ai')>()
+  return {
+    ...actual,
+    generateText: vi.fn(),
+  }
+})
 
 describe('MediaGenerationService', () => {
   setupTestDbHooks()
@@ -10,6 +19,7 @@ describe('MediaGenerationService', () => {
   const originalEnv = process.env
 
   beforeEach(async () => {
+    vi.clearAllMocks()
     process.env = { ...originalEnv }
     const team = await prisma.team.create({
       data: {
@@ -24,6 +34,7 @@ describe('MediaGenerationService', () => {
 
   afterEach(() => {
     process.env = originalEnv
+    vi.clearAllMocks()
     vi.restoreAllMocks()
   })
 
@@ -56,7 +67,7 @@ describe('MediaGenerationService', () => {
 
     expect(openai?.apiKeyConfigured).toBe(true)
     expect(openai?.status).toBe('configured_custom')
-    expect(openai?.customApiKeyOrEnv).toBe('••••••••')
+    expect(openai?.customApiKeyOrEnv).toBe('sk-literal-key')
 
     // 2. Set custom ENV var name
     process.env.MY_CUSTOM_OPENAI_ENV = 'sk-resolved-custom-env'
@@ -66,7 +77,7 @@ describe('MediaGenerationService', () => {
 
     expect(openai?.apiKeyConfigured).toBe(true)
     expect(openai?.status).toBe('configured_custom')
-    expect(openai?.customApiKeyOrEnv).toBe('••••••••')
+    expect(openai?.customApiKeyOrEnv).toBe('MY_CUSTOM_OPENAI_ENV')
     expect(mediaGenerationService.resolveApiKey('openai', 'MY_CUSTOM_OPENAI_ENV')).toBe(
       'sk-resolved-custom-env',
     )
@@ -208,5 +219,118 @@ describe('MediaGenerationService', () => {
         expect(instance.modelId).toBe(videoModel.modelId)
       }
     }
+  })
+
+  it('should include gemini-omni-1.1-flash as the default video model in Google curated models', () => {
+    const googleVideoModels = mediaGenerationService.getCuratedModels('google', 'video')
+    expect(googleVideoModels.length).toBeGreaterThan(0)
+    expect(googleVideoModels[0].modelId).toBe('gemini-omni-1.1-flash')
+    expect(googleVideoModels[0].name).toBe('Gemini Omni 1.1 Flash')
+    expect(googleVideoModels[0].type).toBe('video')
+  })
+
+  it('should generate video via interactions API for gemini-omni-1.1-flash in text_to_video mode', async () => {
+    const mockGenerateText = vi.mocked(aiModule.generateText).mockResolvedValue({
+      files: [
+        {
+          mediaType: 'video/mp4',
+          uint8Array: new Uint8Array([10, 20, 30, 40]),
+          base64: Buffer.from([10, 20, 30, 40]).toString('base64'),
+        },
+      ],
+      warnings: [],
+    } as unknown as Awaited<ReturnType<typeof aiModule.generateText>>)
+
+    const result = await mediaGenerationService.generateVideo({
+      provider: 'google',
+      modelId: 'gemini-omni-1.1-flash',
+      apiKey: 'test-gemini-key',
+      mode: 'text_to_video',
+      prompt: 'A cinematic drone shot over rolling hills',
+      aspectRatio: '16:9',
+      resolution: '1280x720',
+      duration: 5,
+      fps: 24,
+      generateAudio: true,
+      seed: 42,
+    })
+
+    expect(mockGenerateText).toHaveBeenCalledTimes(1)
+    const callArgs = mockGenerateText.mock.calls[0][0]
+    expect(callArgs.seed).toBe(42)
+    expect(callArgs.system).toContain('Aspect ratio: 16:9')
+    expect(callArgs.system).toContain('Resolution: 720p (1280x720)')
+    expect(callArgs.system).toContain('Duration: 5 seconds')
+    expect(callArgs.system).toContain('Frame rate: 24 fps')
+    expect(callArgs.system).toContain('Audio: generate synchronized audio')
+    const messages = callArgs.messages as Array<{
+      role: string
+      content: Array<{ type: string; text?: string }>
+    }>
+    expect(messages[0].content[0].text).toContain(
+      '[Video parameters: Aspect ratio: 16:9, Resolution: 720p (1280x720), Duration: 5 seconds, Frame rate: 24 fps, Audio: generate synchronized audio]',
+    )
+    expect(callArgs.providerOptions).toEqual({
+      google: {
+        responseModalities: ['video'],
+        store: false,
+      },
+    })
+    expect(result.mimeType).toBe('video/mp4')
+    expect(result.buffer).toEqual(Buffer.from([10, 20, 30, 40]))
+  })
+
+  it('should generate video via interactions API for gemini-omni-1.1-flash in image_to_video mode', async () => {
+    const fakeImageBuffer = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    const mockGenerateText = vi.mocked(aiModule.generateText).mockResolvedValue({
+      files: [
+        {
+          mediaType: 'video/mp4',
+          uint8Array: new Uint8Array([50, 60, 70, 80]),
+          base64: Buffer.from([50, 60, 70, 80]).toString('base64'),
+        },
+      ],
+      warnings: [],
+    } as unknown as Awaited<ReturnType<typeof aiModule.generateText>>)
+
+    const result = await mediaGenerationService.generateVideo({
+      provider: 'google',
+      modelId: 'gemini-omni-1.1-flash',
+      apiKey: 'test-gemini-key',
+      mode: 'image_to_video',
+      prompt: 'Make the character wave',
+      image: fakeImageBuffer,
+    })
+
+    expect(mockGenerateText).toHaveBeenCalledTimes(1)
+    const callArgs = mockGenerateText.mock.calls[0][0]
+    const messages = callArgs.messages as Array<{
+      role: string
+      content: Array<{ type: string; mediaType?: string; data?: Buffer }>
+    }>
+    expect(messages).toBeDefined()
+    expect(messages[0].content).toHaveLength(2)
+    expect(messages[0].content[0].type).toBe('text')
+    expect(messages[0].content[1].type).toBe('file')
+    expect(messages[0].content[1].mediaType).toBe('image/png')
+    expect(messages[0].content[1].data).toEqual(fakeImageBuffer)
+    expect(result.buffer).toEqual(Buffer.from([50, 60, 70, 80]))
+  })
+
+  it('should throw an error if interactions API returns no video file', async () => {
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      files: [],
+      warnings: [],
+    } as unknown as Awaited<ReturnType<typeof aiModule.generateText>>)
+
+    await expect(
+      mediaGenerationService.generateVideo({
+        provider: 'google',
+        modelId: 'gemini-omni-1.1-flash',
+        apiKey: 'test-gemini-key',
+        mode: 'text_to_video',
+        prompt: 'A video that fails to generate',
+      }),
+    ).rejects.toThrow('No video binary data returned by Gemini Omni Flash')
   })
 })

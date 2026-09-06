@@ -9,7 +9,11 @@ import {
 } from '@shumai/dtos'
 import { ulid } from 'ulid'
 import { HTTPException } from 'hono/http-exception'
-import { generateImage as aiGenerateImage, experimental_generateVideo as aiGenerateVideo } from 'ai'
+import {
+  generateImage as aiGenerateImage,
+  experimental_generateVideo as aiGenerateVideo,
+  generateText as aiGenerateText,
+} from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createGoogleVertex } from '@ai-sdk/google-vertex'
@@ -72,6 +76,7 @@ export const BUILTIN_MEDIA_PROVIDERS: Record<string, BuiltinMediaProviderDef> = 
         name: 'Gemini 3.1 Flash Image Preview',
         type: 'image',
       },
+      { modelId: 'gemini-omni-1.1-flash', name: 'Gemini Omni 1.1 Flash', type: 'video' },
       { modelId: 'veo-3.1-generate', name: 'Veo 3.1', type: 'video' },
       { modelId: 'veo-3.1-generate-preview', name: 'Veo 3.1 Preview', type: 'video' },
       { modelId: 'veo-3.1-fast-generate-preview', name: 'Veo 3.1 Fast Preview', type: 'video' },
@@ -437,7 +442,7 @@ export class MediaGenerationService {
         defaultEnvKey: def.defaultEnvKey,
         apiKeyConfigured: !!resolvedKey,
         status,
-        customApiKeyOrEnv: customKey ? '••••••••' : undefined,
+        customApiKeyOrEnv: customKey || undefined,
         supportedTypes: def.supportedTypes,
       }
     })
@@ -770,6 +775,10 @@ export class MediaGenerationService {
     mimeType: string
     warnings?: unknown
   }> {
+    if (params.provider === 'google' && params.modelId === 'gemini-omni-1.1-flash') {
+      return this.generateGoogleInteractionsVideo(params)
+    }
+
     const model = this.getVideoModel(params.provider, params.modelId, params.apiKey)
 
     type GenerateVideoOptions = Parameters<typeof aiGenerateVideo>[0]
@@ -837,6 +846,182 @@ export class MediaGenerationService {
       mimeType,
       warnings,
     }
+  }
+
+  private async generateGoogleInteractionsVideo(params: GenerateVideoServiceParams): Promise<{
+    buffer: Buffer
+    mimeType: string
+    warnings?: unknown
+  }> {
+    const google = createGoogleGenerativeAI({ apiKey: params.apiKey })
+    // AI SDK provider interactions method is typed with literal unions, while Shumai supports dynamic model IDs from team configuration
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const model = google.interactions(params.modelId as any)
+
+    const content: Array<
+      | { type: 'text'; text: string }
+      | { type: 'file'; data: Buffer | Uint8Array; mediaType: string }
+    > = []
+
+    const specs: string[] = []
+    if (params.aspectRatio) {
+      specs.push(`- Aspect ratio: ${params.aspectRatio}`)
+    }
+    if (params.resolution) {
+      const resolutionMap: Record<string, string> = {
+        '640x360': '360p',
+        '1280x720': '720p',
+        '1920x1080': '1080p',
+        '3840x2160': '4K',
+      }
+      const resName = resolutionMap[params.resolution] || params.resolution
+      specs.push(`- Resolution: ${resName} (${params.resolution})`)
+    }
+    if (params.duration) {
+      specs.push(`- Duration: ${params.duration} seconds`)
+    }
+    if (params.fps) {
+      specs.push(`- Frame rate: ${params.fps} fps`)
+    }
+    if (params.generateAudio !== undefined) {
+      specs.push(
+        `- Audio: ${params.generateAudio ? 'generate synchronized audio' : 'silent / no audio'}`,
+      )
+    }
+
+    const systemInstruction =
+      specs.length > 0
+        ? `You are generating a video with Gemini Omni Flash. Follow the user request and strictly adhere to these video generation specifications:\n${specs.join('\n')}`
+        : undefined
+
+    let userPrompt = params.prompt?.trim() || ''
+    if (specs.length > 0) {
+      const specLine = `[Video parameters: ${specs.map((s) => s.replace(/^- /, '')).join(', ')}]`
+      userPrompt = userPrompt ? `${userPrompt}\n\n${specLine}` : specLine
+    }
+
+    if (userPrompt) {
+      content.push({ type: 'text', text: userPrompt })
+    }
+
+    const addImagePart = (input?: string | Uint8Array | Buffer) => {
+      if (!input) return
+      const normalized = this.normalizeMediaInput(input)
+      content.push({
+        type: 'file',
+        data: normalized.buffer,
+        mediaType: normalized.mimeType,
+      })
+    }
+
+    if (params.mode === 'image_to_video' && params.image) {
+      addImagePart(params.image)
+    } else if (params.mode === 'first_last_frame') {
+      if (params.firstFrame) addImagePart(params.firstFrame)
+      if (params.lastFrame) addImagePart(params.lastFrame)
+    } else if (params.mode === 'reference_to_video' && params.inputReferences) {
+      for (const ref of params.inputReferences) {
+        addImagePart(ref)
+      }
+    }
+
+    if (content.length === 0) {
+      content.push({ type: 'text', text: 'Generate video' })
+    }
+
+    const result = await aiGenerateText({
+      model,
+      system: systemInstruction,
+      messages: [{ role: 'user', content }],
+      providerOptions: {
+        google: {
+          responseModalities: ['video'],
+          store: false,
+        },
+      },
+      seed: params.seed,
+    })
+
+    const videoFile = result.files.find((f) => f.mediaType.startsWith('video/'))
+    if (!videoFile) {
+      throw new Error('No video binary data returned by Gemini Omni Flash')
+    }
+
+    let buffer: Buffer
+    if (videoFile.uint8Array) {
+      buffer = Buffer.from(videoFile.uint8Array)
+    } else if (videoFile.base64) {
+      if (videoFile.base64.startsWith('http://') || videoFile.base64.startsWith('https://')) {
+        const res = await fetch(videoFile.base64)
+        if (!res.ok) {
+          throw new Error(`Failed to download video from ${videoFile.base64}: ${res.statusText}`)
+        }
+        buffer = Buffer.from(await res.arrayBuffer())
+      } else if (videoFile.base64.startsWith('data:')) {
+        const match = videoFile.base64.match(/^data:([^;]+);base64,(.*)$/)
+        buffer = match ? Buffer.from(match[2], 'base64') : Buffer.from(videoFile.base64, 'base64')
+      } else {
+        buffer = Buffer.from(videoFile.base64, 'base64')
+      }
+    } else {
+      throw new Error('Video file returned by Gemini Omni Flash has no binary content')
+    }
+
+    return {
+      buffer,
+      mimeType: videoFile.mediaType || 'video/mp4',
+      warnings: result.warnings,
+    }
+  }
+
+  private normalizeMediaInput(input: string | Uint8Array | Buffer): {
+    buffer: Buffer
+    mimeType: string
+  } {
+    if (typeof input === 'string') {
+      if (input.startsWith('data:')) {
+        const match = input.match(/^data:([^;]+);base64,(.*)$/)
+        if (match) {
+          return {
+            buffer: Buffer.from(match[2], 'base64'),
+            mimeType: match[1],
+          }
+        }
+      }
+      const buf = Buffer.from(input, 'base64')
+      return { buffer: buf, mimeType: this.detectImageMimeType(buf) }
+    }
+
+    const buf = Buffer.isBuffer(input) ? input : Buffer.from(input)
+    return { buffer: buf, mimeType: this.detectImageMimeType(buf) }
+  }
+
+  private detectImageMimeType(buffer: Buffer): string {
+    if (buffer.length >= 4) {
+      if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+        return 'image/png'
+      }
+      if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+        return 'image/jpeg'
+      }
+      if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38) {
+        return 'image/gif'
+      }
+      if (
+        buffer[0] === 0x52 &&
+        buffer[1] === 0x49 &&
+        buffer[2] === 0x46 &&
+        buffer[3] === 0x46 &&
+        buffer.length >= 12 &&
+        buffer[8] === 0x57 &&
+        buffer[9] === 0x45 &&
+        buffer[10] === 0x42 &&
+        buffer[11] === 0x50
+      ) {
+        return 'image/webp'
+      }
+    }
+    return 'image/png'
   }
 }
 
