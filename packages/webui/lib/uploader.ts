@@ -225,18 +225,12 @@ export async function uploadFilesWithUppy({
   const handleBackOnline = () => {
     const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
     console.log(`[Uploader] Network 'online' event received! navigator.onLine = ${isOnline}`)
-    toast.dismiss?.('upload-network-offline')
-    toast.info?.('Network connection restored. Resuming upload...', { duration: 3000 })
     triggerRetry()
   }
 
   const handleOffline = () => {
     const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : false
     console.warn(`[Uploader] Network 'offline' event received! navigator.onLine = ${isOnline}`)
-    toast.warning?.('Network connection lost. Upload paused until connection is restored.', {
-      id: 'upload-network-offline',
-      duration: Infinity,
-    })
   }
 
   uppy.on('back-online', handleBackOnline)
@@ -321,10 +315,6 @@ export async function uploadFilesWithUppy({
       console.warn(
         `[Uploader] Network error detected for ${file.name}. Keeping upload active to resume when connection is restored.`,
       )
-      toast.warning?.('Network connection lost. Upload will resume when connection is restored.', {
-        id: 'upload-network-offline',
-        duration: Infinity,
-      })
 
       if (typeof navigator !== 'undefined' && navigator.onLine) {
         const fileId = file.meta.fileId as string
@@ -428,7 +418,6 @@ export async function uploadFilesWithUppy({
     if (typeof window !== 'undefined') {
       window.removeEventListener('online', handleBackOnline)
       window.removeEventListener('offline', handleOffline)
-      toast.dismiss?.('upload-network-offline')
     }
     await releaseWakeLock()
     uppy.destroy()

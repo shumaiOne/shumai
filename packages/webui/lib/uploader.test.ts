@@ -251,20 +251,12 @@ describe('Uploader', () => {
     expect(useUploadStore.getState().tasks['task-1']?.files['file-1']?.status).toBe('uploading')
     expect(activeUploads.has('file-1')).toBe(true)
     expect(client.api.teams[':teamId'].upload.tasks[':taskId'].$patch).not.toHaveBeenCalled()
-    expect(toast.warning).toHaveBeenCalledWith(
-      expect.stringContaining('Network connection lost'),
-      expect.anything(),
-    )
 
     // 2. Simulate turning Wi-Fi back on
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
     window.dispatchEvent(new Event('online'))
 
     expect(retryAllSpy).toHaveBeenCalled()
-    expect(toast.info).toHaveBeenCalledWith(
-      expect.stringContaining('Network connection restored'),
-      expect.anything(),
-    )
 
     // 3. Simulate successful upload on retry
     capturedUppy.emit('upload-success', mockFile, { status: 200 })
