@@ -522,6 +522,7 @@ model Asset {
   sizeByte          BigInt       @default(0) @map("size_byte")
   status            AssetStatus
   transcodeTaskId   String?      @map("transcode_task_id")
+  uploadId          String?      @map("upload_id")
   /// [MediaInfo]
   media             Json?
   isDeleted         Boolean      @default(false) @map("is_deleted")

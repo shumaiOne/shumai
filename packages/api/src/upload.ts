@@ -2,9 +2,11 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { uploadService } from '@shumai/core/src/upload/upload'
 import {
+  abortUploadRequestSchema,
   confirmFileUploadRequestSchema,
   createUploadTaskRequestSchema,
   localUploadQuerySchema,
+  s3SignRequestSchema,
 } from '@shumai/dtos'
 import { paginationParamsSchema, AuditAction } from '@shumai/dtos'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
@@ -122,6 +124,41 @@ const route = new Hono<{ Variables: { user: User } }>()
       }
 
       return c.json({ success: true })
+    },
+  )
+  .post('/teams/:teamId/upload/sign', zValidator('json', s3SignRequestSchema), async (c) => {
+    const teamId = c.req.param('teamId')
+    const user = c.get('user')
+    const req = c.req.valid('json')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: req.fileId,
+    })
+
+    const resp = await uploadService.signS3Upload(teamId, user.id, req)
+    return c.json(resp)
+  })
+  .post(
+    '/teams/:teamId/upload/tasks/:taskId/abort',
+    zValidator('json', abortUploadRequestSchema),
+    async (c) => {
+      const teamId = c.req.param('teamId')
+      const taskId = c.req.param('taskId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id: req.fileId,
+      })
+
+      const resp = await uploadService.abortUpload(teamId, user.id, taskId, req)
+      return c.json(resp)
     },
   )
 

@@ -139,4 +139,85 @@ describe('Upload API', () => {
       itemId: 'file1',
     })
   })
+
+  it('POST /teams/:teamId/upload/sign', async () => {
+    vi.spyOn(uploadService, 'signS3Upload').mockResolvedValue({
+      url: 'http://signed-url.com',
+    })
+
+    const res = await app.request('/teams/team1/upload/sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test' },
+      body: JSON.stringify({
+        key: 'files/test.mp4',
+        method: 'PUT',
+        fileId: 'file1',
+        uploadId: 'up1',
+        partNumber: 1,
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ url: 'http://signed-url.com' })
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Asset,
+        id: 'file1',
+        permission: Permission.Edit,
+      }),
+    )
+    expect(uploadService.signS3Upload).toHaveBeenCalledWith('team1', 'user1', {
+      key: 'files/test.mp4',
+      method: 'PUT',
+      fileId: 'file1',
+      uploadId: 'up1',
+      partNumber: 1,
+    })
+  })
+
+  it('POST /teams/:teamId/upload/sign fails validation when fileId is missing', async () => {
+    const res = await app.request('/teams/team1/upload/sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test' },
+      body: JSON.stringify({
+        key: 'files/test.mp4',
+        method: 'PUT',
+      }),
+    })
+
+    expect(res.status).toBe(400)
+  })
+
+  it('POST /teams/:teamId/upload/tasks/:taskId/abort', async () => {
+    vi.spyOn(uploadService, 'abortUpload').mockResolvedValue({
+      success: true,
+    })
+
+    const res = await app.request('/teams/team1/upload/tasks/task1/abort', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test' },
+      body: JSON.stringify({
+        fileId: 'file1',
+        uploadId: 'up1',
+        key: 'files/test.mp4',
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ success: true })
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Asset,
+        id: 'file1',
+        permission: Permission.Edit,
+      }),
+    )
+    expect(uploadService.abortUpload).toHaveBeenCalledWith('team1', 'user1', 'task1', {
+      fileId: 'file1',
+      uploadId: 'up1',
+      key: 'files/test.mp4',
+    })
+  })
 })

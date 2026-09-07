@@ -1,43 +1,47 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as fs from 'fs'
 import * as path from 'path'
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  UploadPartCommand,
+  CreateMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  ListPartsCommand,
+  AbortMultipartUploadCommand,
+} from '@aws-sdk/client-s3'
 import { buildContentDisposition, LocalStorageService, S3StorageService } from './s3'
 
-// Mock Bun S3Client
 const s3ClientConstructorSpy = vi.fn()
-const s3FileSpy = vi.fn()
-const s3WriteSpy = vi.fn()
-const s3DeleteSpy = vi.fn()
-const s3ListSpy = vi.fn()
-const s3ExistsSpy = vi.fn()
-const s3PresignSpy = vi.fn()
+const s3SendSpy = vi.fn()
+const getSignedUrlSpy = vi.fn()
 
-vi.mock('bun', () => {
+vi.mock('@aws-sdk/client-s3', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@aws-sdk/client-s3')>()
   return {
+    ...actual,
     S3Client: class {
       constructor(params: unknown) {
         s3ClientConstructorSpy(params)
       }
-      file = s3FileSpy.mockReturnValue({
-        size: Promise.resolve(123),
-        exists: vi.fn().mockResolvedValue(true),
-        arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(10)),
-        type: 'text/plain',
-      })
-      write = s3WriteSpy.mockResolvedValue({})
-      delete = s3DeleteSpy.mockResolvedValue({})
-      list = s3ListSpy.mockResolvedValue({ contents: [], isTruncated: false })
-      exists = s3ExistsSpy.mockResolvedValue(true)
-      presign = s3PresignSpy.mockReturnValue('http://presigned-url')
+      send = s3SendSpy
     },
+  }
+})
+
+vi.mock('@aws-sdk/s3-request-presigner', () => {
+  return {
+    getSignedUrl: vi.fn((client, command, options) => getSignedUrlSpy(client, command, options)),
   }
 })
 
 describe('S3Service implementations', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
+    getSignedUrlSpy.mockReset()
     delete process.env.PRESIGNED_URL_EXPIRES_IN
-    s3PresignSpy.mockReturnValue('http://presigned-url')
+    getSignedUrlSpy.mockResolvedValue('http://presigned-url')
+    s3SendSpy.mockResolvedValue({})
   })
 
   describe('S3StorageService', () => {
@@ -68,48 +72,53 @@ describe('S3Service implementations', () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
       const url = await s3.presign('bucket', 'key', 'GET')
       expect(url).toBe('http://presigned-url')
-      expect(s3PresignSpy).toHaveBeenCalledWith('key', expect.objectContaining({ method: 'GET' }))
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(GetObjectCommand),
+        expect.objectContaining({ expiresIn: 18000 }),
+      )
     })
 
     it('should cache GET presign URLs', async () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
 
-      s3PresignSpy.mockClear()
-      s3PresignSpy.mockReturnValueOnce('http://presigned-url-1')
-      s3PresignSpy.mockReturnValueOnce('http://presigned-url-2')
+      getSignedUrlSpy.mockClear()
+      getSignedUrlSpy.mockResolvedValueOnce('http://presigned-url-1')
+      getSignedUrlSpy.mockResolvedValueOnce('http://presigned-url-2')
 
       const url1 = await s3.presign('bucket', 'key', 'GET')
       const url2 = await s3.presign('bucket', 'key', 'GET')
 
       expect(url1).toBe('http://presigned-url-1')
       expect(url2).toBe('http://presigned-url-1')
-      expect(s3PresignSpy).toHaveBeenCalledTimes(1)
+      expect(getSignedUrlSpy).toHaveBeenCalledTimes(1)
     })
 
     it('should NOT cache PUT presign URLs', async () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
 
-      s3PresignSpy.mockReset()
-      s3PresignSpy.mockReturnValueOnce('http://unique-put-url-1')
-      s3PresignSpy.mockReturnValueOnce('http://unique-put-url-2')
+      getSignedUrlSpy.mockClear()
+      getSignedUrlSpy.mockResolvedValueOnce('http://unique-put-url-1')
+      getSignedUrlSpy.mockResolvedValueOnce('http://unique-put-url-2')
 
       const url1 = await s3.presign('bucket', 'key', 'PUT')
       const url2 = await s3.presign('bucket', 'key', 'PUT')
 
       expect(url1).toBe('http://unique-put-url-1')
       expect(url2).toBe('http://unique-put-url-2')
-      expect(s3PresignSpy).toHaveBeenCalledTimes(2)
+      expect(getSignedUrlSpy).toHaveBeenCalledTimes(2)
     })
 
     it('should respect PRESIGNED_URL_EXPIRES_IN env', async () => {
       process.env.PRESIGNED_URL_EXPIRES_IN = '10'
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
 
-      s3PresignSpy.mockClear()
+      getSignedUrlSpy.mockClear()
       await s3.presign('bucket', 'key', 'GET')
 
-      expect(s3PresignSpy).toHaveBeenCalledWith(
-        'key',
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(GetObjectCommand),
         expect.objectContaining({ expiresIn: 10 * 3600 }),
       )
 
@@ -120,11 +129,14 @@ describe('S3Service implementations', () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
       await s3.presign('bucket', 'key', 'GET')
 
-      expect(s3PresignSpy).toHaveBeenCalledWith(
-        'key',
-        expect.not.objectContaining({
-          contentDisposition: expect.anything(),
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          input: expect.not.objectContaining({
+            ResponseContentDisposition: expect.anything(),
+          }),
         }),
+        expect.anything(),
       )
     })
 
@@ -132,11 +144,14 @@ describe('S3Service implementations', () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
       await s3.presign('bucket', 'key', 'GET', true)
 
-      expect(s3PresignSpy).toHaveBeenCalledWith(
-        'key',
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
         expect.objectContaining({
-          contentDisposition: 'attachment',
+          input: expect.objectContaining({
+            ResponseContentDisposition: 'attachment',
+          }),
         }),
+        expect.anything(),
       )
     })
 
@@ -144,11 +159,15 @@ describe('S3Service implementations', () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
       await s3.presign('bucket', 'key', 'GET', true, 'foo.png')
 
-      expect(s3PresignSpy).toHaveBeenCalledWith(
-        'key',
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
         expect.objectContaining({
-          contentDisposition: 'attachment; filename="foo.png"; filename*=UTF-8\'\'foo.png',
+          input: expect.objectContaining({
+            ResponseContentDisposition:
+              'attachment; filename="foo.png"; filename*=UTF-8\'\'foo.png',
+          }),
         }),
+        expect.anything(),
       )
     })
 
@@ -156,34 +175,35 @@ describe('S3Service implementations', () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
       await s3.presign('bucket', 'key', 'GET', true, '报告.png')
 
-      expect(s3PresignSpy).toHaveBeenCalledWith(
-        'key',
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
         expect.objectContaining({
-          // Non-ASCII names are conveyed only via filename* (percent-encoded),
-          // keeping the header value pure ASCII (RFC 7230).
-          contentDisposition: "attachment; filename*=UTF-8''%E6%8A%A5%E5%91%8A.png",
+          input: expect.objectContaining({
+            ResponseContentDisposition: "attachment; filename*=UTF-8''%E6%8A%A5%E5%91%8A.png",
+          }),
         }),
+        expect.anything(),
       )
     })
 
     it('should not cache download presign URLs', async () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
 
-      s3PresignSpy.mockClear()
-      s3PresignSpy.mockReturnValueOnce('http://download-url-1')
-      s3PresignSpy.mockReturnValueOnce('http://download-url-2')
+      getSignedUrlSpy.mockClear()
+      getSignedUrlSpy.mockResolvedValueOnce('http://download-url-1')
+      getSignedUrlSpy.mockResolvedValueOnce('http://download-url-2')
 
       const url1 = await s3.presign('bucket', 'key', 'GET', true)
       const url2 = await s3.presign('bucket', 'key', 'GET', true)
 
       expect(url1).toBe('http://download-url-1')
       expect(url2).toBe('http://download-url-2')
-      expect(s3PresignSpy).toHaveBeenCalledTimes(2)
+      expect(getSignedUrlSpy).toHaveBeenCalledTimes(2)
     })
 
-    it('should handle ReadableStream in putObject by wrapping in Response', async () => {
+    it('should handle ReadableStream in putObject', async () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
-      s3WriteSpy.mockClear()
+      s3SendSpy.mockClear()
 
       const stream = new ReadableStream({
         start(controller) {
@@ -194,25 +214,198 @@ describe('S3Service implementations', () => {
 
       await s3.putObject('test-bucket', 'file.txt', stream, 14, 'text/plain')
 
-      expect(s3WriteSpy).toHaveBeenCalledWith(
-        'file.txt',
-        expect.any(Response),
-        expect.objectContaining({ bucket: 'test-bucket', type: 'text/plain' }),
+      expect(s3SendSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({
+            Bucket: 'test-bucket',
+            Key: 'file.txt',
+            ContentType: 'text/plain',
+            ContentLength: 14,
+          }),
+        }),
       )
     })
 
     it('should handle ArrayBuffer in putObject', async () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
-      s3WriteSpy.mockClear()
+      s3SendSpy.mockClear()
 
       const arrayBuffer = new TextEncoder().encode('array buffer content').buffer
 
       await s3.putObject('test-bucket', 'file.txt', arrayBuffer, 20, 'text/plain')
 
-      expect(s3WriteSpy).toHaveBeenCalledWith(
-        'file.txt',
-        arrayBuffer,
-        expect.objectContaining({ bucket: 'test-bucket', type: 'text/plain' }),
+      expect(s3SendSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({
+            Bucket: 'test-bucket',
+            Key: 'file.txt',
+            ContentType: 'text/plain',
+            ContentLength: 20,
+          }),
+        }),
+      )
+    })
+
+    it('should presign multipart operations correctly', async () => {
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+
+      // PUT part
+      await s3.presignMultipart('bucket', 'key', {
+        method: 'PUT',
+        key: 'key',
+        fileId: 'file-1',
+        uploadId: 'up-1',
+        partNumber: 1,
+      })
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(UploadPartCommand),
+        expect.anything(),
+      )
+
+      // PUT single
+      await s3.presignMultipart('bucket', 'key', {
+        method: 'PUT',
+        key: 'key',
+        fileId: 'file-1',
+      })
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(PutObjectCommand),
+        expect.anything(),
+      )
+
+      // POST create multipart
+      await s3.presignMultipart('bucket', 'key', {
+        method: 'POST',
+        key: 'key',
+        fileId: 'file-1',
+      })
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(CreateMultipartUploadCommand),
+        expect.anything(),
+      )
+
+      // POST complete multipart
+      await s3.presignMultipart('bucket', 'key', {
+        method: 'POST',
+        key: 'key',
+        fileId: 'file-1',
+        uploadId: 'up-1',
+      })
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(CompleteMultipartUploadCommand),
+        expect.anything(),
+      )
+
+      // GET list parts
+      await s3.presignMultipart('bucket', 'key', {
+        method: 'GET',
+        key: 'key',
+        fileId: 'file-1',
+        uploadId: 'up-1',
+      })
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(ListPartsCommand),
+        expect.anything(),
+      )
+
+      // DELETE abort multipart
+      await s3.presignMultipart('bucket', 'key', {
+        method: 'DELETE',
+        key: 'key',
+        fileId: 'file-1',
+        uploadId: 'up-1',
+      })
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(AbortMultipartUploadCommand),
+        expect.anything(),
+      )
+
+      // Expect GET without uploadId to throw
+      await expect(
+        s3.presignMultipart('bucket', 'key', {
+          method: 'GET',
+          key: 'key',
+          fileId: 'file-1',
+        }),
+      ).rejects.toThrow('List parts requires uploadId')
+
+      // Expect DELETE without uploadId to throw
+      await expect(
+        s3.presignMultipart('bucket', 'key', {
+          method: 'DELETE',
+          key: 'key',
+          fileId: 'file-1',
+        }),
+      ).rejects.toThrow('Abort multipart upload requires uploadId')
+    })
+
+    it('should stream in uploadFileToKey', async () => {
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+      s3SendSpy.mockClear()
+
+      const tmpFile = path.join(process.cwd(), 'data-test-stream.txt')
+      fs.writeFileSync(tmpFile, 'streaming content from file')
+
+      try {
+        await s3.uploadFileToKey(tmpFile, 'test/key.txt', 'text/plain')
+
+        expect(s3SendSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            input: expect.objectContaining({
+              Bucket: 'test-bucket',
+              Key: 'test/key.txt',
+              ContentType: 'text/plain',
+              ContentLength: 27,
+              Body: expect.any(fs.ReadStream),
+            }),
+          }),
+        )
+
+        // Wait for stream to open and close before unlinking
+        const callArg = s3SendSpy.mock.calls[0]?.[0]
+        const stream = callArg?.input?.Body as fs.ReadStream | undefined
+        if (stream) {
+          if (!stream.destroyed) {
+            await new Promise((resolve) => {
+              if (stream.pending) {
+                stream.once('open', resolve)
+              } else {
+                resolve(null)
+              }
+            })
+            stream.destroy()
+            await new Promise((resolve) => {
+              stream.once('close', resolve)
+            })
+          }
+        }
+      } finally {
+        if (fs.existsSync(tmpFile)) {
+          fs.unlinkSync(tmpFile)
+        }
+      }
+    })
+
+    it('should abort multipart upload in S3', async () => {
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+      s3SendSpy.mockClear()
+
+      await s3.abortMultipartUpload('test-bucket', 'file.txt', 'upload-123')
+
+      expect(s3SendSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({
+            Bucket: 'test-bucket',
+            Key: 'file.txt',
+            UploadId: 'upload-123',
+          }),
+        }),
       )
     })
   })

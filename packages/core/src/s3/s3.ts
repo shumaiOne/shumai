@@ -1,8 +1,25 @@
-import { ObjectInfo } from '@shumai/dtos'
-import { S3Client } from 'bun'
+import { ObjectInfo, S3SignRequest } from '@shumai/dtos'
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
+  ListObjectsV2CommandOutput,
+  CopyObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  ListPartsCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
+} from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import * as crypto from 'crypto'
 import * as fs from 'fs'
 import * as path from 'path'
+import { Readable } from 'stream'
 import { ulid } from 'ulid'
 import { LruTtlCache } from '../cache/lru-ttl-cache'
 import { detectSupportedMimeType } from '../utils/mime'
@@ -94,6 +111,12 @@ export interface S3Service {
     download?: boolean,
     filename?: string,
   ) => Promise<string>
+  presignMultipart: (
+    bucket: string,
+    key: string,
+    request: S3SignRequest,
+  ) => Promise<{ url: string }>
+  abortMultipartUpload: (bucket: string, key: string, uploadId: string) => Promise<void>
 }
 
 export class S3StorageService implements S3Service {
@@ -111,39 +134,59 @@ export class S3StorageService implements S3Service {
     this.client = new S3Client({
       region,
       endpoint,
-      accessKeyId,
-      secretAccessKey,
-      bucket,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+      forcePathStyle: true,
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     })
     this.bucket = bucket
   }
 
   async getObjectSize(bucket: string, key: string): Promise<number> {
-    return await this.client.size(key, { bucket })
+    const res = await this.client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
+    return res.ContentLength ?? 0
   }
 
   async putObject(
     bucket: string,
     key: string,
-    body: Buffer | Uint8Array | ArrayBuffer | string | ReadableStream,
-    _size: number,
+    body: Buffer | Uint8Array | ArrayBuffer | string | ReadableStream | NodeJS.ReadableStream,
+    size: number,
     contentType?: string,
   ): Promise<void> {
-    const payload =
-      body && typeof body === 'object' && 'getReader' in body
-        ? new Response(body as ReadableStream)
-        : body
-    await this.client.write(key, payload, {
-      bucket,
-      type: contentType,
-    })
+    let payload: string | Uint8Array | Buffer | NodeJS.ReadableStream = ''
+    if (body && typeof body === 'object' && 'getReader' in body) {
+      // Convert web ReadableStream to Node stream without buffering into memory
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      payload = Readable.fromWeb(body as any)
+    } else if (body && typeof body === 'object' && 'pipe' in body) {
+      payload = body as NodeJS.ReadableStream
+    } else if (body instanceof ArrayBuffer) {
+      payload = Buffer.from(body)
+    } else if (typeof body === 'string' || body instanceof Uint8Array || Buffer.isBuffer(body)) {
+      payload = body
+    }
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        // AWS SDK v3 PutObjectCommandInput types differ slightly between Node and Web streams
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Body: payload as any,
+        ContentLength: size > 0 ? size : undefined,
+        ContentType: contentType,
+      }),
+    )
   }
 
   async getObject(bucket: string, key: string): Promise<S3Object> {
-    const file = this.client.file(key, { bucket })
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    let contentType = file.type
+    const res = await this.client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
+    const bytes = await res.Body?.transformToByteArray()
+    const buffer = bytes ? Buffer.from(bytes) : Buffer.alloc(0)
+    let contentType = res.ContentType
     if (!contentType || contentType === 'application/octet-stream') {
       const detected = detectSupportedMimeType(buffer)
       if (detected) {
@@ -167,20 +210,26 @@ export class S3StorageService implements S3Service {
     destBucket: string,
     destKey: string,
   ): Promise<void> {
-    const sourceFile = this.client.file(sourceKey, { bucket: sourceBucket })
-    await this.client.write(destKey, sourceFile, { bucket: destBucket })
+    await this.client.send(
+      new CopyObjectCommand({
+        CopySource: `${sourceBucket}/${sourceKey}`,
+        Bucket: destBucket,
+        Key: destKey,
+      }),
+    )
   }
 
   async downloadToFile(bucket: string, key: string, filePath: string): Promise<void> {
-    const file = this.client.file(key, { bucket })
-    await Bun.write(filePath, file)
+    const res = await this.client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
+    const bytes = await res.Body?.transformToByteArray()
+    if (bytes) {
+      await Bun.write(filePath, bytes)
+    }
   }
 
   async deleteObject(bucket: string, key: string): Promise<number> {
     try {
-      const exists = await this.client.exists(key, { bucket })
-      if (!exists) return 0
-      await this.client.delete(key, { bucket })
+      await this.client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
       return 1
     } catch {
       return 0
@@ -189,27 +238,35 @@ export class S3StorageService implements S3Service {
 
   async deletePrefix(bucket: string, prefix: string): Promise<number> {
     const keys = await this.listObjects(bucket, prefix)
-    if (keys.length > 0) {
-      await Promise.all(keys.map((key) => this.deleteObject(bucket, key)))
+    if (keys.length === 0) return 0
+    const chunkSize = 1000
+    for (let i = 0; i < keys.length; i += chunkSize) {
+      const batch = keys.slice(i, i + chunkSize)
+      await this.client.send(
+        new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: {
+            Objects: batch.map((k) => ({ Key: k })),
+            Quiet: true,
+          },
+        }),
+      )
     }
     return keys.length
   }
 
   async headObject(bucket: string, key: string): Promise<ObjectInfo> {
-    const file = this.client.file(key, { bucket })
-    const exists = await file.exists()
-    if (!exists) {
-      throw new Error(`NoSuchKey: The specified key does not exist.`)
-    }
-
-    // Bun.S3File doesn't expose lastModified or eTag directly in a way that matches ObjectInfo easily
-    // but we can try to get them if available. For now, using defaults for fields not provided.
-    return {
-      key,
-      size: await file.size,
-      lastModified: new Date(), // Bun doesn't expose this yet via S3File
-      contentType: file.type || 'application/octet-stream',
-      eTag: '',
+    try {
+      const res = await this.client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
+      return {
+        key,
+        size: res.ContentLength ?? 0,
+        lastModified: res.LastModified ?? new Date(),
+        contentType: res.ContentType || 'application/octet-stream',
+        eTag: res.ETag || '',
+      }
+    } catch (err: unknown) {
+      throw new Error(`NoSuchKey: The specified key does not exist.`, { cause: err })
     }
   }
 
@@ -219,21 +276,24 @@ export class S3StorageService implements S3Service {
     let continuationToken: string | undefined = undefined
 
     while (isTruncated) {
-      const response = await this.client.list({
-        prefix,
-        continuationToken,
-      })
+      const response: ListObjectsV2CommandOutput = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }),
+      )
 
-      if (response.contents) {
-        for (const item of response.contents) {
-          if (item.key) {
-            keys.push(item.key)
+      if (response.Contents) {
+        for (const item of response.Contents) {
+          if (item.Key) {
+            keys.push(item.Key)
           }
         }
       }
 
-      isTruncated = response.isTruncated || false
-      continuationToken = response.nextContinuationToken
+      isTruncated = response.IsTruncated || false
+      continuationToken = response.NextContinuationToken
     }
 
     return keys
@@ -246,10 +306,17 @@ export class S3StorageService implements S3Service {
   }
 
   async uploadFileToKey(filePath: string, key: string, contentType: string): Promise<void> {
-    await this.client.write(key, Bun.file(filePath), {
-      bucket: this.bucket,
-      type: contentType,
-    })
+    const file = Bun.file(filePath)
+    const stream = fs.createReadStream(filePath)
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: stream,
+        ContentLength: file.size,
+        ContentType: contentType,
+      }),
+    )
   }
 
   async presign(
@@ -261,36 +328,124 @@ export class S3StorageService implements S3Service {
   ): Promise<string> {
     const expireHours = parseInt(process.env.PRESIGNED_URL_EXPIRES_IN || '5', 10)
     const expiresInSeconds = expireHours * 3600
-    // Cache time is 2/3 of expire time, rounded to minute
-    const cacheMinutes = Math.round((expireHours * 60 * 2) / 3)
-    const cacheTtlMs = cacheMinutes * 60 * 1000
+    const cacheTtlMs = expiresInSeconds * 1000
 
-    const cacheKey = `${bucket}:${key}`
-
+    const cacheKey = `${bucket}/${key}?download=${download || false}&filename=${filename || ''}`
     if (method === 'GET' && !download) {
       const cached = this.presignCache.get(cacheKey)
-      if (cached) return cached
+      if (cached) {
+        return cached
+      }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const options: any = {
-      bucket,
-      expiresIn: expiresInSeconds,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      method: method as any,
-    }
+    let url: string
 
-    if (download) {
-      options.contentDisposition = buildContentDisposition(filename)
+    if (method === 'GET') {
+      const command = new GetObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        ResponseContentDisposition: download ? buildContentDisposition(filename) : undefined,
+      })
+      url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+    } else if (method === 'PUT') {
+      const command = new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      })
+      url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+    } else if (method === 'DELETE') {
+      const command = new DeleteObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      })
+      url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+    } else {
+      throw new Error(`Unsupported method for presign: ${method}`)
     }
-
-    const url = this.client.presign(key, options)
 
     if (method === 'GET' && !download) {
       this.presignCache.set(cacheKey, url, cacheTtlMs)
     }
 
     return url
+  }
+
+  async presignMultipart(
+    bucket: string,
+    key: string,
+    request: S3SignRequest,
+  ): Promise<{ url: string }> {
+    const expireHours = parseInt(process.env.PRESIGNED_URL_EXPIRES_IN || '5', 10)
+    const expiresInSeconds = expireHours * 3600
+
+    let url: string
+
+    if (request.method === 'PUT') {
+      if (request.uploadId && request.partNumber != null) {
+        const command = new UploadPartCommand({
+          Bucket: bucket,
+          Key: key,
+          UploadId: request.uploadId,
+          PartNumber: request.partNumber,
+        })
+        url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+      } else {
+        const command = new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+        })
+        url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+      }
+    } else if (request.method === 'POST') {
+      if (request.uploadId) {
+        const command = new CompleteMultipartUploadCommand({
+          Bucket: bucket,
+          Key: key,
+          UploadId: request.uploadId,
+        })
+        url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+      } else {
+        const command = new CreateMultipartUploadCommand({
+          Bucket: bucket,
+          Key: key,
+        })
+        url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+      }
+    } else if (request.method === 'GET') {
+      if (!request.uploadId) {
+        throw new Error('List parts requires uploadId')
+      }
+      const command = new ListPartsCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: request.uploadId,
+      })
+      url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+    } else if (request.method === 'DELETE') {
+      if (!request.uploadId) {
+        throw new Error('Abort multipart upload requires uploadId')
+      }
+      const command = new AbortMultipartUploadCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: request.uploadId,
+      })
+      url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+    } else {
+      throw new Error(`Unsupported method for presignMultipart: ${request.method}`)
+    }
+
+    return { url }
+  }
+
+  async abortMultipartUpload(bucket: string, key: string, uploadId: string): Promise<void> {
+    await this.client.send(
+      new AbortMultipartUploadCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+      }),
+    )
   }
 }
 
@@ -527,9 +682,33 @@ export class LocalStorageService implements S3Service {
     }
     return url
   }
+
+  async presignMultipart(
+    bucket: string,
+    key: string,
+    request: S3SignRequest,
+  ): Promise<{ url: string }> {
+    if (request.method === 'PUT') {
+      return { url: `${this.endpoint}${signLocalUrl(bucket, key)}` }
+    }
+    const url = await this.presign(bucket, key, request.method)
+    return { url }
+  }
+
+  async abortMultipartUpload(
+    bucket: string,
+    key: string,
+    _uploadId: string, // eslint-disable-line @typescript-eslint/no-unused-vars
+  ): Promise<void> {
+    await this.deleteObject(bucket, key)
+  }
 }
 
-const storageBackend = process.env.STORAGE_BACKEND || 'local'
+export function getStorageBackend(): 's3' | 'local' {
+  return (process.env.STORAGE_BACKEND as 's3' | 'local') || 'local'
+}
+
+const storageBackend = getStorageBackend()
 const port = process.env.SHUMAI_SERVER_PORT || '3000'
 const s3Endpoint = process.env.AWS_ENDPOINT_URL_S3 || `http://localhost:${port}`
 

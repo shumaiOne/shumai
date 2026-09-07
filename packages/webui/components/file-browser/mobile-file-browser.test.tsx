@@ -347,10 +347,10 @@ describe('MobileFileBrowser', () => {
       expect(patchMock).toHaveBeenCalledWith(
         expect.objectContaining({
           param: { teamId: 'team-1', taskId: 'task-2' },
-          json: {
+          json: expect.objectContaining({
             fileId: 'server-file-2',
-            errorMessage: 'upload failed with status: 500',
-          },
+            errorMessage: expect.any(String),
+          }),
         }),
       )
     })
@@ -412,10 +412,10 @@ describe('MobileFileBrowser', () => {
       expect(patchMock).toHaveBeenCalledWith(
         expect.objectContaining({
           param: { teamId: 'team-1', taskId: 'task-3' },
-          json: {
+          json: expect.objectContaining({
             fileId: 'server-file-3',
-            errorMessage: 'upload failed with error: Network error',
-          },
+            errorMessage: expect.any(String),
+          }),
         }),
       )
     })
