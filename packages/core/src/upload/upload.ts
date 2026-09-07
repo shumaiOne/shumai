@@ -1,13 +1,17 @@
 import { assetService } from '@shumai/core/src/asset/asset'
 import { PaginatedData, PaginationParams, paginateQuery } from '@shumai/core/src/pagination'
-import { s3Service } from '@shumai/core/src/s3/s3'
+import { getStorageBackend, s3Service } from '@shumai/core/src/s3/s3'
 import { AssetStatus, AssetType, Prisma, TaskStatus, prisma } from '@shumai/db'
 import {
+  AbortUploadRequest,
+  AbortUploadResponse,
   ConfirmFileUploadRequest,
   CreateUploadTaskRequest,
   CreateUploadTaskResponse,
   FileNode,
   PresignedUrl,
+  S3SignRequest,
+  S3SignResponse,
   TaskInfo,
 } from '@shumai/dtos'
 import { ImageTranscoder, PdfTranscoder, VideoTranscoder } from '@shumai/transcode'
@@ -16,6 +20,7 @@ import { ulid } from 'ulid'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
 import { getProxyType, isHtmlDocument, isOfficeDocument } from '@shumai/core/src/utils/mime'
+import { logger } from '@shumai/core/src/logger'
 
 export class UploadService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
@@ -62,7 +67,7 @@ export class UploadService {
     const isParentFile = parentAsset.type === AssetType.file
     const targetParentId = isParentFile ? parentAsset.parentId! : parentAsset.id
 
-    const createdAssets: { tempId: string; assetId: string }[] = []
+    const createdAssets: { tempId: string; assetId: string; key?: string }[] = []
 
     await this.prismaClient.$transaction(async (tx) => {
       const ids = await this.createAssetsRecursively(
@@ -95,6 +100,7 @@ export class UploadService {
     return {
       taskId: task.id,
       presignedUrls: presignedUrls,
+      storageBackend: getStorageBackend(),
       createdAssets: createdAssets,
     }
   }
@@ -107,7 +113,7 @@ export class UploadService {
     parentId: string,
     files: FileNode[],
     presignedUrls: PresignedUrl[],
-    createdAssets: { tempId: string; assetId: string }[],
+    createdAssets: { tempId: string; assetId: string; key?: string }[],
   ): Promise<string[]> {
     const firstFile = await tx.asset.findFirst({
       where: { parentId },
@@ -152,6 +158,7 @@ export class UploadService {
       createdAssets.push({
         tempId: file.id,
         assetId: newAsset.id,
+        key: key || undefined,
       })
 
       if (assetType === AssetType.folder && parentId) {
@@ -372,6 +379,84 @@ export class UploadService {
     }))
 
     return { data: infos, pageInfo }
+  }
+
+  async signS3Upload(userId: string, req: S3SignRequest): Promise<S3SignResponse> {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+
+    if (req.uploadId) {
+      const asset = req.fileId
+        ? await this.prismaClient.asset.findUnique({ where: { id: req.fileId } })
+        : await this.prismaClient.asset.findFirst({
+            where: { storageKey: { key: req.key } },
+          })
+
+      if (asset && asset.uploadId !== req.uploadId) {
+        await this.prismaClient.asset.update({
+          where: { id: asset.id },
+          data: { uploadId: req.uploadId },
+        })
+      }
+    }
+
+    const result = await s3Service.presignMultipart(bucket, req.key, req)
+    return { url: result.url }
+  }
+
+  async abortUpload(
+    userId: string,
+    taskId: string,
+    req: AbortUploadRequest,
+  ): Promise<AbortUploadResponse> {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: req.fileId },
+      include: { storageKey: true },
+    })
+
+    const key = req.key || asset?.storageKey?.key
+    const uploadId = req.uploadId || asset?.uploadId
+
+    if (uploadId && key) {
+      try {
+        await s3Service.abortMultipartUpload(bucket, key, uploadId)
+      } catch (err) {
+        logger.warn({ err, key, uploadId }, 'Failed to abort multipart upload in S3')
+      }
+    } else if (key) {
+      try {
+        await s3Service.deleteObject(bucket, key)
+      } catch (err) {
+        logger.warn({ err, key }, 'Failed to delete object from storage')
+      }
+    }
+
+    if (asset) {
+      await this.prismaClient.asset.delete({ where: { id: asset.id } }).catch((err) => {
+        logger.warn({ err, assetId: asset.id }, 'Failed to delete asset on upload abort')
+      })
+      if (asset.storageKeyId) {
+        await this.prismaClient.storageKey
+          .delete({ where: { id: asset.storageKeyId } })
+          .catch(() => {})
+      }
+    }
+
+    if (taskId) {
+      const remaining = await this.prismaClient.asset.count({
+        where: { taskId, status: AssetStatus.uploading },
+      })
+      if (remaining === 0) {
+        await this.prismaClient.task
+          .update({
+            where: { id: taskId },
+            data: { status: TaskStatus.failed },
+          })
+          .catch(() => {})
+      }
+    }
+
+    return { success: true }
   }
 }
 

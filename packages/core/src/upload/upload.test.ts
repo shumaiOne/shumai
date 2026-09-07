@@ -4,12 +4,16 @@ import { setupTestDbHooks } from '@shumai/db/test'
 import { uploadService } from './upload'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { AssetStatus, AssetType, WorkflowTaskType } from '@shumai/db'
+import { AssetStatus, AssetType, TaskStatus, WorkflowTaskType } from '@shumai/db'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
+  getStorageBackend: vi.fn().mockReturnValue('s3'),
   s3Service: {
     presign: vi.fn().mockResolvedValue('http://presigned-url.com'),
     getObjectSize: vi.fn().mockResolvedValue(100),
+    presignMultipart: vi.fn().mockResolvedValue({ url: 'http://signed-multipart-url.com' }),
+    abortMultipartUpload: vi.fn().mockResolvedValue(undefined),
+    deleteObject: vi.fn().mockResolvedValue(1),
   },
 }))
 
@@ -614,5 +618,131 @@ describe('UploadService', () => {
 
     const song2 = await prisma.asset.findFirst({ where: { name: 'other_song.WMA' } })
     expect(song2?.mediaType).toBe('audio/x-ms-asf')
+  })
+
+  describe('signS3Upload', () => {
+    it('should sign multipart request and store uploadId on asset', async () => {
+      const storageKey = await prisma.storageKey.create({
+        data: { key: 'files/test/video.mp4' },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'video.mp4',
+          type: AssetType.file,
+          projectId,
+          storageKeyId: storageKey.id,
+          status: AssetStatus.uploading,
+        },
+      })
+
+      const res = await uploadService.signS3Upload(userId, {
+        key: 'files/test/video.mp4',
+        method: 'PUT',
+        uploadId: 'upload-id-xyz',
+        partNumber: 1,
+        fileId: asset.id,
+      })
+
+      expect(res.url).toBe('http://signed-multipart-url.com')
+
+      const updatedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(updatedAsset?.uploadId).toBe('upload-id-xyz')
+    })
+  })
+
+  describe('abortUpload', () => {
+    it('should abort multipart upload, delete asset, and fail task', async () => {
+      const task = await prisma.task.create({
+        data: {
+          creatorId: userId,
+          type: 'upload',
+          name: 'task-1',
+          total: 1,
+          status: TaskStatus.uploading,
+        },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: { key: 'files/test/abort.mp4' },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'abort.mp4',
+          type: AssetType.file,
+          projectId,
+          storageKeyId: storageKey.id,
+          taskId: task.id,
+          uploadId: 'upload-abc',
+          status: AssetStatus.uploading,
+        },
+      })
+
+      const res = await uploadService.abortUpload(userId, task.id, {
+        fileId: asset.id,
+        uploadId: 'upload-abc',
+        key: 'files/test/abort.mp4',
+      })
+
+      expect(res.success).toBe(true)
+      expect(s3Service.abortMultipartUpload).toHaveBeenCalledWith(
+        expect.anything(),
+        'files/test/abort.mp4',
+        'upload-abc',
+      )
+
+      const deletedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(deletedAsset).toBeNull()
+
+      const updatedTask = await prisma.task.findUnique({
+        where: { id: task.id },
+      })
+      expect(updatedTask?.status).toBe(TaskStatus.failed)
+    })
+
+    it('should delete object from storage when aborting single/local upload without uploadId', async () => {
+      const task = await prisma.task.create({
+        data: {
+          creatorId: userId,
+          type: 'upload',
+          name: 'task-2',
+          total: 1,
+          status: TaskStatus.uploading,
+        },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: { key: 'files/test/single.mp4' },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'single.mp4',
+          type: AssetType.file,
+          projectId,
+          storageKeyId: storageKey.id,
+          taskId: task.id,
+          status: AssetStatus.uploading,
+        },
+      })
+
+      const res = await uploadService.abortUpload(userId, task.id, {
+        fileId: asset.id,
+        key: 'files/test/single.mp4',
+      })
+
+      expect(res.success).toBe(true)
+      expect(s3Service.deleteObject).toHaveBeenCalledWith(
+        expect.anything(),
+        'files/test/single.mp4',
+      )
+
+      const deletedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(deletedAsset).toBeNull()
+    })
   })
 })

@@ -4,7 +4,8 @@ import { client } from '@/ui/api/client'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { m } from '@/ui/paraglide/messages.js'
 import { useUploadStore } from '@/ui/stores/upload'
-import type { AssetInfo, CreateUploadTaskRequest, PresignedUrl } from '@shumai/dtos'
+import { uploadFilesWithUppy } from '@/ui/lib/uploader'
+import type { AssetInfo, CreateUploadTaskRequest } from '@shumai/dtos'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { formatSize } from '@/ui/lib/format'
@@ -197,130 +198,7 @@ export function MobileFileBrowser({
   ])
 
   // Upload actions
-  const incrementUploading = useUploadStore((state) => state.increment)
-  const decrementUploading = useUploadStore((state) => state.decrement)
   const startTask = useUploadStore((state) => state.startTask)
-  const updateFileProgress = useUploadStore((state) => state.updateFileProgress)
-  const completeFile = useUploadStore((state) => state.completeFile)
-  const failFile = useUploadStore((state) => state.failFile)
-
-  const $confirmUpload = client.api.teams[':teamId'].upload.tasks[':taskId'].$patch
-  const { mutateAsync: confirmUpload } = useMutation<
-    InferResponseType<typeof $confirmUpload>,
-    Error,
-    InferRequestType<typeof $confirmUpload>
-  >({
-    mutationFn: async (request) => {
-      const res = await $confirmUpload(request)
-      if (!res.ok) throw new Error('Failed to confirm upload')
-      return (await res.json()) as InferResponseType<typeof $confirmUpload>
-    },
-  })
-
-  const uploadFiles = async (
-    filesList: FileWithId[],
-    presignedUrls: PresignedUrl[] | undefined,
-    taskId: string,
-  ) => {
-    const uploadUrlMap = presignedUrls?.reduce(
-      (acc: Record<string, { url: string; fileId: string }>, item: PresignedUrl) => {
-        if (item.id) {
-          acc[item.id] = {
-            url: item.url || '',
-            fileId: item.fileId || '',
-          }
-        }
-        return acc
-      },
-      {},
-    )
-    if (!uploadUrlMap) return
-
-    const concurrencyLimit = 5
-    const queue = [...filesList]
-
-    const uploadNext = async () => {
-      while (queue.length > 0) {
-        const item = queue.shift()
-        if (item) {
-          const uploadInfo = uploadUrlMap[item.id]
-          if (uploadInfo && uploadInfo.url) {
-            incrementUploading()
-            try {
-              const xhr = new XMLHttpRequest()
-              const uploadPromise = new Promise<{ ok: boolean; status: number }>(
-                (resolve, reject) => {
-                  xhr.open('PUT', uploadInfo.url)
-                  xhr.setRequestHeader('Content-Type', item.file.type)
-
-                  xhr.upload.onprogress = (event) => {
-                    if (event.lengthComputable) {
-                      updateFileProgress(taskId, uploadInfo.fileId, event.loaded)
-                    }
-                  }
-
-                  xhr.onload = () => {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                      resolve({ ok: true, status: xhr.status })
-                    } else {
-                      resolve({ ok: false, status: xhr.status })
-                    }
-                  }
-
-                  xhr.onerror = () => reject(new Error('Network error'))
-                  xhr.onabort = () => reject(new Error('Upload aborted'))
-                  xhr.send(item.file)
-                },
-              )
-
-              const resp = await uploadPromise
-              if (resp.ok) {
-                completeFile(taskId, uploadInfo.fileId)
-                await confirmUpload({
-                  param: { teamId: teamId!, taskId: taskId },
-                  json: {
-                    fileId: uploadInfo.fileId,
-                  },
-                })
-              } else {
-                failFile(taskId, uploadInfo.fileId)
-                toast.error(`Failed to upload file: ${item.file.name}`)
-                await confirmUpload({
-                  param: { teamId: teamId!, taskId: taskId },
-                  json: {
-                    fileId: uploadInfo.fileId,
-                    errorMessage: `upload failed with status: ${resp.status}`,
-                  },
-                })
-                return
-              }
-            } catch (error) {
-              failFile(taskId, uploadInfo.fileId)
-              toast.error(`Failed to upload file: ${item.file.name}`)
-              await confirmUpload({
-                param: { teamId: teamId!, taskId: taskId },
-                json: {
-                  fileId: uploadInfo.fileId,
-                  errorMessage: `upload failed with error: ${error instanceof Error ? error.message : String(error)}`,
-                },
-              })
-              return
-            } finally {
-              decrementUploading()
-              queryClient.invalidateQueries({
-                queryKey: ['search', teamId, assetId],
-              })
-            }
-          }
-        }
-      }
-    }
-
-    const activeUploaders = Array(concurrencyLimit)
-      .fill(null)
-      .map(() => uploadNext())
-    await Promise.all(activeUploaders)
-  }
 
   const $createUploadTask = client.api.teams[':teamId'].upload.tasks.$post
   const { mutate: createUploadTaskMutation } = useMutation<
@@ -341,9 +219,10 @@ export function MobileFileBrowser({
       const currentFiles = context?.files || []
       const filesProgressInfo = currentFiles
         .map((f) => {
+          const assetInfo = data.createdAssets?.find((a) => a.tempId === f.id)
           const urlInfo = data.presignedUrls?.find((p) => p.id === f.id)
           return {
-            fileId: urlInfo?.fileId || f.id,
+            fileId: assetInfo?.assetId || urlInfo?.fileId || f.id,
             name: f.file.name,
             size: f.file.size,
           }
@@ -361,7 +240,17 @@ export function MobileFileBrowser({
       queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'upload', 'tasks'] })
 
-      await uploadFiles(currentFiles, data.presignedUrls, data.taskId!)
+      await uploadFilesWithUppy({
+        files: currentFiles,
+        taskId: data.taskId!,
+        teamId: teamId!,
+        storageBackend: (data.storageBackend as 's3' | 'local') || 'local',
+        createdAssets: data.createdAssets,
+        presignedUrls: data.presignedUrls,
+        onFileFinished: async () => {
+          await queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })
+        },
+      })
       queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'upload', 'tasks'] })
     },

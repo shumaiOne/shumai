@@ -4501,6 +4501,7 @@ export const AssetScalarFieldEnum = {
   sizeByte: 'sizeByte',
   status: 'status',
   transcodeTaskId: 'transcodeTaskId',
+  uploadId: 'uploadId',
   media: 'media',
   isDeleted: 'isDeleted',
   deletedAt: 'deletedAt',

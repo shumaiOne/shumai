@@ -22,7 +22,7 @@ const baseNamingConvention = [
     filter: {
       // Allow CSS variables, common HTTP headers, library-specific names, paths, and hyphenated/numeric keys
       regex:
-        '^(Authorization|Content-Type|Accept|--.*|string_contains|disableCSRFCheck|X-Frameio-.*|/.*|field-.*|class-name|icon-.*|[0-9]+|@typescript-eslint/.*|Variables|Read|Edit|Admin|Bucket|Key|Body|ContentLength|ContentType|Prefix|ContinuationToken|Signature)$',
+        '^(Authorization|Content-Type|Accept|--.*|string_contains|disableCSRFCheck|X-Frameio-.*|/.*|field-.*|class-name|icon-.*|[0-9]+|@typescript-eslint/.*|Variables|Read|Edit|Admin|Bucket|Key|Body|ContentLength|ContentType|Prefix|ContinuationToken|Signature|CopySource|Delete|Objects|Quiet|ResponseContentDisposition|UploadId|PartNumber)$',
       match: false,
     },
   },

@@ -8,11 +8,11 @@ import { getAllFilesFromEntries } from '@/ui/lib/dnd-utils'
 import { formatSize } from '@/ui/lib/format'
 import { useFieldStore } from '@/ui/stores/fields'
 import { useUploadStore } from '@/ui/stores/upload'
+import { uploadFilesWithUppy } from '@/ui/lib/uploader'
 import type {
   AssetInfo,
   CollectionInfo,
   CreateUploadTaskRequest,
-  PresignedUrl,
   SearchCondition,
   SearchSort,
   ShareLinkInfo,
@@ -461,19 +461,6 @@ export function FileBrowser({
     },
   })
 
-  const $confirmUpload = client.api.teams[':teamId'].upload.tasks[':taskId'].$patch
-  const { mutateAsync: confirmUpload } = useMutation<
-    InferResponseType<typeof $confirmUpload>,
-    Error,
-    InferRequestType<typeof $confirmUpload>
-  >({
-    mutationFn: async (request) => {
-      const res = await $confirmUpload(request)
-      if (!res.ok) throw new Error('Failed to confirm upload')
-      return (await res.json()) as InferResponseType<typeof $confirmUpload>
-    },
-  })
-
   const $createUploadTask = client.api.teams[':teamId'].upload.tasks.$post
   const { mutate: createUploadTaskMutation } = useMutation<
     InferResponseType<typeof $createUploadTask>,
@@ -496,11 +483,12 @@ export function FileBrowser({
       // Register task and files in the store for real-time progress tracking
       const filesProgressInfo = currentFiles
         .map((f) => {
+          const assetInfo = data.createdAssets?.find((a) => a.tempId === f.id)
           const urlInfo = (
             data.presignedUrls as { id?: string; url?: string; fileId?: string }[] | undefined
           )?.find((p) => p.id === f.id)
           return {
-            fileId: urlInfo?.fileId || f.id,
+            fileId: assetInfo?.assetId || urlInfo?.fileId || f.id,
             name: f.file.name,
             size: f.file.size,
           }
@@ -522,12 +510,14 @@ export function FileBrowser({
             return path.length === 1
           })
           .map((f) => {
+            const assetInfo = data.createdAssets?.find((a) => a.tempId === f.id)
             const urlInfo = (
               data.presignedUrls as { id?: string; url?: string; fileId?: string }[] | undefined
             )?.find((p) => p.id === f.id)
+            const fileId = assetInfo?.assetId || urlInfo?.fileId || f.id
             const hasUrl = !!urlInfo && !!urlInfo.url
             return {
-              id: urlInfo?.fileId || f.id,
+              id: fileId,
               name: f.file.name,
               sizeByte: f.file.size,
               fileCount: 0,
@@ -564,7 +554,20 @@ export function FileBrowser({
         queryKey: ['teams', teamId, 'upload', 'tasks'],
       })
 
-      await uploadFiles(currentFiles, data.presignedUrls, data.taskId!)
+      await uploadFilesWithUppy({
+        files: currentFiles,
+        taskId: data.taskId!,
+        teamId: teamId!,
+        storageBackend: (data.storageBackend as 's3' | 'local') || 'local',
+        createdAssets: data.createdAssets,
+        presignedUrls: data.presignedUrls,
+        onFileFinished: async (fileId) => {
+          await queryClient.invalidateQueries({
+            queryKey: ['search', teamId, assetId],
+          })
+          setLocalUploadingFiles((prev) => prev.filter((f) => f.id !== fileId))
+        },
+      })
       queryClient.invalidateQueries({
         queryKey: ['search', teamId, assetId],
       })
@@ -574,12 +577,7 @@ export function FileBrowser({
     },
   })
 
-  const incrementUploading = useUploadStore((state) => state.increment)
-  const decrementUploading = useUploadStore((state) => state.decrement)
   const startTask = useUploadStore((state) => state.startTask)
-  const updateFileProgress = useUploadStore((state) => state.updateFileProgress)
-  const completeFile = useUploadStore((state) => state.completeFile)
-  const failFile = useUploadStore((state) => state.failFile)
   const { fields } = useFieldStore()
   const displayedFields = useMemo(() => {
     if (!isShareView) return fields.filter((f) => f.visible)
@@ -735,123 +733,6 @@ export function FileBrowser({
 
   const handleUploadFolderClick = () => {
     folderInputRef.current?.click()
-  }
-
-  const uploadFiles = async (
-    files: FileWithId[],
-    presignedUrls: PresignedUrl[] | undefined,
-    taskId: string,
-  ) => {
-    const uploadUrlMap = presignedUrls?.reduce(
-      (acc: Record<string, { url: string; fileId: string }>, item: PresignedUrl) => {
-        if (item.id) {
-          acc[item.id] = {
-            url: item.url || '',
-            fileId: item.fileId || '',
-          }
-        }
-        return acc
-      },
-      {},
-    )
-    if (!uploadUrlMap) return
-
-    const concurrencyLimit = 5
-    const filesToUpload = [...files]
-
-    const uploadNext = async () => {
-      while (filesToUpload.length > 0) {
-        const file = filesToUpload.shift()
-        if (file) {
-          const uploadInfo = uploadUrlMap[file.id]
-          if (uploadInfo && uploadInfo.url) {
-            incrementUploading()
-            try {
-              try {
-                const xhr = new XMLHttpRequest()
-                const uploadPromise = new Promise<{ ok: boolean; status: number }>(
-                  (resolve, reject) => {
-                    xhr.open('PUT', uploadInfo.url)
-                    xhr.setRequestHeader('Content-Type', file.file.type)
-
-                    xhr.upload.onprogress = (event) => {
-                      if (event.lengthComputable) {
-                        updateFileProgress(taskId, uploadInfo.fileId, event.loaded)
-                      }
-                    }
-
-                    xhr.onload = () => {
-                      if (xhr.status >= 200 && xhr.status < 300) {
-                        resolve({ ok: true, status: xhr.status })
-                      } else {
-                        resolve({ ok: false, status: xhr.status })
-                      }
-                    }
-
-                    xhr.onerror = () => {
-                      reject(new Error('Network error'))
-                    }
-
-                    xhr.onabort = () => {
-                      reject(new Error('Upload aborted'))
-                    }
-
-                    xhr.send(file.file)
-                  },
-                )
-
-                const resp = await uploadPromise
-
-                if (resp.ok) {
-                  completeFile(taskId, uploadInfo.fileId)
-                  await confirmUpload({
-                    param: { teamId: teamId!, taskId: taskId },
-                    json: {
-                      fileId: uploadInfo.fileId,
-                    },
-                  })
-                } else {
-                  failFile(taskId, uploadInfo.fileId)
-                  toast.error(`Failed to upload file: ${file.file.name}`)
-                  await confirmUpload({
-                    param: { teamId: teamId!, taskId: taskId },
-                    json: {
-                      fileId: uploadInfo.fileId,
-                      errorMessage: `upload failed with status: ${resp.status}`,
-                    },
-                  })
-                  return
-                }
-              } catch (error) {
-                failFile(taskId, uploadInfo.fileId)
-                toast.error(`Failed to upload file: ${file.file.name}`)
-                await confirmUpload({
-                  param: { teamId: teamId!, taskId: taskId },
-                  json: {
-                    fileId: uploadInfo.fileId,
-                    errorMessage: `upload failed with error: ${error instanceof Error ? error.message : String(error)}`,
-                  },
-                })
-                return
-              }
-            } finally {
-              decrementUploading()
-              await queryClient.invalidateQueries({
-                queryKey: ['search', teamId, assetId],
-              })
-              setLocalUploadingFiles((prev) =>
-                prev.filter((f) => f.id !== uploadInfo.fileId && f.id !== file.id),
-              )
-            }
-          }
-        }
-      }
-    }
-
-    const activeUploaders = Array(concurrencyLimit)
-      .fill(null)
-      .map(() => uploadNext())
-    await Promise.all(activeUploaders)
   }
 
   const processAndUploadFiles = useCallback(
