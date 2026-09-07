@@ -339,6 +339,35 @@ describe('downloadAssetTool', () => {
       expect(fs.existsSync(expectedPath)).toBe(true)
       expect(result.details.assetId).toBe('asset-photo-1')
     })
+
+    it('should fall back to file MIME detection when headObject returns generic application/octet-stream', async () => {
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue(null)
+      vi.mocked(prisma.storageKey.findFirst).mockResolvedValue({
+        id: 'sk-2',
+        key: 'files/upload-ulid-789/graphic.png',
+        assets: [{ id: 'asset-graphic-1' }],
+      } as unknown as StorageKey & { assets: Asset[] })
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+
+      vi.mocked(s3Service.downloadToFile).mockImplementation(async (_b, _k, dest) => {
+        const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+        await fs.promises.writeFile(dest, pngHeader)
+      })
+      vi.mocked(s3Service.headObject).mockResolvedValue({
+        contentType: 'application/octet-stream',
+      } as unknown as Awaited<ReturnType<typeof s3Service.headObject>>)
+
+      const tool = createDownloadAssetTool('user-1')
+      const result = await tool.execute('call-1', {
+        assetId: null,
+        key: 'files/upload-ulid-789/graphic.png',
+      })
+
+      const expectedPath = path.join(piDir, 'graphic.png')
+      createdFiles.push(expectedPath)
+
+      expect(result.details.contentType).toBe('image/png')
+    })
   })
 
   describe('resolveAssetIdFromKey helper unit tests', () => {

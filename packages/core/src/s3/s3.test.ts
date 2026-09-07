@@ -529,6 +529,16 @@ describe('S3Service implementations', () => {
       expect(content).toBe('web stream content')
     })
 
+    it('should downloadToFile creating destination directory recursively if it does not exist', async () => {
+      await localS3.putObject('test-bucket', 'source.txt', 'hello download', 14)
+      const nestedDest = path.join(TEST_BASE_PATH, 'downloads', 'deep', 'nested', 'target.txt')
+
+      await localS3.downloadToFile('test-bucket', 'source.txt', nestedDest)
+
+      const content = await fs.promises.readFile(nestedDest, 'utf8')
+      expect(content).toBe('hello download')
+    })
+
     it('should list objects', async () => {
       await localS3.putObject('test-bucket', 'dir1/file1.txt', 'abc', 3)
       await localS3.putObject('test-bucket', 'dir1/file2.txt', 'def', 3)

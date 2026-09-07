@@ -4,7 +4,7 @@ import { prisma, type User } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
-import { getFileMimeType } from '@shumai/core/src/utils/file-mime'
+import { getFileMimeType, readFileMimeType } from '@shumai/core/src/utils/file-mime'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -221,7 +221,9 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
           .stat(targetFilePath)
           .catch(() => ({ size: objectInfo?.size ?? 0 }))
         const contentType =
-          objectInfo?.contentType || Bun.file(targetFilePath).type || 'application/octet-stream'
+          objectInfo?.contentType && objectInfo.contentType !== 'application/octet-stream'
+            ? objectInfo.contentType
+            : readFileMimeType(targetFilePath)
 
         return {
           content: [
@@ -264,7 +266,9 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
           .stat(targetFilePath)
           .catch(() => ({ size: objectInfo?.size ?? 0 }))
         const contentType =
-          objectInfo?.contentType || Bun.file(targetFilePath).type || 'application/octet-stream'
+          objectInfo?.contentType && objectInfo.contentType !== 'application/octet-stream'
+            ? objectInfo.contentType
+            : readFileMimeType(targetFilePath)
 
         return {
           content: [

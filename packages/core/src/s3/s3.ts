@@ -555,6 +555,10 @@ export class LocalStorageService implements S3Service {
   }
 
   async downloadToFile(bucket: string, key: string, filePath: string): Promise<void> {
+    const dir = path.dirname(filePath)
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+    }
     const srcPath = this.getFilePath(bucket, key)
     await fs.promises.copyFile(srcPath, filePath)
   }
