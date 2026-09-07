@@ -63,6 +63,29 @@ if (typeof window !== 'undefined') {
   })
 }
 
+export function isNetworkIssue(error?: unknown): boolean {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return true
+  }
+  if (!error) return false
+  const err = error as Record<string, unknown>
+  if (err.isNetworkError === true) return true
+  if (err.name === 'S3NetworkError' || err.name === 'NetworkError') return true
+  const msg = (typeof err.message === 'string' ? err.message : '').toLowerCase()
+  if (
+    msg.includes('network error') ||
+    msg.includes('failed to fetch') ||
+    msg.includes('networkerror') ||
+    msg.includes('load failed') ||
+    msg.includes('err_internet_disconnected')
+  ) {
+    return true
+  }
+  const req = err.request as Record<string, unknown> | undefined
+  if (req && req.status === 0) return true
+  return false
+}
+
 export interface StartUploadOptions {
   files: FileWithId[]
   taskId: string
@@ -174,13 +197,52 @@ export async function uploadFilesWithUppy({
     })
   }
 
-  // Network recovery: native back-online event and browser online event
-  const handleBackOnline = () => {
-    uppy.retryAll()
+  const confirmationPromises = new Map<string, Promise<void>>()
+  const retryCounts = new Map<string, number>()
+  const MAX_ONLINE_RETRIES = 3
+  let retryTimeout: ReturnType<typeof setTimeout> | null = null
+
+  const triggerRetry = () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      console.log('[Uploader] Delaying retry because browser is currently offline.')
+      return
+    }
+    console.log('[Uploader] Calling uppy.retryAll() to resume paused/failed uploads...')
+    uppy.retryAll().catch((err: unknown) => {
+      console.error('[Uploader] Error during retryAll:', err)
+    })
   }
+
+  const scheduleRetry = (delayMs = 2000) => {
+    if (retryTimeout) return
+    retryTimeout = setTimeout(() => {
+      retryTimeout = null
+      triggerRetry()
+    }, delayMs)
+  }
+
+  // Network recovery: native back-online event and browser online/offline events
+  const handleBackOnline = () => {
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+    console.log(`[Uploader] Network 'online' event received! navigator.onLine = ${isOnline}`)
+    toast.dismiss?.('upload-network-offline')
+    toast.info?.('Network connection restored. Resuming upload...', { duration: 3000 })
+    triggerRetry()
+  }
+
+  const handleOffline = () => {
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : false
+    console.warn(`[Uploader] Network 'offline' event received! navigator.onLine = ${isOnline}`)
+    toast.warning?.('Network connection lost. Upload paused until connection is restored.', {
+      id: 'upload-network-offline',
+      duration: Infinity,
+    })
+  }
+
   uppy.on('back-online', handleBackOnline)
   if (typeof window !== 'undefined') {
     window.addEventListener('online', handleBackOnline)
+    window.addEventListener('offline', handleOffline)
   }
 
   uppy.on('upload-progress', (file, progress) => {
@@ -190,8 +252,6 @@ export async function uploadFilesWithUppy({
       updateFileProgress(taskId, fileId, progress.bytesUploaded)
     }
   })
-
-  const confirmationPromises = new Map<string, Promise<void>>()
 
   uppy.on('upload-success', (file) => {
     if (!file) return
@@ -223,9 +283,12 @@ export async function uploadFilesWithUppy({
     confirmationPromises.set(fileId, confirmPromise)
   })
 
-  uppy.on('upload-error', (file, error) => {
-    if (!file) return
+  const handlePermanentError = (
+    file: { name: string; meta: Record<string, unknown> },
+    error: unknown,
+  ) => {
     const fileId = file.meta.fileId as string
+    if (!activeUploads.has(fileId)) return
     activeUploads.delete(fileId)
     failFile(taskId, fileId)
     decrement()
@@ -238,7 +301,7 @@ export async function uploadFilesWithUppy({
           param: { teamId, taskId },
           json: {
             fileId,
-            errorMessage: error?.message || 'Upload failed',
+            errorMessage: (error as Error)?.message || 'Upload failed',
           },
         })
       } catch (err) {
@@ -248,6 +311,43 @@ export async function uploadFilesWithUppy({
     })()
 
     confirmationPromises.set(fileId, errorPromise)
+  }
+
+  uppy.on('upload-error', (file, error) => {
+    if (!file) return
+    console.error(`[Uploader] upload-error for ${file.name}:`, error)
+
+    if (isNetworkIssue(error)) {
+      console.warn(
+        `[Uploader] Network error detected for ${file.name}. Keeping upload active to resume when connection is restored.`,
+      )
+      toast.warning?.('Network connection lost. Upload will resume when connection is restored.', {
+        id: 'upload-network-offline',
+        duration: Infinity,
+      })
+
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        const fileId = file.meta.fileId as string
+        const attempts = (retryCounts.get(fileId) || 0) + 1
+        retryCounts.set(fileId, attempts)
+
+        if (attempts > MAX_ONLINE_RETRIES) {
+          console.error(
+            `[Uploader] Exceeded max online retries (${MAX_ONLINE_RETRIES}) for ${file.name}. Failing permanently.`,
+          )
+          handlePermanentError(file, error)
+          return
+        }
+
+        console.log(
+          `[Uploader] Scheduling retry for ${file.name} (attempt ${attempts}/${MAX_ONLINE_RETRIES})...`,
+        )
+        scheduleRetry(2000)
+      }
+      return
+    }
+
+    handlePermanentError(file, error)
   })
 
   // Add files to Uppy
@@ -286,9 +386,35 @@ export async function uploadFilesWithUppy({
   // Wait until Uppy completes all files and all confirmations settle
   try {
     await new Promise<void>((resolve) => {
-      uppy.on('complete', () => {
-        resolve()
-      })
+      const checkCompletion = (result?: { failed?: unknown[] }) => {
+        if (activeUploads.size === 0) {
+          resolve()
+          return
+        }
+
+        const failedFiles = result?.failed || []
+        const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+        const hasNetworkFailures =
+          isOffline || failedFiles.some((f) => isNetworkIssue((f as { error?: unknown })?.error))
+
+        if (hasNetworkFailures) {
+          console.log(
+            '[Uploader] Batch completed with network issues; waiting for reconnection to resume...',
+          )
+          return
+        }
+
+        for (const f of failedFiles) {
+          const file = f as { name: string; meta: Record<string, unknown> }
+          handlePermanentError(file, (f as { error?: unknown })?.error)
+        }
+
+        if (activeUploads.size === 0) {
+          resolve()
+        }
+      }
+
+      uppy.on('complete', checkCompletion)
       uppy.on('cancel-all', () => {
         resolve()
       })
@@ -296,8 +422,13 @@ export async function uploadFilesWithUppy({
 
     await Promise.allSettled(Array.from(confirmationPromises.values()))
   } finally {
+    if (retryTimeout) {
+      clearTimeout(retryTimeout)
+    }
     if (typeof window !== 'undefined') {
       window.removeEventListener('online', handleBackOnline)
+      window.removeEventListener('offline', handleOffline)
+      toast.dismiss?.('upload-network-offline')
     }
     await releaseWakeLock()
     uppy.destroy()
