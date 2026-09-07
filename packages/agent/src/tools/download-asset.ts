@@ -4,7 +4,7 @@ import { prisma, type User } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
-import { getFileMimeType } from '@shumai/core/src/utils/file-mime'
+import { getFileMimeType, readFileMimeType } from '@shumai/core/src/utils/file-mime'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -215,8 +215,15 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
         const targetFilePath = path.join(piDir, filename)
         const relativePath = path.join('.pi', filename)
 
-        const { buffer, contentType } = await s3Service.getObject(bucket, mediaKey)
-        fs.writeFileSync(targetFilePath, buffer)
+        const objectInfo = await s3Service.headObject(bucket, mediaKey).catch(() => null)
+        await s3Service.downloadToFile(bucket, mediaKey, targetFilePath)
+        const stat = await fs.promises
+          .stat(targetFilePath)
+          .catch(() => ({ size: objectInfo?.size ?? 0 }))
+        const contentType =
+          objectInfo?.contentType && objectInfo.contentType !== 'application/octet-stream'
+            ? objectInfo.contentType
+            : readFileMimeType(targetFilePath)
 
         return {
           content: [
@@ -230,8 +237,8 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
             name: asset.name,
             filePath: relativePath,
             absolutePath: targetFilePath,
-            contentType: contentType || 'application/octet-stream',
-            size: buffer.length,
+            contentType,
+            size: stat.size,
           },
         }
       }
@@ -253,8 +260,15 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
         const targetFilePath = path.join(piDir, filename)
         const relativePath = path.join('.pi', filename)
 
-        const { buffer, contentType } = await s3Service.getObject(bucket, key)
-        fs.writeFileSync(targetFilePath, buffer)
+        const objectInfo = await s3Service.headObject(bucket, key).catch(() => null)
+        await s3Service.downloadToFile(bucket, key, targetFilePath)
+        const stat = await fs.promises
+          .stat(targetFilePath)
+          .catch(() => ({ size: objectInfo?.size ?? 0 }))
+        const contentType =
+          objectInfo?.contentType && objectInfo.contentType !== 'application/octet-stream'
+            ? objectInfo.contentType
+            : readFileMimeType(targetFilePath)
 
         return {
           content: [
@@ -268,8 +282,8 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
             assetId: owningAssetId,
             filePath: relativePath,
             absolutePath: targetFilePath,
-            contentType: contentType || 'application/octet-stream',
-            size: buffer.length,
+            contentType,
+            size: stat.size,
           },
         }
       }

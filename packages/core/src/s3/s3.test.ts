@@ -408,6 +408,71 @@ describe('S3Service implementations', () => {
         }),
       )
     })
+
+    it('should stream in downloadToFile without buffering or calling transformToByteArray', async () => {
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+      s3SendSpy.mockClear()
+
+      async function* chunkedBody() {
+        yield new Uint8Array([1, 2])
+        yield new Uint8Array([3, 4])
+      }
+
+      const transformSpy = vi.fn()
+      const mockBody = Object.assign(chunkedBody(), {
+        transformToByteArray: transformSpy,
+      })
+
+      s3SendSpy.mockResolvedValueOnce({ Body: mockBody })
+
+      const tmpDir = path.join(process.cwd(), 'data-test-download', 'subdir')
+      const targetPath = path.join(tmpDir, 'downloaded.bin')
+
+      try {
+        await s3.downloadToFile('test-bucket', 'file.bin', targetPath)
+
+        expect(transformSpy).not.toHaveBeenCalled()
+        const written = await fs.promises.readFile(targetPath)
+        expect(Array.from(written)).toEqual([1, 2, 3, 4])
+      } finally {
+        if (fs.existsSync(path.join(process.cwd(), 'data-test-download'))) {
+          fs.rmSync(path.join(process.cwd(), 'data-test-download'), {
+            recursive: true,
+            force: true,
+          })
+        }
+      }
+    })
+
+    it('should clean up partial file if downloadToFile fails midway', async () => {
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+      s3SendSpy.mockClear()
+
+      async function* failingBody() {
+        yield new Uint8Array([1, 2])
+        throw new Error('Network interruption')
+      }
+
+      s3SendSpy.mockResolvedValueOnce({ Body: failingBody() })
+
+      const tmpDir = path.join(process.cwd(), 'data-test-download', 'fail')
+      const targetPath = path.join(tmpDir, 'downloaded.bin')
+
+      try {
+        await expect(s3.downloadToFile('test-bucket', 'file.bin', targetPath)).rejects.toThrow(
+          'Network interruption',
+        )
+
+        expect(fs.existsSync(targetPath)).toBe(false)
+      } finally {
+        if (fs.existsSync(path.join(process.cwd(), 'data-test-download'))) {
+          fs.rmSync(path.join(process.cwd(), 'data-test-download'), {
+            recursive: true,
+            force: true,
+          })
+        }
+      }
+    })
   })
 
   describe('LocalStorageService', () => {
@@ -432,6 +497,46 @@ describe('S3Service implementations', () => {
       await localS3.putObject('test-bucket', 'test.txt', 'hello world', 11)
       const size = await localS3.getObjectSize('test-bucket', 'test.txt')
       expect(size).toBe(11)
+    })
+
+    it('should write Node.js Readable stream in putObject without corrupting to [object Object]', async () => {
+      const { Readable } = await import('stream')
+      const stream = Readable.from(['hello ', 'node ', 'stream'])
+
+      await localS3.putObject('test-bucket', 'stream.txt', stream, 17)
+
+      const content = await fs.promises.readFile(
+        path.join(TEST_BASE_PATH, 'test-bucket', 'stream.txt'),
+        'utf8',
+      )
+      expect(content).toBe('hello node stream')
+    })
+
+    it('should write Web ReadableStream in putObject', async () => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('web stream content'))
+          controller.close()
+        },
+      })
+
+      await localS3.putObject('test-bucket', 'web-stream.txt', stream, 18)
+
+      const content = await fs.promises.readFile(
+        path.join(TEST_BASE_PATH, 'test-bucket', 'web-stream.txt'),
+        'utf8',
+      )
+      expect(content).toBe('web stream content')
+    })
+
+    it('should downloadToFile creating destination directory recursively if it does not exist', async () => {
+      await localS3.putObject('test-bucket', 'source.txt', 'hello download', 14)
+      const nestedDest = path.join(TEST_BASE_PATH, 'downloads', 'deep', 'nested', 'target.txt')
+
+      await localS3.downloadToFile('test-bucket', 'source.txt', nestedDest)
+
+      const content = await fs.promises.readFile(nestedDest, 'utf8')
+      expect(content).toBe('hello download')
     })
 
     it('should list objects', async () => {
