@@ -20,6 +20,7 @@ import * as crypto from 'crypto'
 import * as fs from 'fs'
 import * as path from 'path'
 import { Readable } from 'stream'
+import { pipeline } from 'stream/promises'
 import { ulid } from 'ulid'
 import { LruTtlCache } from '../cache/lru-ttl-cache'
 import { detectSupportedMimeType } from '../utils/mime'
@@ -86,7 +87,7 @@ export interface S3Service {
   putObject: (
     bucket: string,
     key: string,
-    body: Buffer | Uint8Array | ArrayBuffer | string | ReadableStream,
+    body: Buffer | Uint8Array | ArrayBuffer | string | ReadableStream | NodeJS.ReadableStream,
     size: number,
     contentType?: string,
   ) => Promise<void>
@@ -220,10 +221,21 @@ export class S3StorageService implements S3Service {
   }
 
   async downloadToFile(bucket: string, key: string, filePath: string): Promise<void> {
+    const dir = path.dirname(filePath)
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+    }
+
     const res = await this.client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
-    const bytes = await res.Body?.transformToByteArray()
-    if (bytes) {
-      await Bun.write(filePath, bytes)
+    if (!res.Body) {
+      return
+    }
+
+    try {
+      await pipeline(res.Body as unknown as NodeJS.ReadableStream, fs.createWriteStream(filePath))
+    } catch (err) {
+      await fs.promises.unlink(filePath).catch(() => {})
+      throw err
     }
   }
 
@@ -485,7 +497,7 @@ export class LocalStorageService implements S3Service {
   async putObject(
     bucket: string,
     key: string,
-    body: Buffer | Uint8Array | ArrayBuffer | string | ReadableStream,
+    body: Buffer | Uint8Array | ArrayBuffer | string | ReadableStream | NodeJS.ReadableStream,
     _size: number, // eslint-disable-line @typescript-eslint/no-unused-vars
     _contentType?: string, // eslint-disable-line @typescript-eslint/no-unused-vars
   ): Promise<void> {
@@ -495,18 +507,17 @@ export class LocalStorageService implements S3Service {
       fs.mkdirSync(dir, { recursive: true })
     }
 
-    if (body && typeof body === 'object' && 'getReader' in body) {
-      const file = Bun.file(filePath)
-      const writer = file.writer()
-      const reader = (body as ReadableStream<Uint8Array>).getReader()
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        if (value) {
-          await writer.write(value)
-        }
+    if (
+      body &&
+      typeof body === 'object' &&
+      ('pipe' in body || 'getReader' in body || Symbol.asyncIterator in body)
+    ) {
+      try {
+        await pipeline(body as unknown as NodeJS.ReadableStream, fs.createWriteStream(filePath))
+      } catch (err) {
+        await fs.promises.unlink(filePath).catch(() => {})
+        throw err
       }
-      await writer.end()
     } else {
       await Bun.write(filePath, body)
     }

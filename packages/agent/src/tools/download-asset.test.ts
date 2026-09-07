@@ -30,6 +30,8 @@ vi.mock('@shumai/db', async (importOriginal) => {
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
     getObject: vi.fn(),
+    headObject: vi.fn(),
+    downloadToFile: vi.fn(),
   },
 }))
 
@@ -104,10 +106,12 @@ describe('downloadAssetTool', () => {
         },
       } as unknown as Asset)
 
-      vi.mocked(s3Service.getObject).mockResolvedValue({
-        buffer: Buffer.from('fake-proxy-image-bytes'),
+      vi.mocked(s3Service.downloadToFile).mockImplementation(async (_b, _k, dest) => {
+        await fs.promises.writeFile(dest, 'fake-proxy-image-bytes')
+      })
+      vi.mocked(s3Service.headObject).mockResolvedValue({
         contentType: 'image/webp',
-      } as unknown as { buffer: Buffer; contentType: string })
+      } as unknown as Awaited<ReturnType<typeof s3Service.headObject>>)
 
       const tool = createDownloadAssetTool('user-1')
       const result = await tool.execute('call-1', { assetId: 'asset-img-1', key: null })
@@ -119,10 +123,14 @@ describe('downloadAssetTool', () => {
         id: 'asset-img-1',
       })
 
-      expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'proxy/sample_photo.webp')
-
       const expectedPath = path.join(piDir, 'asset-img-1_sample_photo.jpg')
       createdFiles.push(expectedPath)
+
+      expect(s3Service.downloadToFile).toHaveBeenCalledWith(
+        'shumai',
+        'proxy/sample_photo.webp',
+        expectedPath,
+      )
 
       expect(fs.existsSync(expectedPath)).toBe(true)
       expect(fs.readFileSync(expectedPath, 'utf-8')).toBe('fake-proxy-image-bytes')
@@ -155,10 +163,12 @@ describe('downloadAssetTool', () => {
         },
       } as unknown as Asset)
 
-      vi.mocked(s3Service.getObject).mockResolvedValue({
-        buffer: Buffer.from('fake-version-bytes'),
+      vi.mocked(s3Service.downloadToFile).mockImplementation(async (_b, _k, dest) => {
+        await fs.promises.writeFile(dest, 'fake-version-bytes')
+      })
+      vi.mocked(s3Service.headObject).mockResolvedValue({
         contentType: 'image/webp',
-      } as unknown as { buffer: Buffer; contentType: string })
+      } as unknown as Awaited<ReturnType<typeof s3Service.headObject>>)
 
       const tool = createDownloadAssetTool('user-1')
       const result = await tool.execute('call-1', { assetId: 'stack-1', key: null })
@@ -169,10 +179,14 @@ describe('downloadAssetTool', () => {
         include: { storageKey: true },
       })
 
-      expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'proxy/banana_pig.webp')
-
       const expectedPath = path.join(piDir, 'file-ver-2_banana_pig.png')
       createdFiles.push(expectedPath)
+
+      expect(s3Service.downloadToFile).toHaveBeenCalledWith(
+        'shumai',
+        'proxy/banana_pig.webp',
+        expectedPath,
+      )
 
       expect(fs.existsSync(expectedPath)).toBe(true)
       expect(result.details.name).toBe('banana_pig.png')
@@ -237,7 +251,7 @@ describe('downloadAssetTool', () => {
         type: 'asset',
         id: 'asset-in-other-project',
       })
-      expect(s3Service.getObject).not.toHaveBeenCalled()
+      expect(s3Service.downloadToFile).not.toHaveBeenCalled()
     })
 
     it('should authorize and download derived artifact key (files/<assetId>/...)', async () => {
@@ -246,10 +260,12 @@ describe('downloadAssetTool', () => {
       } as unknown as Asset)
       vi.mocked(authzService.hasPermission).mockResolvedValue()
 
-      vi.mocked(s3Service.getObject).mockResolvedValue({
-        buffer: Buffer.from('fake-screenshot-bytes'),
+      vi.mocked(s3Service.downloadToFile).mockImplementation(async (_b, _k, dest) => {
+        await fs.promises.writeFile(dest, 'fake-screenshot-bytes')
+      })
+      vi.mocked(s3Service.headObject).mockResolvedValue({
         contentType: 'image/webp',
-      } as unknown as { buffer: Buffer; contentType: string })
+      } as unknown as Awaited<ReturnType<typeof s3Service.headObject>>)
 
       const tool = createDownloadAssetTool('user-1')
       const result = await tool.execute('call-1', {
@@ -264,13 +280,14 @@ describe('downloadAssetTool', () => {
         id: 'ast-123',
       })
 
-      expect(s3Service.getObject).toHaveBeenCalledWith(
-        'shumai',
-        'files/ast-123/screenshots/shot_5.0s.webp',
-      )
-
       const expectedPath = path.join(piDir, 'shot_5.0s.webp')
       createdFiles.push(expectedPath)
+
+      expect(s3Service.downloadToFile).toHaveBeenCalledWith(
+        'shumai',
+        'files/ast-123/screenshots/shot_5.0s.webp',
+        expectedPath,
+      )
 
       expect(fs.existsSync(expectedPath)).toBe(true)
       expect(fs.readFileSync(expectedPath, 'utf-8')).toBe('fake-screenshot-bytes')
@@ -290,10 +307,12 @@ describe('downloadAssetTool', () => {
       } as unknown as StorageKey & { assets: Asset[] })
       vi.mocked(authzService.hasPermission).mockResolvedValue()
 
-      vi.mocked(s3Service.getObject).mockResolvedValue({
-        buffer: Buffer.from('fake-original-photo-bytes'),
+      vi.mocked(s3Service.downloadToFile).mockImplementation(async (_b, _k, dest) => {
+        await fs.promises.writeFile(dest, 'fake-original-photo-bytes')
+      })
+      vi.mocked(s3Service.headObject).mockResolvedValue({
         contentType: 'image/png',
-      } as unknown as { buffer: Buffer; contentType: string })
+      } as unknown as Awaited<ReturnType<typeof s3Service.headObject>>)
 
       const tool = createDownloadAssetTool('user-1')
       const result = await tool.execute('call-1', {
@@ -308,10 +327,14 @@ describe('downloadAssetTool', () => {
         id: 'asset-photo-1',
       })
 
-      expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'files/upload-ulid-456/photo.png')
-
       const expectedPath = path.join(piDir, 'photo.png')
       createdFiles.push(expectedPath)
+
+      expect(s3Service.downloadToFile).toHaveBeenCalledWith(
+        'shumai',
+        'files/upload-ulid-456/photo.png',
+        expectedPath,
+      )
 
       expect(fs.existsSync(expectedPath)).toBe(true)
       expect(result.details.assetId).toBe('asset-photo-1')

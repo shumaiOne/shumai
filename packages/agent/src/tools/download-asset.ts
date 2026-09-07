@@ -215,8 +215,13 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
         const targetFilePath = path.join(piDir, filename)
         const relativePath = path.join('.pi', filename)
 
-        const { buffer, contentType } = await s3Service.getObject(bucket, mediaKey)
-        fs.writeFileSync(targetFilePath, buffer)
+        const objectInfo = await s3Service.headObject(bucket, mediaKey).catch(() => null)
+        await s3Service.downloadToFile(bucket, mediaKey, targetFilePath)
+        const stat = await fs.promises
+          .stat(targetFilePath)
+          .catch(() => ({ size: objectInfo?.size ?? 0 }))
+        const contentType =
+          objectInfo?.contentType || Bun.file(targetFilePath).type || 'application/octet-stream'
 
         return {
           content: [
@@ -230,8 +235,8 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
             name: asset.name,
             filePath: relativePath,
             absolutePath: targetFilePath,
-            contentType: contentType || 'application/octet-stream',
-            size: buffer.length,
+            contentType,
+            size: stat.size,
           },
         }
       }
@@ -253,8 +258,13 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
         const targetFilePath = path.join(piDir, filename)
         const relativePath = path.join('.pi', filename)
 
-        const { buffer, contentType } = await s3Service.getObject(bucket, key)
-        fs.writeFileSync(targetFilePath, buffer)
+        const objectInfo = await s3Service.headObject(bucket, key).catch(() => null)
+        await s3Service.downloadToFile(bucket, key, targetFilePath)
+        const stat = await fs.promises
+          .stat(targetFilePath)
+          .catch(() => ({ size: objectInfo?.size ?? 0 }))
+        const contentType =
+          objectInfo?.contentType || Bun.file(targetFilePath).type || 'application/octet-stream'
 
         return {
           content: [
@@ -268,8 +278,8 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
             assetId: owningAssetId,
             filePath: relativePath,
             absolutePath: targetFilePath,
-            contentType: contentType || 'application/octet-stream',
-            size: buffer.length,
+            contentType,
+            size: stat.size,
           },
         }
       }

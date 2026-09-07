@@ -107,16 +107,16 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
     throw ApplicationFailure.create({ message: 'asset has no key', nonRetryable: true })
   }
 
-  const { buffer: data } = await s3Service.getObject(process.env.S3_BUCKET || 'shumai', key)
-
+  const bucket = process.env.S3_BUCKET || 'shumai'
   const results: GeneratedEmbedding[] = []
 
   if (isImage) {
+    const { buffer: data } = await s3Service.getObject(bucket, key)
     const embVec = await generateMultimodalEmbedding(ai, data, asset.mediaType)
     results.push({ embedding: embVec })
   } else if (isVideo) {
     const tmpFile = path.join(os.tmpdir(), `video-${Date.now()}.mp4`)
-    fs.writeFileSync(tmpFile, data)
+    await s3Service.downloadToFile(bucket, key, tmpFile)
 
     try {
       const { stdout } = await execFileAsync('ffprobe', [
@@ -171,7 +171,9 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
         }
       }
     } finally {
-      fs.unlinkSync(tmpFile)
+      if (fs.existsSync(tmpFile)) {
+        fs.unlinkSync(tmpFile)
+      }
     }
   }
 

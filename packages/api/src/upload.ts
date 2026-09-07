@@ -39,10 +39,10 @@ export const localUploadRoute = new Hono().put(
       if (!file) {
         return c.text('No file uploaded', 400)
       }
-      const buffer = Buffer.from(await file.arrayBuffer())
-      const size = file.size
       finalContentType = file.type || 'application/octet-stream'
-      await s3Service.putObject(bucket, key, buffer, size, finalContentType)
+      const payload =
+        typeof file.stream === 'function' ? file.stream() : Buffer.from(await file.arrayBuffer())
+      await s3Service.putObject(bucket, key, payload, file.size, finalContentType)
     } else {
       const body = c.req.raw.body ?? (await c.req.arrayBuffer())
       await s3Service.putObject(bucket, key, body, contentLength, finalContentType)
