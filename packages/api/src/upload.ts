@@ -131,29 +131,21 @@ const route = new Hono<{ Variables: { user: User } }>()
     const user = c.get('user')
     const req = c.req.valid('json')
 
-    if (req.fileId) {
-      await authzService.hasPermission({
-        user,
-        permission: Permission.Edit,
-        type: ResourceType.Asset,
-        id: req.fileId,
-      })
-    } else {
-      await authzService.hasPermission({
-        user,
-        permission: Permission.Read,
-        type: ResourceType.Team,
-        id: teamId,
-      })
-    }
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: req.fileId,
+    })
 
-    const resp = await uploadService.signS3Upload(user.id, req)
+    const resp = await uploadService.signS3Upload(teamId, user.id, req)
     return c.json(resp)
   })
   .post(
     '/teams/:teamId/upload/tasks/:taskId/abort',
     zValidator('json', abortUploadRequestSchema),
     async (c) => {
+      const teamId = c.req.param('teamId')
       const taskId = c.req.param('taskId')
       const user = c.get('user')
       const req = c.req.valid('json')
@@ -165,7 +157,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: req.fileId,
       })
 
-      const resp = await uploadService.abortUpload(user.id, taskId, req)
+      const resp = await uploadService.abortUpload(teamId, user.id, taskId, req)
       return c.json(resp)
     },
   )

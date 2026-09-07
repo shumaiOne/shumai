@@ -253,6 +253,7 @@ describe('S3Service implementations', () => {
       await s3.presignMultipart('bucket', 'key', {
         method: 'PUT',
         key: 'key',
+        fileId: 'file-1',
         uploadId: 'up-1',
         partNumber: 1,
       })
@@ -266,6 +267,7 @@ describe('S3Service implementations', () => {
       await s3.presignMultipart('bucket', 'key', {
         method: 'PUT',
         key: 'key',
+        fileId: 'file-1',
       })
       expect(getSignedUrlSpy).toHaveBeenCalledWith(
         expect.anything(),
@@ -277,6 +279,7 @@ describe('S3Service implementations', () => {
       await s3.presignMultipart('bucket', 'key', {
         method: 'POST',
         key: 'key',
+        fileId: 'file-1',
       })
       expect(getSignedUrlSpy).toHaveBeenCalledWith(
         expect.anything(),
@@ -288,6 +291,7 @@ describe('S3Service implementations', () => {
       await s3.presignMultipart('bucket', 'key', {
         method: 'POST',
         key: 'key',
+        fileId: 'file-1',
         uploadId: 'up-1',
       })
       expect(getSignedUrlSpy).toHaveBeenCalledWith(
@@ -300,6 +304,7 @@ describe('S3Service implementations', () => {
       await s3.presignMultipart('bucket', 'key', {
         method: 'GET',
         key: 'key',
+        fileId: 'file-1',
         uploadId: 'up-1',
       })
       expect(getSignedUrlSpy).toHaveBeenCalledWith(
@@ -312,6 +317,7 @@ describe('S3Service implementations', () => {
       await s3.presignMultipart('bucket', 'key', {
         method: 'DELETE',
         key: 'key',
+        fileId: 'file-1',
         uploadId: 'up-1',
       })
       expect(getSignedUrlSpy).toHaveBeenCalledWith(
@@ -319,6 +325,71 @@ describe('S3Service implementations', () => {
         expect.any(AbortMultipartUploadCommand),
         expect.anything(),
       )
+
+      // Expect GET without uploadId to throw
+      await expect(
+        s3.presignMultipart('bucket', 'key', {
+          method: 'GET',
+          key: 'key',
+          fileId: 'file-1',
+        }),
+      ).rejects.toThrow('List parts requires uploadId')
+
+      // Expect DELETE without uploadId to throw
+      await expect(
+        s3.presignMultipart('bucket', 'key', {
+          method: 'DELETE',
+          key: 'key',
+          fileId: 'file-1',
+        }),
+      ).rejects.toThrow('Abort multipart upload requires uploadId')
+    })
+
+    it('should stream in uploadFileToKey', async () => {
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+      s3SendSpy.mockClear()
+
+      const tmpFile = path.join(process.cwd(), 'data-test-stream.txt')
+      fs.writeFileSync(tmpFile, 'streaming content from file')
+
+      try {
+        await s3.uploadFileToKey(tmpFile, 'test/key.txt', 'text/plain')
+
+        expect(s3SendSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            input: expect.objectContaining({
+              Bucket: 'test-bucket',
+              Key: 'test/key.txt',
+              ContentType: 'text/plain',
+              ContentLength: 27,
+              Body: expect.any(fs.ReadStream),
+            }),
+          }),
+        )
+
+        // Wait for stream to open and close before unlinking
+        const callArg = s3SendSpy.mock.calls[0]?.[0]
+        const stream = callArg?.input?.Body as fs.ReadStream | undefined
+        if (stream) {
+          if (!stream.destroyed) {
+            await new Promise((resolve) => {
+              if (stream.pending) {
+                stream.once('open', resolve)
+              } else {
+                resolve(null)
+              }
+            })
+            stream.destroy()
+            await new Promise((resolve) => {
+              stream.once('close', resolve)
+            })
+          }
+        }
+      } finally {
+        if (fs.existsSync(tmpFile)) {
+          fs.unlinkSync(tmpFile)
+        }
+      }
     })
 
     it('should abort multipart upload in S3', async () => {

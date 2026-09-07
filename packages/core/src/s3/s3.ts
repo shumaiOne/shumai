@@ -19,6 +19,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import * as crypto from 'crypto'
 import * as fs from 'fs'
 import * as path from 'path'
+import { Readable } from 'stream'
 import { ulid } from 'ulid'
 import { LruTtlCache } from '../cache/lru-ttl-cache'
 import { detectSupportedMimeType } from '../utils/mime'
@@ -152,14 +153,17 @@ export class S3StorageService implements S3Service {
   async putObject(
     bucket: string,
     key: string,
-    body: Buffer | Uint8Array | ArrayBuffer | string | ReadableStream,
+    body: Buffer | Uint8Array | ArrayBuffer | string | ReadableStream | NodeJS.ReadableStream,
     size: number,
     contentType?: string,
   ): Promise<void> {
-    let payload: string | Uint8Array | Buffer = ''
+    let payload: string | Uint8Array | Buffer | NodeJS.ReadableStream = ''
     if (body && typeof body === 'object' && 'getReader' in body) {
-      const response = new Response(body as ReadableStream)
-      payload = Buffer.from(await response.arrayBuffer())
+      // Convert web ReadableStream to Node stream without buffering into memory
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      payload = Readable.fromWeb(body as any)
+    } else if (body && typeof body === 'object' && 'pipe' in body) {
+      payload = body as NodeJS.ReadableStream
     } else if (body instanceof ArrayBuffer) {
       payload = Buffer.from(body)
     } else if (typeof body === 'string' || body instanceof Uint8Array || Buffer.isBuffer(body)) {
@@ -169,7 +173,9 @@ export class S3StorageService implements S3Service {
       new PutObjectCommand({
         Bucket: bucket,
         Key: key,
-        Body: payload,
+        // AWS SDK v3 PutObjectCommandInput types differ slightly between Node and Web streams
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Body: payload as any,
         ContentLength: size > 0 ? size : undefined,
         ContentType: contentType,
       }),
@@ -301,12 +307,13 @@ export class S3StorageService implements S3Service {
 
   async uploadFileToKey(filePath: string, key: string, contentType: string): Promise<void> {
     const file = Bun.file(filePath)
-    const buffer = Buffer.from(await file.arrayBuffer())
+    const stream = fs.createReadStream(filePath)
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
-        Body: buffer,
+        Body: stream,
+        ContentLength: file.size,
         ContentType: contentType,
       }),
     )
@@ -321,17 +328,18 @@ export class S3StorageService implements S3Service {
   ): Promise<string> {
     const expireHours = parseInt(process.env.PRESIGNED_URL_EXPIRES_IN || '5', 10)
     const expiresInSeconds = expireHours * 3600
-    const cacheMinutes = Math.round((expireHours * 60 * 2) / 3)
-    const cacheTtlMs = cacheMinutes * 60 * 1000
+    const cacheTtlMs = expiresInSeconds * 1000
 
-    const cacheKey = `${bucket}:${key}`
-
+    const cacheKey = `${bucket}/${key}?download=${download || false}&filename=${filename || ''}`
     if (method === 'GET' && !download) {
       const cached = this.presignCache.get(cacheKey)
-      if (cached) return cached
+      if (cached) {
+        return cached
+      }
     }
 
     let url: string
+
     if (method === 'GET') {
       const command = new GetObjectCommand({
         Bucket: bucket,
@@ -404,35 +412,25 @@ export class S3StorageService implements S3Service {
         url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
       }
     } else if (request.method === 'GET') {
-      if (request.uploadId) {
-        const command = new ListPartsCommand({
-          Bucket: bucket,
-          Key: key,
-          UploadId: request.uploadId,
-        })
-        url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
-      } else {
-        const command = new GetObjectCommand({
-          Bucket: bucket,
-          Key: key,
-        })
-        url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+      if (!request.uploadId) {
+        throw new Error('List parts requires uploadId')
       }
+      const command = new ListPartsCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: request.uploadId,
+      })
+      url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
     } else if (request.method === 'DELETE') {
-      if (request.uploadId) {
-        const command = new AbortMultipartUploadCommand({
-          Bucket: bucket,
-          Key: key,
-          UploadId: request.uploadId,
-        })
-        url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
-      } else {
-        const command = new DeleteObjectCommand({
-          Bucket: bucket,
-          Key: key,
-        })
-        url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+      if (!request.uploadId) {
+        throw new Error('Abort multipart upload requires uploadId')
       }
+      const command = new AbortMultipartUploadCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: request.uploadId,
+      })
+      url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
     } else {
       throw new Error(`Unsupported method for presignMultipart: ${request.method}`)
     }

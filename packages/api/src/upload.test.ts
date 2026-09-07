@@ -167,13 +167,26 @@ describe('Upload API', () => {
         permission: Permission.Edit,
       }),
     )
-    expect(uploadService.signS3Upload).toHaveBeenCalledWith('user1', {
+    expect(uploadService.signS3Upload).toHaveBeenCalledWith('team1', 'user1', {
       key: 'files/test.mp4',
       method: 'PUT',
       fileId: 'file1',
       uploadId: 'up1',
       partNumber: 1,
     })
+  })
+
+  it('POST /teams/:teamId/upload/sign fails validation when fileId is missing', async () => {
+    const res = await app.request('/teams/team1/upload/sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test' },
+      body: JSON.stringify({
+        key: 'files/test.mp4',
+        method: 'PUT',
+      }),
+    })
+
+    expect(res.status).toBe(400)
   })
 
   it('POST /teams/:teamId/upload/tasks/:taskId/abort', async () => {
@@ -201,7 +214,7 @@ describe('Upload API', () => {
         permission: Permission.Edit,
       }),
     )
-    expect(uploadService.abortUpload).toHaveBeenCalledWith('user1', 'task1', {
+    expect(uploadService.abortUpload).toHaveBeenCalledWith('team1', 'user1', 'task1', {
       fileId: 'file1',
       uploadId: 'up1',
       key: 'files/test.mp4',

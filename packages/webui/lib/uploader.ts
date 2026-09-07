@@ -191,26 +191,39 @@ export async function uploadFilesWithUppy({
     }
   })
 
-  uppy.on('upload-success', async (file) => {
+  const confirmationPromises = new Map<string, Promise<void>>()
+
+  uppy.on('upload-success', (file) => {
     if (!file) return
     const fileId = file.meta.fileId as string
     activeUploads.delete(fileId)
-    completeFile(taskId, fileId)
-    decrement()
 
-    try {
-      await client.api.teams[':teamId'].upload.tasks[':taskId'].$patch({
-        param: { teamId, taskId },
-        json: { fileId },
-      })
-    } catch (err) {
-      console.error('Failed to confirm upload:', err)
-    }
+    const confirmPromise = (async () => {
+      try {
+        const res = await client.api.teams[':teamId'].upload.tasks[':taskId'].$patch({
+          param: { teamId, taskId },
+          json: { fileId },
+        })
+        if (!res.ok) {
+          throw new Error(`Failed to confirm upload: ${res.statusText}`)
+        }
+        completeFile(taskId, fileId)
+        decrement()
+        await onFileFinished?.(fileId)
+      } catch (err) {
+        console.error('Failed to confirm upload:', err)
+        failFile(taskId, fileId)
+        decrement()
+        toast.error(`Failed to confirm upload: ${file.name}`)
+        await onFileFinished?.(fileId)
+        throw err
+      }
+    })()
 
-    await onFileFinished?.(fileId)
+    confirmationPromises.set(fileId, confirmPromise)
   })
 
-  uppy.on('upload-error', async (file, error) => {
+  uppy.on('upload-error', (file, error) => {
     if (!file) return
     const fileId = file.meta.fileId as string
     activeUploads.delete(fileId)
@@ -219,19 +232,22 @@ export async function uploadFilesWithUppy({
 
     toast.error(`Failed to upload file: ${file.name}`)
 
-    try {
-      await client.api.teams[':teamId'].upload.tasks[':taskId'].$patch({
-        param: { teamId, taskId },
-        json: {
-          fileId,
-          errorMessage: error?.message || 'Upload failed',
-        },
-      })
-    } catch (err) {
-      console.error('Failed to report upload failure:', err)
-    }
+    const errorPromise = (async () => {
+      try {
+        await client.api.teams[':teamId'].upload.tasks[':taskId'].$patch({
+          param: { teamId, taskId },
+          json: {
+            fileId,
+            errorMessage: error?.message || 'Upload failed',
+          },
+        })
+      } catch (err) {
+        console.error('Failed to report upload failure:', err)
+      }
+      await onFileFinished?.(fileId)
+    })()
 
-    await onFileFinished?.(fileId)
+    confirmationPromises.set(fileId, errorPromise)
   })
 
   // Add files to Uppy
@@ -267,19 +283,23 @@ export async function uploadFilesWithUppy({
     })
   }
 
-  // Wait until Uppy completes all files
-  await new Promise<void>((resolve) => {
-    uppy.on('complete', () => {
-      resolve()
+  // Wait until Uppy completes all files and all confirmations settle
+  try {
+    await new Promise<void>((resolve) => {
+      uppy.on('complete', () => {
+        resolve()
+      })
+      uppy.on('cancel-all', () => {
+        resolve()
+      })
     })
-    uppy.on('cancel-all', () => {
-      resolve()
-    })
-  }).finally(async () => {
+
+    await Promise.allSettled(Array.from(confirmationPromises.values()))
+  } finally {
     if (typeof window !== 'undefined') {
       window.removeEventListener('online', handleBackOnline)
     }
     await releaseWakeLock()
     uppy.destroy()
-  })
+  }
 }

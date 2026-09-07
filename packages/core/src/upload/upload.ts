@@ -209,7 +209,30 @@ export class UploadService {
     if (!key) throw new Error('Asset has no key')
 
     if (req.errorMessage) {
-      await this.prismaClient.asset.delete({ where: { id: asset.id } })
+      const bucket = process.env.S3_BUCKET || 'shumai'
+      if (asset.uploadId && key) {
+        try {
+          await s3Service.abortMultipartUpload(bucket, key, asset.uploadId)
+        } catch (err) {
+          logger.warn(
+            { err, key, uploadId: asset.uploadId },
+            'Failed to abort multipart upload on confirm error',
+          )
+        }
+      } else if (key) {
+        try {
+          await s3Service.deleteObject(bucket, key)
+        } catch (err) {
+          logger.warn({ err, key }, 'Failed to delete storage object on confirm error')
+        }
+      }
+
+      await this.prismaClient.asset.delete({ where: { id: asset.id } }).catch(() => {})
+      if (asset.storageKeyId) {
+        await this.prismaClient.storageKey
+          .delete({ where: { id: asset.storageKeyId } })
+          .catch(() => {})
+      }
       const t = await this.prismaClient.task.findUnique({ where: { id: taskId } })
       if (t) {
         const updatedTask = await this.prismaClient.task.update({
@@ -381,17 +404,49 @@ export class UploadService {
     return { data: infos, pageInfo }
   }
 
-  async signS3Upload(userId: string, req: S3SignRequest): Promise<S3SignResponse> {
+  async signS3Upload(teamId: string, userId: string, req: S3SignRequest): Promise<S3SignResponse> {
     const bucket = process.env.S3_BUCKET || 'shumai'
 
-    if (req.uploadId) {
-      const asset = req.fileId
-        ? await this.prismaClient.asset.findUnique({ where: { id: req.fileId } })
-        : await this.prismaClient.asset.findFirst({
-            where: { storageKey: { key: req.key } },
-          })
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: req.fileId },
+      include: {
+        storageKey: true,
+        project: true,
+      },
+    })
 
-      if (asset && asset.uploadId !== req.uploadId) {
+    if (!asset) {
+      throw new Error('Asset not found')
+    }
+
+    if (asset.status !== AssetStatus.uploading) {
+      throw new Error('Asset is not currently uploading')
+    }
+
+    if (asset.project?.teamId !== teamId) {
+      throw new Error('Asset does not belong to team')
+    }
+
+    const key = asset.storageKey?.key
+    if (!key) {
+      throw new Error('Asset has no storage key')
+    }
+
+    if (req.key && req.key !== key) {
+      throw new Error('Requested key does not match asset storage key')
+    }
+
+    if (req.method === 'GET' || req.method === 'DELETE') {
+      if (!req.uploadId) {
+        throw new Error('Operation requires uploadId')
+      }
+    }
+
+    if (req.uploadId) {
+      if (asset.uploadId && asset.uploadId !== req.uploadId) {
+        throw new Error('Upload ID does not match asset upload ID')
+      }
+      if (!asset.uploadId) {
         await this.prismaClient.asset.update({
           where: { id: asset.id },
           data: { uploadId: req.uploadId },
@@ -399,11 +454,12 @@ export class UploadService {
       }
     }
 
-    const result = await s3Service.presignMultipart(bucket, req.key, req)
+    const result = await s3Service.presignMultipart(bucket, key, req)
     return { url: result.url }
   }
 
   async abortUpload(
+    teamId: string,
     userId: string,
     taskId: string,
     req: AbortUploadRequest,
@@ -411,11 +467,37 @@ export class UploadService {
     const bucket = process.env.S3_BUCKET || 'shumai'
     const asset = await this.prismaClient.asset.findUnique({
       where: { id: req.fileId },
-      include: { storageKey: true },
+      include: {
+        storageKey: true,
+        project: true,
+      },
     })
 
-    const key = req.key || asset?.storageKey?.key
-    const uploadId = req.uploadId || asset?.uploadId
+    if (!asset) {
+      return { success: true }
+    }
+
+    if (asset.status !== AssetStatus.uploading) {
+      throw new Error('Asset is not currently uploading')
+    }
+
+    if (asset.taskId !== taskId) {
+      throw new Error('Asset does not belong to specified task')
+    }
+
+    if (asset.project?.teamId !== teamId) {
+      throw new Error('Asset does not belong to specified team')
+    }
+
+    const key = asset.storageKey?.key
+    if (req.key && key && req.key !== key) {
+      throw new Error('Provided key does not match asset storage key')
+    }
+
+    const uploadId = asset.uploadId || req.uploadId
+    if (asset.uploadId && req.uploadId && asset.uploadId !== req.uploadId) {
+      throw new Error('Provided uploadId does not match asset uploadId')
+    }
 
     if (uploadId && key) {
       try {
@@ -431,15 +513,13 @@ export class UploadService {
       }
     }
 
-    if (asset) {
-      await this.prismaClient.asset.delete({ where: { id: asset.id } }).catch((err) => {
-        logger.warn({ err, assetId: asset.id }, 'Failed to delete asset on upload abort')
-      })
-      if (asset.storageKeyId) {
-        await this.prismaClient.storageKey
-          .delete({ where: { id: asset.storageKeyId } })
-          .catch(() => {})
-      }
+    await this.prismaClient.asset.delete({ where: { id: asset.id } }).catch((err) => {
+      logger.warn({ err, assetId: asset.id }, 'Failed to delete asset on upload abort')
+    })
+    if (asset.storageKeyId) {
+      await this.prismaClient.storageKey
+        .delete({ where: { id: asset.storageKeyId } })
+        .catch(() => {})
     }
 
     if (taskId) {

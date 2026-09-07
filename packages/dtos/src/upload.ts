@@ -50,11 +50,11 @@ export const createUploadTaskResponseSchema = z.object({
 export type CreateUploadTaskResponse = z.infer<typeof createUploadTaskResponseSchema>
 
 export const s3SignRequestSchema = z.object({
-  key: z.string(),
+  key: z.string().min(1),
   method: z.enum(['PUT', 'POST', 'GET', 'DELETE']),
   uploadId: z.string().optional(),
   partNumber: z.number().int().positive().optional(),
-  fileId: z.string().optional(),
+  fileId: z.string().min(1),
 })
 export type S3SignRequest = z.infer<typeof s3SignRequestSchema>
 
@@ -64,7 +64,7 @@ export const s3SignResponseSchema = z.object({
 export type S3SignResponse = z.infer<typeof s3SignResponseSchema>
 
 export const abortUploadRequestSchema = z.object({
-  fileId: z.string(),
+  fileId: z.string().min(1),
   uploadId: z.string().optional(),
   key: z.string().optional(),
 })
