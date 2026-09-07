@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import * as child_process from 'child_process'
+import * as fs from 'fs'
 
 vi.mock('child_process', () => ({
   execFile: vi.fn(),
@@ -20,6 +21,7 @@ import {
   updateAssetMediaActivity,
   downloadMediaToTmpActivity,
   transcodeImageActivity,
+  extractPosterActivity,
   generateSpriteActivity,
   generatePdfProxyActivity,
   transcodeVideoChunkActivity,
@@ -35,6 +37,7 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
     presign: vi.fn(),
     downloadToFile: vi.fn(),
     deleteObject: vi.fn(),
+    resolveInput: vi.fn().mockImplementation(async (_bucket, key) => `https://mock-url/${key}`),
   },
 }))
 
@@ -846,6 +849,103 @@ describe('Transcode Activities', () => {
       )
 
       expect(res.chunkKey).toMatch(/^files\/asset-abc\/tmp-embedding-chunks\/chunk-10-25-.*\.mp4$/)
+    })
+
+    it('should transcode video chunk using assetKey directly via resolveInput', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(child_process.execFile as any).mockImplementation(
+        (
+          file: string,
+          args: string[],
+          cb: (err: Error | null, result: { stdout: string; stderr: string }) => void,
+        ) => {
+          cb(null, { stdout: '', stderr: '' })
+        },
+      )
+      vi.mocked(s3Service.resolveInput).mockResolvedValue('https://mock-r2.com/video.mp4')
+
+      const res = await transcodeVideoChunkActivity({
+        assetId: 'asset-abc',
+        assetKey: 'video.mp4',
+        startTime: 10,
+        endTime: 25,
+      })
+
+      expect(s3Service.resolveInput).toHaveBeenCalledWith('shumai', 'video.mp4')
+      expect(child_process.execFile).toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining([
+          '-ss',
+          '10',
+          '-i',
+          'https://mock-r2.com/video.mp4',
+          '-reconnect',
+          '1',
+        ]),
+        expect.any(Function),
+      )
+      expect(res.chunkKey).toMatch(/^files\/asset-abc\/tmp-embedding-chunks\/chunk-10-25-.*\.mp4$/)
+    })
+
+    it('should return existing poster if already present in S3', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(s3Service.headObject).mockResolvedValue({} as any)
+
+      const res = await extractPosterActivity({
+        assetKey: 'video.mp4',
+        posterSpec: { key: 'poster.webp' },
+      })
+
+      expect(res.poster.key).toBe('poster.webp')
+      expect(child_process.execFile).not.toHaveBeenCalled()
+    })
+
+    it('should extract poster upfront at t=0 and upload to S3', async () => {
+      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+      vi.mocked(s3Service.resolveInput).mockResolvedValue('https://mock-r2.com/video.mp4')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(child_process.execFile as any).mockImplementation(
+        (
+          file: string,
+          args: string[],
+          cb: (err: Error | null, result: { stdout: string; stderr: string }) => void,
+        ) => {
+          if (file === 'ffmpeg') {
+            const outPath = args[args.length - 1]
+            fs.writeFileSync(outPath, 'fake-poster-bytes')
+          }
+          cb(null, { stdout: '', stderr: '' })
+        },
+      )
+
+      const res = await extractPosterActivity({
+        assetKey: 'video.mp4',
+        posterSpec: { key: 'files/asset-1/poster.webp' },
+      })
+
+      expect(res.poster.key).toBe('files/asset-1/poster.webp')
+      expect(s3Service.resolveInput).toHaveBeenCalledWith('shumai', 'video.mp4')
+      expect(child_process.execFile).toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining([
+          '-ss',
+          '0',
+          '-i',
+          'https://mock-r2.com/video.mp4',
+          '-vframes',
+          '1',
+          '-c:v',
+          'libwebp',
+        ]),
+        expect.any(Function),
+      )
+      expect(s3Service.putObject).toHaveBeenCalledWith(
+        'shumai',
+        'files/asset-1/poster.webp',
+        expect.any(Buffer),
+        expect.any(Number),
+        'image/webp',
+      )
     })
 
     it('should delete S3 object successfully', async () => {

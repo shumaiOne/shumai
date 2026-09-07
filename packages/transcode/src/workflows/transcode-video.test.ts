@@ -44,6 +44,9 @@ describe('transcodeVideoWorkflow', () => {
     createAutofillTaskIfEnabledActivity: Object.assign(vi.fn(), {
       _activityName: 'createAutofillTaskIfEnabledActivity',
     }),
+    extractPosterActivity: Object.assign(vi.fn(), {
+      _activityName: 'extractPosterActivity',
+    }),
   }
 
   beforeEach(() => {
@@ -65,6 +68,9 @@ describe('transcodeVideoWorkflow', () => {
     mockActivities.downloadMediaToTmpActivity.mockResolvedValue({
       filePath: '/tmp/video.mp4',
       tmpDir: '/tmp',
+    })
+    mockActivities.extractPosterActivity.mockResolvedValue({
+      poster: { key: 'files/asset-1/poster.webp', width: 1920, height: 1080 },
     })
   })
 
@@ -316,6 +322,76 @@ describe('transcodeVideoWorkflow', () => {
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
       taskId: 'task-audio',
       status: WorkflowTaskStatus.completed,
+    })
+  })
+
+  it('should extract poster upfront when spec.poster is true', async () => {
+    const task: WorkflowTask = {
+      id: 'task-poster',
+      assetId: 'asset-poster',
+      type: WorkflowTaskType.transcode_video,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: {
+          poster: true,
+          videoStrategy: 'best_match',
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid-poster',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-poster',
+      storageKey: { key: 'files/asset-poster/video.mp4' },
+      mediaType: 'video/mp4',
+    })
+
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      proxyType: 'video',
+      metadata: {
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 10,
+        frameRate: 30,
+        totalFrames: 300,
+        startTimecode: '00:00:00:00',
+        bitRate: 1000,
+        hasAudio: false,
+        format: {},
+      },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    mockActivities.extractPosterActivity.mockResolvedValue({
+      poster: { key: 'files/asset-poster/poster.webp', width: 1920, height: 1080 },
+    })
+
+    await transcodeVideoWorkflow(task)
+
+    expect(mockActivities.extractPosterActivity).toHaveBeenCalledWith({
+      assetKey: 'files/asset-poster/video.mp4',
+      posterSpec: {
+        key: 'files/asset-poster/poster.webp',
+      },
+    })
+
+    expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith({
+      assetId: 'asset-poster',
+      mediaInfo: expect.objectContaining({
+        poster: { key: 'files/asset-poster/poster.webp', width: 1920, height: 1080 },
+      }),
     })
   })
 })

@@ -1,5 +1,6 @@
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { stemFromKey } from '@shumai/core/src/utils/filename'
+import { mapConcurrent } from '../utils/async'
 import { prisma, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
 import { execFile } from 'child_process'
@@ -1108,21 +1109,36 @@ export class TranscodeService {
     }
 
     const meta = await this.getVideoInfo(params.inputFile)
-    const fps = params.numFrames / meta.duration
-    const outputPattern = path.join(params.outputDir, '%d.webp')
+    const isRemote =
+      params.inputFile.startsWith('http://') || params.inputFile.startsWith('https://')
 
-    const args = [
-      '-i',
-      params.inputFile,
-      '-vf',
-      `fps=${fps},scale=-2:${params.frameHeight}`,
-      '-c:v',
-      'libwebp',
-      '-q:v',
-      '80',
-      outputPattern,
-    ]
-    await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    const duration = meta.duration > 0 ? meta.duration : 1
+    const numFrames = Math.max(1, params.numFrames)
+    const step = duration / numFrames
+    const timestamps = Array.from({ length: numFrames }, (_, i) => i * step)
+
+    await mapConcurrent(timestamps, 10, async (t, idx) => {
+      const outputFile = path.join(params.outputDir, `${idx + 1}.webp`)
+      const args = [
+        ...(isRemote
+          ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
+          : []),
+        '-ss',
+        t.toFixed(4),
+        '-i',
+        params.inputFile,
+        '-vframes',
+        '1',
+        '-vf',
+        `scale=-2:${params.frameHeight}`,
+        '-c:v',
+        'libwebp',
+        '-q:v',
+        '80',
+        outputFile,
+      ]
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    })
 
     const files = fs.readdirSync(params.outputDir)
     return files
@@ -1186,11 +1202,11 @@ export class TranscodeService {
   }): Promise<Array<{ key: string; timestamp: number }>> {
     const bucket = process.env.S3_BUCKET || 'shumai'
     const tmpDir = this.createTempDir('screenshot-')
-    const videoPath = path.join(tmpDir, path.basename(params.assetKey))
 
     try {
-      // 1. Download video
-      await s3Service.downloadToFile(bucket, params.assetKey, videoPath)
+      // 1. Resolve input source (presigned GET URL for S3/R2, local file path for local storage)
+      const inputSource = await s3Service.resolveInput(bucket, params.assetKey)
+      const isRemote = inputSource.startsWith('http://') || inputSource.startsWith('https://')
 
       // 2. Generate timestamps
       let timestamps: number[] = []
@@ -1221,18 +1237,19 @@ export class TranscodeService {
         }
       }
 
-      const results: Array<{ key: string; timestamp: number }> = []
-
-      // 4. Extract each screenshot
-      for (const t of timestamps) {
+      // 4. Extract screenshots concurrently with a limit of 10 parallel processes
+      const results = await mapConcurrent(timestamps, 10, async (t) => {
         const outName = `shot-${t.toFixed(4)}-${ulid()}.webp`
         const localShotPath = path.join(tmpDir, outName)
 
         const args = [
+          ...(isRemote
+            ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
+            : []),
           '-ss',
           t.toFixed(4),
           '-i',
-          videoPath,
+          inputSource,
           '-vframes',
           '1',
           '-vf',
@@ -1262,8 +1279,8 @@ export class TranscodeService {
         const fileBuffer = fs.readFileSync(localShotPath)
         await s3Service.putObject(bucket, s3Key, fileBuffer, fileBuffer.length, 'image/webp')
 
-        results.push({ key: s3Key, timestamp: t })
-      }
+        return { key: s3Key, timestamp: t }
+      })
 
       return results
     } finally {

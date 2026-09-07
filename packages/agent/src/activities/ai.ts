@@ -9,6 +9,7 @@ import { promisify } from 'util'
 import { ApplicationFailure } from '@temporalio/activity'
 import { prisma } from '@shumai/db'
 import { getProxyType } from '@shumai/core/src/utils/mime'
+import { ulid } from 'ulid'
 
 const execFileAsync = promisify(execFile)
 
@@ -115,41 +116,44 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
     const embVec = await generateMultimodalEmbedding(ai, data, asset.mediaType)
     results.push({ embedding: embVec })
   } else if (isVideo) {
-    const tmpFile = path.join(os.tmpdir(), `video-${Date.now()}.mp4`)
-    await s3Service.downloadToFile(bucket, key, tmpFile)
+    const inputSource = await s3Service.resolveInput(bucket, key)
+    const isRemote = inputSource.startsWith('http://') || inputSource.startsWith('https://')
 
-    try {
-      const { stdout } = await execFileAsync('ffprobe', [
-        '-v',
-        'error',
-        '-show_entries',
-        'format=duration',
-        '-of',
-        'default=noprint_wrappers=1:nokey=1',
-        tmpFile,
-      ])
-      const duration = parseFloat(stdout.trim())
-      if (isNaN(duration)) {
-        throw ApplicationFailure.create({
-          message: 'failed to parse video duration',
-          nonRetryable: true,
-        })
-      }
+    const { stdout } = await execFileAsync('ffprobe', [
+      '-v',
+      'error',
+      '-show_entries',
+      'format=duration',
+      '-of',
+      'default=noprint_wrappers=1:nokey=1',
+      inputSource,
+    ])
+    const duration = parseFloat(stdout.trim())
+    if (isNaN(duration)) {
+      throw ApplicationFailure.create({
+        message: 'failed to parse video duration',
+        nonRetryable: true,
+      })
+    }
 
-      const chunkSize = 60.0
-      for (let start = 0.0; start < duration; start += chunkSize) {
-        let end = start + chunkSize
-        if (end > duration) end = duration
+    const chunkSize = 60.0
+    for (let start = 0.0; start < duration; start += chunkSize) {
+      let end = start + chunkSize
+      if (end > duration) end = duration
 
-        const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}.mp4`)
+      const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}-${ulid()}.mp4`)
+      try {
         await execFileAsync('ffmpeg', [
           '-y',
           '-loglevel',
           'warning',
-          '-i',
-          tmpFile,
+          ...(isRemote
+            ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
+            : []),
           '-ss',
           start.toString(),
+          '-i',
+          inputSource,
           '-t',
           (end - start).toString(),
           '-c',
@@ -158,7 +162,6 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
         ])
 
         const chunkData = fs.readFileSync(chunkTmp)
-        fs.unlinkSync(chunkTmp)
 
         try {
           const embVec = await generateMultimodalEmbedding(ai, chunkData, 'video/mp4')
@@ -169,10 +172,10 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
             `failed to generate video embedding for chunk ${start}-${end}: ${e.message}`,
           )
         }
-      }
-    } finally {
-      if (fs.existsSync(tmpFile)) {
-        fs.unlinkSync(tmpFile)
+      } finally {
+        if (fs.existsSync(chunkTmp)) {
+          fs.unlinkSync(chunkTmp)
+        }
       }
     }
   }
@@ -235,7 +238,7 @@ export async function generateTextEmbeddingActivity(params: GenerateTextEmbeddin
 
 export interface ExtractAiMetadataParams {
   assetKey: string
-  filePath: string
+  filePath?: string
   type: 'autofill'
   isImage: boolean
 }
@@ -248,7 +251,12 @@ export async function extractAiMetadataActivity(
   const aiDir = path.join(assetDir, 'ai_metadata')
   const generatedFiles: string[] = []
 
-  const tmpDir = path.dirname(params.filePath)
+  let tmpDir = params.filePath ? path.dirname(params.filePath) : ''
+  let cleanupTmp = false
+  if (!tmpDir) {
+    tmpDir = transcodeService.createTempDir('ai-meta-')
+    cleanupTmp = true
+  }
 
   try {
     if (params.type === 'autofill') {
@@ -261,8 +269,10 @@ export async function extractAiMetadataActivity(
         // Not found
       }
 
+      const inputSource = params.filePath || (await s3Service.resolveInput(bucket, params.assetKey))
+
       const files = await transcodeService.extractVideoFrames({
-        inputFile: params.filePath,
+        inputFile: inputSource,
         outputDir: tmpDir,
         numFrames: 30,
         frameHeight: 720,
@@ -278,7 +288,9 @@ export async function extractAiMetadataActivity(
       }
     }
   } finally {
-    // Files are in tmpDir which will be cleaned up by cleanupTmpDirActivity
+    if (cleanupTmp && tmpDir) {
+      transcodeService.removeDir(tmpDir)
+    }
   }
 
   return generatedFiles

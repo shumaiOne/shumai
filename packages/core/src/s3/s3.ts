@@ -118,6 +118,7 @@ export interface S3Service {
     request: S3SignRequest,
   ) => Promise<{ url: string }>
   abortMultipartUpload: (bucket: string, key: string, uploadId: string) => Promise<void>
+  resolveInput: (bucket: string, key: string) => Promise<string>
 }
 
 export class S3StorageService implements S3Service {
@@ -459,6 +460,10 @@ export class S3StorageService implements S3Service {
       }),
     )
   }
+
+  async resolveInput(bucket: string, key: string): Promise<string> {
+    return this.presign(bucket, key, 'GET')
+  }
 }
 
 export class LocalStorageService implements S3Service {
@@ -716,6 +721,14 @@ export class LocalStorageService implements S3Service {
     _uploadId: string, // eslint-disable-line @typescript-eslint/no-unused-vars
   ): Promise<void> {
     await this.deleteObject(bucket, key)
+  }
+
+  async resolveInput(bucket: string, key: string): Promise<string> {
+    const filePath = this.getFilePath(bucket, key)
+    if (fs.existsSync(filePath)) {
+      return filePath
+    }
+    return this.presign(bucket, key, 'GET')
   }
 }
 

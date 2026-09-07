@@ -712,6 +712,81 @@ export async function takeScreenshotsActivity(params: {
   }
 }
 
+export interface ExtractPosterActivityParams {
+  assetKey: string
+  posterSpec: PrismaJson.PosterInfo
+}
+
+export async function extractPosterActivity(
+  params: ExtractPosterActivityParams,
+): Promise<{ poster: PrismaJson.PosterInfo }> {
+  const bucket = process.env.S3_BUCKET || 'shumai'
+  try {
+    await s3Service.headObject(bucket, params.posterSpec.key)
+    return { poster: params.posterSpec }
+  } catch {
+    // Not found, proceed to extract
+  }
+
+  const tmpDir = transcodeService.createTempDir('poster-')
+  const posterFile = path.join(tmpDir, 'poster.webp')
+
+  try {
+    const inputSource = await s3Service.resolveInput(bucket, params.assetKey)
+    const isRemote = inputSource.startsWith('http://') || inputSource.startsWith('https://')
+
+    const args = [
+      ...(isRemote
+        ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
+        : []),
+      '-ss',
+      '0',
+      '-i',
+      inputSource,
+      '-vframes',
+      '1',
+      '-vf',
+      'scale=-2:300:force_original_aspect_ratio=decrease',
+      '-c:v',
+      'libwebp',
+      '-q:v',
+      '75',
+      posterFile,
+    ]
+    await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+
+    const posterBuffer = fs.readFileSync(posterFile)
+    await s3Service.putObject(
+      bucket,
+      params.posterSpec.key,
+      posterBuffer,
+      posterBuffer.length,
+      'image/webp',
+    )
+
+    return { poster: params.posterSpec }
+  } catch (err) {
+    const { code, message } = getErrorDetails(err)
+    const lowerMsg = message.toLowerCase()
+    if (
+      code === 'ENOENT' ||
+      lowerMsg.includes('enoent') ||
+      lowerMsg.includes('nosuchkey') ||
+      lowerMsg.includes('ffmpeg') ||
+      lowerMsg.includes('sharp')
+    ) {
+      throw ApplicationFailure.create({
+        message: `Poster extraction failed: ${message}`,
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+    throw err
+  } finally {
+    transcodeService.removeDir(tmpDir)
+  }
+}
+
 export async function overlayAnnotationsActivity(params: {
   assetKey: string
   assetId: string
@@ -920,7 +995,8 @@ export async function createAutofillTaskIfEnabledActivity(
 
 export interface TranscodeVideoChunkParams {
   assetId: string
-  filePath: string
+  assetKey?: string
+  filePath?: string
   startTime: number
   endTime: number
 }
@@ -928,17 +1004,33 @@ export interface TranscodeVideoChunkParams {
 export async function transcodeVideoChunkActivity(
   params: TranscodeVideoChunkParams,
 ): Promise<{ chunkKey: string }> {
-  const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}.mp4`)
+  const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}-${ulid()}.mp4`)
   try {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const inputSource =
+      params.filePath ||
+      (params.assetKey ? await s3Service.resolveInput(bucket, params.assetKey) : '')
+    if (!inputSource) {
+      throw ApplicationFailure.create({
+        message: 'Neither filePath nor assetKey was provided for video chunk transcoding',
+        nonRetryable: true,
+      })
+    }
+    const isRemote = inputSource.startsWith('http://') || inputSource.startsWith('https://')
+
     // Slice video segment using ffmpeg, force 1fps and remove audio for gemini-embedding-2 optimization
+    // Note: -ss placed before -i for fast input seeking via demuxer Range requests
     await execFileAsync('ffmpeg', [
       '-y',
       '-loglevel',
       'warning',
-      '-i',
-      params.filePath,
+      ...(isRemote
+        ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
+        : []),
       '-ss',
       params.startTime.toString(),
+      '-i',
+      inputSource,
       '-t',
       (params.endTime - params.startTime).toString(),
       '-vf',
@@ -956,7 +1048,6 @@ export async function transcodeVideoChunkActivity(
     const chunkData = fs.readFileSync(chunkTmp)
 
     // Upload to S3
-    const bucket = process.env.S3_BUCKET || 'shumai'
     const key = `files/${params.assetId}/tmp-embedding-chunks/chunk-${params.startTime}-${params.endTime}-${ulid()}.mp4`
 
     await s3Service.putObject(bucket, key, chunkData, chunkData.length, 'video/mp4')

@@ -23,6 +23,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       transcodeVideoActivity,
       transcodeAudioActivity,
       transcodeImageActivity,
+      extractPosterActivity,
       generateSpriteActivity,
       updateAssetMediaActivity,
       downloadMediaToTmpActivity,
@@ -56,6 +57,23 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       key,
       filesizeInBytes: 0,
       codec: '',
+    }
+
+    if (spec.poster) {
+      const lastSlashIndex = key.lastIndexOf('/')
+      const assetDir = lastSlashIndex === -1 ? '' : key.substring(0, lastSlashIndex)
+      const posterSpec: PrismaJson.PosterInfo = {
+        key: assetDir ? `${assetDir}/poster.webp` : 'poster.webp',
+      }
+      const posterResult = await executeActivity(workerQueue, extractPosterActivity, {
+        assetKey: key,
+        posterSpec,
+      })
+      mediaInfo.poster = posterResult.poster
+      await executeActivity(workerQueue, updateAssetMediaActivity, {
+        assetId: asset.id,
+        mediaInfo,
+      })
     }
 
     const metadata = mediaInfo.metadata
@@ -115,7 +133,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       mediaInfo.thumbnail = thumbTranscode
     }
 
-    if (spec.sprite || spec.poster) {
+    if (spec.sprite || (spec.poster && !mediaInfo.poster)) {
       const lastSlashIndex = key.lastIndexOf('/')
       const assetDir = lastSlashIndex === -1 ? '' : key.substring(0, lastSlashIndex)
 
@@ -125,7 +143,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
         tileX: 10,
         tileY: 10,
       }
-      const posterSpec: PrismaJson.PosterInfo = {
+      const posterSpec: PrismaJson.PosterInfo = mediaInfo.poster || {
         key: assetDir ? `${assetDir}/poster.webp` : 'poster.webp',
       }
 
@@ -136,8 +154,12 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
         posterSpec,
         mediaInfo,
       })
-      mediaInfo.sprite = spriteResult.sprite
-      mediaInfo.poster = spriteResult.poster
+      if (spec.sprite) {
+        mediaInfo.sprite = spriteResult.sprite
+      }
+      if (!mediaInfo.poster) {
+        mediaInfo.poster = spriteResult.poster
+      }
     }
 
     await executeActivity(workerQueue, updateAssetMediaActivity, {

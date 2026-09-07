@@ -22,13 +22,10 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     updateCommentActivity,
     getTranscodeWorkerQueueActivity,
     getAgentWorkerQueueActivity,
-    downloadMediaToTmpActivity,
-    cleanupTmpDirActivity,
   } = getActivities()
 
   let placeholderCommentId: string | undefined
-  let tmpDir: string | undefined
-  let transcodeWorkerQueue = ''
+  let transcodeWorkerQueue: string
   let agentWorkerQueue = ''
 
   try {
@@ -78,15 +75,8 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
       })
     }
 
-    const download = await executeActivity(transcodeWorkerQueue, downloadMediaToTmpActivity, {
-      assetKey: key,
-    })
-    const { filePath } = download
-    tmpDir = download.tmpDir
-
     const generatedFiles = await executeActivity(transcodeWorkerQueue, extractAiMetadataActivity, {
       assetKey: key,
-      filePath,
       type: 'autofill',
       isImage,
     })
@@ -211,14 +201,6 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
       })
     }
     throw err
-  } finally {
-    if (tmpDir && transcodeWorkerQueue) {
-      try {
-        await executeActivity(transcodeWorkerQueue, cleanupTmpDirActivity, { tmpDir })
-      } catch (cleanupErr) {
-        console.error('Failed to cleanup tmp dir:', cleanupErr)
-      }
-    }
   }
 }
 
