@@ -6,6 +6,7 @@ import { notificationService } from '@shumai/core/src/notification/notification'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import { HTTPException } from 'hono/http-exception'
 import { getAllowedAgentRoles } from '@shumai/core/src/agent/permissions'
+import { sandboxService } from '@shumai/core/src/sandbox/sandbox-service'
 import {
   ServiceCreateTeamRequest,
   ServiceGetUserTeamsRequest,
@@ -371,6 +372,8 @@ export class TeamService {
         }),
       },
     })
+    const effectiveDomains = sandbox.networkSandboxEnabled ? sandbox.allowedDomains : ['*']
+    await sandboxService.syncAllowedDomains(effectiveDomains, teamId)
     return {
       networkSandboxEnabled: sandbox.networkSandboxEnabled,
       allowedDomains: sandbox.allowedDomains,

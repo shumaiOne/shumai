@@ -1,5 +1,5 @@
 import { logger } from '@shumai/core/src/logger'
-import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
+import { sandboxService } from '@shumai/core/src/sandbox/sandbox-service'
 import { type AgentTool, type AgentToolResult } from '@earendil-works/pi-agent-core'
 import { Type } from 'typebox'
 import { spawn } from 'node:child_process'
@@ -38,7 +38,7 @@ export interface SandboxedBashOptions {
   teamId?: string
   userId?: string
   role?: TeamMemberRole | null
-  getBlockedHost?: () => string
+  getBlockedHost?: (commandId?: string) => string
   clearBlockedHost?: () => void
   /**
    * When true, the tool only allows commands requested by a loaded skill (source="skill").
@@ -84,7 +84,7 @@ export const createSandboxedBashTool = (
         )
       }
       options?.clearBlockedHost?.()
-      const wrappedCommand = await SandboxManager.wrapWithSandbox(command)
+      const wrappedCommand = await sandboxService.wrapCommand(command, { commandId: toolCallId })
 
       const output = new OutputAccumulator({ tempFilePrefix: 'shumai-bash' })
       let acceptingOutput = true
@@ -232,7 +232,7 @@ export const createSandboxedBashTool = (
           if (timeoutHandle) clearTimeout(timeoutHandle)
           signal?.removeEventListener('abort', onAbort)
 
-          const blocked = options?.getBlockedHost?.()
+          const blocked = options?.getBlockedHost?.(toolCallId)
           const snapshot = await finishOutput()
           const { text: outputText, details: truncationDetails } = formatOutput(snapshot)
 
