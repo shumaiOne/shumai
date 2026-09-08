@@ -21,6 +21,7 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
     downloadToFile: vi.fn(),
     putObject: vi.fn(),
+    resolveInput: vi.fn().mockImplementation(async (_bucket, key) => `http://mock-storage/${key}`),
   },
 }))
 
@@ -938,6 +939,41 @@ describe('TranscodeService', () => {
       expect(overlaySpy).toHaveBeenCalledWith(expect.any(Buffer), annotations)
 
       overlaySpy.mockRestore()
+    })
+
+    it('should use resolveInput and avoid downloadToFile when taking screenshots', async () => {
+      vi.mocked(s3Service.downloadToFile).mockClear()
+      vi.mocked(s3Service.resolveInput).mockClear()
+      vi.mocked(s3Service.resolveInput).mockResolvedValue('https://mock-r2.com/video.mp4')
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(child_process.execFile as any).mockImplementation(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (file: string, args: string[], cb: any) => {
+          if (file === 'ffmpeg') {
+            const outPath = args[args.length - 1]
+            fs.writeFileSync(outPath, 'fake-webp-image')
+          }
+          cb(null, { stdout: '', stderr: '' })
+        },
+      )
+
+      const results = await transcodeService.takeScreenshots({
+        assetKey: 'test/video.mp4',
+        assetId: 'asset-123',
+        start: 0,
+        end: 10,
+        count: 5,
+      })
+
+      expect(results).toHaveLength(5)
+      expect(s3Service.resolveInput).toHaveBeenCalledWith('shumai', 'test/video.mp4')
+      expect(s3Service.downloadToFile).not.toHaveBeenCalled()
+      expect(child_process.execFile).toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining(['-i', 'https://mock-r2.com/video.mp4', '-reconnect', '1']),
+        expect.any(Function),
+      )
     })
 
     it('should generate PDF from text file including CJK characters', async () => {

@@ -242,29 +242,26 @@ describe('Agent Embedding Workflow', () => {
 
     await agentEmbeddingMedia(task)
 
-    // Verify video transcode queue discovery & download
+    // Verify video transcode queue discovery
     expect(mockActivities.getTranscodeWorkerQueueActivity).toHaveBeenCalled()
-    expect(mockActivities.downloadMediaToTmpActivity).toHaveBeenCalledWith({
-      assetKey: 'test-transcoded.mp4',
-    })
 
     // Verify video chunk slicing activity called 3 times on transcode queue
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledTimes(3)
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(1, {
       assetId: 'a1',
-      filePath: '/tmp/test.mp4',
+      assetKey: 'test-transcoded.mp4',
       startTime: 0,
       endTime: 60,
     })
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(2, {
       assetId: 'a1',
-      filePath: '/tmp/test.mp4',
+      assetKey: 'test-transcoded.mp4',
       startTime: 55,
       endTime: 115,
     })
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(3, {
       assetId: 'a1',
-      filePath: '/tmp/test.mp4',
+      assetKey: 'test-transcoded.mp4',
       startTime: 110,
       endTime: 150,
     })
@@ -288,11 +285,6 @@ describe('Agent Embedding Workflow', () => {
     expect(mockActivities.deleteS3ObjectActivity).toHaveBeenCalledTimes(3)
     expect(mockActivities.deleteS3ObjectActivity).toHaveBeenNthCalledWith(1, {
       key: 'files/a1/tmp-embedding-chunks/chunk-0-60.mp4',
-    })
-
-    // Verify temp directory cleanup on transcode queue
-    expect(mockActivities.cleanupTmpDirActivity).toHaveBeenCalledWith({
-      tmpDir: '/tmp/test-dir',
     })
 
     // Verify usage update (3 chunks * 3 tokens = 9)

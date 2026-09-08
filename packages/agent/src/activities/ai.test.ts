@@ -37,12 +37,15 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
     headObject: vi.fn(),
     listObjects: vi.fn(),
     downloadToFile: vi.fn(),
+    resolveInput: vi.fn().mockImplementation(async (_bucket, key) => `https://mock-storage/${key}`),
   },
 }))
 
 vi.mock('@shumai/core/src/transcode/transcode', () => ({
   transcodeService: {
     extractVideoFrames: vi.fn(),
+    createTempDir: vi.fn().mockReturnValue('/tmp'),
+    removeDir: vi.fn(),
   },
 }))
 
@@ -123,8 +126,12 @@ describe('AI Activities Unit Tests', () => {
     )
   })
 
-  it('should stream video to tmp file via downloadToFile in generateEmbeddingActivity', async () => {
-    vi.mocked(s3Service.downloadToFile).mockResolvedValue()
+  it('should resolve video input via resolveInput and avoid downloadToFile in generateEmbeddingActivity', async () => {
+    vi.mocked(s3Service.downloadToFile).mockClear()
+    vi.mocked(s3Service.resolveInput).mockClear()
+    vi.mocked(s3Service.resolveInput).mockResolvedValue(
+      'https://mock-storage/files/asset-123/video.mp4',
+    )
 
     const res = await generateEmbeddingActivity({
       teamId: 't1',
@@ -140,11 +147,8 @@ describe('AI Activities Unit Tests', () => {
       },
     })
 
-    expect(s3Service.downloadToFile).toHaveBeenCalledWith(
-      'shumai',
-      'files/asset-123/video.mp4',
-      expect.stringContaining('video-'),
-    )
+    expect(s3Service.resolveInput).toHaveBeenCalledWith('shumai', 'files/asset-123/video.mp4')
+    expect(s3Service.downloadToFile).not.toHaveBeenCalled()
     expect(s3Service.getObject).not.toHaveBeenCalledWith('shumai', 'files/asset-123/video.mp4')
     expect(res.embeddings.length).toBeGreaterThan(0)
   })
@@ -217,6 +221,30 @@ describe('AI Activities Unit Tests', () => {
         expect.any(Number),
         'image/webp',
       )
+    })
+
+    it('should resolveInput from s3Service when filePath is not provided', async () => {
+      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not Found'))
+      vi.mocked(s3Service.resolveInput).mockResolvedValue('https://mock-storage/project/video.mp4')
+      vi.mocked(transcodeService.extractVideoFrames).mockResolvedValue(['/tmp/out1.webp'])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(s3Service.putObject).mockResolvedValue({} as any)
+
+      const res = await extractAiMetadataActivity({
+        assetKey: 'project/video.mp4',
+        type: 'autofill',
+        isImage: false,
+      })
+
+      expect(res).toEqual(['project/ai_metadata/out1.webp'])
+      expect(s3Service.resolveInput).toHaveBeenCalledWith('shumai', 'project/video.mp4')
+      expect(transcodeService.extractVideoFrames).toHaveBeenCalledWith({
+        inputFile: 'https://mock-storage/project/video.mp4',
+        outputDir: expect.any(String),
+        numFrames: 30,
+        frameHeight: 720,
+        isImage: false,
+      })
     })
   })
 })

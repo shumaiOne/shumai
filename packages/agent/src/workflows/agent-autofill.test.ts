@@ -129,13 +129,9 @@ describe('Agent Autofill Workflow', () => {
       agentId: 'agent-1',
     })
 
-    // Verify download, extraction and fields fetched
-    expect(mockActivities.downloadMediaToTmpActivity).toHaveBeenCalledWith({
-      assetKey: 'asset-key',
-    })
+    // Verify extraction and fields fetched
     expect(mockActivities.extractAiMetadataActivity).toHaveBeenCalledWith({
       assetKey: 'asset-key',
-      filePath: '/tmp/test.png',
       type: 'autofill',
       isImage: true,
     })
@@ -186,11 +182,6 @@ describe('Agent Autofill Workflow', () => {
       sessionId: 'session-123',
     })
 
-    // Verify cleanup was called
-    expect(mockActivities.cleanupTmpDirActivity).toHaveBeenCalledWith({
-      tmpDir: '/tmp/test-dir',
-    })
-
     // Verify completed task status
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
       taskId: task.id,
@@ -219,11 +210,6 @@ describe('Agent Autofill Workflow', () => {
     expect(mockActivities.autofillAiActivity).not.toHaveBeenCalled()
     expect(mockActivities.updateAssetMetadataActivity).not.toHaveBeenCalled()
 
-    // Verify cleanup still runs
-    expect(mockActivities.cleanupTmpDirActivity).toHaveBeenCalledWith({
-      tmpDir: '/tmp/test-dir',
-    })
-
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
       taskId: task.id,
       status: 'completed',
@@ -250,11 +236,6 @@ describe('Agent Autofill Workflow', () => {
 
     expect(mockActivities.autofillAiActivity).not.toHaveBeenCalled()
     expect(mockActivities.updateAssetMetadataActivity).not.toHaveBeenCalled()
-
-    // Verify cleanup still runs
-    expect(mockActivities.cleanupTmpDirActivity).toHaveBeenCalledWith({
-      tmpDir: '/tmp/test-dir',
-    })
 
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
       taskId: task.id,
@@ -286,11 +267,6 @@ describe('Agent Autofill Workflow', () => {
       taskId: task.id,
       status: 'failed',
       output: { error: 'DB failure' },
-    })
-
-    // Verify cleanup still runs in finally block
-    expect(mockActivities.cleanupTmpDirActivity).toHaveBeenCalledWith({
-      tmpDir: '/tmp/test-dir',
     })
   })
 

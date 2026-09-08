@@ -25,16 +25,13 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     updateCommentActivity,
     getAgentWorkerQueueActivity,
     getTranscodeWorkerQueueActivity,
-    downloadMediaToTmpActivity,
-    cleanupTmpDirActivity,
     transcodeVideoChunkActivity,
     deleteS3ObjectActivity,
   } = getActivities()
 
   let placeholderCommentId: string | undefined
   let agentWorkerQueue = ''
-  let transcodeWorkerQueue = ''
-  let tmpDir: string | undefined
+  let transcodeWorkerQueue: string
 
   try {
     // 0. Discover queues
@@ -132,13 +129,6 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
         usage.outputTokens += result.usage.outputTokens || 0
       }
     } else if (isVideo) {
-      // 1. Download full video to transcode worker temp space
-      const download = await executeActivity(transcodeWorkerQueue, downloadMediaToTmpActivity, {
-        assetKey: embeddingKey,
-      })
-      const { filePath } = download
-      tmpDir = download.tmpDir
-
       // Get video duration
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const duration = (asset.media as any)?.duration || 0
@@ -155,7 +145,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
         // Step A: Slice chunk on transcode worker and upload to S3
         const chunkRes = await executeActivity(transcodeWorkerQueue, transcodeVideoChunkActivity, {
           assetId: asset.id,
-          filePath,
+          assetKey: embeddingKey,
           startTime: start,
           endTime: end,
         })
@@ -249,14 +239,6 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       })
     }
     throw err
-  } finally {
-    if (tmpDir && transcodeWorkerQueue) {
-      try {
-        await executeActivity(transcodeWorkerQueue, cleanupTmpDirActivity, { tmpDir })
-      } catch (cleanupErr) {
-        console.error('Failed to cleanup transcode worker tmp dir:', cleanupErr)
-      }
-    }
   }
 }
 

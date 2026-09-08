@@ -345,6 +345,15 @@ describe('S3Service implementations', () => {
       ).rejects.toThrow('Abort multipart upload requires uploadId')
     })
 
+    it('should resolveInput using presign GET in S3StorageService', async () => {
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+      const presignSpy = vi.spyOn(s3, 'presign').mockResolvedValue('https://presigned.s3.url')
+
+      const input = await s3.resolveInput('test-bucket', 'video.mp4')
+      expect(input).toBe('https://presigned.s3.url')
+      expect(presignSpy).toHaveBeenCalledWith('test-bucket', 'video.mp4', 'GET')
+    })
+
     it('should stream in uploadFileToKey', async () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
       s3SendSpy.mockClear()
@@ -586,6 +595,17 @@ describe('S3Service implementations', () => {
 
     it('should throw an error for unsupported presign methods', async () => {
       await expect(localS3.presign('b', 'k', 'POST')).rejects.toThrow()
+    })
+
+    it('should resolveInput to local file path if file exists on disk', async () => {
+      await localS3.putObject('my-bucket', 'video.mp4', 'dummy content', 13)
+      const input = await localS3.resolveInput('my-bucket', 'video.mp4')
+      expect(input).toBe(path.join(TEST_BASE_PATH, 'my-bucket', 'video.mp4'))
+    })
+
+    it('should resolveInput to presigned URL if file does not exist on disk', async () => {
+      const input = await localS3.resolveInput('my-bucket', 'nonexistent.mp4')
+      expect(input).toBe('http://localhost:3000/files/my-bucket/nonexistent.mp4')
     })
   })
 
