@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createReadAssetTool } from './read-asset'
+import { createReadAssetTool, type ReadAssetAuthContext } from './read-asset'
 import {
   prisma,
   WorkflowTaskType,
@@ -657,6 +657,40 @@ describe('readAssetTool', () => {
           docConfig: null,
         }),
       ).rejects.toThrow('User ID is required for authorization.')
+    })
+
+    it('throws error if autofill agent lacks targetAssetId', async () => {
+      const tool = createReadAssetTool({
+        agentType: 'autofill',
+        teamId: 'team-1',
+      } as unknown as ReadAssetAuthContext)
+
+      await expect(
+        tool.execute('call-1', {
+          assetId: 'asset-1',
+          annotationId: null,
+          imageConfig: null,
+          videoConfig: null,
+          docConfig: null,
+        }),
+      ).rejects.toThrow('Target asset ID is required for autofill agent authorization.')
+    })
+
+    it('throws error if autofill agent lacks teamId', async () => {
+      const tool = createReadAssetTool({
+        agentType: 'autofill',
+        targetAssetId: 'asset-1',
+      } as unknown as ReadAssetAuthContext)
+
+      await expect(
+        tool.execute('call-1', {
+          assetId: 'asset-1',
+          annotationId: null,
+          imageConfig: null,
+          videoConfig: null,
+          docConfig: null,
+        }),
+      ).rejects.toThrow('Team ID is required for autofill agent authorization.')
     })
 
     it('denies autofill agent if asset belongs to another team', async () => {

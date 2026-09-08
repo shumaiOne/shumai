@@ -327,7 +327,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const mediaTools: AgentTool[] = []
   if (userId) {
     mediaTools.push(createReadAssetTool(userId))
-  } else if (agent?.type === 'autofill') {
+  } else if (agent?.type === 'autofill' && assetId) {
     mediaTools.push(
       createReadAssetTool({
         teamId,

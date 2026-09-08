@@ -141,12 +141,19 @@ export function isPlainTextAsset(mediaType: string, filename: string): boolean {
 const MAX_TEXT_BYTES = 50 * 1024
 const MAX_TEXT_LINES = 1000
 
-export interface ReadAssetAuthContext {
-  userId?: string
-  teamId?: string
-  agentType?: 'chat' | 'autofill' | 'embedding'
-  targetAssetId?: string
-}
+export type ReadAssetAuthContext =
+  | {
+      userId?: string
+      teamId?: string
+      agentType?: 'chat' | 'embedding'
+      targetAssetId?: string
+    }
+  | {
+      userId?: undefined
+      teamId: string
+      agentType: 'autofill'
+      targetAssetId: string
+    }
 
 export function createReadAssetTool(
   auth: string | ReadAssetAuthContext,
@@ -168,6 +175,13 @@ export function createReadAssetTool(
       const { assetId, annotationId, s3KeyOnly, videoConfig, docConfig } = params
 
       if (agentType === 'autofill' && !userId) {
+        if (!targetAssetId) {
+          throw new Error('Target asset ID is required for autofill agent authorization.')
+        }
+        if (!teamId) {
+          throw new Error('Team ID is required for autofill agent authorization.')
+        }
+
         // System background execution for Autofill Agent
         const assetRecord = await prisma.asset.findUnique({
           where: { id: assetId },
@@ -179,16 +193,12 @@ export function createReadAssetTool(
 
         // Strict team boundary check
         const assetTeamId = assetRecord.project?.teamId || assetRecord.teamRootFolder?.id
-        if (teamId && assetTeamId && assetTeamId !== teamId) {
+        if (!assetTeamId || assetTeamId !== teamId) {
           throw new Error(`Access denied: asset ${assetId} does not belong to team ${teamId}.`)
         }
 
-        // Strict target asset boundary check (allows the target asset or its version stack children/parent)
-        if (
-          targetAssetId &&
-          assetRecord.id !== targetAssetId &&
-          assetRecord.parentId !== targetAssetId
-        ) {
+        // Strict target asset boundary check (allows the target asset or its version stack children)
+        if (assetRecord.id !== targetAssetId && assetRecord.parentId !== targetAssetId) {
           throw new Error(
             `Access denied: autofill agent can only read target asset ${targetAssetId}.`,
           )
