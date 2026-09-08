@@ -35,11 +35,33 @@ describe.each(['local', 'temporal'] as const)(
       // Spy on the harness prompt method to intercept the LLM call while running real activities & tools
       vi.spyOn(AgentHarness.prototype, 'prompt').mockImplementation(async function (
         this: AgentHarness,
+        ...args: unknown[]
       ) {
-        // Find the real autofill_metadata tool configured on the harness
+        // Find the real tools configured on the harness
         const tools = this.getTools()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Tool execution mock for E2E harness test
+        const readAssetTool = tools.find((t) => t.name === 'read_asset') as any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Tool execution mock for E2E harness test
         const autofillTool = tools.find((t) => t.name === 'autofill_metadata') as any
+
+        expect(readAssetTool).toBeDefined()
+        expect(autofillTool).toBeDefined()
+
+        const promptText = typeof args[0] === 'string' ? args[0] : ''
+        const assetIdMatch = promptText.match(/ID:\s*"([^"]+)"/)
+
+        if (readAssetTool && assetIdMatch) {
+          const assetId = assetIdMatch[1]
+          const readResult = await readAssetTool.execute(
+            'call-read-1',
+            { assetId },
+            undefined,
+            undefined,
+            undefined,
+          )
+          expect(readResult).toBeDefined()
+          expect(readResult.content).toBeDefined()
+        }
 
         if (autofillTool) {
           // Execute the real tool callback to perform the actual DB updates

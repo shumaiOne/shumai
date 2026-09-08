@@ -499,14 +499,81 @@ describe('Agent Activities', () => {
 
     await autofillAiActivity({
       teamId: 't1',
+      assetId: 'a1',
+      assetName: 'test.mp4',
+      mediaType: 'video/mp4',
+      duration: 30.5,
       images: [],
       fields: [{ id: 'f1', config: { name: 'F1', type: 'text' } }],
       context,
     })
 
     const capturedPrompt = mockHarness.prompt.mock.calls[0]?.[0] ?? ''
-    expect(capturedPrompt).toContain('Analyze the provided images and extract metadata.')
+    expect(capturedPrompt).toContain('You are tasked with analyzing the asset "test.mp4"')
+    expect(capturedPrompt).toContain('Call the "read_asset" tool with assetId: "a1"')
+    expect(capturedPrompt).toContain(
+      'Video duration: 30.5s. Recommended inspection: call read_asset with videoConfig: { start: 0, end: 30.5, count: 10 }.',
+    )
+    expect(capturedPrompt).toContain(
+      'call the "autofill_metadata" tool to provide the extracted metadata values.',
+    )
     expect(capturedPrompt).not.toContain('<context>')
+  })
+
+  it('should include PDF page count recommendations in autofill prompt when present', async () => {
+    const mockHarness = {
+      subscribe: vi.fn(),
+      prompt: vi.fn().mockResolvedValue({
+        content: [{ type: 'text', text: 'Captured' }],
+        usage: { input: 5, output: 5 },
+      }),
+    }
+    const mockSession = {
+      getEntries: vi.fn().mockResolvedValue([]),
+      getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
+    }
+
+    vi.mocked(piAgent.createAgentSession).mockImplementation(async (config: unknown) => {
+      const params = config as {
+        customTools: Array<{
+          name: string
+          execute: (id: string, args: Record<string, unknown>) => Promise<unknown>
+        }>
+      }
+      const tool = params.customTools.find((t) => t.name === 'autofill_metadata')
+      if (tool) {
+        await tool.execute('1', { f1: 'val' })
+      }
+      return {
+        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
+      }
+    })
+
+    const context = {
+      agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
+      dbProviders: [],
+      teamSkills: [],
+      allowedDomains: [],
+    } as unknown as AgentExecutionContext
+
+    await autofillAiActivity({
+      teamId: 't1',
+      assetId: 'pdf-1',
+      assetName: 'report.pdf',
+      mediaType: 'application/pdf',
+      pageCount: 15,
+      images: [],
+      fields: [{ id: 'f1', config: { name: 'F1', type: 'text' } }],
+      context,
+    })
+
+    const capturedPrompt = mockHarness.prompt.mock.calls[0]?.[0] ?? ''
+    expect(capturedPrompt).toContain('You are tasked with analyzing the asset "report.pdf"')
+    expect(capturedPrompt).toContain(
+      'Document pages: 15. Recommended inspection: call read_asset with docConfig: { mode: "pages", startPage: 1, endPage: 15 } or mode: "text".',
+    )
   })
 })
 

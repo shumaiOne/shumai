@@ -210,6 +210,7 @@ User messages may contain a <context> block detailing the user, active asset loc
     sessionId: params.sessionId,
     userId: params.userId,
     projectId: params.projectId,
+    assetId: params.assetId,
     userCommentId: params.userCommentId,
     customTools: [...(params.tools || []), ...mcpTools],
     providers: dbProviders.map((p) => ({
@@ -522,22 +523,25 @@ export async function agentChatActivity(params: AgentChatParams) {
 
 export interface AutofillAiParams {
   teamId: string
-  images: string[]
+  images?: string[]
   fields: AutofillField[]
   context: AgentExecutionContext
   assetId?: string
   projectId?: string
+  assetName?: string
+  mediaType?: string
+  duration?: number
+  pageCount?: number
 }
 
 export async function autofillAiActivity(params: AutofillAiParams) {
-  const prompt = 'Analyze the provided images and extract metadata.'
   const toolSchema = fieldsToTypeBoxSchema(params.fields)
   let capturedData: Record<string, unknown> | null = null
 
   const autofillTool: AgentTool = {
     name: 'autofill_metadata',
     label: 'Autofill Metadata',
-    description: 'Extract metadata from the images.',
+    description: 'Provide the extracted metadata once you have analyzed the asset content.',
     parameters: toolSchema,
     execute: async (_toolCallId, toolParams) => {
       capturedData = toolParams as Record<string, unknown>
@@ -548,7 +552,29 @@ export async function autofillAiActivity(params: AutofillAiParams) {
     },
   }
 
-  const fullPrompt = `${prompt}\n\nPlease use the "autofill_metadata" tool to provide the extracted metadata.`
+  const promptLines: string[] = [
+    `You are tasked with analyzing the asset "${params.assetName || params.assetId || 'unknown'}" (ID: "${params.assetId || ''}", mediaType: "${params.mediaType || 'unknown'}") to extract and autofill its metadata fields.`,
+  ]
+
+  if (params.duration !== undefined && params.duration > 0) {
+    promptLines.push(
+      `- Video duration: ${params.duration.toFixed(1)}s. Recommended inspection: call read_asset with videoConfig: { start: 0, end: ${params.duration.toFixed(1)}, count: 10 }.`,
+    )
+  }
+  if (params.pageCount !== undefined && params.pageCount > 0) {
+    promptLines.push(
+      `- Document pages: ${params.pageCount}. Recommended inspection: call read_asset with docConfig: { mode: "pages", startPage: 1, endPage: ${Math.min(params.pageCount, 20)} } or mode: "text".`,
+    )
+  }
+
+  promptLines.push(
+    '',
+    'Instructions:',
+    `1. Call the "read_asset" tool with assetId: "${params.assetId || ''}" to inspect the asset content (use imageConfig, videoConfig, or docConfig according to the media type).`,
+    '2. After analyzing the retrieved content, call the "autofill_metadata" tool to provide the extracted metadata values.',
+  )
+
+  const fullPrompt = promptLines.join('\n')
 
   const { agent } = params.context
 
@@ -556,7 +582,7 @@ export async function autofillAiActivity(params: AutofillAiParams) {
     teamId: params.teamId,
     agentId: agent.id,
     prompt: fullPrompt,
-    images: params.images,
+    images: params.images || [],
     sessionId: undefined,
     userId: undefined,
     projectId: params.projectId,

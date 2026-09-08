@@ -141,7 +141,20 @@ export function isPlainTextAsset(mediaType: string, filename: string): boolean {
 const MAX_TEXT_BYTES = 50 * 1024
 const MAX_TEXT_LINES = 1000
 
-export function createReadAssetTool(userId: string): AgentTool<typeof readAssetSchema> {
+export interface ReadAssetAuthContext {
+  userId?: string
+  teamId?: string
+  agentType?: 'chat' | 'autofill' | 'embedding'
+  targetAssetId?: string
+}
+
+export function createReadAssetTool(
+  auth: string | ReadAssetAuthContext,
+): AgentTool<typeof readAssetSchema> {
+  const authContext: ReadAssetAuthContext =
+    typeof auth === 'string' ? { userId: auth, agentType: 'chat' } : auth
+  const { userId, teamId, agentType = 'chat', targetAssetId } = authContext
+
   return {
     name: 'read_asset',
     label: 'Read Asset',
@@ -154,16 +167,45 @@ export function createReadAssetTool(userId: string): AgentTool<typeof readAssetS
     execute: async (_toolCallId, params) => {
       const { assetId, annotationId, s3KeyOnly, videoConfig, docConfig } = params
 
-      if (!userId) {
-        throw new Error('User ID is required for authorization.')
-      }
+      if (agentType === 'autofill' && !userId) {
+        // System background execution for Autofill Agent
+        const assetRecord = await prisma.asset.findUnique({
+          where: { id: assetId },
+          include: { project: true, teamRootFolder: true },
+        })
+        if (!assetRecord) {
+          throw new Error(`Asset with ID ${assetId} not found.`)
+        }
 
-      await authzService.hasPermission({
-        user: { id: userId } as User,
-        permission: Permission.Read,
-        type: ResourceType.Asset,
-        id: assetId,
-      })
+        // Strict team boundary check
+        const assetTeamId = assetRecord.project?.teamId || assetRecord.teamRootFolder?.id
+        if (teamId && assetTeamId && assetTeamId !== teamId) {
+          throw new Error(`Access denied: asset ${assetId} does not belong to team ${teamId}.`)
+        }
+
+        // Strict target asset boundary check (allows the target asset or its version stack children/parent)
+        if (
+          targetAssetId &&
+          assetRecord.id !== targetAssetId &&
+          assetRecord.parentId !== targetAssetId
+        ) {
+          throw new Error(
+            `Access denied: autofill agent can only read target asset ${targetAssetId}.`,
+          )
+        }
+      } else {
+        // Chat agents or user-driven executions strictly require a userId and full ACL validation
+        if (!userId) {
+          throw new Error('User ID is required for authorization.')
+        }
+
+        await authzService.hasPermission({
+          user: { id: userId } as User,
+          permission: Permission.Read,
+          type: ResourceType.Asset,
+          id: assetId,
+        })
+      }
 
       let asset = await prisma.asset.findUnique({
         where: { id: assetId },

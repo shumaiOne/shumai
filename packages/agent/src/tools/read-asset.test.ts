@@ -641,4 +641,101 @@ describe('readAssetTool', () => {
       )
     })
   })
+
+  describe('ReadAssetAuthContext & Security Boundaries', () => {
+    it('throws authorization error if chat agent lacks userId', async () => {
+      const tool = createReadAssetTool({
+        agentType: 'chat',
+        teamId: 'team-1',
+      })
+      await expect(
+        tool.execute('call-1', {
+          assetId: 'asset-1',
+          annotationId: null,
+          imageConfig: null,
+          videoConfig: null,
+          docConfig: null,
+        }),
+      ).rejects.toThrow('User ID is required for authorization.')
+    })
+
+    it('denies autofill agent if asset belongs to another team', async () => {
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'asset-1',
+        project: { teamId: 'other-team' },
+      } as unknown as Asset)
+
+      const tool = createReadAssetTool({
+        agentType: 'autofill',
+        teamId: 'team-1',
+        targetAssetId: 'asset-1',
+      })
+
+      await expect(
+        tool.execute('call-1', {
+          assetId: 'asset-1',
+          annotationId: null,
+          imageConfig: null,
+          videoConfig: null,
+          docConfig: null,
+        }),
+      ).rejects.toThrow('Access denied: asset asset-1 does not belong to team team-1.')
+    })
+
+    it('denies autofill agent if reading an unrelated asset not matching targetAssetId', async () => {
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'other-asset',
+        parentId: null,
+        project: { teamId: 'team-1' },
+      } as unknown as Asset)
+
+      const tool = createReadAssetTool({
+        agentType: 'autofill',
+        teamId: 'team-1',
+        targetAssetId: 'target-asset-id',
+      })
+
+      await expect(
+        tool.execute('call-1', {
+          assetId: 'other-asset',
+          annotationId: null,
+          imageConfig: null,
+          videoConfig: null,
+          docConfig: null,
+        }),
+      ).rejects.toThrow('Access denied: autofill agent can only read target asset target-asset-id.')
+    })
+
+    it('allows autofill agent to read target asset without userId', async () => {
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'target-asset-id',
+        name: 'test.png',
+        mediaType: 'image/png',
+        storageKey: { key: 'raw/test.png' },
+        media: { proxyType: 'image' },
+        project: { teamId: 'team-1' },
+      } as unknown as Asset)
+
+      const tool = createReadAssetTool({
+        agentType: 'autofill',
+        teamId: 'team-1',
+        targetAssetId: 'target-asset-id',
+      })
+
+      const result = await tool.execute('call-1', {
+        assetId: 'target-asset-id',
+        annotationId: null,
+        s3KeyOnly: true,
+        imageConfig: null,
+        videoConfig: null,
+        docConfig: null,
+      })
+
+      expect(authzService.hasPermission).not.toHaveBeenCalled()
+      expect(result.content.length).toBe(1)
+      expect((result.content[0] as { type: 'text'; text: string }).text).toContain(
+        'target-asset-id',
+      )
+    })
+  })
 })
