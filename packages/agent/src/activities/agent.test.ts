@@ -590,6 +590,79 @@ describe('Agent Activities', () => {
       'Document pages: 15. Recommended inspection: call read_asset with docConfig: { mode: "pages", startPage: 1, endPage: 15 } or mode: "text".',
     )
   })
+
+  it('should ignore inappropriate mediaType recommendations in autofillAiActivity', async () => {
+    const mockHarness = {
+      subscribe: vi.fn(),
+      prompt: vi.fn().mockResolvedValue({
+        content: [{ type: 'text', text: 'Captured' }],
+        usage: { input: 5, output: 5 },
+      }),
+    }
+    const mockSession = {
+      getEntries: vi.fn().mockResolvedValue([]),
+      getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
+    }
+
+    vi.mocked(piAgent.createAgentSession).mockImplementation(async (config: unknown) => {
+      const params = config as {
+        customTools: Array<{
+          name: string
+          execute: (id: string, args: Record<string, unknown>) => Promise<unknown>
+        }>
+      }
+      const tool = params.customTools.find((t) => t.name === 'autofill_metadata')
+      if (tool) {
+        await tool.execute('1', { f1: 'val' })
+      }
+      return {
+        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
+      }
+    })
+
+    const context = {
+      agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
+      dbProviders: [],
+      teamSkills: [],
+      allowedDomains: [],
+    } as unknown as AgentExecutionContext
+
+    // For a video asset, pageCount should NOT produce Document pages recommendation
+    await autofillAiActivity({
+      teamId: 't1',
+      assetId: 'video-1',
+      assetName: 'video.mp4',
+      mediaType: 'video/mp4',
+      duration: 10.1,
+      pageCount: 300,
+      images: [],
+      fields: [{ id: 'f1', config: { name: 'F1', type: 'text' } }],
+      context,
+    })
+
+    const videoPrompt = mockHarness.prompt.mock.calls[0]?.[0] ?? ''
+    expect(videoPrompt).toContain('Video duration: 10.1s')
+    expect(videoPrompt).not.toContain('Document pages')
+
+    // For a PDF asset, duration should NOT produce Video duration recommendation
+    await autofillAiActivity({
+      teamId: 't1',
+      assetId: 'pdf-2',
+      assetName: 'document.pdf',
+      mediaType: 'application/pdf',
+      duration: 10.1,
+      pageCount: 50,
+      images: [],
+      fields: [{ id: 'f1', config: { name: 'F1', type: 'text' } }],
+      context,
+    })
+
+    const pdfPrompt = mockHarness.prompt.mock.calls[1]?.[0] ?? ''
+    expect(pdfPrompt).toContain('Document pages: 50')
+    expect(pdfPrompt).not.toContain('Video duration')
+  })
 })
 
 describe('Agent Database Activities Integration', () => {

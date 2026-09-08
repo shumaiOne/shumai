@@ -1,6 +1,7 @@
 import type { WorkflowTask } from '@shumai/db'
 import { executeActivity, getActivities, TaskQueueAgent } from '@shumai/workflow-core'
 import { ApplicationFailure } from '@temporalio/workflow'
+import { getProxyType } from '@shumai/core/src/utils/mime'
 
 export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
   const {
@@ -74,13 +75,21 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
 
     // 4. Call AI Service (inspects asset on demand via read_asset)
     const mediaInfo = asset.media as PrismaJson.MediaInfo | null
-    const duration = typeof mediaInfo?.duration === 'number' ? mediaInfo.duration : undefined
+    const proxyType = mediaInfo?.proxyType || getProxyType(asset.mediaType, asset.name) || undefined
+
+    const duration =
+      (proxyType === 'video' || proxyType === 'audio') && typeof mediaInfo?.duration === 'number'
+        ? mediaInfo.duration
+        : undefined
+
     const pageCount =
-      typeof mediaInfo?.metadata?.totalFrames === 'number'
-        ? mediaInfo.metadata.totalFrames
-        : typeof mediaInfo?.frames === 'number'
-          ? mediaInfo.frames
-          : undefined
+      proxyType === 'pdf'
+        ? typeof mediaInfo?.metadata?.totalFrames === 'number'
+          ? mediaInfo.metadata.totalFrames
+          : typeof mediaInfo?.frames === 'number'
+            ? mediaInfo.frames
+            : undefined
+        : undefined
 
     const aiResult = await executeActivity(agentWorkerQueue, autofillAiActivity, {
       teamId,

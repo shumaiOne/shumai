@@ -125,7 +125,7 @@ describe('Agent Autofill Workflow', () => {
       assetId: 'a1',
       assetName: 'test.png',
       mediaType: 'image/png',
-      duration: 10,
+      duration: undefined,
       pageCount: undefined,
       projectId: 'p1',
       fields: [
@@ -275,5 +275,87 @@ describe('Agent Autofill Workflow', () => {
       status: 'failed',
       output: { error: 'Asset or project not found' },
     })
+  })
+
+  it('should not pass pageCount for video assets when calling autofillAiActivity', async () => {
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'v1',
+      name: 'test.mp4',
+      projectId: 'p1',
+      storageKey: { key: 'asset-video-key' },
+      project: { id: 'p1', teamId: 't1' },
+      mediaType: 'video/mp4',
+      media: {
+        proxyType: 'video',
+        duration: 10.1,
+        frames: 300,
+        metadata: { totalFrames: 300 },
+      },
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_metadata_autofill',
+        status: 'pending',
+        assetId: 'v1',
+        payload: {
+          projectId: 'p1',
+          agent: { sessionId: 's1', agentId: 'agent-1' },
+        },
+      },
+    })
+
+    await agentAutofillMedia(task)
+
+    expect(mockActivities.autofillAiActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetId: 'v1',
+        assetName: 'test.mp4',
+        mediaType: 'video/mp4',
+        duration: 10.1,
+        pageCount: undefined,
+      }),
+    )
+  })
+
+  it('should pass pageCount and no duration for pdf assets when calling autofillAiActivity', async () => {
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'doc1',
+      name: 'test.pdf',
+      projectId: 'p1',
+      storageKey: { key: 'asset-doc-key' },
+      project: { id: 'p1', teamId: 't1' },
+      mediaType: 'application/pdf',
+      media: {
+        proxyType: 'pdf',
+        duration: 0,
+        frames: 25,
+        metadata: { totalFrames: 25 },
+      },
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_metadata_autofill',
+        status: 'pending',
+        assetId: 'doc1',
+        payload: {
+          projectId: 'p1',
+          agent: { sessionId: 's1', agentId: 'agent-1' },
+        },
+      },
+    })
+
+    await agentAutofillMedia(task)
+
+    expect(mockActivities.autofillAiActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetId: 'doc1',
+        assetName: 'test.pdf',
+        mediaType: 'application/pdf',
+        duration: undefined,
+        pageCount: 25,
+      }),
+    )
   })
 })
