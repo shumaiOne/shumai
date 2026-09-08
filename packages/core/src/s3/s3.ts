@@ -232,9 +232,13 @@ export class S3StorageService implements S3Service {
       return
     }
 
+    const writeStream = fs.createWriteStream(filePath)
     try {
-      await pipeline(res.Body as unknown as NodeJS.ReadableStream, fs.createWriteStream(filePath))
+      await pipeline(res.Body as unknown as NodeJS.ReadableStream, writeStream)
     } catch (err) {
+      if (!writeStream.closed) {
+        await new Promise((resolve) => writeStream.once('close', resolve))
+      }
       await fs.promises.unlink(filePath).catch(() => {})
       throw err
     }

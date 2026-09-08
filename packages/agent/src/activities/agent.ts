@@ -20,6 +20,7 @@ import {
 
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
 import { quotaService, QuotaExceededError } from '@shumai/core/src/quota/quota-service'
+import { getProxyType } from '@shumai/core/src/utils/mime'
 import {
   UpdateAssetMetadataRequest,
   type ShumaiMessageContext,
@@ -560,12 +561,16 @@ export async function autofillAiActivity(params: AutofillAiParams) {
     `You are tasked with analyzing the asset "${params.assetName || params.assetId || 'unknown'}" (ID: "${params.assetId || ''}", mediaType: "${params.mediaType || 'unknown'}") to extract and autofill its metadata fields.`,
   ]
 
-  if (params.duration !== undefined && params.duration > 0) {
+  const proxyType = getProxyType(params.mediaType, params.assetName)
+  const isVideoOrAudio = proxyType === 'video' || proxyType === 'audio'
+  const isPdf = proxyType === 'pdf'
+
+  if (params.duration !== undefined && params.duration > 0 && (!proxyType || isVideoOrAudio)) {
     promptLines.push(
       `- Video duration: ${params.duration.toFixed(1)}s. Recommended inspection: call read_asset with videoConfig: { start: 0, end: ${params.duration.toFixed(1)}, count: 10 }.`,
     )
   }
-  if (params.pageCount !== undefined && params.pageCount > 0) {
+  if (params.pageCount !== undefined && params.pageCount > 0 && (!proxyType || isPdf)) {
     promptLines.push(
       `- Document pages: ${params.pageCount}. Recommended inspection: call read_asset with docConfig: { mode: "pages", startPage: 1, endPage: ${Math.min(params.pageCount, 20)} } or mode: "text".`,
     )
