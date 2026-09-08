@@ -27,9 +27,6 @@ describe('Agent Autofill Workflow', () => {
         _activityName: 'updateTaskStatusActivity',
       }),
       getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
-      extractAiMetadataActivity: Object.assign(vi.fn(), {
-        _activityName: 'extractAiMetadataActivity',
-      }),
       getProjectAutofillFieldsActivity: Object.assign(vi.fn(), {
         _activityName: 'getProjectAutofillFieldsActivity',
       }),
@@ -46,35 +43,23 @@ describe('Agent Autofill Workflow', () => {
       }),
       createCommentActivity: Object.assign(vi.fn(), { _activityName: 'createCommentActivity' }),
       updateCommentActivity: Object.assign(vi.fn(), { _activityName: 'updateCommentActivity' }),
-      getTranscodeWorkerQueueActivity: Object.assign(vi.fn(), {
-        _activityName: 'getTranscodeWorkerQueueActivity',
-      }),
       getAgentWorkerQueueActivity: Object.assign(vi.fn(), {
         _activityName: 'getAgentWorkerQueueActivity',
       }),
-      downloadMediaToTmpActivity: Object.assign(vi.fn(), {
-        _activityName: 'downloadMediaToTmpActivity',
-      }),
-      cleanupTmpDirActivity: Object.assign(vi.fn(), { _activityName: 'cleanupTmpDirActivity' }),
     }
 
     mockActivities.getAgentWorkerQueueActivity.mockResolvedValue('agent_queue')
-    mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_queue')
     mockActivities.updateTaskStatusActivity.mockResolvedValue({})
     mockActivities.createCommentActivity.mockResolvedValue({ id: 'comment-placeholder-id' })
     mockActivities.getAssetActivity.mockResolvedValue({
       id: 'a1',
+      name: 'test.png',
       projectId: 'p1',
       storageKey: { key: 'asset-key' },
       project: { id: 'p1', teamId: 't1' },
       mediaType: 'image/png',
-      media: { proxyType: 'image' },
+      media: { proxyType: 'image', duration: 10 },
     })
-    mockActivities.downloadMediaToTmpActivity.mockResolvedValue({
-      filePath: '/tmp/test.png',
-      tmpDir: '/tmp/test-dir',
-    })
-    mockActivities.extractAiMetadataActivity.mockResolvedValue(['/tmp/test-dir/1.webp'])
     mockActivities.getProjectAutofillFieldsActivity.mockResolvedValue([
       { key: 'title', config: { name: 'Title', type: 'text' }, description: 'The title' },
     ])
@@ -110,7 +95,6 @@ describe('Agent Autofill Workflow', () => {
 
     // Verify queue discovery
     expect(mockActivities.getAgentWorkerQueueActivity).toHaveBeenCalled()
-    expect(mockActivities.getTranscodeWorkerQueueActivity).toHaveBeenCalled()
 
     // Verify task processing status
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
@@ -129,23 +113,21 @@ describe('Agent Autofill Workflow', () => {
       agentId: 'agent-1',
     })
 
-    // Verify extraction and fields fetched
-    expect(mockActivities.extractAiMetadataActivity).toHaveBeenCalledWith({
-      assetKey: 'asset-key',
-      type: 'autofill',
-      isImage: true,
-    })
+    // Verify fields and context fetched
     expect(mockActivities.getProjectAutofillFieldsActivity).toHaveBeenCalledWith('p1')
     expect(mockActivities.getAgentAutofillContextActivity).toHaveBeenCalledWith({
       teamId: 't1',
     })
 
-    // Verify AI autofill called with mapped fields
+    // Verify AI autofill called with asset details and mapped fields
     expect(mockActivities.autofillAiActivity).toHaveBeenCalledWith({
       teamId: 't1',
       assetId: 'a1',
+      assetName: 'test.png',
+      mediaType: 'image/png',
+      duration: 10,
+      pageCount: undefined,
       projectId: 'p1',
-      images: ['/tmp/test-dir/1.webp'],
       fields: [
         {
           id: 'title',
@@ -189,31 +171,35 @@ describe('Agent Autofill Workflow', () => {
     })
   })
 
-  it('should complete early if no image files could be extracted', async () => {
-    mockActivities.extractAiMetadataActivity.mockResolvedValue([])
+  it('should pass pageCount for PDF assets to autofillAiActivity', async () => {
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'a2',
+      name: 'document.pdf',
+      projectId: 'p1',
+      project: { id: 'p1', teamId: 't1' },
+      mediaType: 'application/pdf',
+      media: { metadata: { totalFrames: 15 } },
+    })
 
     const task = await prisma.workflowTask.create({
       data: {
         type: 'ai_metadata_autofill',
         status: 'pending',
-        assetId: 'a1',
+        assetId: 'a2',
       },
     })
 
     await agentAutofillMedia(task)
 
-    expect(mockActivities.updateCommentActivity).toHaveBeenCalledWith({
-      commentId: 'comment-placeholder-id',
-      message: 'Autofill completed: No images could be extracted for analysis.',
-    })
-
-    expect(mockActivities.autofillAiActivity).not.toHaveBeenCalled()
-    expect(mockActivities.updateAssetMetadataActivity).not.toHaveBeenCalled()
-
-    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
-      taskId: task.id,
-      status: 'completed',
-    })
+    expect(mockActivities.autofillAiActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetId: 'a2',
+        assetName: 'document.pdf',
+        mediaType: 'application/pdf',
+        pageCount: 15,
+        duration: undefined,
+      }),
+    )
   })
 
   it('should complete early if no autofill fields are defined in the project', async () => {
@@ -243,7 +229,7 @@ describe('Agent Autofill Workflow', () => {
     })
   })
 
-  it('should handle failures, update placeholder with error, set status to failed, and cleanup tmp directory', async () => {
+  it('should handle failures, update placeholder with error, and set status to failed', async () => {
     mockActivities.getProjectAutofillFieldsActivity.mockRejectedValue(new Error('DB failure'))
 
     const task = await prisma.workflowTask.create({
@@ -270,32 +256,24 @@ describe('Agent Autofill Workflow', () => {
     })
   })
 
-  it('should fail with non-retryable ApplicationFailure for unsupported audio files', async () => {
-    mockActivities.getAssetActivity.mockResolvedValue({
-      id: 'a1',
-      storageKey: { key: 'asset-key' },
-      project: { id: 'p1', teamId: 't1' },
-      mediaType: 'audio/mp3',
-      media: { proxyType: 'audio' },
-    })
+  it('should fail with non-retryable ApplicationFailure when asset or project is not found', async () => {
+    mockActivities.getAssetActivity.mockResolvedValue(null)
 
     const task = await prisma.workflowTask.create({
       data: {
         type: 'ai_metadata_autofill',
         status: 'pending',
-        assetId: 'a1',
+        assetId: 'a-missing',
       },
     })
 
-    await expect(agentAutofillMedia(task)).rejects.toThrow(
-      'unsupported media type for autofill: audio/mp3',
-    )
+    await expect(agentAutofillMedia(task)).rejects.toThrow('Asset or project not found')
 
     // Verify task failed status
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
       taskId: task.id,
       status: 'failed',
-      output: { error: 'unsupported media type for autofill: audio/mp3' },
+      output: { error: 'Asset or project not found' },
     })
   })
 })

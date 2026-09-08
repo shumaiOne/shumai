@@ -932,16 +932,7 @@ export async function createAutofillTaskIfEnabledActivity(
       project: true,
     },
   })
-  if (!asset) {
-    return
-  }
-
-  const proxyType =
-    (asset.media as PrismaJson.MediaInfo | null)?.proxyType ||
-    getProxyType(asset.mediaType, asset.name)
-  const isVideo = proxyType === 'video'
-  const isImage = proxyType === 'image'
-  if (!isVideo && !isImage) {
+  if (!asset || (asset.type !== 'file' && asset.type !== 'version_stack') || asset.isDeleted) {
     return
   }
 

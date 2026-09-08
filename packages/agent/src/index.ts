@@ -112,6 +112,7 @@ export interface CreateAgentSessionParams {
   sessionId?: string
   userId?: string
   projectId?: string
+  assetId?: string
   userCommentId?: string | null
   customTools?: AgentTool[]
   thinkingLevel?: string
@@ -149,6 +150,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     sessionId,
     userId,
     projectId,
+    assetId,
     userCommentId: passedUserCommentId,
     customTools = [],
     thinkingLevel,
@@ -316,16 +318,24 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     }
   }
 
-  const mediaTools: AgentTool[] = []
-  if (userId) {
-    mediaTools.push(createReadAssetTool(userId))
-  }
-
   const agent = await prisma.agent.findUnique({
     where: { id: agentId },
   })
   const agentConfig = agent?.config as PrismaJson.AgentConfig | null | undefined
   const deniedTools = agentConfig?.deniedTools ?? [...DEFAULT_DENIED_TOOLS]
+
+  const mediaTools: AgentTool[] = []
+  if (userId) {
+    mediaTools.push(createReadAssetTool(userId))
+  } else if (agent?.type === 'autofill' && assetId) {
+    mediaTools.push(
+      createReadAssetTool({
+        teamId,
+        agentType: 'autofill',
+        targetAssetId: assetId,
+      }),
+    )
+  }
 
   if (!deniedTools.includes('generate_image') || !deniedTools.includes('generate_video')) {
     try {

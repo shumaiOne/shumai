@@ -1,18 +1,11 @@
 import type { WorkflowTask } from '@shumai/db'
-import {
-  executeActivity,
-  getActivities,
-  TaskQueueAgent,
-  TaskQueueTranscode,
-} from '@shumai/workflow-core'
+import { executeActivity, getActivities, TaskQueueAgent } from '@shumai/workflow-core'
 import { ApplicationFailure } from '@temporalio/workflow'
-import { getProxyType } from '@shumai/core/src/utils/mime'
 
 export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
   const {
     updateTaskStatusActivity,
     getAssetActivity,
-    extractAiMetadataActivity,
     getProjectAutofillFieldsActivity,
     getAgentAutofillContextActivity,
     autofillAiActivity,
@@ -20,21 +13,15 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     updateAssetMetadataActivity,
     createCommentActivity,
     updateCommentActivity,
-    getTranscodeWorkerQueueActivity,
     getAgentWorkerQueueActivity,
   } = getActivities()
 
   let placeholderCommentId: string | undefined
-  let transcodeWorkerQueue: string
   let agentWorkerQueue = ''
 
   try {
     // 0. Discover queues
     agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
-    transcodeWorkerQueue = await executeActivity(
-      TaskQueueTranscode,
-      getTranscodeWorkerQueueActivity,
-    )
 
     // Update status to processing
     await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
@@ -54,49 +41,13 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
 
     // 1. Get Asset
     const asset = await executeActivity(agentWorkerQueue, getAssetActivity, task.assetId)
-    const key = asset?.storageKey?.key
-    if (!asset || !asset.project || !key) {
+    if (!asset || !asset.project) {
       throw ApplicationFailure.create({ message: 'Asset or project not found', nonRetryable: true })
     }
     const teamId = asset.project.teamId
     const projectId = asset.project.id
 
-    // 2. Prepare Data (Images)
-    const proxyType =
-      (asset.media as PrismaJson.MediaInfo | null)?.proxyType ||
-      getProxyType(asset.mediaType, asset.name)
-    const isImage = proxyType === 'image'
-    const isVideo = proxyType === 'video'
-
-    if (!isImage && !isVideo) {
-      throw ApplicationFailure.create({
-        message: `unsupported media type for autofill: ${asset.mediaType}`,
-        nonRetryable: true,
-      })
-    }
-
-    const generatedFiles = await executeActivity(transcodeWorkerQueue, extractAiMetadataActivity, {
-      assetKey: key,
-      type: 'autofill',
-      isImage,
-    })
-
-    if (generatedFiles.length === 0) {
-      // If no images could be extracted, we can't do much
-      if (placeholderCommentId) {
-        await executeActivity(agentWorkerQueue, updateCommentActivity, {
-          commentId: placeholderCommentId,
-          message: 'Autofill completed: No images could be extracted for analysis.',
-        })
-      }
-      await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
-        taskId: task.id,
-        status: 'completed',
-      })
-      return
-    }
-
-    // 3. Get Project Autofill Fields
+    // 2. Get Project Autofill Fields
     const fields = await executeActivity(
       agentWorkerQueue,
       getProjectAutofillFieldsActivity,
@@ -116,16 +67,28 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
       return
     }
 
-    // 3b. Fetch Agent Context
+    // 3. Fetch Agent Context
     const context = await executeActivity(agentWorkerQueue, getAgentAutofillContextActivity, {
       teamId,
     })
 
-    // 4. Call AI Service
+    // 4. Call AI Service (inspects asset on demand via read_asset)
+    const mediaInfo = asset.media as PrismaJson.MediaInfo | null
+    const duration = typeof mediaInfo?.duration === 'number' ? mediaInfo.duration : undefined
+    const pageCount =
+      typeof mediaInfo?.metadata?.totalFrames === 'number'
+        ? mediaInfo.metadata.totalFrames
+        : typeof mediaInfo?.frames === 'number'
+          ? mediaInfo.frames
+          : undefined
+
     const aiResult = await executeActivity(agentWorkerQueue, autofillAiActivity, {
       teamId,
-      images: generatedFiles,
       assetId: asset.id,
+      assetName: asset.name,
+      mediaType: asset.mediaType ?? undefined,
+      duration,
+      pageCount,
       projectId: asset.projectId ?? undefined,
       fields: fields.map(
         (f: { key: string; config: Record<string, unknown>; description?: string | null }) => ({
