@@ -941,7 +941,8 @@ export async function createAutofillTaskIfEnabledActivity(
     getProxyType(asset.mediaType, asset.name)
   const isVideo = proxyType === 'video'
   const isImage = proxyType === 'image'
-  if (!isVideo && !isImage) {
+  const isPdf = proxyType === 'pdf'
+  if (!isVideo && !isImage && !isPdf) {
     return
   }
 

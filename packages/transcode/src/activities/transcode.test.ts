@@ -1094,5 +1094,55 @@ describe('Transcode Activities', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((task?.payload as any)?.agent?.agentId).toBe(autofillAgent.id)
     })
+
+    it('should create ai_metadata_autofill task when autofill agent exists and asset is pdf', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'Test User Autofill PDF', email: 'test-autofill-agent-pdf@test.com' },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'Test Team Autofill PDF' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'owner' },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project Autofill PDF', teamId: team.id },
+      })
+      const autofillAgent = await prisma.agent.create({
+        data: {
+          id: user.id,
+          type: 'autofill',
+          enabled: true,
+          teamId: team.id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          config: { provider: 'test', model: 'test' } as any,
+        },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'document.pdf',
+          mediaType: 'application/pdf',
+          type: 'file',
+          status: 'processed',
+          projectId: project.id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          media: { proxyType: 'pdf' } as any,
+        },
+      })
+
+      await createAutofillTaskIfEnabledActivity({
+        assetId: asset.id,
+        teamId: team.id,
+        projectId: project.id,
+      })
+
+      const task = await prisma.workflowTask.findFirst({
+        where: { assetId: asset.id, type: 'ai_metadata_autofill' },
+      })
+      expect(task).toBeDefined()
+      expect(task?.status).toBe('pending')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((task?.payload as any)?.agent?.agentId).toBe(autofillAgent.id)
+    })
   })
 })
