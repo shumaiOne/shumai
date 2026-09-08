@@ -18,6 +18,7 @@ export class SandboxService {
   private currentAllowedDomains: string[] = []
   private teamId: string | null = null
   private lastBlockedHost = ''
+  private syncQueue: Promise<void> = Promise.resolve()
 
   constructor(provider?: SandboxProvider) {
     this.provider = provider ?? new LocalSandboxProvider()
@@ -29,6 +30,7 @@ export class SandboxService {
     this.initPromise = null
     this.currentAllowedDomains = []
     this.lastBlockedHost = ''
+    this.syncQueue = Promise.resolve()
   }
 
   getProvider(): SandboxProvider {
@@ -108,32 +110,46 @@ export class SandboxService {
   }
 
   async syncAllowedDomains(incomingDomains: string[], teamId?: string): Promise<void> {
-    if (teamId) {
-      this.teamId = teamId
+    const runSync = async () => {
+      if (teamId) {
+        this.teamId = teamId
+      }
+
+      if (!this.isInitialized()) {
+        await this.ensureInitialized({ allowedDomains: incomingDomains, teamId })
+      }
+
+      if (this.areDomainsEqual(this.currentAllowedDomains, incomingDomains)) {
+        return
+      }
+
+      try {
+        await this.provider.updateConfig({
+          network: {
+            allowedDomains: incomingDomains,
+            deniedDomains: [],
+          },
+        })
+        this.currentAllowedDomains = [...incomingDomains]
+        logger.info({ incomingDomains }, 'Sandbox allowed domains hot-reloaded successfully')
+      } catch (err) {
+        logger.error({ err, incomingDomains }, 'Failed to hot-reload sandbox allowed domains')
+        throw err
+      }
     }
 
-    if (!this.isInitialized()) {
-      await this.ensureInitialized({ allowedDomains: incomingDomains, teamId })
-      return
-    }
+    const previous = this.syncQueue
+    const current = (async () => {
+      try {
+        await previous
+      } catch {
+        // Ignore errors from previous syncs so subsequent calls proceed
+      }
+      return runSync()
+    })()
 
-    if (this.areDomainsEqual(this.currentAllowedDomains, incomingDomains)) {
-      return
-    }
-
-    try {
-      await this.provider.updateConfig({
-        network: {
-          allowedDomains: incomingDomains,
-          deniedDomains: [],
-        },
-      })
-      this.currentAllowedDomains = [...incomingDomains]
-      logger.info({ incomingDomains }, 'Sandbox allowed domains hot-reloaded successfully')
-    } catch (err) {
-      logger.error({ err, incomingDomains }, 'Failed to hot-reload sandbox allowed domains')
-      throw err
-    }
+    this.syncQueue = current
+    await current
   }
 
   async wrapCommand(command: string, options?: WrapCommandOptions): Promise<string> {
@@ -145,10 +161,7 @@ export class SandboxService {
 
   getBlockedHost(commandId?: string): string {
     if (commandId) {
-      const hostFromViolation = this.provider.getBlockedHostForCommand(commandId)
-      if (hostFromViolation) {
-        return hostFromViolation
-      }
+      return this.provider.getBlockedHostForCommand(commandId) ?? ''
     }
     return this.lastBlockedHost
   }
@@ -164,6 +177,7 @@ export class SandboxService {
     this.currentAllowedDomains = []
     this.lastBlockedHost = ''
     this.teamId = null
+    this.syncQueue = Promise.resolve()
   }
 
   private async handleAskCallback(host: string): Promise<boolean> {

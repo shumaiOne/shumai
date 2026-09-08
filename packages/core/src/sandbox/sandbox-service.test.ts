@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { sandboxService } from './sandbox-service'
-import type { SandboxProvider, SandboxConfig, WrapCommandOptions } from './types'
+import type {
+  SandboxProvider,
+  SandboxConfig,
+  SandboxAskCallback,
+  WrapCommandOptions,
+} from './types'
 import { teamService } from '../team/team'
 
 class MockProvider implements SandboxProvider {
@@ -13,10 +18,16 @@ class MockProvider implements SandboxProvider {
   resetCallCount = 0
   wrapCommandCalls: Array<{ command: string; options?: WrapCommandOptions }> = []
   violationsByCommandId = new Map<string, string>()
+  initDelayPromise: Promise<void> | null = null
+  callback: SandboxAskCallback | undefined
 
-  async initialize(config: SandboxConfig): Promise<void> {
+  async initialize(config: SandboxConfig, callback?: SandboxAskCallback): Promise<void> {
+    if (this.initDelayPromise) {
+      await this.initDelayPromise
+    }
     this.initialized = true
     this.config = config
+    this.callback = callback
     this.initializeCallCount++
   }
 
@@ -146,6 +157,53 @@ describe('SandboxService', () => {
 
     expect(sandboxService.getBlockedHost('tool-call-1')).toBe('blocked.malicious.com')
     expect(sandboxService.getBlockedHost('tool-call-2')).toBe('')
+  })
+
+  it('does not leak lastBlockedHost to command with no violations', async () => {
+    const team = await teamService.ensureDefaultTeam()
+    await prisma.sandbox.upsert({
+      where: { teamId: team.id },
+      create: { teamId: team.id, networkSandboxEnabled: true },
+      update: { networkSandboxEnabled: true },
+    })
+    await sandboxService.ensureInitialized({ teamId: team.id })
+
+    // Simulate global ask callback recording a blocked host
+    if (mockProvider.callback) {
+      await mockProvider.callback({ host: 'blocked.global.com', port: 443 })
+    }
+
+    // Legacy un-scoped call returns lastBlockedHost
+    expect(sandboxService.getBlockedHost()).toBe('blocked.global.com')
+
+    // Command-scoped call for clean command MUST return ''
+    expect(sandboxService.getBlockedHost('clean-cmd')).toBe('')
+
+    // Command-scoped call with recorded violation returns that violation
+    mockProvider.violationsByCommandId.set('violating-cmd', 'violating.host.com')
+    expect(sandboxService.getBlockedHost('violating-cmd')).toBe('violating.host.com')
+  })
+
+  it('serializes concurrent syncAllowedDomains during delayed initialization and applies latest configuration', async () => {
+    const team = await teamService.ensureDefaultTeam()
+
+    let resolveInit: () => void = () => {}
+    mockProvider.initDelayPromise = new Promise<void>((resolve) => {
+      resolveInit = resolve
+    })
+
+    // Start two concurrent sync requests before initialization completes
+    const sync1 = sandboxService.syncAllowedDomains(['first.com'], team.id)
+    const sync2 = sandboxService.syncAllowedDomains(['second.com'], team.id)
+
+    // Complete the provider initialization
+    resolveInit()
+    await Promise.all([sync1, sync2])
+
+    // Provider was initialized once, and then updated to the second request
+    expect(mockProvider.initializeCallCount).toBe(1)
+    expect(mockProvider.updateConfigCallCount).toBe(1)
+    expect(sandboxService.getCurrentAllowedDomains()).toEqual(['second.com'])
   })
 
   it('resets cleanly when reset is invoked', async () => {

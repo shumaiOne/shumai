@@ -212,4 +212,59 @@ describe('Concurrent Sandbox Sessions', () => {
     expect(sandboxService.getBlockedHost('cmd-2')).toBe('blocked2.com')
     expect(sandboxService.getBlockedHost('cmd-unknown')).toBe('')
   })
+
+  it('does not reject concurrent allowed command when another command is blocked', async () => {
+    await sandboxService.ensureInitialized({ allowedDomains: ['api.github.com'] })
+
+    const tool = createSandboxedBashTool('/mock/cwd', undefined, {
+      getBlockedHost: (commandId?: string) => sandboxService.getBlockedHost(commandId),
+      clearBlockedHost: () => sandboxService.clearBlockedHost(),
+    })
+
+    const childBlocked = Object.assign(new EventEmitter(), {
+      stdout: new EventEmitter(),
+      stderr: new EventEmitter(),
+      pid: 101,
+      kill: vi.fn(),
+    })
+    const childAllowed = Object.assign(new EventEmitter(), {
+      stdout: new EventEmitter(),
+      stderr: new EventEmitter(),
+      pid: 102,
+      kill: vi.fn(),
+    })
+
+    let spawnIndex = 0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock spawn implementation
+    ;(spawn as any).mockImplementation(() => {
+      spawnIndex++
+      return spawnIndex === 1 ? childBlocked : childAllowed
+    })
+
+    // Record violation for the blocked command only
+    testProvider.violationsByCommandId.set('call-blocked', 'blocked-target.com')
+
+    const blockedExecution = tool.execute('call-blocked', {
+      command: 'curl http://blocked-target.com',
+      source: 'skill',
+    })
+    const allowedExecution = tool.execute('call-allowed', {
+      command: 'curl https://api.github.com/data',
+      source: 'skill',
+    })
+
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalledTimes(2))
+
+    childBlocked.stdout.emit('data', Buffer.from('blocked output'))
+    childBlocked.emit('close', 0)
+
+    childAllowed.stdout.emit('data', Buffer.from('allowed output'))
+    childAllowed.emit('close', 0)
+
+    await expect(blockedExecution).rejects.toThrow(
+      'Network request to blocked-target.com is blocked',
+    )
+    const allowedResult = await allowedExecution
+    expect(allowedResult.details).toEqual(expect.objectContaining({ exitCode: 0 }))
+  })
 })
