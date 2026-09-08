@@ -25,6 +25,7 @@ import { type AgentHarness, type Session } from '@earendil-works/pi-agent-core'
 import { DatabaseSessionStorage, type DatabaseSessionMetadata } from '../database-session-storage'
 import { triggerLocalCancel } from '@shumai/workflow-core'
 import { Context } from '@temporalio/activity'
+import { logger } from '@shumai/core/src/logger'
 
 import {
   prisma,
@@ -1590,6 +1591,100 @@ describe('Agent Database Activities Integration', () => {
       })
 
       expect(piAgent.createAgentSession).not.toHaveBeenCalled()
+    })
+
+    it('should log error and not update session name when LLM returns an error', async () => {
+      const errorSpy = vi.spyOn(logger, 'error')
+      await prisma.team.create({
+        data: { id: 't1', name: 'Test Team' },
+      })
+      const user = await prisma.user.create({
+        data: { id: 'u1', name: 'Test User', email: 'u1@test.com' },
+      })
+      const agentUser = await prisma.user.create({
+        data: {
+          id: 'agent-123',
+          name: 'Chat Agent User',
+          email: 'agent@shumai.ai',
+          type: 'agent',
+        },
+      })
+      const agent = await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: 't1',
+          type: 'chat',
+          config: { provider: 'openai', model: 'gpt-4' },
+        },
+      })
+      await prisma.agentSession.create({
+        data: {
+          id: 'session-err',
+          agentId: 'agent-123',
+          userId: user.id,
+          cwd: process.cwd(),
+          type: 'chat',
+          name: null,
+        },
+      })
+
+      const mockHarness = {
+        subscribe: vi.fn(),
+        prompt: vi.fn().mockResolvedValue({
+          content: [{ type: 'text', text: '' }],
+          stopReason: 'error',
+          errorMessage: 'Rate limit exceeded (429)',
+        }),
+      }
+      vi.mocked(piAgent.createAgentSession).mockResolvedValue({
+        session: {} as unknown as Session<DatabaseSessionMetadata>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
+      })
+
+      await generateSessionNameActivity({
+        teamId: 't1',
+        agentId: 'agent-123',
+        prompt: 'hello error',
+        sessionId: 'session-err',
+        context: {
+          agent: {
+            ...agent,
+            provider: { name: 'openai' },
+            modelRef: {
+              id: 'm1',
+              providerName: 'openai',
+              modelId: 'gpt-4',
+              name: 'GPT-4',
+              config: {},
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          } as unknown as GenerateSessionNameParams['context']['agent'],
+          dbProviders: [
+            {
+              name: 'openai',
+              config: { api: 'openai-responses', apiKey: 'fake-key' },
+              models: [],
+            },
+          ],
+        },
+      })
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: 'session-err',
+          stopReason: 'error',
+          errorMessage: 'Rate limit exceeded (429)',
+        }),
+        'Failed to generate session name: LLM returned an error',
+      )
+
+      const sessionAfter = await prisma.agentSession.findUnique({
+        where: { id: 'session-err' },
+      })
+      expect(sessionAfter?.name).toBeNull()
+      errorSpy.mockRestore()
     })
   })
 

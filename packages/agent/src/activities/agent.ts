@@ -1414,6 +1414,19 @@ export async function generateSessionNameActivity(
 
     const promptToTitle = `Generate a short 2 to 4 word title for a session starting with this message:\n\n<user_message>\n${prompt}\n</user_message>`
     const result = await harness.prompt(promptToTitle)
+
+    if (result.stopReason === 'error' || result.stopReason === 'aborted' || result.errorMessage) {
+      logger.error(
+        {
+          sessionId,
+          stopReason: result.stopReason,
+          errorMessage: result.errorMessage,
+        },
+        'Failed to generate session name: LLM returned an error',
+      )
+      return
+    }
+
     const resultText = result.content
       .filter((c) => c.type === 'text')
       .map((c) => {
@@ -1440,6 +1453,15 @@ export async function generateSessionNameActivity(
         data: { name: chatName },
       })
       logger.info({ sessionId, chatName }, 'Session name generated successfully')
+    } else {
+      logger.warn(
+        {
+          sessionId,
+          stopReason: result.stopReason,
+          content: result.content,
+        },
+        'Session name not generated: empty title received from model',
+      )
     }
   } catch (err) {
     logger.error({ sessionId, err }, 'Failed to generate session name')
