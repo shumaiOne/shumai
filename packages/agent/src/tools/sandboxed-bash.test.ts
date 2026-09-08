@@ -66,7 +66,13 @@ describe('createSandboxedBashTool', () => {
 
     await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
 
-    expect(SandboxManager.wrapWithSandbox).toHaveBeenCalledWith('echo hello')
+    expect(SandboxManager.wrapWithSandbox).toHaveBeenCalledWith(
+      'echo hello',
+      undefined,
+      undefined,
+      undefined,
+      { commandId: '1' },
+    )
     expect(spawn).toHaveBeenCalledWith(
       'bash',
       ['-c', 'sandboxed-echo hello'],
@@ -116,7 +122,13 @@ describe('createSandboxedBashTool', () => {
     const executePromise = tool.execute('1', { command: 'echo skill', source: 'skill' }, signal)
 
     await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
-    expect(SandboxManager.wrapWithSandbox).toHaveBeenCalledWith('echo skill')
+    expect(SandboxManager.wrapWithSandbox).toHaveBeenCalledWith(
+      'echo skill',
+      undefined,
+      undefined,
+      undefined,
+      { commandId: '1' },
+    )
 
     mockStdout.emit('data', Buffer.from('skill output'))
     mockChild.emit('close', 0)

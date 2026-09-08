@@ -15,6 +15,7 @@ import { migrateLegacyAgentAvatars } from '@shumai/core/src/agent/migration'
 
 import { handleDaemonCommands } from '@shumai/core/src/utils/daemon'
 import { authService } from '@shumai/core/src/auth/auth'
+import { sandboxService } from '@shumai/core'
 
 if (process.argv.includes('--check')) {
   console.log('✅ Web app evaluated successfully!')
@@ -49,6 +50,9 @@ async function run() {
   // Initialize workflows and activities for local executor mode
   initAgentWorkflows()
   initTranscodeWorkflows()
+  await sandboxService.ensureInitialized().catch((err) => {
+    console.error('Failed to eagerly initialize sandbox in web app:', err)
+  })
 
   // Start services
   await metadataService.syncSystemFields().catch(console.error)

@@ -1,4 +1,4 @@
-import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
+import { sandboxService } from '@shumai/core'
 import {
   AgentHarness,
   Session,
@@ -15,7 +15,6 @@ import { logger } from '@shumai/core/src/logger'
 import { prisma } from '@shumai/db'
 import { Type, type TSchema } from 'typebox'
 import * as fs from 'fs'
-import * as os from 'os'
 import * as path from 'path'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
@@ -178,46 +177,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const piDir = path.join(process.cwd(), '.pi')
   if (!fs.existsSync(piDir)) fs.mkdirSync(piDir, { recursive: true })
 
-  const allowWrite = [piDir, os.tmpdir()]
-
-  const sandboxState = {
-    blockedHost: '',
-  }
-
   const role = userId ? await resolveEffectiveRole(teamId, projectId, userId) : undefined
   const isOwner = !userId || role === 'owner'
   const restricted = !isOwner
-  const sandboxAskCallback = async ({ host }: { host: string; port?: number }) => {
-    try {
-      const sandbox = await prisma.sandbox.findUnique({
-        where: { teamId },
-      })
-      if (sandbox && !sandbox.networkSandboxEnabled) {
-        return true
-      }
-      const pendingDomains = sandbox?.pendingDomains || []
-      if (!pendingDomains.includes(host)) {
-        await prisma.sandbox.upsert({
-          where: { teamId },
-          create: {
-            teamId,
-            pendingDomains: [host],
-          },
-          update: {
-            pendingDomains: {
-              push: host,
-            },
-          },
-        })
-      }
-    } catch (err) {
-      console.error('Failed to update sandbox pending domains:', err)
-    }
-
-    sandboxState.blockedHost = host
-
-    return false
-  }
 
   const wrapToolWithQuota = (tool: AgentTool): AgentTool => {
     const originalExecute = tool.execute
@@ -267,25 +229,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     }
   }
 
-  // SandboxManager.initialize is a global operation that applies to the entire process.
-  // We reset it first to ensure any previous process-global SOCKS/HTTP proxy servers
-  // and callbacks are cleaned up, allowing the new callback and allowedDomains to take effect.
-  await SandboxManager.reset()
-  await SandboxManager.initialize(
-    {
-      network: {
-        allowedDomains,
-        deniedDomains: [],
-      },
-      filesystem: {
-        denyRead: ['.env', '.env.*', '*.pem', '*.key'],
-        allowWrite,
-        denyWrite: ['.env', '.env.*', '*.pem', '*.key'],
-      },
-      enableWeakerNestedSandbox: process.env.ENABLE_WEAKER_NESTED_SANDBOX === 'true',
-    },
-    sandboxAskCallback,
-  )
+  await sandboxService.syncAllowedDomains(allowedDomains, teamId)
 
   const skillEnvs: Record<string, string> = {}
   const onEnvsAdded = (envs: Record<string, string>) => {
@@ -356,9 +300,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     teamId,
     userId,
     role,
-    getBlockedHost: () => sandboxState.blockedHost,
+    getBlockedHost: (commandId?: string) => sandboxService.getBlockedHost(commandId),
     clearBlockedHost: () => {
-      sandboxState.blockedHost = ''
+      sandboxService.clearBlockedHost()
     },
     // Non-owner users can only run bash commands required by a loaded skill
     restrictedUser: restricted,
