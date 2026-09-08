@@ -1686,6 +1686,89 @@ describe('Agent Database Activities Integration', () => {
       expect(sessionAfter?.name).toBeNull()
       errorSpy.mockRestore()
     })
+
+    it('should pass thinkingLevel from agent.config to createAgentSession', async () => {
+      await prisma.team.create({
+        data: { id: 't-thinking', name: 'Thinking Team' },
+      })
+      const user = await prisma.user.create({
+        data: { id: 'u-thinking', name: 'Thinking User', email: 'u-thinking@test.com' },
+      })
+      const agentUser = await prisma.user.create({
+        data: {
+          id: 'agent-thinking',
+          name: 'Thinking Agent User',
+          email: 'agent-thinking@shumai.ai',
+          type: 'agent',
+        },
+      })
+      const agent = await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: 't-thinking',
+          type: 'chat',
+          config: { provider: 'openai', model: 'gpt-4', thinkingLevel: 'low' },
+        },
+      })
+      await prisma.agentSession.create({
+        data: {
+          id: 'session-thinking',
+          agentId: agent.id,
+          userId: user.id,
+          cwd: process.cwd(),
+          type: 'chat',
+          name: null,
+        },
+      })
+
+      const mockHarness = {
+        subscribe: vi.fn(),
+        prompt: vi.fn().mockResolvedValue({
+          content: [{ type: 'text', text: 'Thinking Title' }],
+        }),
+      }
+      vi.mocked(piAgent.createAgentSession).mockResolvedValue({
+        session: {} as unknown as Session<DatabaseSessionMetadata>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
+      })
+
+      await generateSessionNameActivity({
+        teamId: 't-thinking',
+        agentId: agent.id,
+        prompt: 'test prompt',
+        sessionId: 'session-thinking',
+        context: {
+          agent: {
+            ...agent,
+            provider: { name: 'openai' },
+            modelRef: {
+              id: 'm1',
+              providerName: 'openai',
+              modelId: 'gpt-4',
+              name: 'GPT-4',
+              config: {},
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          } as unknown as GenerateSessionNameParams['context']['agent'],
+          dbProviders: [
+            {
+              name: 'openai',
+              config: { api: 'openai-responses', apiKey: 'fake-key' },
+              models: [],
+            },
+          ],
+        },
+      })
+
+      expect(piAgent.createAgentSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          thinkingLevel: 'low',
+          disableTools: true,
+        }),
+      )
+    })
   })
 
   describe('Nested AGENTS.md prompt injection', () => {
