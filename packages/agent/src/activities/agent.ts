@@ -1445,7 +1445,6 @@ export async function generateSessionNameActivity(
       systemPrompt: systemInstruction,
       thinkingLevel,
       teamSkills: [],
-      allowedDomains: [],
       sessionId: namingSessionId,
       userId: sessionRecord.userId || undefined,
       disableTools: true,

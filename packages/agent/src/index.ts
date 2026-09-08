@@ -107,7 +107,7 @@ export interface CreateAgentSessionParams {
   systemPrompt: string
   teamSkills: Array<{ id: string; name: string; description?: string | null }>
   enabledSkillIds?: string[]
-  allowedDomains: string[]
+  allowedDomains?: string[]
   sessionId?: string
   userId?: string
   projectId?: string
@@ -229,7 +229,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     }
   }
 
-  await sandboxService.syncAllowedDomains(allowedDomains, teamId)
+  if (allowedDomains !== undefined) {
+    await sandboxService.syncAllowedDomains(allowedDomains, teamId)
+  }
 
   const skillEnvs: Record<string, string> = {}
   const onEnvsAdded = (envs: Record<string, string>) => {

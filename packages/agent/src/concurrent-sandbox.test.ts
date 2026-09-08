@@ -267,4 +267,58 @@ describe('Concurrent Sandbox Sessions', () => {
     const allowedResult = await allowedExecution
     expect(allowedResult.details).toEqual(expect.objectContaining({ exitCode: 0 }))
   })
+
+  it('does not synchronize or overwrite sandbox allowlist when allowedDomains is omitted (e.g. naming sessions)', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Omitted Domains Team' },
+    })
+    await prisma.user.create({
+      data: {
+        id: 'agent-omitted',
+        name: 'Agent User',
+        email: 'agent-omitted@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'agent-omitted',
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+
+    // 1. First session sets allowedDomains to ['*.github.com']
+    await createAgentSession({
+      teamId: team.id,
+      agentId: 'agent-omitted',
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'Main prompt',
+      teamSkills: [],
+      allowedDomains: ['*.github.com'],
+      providers: mockProviders,
+    })
+
+    expect(sandboxService.getCurrentAllowedDomains()).toEqual(['*.github.com'])
+    const updateCallsBefore = testProvider.updateConfigCalls
+
+    // 2. Utility / naming session runs WITHOUT allowedDomains
+    await createAgentSession({
+      teamId: team.id,
+      agentId: 'agent-omitted',
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'Title generator',
+      teamSkills: [],
+      // allowedDomains omitted
+      disableTools: true,
+      providers: mockProviders,
+    })
+
+    // Assert sandbox was NOT touched or overwritten
+    expect(testProvider.updateConfigCalls).toBe(updateCallsBefore)
+    expect(sandboxService.getCurrentAllowedDomains()).toEqual(['*.github.com'])
+  })
 })
