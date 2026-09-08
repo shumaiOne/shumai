@@ -178,6 +178,10 @@ User messages may contain a <context> block detailing the user, active asset loc
     systemPrompt += `\n\n# Comment Threads\nWhen operating in comment mode, previous top-level messages in the conversation history may contain a <thread id="..." reply_count="..." /> tag indicating an earlier discussion thread with replies. If a user's question refers to or depends on earlier comments or discussions, you can use the 'read_thread' tool with the thread ID to inspect all replies in that thread.`
   }
 
+  if (agent.type === 'autofill') {
+    systemPrompt += `\n\n# Autofill Instructions\nWhen performing metadata autofill, inspect the asset content using the 'read_asset' tool. If 'read_asset' fails or returns an error, do not autofill any metadata and report to the user directly. Do not try anything fancy, for example downloading the file or using python/ffmpeg to extract content.`
+  }
+
   const agentConfig = agent.config as PrismaJson.AgentConfig | null | undefined
   const thinkingLevel = agentConfig?.thinkingLevel || 'off'
 
@@ -572,6 +576,7 @@ export async function autofillAiActivity(params: AutofillAiParams) {
     'Instructions:',
     `1. Call the "read_asset" tool with assetId: "${params.assetId || ''}" to inspect the asset content (use imageConfig, videoConfig, or docConfig according to the media type).`,
     '2. After analyzing the retrieved content, call the "autofill_metadata" tool to provide the extracted metadata values.',
+    '3. If "read_asset" fails or returns an error, do not autofill any metadata and report to the user directly. Do not try anything fancy, for example downloading the file or using python/ffmpeg to extract content.',
   )
 
   const fullPrompt = promptLines.join('\n')

@@ -472,13 +472,16 @@ describe('Agent Activities', () => {
       getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
     }
 
+    let capturedSystemPrompt = ''
     vi.mocked(piAgent.createAgentSession).mockImplementation(async (config: unknown) => {
       const params = config as {
+        systemPrompt?: string
         customTools: Array<{
           name: string
           execute: (id: string, args: Record<string, unknown>) => Promise<unknown>
         }>
       }
+      capturedSystemPrompt = params.systemPrompt ?? ''
       const tool = params.customTools.find((t) => t.name === 'autofill_metadata')
       if (tool) {
         await tool.execute('1', { f1: 'val' })
@@ -491,7 +494,12 @@ describe('Agent Activities', () => {
     })
 
     const context = {
-      agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
+      agent: {
+        id: 'b1',
+        type: 'autofill',
+        provider: { name: 'google' },
+        modelRef: { modelId: 'gemini' },
+      },
       dbProviders: [],
       teamSkills: [],
       allowedDomains: [],
@@ -517,7 +525,14 @@ describe('Agent Activities', () => {
     expect(capturedPrompt).toContain(
       'call the "autofill_metadata" tool to provide the extracted metadata values.',
     )
+    expect(capturedPrompt).toContain(
+      'If "read_asset" fails or returns an error, do not autofill any metadata and report to the user directly. Do not try anything fancy, for example downloading the file or using python/ffmpeg to extract content.',
+    )
     expect(capturedPrompt).not.toContain('<context>')
+
+    expect(capturedSystemPrompt).toContain(
+      "If 'read_asset' fails or returns an error, do not autofill any metadata and report to the user directly. Do not try anything fancy, for example downloading the file or using python/ffmpeg to extract content.",
+    )
   })
 
   it('should include PDF page count recommendations in autofill prompt when present', async () => {
