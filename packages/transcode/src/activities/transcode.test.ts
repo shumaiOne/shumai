@@ -887,6 +887,50 @@ describe('Transcode Activities', () => {
       expect(res.chunkKey).toMatch(/^files\/asset-abc\/tmp-embedding-chunks\/chunk-10-25-.*\.mp4$/)
     })
 
+    it('should throw non-retryable ApplicationFailure when neither filePath nor assetKey is provided', async () => {
+      expect.assertions(2)
+      try {
+        await transcodeVideoChunkActivity({
+          assetId: 'asset-abc',
+          startTime: 0,
+          endTime: 10,
+        })
+      } catch (err: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((err as any).nonRetryable).toBe(true)
+        expect((err as Error).message).toContain(
+          'Neither filePath nor assetKey was provided for video chunk transcoding',
+        )
+      }
+    })
+
+    it('should throw retryable ApplicationFailure when ffmpeg fails', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(child_process.execFile as any).mockImplementation(
+        (
+          _file: string,
+          _args: string[],
+          cb: (err: Error | null, result: { stdout: string; stderr: string }) => void,
+        ) => {
+          cb(new Error('ffmpeg segmentation fault'), { stdout: '', stderr: '' })
+        },
+      )
+
+      expect.assertions(2)
+      try {
+        await transcodeVideoChunkActivity({
+          assetId: 'asset-abc',
+          filePath: '/tmp/test.mp4',
+          startTime: 0,
+          endTime: 10,
+        })
+      } catch (err: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((err as any).nonRetryable).toBe(false)
+        expect((err as Error).message).toContain('Failed to transcode video chunk')
+      }
+    })
+
     it('should return existing poster if already present in S3', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(s3Service.headObject).mockResolvedValue({} as any)

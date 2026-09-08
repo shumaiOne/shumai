@@ -14,14 +14,29 @@ export async function mapConcurrent<T, TResult>(
   const concurrency = Math.max(1, Math.min(limit, items.length))
   const results: TResult[] = new Array(items.length)
   let nextIndex = 0
+  let firstError: unknown = null
+  let hasError = false
 
   const workers = Array.from({ length: concurrency }, async () => {
-    while (nextIndex < items.length) {
+    while (!hasError && nextIndex < items.length) {
       const idx = nextIndex++
-      results[idx] = await fn(items[idx], idx)
+      try {
+        results[idx] = await fn(items[idx], idx)
+      } catch (err) {
+        if (!hasError) {
+          hasError = true
+          firstError = err
+        }
+        break
+      }
     }
   })
 
   await Promise.all(workers)
+
+  if (hasError) {
+    throw firstError
+  }
+
   return results
 }

@@ -1004,6 +1004,13 @@ export interface TranscodeVideoChunkParams {
 export async function transcodeVideoChunkActivity(
   params: TranscodeVideoChunkParams,
 ): Promise<{ chunkKey: string }> {
+  if (!params.filePath && !params.assetKey) {
+    throw ApplicationFailure.create({
+      message: 'Neither filePath nor assetKey was provided for video chunk transcoding',
+      nonRetryable: true,
+    })
+  }
+
   const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}-${ulid()}.mp4`)
   try {
     const bucket = process.env.S3_BUCKET || 'shumai'
@@ -1054,6 +1061,9 @@ export async function transcodeVideoChunkActivity(
 
     return { chunkKey: key }
   } catch (err) {
+    if (err instanceof ApplicationFailure) {
+      throw err
+    }
     throw ApplicationFailure.create({
       message: `Failed to transcode video chunk for ${params.startTime}-${params.endTime}: ${err instanceof Error ? err.message : String(err)}`,
       nonRetryable: false,
