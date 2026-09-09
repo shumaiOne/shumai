@@ -535,7 +535,9 @@ export async function generatePdfProxyActivity(
   }
 
   const bucket = process.env.S3_BUCKET || 'shumai'
-  const pdfProxyKey = `files/${params.assetId}/proxy.pdf`
+  const dir = path.posix.dirname(params.assetKey)
+  const assetDir = dir === '.' ? (params.assetId ? `files/${params.assetId}` : '') : dir
+  const pdfProxyKey = `${assetDir}/proxy.pdf`
   const tmpDir = path.dirname(params.filePath)
   const pdfFilePath = path.join(tmpDir, 'proxy.pdf')
 

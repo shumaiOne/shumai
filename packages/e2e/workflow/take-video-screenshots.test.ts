@@ -125,7 +125,7 @@ describe.each(['local', 'temporal'] as const)(
       expect(output).toBeDefined()
       expect(output.screenshots).toBeDefined()
       expect(output.screenshots.length).toBe(1)
-      expect(output.screenshots[0].key).toContain('screenshots/')
+      expect(output.screenshots[0].key).toMatch(/^projects\/e2e\/screenshots\/shot-.*\.webp$/)
     }, 50000)
 
     it('should draw annotation box correctly for 5 random comment timestamps', async () => {
