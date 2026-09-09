@@ -2,7 +2,7 @@ import { prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
-import { stemFromKey } from '@shumai/core/src/utils/filename'
+import { getDerivedArtifactDirectory, stemFromKey } from '@shumai/core/src/utils/filename'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { parseCsvContent } from '@shumai/core/src/transcode/transcode'
 import {
@@ -535,8 +535,7 @@ export async function generatePdfProxyActivity(
   }
 
   const bucket = process.env.S3_BUCKET || 'shumai'
-  const dir = path.posix.dirname(params.assetKey)
-  const assetDir = dir === '.' ? (params.assetId ? `files/${params.assetId}` : '') : dir
+  const assetDir = getDerivedArtifactDirectory(params.assetKey, params.assetId)
   const pdfProxyKey = `${assetDir}/proxy.pdf`
   const tmpDir = path.dirname(params.filePath)
   const pdfFilePath = path.join(tmpDir, 'proxy.pdf')

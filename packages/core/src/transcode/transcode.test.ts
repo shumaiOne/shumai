@@ -728,7 +728,13 @@ describe('TranscodeService', () => {
     expect(result.length).toBe(1)
     expect(result[0].page).toBe(1)
     expect(result[0].key).toContain('projects/p1/pdf_pages/doc-page-1-')
-    expect(s3Service.putObject).toHaveBeenCalled()
+    expect(s3Service.putObject).toHaveBeenCalledWith(
+      'shumai',
+      result[0].key,
+      expect.any(Buffer),
+      expect.any(Number),
+      'image/webp',
+    )
   })
 
   describe('overlayAnnotationsOnBuffer Pixel Tests', () => {
@@ -999,6 +1005,13 @@ describe('TranscodeService', () => {
 
       expect(results).toHaveLength(1)
       expect(results[0].key).toMatch(/^files\/storage-ulid-abc\/screenshots\/shot-.*\.webp$/)
+      expect(s3Service.putObject).toHaveBeenCalledWith(
+        'shumai',
+        results[0].key,
+        expect.any(Buffer),
+        expect.any(Number),
+        'image/webp',
+      )
     })
 
     it('should save overlay annotations in the same storage directory as assetKey', async () => {
@@ -1035,6 +1048,13 @@ describe('TranscodeService', () => {
       })
 
       expect(key).toMatch(/^files\/storage-ulid-img\/annotations\/annotation-.*\.webp$/)
+      expect(s3Service.putObject).toHaveBeenCalledWith(
+        'shumai',
+        key,
+        expect.any(Buffer),
+        expect.any(Number),
+        'image/webp',
+      )
     })
 
     it('should generate PDF from text file including CJK characters', async () => {

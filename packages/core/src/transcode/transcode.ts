@@ -1,5 +1,5 @@
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { stemFromKey } from '@shumai/core/src/utils/filename'
+import { getDerivedArtifactDirectory, stemFromKey } from '@shumai/core/src/utils/filename'
 import { mapConcurrent } from '../utils/async'
 import { prisma, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
@@ -1275,8 +1275,7 @@ export class TranscodeService {
         }
 
         // 6. Upload to S3
-        const dir = path.posix.dirname(params.assetKey)
-        const assetDir = dir === '.' ? (params.assetId ? `files/${params.assetId}` : '') : dir
+        const assetDir = getDerivedArtifactDirectory(params.assetKey, params.assetId)
         const s3Key = `${assetDir}/screenshots/${outName}`
         const fileBuffer = fs.readFileSync(localShotPath)
         await s3Service.putObject(bucket, s3Key, fileBuffer, fileBuffer.length, 'image/webp')
@@ -1376,8 +1375,7 @@ export class TranscodeService {
         }
 
         // Upload to S3 directly from buffer
-        const dir = path.posix.dirname(params.assetKey)
-        const assetDir = dir === '.' ? (params.assetId ? `files/${params.assetId}` : '') : dir
+        const assetDir = getDerivedArtifactDirectory(params.assetKey, params.assetId)
         const s3Key = `${assetDir}/pdf_pages/${webpName}`
         await s3Service.putObject(bucket, s3Key, webpBuffer, webpBuffer.length, 'image/webp')
 
@@ -1433,8 +1431,7 @@ export class TranscodeService {
       )
 
       // 3. Upload to S3
-      const dir = path.posix.dirname(params.assetKey)
-      const assetDir = dir === '.' ? (params.assetId ? `files/${params.assetId}` : '') : dir
+      const assetDir = getDerivedArtifactDirectory(params.assetKey, params.assetId)
       const s3Key = `${assetDir}/annotations/${outName}`
       await s3Service.putObject(
         bucket,

@@ -334,6 +334,13 @@ describe('Transcode Activities', () => {
     })
 
     expect(res.pdfProxyKey).toBe('files/asset1/proxy.pdf')
+    expect(s3Service.putObject).toHaveBeenCalledWith(
+      'shumai',
+      'files/asset1/proxy.pdf',
+      expect.anything(),
+      expect.any(Number),
+      'application/pdf',
+    )
     expect(generatePdfFromTextSpy).toHaveBeenCalled()
     generatePdfFromTextSpy.mockRestore()
   })
