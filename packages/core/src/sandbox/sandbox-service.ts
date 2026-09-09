@@ -97,7 +97,7 @@ export class SandboxService {
         await this.provider.initialize(config, callback)
         this.currentAllowedDomains = [...allowedDomains]
         this.isInit = true
-        logger.info({ allowedDomains }, 'Sandbox initialized successfully')
+        logger.debug({ allowedDomains }, 'Sandbox initialized successfully')
       } catch (err) {
         logger.error({ err }, 'Failed to initialize sandbox')
         throw err
@@ -131,7 +131,7 @@ export class SandboxService {
           },
         })
         this.currentAllowedDomains = [...incomingDomains]
-        logger.info({ incomingDomains }, 'Sandbox allowed domains hot-reloaded successfully')
+        logger.debug({ incomingDomains }, 'Sandbox allowed domains hot-reloaded successfully')
       } catch (err) {
         logger.error({ err, incomingDomains }, 'Failed to hot-reload sandbox allowed domains')
         throw err
