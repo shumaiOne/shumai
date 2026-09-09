@@ -34,3 +34,19 @@ export function stemFromKey(key: string): string {
   const ext = path.extname(basename)
   return ext ? basename.slice(0, -ext.length) : basename
 }
+
+/**
+ * Resolves the parent directory for derived artifacts (e.g. screenshots, proxies, annotations).
+ * Prefers the directory of the asset's storage key, falling back to `files/<assetId>` if the key
+ * has no directory prefix.
+ *
+ * e.g. 'files/01ABC.../video.mp4' → 'files/01ABC...'
+ *      'video.mp4' (with assetId '01XYZ...') → 'files/01XYZ...'
+ */
+export function getDerivedArtifactDirectory(assetKey: string, assetId?: string | null): string {
+  const dir = path.posix.dirname(assetKey)
+  if (dir === '.' || !dir) {
+    return assetId ? `files/${assetId}` : ''
+  }
+  return dir
+}

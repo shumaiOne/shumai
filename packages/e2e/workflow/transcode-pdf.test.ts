@@ -222,7 +222,7 @@ describe.each(['local', 'temporal'] as const)(
       }
       expect(mediaInfo).toBeDefined()
       expect(mediaInfo.proxyType).toBe('pdf')
-      expect(mediaInfo.pdfTranscode?.key).toBe(`files/${asset.id}/proxy.pdf`)
+      expect(mediaInfo.pdfTranscode?.key).toBe('projects/e2e/proxy.pdf')
       expect(mediaInfo.poster?.key).toContain('poster.webp')
       expect(mediaInfo.sprite?.key).toContain('sprite.webp')
       expect(mediaInfo.frames).toBeGreaterThan(0)
@@ -308,7 +308,7 @@ describe.each(['local', 'temporal'] as const)(
       }
       expect(mediaInfo).toBeDefined()
       expect(mediaInfo.proxyType).toBe('pdf')
-      expect(mediaInfo.pdfTranscode?.key).toBe(`files/${asset.id}/proxy.pdf`)
+      expect(mediaInfo.pdfTranscode?.key).toBe('projects/e2e/proxy.pdf')
       expect(mediaInfo.poster?.key).toContain('poster.webp')
       expect(mediaInfo.sprite?.key).toContain('sprite.webp')
       expect(mediaInfo.frames).toBeGreaterThan(0)

@@ -727,8 +727,14 @@ describe('TranscodeService', () => {
 
     expect(result.length).toBe(1)
     expect(result[0].page).toBe(1)
-    expect(result[0].key).toContain('files/asset-1/pdf_pages/doc-page-1-')
-    expect(s3Service.putObject).toHaveBeenCalled()
+    expect(result[0].key).toContain('projects/p1/pdf_pages/doc-page-1-')
+    expect(s3Service.putObject).toHaveBeenCalledWith(
+      'shumai',
+      result[0].key,
+      expect.any(Buffer),
+      expect.any(Number),
+      'image/webp',
+    )
   })
 
   describe('overlayAnnotationsOnBuffer Pixel Tests', () => {
@@ -973,6 +979,81 @@ describe('TranscodeService', () => {
         'ffmpeg',
         expect.arrayContaining(['-i', 'https://mock-r2.com/video.mp4', '-reconnect', '1']),
         expect.any(Function),
+      )
+    })
+
+    it('should save screenshots in the same storage directory as assetKey', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(child_process.execFile as any).mockImplementation(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (file: string, args: string[], cb: any) => {
+          if (file === 'ffmpeg') {
+            const outPath = args[args.length - 1]
+            fs.writeFileSync(outPath, 'fake-webp-image')
+          }
+          cb(null, { stdout: '', stderr: '' })
+        },
+      )
+
+      const results = await transcodeService.takeScreenshots({
+        assetKey: 'files/storage-ulid-abc/video.mp4',
+        assetId: 'asset-db-id-xyz',
+        start: 0,
+        end: 0,
+        count: 1,
+      })
+
+      expect(results).toHaveLength(1)
+      expect(results[0].key).toMatch(/^files\/storage-ulid-abc\/screenshots\/shot-.*\.webp$/)
+      expect(s3Service.putObject).toHaveBeenCalledWith(
+        'shumai',
+        results[0].key,
+        expect.any(Buffer),
+        expect.any(Number),
+        'image/webp',
+      )
+    })
+
+    it('should save overlay annotations in the same storage directory as assetKey', async () => {
+      vi.mocked(s3Service.downloadToFile).mockImplementation(async (_bucket, _key, filePath) => {
+        // Create a dummy image file
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const actualSharp = (await vi.importActual('sharp')) as any
+        const realSharp = (actualSharp.default || actualSharp) as typeof sharp
+        await realSharp({
+          create: {
+            width: 100,
+            height: 100,
+            channels: 4,
+            background: { r: 255, g: 255, b: 255, alpha: 1 },
+          },
+        })
+          .webp()
+          .toFile(filePath)
+      })
+
+      const key = await transcodeService.overlayAnnotations({
+        assetKey: 'files/storage-ulid-img/photo.webp',
+        assetId: 'asset-db-id-xyz',
+        annotations: [
+          {
+            type: 'box',
+            color: '#ff0000',
+            points: [
+              [0.1, 0.1],
+              [0.5, 0.5],
+            ],
+          },
+        ],
+      })
+
+      expect(key).toMatch(/^files\/storage-ulid-img\/annotations\/annotation-.*\.webp$/)
+      expect(s3Service.putObject).toHaveBeenCalledWith(
+        'shumai',
+        key,
+        expect.any(Buffer),
+        expect.any(Number),
+        'image/webp',
       )
     })
 

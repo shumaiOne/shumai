@@ -131,7 +131,7 @@ describe('Transcode Activities', () => {
       filename: 'wide.csv',
     })
 
-    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(res.pdfProxyKey).toBe('files/asset1/proxy.pdf')
     expect(convertSpy).toHaveBeenCalledWith('/tmp/wide.csv', 'wide.csv', { landscape: true })
     vi.mocked(fs.readFileSync).mockImplementation(() => Buffer.from('fake data') as never)
   })
@@ -161,7 +161,7 @@ describe('Transcode Activities', () => {
       filename: 'narrow.csv',
     })
 
-    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(res.pdfProxyKey).toBe('files/asset1/proxy.pdf')
     expect(convertSpy).toHaveBeenCalledWith('/tmp/narrow.csv', 'narrow.csv', { landscape: false })
     vi.mocked(fs.readFileSync).mockImplementation(() => Buffer.from('fake data') as never)
   })
@@ -333,7 +333,14 @@ describe('Transcode Activities', () => {
       filename: 'test.txt',
     })
 
-    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(res.pdfProxyKey).toBe('files/asset1/proxy.pdf')
+    expect(s3Service.putObject).toHaveBeenCalledWith(
+      'shumai',
+      'files/asset1/proxy.pdf',
+      expect.anything(),
+      expect.any(Number),
+      'application/pdf',
+    )
     expect(generatePdfFromTextSpy).toHaveBeenCalled()
     generatePdfFromTextSpy.mockRestore()
   })
@@ -359,7 +366,7 @@ describe('Transcode Activities', () => {
       filename: 'README.md',
     })
 
-    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(res.pdfProxyKey).toBe('files/asset1/proxy.pdf')
     expect(generatePdfFromTextSpy).toHaveBeenCalledWith(
       '/tmp/README.md',
       expect.stringContaining('proxy.pdf'),
@@ -385,7 +392,7 @@ describe('Transcode Activities', () => {
       filename: 'README.md',
     })
 
-    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(res.pdfProxyKey).toBe('files/asset1/proxy.pdf')
     expect(convertMdSpy).toHaveBeenCalledWith('/tmp/README.md', 'README.md')
   })
 
@@ -407,7 +414,7 @@ describe('Transcode Activities', () => {
       filename: 'document.docx',
     })
 
-    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(res.pdfProxyKey).toBe('files/asset1/proxy.pdf')
     expect(convertSpy).toHaveBeenCalledWith('/tmp/document.docx', 'document.docx')
   })
 
@@ -429,7 +436,7 @@ describe('Transcode Activities', () => {
       filename: 'index.html',
     })
 
-    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(res.pdfProxyKey).toBe('files/asset1/proxy.pdf')
     expect(convertHtmlSpy).toHaveBeenCalledWith('/tmp/index.html', 'index.html')
   })
 
@@ -490,7 +497,7 @@ describe('Transcode Activities', () => {
       filename: 'data.csv',
     })
 
-    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(res.pdfProxyKey).toBe('files/asset1/proxy.pdf')
     expect(generatePdfFromCsvSpy).toHaveBeenCalledWith(
       '/tmp/data.csv',
       expect.stringContaining('proxy.pdf'),
@@ -516,7 +523,7 @@ describe('Transcode Activities', () => {
       filename: 'notes.txt',
     })
 
-    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(res.pdfProxyKey).toBe('files/asset1/proxy.pdf')
     expect(convertSpy).toHaveBeenCalledWith('/tmp/notes.txt', 'notes.txt')
   })
 
@@ -541,7 +548,7 @@ describe('Transcode Activities', () => {
       filename: 'notes.txt',
     })
 
-    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(res.pdfProxyKey).toBe('files/asset1/proxy.pdf')
     expect(generatePdfFromTextSpy).toHaveBeenCalledWith(
       '/tmp/notes.txt',
       expect.stringContaining('proxy.pdf'),

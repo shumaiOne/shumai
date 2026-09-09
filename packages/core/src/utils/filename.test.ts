@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sanitizeFilename, stemFromKey } from './filename'
+import { getDerivedArtifactDirectory, sanitizeFilename, stemFromKey } from './filename'
 
 describe('sanitizeFilename', () => {
   it('returns the filename unchanged when it is already safe', () => {
@@ -62,5 +62,23 @@ describe('stemFromKey', () => {
   it('handles keys with no directory', () => {
     expect(stemFromKey('foo.mp4')).toBe('foo')
     expect(stemFromKey('raw')).toBe('raw')
+  })
+})
+
+describe('getDerivedArtifactDirectory', () => {
+  it('extracts the directory from a standard storage key', () => {
+    expect(getDerivedArtifactDirectory('files/01ABC/video.mp4')).toBe('files/01ABC')
+    expect(getDerivedArtifactDirectory('projects/p1/doc.pdf', 'asset-123')).toBe('projects/p1')
+    expect(getDerivedArtifactDirectory('a/b/c/file.txt')).toBe('a/b/c')
+  })
+
+  it('falls back to files/<assetId> when assetKey has no directory segment', () => {
+    expect(getDerivedArtifactDirectory('video.mp4', 'asset-123')).toBe('files/asset-123')
+    expect(getDerivedArtifactDirectory('doc.pdf', '01M21XYZ')).toBe('files/01M21XYZ')
+  })
+
+  it('returns empty string when assetKey has no directory segment and assetId is omitted or null', () => {
+    expect(getDerivedArtifactDirectory('video.mp4')).toBe('')
+    expect(getDerivedArtifactDirectory('video.mp4', null)).toBe('')
   })
 })
