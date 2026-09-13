@@ -1354,6 +1354,8 @@
   "linked_tasks_count": "{count} 个任务",
   "current_project_label": "当前项目",
   "all_comments": "所有评论",
+  "export_comments": "导出评论",
+  "failed_to_export_comments": "导出评论失败",
   "previous_file": "上一个文件",
   "next_file": "下一个文件",
   "switch_version": "切换版本",

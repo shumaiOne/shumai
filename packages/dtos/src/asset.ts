@@ -348,7 +348,7 @@ export const commentExportFormatSchema = z.enum([
 ])
 export type CommentExportFormat = z.infer<typeof commentExportFormatSchema>
 
-export const exportCommentsQuerySchema = z.object({
+export const exportCommentsRequestSchema = z.object({
   format: commentExportFormatSchema,
   timeZone: z
     .string()
@@ -365,4 +365,9 @@ export const exportCommentsQuerySchema = z.object({
     )
     .optional(),
 })
-export type ExportCommentsQuery = z.infer<typeof exportCommentsQuerySchema>
+export type ExportCommentsRequest = z.infer<typeof exportCommentsRequestSchema>
+
+/** @deprecated Use exportCommentsRequestSchema */
+export const exportCommentsQuerySchema = exportCommentsRequestSchema
+/** @deprecated Use ExportCommentsRequest */
+export type ExportCommentsQuery = ExportCommentsRequest

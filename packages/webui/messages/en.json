@@ -1354,6 +1354,8 @@
   "linked_tasks_count": "{count} tasks",
   "current_project_label": "Current Project",
   "all_comments": "All comments",
+  "export_comments": "Export Comments",
+  "failed_to_export_comments": "Failed to export comments",
   "previous_file": "Previous file",
   "next_file": "Next file",
   "switch_version": "Switch version",

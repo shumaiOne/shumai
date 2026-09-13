@@ -1,4 +1,4 @@
-import type { AssetInfo, CommentInfo, FieldValueInfo } from '@shumai/dtos'
+import type { AssetInfo, CommentExportFormat, CommentInfo, FieldValueInfo } from '@shumai/dtos'
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import type { MemberInfo } from '@/ui/stores/members'
 import { client } from '@/ui/api/client'
@@ -14,6 +14,18 @@ import { ChatInput } from './chat/message-input'
 import FieldRenderer from './field-renderer'
 import { GuestIdentityPopup } from './guest-identity-popup'
 import { ScrollArea } from './ui/scroll-area'
+import { Button } from './ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu'
+import { MoreHorizontal } from 'lucide-react'
+import { toast } from 'sonner'
 import { m } from '@/ui/paraglide/messages.js'
 import { getViewerForFile } from '@/ui/components/viewers/registry'
 
@@ -33,6 +45,17 @@ interface FileViewerRightSidebarProps {
   onTyping?: () => void
   selectedCommentId?: string | null
 }
+
+const COMMENT_EXPORT_OPTIONS: {
+  format: CommentExportFormat
+  label: string
+  ext: string
+}[] = [
+  { format: 'fcp-fiojson', label: 'FCP 10.4.0+', ext: 'FIOJSON' },
+  { format: 'media-composer-xml', label: 'Media Composer', ext: 'XML' },
+  { format: 'premiere-xml', label: 'Premiere Pro', ext: 'XML' },
+  { format: 'resolve-edl', label: 'Resolve', ext: 'EDL' },
+]
 
 export function FileViewerRightSidebar({
   teamId,
@@ -56,6 +79,7 @@ export function FileViewerRightSidebar({
   const { ref, inView } = useInView()
   const [replyingTo, setReplyingTo] = useState<CommentInfo | null>(null)
   const [isGuestPopupOpen, setIsGuestPopupOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [pendingComment, setPendingComment] = useState<{
     text: string
     attachmentIds: string[]
@@ -63,6 +87,49 @@ export function FileViewerRightSidebar({
     replyToId?: string | null
     second?: number | null
   } | null>(null)
+
+  const handleExportComments = async (format: CommentExportFormat) => {
+    if (!file?.id || isExporting) return
+    try {
+      setIsExporting(true)
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      const res = await client.api.files[':fileId'].comments.export.$post({
+        param: { fileId: file.id },
+        json: { format, timeZone },
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to export comments')
+      }
+
+      const disposition = res.headers.get('content-disposition')
+      let filename = `${file.name || 'comments'}_comments`
+      if (disposition) {
+        const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(disposition)
+        const basicMatch = /filename="?([^";]+)"?/i.exec(disposition)
+        if (utf8Match?.[1]) {
+          filename = decodeURIComponent(utf8Match[1])
+        } else if (basicMatch?.[1]) {
+          filename = basicMatch[1]
+        }
+      }
+
+      const blob = await res.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(downloadUrl)
+    } catch (error) {
+      console.error('Failed to export comments:', error)
+      toast.error(m.failed_to_export_comments())
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const { data: apiFields } = useQuery({
     queryKey: ['fields', projectId],
@@ -298,8 +365,47 @@ export function FileViewerRightSidebar({
           </TabsTrigger>
         </TabsList>
         <TabsContent value="comments" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-0">
+          {!isPublic && (
+            <div className="flex items-center justify-between px-1 py-1.5 shrink-0 border-b border-border/50">
+              <span className="text-xs font-semibold text-foreground">{m.all_comments()}</span>
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+                    aria-label={m.more_options()}
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="cursor-pointer">
+                      <span>{m.export_comments()}</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-56">
+                      {COMMENT_EXPORT_OPTIONS.map((opt) => (
+                        <DropdownMenuItem
+                          key={opt.format}
+                          className="flex items-center justify-between cursor-pointer"
+                          disabled={isExporting}
+                          onClick={() => handleExportComments(opt.format)}
+                        >
+                          <span>{opt.label}</span>
+                          <span className="text-xs text-muted-foreground ml-auto pl-4">
+                            {opt.ext}
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
           <ScrollArea className="flex-1 min-h-0 [&>div>div]:block!">
-            <div className="space-y-4">
+            <div className="space-y-4 pt-2">
               {comments.map((comment) => (
                 <div key={comment.id}>
                   <MessageCard

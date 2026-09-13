@@ -17,7 +17,7 @@ import {
   uploadFileRequestSchema,
   getDownloadLinksRequestSchema,
   completeCommentRequestSchema,
-  exportCommentsQuerySchema,
+  exportCommentsRequestSchema,
   AuditAction,
 } from '@shumai/dtos'
 import { transcodeService, buildContentDisposition } from '@shumai/core'
@@ -228,13 +228,13 @@ const route = new Hono<{ Variables: { user: User } }>()
     const comments = await assetService.listComments(fileId, req)
     return c.json(comments)
   })
-  .get(
+  .post(
     '/files/:fileId/comments/export',
-    zValidator('query', exportCommentsQuerySchema),
+    zValidator('json', exportCommentsRequestSchema),
     async (c) => {
       const fileId = c.req.param('fileId')
       const user = c.get('user')
-      const { format, timeZone } = c.req.valid('query')
+      const { format, timeZone } = c.req.valid('json')
 
       await authzService.hasPermission({
         user,

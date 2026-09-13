@@ -351,7 +351,7 @@ describe('file api', () => {
     })
   })
 
-  it('GET /files/:fileId/comments/export - success', async () => {
+  it('POST /files/:fileId/comments/export - success', async () => {
     vi.mocked(assetService.exportComments).mockResolvedValue({
       content: 'TITLE: test\n001 ...',
       filename: 'test-video_comments.edl',
@@ -359,7 +359,11 @@ describe('file api', () => {
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
-    const res = await app.request('/files/test-id/comments/export?format=resolve-edl')
+    const res = await app.request('/files/test-id/comments/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ format: 'resolve-edl' }),
+    })
 
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Disposition')).toBe(
@@ -381,7 +385,7 @@ describe('file api', () => {
     })
   })
 
-  it('GET /files/:fileId/comments/export - handles CJK filename in Content-Disposition', async () => {
+  it('POST /files/:fileId/comments/export - handles CJK filename in Content-Disposition', async () => {
     vi.mocked(assetService.exportComments).mockResolvedValue({
       content: 'TITLE: 中文视频\n001 ...',
       filename: '宣传片_2026_resolve.edl',
@@ -389,7 +393,11 @@ describe('file api', () => {
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
-    const res = await app.request('/files/test-id/comments/export?format=resolve-edl')
+    const res = await app.request('/files/test-id/comments/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ format: 'resolve-edl' }),
+    })
 
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Disposition')).toBe(
@@ -397,7 +405,7 @@ describe('file api', () => {
     )
   })
 
-  it('GET /files/:fileId/comments/export - with timezone query', async () => {
+  it('POST /files/:fileId/comments/export - with timezone in body', async () => {
     vi.mocked(assetService.exportComments).mockResolvedValue({
       content: '{}',
       filename: 'test.fiojson',
@@ -405,9 +413,14 @@ describe('file api', () => {
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
-    const res = await app.request(
-      '/files/test-id/comments/export?format=fcp-fiojson&timeZone=America%2FNew_York',
-    )
+    const res = await app.request('/files/test-id/comments/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        format: 'fcp-fiojson',
+        timeZone: 'America/New_York',
+      }),
+    })
 
     expect(res.status).toBe(200)
     expect(assetService.exportComments).toHaveBeenCalledWith('test-id', 'fcp-fiojson', {
@@ -415,18 +428,31 @@ describe('file api', () => {
     })
   })
 
-  it('GET /files/:fileId/comments/export - 400 on missing or invalid format', async () => {
+  it('POST /files/:fileId/comments/export - 400 on missing or invalid format', async () => {
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
 
-    const resMissing = await app.request('/files/test-id/comments/export')
+    const resMissing = await app.request('/files/test-id/comments/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
     expect(resMissing.status).toBe(400)
 
-    const resInvalid = await app.request('/files/test-id/comments/export?format=invalid-format')
+    const resInvalid = await app.request('/files/test-id/comments/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ format: 'invalid-format' }),
+    })
     expect(resInvalid.status).toBe(400)
 
-    const resInvalidTz = await app.request(
-      '/files/test-id/comments/export?format=resolve-edl&timeZone=Invalid/Fake_Zone',
-    )
+    const resInvalidTz = await app.request('/files/test-id/comments/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        format: 'resolve-edl',
+        timeZone: 'Invalid/Fake_Zone',
+      }),
+    })
     expect(resInvalidTz.status).toBe(400)
   })
 
