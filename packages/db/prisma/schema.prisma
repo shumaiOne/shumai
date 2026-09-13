@@ -657,6 +657,7 @@ model AssetComment {
 
   attachments AssetCommentAttachment[] @relation("CommentToAttachment")
 
+  @@index([assetId])
   @@map("asset_comments")
 }
 
