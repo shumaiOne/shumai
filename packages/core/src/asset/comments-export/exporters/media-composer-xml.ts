@@ -1,9 +1,4 @@
-import type {
-  ExportAssetMetadata,
-  ExportCommentItem,
-  ExportOptions,
-  ExportResult,
-} from '../types'
+import type { ExportAssetMetadata, ExportCommentItem, ExportOptions, ExportResult } from '../types'
 import { formatDateAvid, secondToFrame } from '../timecode'
 
 const escapeXml = (str: string): string => {

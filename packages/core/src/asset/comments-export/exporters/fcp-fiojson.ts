@@ -1,9 +1,4 @@
-import type {
-  ExportAssetMetadata,
-  ExportCommentItem,
-  ExportOptions,
-  ExportResult,
-} from '../types'
+import type { ExportAssetMetadata, ExportCommentItem, ExportOptions, ExportResult } from '../types'
 import { secondToFrame } from '../timecode'
 
 /* eslint-disable @typescript-eslint/naming-convention */

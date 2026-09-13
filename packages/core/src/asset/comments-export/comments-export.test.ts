@@ -33,11 +33,7 @@ interface RawFrameioResponse {
 }
 
 describe('Comments Export against Frame.io Golden Test Data', () => {
-  const testDataDir = fs.existsSync(
-    path.resolve(process.cwd(), 'frameio-comments-export-test-data'),
-  )
-    ? path.resolve(process.cwd(), 'frameio-comments-export-test-data')
-    : path.resolve(__dirname, '../../../../frameio-comments-export-test-data')
+  const testDataDir = path.resolve(__dirname, 'fixtures')
 
   const apiData = JSON.parse(
     fs.readFileSync(path.join(testDataDir, 'api.json'), 'utf8'),
