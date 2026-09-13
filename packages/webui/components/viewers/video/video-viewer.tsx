@@ -27,6 +27,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       shareId,
       children,
       allowDownload,
+      autoPlay,
     },
     ref,
   ) => {
@@ -293,7 +294,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       // 2. Initialize the player
       const player = (playerRef.current = videojs(videoElement, {
         controls: false,
-        autoplay: false,
+        autoplay: autoPlay ? 'any' : false,
         preload: 'auto',
         playsinline: true,
         sources: [
@@ -303,6 +304,20 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
           },
         ],
       }))
+
+      if (autoPlay) {
+        player.ready(() => {
+          const playPromise = player.play()
+          if (playPromise !== undefined) {
+            playPromise.catch(() => {
+              // Fallback to muted autoplay if unmuted autoplay is blocked by browser policy
+              player.muted(true)
+              setState((prev) => ({ ...prev, isMuted: true }))
+              player.play()?.catch(() => {})
+            })
+          }
+        })
+      }
 
       // Extract video element for Konva
       const htmlVid = videoElement.querySelector('video')

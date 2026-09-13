@@ -16,6 +16,7 @@ export function FileViewer({
   startTime,
   shareId,
   allowDownload,
+  autoPlay,
   children,
 }: OuterFileViewerProps) {
   const viewerDef = getViewerForFile(file)
@@ -33,6 +34,7 @@ export function FileViewer({
       startTime={startTime}
       shareId={shareId}
       allowDownload={allowDownload}
+      autoPlay={autoPlay}
     >
       {children}
     </ViewerComponent>

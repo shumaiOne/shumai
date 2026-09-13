@@ -130,6 +130,7 @@ export function FilePreviewDialog({
               file={detailedFile || item}
               allowDownload={allowDownload}
               shareId={shareId}
+              autoPlay={true}
             />
           </div>
         )}

@@ -21,6 +21,7 @@ export interface FileViewerProps {
   shareId?: string
   /** When false, the viewer hides its download affordances. Defaults to true. */
   allowDownload?: boolean
+  autoPlay?: boolean
   children?: React.ReactNode
 }
 

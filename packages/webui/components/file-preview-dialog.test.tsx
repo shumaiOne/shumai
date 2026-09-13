@@ -7,8 +7,8 @@ import type { AssetInfo } from '@shumai/dtos'
 import { FilePreviewDialog } from './file-preview-dialog'
 
 vi.mock('@/ui/components/file-viewer', () => ({
-  FileViewer: ({ file }: { file: AssetInfo }) => (
-    <div data-testid="mock-file-viewer">
+  FileViewer: ({ file, autoPlay }: { file: AssetInfo; autoPlay?: boolean }) => (
+    <div data-testid="mock-file-viewer" data-autoplay={String(autoPlay)}>
       <span>Viewer for {file.name}</span>
     </div>
   ),
@@ -104,6 +104,7 @@ describe('FilePreviewDialog', () => {
 
     expect(screen.getByText('photo.jpg')).toBeDefined()
     expect(screen.getByTestId('mock-file-viewer')).toBeDefined()
+    expect(screen.getByTestId('mock-file-viewer').getAttribute('data-autoplay')).toBe('true')
   })
 
   it('calls onClose when close button is clicked', () => {
