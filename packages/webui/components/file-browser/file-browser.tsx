@@ -98,6 +98,7 @@ interface FileBrowserProps {
   onUpdateCollection?: (updates: { name?: string; filter?: any }) => void
   rootFolderId?: string
   shareId?: string
+  sharePassword?: string
   /** When false, hides download affordances (used by public share views). Defaults to true. */
   allowDownload?: boolean
 }
@@ -148,6 +149,7 @@ export function FileBrowser({
   onUpdateCollection,
   rootFolderId,
   shareId,
+  sharePassword,
   allowDownload = true,
 }: FileBrowserProps) {
   const [contextMenuItem, setContextMenuItem] = useState<AssetInfo | null>(null)
@@ -1350,6 +1352,7 @@ export function FileBrowser({
         onClose={() => setIsPreviewOpen(false)}
         allowDownload={allowDownload}
         shareId={shareId}
+        sharePassword={sharePassword}
         isPublic={isPublic}
       />
     </>

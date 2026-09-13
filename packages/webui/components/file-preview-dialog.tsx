@@ -14,6 +14,7 @@ export interface FilePreviewDialogProps {
   onClose: () => void
   allowDownload?: boolean
   shareId?: string
+  sharePassword?: string
   isPublic?: boolean
 }
 
@@ -23,6 +24,7 @@ export function FilePreviewDialog({
   onClose,
   allowDownload = true,
   shareId,
+  sharePassword,
 }: FilePreviewDialogProps) {
   // Capture-phase keydown listener for Space key to unconditionally close the preview
   useEffect(() => {
@@ -42,18 +44,35 @@ export function FilePreviewDialog({
     }
   }, [isOpen, onClose])
 
-  const isFolder = item?.type === 'folder'
+  const isFolder = item?.type === 'folder' || item?.targetType === 'folder'
   const targetFileId = item?.versionStack ? item.versionStack.id : item?.id
+
+  const resolvedPassword =
+    sharePassword ??
+    (shareId && typeof window !== 'undefined'
+      ? localStorage.getItem(`share_pwd_${shareId}`) || ''
+      : '')
 
   // Fetch full asset data (with presigned high-res/transcoded media URLs) when previewing a file
   const { data: detailedFile } = useQuery({
-    queryKey: shareId ? ['shares', shareId, 'files', targetFileId] : ['files', targetFileId],
+    queryKey: shareId
+      ? ['shares', shareId, 'files', targetFileId, resolvedPassword]
+      : ['files', targetFileId],
     queryFn: async () => {
       if (!targetFileId) throw new Error('No target file ID')
       const res = shareId
-        ? await client.api.shares[':shareId'].files[':fileId'].$get({
-            param: { shareId, fileId: targetFileId },
-          })
+        ? await client.api.shares[':shareId'].files[':fileId'].$get(
+            {
+              param: { shareId, fileId: targetFileId },
+            },
+            resolvedPassword
+              ? {
+                  headers: {
+                    'x-share-password': resolvedPassword,
+                  },
+                }
+              : undefined,
+          )
         : await client.api.files[':fileId'].$get({
             param: { fileId: targetFileId },
           })

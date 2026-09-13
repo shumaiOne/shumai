@@ -4,6 +4,7 @@ import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { AssetInfo } from '@shumai/dtos'
+import { client } from '@/ui/api/client'
 import { FilePreviewDialog } from './file-preview-dialog'
 
 vi.mock('@/ui/components/file-viewer', () => ({
@@ -161,5 +162,84 @@ describe('FilePreviewDialog', () => {
     )
 
     expect(container.firstChild).toBeNull()
+  })
+
+  it('renders folder preview for folder symlinks without querying file detail', () => {
+    const mockFolderSymlink: AssetInfo = {
+      id: 'symlink-folder-1',
+      name: 'Linked Folder',
+      type: 'symlink',
+      targetType: 'folder',
+      fileCount: 8,
+      sizeByte: 0,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+      status: 'processed',
+    } as AssetInfo
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <FilePreviewDialog item={mockFolderSymlink} isOpen={true} onClose={vi.fn()} />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getByTestId('folder-preview-icon')).toBeDefined()
+    expect(screen.getAllByText('Linked Folder').length).toBeGreaterThan(0)
+    expect(screen.getByTestId('folder-preview-count').textContent).toMatch(/8/)
+  })
+
+  it('includes x-share-password header when fetching file detail in a password-protected share', async () => {
+    const getShareFileMock = client.api.shares[':shareId'].files[':fileId']
+      .$get as unknown as ReturnType<typeof vi.fn>
+    getShareFileMock.mockClear()
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <FilePreviewDialog
+          item={mockFile}
+          isOpen={true}
+          onClose={vi.fn()}
+          shareId="share-protected-1"
+          sharePassword="secret-password-123"
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(getShareFileMock).toHaveBeenCalledWith(
+      { param: { shareId: 'share-protected-1', fileId: 'file-1' } },
+      { headers: { 'x-share-password': 'secret-password-123' } },
+    )
+
+    const viewer = await screen.findByTestId('mock-file-viewer')
+    expect(viewer).toBeDefined()
+  })
+
+  it('reads share password from localStorage when sharePassword prop is omitted', async () => {
+    const getShareFileMock = client.api.shares[':shareId'].files[':fileId']
+      .$get as unknown as ReturnType<typeof vi.fn>
+    getShareFileMock.mockClear()
+
+    localStorage.setItem('share_pwd_share-stored-1', 'stored-pwd-456')
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <FilePreviewDialog
+          item={mockFile}
+          isOpen={true}
+          onClose={vi.fn()}
+          shareId="share-stored-1"
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(getShareFileMock).toHaveBeenCalledWith(
+      { param: { shareId: 'share-stored-1', fileId: 'file-1' } },
+      { headers: { 'x-share-password': 'stored-pwd-456' } },
+    )
+
+    const viewer = await screen.findByTestId('mock-file-viewer')
+    expect(viewer).toBeDefined()
+
+    localStorage.removeItem('share_pwd_share-stored-1')
   })
 })

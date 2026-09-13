@@ -285,4 +285,31 @@ describe('FileBrowser', () => {
     expect(screen.queryByTestId('file-preview-dialog-content')).toBeNull()
     document.body.removeChild(input)
   })
+
+  it('opens quick preview for a selected folder symlink showing folder preview', () => {
+    const mockFolderSymlink: AssetInfo = {
+      id: 'symlink-folder-1',
+      name: 'Linked Folder',
+      type: 'symlink',
+      targetType: 'folder',
+      fileCount: 3,
+      sizeByte: 0,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+      status: 'processed',
+    } as AssetInfo
+
+    renderComponent({
+      folders: [mockFolderSymlink],
+      files: [],
+      selectedIds: new Set(['symlink-folder-1']),
+      selectedItem: mockFolderSymlink,
+    })
+
+    fireEvent.keyDown(window, { key: ' ', code: 'Space' })
+
+    expect(screen.getByTestId('file-preview-dialog-content')).toBeDefined()
+    expect(screen.getByTestId('folder-preview-icon')).toBeDefined()
+    expect(screen.getAllByText('Linked Folder').length).toBeGreaterThan(0)
+  })
 })
