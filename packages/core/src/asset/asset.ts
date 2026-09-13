@@ -17,7 +17,15 @@ import {
   UpdateAssetOrderRequest,
   AssetUserInfo,
   ListRecentsRequest,
+  CommentExportFormat,
 } from '@shumai/dtos'
+import {
+  exportCommentsToFormat,
+  type ExportAssetMetadata,
+  type ExportCommentItem,
+  type ExportOptions,
+  type ExportResult,
+} from './comments-export'
 import { type Asset, AssetStatus, AssetType, Prisma, type StorageKey } from '@shumai/db'
 import { HTTPException } from 'hono/http-exception'
 import { logger } from '@shumai/core/src/logger'
@@ -1860,6 +1868,101 @@ export class AssetService {
     const infos = await Promise.all(comments.map((c) => this.toCommentInfo(c)))
 
     return { data: infos, pageInfo }
+  }
+
+  async exportComments(
+    assetId: string,
+    format: CommentExportFormat,
+    options?: ExportOptions,
+  ): Promise<ExportResult> {
+    const resolvedAssetId = await this.resolveLatestVersionId(assetId)
+
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: resolvedAssetId },
+      include: {
+        creator: true,
+      },
+    })
+
+    if (!asset) {
+      throw new HTTPException(404, { message: 'Asset not found' })
+    }
+
+    const rawComments = await this.prismaClient.assetComment.findMany({
+      where: { assetId: resolvedAssetId, replyToId: null },
+      include: {
+        creator: true,
+        replies: {
+          include: {
+            creator: true,
+          },
+          orderBy: { id: 'asc' },
+        },
+      },
+      orderBy: { id: 'asc' },
+    })
+
+    const comments: ExportCommentItem[] = await Promise.all(
+      rawComments.map(async (c) => {
+        const creatorImage = c.creator ? await getAvatarUrl(c.creator.image) : null
+        const replies: ExportCommentItem[] = await Promise.all(
+          (c.replies || []).map(async (r) => {
+            const replyCreatorImage = r.creator ? await getAvatarUrl(r.creator.image) : null
+            return {
+              id: r.id,
+              message: r.message,
+              second: r.second,
+              createdAt: r.createdAt,
+              isCompleted: r.isCompleted,
+              creator: {
+                id: r.creator?.id || '',
+                name: r.creator?.name || 'Anonymous',
+                image: replyCreatorImage || null,
+              },
+              annotations: r.annotation,
+            }
+          }),
+        )
+
+        return {
+          id: c.id,
+          message: c.message,
+          second: c.second,
+          createdAt: c.createdAt,
+          isCompleted: c.isCompleted,
+          creator: {
+            id: c.creator?.id || '',
+            name: c.creator?.name || 'Anonymous',
+            image: creatorImage || null,
+          },
+          annotations: c.annotation,
+          replies,
+        }
+      }),
+    )
+
+    const media = asset.media as PrismaJson.MediaInfo | null
+    const fps = media?.metadata?.frameRate || 24
+    const duration = media?.metadata?.duration || 0
+    const totalFrames =
+      media?.metadata?.totalFrames || media?.frames || Math.round(duration * fps) || 0
+    const width = media?.metadata?.originalWidth || 1920
+    const height = media?.metadata?.originalHeight || 1080
+    const startTimecode = media?.metadata?.startTimecode || null
+
+    const metadata: ExportAssetMetadata = {
+      id: asset.id,
+      name: asset.name,
+      fps,
+      duration,
+      totalFrames,
+      width,
+      height,
+      startTimecode,
+      rawMedia: media,
+    }
+
+    return exportCommentsToFormat(metadata, comments, format, options)
   }
 
   async toAssetInfos(assets: AssetWithIncludes[]): Promise<AssetInfo[]> {

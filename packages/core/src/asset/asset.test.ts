@@ -1117,6 +1117,91 @@ describe('AssetService', () => {
     expect(incompleted.completionLastChangedBy?.id).toBe(user.id)
   })
 
+  it('can export comments in all supported NLE formats', async () => {
+    const { user, assets } = await setupBasicAssets()
+
+    // Update asset media metadata with video frameRate and duration
+    await prisma.asset.update({
+      where: { id: assets.fileA1.id },
+      data: {
+        media: {
+          duration: 10,
+          filesize: 1024,
+          frames: 240,
+          finishedAt: new Date().toISOString(),
+          imageTranscodes: [],
+          videoTranscodes: [],
+          metadata: {
+            frameRate: 24,
+            duration: 10,
+            totalFrames: 240,
+            originalWidth: 1920,
+            originalHeight: 1080,
+            hasAudio: true,
+            bitRate: 5000,
+            startTimecode: '00:00:00:00',
+            format: 'mp4',
+          },
+          original: null,
+        },
+      },
+    })
+
+    const rootComment = await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: user.id,
+      message: 'First scene looks great',
+      second: 2.5,
+      attachmentIds: [],
+    })
+
+    await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: user.id,
+      message: 'Agreed!',
+      replyToId: rootComment.id,
+      attachmentIds: [],
+    })
+
+    await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: user.id,
+      message: 'General feedback without timestamp',
+      attachmentIds: [],
+    })
+
+    // Test resolve-edl
+    const edl = await assetService.exportComments(assets.fileA1.id, 'resolve-edl')
+    expect(edl.filename.endsWith('_resolve.edl')).toBe(true)
+    expect(edl.mimeType).toBe('text/plain; charset=utf-8')
+    expect(edl.content).toContain('TITLE:')
+    expect(edl.content).toContain('First scene looks great')
+    expect(edl.content).toContain('^ Agreed!')
+    expect(edl.content).toContain('General feedback without timestamp')
+
+    // Test premiere-xml
+    const ppro = await assetService.exportComments(assets.fileA1.id, 'premiere-xml')
+    expect(ppro.filename.endsWith('_premiere.xml')).toBe(true)
+    expect(ppro.mimeType).toBe('application/xml; charset=utf-8')
+    expect(ppro.content).toContain('<xmeml version="4">')
+    expect(ppro.content).toContain('<comment>First scene looks great</comment>')
+    expect(ppro.content).toContain('<comment>Agreed!</comment>')
+
+    // Test media-composer-xml
+    const mc = await assetService.exportComments(assets.fileA1.id, 'media-composer-xml')
+    expect(mc.filename.endsWith('_media-composer.xml')).toBe(true)
+    expect(mc.mimeType).toBe('application/xml; charset=utf-8')
+    expect(mc.content).toContain('<Avid:StreamItems')
+    expect(mc.content).toContain('First scene looks great')
+
+    // Test fcp-fiojson
+    const fcp = await assetService.exportComments(assets.fileA1.id, 'fcp-fiojson')
+    expect(fcp.filename.endsWith('.fiojson')).toBe(true)
+    expect(fcp.mimeType).toBe('application/json; charset=utf-8')
+    const parsedFcp = JSON.parse(fcp.content) as { comments: unknown[] }
+    expect(parsedFcp.comments.length).toBe(3)
+  })
+
   it('triggers AI workflow on bot mention', async () => {
     const { user, project } = await setupBasicAssets()
 

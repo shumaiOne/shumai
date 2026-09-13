@@ -339,3 +339,17 @@ export const getDownloadLinksResponseSchema = z.object({
   files: z.array(downloadLinkItemSchema),
 })
 export type GetDownloadLinksResponse = z.infer<typeof getDownloadLinksResponseSchema>
+
+export const commentExportFormatSchema = z.enum([
+  'fcp-fiojson',
+  'media-composer-xml',
+  'premiere-xml',
+  'resolve-edl',
+])
+export type CommentExportFormat = z.infer<typeof commentExportFormatSchema>
+
+export const exportCommentsQuerySchema = z.object({
+  format: commentExportFormatSchema,
+  timeZone: z.string().optional(),
+})
+export type ExportCommentsQuery = z.infer<typeof exportCommentsQuerySchema>

@@ -70,6 +70,7 @@ describe('file api', () => {
       assetId: 'file1',
     } as unknown as Awaited<ReturnType<typeof assetService.getComment>>)
     vi.spyOn(assetService, 'listComments').mockImplementation(vi.fn())
+    vi.spyOn(assetService, 'exportComments').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'restoreAssets').mockImplementation(vi.fn())
     vi.spyOn(metadataService, 'updateAssetMetadata').mockImplementation(vi.fn())
     vi.spyOn(notificationService, 'create').mockImplementation(vi.fn())
@@ -348,6 +349,64 @@ describe('file api', () => {
       type: ResourceType.Asset,
       id: 'test-id',
     })
+  })
+
+  it('GET /files/:fileId/comments/export - success', async () => {
+    vi.mocked(assetService.exportComments).mockResolvedValue({
+      content: 'TITLE: test\n001 ...',
+      filename: 'test-video_comments.edl',
+      mimeType: 'application/edl',
+    })
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/files/test-id/comments/export?format=resolve-edl')
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Content-Disposition')).toBe(
+      'attachment; filename="test-video_comments.edl"',
+    )
+    expect(res.headers.get('Content-Type')).toBe('application/edl')
+    const body = await res.text()
+    expect(body).toBe('TITLE: test\n001 ...')
+
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user1', name: 'Test User' },
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: 'test-id',
+    })
+
+    expect(assetService.exportComments).toHaveBeenCalledWith('test-id', 'resolve-edl', {
+      timeZone: undefined,
+    })
+  })
+
+  it('GET /files/:fileId/comments/export - with timezone query', async () => {
+    vi.mocked(assetService.exportComments).mockResolvedValue({
+      content: '{}',
+      filename: 'test.fiojson',
+      mimeType: 'application/json',
+    })
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request(
+      '/files/test-id/comments/export?format=fcp-fiojson&timeZone=America%2FNew_York',
+    )
+
+    expect(res.status).toBe(200)
+    expect(assetService.exportComments).toHaveBeenCalledWith('test-id', 'fcp-fiojson', {
+      timeZone: 'America/New_York',
+    })
+  })
+
+  it('GET /files/:fileId/comments/export - 400 on missing or invalid format', async () => {
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+
+    const resMissing = await app.request('/files/test-id/comments/export')
+    expect(resMissing.status).toBe(400)
+
+    const resInvalid = await app.request('/files/test-id/comments/export?format=invalid-format')
+    expect(resInvalid.status).toBe(400)
   })
 
   it('POST /comments/:commentId/complete', async () => {
