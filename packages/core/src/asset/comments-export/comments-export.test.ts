@@ -285,4 +285,79 @@ describe('Edge Cases and CJK Character Support', () => {
     expect(parsedFcp.comments[2].text).toBe('전체적인 템포가 아주 좋습니다.')
     expect(parsedFcp.comments[2].owner.name).toBe('김민수 (Kim Min-soo)')
   })
+
+  it('applies non-UTC timeZone consistently across exporters', () => {
+    const fixedDate = new Date('2026-09-13T03:26:31Z')
+    const sampleMetadata: ExportAssetMetadata = {
+      id: 'tz-asset',
+      name: 'timezone-test.mp4',
+      fps: 24,
+      duration: 10,
+      totalFrames: 240,
+    }
+    const sampleComments: ExportCommentItem[] = [
+      {
+        id: 'c1',
+        message: 'testing timezone',
+        second: 2.0,
+        createdAt: fixedDate,
+        isCompleted: false,
+        creator: { id: 'u1', name: 'Author' },
+      },
+    ]
+
+    const tzOptions = { exportDate: fixedDate, timeZone: 'America/New_York' }
+
+    // Resolve EDL: Sep 13 03:26 UTC -> Sep 12 11:26pm EDT
+    const edl = exportCommentsToFormat(sampleMetadata, sampleComments, 'resolve-edl', tzOptions)
+    expect(edl.content).toContain('@Author, Sep 12 12 11:26pm')
+    expect(edl.content).not.toContain('Sep 13')
+
+    // Media Composer XML: Sep 13 03:26 UTC -> Sep 12, 2026 23:26 EDT
+    const mc = exportCommentsToFormat(
+      sampleMetadata,
+      sampleComments,
+      'media-composer-xml',
+      tzOptions,
+    )
+    expect(mc.content).toContain('Sep 12, 2026 &#183; 23:26')
+    expect(mc.content).not.toContain('Sep 13')
+
+    // Premiere XML: Sep 13 03:26 UTC -> 2026-9-12 23-26-31 EDT
+    const ppro = exportCommentsToFormat(sampleMetadata, sampleComments, 'premiere-xml', tzOptions)
+    expect(ppro.content).toContain('<name>timezone-test.mp4 2026-9-12 23-26-31</name>')
+    expect(ppro.content).toContain('<name>Marker Color Matte (2026-9-12 23-26-31)</name>')
+    expect(ppro.content).not.toContain('2026-9-13')
+  })
+
+  it('sanitizes EDL title, author, and comment text containing newlines and control characters', () => {
+    const dirtyMetadata: ExportAssetMetadata = {
+      id: 'dirty-asset',
+      name: 'Line1\r\nLine2\x07.mp4',
+      fps: 24,
+      duration: 10,
+      totalFrames: 240,
+    }
+    const dirtyComments: ExportCommentItem[] = [
+      {
+        id: 'c1',
+        message: 'Multi\r\nLine\nComment\x00 Message',
+        second: 1.0,
+        createdAt: new Date('2026-09-13T00:00:00Z'),
+        isCompleted: false,
+        creator: { id: 'u1', name: 'Author\r\nWithNewline' },
+      },
+    ]
+
+    const edl = exportCommentsToFormat(dirtyMetadata, dirtyComments, 'resolve-edl')
+    // Title must be on a single line without raw newlines
+    expect(edl.content).toContain('TITLE: Line1 Line2.mp4')
+    expect(edl.content).not.toMatch(/TITLE: .*\r?\n.*\.mp4/)
+    // Author must not have newline
+    expect(edl.content).toContain('@Author WithNewline')
+    // Comment text must not have unescaped newlines breaking the marker line
+    expect(edl.content).toContain(
+      'Multi Line Comment Message |C:ResolveColorPurple |M:Author WithNewline |D:0',
+    )
+  })
 })

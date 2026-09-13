@@ -350,6 +350,19 @@ export type CommentExportFormat = z.infer<typeof commentExportFormatSchema>
 
 export const exportCommentsQuerySchema = z.object({
   format: commentExportFormatSchema,
-  timeZone: z.string().optional(),
+  timeZone: z
+    .string()
+    .refine(
+      (tz) => {
+        try {
+          Intl.DateTimeFormat(undefined, { timeZone: tz })
+          return true
+        } catch {
+          return false
+        }
+      },
+      { message: 'Invalid IANA time zone identifier' },
+    )
+    .optional(),
 })
 export type ExportCommentsQuery = z.infer<typeof exportCommentsQuerySchema>

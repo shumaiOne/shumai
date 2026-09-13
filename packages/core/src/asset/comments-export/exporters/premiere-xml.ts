@@ -16,7 +16,7 @@ export const exportToPremiereXml = (
   options?: ExportOptions,
 ): ExportResult => {
   const exportDate = options?.exportDate || new Date()
-  const dateStr = formatDatePremiere(exportDate)
+  const dateStr = formatDatePremiere(exportDate, options?.timeZone)
   const isNtsc = isDropFrameRate(metadata.fps)
   const timebase = Math.round(metadata.fps) || 24
   const duration = metadata.totalFrames || Math.round(metadata.duration * metadata.fps) || 0

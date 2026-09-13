@@ -423,6 +423,11 @@ describe('file api', () => {
 
     const resInvalid = await app.request('/files/test-id/comments/export?format=invalid-format')
     expect(resInvalid.status).toBe(400)
+
+    const resInvalidTz = await app.request(
+      '/files/test-id/comments/export?format=resolve-edl&timeZone=Invalid/Fake_Zone',
+    )
+    expect(resInvalidTz.status).toBe(400)
   })
 
   it('POST /comments/:commentId/complete', async () => {

@@ -1,6 +1,17 @@
 import type { ExportAssetMetadata, ExportCommentItem, ExportOptions, ExportResult } from '../types'
 import { formatDateEdl, frameToTimecode, getEffectiveDropFrame, secondToFrame } from '../timecode'
 
+const sanitizeEdlText = (str: string): string => {
+  return (
+    str
+      .replace(/[\r\n]+/g, ' ')
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\x00-\x1f\x7f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  )
+}
+
 export const exportToResolveEdl = (
   metadata: ExportAssetMetadata,
   comments: ExportCommentItem[],
@@ -10,7 +21,7 @@ export const exportToResolveEdl = (
   const dropFrame = getEffectiveDropFrame(metadata.fps, metadata.startTimecode)
   const fcm = dropFrame ? 'DROP FRAME' : 'NON DROP FRAME'
 
-  const lines: string[] = [`TITLE: ${metadata.name}`, `FCM: ${fcm}`, '']
+  const lines: string[] = [`TITLE: ${sanitizeEdlText(metadata.name)}`, `FCM: ${fcm}`, '']
 
   // Separate timestamped and non-timestamped root comments
   const timed = comments.filter((c) => c.second !== null && c.second !== undefined)
@@ -26,22 +37,25 @@ export const exportToResolveEdl = (
         ? secondToFrame(comment.second, metadata.fps)
         : 0
     const tc = frameToTimecode(frame, metadata.fps, dropFrame, metadata.startTimecode)
+    const author = sanitizeEdlText(comment.creator.name)
 
     lines.push(`${eventNum}  001  C  V  ${tc}  ${tc}  ${tc}  ${tc}`)
-    lines.push(`@${comment.creator.name}, ${formatDateEdl(exportDate, false)}`)
+    lines.push(`@${author}, ${formatDateEdl(exportDate, false, options?.timeZone)}`)
 
-    const markerTag = `|C:ResolveColorPurple |M:${comment.creator.name} |D:0`
+    const markerTag = `|C:ResolveColorPurple |M:${author} |D:0`
     const replies = comment.replies || []
+    const rootMsg = sanitizeEdlText(comment.message || '')
 
     if (replies.length === 0) {
-      const msg = comment.message ? `${comment.message} ${markerTag}` : markerTag
+      const msg = rootMsg ? `${rootMsg} ${markerTag}` : markerTag
       lines.push(msg)
     } else {
-      lines.push(comment.message || '')
+      lines.push(rootMsg)
       replies.forEach((reply, rIndex) => {
         const isLastReply = rIndex === replies.length - 1
-        lines.push(`@${reply.creator.name}, ${formatDateEdl(exportDate, true)} [Reply]`)
-        const replyMsg = reply.message || ''
+        const replyAuthor = sanitizeEdlText(reply.creator.name)
+        lines.push(`@${replyAuthor}, ${formatDateEdl(exportDate, true, options?.timeZone)} [Reply]`)
+        const replyMsg = sanitizeEdlText(reply.message || '')
         if (isLastReply) {
           lines.push(`^ ${replyMsg} ${markerTag}`)
         } else {

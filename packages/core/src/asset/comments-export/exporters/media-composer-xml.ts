@@ -15,7 +15,6 @@ export const exportToMediaComposerXml = (
   comments: ExportCommentItem[],
   options?: ExportOptions,
 ): ExportResult => {
-  void options
   const lines: string[] = [
     '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>',
     '<!DOCTYPE Avid:StreamItems SYSTEM "AvidSettingsFile.dtd">',
@@ -67,7 +66,7 @@ export const exportToMediaComposerXml = (
       const annotationPrefix = hasAnnotation ? '(Annotation) ' : ''
       const rootText = `${annotationPrefix}${comment.message || ''}`
       const formatLine = (name: string, date: Date, text: string): string => {
-        return `[${escapeXml(name)} ${formatDateAvid(date)}] ${escapeXml(text)}`
+        return `[${escapeXml(name)} ${formatDateAvid(date, options?.timeZone)}] ${escapeXml(text)}`
       }
 
       const rootPart = formatLine(comment.creator.name, new Date(comment.createdAt), rootText)

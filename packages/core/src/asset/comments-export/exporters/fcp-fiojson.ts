@@ -32,6 +32,8 @@ export const exportToFcpFioJson = (
   comments: ExportCommentItem[],
   options?: ExportOptions,
 ): ExportResult => {
+  // Final Cut Pro .fiojson format uses standard ISO 8601 UTC timestamps (e.g. 2026-09-13T03:26:00.000Z)
+  // for inserted_at, so timeZone options do not modify the JSON timestamp format.
   void options
   // Separate timestamped and non-timestamped comments
   const timed = comments.filter((c) => c.second !== null && c.second !== undefined)

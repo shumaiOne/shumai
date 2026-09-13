@@ -80,4 +80,16 @@ describe('Timecode and Frame utilities', () => {
     const testDate = new Date('2026-09-13T03:26:31Z')
     expect(formatDatePremiere(testDate)).toBe('2026-9-13 03-26-31')
   })
+
+  it('formats dates in custom timezones correctly', () => {
+    const testDate = new Date('2026-09-13T03:26:31Z')
+    // America/New_York is UTC-4 (EDT) -> Sep 12, 2026 23:26:31
+    expect(formatDateEdl(testDate, false, 'America/New_York')).toBe('Sep 12 12 11:26pm')
+    expect(formatDateEdl(testDate, true, 'America/New_York')).toBe('Sep 12 11:26pm')
+    expect(formatDateAvid(testDate, 'America/New_York')).toBe('Sep 12, 2026 &#183; 23:26')
+    expect(formatDatePremiere(testDate, 'America/New_York')).toBe('2026-9-12 23-26-31')
+
+    // Asia/Shanghai is UTC+8 -> Sep 13, 2026 11:26:31
+    expect(formatDatePremiere(testDate, 'Asia/Shanghai')).toBe('2026-9-13 11-26-31')
+  })
 })
