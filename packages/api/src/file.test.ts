@@ -363,7 +363,7 @@ describe('file api', () => {
 
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Disposition')).toBe(
-      'attachment; filename="test-video_comments.edl"',
+      'attachment; filename="test-video_comments.edl"; filename*=UTF-8\'\'test-video_comments.edl',
     )
     expect(res.headers.get('Content-Type')).toBe('application/edl')
     const body = await res.text()
@@ -379,6 +379,22 @@ describe('file api', () => {
     expect(assetService.exportComments).toHaveBeenCalledWith('test-id', 'resolve-edl', {
       timeZone: undefined,
     })
+  })
+
+  it('GET /files/:fileId/comments/export - handles CJK filename in Content-Disposition', async () => {
+    vi.mocked(assetService.exportComments).mockResolvedValue({
+      content: 'TITLE: 中文视频\n001 ...',
+      filename: '宣传片_2026_resolve.edl',
+      mimeType: 'text/plain; charset=utf-8',
+    })
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/files/test-id/comments/export?format=resolve-edl')
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Content-Disposition')).toBe(
+      `attachment; filename*=UTF-8''${encodeURIComponent('宣传片_2026_resolve.edl')}`,
+    )
   })
 
   it('GET /files/:fileId/comments/export - with timezone query', async () => {

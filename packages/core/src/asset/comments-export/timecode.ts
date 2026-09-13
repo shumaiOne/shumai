@@ -4,6 +4,23 @@ export const isDropFrameRate = (fps: number): boolean => {
   return isFractional && (frameRateRound === 30 || frameRateRound === 60)
 }
 
+export const getEffectiveDropFrame = (
+  fps: number,
+  startTimecode?: string | null,
+  forcedDropFrame?: boolean,
+): boolean => {
+  if (forcedDropFrame !== undefined) {
+    return forcedDropFrame
+  }
+  if (startTimecode) {
+    const parts = startTimecode.match(/^([012]\d):(\d\d):(\d\d)(:|;|\.)(\d+)$/)
+    if (parts) {
+      return parts[4] !== ':'
+    }
+  }
+  return isDropFrameRate(fps)
+}
+
 export const secondToFrame = (second: number | null | undefined, fps: number): number => {
   if (second === null || second === undefined || isNaN(second)) {
     return 0
@@ -18,7 +35,7 @@ export const frameToTimecode = (
   startTimecode?: string | null,
 ): string => {
   const frameRateRound = Math.round(fps) || 24
-  let dropFrame = forcedDropFrame ?? isDropFrameRate(fps)
+  const dropFrame = getEffectiveDropFrame(fps, startTimecode, forcedDropFrame)
 
   let startFrameCount = 0
   if (startTimecode) {
@@ -28,7 +45,6 @@ export const frameToTimecode = (
       const minutes = parseInt(parts[2], 10)
       const seconds = parseInt(parts[3], 10)
       const frames = parseInt(parts[5], 10)
-      dropFrame = parts[4] !== ':'
       startFrameCount = (hours * 3600 + minutes * 60 + seconds) * frameRateRound + frames
       if (dropFrame) {
         const totalMinutes = hours * 60 + minutes

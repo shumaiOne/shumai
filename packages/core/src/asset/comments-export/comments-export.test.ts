@@ -124,8 +124,7 @@ describe('Comments Export against Frame.io Golden Test Data', () => {
     )
     expect(result.mimeType).toBe('application/json; charset=utf-8')
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parsed: any = JSON.parse(result.content)
+    const parsed = JSON.parse(result.content) as typeof golden
 
     expect(parsed.asset.id).toBe(metadata.id)
     expect(parsed.asset.name).toBe(metadata.name)
@@ -149,5 +148,141 @@ describe('Comments Export against Frame.io Golden Test Data', () => {
         expect(gen.annotation).toBeNull()
       }
     }
+  })
+})
+
+describe('Edge Cases and CJK Character Support', () => {
+  it('escapes special XML characters in asset name for Premiere XML', () => {
+    const specialMetadata: ExportAssetMetadata = {
+      id: 'special-1',
+      name: 'Tom & Jerry <Summer Special> & Co.mp4',
+      fps: 24,
+      duration: 10,
+      totalFrames: 240,
+    }
+
+    const result = exportCommentsToFormat(specialMetadata, [], 'premiere-xml', {
+      exportDate: new Date('2026-09-13T03:26:31Z'),
+    })
+
+    expect(result.filename).toBe('Tom & Jerry <Summer Special> & Co_premiere.xml')
+    expect(result.content).toContain(
+      '<name>Tom &amp; Jerry &lt;Summer Special&gt; &amp; Co.mp4 2026-9-13 03-26-31</name>',
+    )
+    expect(result.content).not.toContain('<name>Tom & Jerry <Summer Special>')
+  })
+
+  it('keeps Resolve EDL FCM consistent with startTimecode separator', () => {
+    const ndfMetadata: ExportAssetMetadata = {
+      id: 'ndf-1',
+      name: 'video_ndf.mp4',
+      fps: 29.97,
+      duration: 10,
+      totalFrames: 300,
+      startTimecode: '01:00:00:00', // Colon denotes NDF
+    }
+
+    const comment: ExportCommentItem = {
+      id: 'c1',
+      message: 'test comment',
+      second: 1.0,
+      createdAt: new Date('2026-09-13T00:00:00Z'),
+      isCompleted: false,
+      creator: { id: 'u1', name: 'User' },
+    }
+
+    const edlNdf = exportCommentsToFormat(ndfMetadata, [comment], 'resolve-edl')
+    expect(edlNdf.content).toContain('FCM: NON DROP FRAME')
+    // Emitted timecode must use colon (NDF), matching FCM
+    expect(edlNdf.content).toContain('01:00:00:29')
+    expect(edlNdf.content).not.toContain('01:00:00;29')
+
+    const dfMetadata: ExportAssetMetadata = {
+      ...ndfMetadata,
+      startTimecode: '01:00:00;00', // Semicolon denotes DF
+    }
+
+    const edlDf = exportCommentsToFormat(dfMetadata, [comment], 'resolve-edl')
+    expect(edlDf.content).toContain('FCM: DROP FRAME')
+    // Emitted timecode must use semicolon (DF), matching FCM
+    expect(edlDf.content).toContain('01:00:00;29')
+  })
+
+  it('exports CJK filenames, author names, and comments across all formats without corruption', () => {
+    const cjkMetadata: ExportAssetMetadata = {
+      id: 'cjk-asset',
+      name: '宣传片_最终版 (2026).mp4',
+      fps: 24,
+      duration: 120,
+      totalFrames: 2880,
+    }
+
+    const cjkComments: ExportCommentItem[] = [
+      {
+        id: 'cjk-1',
+        message: '这个镜头的色调太暗了，建议提高曝光度。',
+        second: 5.5,
+        createdAt: '2026-09-13T03:26:00Z',
+        isCompleted: false,
+        creator: { id: 'u1', name: '张三 (Zhang San)' },
+        replies: [
+          {
+            id: 'cjk-1-reply',
+            message: '同意！コントラストも少し下げた方が良いと思います。',
+            second: null,
+            createdAt: '2026-09-13T03:27:00Z',
+            isCompleted: false,
+            creator: { id: 'u2', name: '佐藤健 (Satō Ken)' },
+          },
+        ],
+      },
+      {
+        id: 'cjk-2',
+        message: '전체적인 템포가 아주 좋습니다.',
+        second: null,
+        createdAt: '2026-09-13T03:28:00Z',
+        isCompleted: true,
+        creator: { id: 'u3', name: '김민수 (Kim Min-soo)' },
+      },
+    ]
+
+    // 1. Resolve EDL
+    const edl = exportCommentsToFormat(cjkMetadata, cjkComments, 'resolve-edl')
+    expect(edl.filename).toBe('宣传片_最终版 (2026)_resolve.edl')
+    expect(edl.content).toContain('TITLE: 宣传片_最终版 (2026).mp4')
+    expect(edl.content).toContain('这个镜头的色调太暗了，建议提高曝光度。')
+    expect(edl.content).toContain('佐藤健 (Satō Ken)')
+    expect(edl.content).toContain('同意！コントラストも少し下げた方が良いと思います。')
+    expect(edl.content).toContain('전체적인 템포가 아주 좋습니다.')
+
+    // 2. Media Composer XML
+    const mc = exportCommentsToFormat(cjkMetadata, cjkComments, 'media-composer-xml')
+    expect(mc.filename).toBe('宣传片_最终版 (2026)_media-composer.xml')
+    expect(mc.content).toContain('张三 (Zhang San)')
+    expect(mc.content).toContain('这个镜头的色调太暗了，建议提高曝光度。')
+    expect(mc.content).toContain('佐藤健 (Satō Ken)')
+    expect(mc.content).toContain('同意！コントラストも少し下げた方が良いと思います。')
+    expect(mc.content).toContain('전체적인 템포가 아주 좋습니다.')
+
+    // 3. Premiere XML
+    const ppro = exportCommentsToFormat(cjkMetadata, cjkComments, 'premiere-xml', {
+      exportDate: new Date('2026-09-13T03:26:31Z'),
+    })
+    expect(ppro.filename).toBe('宣传片_最终版 (2026)_premiere.xml')
+    expect(ppro.content).toContain('<name>宣传片_最终版 (2026).mp4 2026-9-13 03-26-31</name>')
+    expect(ppro.content).toContain('这个镜头的色调太暗了，建议提高曝光度。')
+    expect(ppro.content).toContain('同意！コントラストも少し下げた方が良いと思います。')
+
+    // 4. FCP FIOJSON
+    const fcp = exportCommentsToFormat(cjkMetadata, cjkComments, 'fcp-fiojson')
+    expect(fcp.filename).toBe('宣传片_最终版 (2026).fiojson')
+    const parsedFcp = JSON.parse(fcp.content)
+    expect(parsedFcp.asset.name).toBe('宣传片_最终版 (2026).mp4')
+    expect(parsedFcp.comments[0].text).toBe('这个镜头的色调太暗了，建议提高曝光度。')
+    expect(parsedFcp.comments[0].owner.name).toBe('张三 (Zhang San)')
+    expect(parsedFcp.comments[1].text).toBe('同意！コントラストも少し下げた方が良いと思います。')
+    expect(parsedFcp.comments[1].owner.name).toBe('佐藤健 (Satō Ken)')
+    expect(parsedFcp.comments[2].text).toBe('전체적인 템포가 아주 좋습니다.')
+    expect(parsedFcp.comments[2].owner.name).toBe('김민수 (Kim Min-soo)')
   })
 })

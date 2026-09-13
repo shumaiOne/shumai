@@ -1,5 +1,5 @@
 import type { ExportAssetMetadata, ExportCommentItem, ExportOptions, ExportResult } from '../types'
-import { formatDateEdl, frameToTimecode, isDropFrameRate, secondToFrame } from '../timecode'
+import { formatDateEdl, frameToTimecode, getEffectiveDropFrame, secondToFrame } from '../timecode'
 
 export const exportToResolveEdl = (
   metadata: ExportAssetMetadata,
@@ -7,7 +7,7 @@ export const exportToResolveEdl = (
   options?: ExportOptions,
 ): ExportResult => {
   const exportDate = options?.exportDate || new Date()
-  const dropFrame = isDropFrameRate(metadata.fps)
+  const dropFrame = getEffectiveDropFrame(metadata.fps, metadata.startTimecode)
   const fcm = dropFrame ? 'DROP FRAME' : 'NON DROP FRAME'
 
   const lines: string[] = [`TITLE: ${metadata.name}`, `FCM: ${fcm}`, '']

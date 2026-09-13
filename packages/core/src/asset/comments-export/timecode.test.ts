@@ -4,6 +4,7 @@ import {
   formatDateEdl,
   formatDatePremiere,
   frameToTimecode,
+  getEffectiveDropFrame,
   isDropFrameRate,
   secondToFrame,
 } from './timecode'
@@ -17,6 +18,20 @@ describe('Timecode and Frame utilities', () => {
     expect(isDropFrameRate(25)).toBe(false)
     expect(isDropFrameRate(30)).toBe(false)
     expect(isDropFrameRate(60)).toBe(false)
+  })
+
+  it('determines effective drop-frame setting from fps and startTimecode separator', () => {
+    // 29.97 with no startTimecode defaults to DF
+    expect(getEffectiveDropFrame(29.97)).toBe(true)
+    // 29.97 with NDF startTimecode (:) overrides to NDF
+    expect(getEffectiveDropFrame(29.97, '01:00:00:00')).toBe(false)
+    // 29.97 with DF startTimecode (;) remains DF
+    expect(getEffectiveDropFrame(29.97, '01:00:00;00')).toBe(true)
+    // 24 fps always defaults to NDF
+    expect(getEffectiveDropFrame(24)).toBe(false)
+    expect(getEffectiveDropFrame(24, '01:00:00:00')).toBe(false)
+    // forced flag takes precedence
+    expect(getEffectiveDropFrame(29.97, '01:00:00:00', true)).toBe(true)
   })
 
   it('converts second to frame index with 0.45 offset', () => {

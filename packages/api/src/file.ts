@@ -20,7 +20,7 @@ import {
   exportCommentsQuerySchema,
   AuditAction,
 } from '@shumai/dtos'
-import { transcodeService } from '@shumai/core'
+import { transcodeService, buildContentDisposition } from '@shumai/core'
 import fs from 'fs'
 import { Hono } from 'hono'
 import os from 'os'
@@ -246,7 +246,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       const result = await assetService.exportComments(fileId, format, { timeZone })
 
       c.header('Content-Type', result.mimeType)
-      c.header('Content-Disposition', `attachment; filename="${result.filename}"`)
+      c.header('Content-Disposition', buildContentDisposition(result.filename))
       return c.body(result.content)
     },
   )

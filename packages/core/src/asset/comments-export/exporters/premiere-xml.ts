@@ -75,7 +75,7 @@ export const exportToPremiereXml = (
       <timebase>${timebase}</timebase>
       <ntsc>${isNtsc ? 'TRUE' : 'FALSE'}</ntsc>
     </rate>
-    <name>${metadata.name} ${dateStr}</name>
+    <name>${escapeXml(metadata.name)} ${dateStr}</name>
     <media>
       <video>
         <format>
