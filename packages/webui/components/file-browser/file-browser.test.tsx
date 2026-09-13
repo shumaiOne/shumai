@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FileBrowser } from './file-browser'
@@ -40,6 +40,14 @@ vi.mock('@/ui/hooks/use-permissions', () => ({
     canAdmin: true,
     canView: true,
   }),
+}))
+
+vi.mock('@/ui/components/file-viewer', () => ({
+  FileViewer: ({ file }: { file: AssetInfo }) => (
+    <div data-testid="mock-file-viewer">
+      <span>Viewer for {file.name}</span>
+    </div>
+  ),
 }))
 
 vi.mock('@/ui/api/client', () => ({
@@ -198,5 +206,79 @@ describe('FileBrowser', () => {
 
     expect(screen.queryByText(/This folder is empty|此文件夹为空/i)).toBeNull()
     expect(screen.getByTestId('file-browser-loading-skeleton')).toBeDefined()
+  })
+
+  it('opens quick preview when Space is pressed on a selected file', () => {
+    renderComponent({
+      selectedIds: new Set(['file-1']),
+      selectedItem: mockFile,
+    })
+
+    fireEvent.keyDown(window, { key: ' ', code: 'Space' })
+
+    expect(screen.getByTestId('file-preview-dialog-content')).toBeDefined()
+    expect(screen.getByTestId('mock-file-viewer')).toBeDefined()
+  })
+
+  it('opens quick preview when Space is pressed on a selected folder', () => {
+    renderComponent({
+      selectedIds: new Set(['folder-1']),
+      selectedItem: mockFolder,
+    })
+
+    fireEvent.keyDown(window, { key: ' ', code: 'Space' })
+
+    expect(screen.getByTestId('file-preview-dialog-content')).toBeDefined()
+    expect(screen.getByTestId('folder-preview-icon')).toBeDefined()
+  })
+
+  it('previews the latest selected item when multiple items are selected', () => {
+    const mockFile2: AssetInfo = {
+      id: 'file-2',
+      name: 'second_document.pdf',
+      type: 'file',
+      sizeByte: 2048,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+      status: 'processed',
+    } as AssetInfo
+
+    renderComponent({
+      files: [mockFile, mockFile2],
+      selectedIds: new Set(['file-1', 'file-2']),
+      selectedItem: mockFile2,
+    })
+
+    fireEvent.keyDown(window, { key: ' ', code: 'Space' })
+
+    expect(screen.getByTestId('file-preview-dialog-content')).toBeDefined()
+    expect(screen.getByText('Viewer for second_document.pdf')).toBeDefined()
+  })
+
+  it('does not open quick preview when Space is pressed with no selection', () => {
+    renderComponent({
+      selectedIds: new Set(),
+      selectedItem: null,
+    })
+
+    fireEvent.keyDown(window, { key: ' ', code: 'Space' })
+
+    expect(screen.queryByTestId('file-preview-dialog-content')).toBeNull()
+  })
+
+  it('does not open quick preview when Space is pressed while typing in an input element', () => {
+    renderComponent({
+      selectedIds: new Set(['file-1']),
+      selectedItem: mockFile,
+    })
+
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    input.focus()
+
+    fireEvent.keyDown(input, { key: ' ', code: 'Space' })
+
+    expect(screen.queryByTestId('file-preview-dialog-content')).toBeNull()
+    document.body.removeChild(input)
   })
 })

@@ -388,14 +388,23 @@ export default function FileSystemManager({
       const newSelectedIds = new Set(selectedIds)
       if (newSelectedIds.has(item.id)) {
         newSelectedIds.delete(item.id)
+        setSelectedIds(newSelectedIds)
+        if (selectedItem?.id === item.id) {
+          const allItems = [...folders, ...files]
+          const remaining = allItems.find((i) => newSelectedIds.has(i.id))
+          setSelectedItem(remaining || null)
+          setLastSelectedId(remaining ? remaining.id : null)
+        }
       } else {
         newSelectedIds.add(item.id)
+        setSelectedIds(newSelectedIds)
+        setLastSelectedId(item.id)
+        setSelectedItem(item)
       }
-      setSelectedIds(newSelectedIds)
-    } else {
-      setSelectedIds(new Set([item.id]))
+      return
     }
 
+    setSelectedIds(new Set([item.id]))
     setLastSelectedId(item.id)
     setSelectedItem(item)
   }

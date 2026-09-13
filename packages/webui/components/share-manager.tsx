@@ -202,11 +202,13 @@ export default function ShareManager({
     clearProjectState,
   ])
 
+  const [selectedItem, setSelectedItem] = useState<AssetInfo | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
   const handleClearSelection = () => {
     setSelectedIds(new Set())
+    setSelectedItem(null)
   }
-
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const { dragState, handleDragStart, handleDragEnd } = useFileSystemDnd({
     teamId,
@@ -301,16 +303,26 @@ export default function ShareManager({
             assetId={currentFolderId || ''}
             folders={folders}
             files={files}
-            selectedItem={null}
+            selectedItem={selectedItem}
             selectedIds={selectedIds}
             onItemSelect={(item, e) => {
               if (e.metaKey || e.ctrlKey) {
                 const next = new Set(selectedIds)
-                if (next.has(item.id)) next.delete(item.id)
-                else next.add(item.id)
-                setSelectedIds(next)
+                if (next.has(item.id)) {
+                  next.delete(item.id)
+                  setSelectedIds(next)
+                  if (selectedItem?.id === item.id) {
+                    const remaining = [...folders, ...files].find((i) => next.has(i.id))
+                    setSelectedItem(remaining || null)
+                  }
+                } else {
+                  next.add(item.id)
+                  setSelectedIds(next)
+                  setSelectedItem(item)
+                }
               } else {
                 setSelectedIds(new Set([item.id]))
+                setSelectedItem(item)
               }
             }}
             onItemDoubleClick={handleItemDoubleClick}

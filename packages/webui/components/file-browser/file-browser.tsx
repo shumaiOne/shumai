@@ -26,6 +26,7 @@ import { ulid } from 'ulid'
 import type { DragState } from '../dnd-types'
 import { MoveCopyDialog } from '../move-copy-dialog'
 import { ManageVersionsDialog } from '../manage-versions-dialog'
+import { FilePreviewDialog } from '../file-preview-dialog'
 import { FileBrowserContentSkeleton } from '../loading-skeletons'
 import { FileBrowserContextMenu } from './context-menu'
 
@@ -153,6 +154,28 @@ export function FileBrowser({
   const [manageVersionsStackId, setManageVersionsStackId] = useState<string | null>(null)
   const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy' | null>(null)
   const [itemsToMoveCopy, setItemsToMoveCopy] = useState<AssetInfo[]>([])
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [internalSelectedItem, setInternalSelectedItem] = useState<AssetInfo | null>(null)
+
+  useEffect(() => {
+    if (selectedItem) {
+      setInternalSelectedItem(selectedItem)
+    }
+  }, [selectedItem])
+
+  useEffect(() => {
+    if (selectedIds.size === 0) {
+      setInternalSelectedItem(null)
+    }
+  }, [selectedIds.size])
+
+  const handleItemSelectWrapper = useCallback(
+    (item: AssetInfo, event: React.MouseEvent) => {
+      setInternalSelectedItem(item)
+      onItemSelect(item, event)
+    },
+    [onItemSelect],
+  )
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
@@ -231,6 +254,50 @@ export function FileBrowser({
     const filteredLocal = localUploadingFiles.filter((f) => !existingIds.has(f.id))
     return [...filteredLocal, ...files]
   }, [files, localUploadingFiles])
+
+  const activePreviewItem = useMemo(() => {
+    if (selectedIds.size === 0) return null
+    if (internalSelectedItem && selectedIds.has(internalSelectedItem.id!)) {
+      return internalSelectedItem
+    }
+    if (selectedItem && selectedIds.has(selectedItem.id!)) {
+      return selectedItem
+    }
+    const allItems = [...folders, ...displayedFiles]
+    return allItems.find((i) => selectedIds.has(i.id!)) || null
+  }, [selectedIds, internalSelectedItem, selectedItem, folders, displayedFiles])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== ' ' && e.code !== 'Space') return
+
+      if (isPreviewOpen) return
+
+      const activeEl = document.activeElement
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          (activeEl instanceof HTMLElement && activeEl.isContentEditable))
+      ) {
+        return
+      }
+
+      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) {
+        return
+      }
+
+      if (selectedIds.size > 0 && activePreviewItem) {
+        e.preventDefault()
+        setIsPreviewOpen(true)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isPreviewOpen, selectedIds.size, activePreviewItem])
 
   const { data: shareLinksData } = useQuery({
     queryKey: ['shares', projectId, 'list'],
@@ -662,7 +729,7 @@ export function FileBrowser({
       isSelected: selectedItem?.id === item.id,
       isChecked: selectedIds.has(item.id!),
       isEditing: editingItemId === item.id,
-      onSelect: onItemSelect,
+      onSelect: handleItemSelectWrapper,
       onDoubleClick: onItemDoubleClick,
       onContextMenu: onContextMenu,
       onDragStart: () => {}, // Handled by dnd-kit
@@ -949,7 +1016,7 @@ export function FileBrowser({
                   selectedItem={selectedItem}
                   selectedIds={selectedIds}
                   displayedFields={displayedFields}
-                  onItemSelect={onItemSelect}
+                  onItemSelect={handleItemSelectWrapper}
                   onItemDoubleClick={onItemDoubleClick}
                   renderItem={renderItem}
                   foldersExpanded={foldersExpanded}
@@ -1276,6 +1343,15 @@ export function FileBrowser({
           }}
         />
       )}
+
+      <FilePreviewDialog
+        item={activePreviewItem}
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        allowDownload={allowDownload}
+        shareId={shareId}
+        isPublic={isPublic}
+      />
     </>
   )
 }
