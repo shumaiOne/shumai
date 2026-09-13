@@ -88,7 +88,7 @@ describe('migrateLegacyAgentAvatars', () => {
     const updatedAgent = await prisma.user.findUnique({
       where: { id: agentUser.id },
     })
-    expect(updatedAgent?.image).toMatch(/^files\/[A-Z0-9]{26}\.webp$/)
+    expect(updatedAgent?.image).toBe('files/avatars/avatar-1.webp')
 
     const updatedAgentRecord = await prisma.agent.findUnique({
       where: { id: agentUser.id },

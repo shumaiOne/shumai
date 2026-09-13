@@ -19,8 +19,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 import { getAllowedAgentRoles } from './permissions'
-import { ulid } from 'ulid'
-import { isPresetAvatarId, getPresetAvatarBuffer } from './presets'
+import { isPresetAvatarId, getPresetAvatarBuffer, getPresetAvatarStorageKey } from './presets'
 import AdmZip from 'adm-zip'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -50,7 +49,9 @@ interface AgentInfoSource {
 
 function extractS3Key(urlOrKey?: string | null): string | null | undefined {
   if (!urlOrKey) return urlOrKey
-  const match = urlOrKey.match(/files\/[A-Z0-9]{26}(\.[a-zA-Z0-9]+)?/)
+  const match = urlOrKey.match(
+    /(files\/avatars\/[a-zA-Z0-9_-]+\.webp|files\/[A-Z0-9]{26}(\.[a-zA-Z0-9]+)?)/,
+  )
   return match ? match[0] : urlOrKey
 }
 
@@ -190,7 +191,7 @@ export class AgentService {
       const buffer = getPresetAvatarBuffer(targetAvatar)
       if (buffer) {
         const bucket = process.env.S3_BUCKET || 'shumai'
-        const key = `files/${ulid()}.webp`
+        const key = getPresetAvatarStorageKey(targetAvatar)
         await s3Service.putObject(bucket, key, buffer, buffer.length, 'image/webp')
         imageKey = key
       }
@@ -335,7 +336,7 @@ export class AgentService {
           const buffer = getPresetAvatarBuffer(avatar)
           if (buffer) {
             const bucket = process.env.S3_BUCKET || 'shumai'
-            const key = `files/${ulid()}.webp`
+            const key = getPresetAvatarStorageKey(avatar)
             await s3Service.putObject(bucket, key, buffer, buffer.length, 'image/webp')
             imageKey = key
             newAvatarPreset = avatar

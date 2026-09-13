@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   getPresetAvatarBuffer,
+  getPresetAvatarStorageKey,
   isPresetAvatarId,
   PRESET_AVATAR_IDS,
   type PresetAvatarId,
@@ -25,6 +26,12 @@ describe('agent presets', () => {
       expect(buf?.length).toBeGreaterThan(5000)
     }
     expect(getPresetAvatarBuffer('unknown' as PresetAvatarId)).toBeNull()
+  })
+
+  it('returns deterministic storage key for preset avatars', () => {
+    for (const id of PRESET_AVATAR_IDS) {
+      expect(getPresetAvatarStorageKey(id)).toBe(`files/avatars/${id}.webp`)
+    }
   })
 
   it('provides AVAILABLE_AVATARS with 8 previews via dtos', async () => {

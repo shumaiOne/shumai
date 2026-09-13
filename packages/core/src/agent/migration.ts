@@ -2,7 +2,12 @@ import { prisma } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { logger } from '@shumai/core/src/logger'
 import { ulid } from 'ulid'
-import { PRESET_AVATAR_IDS, getPresetAvatarBuffer } from './presets'
+import {
+  PRESET_AVATAR_IDS,
+  getPresetAvatarBuffer,
+  getPresetAvatarStorageKey,
+  type PresetAvatarId,
+} from './presets'
 
 export async function migrateLegacyAgentAvatars(
   client: typeof prisma = prisma,
@@ -58,7 +63,9 @@ export async function migrateLegacyAgentAvatars(
         }
       }
 
-      const key = `files/${ulid()}.${ext}`
+      const key = matchedPresetId
+        ? getPresetAvatarStorageKey(matchedPresetId as PresetAvatarId)
+        : `files/${ulid()}.${ext}`
       await s3Service.putObject(bucket, key, buffer, buffer.length, contentType)
 
       await client.user.update({

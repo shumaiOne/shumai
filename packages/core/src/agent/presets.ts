@@ -7,6 +7,10 @@ import {
 
 export { PRESET_AVATAR_IDS, type PresetAvatarId, isPresetAvatarId }
 
+export function getPresetAvatarStorageKey(id: PresetAvatarId): string {
+  return `files/avatars/${id}.webp`
+}
+
 const bufferCache = new Map<PresetAvatarId, Buffer>()
 
 export function getPresetAvatarBuffer(id: PresetAvatarId): Buffer | null {
