@@ -2026,6 +2026,38 @@ export class AssetService {
         : []
     const hasAgentMdSet = new Set(agentMdRecords.map((r) => r.assetId))
 
+    const commentTargetIds = new Set<string>()
+    for (const a of assets) {
+      if (
+        a.type === AssetType.version_stack ||
+        (a.type === AssetType.symlink && a.target?.type === AssetType.version_stack)
+      ) {
+        const stackId = a.type === AssetType.symlink ? a.targetId! : a.id
+        const versions = versionsMap.get(stackId) || []
+        if (versions.length > 0) {
+          commentTargetIds.add(versions[0].id)
+        } else {
+          commentTargetIds.add(stackId)
+        }
+      } else if (a.type === AssetType.symlink && a.target) {
+        commentTargetIds.add(a.target.id)
+      } else {
+        commentTargetIds.add(a.id)
+      }
+    }
+
+    const commentCounts =
+      commentTargetIds.size > 0
+        ? await this.prismaClient.assetComment.groupBy({
+            by: ['assetId'],
+            where: {
+              assetId: { in: Array.from(commentTargetIds) },
+            },
+            _count: { _all: true },
+          })
+        : []
+    const commentCountMap = new Map(commentCounts.map((c) => [c.assetId, c._count._all]))
+
     const result: AssetInfo[] = []
     for (const a of assets) {
       let latestVersion:
@@ -2207,6 +2239,7 @@ export class AssetService {
         fieldValues,
         sortIndex: a.sortIndex,
         hasAgentsMd: hasAgentMdSet.has(a.id),
+        commentsCount: commentCountMap.get(latestVersion.id) ?? 0,
         media: media as unknown as AssetInfo['media'],
         versionStack,
       })

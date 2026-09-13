@@ -4420,4 +4420,194 @@ describe('AssetService — natural sort by name', () => {
       expect(folderRes.data.length).toBe(1)
     })
   })
+
+  describe('commentsCount in toAssetInfos', () => {
+    it('returns commentsCount 0 when file has no comments', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+
+      const file = await prisma.asset.create({
+        data: {
+          name: 'file.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          creatorId: user.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const res = await assetService.listChildren({
+        assetId: rootFolder.id,
+        assetType: 'file',
+      })
+      const fileInfo = res.data.find((a) => a.id === file.id)
+      expect(fileInfo).toBeDefined()
+      expect(fileInfo?.commentsCount).toBe(0)
+    })
+
+    it('returns total comments count including replies for a file', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+
+      const file = await prisma.asset.create({
+        data: {
+          name: 'video.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          creatorId: user.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const rootComment = await prisma.assetComment.create({
+        data: {
+          assetId: file.id,
+          creatorId: user.id,
+          message: 'Root comment 1',
+        },
+      })
+
+      await prisma.assetComment.create({
+        data: {
+          assetId: file.id,
+          creatorId: user.id,
+          message: 'Reply to comment 1',
+          replyToId: rootComment.id,
+        },
+      })
+
+      await prisma.assetComment.create({
+        data: {
+          assetId: file.id,
+          creatorId: user.id,
+          message: 'Root comment 2',
+        },
+      })
+
+      const res = await assetService.listChildren({
+        assetId: rootFolder.id,
+        assetType: 'file',
+      })
+      const fileInfo = res.data.find((a) => a.id === file.id)
+      expect(fileInfo).toBeDefined()
+      expect(fileInfo?.commentsCount).toBe(3)
+    })
+
+    it('returns comments count of the active version for version stack', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+
+      const stack = await prisma.asset.create({
+        data: {
+          name: 'video_stack',
+          type: AssetType.version_stack,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          creatorId: user.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      // Older version (v1): larger sortIndex
+      const fileV1 = await prisma.asset.create({
+        data: {
+          name: 'video_v1.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: stack.id,
+          creatorId: user.id,
+          status: AssetStatus.uploaded,
+          sortIndex: 'b',
+        },
+      })
+
+      // Active / latest version (v2): smaller sortIndex
+      const fileV2 = await prisma.asset.create({
+        data: {
+          name: 'video_v2.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: stack.id,
+          creatorId: user.id,
+          status: AssetStatus.uploaded,
+          sortIndex: 'a',
+        },
+      })
+
+      // Add 2 comments to v1
+      await prisma.assetComment.create({
+        data: {
+          assetId: fileV1.id,
+          creatorId: user.id,
+          message: 'Comment on v1',
+        },
+      })
+      await prisma.assetComment.create({
+        data: {
+          assetId: fileV1.id,
+          creatorId: user.id,
+          message: 'Another comment on v1',
+        },
+      })
+
+      // Add 1 comment to v2 (active version)
+      await prisma.assetComment.create({
+        data: {
+          assetId: fileV2.id,
+          creatorId: user.id,
+          message: 'Comment on v2',
+        },
+      })
+
+      const res = await assetService.listChildren({
+        assetId: rootFolder.id,
+        assetType: 'file',
+      })
+      const stackInfo = res.data.find((a) => a.id === stack.id)
+      expect(stackInfo).toBeDefined()
+      // Should reflect active version (v2) comments count
+      expect(stackInfo?.commentsCount).toBe(1)
+    })
+  })
 })

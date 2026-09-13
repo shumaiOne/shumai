@@ -27,7 +27,15 @@ import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
 import { cn } from '@/ui/lib/utils'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
-import { Download, Edit, History, Layers, MoreHorizontal, Trash2 } from 'lucide-react'
+import {
+  Download,
+  Edit,
+  History,
+  Layers,
+  MessageCircleMore,
+  MoreHorizontal,
+  Trash2,
+} from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
 import FieldRenderer from '../field-renderer'
@@ -323,7 +331,18 @@ export function FileCard({
             )}
           </div>
         ) : (
-          <FilePreview item={displayItem} showDuration />
+          <>
+            <FilePreview item={displayItem} showDuration />
+            {typeof displayItem.commentsCount === 'number' && displayItem.commentsCount > 0 && (
+              <span
+                data-testid="file-card-comments-count"
+                className="pointer-events-none absolute bottom-1 left-1 z-10 flex items-center gap-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white"
+              >
+                <MessageCircleMore className="h-3.5 w-3.5" />
+                <span>{displayItem.commentsCount}</span>
+              </span>
+            )}
+          </>
         )}
       </div>
 

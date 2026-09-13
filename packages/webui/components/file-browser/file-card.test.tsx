@@ -214,4 +214,43 @@ describe('FileCard', () => {
     expect(tooltip.textContent).toContain('Very Long Creator Name')
     vi.useRealTimers()
   })
+
+  it('renders comments count badge in preview area when commentsCount > 0', () => {
+    const itemWithComments: AssetInfo = {
+      ...fileItem,
+      commentsCount: 5,
+    } as AssetInfo
+
+    renderComponent({ item: itemWithComments })
+
+    const commentsBadge = screen.getByTestId('file-card-comments-count')
+    expect(commentsBadge).toBeTruthy()
+    expect(commentsBadge.textContent).toContain('5')
+    expect(commentsBadge.className).toContain('absolute')
+    expect(commentsBadge.className).toContain('bottom-1')
+    expect(commentsBadge.className).toContain('left-1')
+    expect(commentsBadge.className).toContain('bg-black/60')
+    expect(commentsBadge.className).toContain('text-white')
+    expect(commentsBadge.className).toContain('pointer-events-none')
+    expect(commentsBadge.className).toContain('tabular-nums')
+  })
+
+  it('does not render comments count badge when commentsCount is 0 or undefined', () => {
+    const itemZeroComments: AssetInfo = {
+      ...fileItem,
+      commentsCount: 0,
+    } as AssetInfo
+
+    const { unmount } = renderComponent({ item: itemZeroComments })
+    expect(screen.queryByTestId('file-card-comments-count')).toBeNull()
+    unmount()
+
+    const itemNoComments: AssetInfo = {
+      ...fileItem,
+      commentsCount: undefined,
+    } as AssetInfo
+
+    renderComponent({ item: itemNoComments })
+    expect(screen.queryByTestId('file-card-comments-count')).toBeNull()
+  })
 })

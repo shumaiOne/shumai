@@ -83,6 +83,7 @@ export const assetInfoSchema = z.object({
   startTime: z.number().optional().nullable(),
   endTime: z.number().optional().nullable(),
   hasAgentsMd: z.boolean().optional(),
+  commentsCount: z.number().optional(),
 
   media: z
     .object({
