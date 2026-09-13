@@ -119,4 +119,67 @@ describe('VideoViewer', () => {
       }),
     )
   })
+
+  it('initializes VideoJS when transcode URL becomes available after initially empty with same ID', () => {
+    const initialVideo: AssetInfo = {
+      id: 'video-pending',
+      name: 'pending.mp4',
+      proxyType: 'video',
+      media: {
+        metadata: {
+          originalWidth: 1920,
+          originalHeight: 1080,
+          duration: 10,
+          frameRate: 30,
+          totalFrames: 300,
+        },
+        videoTranscodes: [
+          {
+            resolution: '1080p',
+            // URL not yet presigned (e.g. from file list payload)
+            url: undefined as unknown as string,
+            width: 1920,
+            height: 1080,
+          },
+        ],
+      },
+    } as unknown as AssetInfo
+
+    const detailedVideo: AssetInfo = {
+      ...initialVideo,
+      media: {
+        ...initialVideo.media,
+        videoTranscodes: [
+          {
+            resolution: '1080p',
+            url: 'https://cdn.example.com/signed-pending-1080p.mp4',
+            width: 1920,
+            height: 1080,
+          },
+        ],
+      },
+    } as unknown as AssetInfo
+
+    const { rerender } = render(<VideoViewer file={initialVideo} autoPlay={true} />)
+
+    // Initially targetSrc is empty, videojs should not be initialized
+    expect(videojsMock).not.toHaveBeenCalled()
+
+    // Rerender with detailedVideo (same id, but signed URL now available)
+    rerender(<VideoViewer file={detailedVideo} autoPlay={true} />)
+
+    // VideoJS should now be initialized with the new URL
+    expect(videojsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        autoplay: false,
+        sources: [
+          {
+            src: 'https://cdn.example.com/signed-pending-1080p.mp4',
+            type: 'video/mp4',
+          },
+        ],
+      }),
+    )
+  })
 })

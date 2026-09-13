@@ -95,7 +95,7 @@ describe('FilePreviewDialog', () => {
     expect(screen.getByTestId('folder-preview-count').textContent).toMatch(/5/)
   })
 
-  it('renders real file preview with header and FileViewer', () => {
+  it('renders real file preview with header and FileViewer', async () => {
     render(
       <QueryClientProvider client={queryClient}>
         <FilePreviewDialog item={mockFile} isOpen={true} onClose={vi.fn()} />
@@ -103,8 +103,9 @@ describe('FilePreviewDialog', () => {
     )
 
     expect(screen.getByText('photo.jpg')).toBeDefined()
-    expect(screen.getByTestId('mock-file-viewer')).toBeDefined()
-    expect(screen.getByTestId('mock-file-viewer').getAttribute('data-autoplay')).toBe('true')
+    const viewer = await screen.findByTestId('mock-file-viewer')
+    expect(viewer).toBeDefined()
+    expect(viewer.getAttribute('data-autoplay')).toBe('true')
   })
 
   it('calls onClose when close button is clicked', () => {

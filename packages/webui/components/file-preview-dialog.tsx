@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Folder, X } from 'lucide-react'
+import { Folder, Loader2, X } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import type { AssetInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
@@ -61,10 +61,16 @@ export function FilePreviewDialog({
       return (await res.json()) as unknown as AssetInfo
     },
     enabled: isOpen && !isFolder && !!targetFileId,
-    placeholderData: item ?? undefined,
   })
 
   if (!item) return null
+
+  const hasPlayableUrl = Boolean(
+    item.media?.videoTranscodes?.some((t) => !!t.url) ||
+    item.media?.imageTranscodes?.some((t) => !!t.url) ||
+    item.media?.pdfTranscode?.url,
+  )
+  const fileToDisplay = detailedFile || (hasPlayableUrl ? item : null)
 
   return (
     <Dialog
@@ -124,10 +130,17 @@ export function FilePreviewDialog({
               </p>
             </div>
           </div>
+        ) : !fileToDisplay ? (
+          <div
+            data-testid="preview-loading-spinner"
+            className="flex-1 flex items-center justify-center bg-background min-h-[300px]"
+          >
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
         ) : (
           <div className="flex-1 relative min-h-0 overflow-hidden bg-background">
             <FileViewer
-              file={detailedFile || item}
+              file={fileToDisplay}
               allowDownload={allowDownload}
               shareId={shareId}
               autoPlay={true}

@@ -62,10 +62,14 @@ vi.mock('@/ui/api/client', () => ({
           $post: vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }),
         },
         ':fileId': {
-          $get: vi.fn().mockResolvedValue({
+          $get: vi.fn().mockImplementation(async ({ param }: { param: { fileId: string } }) => ({
             ok: true,
-            json: async () => ({}),
-          }),
+            json: async () => ({
+              id: param.fileId,
+              name: param.fileId === 'file-2' ? 'second_document.pdf' : 'photo.jpg',
+              type: 'file',
+            }),
+          })),
           $put: vi.fn().mockResolvedValue({
             ok: true,
             json: async () => ({}),
@@ -208,7 +212,7 @@ describe('FileBrowser', () => {
     expect(screen.getByTestId('file-browser-loading-skeleton')).toBeDefined()
   })
 
-  it('opens quick preview when Space is pressed on a selected file', () => {
+  it('opens quick preview when Space is pressed on a selected file', async () => {
     renderComponent({
       selectedIds: new Set(['file-1']),
       selectedItem: mockFile,
@@ -217,7 +221,7 @@ describe('FileBrowser', () => {
     fireEvent.keyDown(window, { key: ' ', code: 'Space' })
 
     expect(screen.getByTestId('file-preview-dialog-content')).toBeDefined()
-    expect(screen.getByTestId('mock-file-viewer')).toBeDefined()
+    expect(await screen.findByTestId('mock-file-viewer')).toBeDefined()
   })
 
   it('opens quick preview when Space is pressed on a selected folder', () => {
@@ -232,7 +236,7 @@ describe('FileBrowser', () => {
     expect(screen.getByTestId('folder-preview-icon')).toBeDefined()
   })
 
-  it('previews the latest selected item when multiple items are selected', () => {
+  it('previews the latest selected item when multiple items are selected', async () => {
     const mockFile2: AssetInfo = {
       id: 'file-2',
       name: 'second_document.pdf',
@@ -252,7 +256,7 @@ describe('FileBrowser', () => {
     fireEvent.keyDown(window, { key: ' ', code: 'Space' })
 
     expect(screen.getByTestId('file-preview-dialog-content')).toBeDefined()
-    expect(screen.getByText('Viewer for second_document.pdf')).toBeDefined()
+    expect(await screen.findByText('Viewer for second_document.pdf')).toBeDefined()
   })
 
   it('does not open quick preview when Space is pressed with no selection', () => {
