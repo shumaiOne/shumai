@@ -15,7 +15,6 @@
 }
 
 * {
-  box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
@@ -279,53 +278,160 @@ sp-theme {
   opacity: 0.5;
 }
 
-/* Projects Grid (Shumai WebUI Style) */
-.project-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.project-card {
-  flex: 1 1 calc(50% - 10px);
-  min-width: 120px;
-  max-width: calc(50% - 5px);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-secondary);
-  overflow: hidden;
-  cursor: pointer;
+/* Card View (Horizontal 2-Column Row Layout) */
+.project-card-list,
+.file-card-list,
+.project-grid,
+.file-grid {
   display: flex;
   flex-direction: column;
-  transition:
-    transform 0.12s ease,
-    border-color 0.12s ease,
-    box-shadow 0.12s ease;
-}
-
-.project-card:hover {
-  border-color: rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-
-.project-card:active {
-  transform: scale(0.98);
-}
-
-.project-cover {
-  position: relative;
+  gap: 8px;
   width: 100%;
-  height: 94px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.2);
 }
 
-.project-cover-img {
+.project-row-card,
+.file-row-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  height: 76px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    transform 0.12s ease;
+}
+
+.project-row-card:hover,
+.file-row-card:hover {
+  background-color: var(--bg-hover);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.project-row-card:active,
+.file-row-card:active {
+  transform: scale(0.99);
+}
+
+/* Left Column: Preview Thumbnail (16:9 ratio, 114px x 64px) */
+.project-row-preview,
+.file-row-preview {
+  position: relative;
+  width: 114px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-row-img,
+.file-row-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.file-row-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-secondary);
+}
+
+.file-row-placeholder.folder {
+  color: #fbbf24;
+}
+
+.file-row-placeholder.video {
+  color: #60a5fa;
+}
+
+.file-row-placeholder.audio {
+  color: #a78bfa;
+}
+
+.file-row-placeholder.image {
+  color: #f472b6;
+}
+
+.file-row-placeholder.file {
+  color: var(--text-secondary);
+}
+
+.file-row-comment-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  color: #93c5fd;
+  font-size: 9px;
+}
+
+/* Right Column: Text Content */
+.project-row-content,
+.file-row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding-left: 10px;
+  padding-right: 4px;
+}
+
+.project-row-title,
+.file-row-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-row-subtext,
+.file-row-subtext {
+  font-size: 10px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.file-row-chevron {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  opacity: 0.6;
 }
 
 .project-cover-gradient {
@@ -507,7 +613,7 @@ sp-theme {
 .file-card-preview {
   position: relative;
   width: 100%;
-  height: 84px;
+  aspect-ratio: 16 / 9;
   background-color: rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;

@@ -52,10 +52,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, endpoint, onC
 
   return (
     <div
-      className="project-card"
+      className="project-row-card"
       onClick={onClick}
       role="button"
       tabIndex={0}
+      title={project.name}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
@@ -63,25 +64,22 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, endpoint, onC
         }
       }}
     >
-      <div className="project-cover">
+      <div className="project-row-preview">
         {coverUrl && !imgError ? (
           <img
             src={coverUrl}
             alt={project.name}
-            className="project-cover-img"
+            className="project-row-img"
             onError={() => setImgError(true)}
           />
         ) : (
           <ShumaiPolygonCover />
         )}
-        <div className="project-cover-gradient" />
-        <span className="project-cover-title" title={project.name}>
-          {project.name}
-        </span>
       </div>
 
-      <div className="project-footer">
-        <span className="project-footer-date">
+      <div className="project-row-content">
+        <span className="project-row-title">{project.name}</span>
+        <span className="project-row-subtext">
           {updatedText ? `Updated ${updatedText}` : 'Project'}
         </span>
       </div>

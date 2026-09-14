@@ -123,30 +123,32 @@ export const FileItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick }) 
   )
 }
 
-/** Grid View Card Item */
+/** Card View Row Item (2 Columns: Left Preview, Right Info) */
 export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick }) => {
   const [imgError, setImgError] = useState(false)
   const category = getFileTypeCategory(asset)
   const isFolder = category === 'folder'
   const effectiveSize = asset.sizeByte ?? asset.size
+  const updatedText = formatDateAgo(asset.updatedAt)
   const thumbUrl = resolveAssetUrl(asset.preview?.thumbnailUrl, endpoint)
 
   const cardFallback = (
-    <div className={`file-card-placeholder ${category}`}>
-      {category === 'folder' && <Folder size={28} fill="currentColor" fillOpacity={0.2} />}
-      {category === 'video' && <Film size={28} />}
-      {category === 'audio' && <Music size={28} />}
-      {category === 'image' && <Image size={28} />}
-      {category === 'file' && <FileText size={28} />}
+    <div className={`file-row-placeholder ${category}`}>
+      {category === 'folder' && <Folder size={24} fill="currentColor" fillOpacity={0.2} />}
+      {category === 'video' && <Film size={24} />}
+      {category === 'audio' && <Music size={24} />}
+      {category === 'image' && <Image size={24} />}
+      {category === 'file' && <FileText size={24} />}
     </div>
   )
 
   return (
     <div
-      className="file-card"
+      className="file-row-card"
       onClick={onClick}
       role="button"
       tabIndex={0}
+      title={asset.name}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
@@ -154,37 +156,35 @@ export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick
         }
       }}
     >
-      <div className="file-card-preview">
+      <div className="file-row-preview">
         {thumbUrl && !isFolder && !imgError ? (
           <img
             src={thumbUrl}
             alt={asset.name}
-            className="file-card-thumb"
-            onLoad={() => console.log('[UXP Image OK]', thumbUrl)}
-            onError={() => {
-              console.error('[UXP Image Failed]', thumbUrl)
-              setImgError(true)
-            }}
+            className="file-row-img"
+            onError={() => setImgError(true)}
           />
         ) : (
           cardFallback
         )}
 
         {asset.commentsCount != null && asset.commentsCount > 0 && (
-          <span className="file-card-comment-badge" title={`${asset.commentsCount} comments`}>
+          <span className="file-row-comment-badge" title={`${asset.commentsCount} comments`}>
             <MessageSquare size={9} />
             <span>{asset.commentsCount}</span>
           </span>
         )}
       </div>
 
-      <div className="file-card-info">
-        <span className="file-card-name" title={asset.name}>
-          {asset.name}
-        </span>
-        <span className="file-card-subtext">
-          {isFolder ? 'Folder' : formatBytes(effectiveSize)}
-        </span>
+      <div className="file-row-content">
+        <div className="file-row-header">
+          <span className="file-row-title">{asset.name}</span>
+          {isFolder && <ChevronRight size={14} className="file-row-chevron" />}
+        </div>
+        <div className="file-row-subtext">
+          <span>{isFolder ? 'Folder' : formatBytes(effectiveSize)}</span>
+          {updatedText && <span>• {updatedText}</span>}
+        </div>
       </div>
     </div>
   )

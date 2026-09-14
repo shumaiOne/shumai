@@ -172,8 +172,8 @@ export const FileListView: React.FC<FileListViewProps> = ({
               size="s"
               selected={viewMode === 'grid'}
               onClick={() => setViewMode('grid')}
-              title="Grid view"
-              aria-label="Grid view"
+              title="Card view"
+              aria-label="Card view"
             >
               <LayoutGrid size={13} slot="icon" />
             </ActionButton>
@@ -182,8 +182,8 @@ export const FileListView: React.FC<FileListViewProps> = ({
               size="s"
               selected={viewMode === 'list'}
               onClick={() => setViewMode('list')}
-              title="List view"
-              aria-label="List view"
+              title="Compact list view"
+              aria-label="Compact list view"
             >
               <List size={13} slot="icon" />
             </ActionButton>
@@ -270,7 +270,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="file-grid">
+              <div className="file-card-list">
                 {sortedAssets.map((asset) => (
                   <FileCardItem
                     key={asset.id}

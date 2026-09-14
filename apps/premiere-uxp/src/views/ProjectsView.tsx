@@ -98,8 +98,8 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
             size="s"
             selected={viewMode === 'grid'}
             onClick={() => setViewMode('grid')}
-            title="Grid view"
-            aria-label="Grid view"
+            title="Card view"
+            aria-label="Card view"
           >
             <LayoutGrid size={13} slot="icon" />
           </ActionButton>
@@ -108,8 +108,8 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
             size="s"
             selected={viewMode === 'list'}
             onClick={() => setViewMode('list')}
-            title="List view"
-            aria-label="List view"
+            title="Compact list view"
+            aria-label="Compact list view"
           >
             <List size={13} slot="icon" />
           </ActionButton>
@@ -171,7 +171,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
       {!loading && !error && projects.length > 0 && (
         <>
           {viewMode === 'grid' ? (
-            <div className="project-grid">
+            <div className="project-card-list">
               {filteredProjects.map((project) => (
                 <ProjectCard
                   key={project.id}
