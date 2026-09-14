@@ -620,12 +620,14 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                           isReadOnly ? 'cursor-default' : 'cursor-pointer'
                         } ${
                           reaction.requestingUserReacted
-                            ? 'border-primary/40 bg-primary/10 text-primary font-medium'
-                            : 'border-border/60 bg-muted/40 hover:bg-muted text-muted-foreground'
+                            ? 'border-primary/40 bg-primary/10 font-medium'
+                            : 'border-border/60 bg-muted/40 hover:bg-muted'
                         }`}
                       >
                         <span className="text-sm leading-none">{reaction.code}</span>
-                        <span className="text-xs font-semibold">{reaction.count}</span>
+                        <span className="text-xs font-semibold text-foreground">
+                          {reaction.count}
+                        </span>
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>{tooltipText}</TooltipContent>

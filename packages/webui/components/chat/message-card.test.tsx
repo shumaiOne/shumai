@@ -196,6 +196,10 @@ describe('MessageCard component', () => {
     // Inactive badge (requestingUserReacted = false) has border-border/60 style
     expect(heartBadge?.className).toContain('border-border/60')
 
+    // Both badges display count with normal text color (text-foreground)
+    expect(screen.getByText('2').className).toContain('text-foreground')
+    expect(screen.getByText('1').className).toContain('text-foreground')
+
     // Clicking thumbsUp badge (already reacted) calls DELETE reaction
     fireEvent.click(thumbsUpBadge!)
     await waitFor(() => {
