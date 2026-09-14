@@ -37,6 +37,7 @@ describe('ChatInput auto-mention on reply', () => {
       sessionId: null,
       isCompleted: false,
       completionLastChangedBy: null,
+      reactionCounts: [],
     }
 
     const onSendMessage = vi.fn()
@@ -81,6 +82,7 @@ describe('ChatInput auto-mention on reply', () => {
       sessionId: null,
       isCompleted: false,
       completionLastChangedBy: null,
+      reactionCounts: [],
     }
 
     const onSendMessage = vi.fn()
@@ -115,6 +117,7 @@ describe('ChatInput auto-mention on reply', () => {
       sessionId: null,
       isCompleted: false,
       completionLastChangedBy: null,
+      reactionCounts: [],
     }
 
     const commentBob: CommentInfo = {
@@ -132,6 +135,7 @@ describe('ChatInput auto-mention on reply', () => {
       sessionId: null,
       isCompleted: false,
       completionLastChangedBy: null,
+      reactionCounts: [],
     }
 
     const onSendMessage = vi.fn()

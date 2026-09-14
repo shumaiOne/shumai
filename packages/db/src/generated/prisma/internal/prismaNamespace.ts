@@ -418,6 +418,7 @@ export const ModelName = {
   AssetAgentMd: 'AssetAgentMd',
   AssetComment: 'AssetComment',
   AssetCommentAttachment: 'AssetCommentAttachment',
+  AssetCommentReaction: 'AssetCommentReaction',
   AssetEmbedding: 'AssetEmbedding',
   Invite: 'Invite',
   MetadataField: 'MetadataField',
@@ -463,7 +464,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord" | "kanbanGoal" | "kanbanTask" | "kanbanTaskLink" | "kanbanTaskAsset" | "kanbanTaskComment" | "kanbanTaskEvent" | "recentFileItem"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetCommentReaction" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord" | "kanbanGoal" | "kanbanTask" | "kanbanTaskLink" | "kanbanTaskAsset" | "kanbanTaskComment" | "kanbanTaskEvent" | "recentFileItem"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2018,6 +2019,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.AssetCommentAttachmentCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.AssetCommentAttachmentCountAggregateOutputType> | number
+        }
+      }
+    }
+    AssetCommentReaction: {
+      payload: Prisma.$AssetCommentReactionPayload<ExtArgs>
+      fields: Prisma.AssetCommentReactionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AssetCommentReactionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetCommentReactionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AssetCommentReactionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetCommentReactionPayload>
+        }
+        findFirst: {
+          args: Prisma.AssetCommentReactionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetCommentReactionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AssetCommentReactionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetCommentReactionPayload>
+        }
+        findMany: {
+          args: Prisma.AssetCommentReactionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetCommentReactionPayload>[]
+        }
+        create: {
+          args: Prisma.AssetCommentReactionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetCommentReactionPayload>
+        }
+        createMany: {
+          args: Prisma.AssetCommentReactionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AssetCommentReactionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetCommentReactionPayload>[]
+        }
+        delete: {
+          args: Prisma.AssetCommentReactionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetCommentReactionPayload>
+        }
+        update: {
+          args: Prisma.AssetCommentReactionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetCommentReactionPayload>
+        }
+        deleteMany: {
+          args: Prisma.AssetCommentReactionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AssetCommentReactionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AssetCommentReactionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetCommentReactionPayload>[]
+        }
+        upsert: {
+          args: Prisma.AssetCommentReactionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetCommentReactionPayload>
+        }
+        aggregate: {
+          args: Prisma.AssetCommentReactionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAssetCommentReaction>
+        }
+        groupBy: {
+          args: Prisma.AssetCommentReactionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssetCommentReactionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AssetCommentReactionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssetCommentReactionCountAggregateOutputType> | number
         }
       }
     }
@@ -4584,6 +4659,17 @@ export const AssetCommentAttachmentScalarFieldEnum = {
 export type AssetCommentAttachmentScalarFieldEnum = (typeof AssetCommentAttachmentScalarFieldEnum)[keyof typeof AssetCommentAttachmentScalarFieldEnum]
 
 
+export const AssetCommentReactionScalarFieldEnum = {
+  id: 'id',
+  createdAt: 'createdAt',
+  commentId: 'commentId',
+  userId: 'userId',
+  code: 'code'
+} as const
+
+export type AssetCommentReactionScalarFieldEnum = (typeof AssetCommentReactionScalarFieldEnum)[keyof typeof AssetCommentReactionScalarFieldEnum]
+
+
 export const AssetEmbeddingScalarFieldEnum = {
   id: 'id',
   startTime: 'startTime',
@@ -5686,6 +5772,7 @@ export type GlobalOmitConfig = {
   assetAgentMd?: Prisma.AssetAgentMdOmit
   assetComment?: Prisma.AssetCommentOmit
   assetCommentAttachment?: Prisma.AssetCommentAttachmentOmit
+  assetCommentReaction?: Prisma.AssetCommentReactionOmit
   assetEmbedding?: Prisma.AssetEmbeddingOmit
   invite?: Prisma.InviteOmit
   metadataField?: Prisma.MetadataFieldOmit

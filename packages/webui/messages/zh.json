@@ -1424,5 +1424,10 @@
   "provider_not_configured_warning": "此提供商尚未配置。在使用这些模型前，请在 API 密钥标签页中配置密钥。",
   "failed_to_update_provider": "更新提供商失败",
   "manage_provider": "管理",
-  "all_modalities": "全部"
+  "all_modalities": "全部",
+  "add_reaction": "添加回应",
+  "search_emoji": "搜索表情",
+  "reaction_you": "你回应了 {emoji}",
+  "reaction_you_and_others": "你和 {others} 回应了 {emoji}",
+  "reaction_others": "{others} 回应了 {emoji}"
 }

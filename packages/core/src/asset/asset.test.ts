@@ -1117,6 +1117,104 @@ describe('AssetService', () => {
     expect(incompleted.completionLastChangedBy?.id).toBe(user.id)
   })
 
+  describe('Comment Reactions', () => {
+    it('adds, removes, and lists reactions chronologically with creatorNames', async () => {
+      const { user, assets } = await setupBasicAssets()
+
+      const user2 = await prisma.user.create({
+        data: {
+          name: 'Bob',
+          type: 'human',
+          email: `bob-${Date.now()}@example.com`,
+        },
+      })
+
+      const user3 = await prisma.user.create({
+        data: {
+          name: 'Charlie',
+          type: 'human',
+          email: `charlie-${Date.now()}@example.com`,
+        },
+      })
+
+      const comment = await assetService.createComment({
+        assetId: assets.fileA1.id,
+        userId: user.id,
+        message: 'A wonderful comment',
+        attachmentIds: [],
+      })
+
+      // Add reaction 1: Bob adds 👍
+      await assetService.addCommentReaction(comment.id, user2.id, '👍')
+      // Idempotency: Bob adds 👍 again
+      await assetService.addCommentReaction(comment.id, user2.id, '👍')
+
+      // Add reaction 2: Charlie adds ❤️
+      await assetService.addCommentReaction(comment.id, user3.id, '❤️')
+
+      // Add reaction 3: Alice (user) adds 👍
+      await assetService.addCommentReaction(comment.id, user.id, '👍')
+
+      // Fetch as user (Alice)
+      const commentAsAlice = await assetService.getComment(comment.id, user.id)
+      expect(commentAsAlice.reactionCounts).toHaveLength(2)
+
+      // First reaction added was 👍, then ❤️
+      expect(commentAsAlice.reactionCounts[0].code).toBe('👍')
+      expect(commentAsAlice.reactionCounts[0].count).toBe(2)
+      expect(commentAsAlice.reactionCounts[0].requestingUserReacted).toBe(true)
+      expect(commentAsAlice.reactionCounts[0].creatorNames).toEqual(['Bob'])
+
+      expect(commentAsAlice.reactionCounts[1].code).toBe('❤️')
+      expect(commentAsAlice.reactionCounts[1].count).toBe(1)
+      expect(commentAsAlice.reactionCounts[1].requestingUserReacted).toBe(false)
+      expect(commentAsAlice.reactionCounts[1].creatorNames).toEqual(['Charlie'])
+
+      // Fetch as Bob
+      const commentAsBob = await assetService.getComment(comment.id, user2.id)
+      expect(commentAsBob.reactionCounts[0].code).toBe('👍')
+      expect(commentAsBob.reactionCounts[0].requestingUserReacted).toBe(true)
+      expect(commentAsBob.reactionCounts[0].creatorNames).toEqual([user.name])
+
+      // Remove Alice's 👍
+      await assetService.removeCommentReaction(comment.id, user.id, '👍')
+      // Idempotency
+      await assetService.removeCommentReaction(comment.id, user.id, '👍')
+
+      const updatedAlice = await assetService.getComment(comment.id, user.id)
+      expect(updatedAlice.reactionCounts[0].code).toBe('👍')
+      expect(updatedAlice.reactionCounts[0].count).toBe(1)
+      expect(updatedAlice.reactionCounts[0].requestingUserReacted).toBe(false)
+      expect(updatedAlice.reactionCounts[0].creatorNames).toEqual(['Bob'])
+
+      // Verify listComments returns reactions for comments and replies
+      const reply = await assetService.createComment({
+        assetId: assets.fileA1.id,
+        userId: user2.id,
+        message: 'A nice reply',
+        replyToId: comment.id,
+        attachmentIds: [],
+      })
+      await assetService.addCommentReaction(reply.id, user.id, '🎉')
+
+      const listRes = await assetService.listComments(assets.fileA1.id, { first: 10 }, user.id)
+      const listedComment = listRes.data.find((c) => c.id === comment.id)
+      expect(listedComment).toBeDefined()
+      expect(listedComment?.reactionCounts[0].code).toBe('👍')
+      expect(listedComment?.replies).toHaveLength(1)
+      expect(listedComment?.replies[0].reactionCounts).toHaveLength(1)
+      expect(listedComment?.replies[0].reactionCounts[0].code).toBe('🎉')
+      expect(listedComment?.replies[0].reactionCounts[0].requestingUserReacted).toBe(true)
+    })
+
+    it('throws error when adding reaction to nonexistent comment', async () => {
+      const { user } = await setupBasicAssets()
+      await expect(
+        assetService.addCommentReaction('nonexistent-id', user.id, '👍'),
+      ).rejects.toThrow('Comment not found')
+    })
+  })
+
   it('can export comments in all supported NLE formats', async () => {
     const { user, assets } = await setupBasicAssets()
 

@@ -5,6 +5,7 @@ import {
   AttachmentInfo,
   ChildPreview,
   CommentInfo,
+  CommentReactionCount,
   CopyAssetsRequest,
   CreateAssetRequest,
   CreateCommentRequest,
@@ -86,11 +87,21 @@ type CommentWithIncludes = Prisma.AssetCommentGetPayload<{
     creator: true
     completionLastChangedBy: true
     attachments: { include: { asset: { include: { storageKey: true } } } }
+    reactions: {
+      include: {
+        user: { select: { id: true; name: true } }
+      }
+    }
     replies: {
       include: {
         creator: true
         completionLastChangedBy: true
         attachments: { include: { asset: { include: { storageKey: true } } } }
+        reactions: {
+          include: {
+            user: { select: { id: true; name: true } }
+          }
+        }
       }
     }
   }
@@ -1707,10 +1718,10 @@ export class AssetService {
       }
     })
 
-    return this.getComment(commentId)
+    return this.getComment(commentId, req.userId)
   }
 
-  async getComment(commentId: string): Promise<CommentInfo> {
+  async getComment(commentId: string, requestingUserId?: string): Promise<CommentInfo> {
     const c = await this.prismaClient.assetComment.findUnique({
       where: { id: commentId },
       include: {
@@ -1718,18 +1729,65 @@ export class AssetService {
         completionLastChangedBy: true,
         asset: { include: { storageKey: true } },
         attachments: { include: { asset: { include: { storageKey: true } } } },
+        reactions: {
+          include: {
+            user: { select: { id: true, name: true } },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
         replies: {
           include: {
             creator: true,
             completionLastChangedBy: true,
             attachments: { include: { asset: { include: { storageKey: true } } } },
+            reactions: {
+              include: {
+                user: { select: { id: true, name: true } },
+              },
+              orderBy: { createdAt: 'asc' },
+            },
           },
           orderBy: { id: 'asc' },
         },
       },
     })
     if (!c) throw new Error('Comment not found')
-    return this.toCommentInfo(c)
+    return this.toCommentInfo(c, requestingUserId)
+  }
+
+  async addCommentReaction(commentId: string, userId: string, code: string): Promise<void> {
+    const comment = await this.prismaClient.assetComment.findUnique({
+      where: { id: commentId },
+      select: { id: true },
+    })
+    if (!comment) throw new Error('Comment not found')
+
+    await this.prismaClient.assetCommentReaction.upsert({
+      where: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        commentId_userId_code: {
+          commentId,
+          userId,
+          code,
+        },
+      },
+      create: {
+        commentId,
+        userId,
+        code,
+      },
+      update: {},
+    })
+  }
+
+  async removeCommentReaction(commentId: string, userId: string, code: string): Promise<void> {
+    await this.prismaClient.assetCommentReaction.deleteMany({
+      where: {
+        commentId,
+        userId,
+        code,
+      },
+    })
   }
 
   async completeComment(
@@ -1744,7 +1802,7 @@ export class AssetService {
         completionLastChangedById: userId,
       },
     })
-    return this.getComment(commentId)
+    return this.getComment(commentId, userId)
   }
 
   async deleteComment({ commentId, userId }: { commentId: string; userId: string }): Promise<void> {
@@ -1835,6 +1893,7 @@ export class AssetService {
   async listComments(
     assetId: string,
     params: PaginationParams,
+    requestingUserId?: string,
   ): Promise<PaginatedData<CommentInfo[]>> {
     const resolvedAssetId = await this.resolveLatestVersionId(assetId)
 
@@ -1847,11 +1906,23 @@ export class AssetService {
             completionLastChangedBy: true,
             asset: { include: { storageKey: true } },
             attachments: { include: { asset: { include: { storageKey: true } } } },
+            reactions: {
+              include: {
+                user: { select: { id: true, name: true } },
+              },
+              orderBy: { createdAt: 'asc' },
+            },
             replies: {
               include: {
                 creator: true,
                 completionLastChangedBy: true,
                 attachments: { include: { asset: { include: { storageKey: true } } } },
+                reactions: {
+                  include: {
+                    user: { select: { id: true, name: true } },
+                  },
+                  orderBy: { createdAt: 'asc' },
+                },
               },
               orderBy: { id: 'asc' },
             },
@@ -1865,7 +1936,7 @@ export class AssetService {
       params,
     )
 
-    const infos = await Promise.all(comments.map((c) => this.toCommentInfo(c)))
+    const infos = await Promise.all(comments.map((c) => this.toCommentInfo(c, requestingUserId)))
 
     return { data: infos, pageInfo }
   }
@@ -2575,11 +2646,12 @@ export class AssetService {
 
   private async toCommentInfo(
     c: CommentWithIncludes | CommentWithIncludes['replies'][0],
+    requestingUserId?: string,
   ): Promise<CommentInfo> {
     const replies: CommentInfo[] = []
     if ('replies' in c && c.replies) {
       for (const r of c.replies) {
-        replies.push(await this.toCommentInfo(r))
+        replies.push(await this.toCommentInfo(r, requestingUserId))
       }
     }
 
@@ -2643,6 +2715,49 @@ export class AssetService {
         }
       : null
 
+    const reactionsMap = new Map<
+      string,
+      {
+        count: number
+        requestingUserReacted: boolean
+        creatorNames: string[]
+        firstCreatedAt: Date
+      }
+    >()
+
+    if ('reactions' in c && c.reactions) {
+      for (const reaction of c.reactions) {
+        let entry = reactionsMap.get(reaction.code)
+        if (!entry) {
+          entry = {
+            count: 0,
+            requestingUserReacted: false,
+            creatorNames: [],
+            firstCreatedAt: reaction.createdAt,
+          }
+          reactionsMap.set(reaction.code, entry)
+        }
+        entry.count++
+        if (requestingUserId && reaction.userId === requestingUserId) {
+          entry.requestingUserReacted = true
+        } else {
+          const userName = reaction.user?.name || 'User'
+          if (!entry.creatorNames.includes(userName)) {
+            entry.creatorNames.push(userName)
+          }
+        }
+      }
+    }
+
+    const reactionCounts: CommentReactionCount[] = Array.from(reactionsMap.entries())
+      .sort((a, b) => a[1].firstCreatedAt.getTime() - b[1].firstCreatedAt.getTime())
+      .map(([code, data]) => ({
+        code,
+        count: data.count,
+        requestingUserReacted: data.requestingUserReacted,
+        creatorNames: data.creatorNames,
+      }))
+
     return {
       id: c.id,
       assetId: c.assetId,
@@ -2658,6 +2773,7 @@ export class AssetService {
       sessionId: c.sessionId,
       isCompleted: c.isCompleted,
       completionLastChangedBy,
+      reactionCounts,
     }
   }
 

@@ -123,6 +123,11 @@ export type AssetComment = Prisma.AssetCommentModel
  */
 export type AssetCommentAttachment = Prisma.AssetCommentAttachmentModel
 /**
+ * Model AssetCommentReaction
+ * 
+ */
+export type AssetCommentReaction = Prisma.AssetCommentReactionModel
+/**
  * Model AssetEmbedding
  * 
  */

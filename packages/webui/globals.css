@@ -2,6 +2,8 @@
 
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@source "./node_modules/@ferrucc-io/emoji-picker";
+@source "../../node_modules/@ferrucc-io/emoji-picker";
 
 @import 'video.js/dist/video-js.css' layer(base);
 

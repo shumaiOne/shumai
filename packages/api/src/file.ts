@@ -18,6 +18,8 @@ import {
   getDownloadLinksRequestSchema,
   completeCommentRequestSchema,
   exportCommentsRequestSchema,
+  addCommentReactionRequestSchema,
+  removeCommentReactionRequestSchema,
   AuditAction,
 } from '@shumai/dtos'
 import { transcodeService, buildContentDisposition } from '@shumai/core'
@@ -225,7 +227,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: fileId,
     })
 
-    const comments = await assetService.listComments(fileId, req)
+    const comments = await assetService.listComments(fileId, req, user.id)
     return c.json(comments)
   })
   .post(
@@ -248,6 +250,46 @@ const route = new Hono<{ Variables: { user: User } }>()
       c.header('Content-Type', result.mimeType)
       c.header('Content-Disposition', buildContentDisposition(result.filename))
       return c.body(result.content)
+    },
+  )
+  .post(
+    '/comments/:commentId/reactions',
+    zValidator('json', addCommentReactionRequestSchema),
+    async (c) => {
+      const commentId = c.req.param('commentId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Comment,
+        id: commentId,
+      })
+
+      await assetService.addCommentReaction(commentId, user.id, req.code)
+
+      return c.json({ success: true })
+    },
+  )
+  .delete(
+    '/comments/:commentId/reactions',
+    zValidator('json', removeCommentReactionRequestSchema),
+    async (c) => {
+      const commentId = c.req.param('commentId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Comment,
+        id: commentId,
+      })
+
+      await assetService.removeCommentReaction(commentId, user.id, req.code)
+
+      return c.json({ success: true })
     },
   )
   .post(

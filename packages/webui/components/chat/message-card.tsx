@@ -17,10 +17,10 @@ import {
   AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
-import type { CommentInfo, UserInfo } from '@shumai/dtos'
+import type { CommentInfo, CommentReactionCount, UserInfo } from '@shumai/dtos'
 import type { MemberInfo } from '@/ui/stores/members'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Download, FileText, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Download, FileText, MoreHorizontal, Smile, Trash2 } from 'lucide-react'
 import React from 'react'
 import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
@@ -32,6 +32,7 @@ import { useUiStore } from '@/ui/stores/ui'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
 import { AgentSessionLogsDialog } from '../agent/agent-session-logs-dialog'
 import { isImageFileName } from '@/ui/lib/media'
+import { EmojiPickerPopover } from '../ui/emoji-picker'
 
 interface MessageCardProps {
   teamId?: string
@@ -47,6 +48,8 @@ interface MessageCardProps {
   startTimecode?: string
   formatTimestamp?: (second: number) => string
   rootParentId?: string
+  readOnly?: boolean
+  isPublic?: boolean
 }
 
 const UnfilledCircleCheck: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -93,6 +96,94 @@ const AI_PLACEHOLDERS: Record<string, string> = {
   __RUNNING__: 'Generating...',
 }
 
+function formatReactionOthers(names: string[]): string {
+  if (names.length <= 3) return names.join(', ')
+  return `${names.slice(0, 3).join(', ')} and ${names.length - 3} more`
+}
+
+function getReactionTooltip(reaction: CommentReactionCount): string {
+  const hasOthers = reaction.creatorNames && reaction.creatorNames.length > 0
+  if (reaction.requestingUserReacted) {
+    if (!hasOthers) {
+      return m.reaction_you({ emoji: reaction.code })
+    }
+    return m.reaction_you_and_others({
+      others: formatReactionOthers(reaction.creatorNames),
+      emoji: reaction.code,
+    })
+  }
+  if (hasOthers) {
+    return m.reaction_others({
+      others: formatReactionOthers(reaction.creatorNames),
+      emoji: reaction.code,
+    })
+  }
+  return reaction.code
+}
+
+function updateCommentTreeReactions(
+  comments: CommentInfo[],
+  targetCommentId: string,
+  code: string,
+  isAdd: boolean,
+): CommentInfo[] {
+  return comments.map((comment) => {
+    if (comment.id === targetCommentId) {
+      const existingReactions = comment.reactionCounts ? [...comment.reactionCounts] : []
+      const existingIndex = existingReactions.findIndex((r) => r.code === code)
+
+      if (isAdd) {
+        if (existingIndex >= 0) {
+          const existing = existingReactions[existingIndex]
+          if (!existing.requestingUserReacted) {
+            existingReactions[existingIndex] = {
+              ...existing,
+              count: existing.count + 1,
+              requestingUserReacted: true,
+            }
+          }
+        } else {
+          existingReactions.push({
+            code,
+            count: 1,
+            requestingUserReacted: true,
+            creatorNames: [],
+          })
+        }
+      } else {
+        if (existingIndex >= 0) {
+          const existing = existingReactions[existingIndex]
+          if (existing.requestingUserReacted) {
+            if (existing.count <= 1) {
+              existingReactions.splice(existingIndex, 1)
+            } else {
+              existingReactions[existingIndex] = {
+                ...existing,
+                count: existing.count - 1,
+                requestingUserReacted: false,
+              }
+            }
+          }
+        }
+      }
+
+      return {
+        ...comment,
+        reactionCounts: existingReactions,
+      }
+    }
+
+    if (comment.replies && comment.replies.length > 0) {
+      return {
+        ...comment,
+        replies: updateCommentTreeReactions(comment.replies, targetCommentId, code, isAdd),
+      }
+    }
+
+    return comment
+  })
+}
+
 export const MessageCard: React.FC<MessageCardProps> = ({
   teamId,
   message: initialMessage,
@@ -106,8 +197,11 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   frameRate,
   startTimecode,
   formatTimestamp,
+  readOnly,
+  isPublic,
 }) => {
   const message = initialMessage
+  const isReadOnly = Boolean(readOnly || isPublic)
   const hasDrawInfo =
     !!message.annotations && Array.isArray(message.annotations) && message.annotations.length > 0
   const creator = message.creator
@@ -160,6 +254,110 @@ export const MessageCard: React.FC<MessageCardProps> = ({
       })
     },
   })
+
+  const { mutate: addReaction } = useMutation({
+    mutationFn: async (code: string) => {
+      const res = await client.api.comments[':commentId'].reactions.$post({
+        param: { commentId: message.id },
+        json: { code },
+      })
+      if (!res.ok) throw new Error('Failed to add reaction')
+      return await res.json()
+    },
+    onMutate: async (code: string) => {
+      await queryClient.cancelQueries({
+        predicate: (query) => query.queryKey.includes('comments'),
+      })
+      const previousData = queryClient.getQueriesData({
+        predicate: (query) => query.queryKey.includes('comments'),
+      })
+      queryClient.setQueriesData(
+        { predicate: (query) => query.queryKey.includes('comments') },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Query cache structure is dynamic across infinite query pages
+        (old: any) => {
+          if (!old || !old.pages) return old
+          return {
+            ...old,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Query page object
+            pages: old.pages.map((page: any) => ({
+              ...page,
+              data: updateCommentTreeReactions(page.data || [], message.id, code, true),
+            })),
+          }
+        },
+      )
+      return { previousData }
+    },
+    onError: (_err, _code, context) => {
+      if (context?.previousData) {
+        for (const [queryKey, data] of context.previousData) {
+          queryClient.setQueryData(queryKey, data)
+        }
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey.includes('comments'),
+      })
+    },
+  })
+
+  const { mutate: removeReaction } = useMutation({
+    mutationFn: async (code: string) => {
+      const res = await client.api.comments[':commentId'].reactions.$delete({
+        param: { commentId: message.id },
+        json: { code },
+      })
+      if (!res.ok) throw new Error('Failed to remove reaction')
+      return await res.json()
+    },
+    onMutate: async (code: string) => {
+      await queryClient.cancelQueries({
+        predicate: (query) => query.queryKey.includes('comments'),
+      })
+      const previousData = queryClient.getQueriesData({
+        predicate: (query) => query.queryKey.includes('comments'),
+      })
+      queryClient.setQueriesData(
+        { predicate: (query) => query.queryKey.includes('comments') },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Query cache structure is dynamic across infinite query pages
+        (old: any) => {
+          if (!old || !old.pages) return old
+          return {
+            ...old,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Query page object
+            pages: old.pages.map((page: any) => ({
+              ...page,
+              data: updateCommentTreeReactions(page.data || [], message.id, code, false),
+            })),
+          }
+        },
+      )
+      return { previousData }
+    },
+    onError: (_err, _code, context) => {
+      if (context?.previousData) {
+        for (const [queryKey, data] of context.previousData) {
+          queryClient.setQueryData(queryKey, data)
+        }
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey.includes('comments'),
+      })
+    },
+  })
+
+  const handleToggleReaction = (code: string) => {
+    if (isReadOnly) return
+    const existing = message.reactionCounts?.find((r) => r.code === code)
+    if (existing?.requestingUserReacted) {
+      removeReaction(code)
+    } else {
+      addReaction(code)
+    }
+  }
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
 
@@ -402,6 +600,42 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           </div>
         )}
 
+        {/* Reactions */}
+        {message.reactionCounts && message.reactionCounts.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+            {message.reactionCounts.map((reaction) => {
+              const tooltipText = getReactionTooltip(reaction)
+              return (
+                <TooltipProvider key={reaction.code}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        disabled={isReadOnly}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleToggleReaction(reaction.code)
+                        }}
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-colors select-none ${
+                          isReadOnly ? 'cursor-default' : 'cursor-pointer'
+                        } ${
+                          reaction.requestingUserReacted
+                            ? 'border-primary/40 bg-primary/10 text-primary font-medium'
+                            : 'border-border/60 bg-muted/40 hover:bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        <span className="text-sm leading-none">{reaction.code}</span>
+                        <span className="text-xs font-semibold">{reaction.count}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>{tooltipText}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )
+            })}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="mt-2 flex items-center justify-between w-full">
           <button
@@ -411,32 +645,51 @@ export const MessageCard: React.FC<MessageCardProps> = ({
             {m.reply()}
           </button>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
+          <div className="flex items-center gap-1">
+            {!isReadOnly && (
+              <EmojiPickerPopover
+                onEmojiSelect={(emoji) => handleToggleReaction(emoji)}
+                align="end"
+                side="top"
+              >
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    toggleComplete()
-                  }}
-                  className={`flex items-center justify-center p-1 rounded-full transition-colors cursor-pointer ${
-                    message.isCompleted
-                      ? 'text-green-500 hover:text-green-600 hover:bg-green-500/10'
-                      : 'text-gray-400 hover:text-green-500 hover:bg-green-500/10'
-                  }`}
+                  type="button"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center justify-center p-1 rounded-full text-gray-400 hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
+                  title={m.add_reaction()}
                 >
-                  {message.isCompleted ? (
-                    <FilledCircleCheck className="w-5 h-5" />
-                  ) : (
-                    <UnfilledCircleCheck className="w-5 h-5" />
-                  )}
+                  <Smile className="w-4 h-4" />
                 </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {message.isCompleted ? m.mark_as_incomplete() : m.mark_as_complete()}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+              </EmojiPickerPopover>
+            )}
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleComplete()
+                    }}
+                    className={`flex items-center justify-center p-1 rounded-full transition-colors cursor-pointer ${
+                      message.isCompleted
+                        ? 'text-green-500 hover:text-green-600 hover:bg-green-500/10'
+                        : 'text-gray-400 hover:text-green-500 hover:bg-green-500/10'
+                    }`}
+                  >
+                    {message.isCompleted ? (
+                      <FilledCircleCheck className="w-5 h-5" />
+                    ) : (
+                      <UnfilledCircleCheck className="w-5 h-5" />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {message.isCompleted ? m.mark_as_incomplete() : m.mark_as_complete()}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </div>
 

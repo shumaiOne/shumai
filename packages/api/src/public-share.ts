@@ -282,7 +282,14 @@ const route = app
         await shareService.verifyPublicAccess(fileId, password)
 
         const targetFileId = await assetService.resolveTargetAssetId(fileId)
-        const res = await assetService.listComments(targetFileId, req)
+        let userId: string | undefined
+        const session = await auth.api.getSession({
+          headers: c.req.raw.headers,
+        })
+        if (session?.user) {
+          userId = session.user.id
+        }
+        const res = await assetService.listComments(targetFileId, req, userId)
         return c.json(res)
       } catch (err) {
         return handlePublicShareError(c, err)

@@ -395,6 +395,8 @@ export function MobileFileBottomSheet({
                       onSelect={() => {
                         onCommentSelect?.(comment)
                       }}
+                      readOnly={readOnly}
+                      isPublic={isPublic}
                     />
                     {comment.replies?.map((reply, index) => (
                       <div key={reply.id}>
@@ -421,6 +423,8 @@ export function MobileFileBottomSheet({
                           onSelect={() => {
                             onCommentSelect?.(reply)
                           }}
+                          readOnly={readOnly}
+                          isPublic={isPublic}
                         />
                       </div>
                     ))}

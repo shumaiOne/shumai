@@ -207,6 +207,24 @@ export const attachmentInfoSchema = z.object({
 })
 export type AttachmentInfo = z.infer<typeof attachmentInfoSchema>
 
+export const commentReactionCountSchema = z.object({
+  code: z.string(),
+  count: z.number(),
+  requestingUserReacted: z.boolean(),
+  creatorNames: z.array(z.string()),
+})
+export type CommentReactionCount = z.infer<typeof commentReactionCountSchema>
+
+export const addCommentReactionRequestSchema = z.object({
+  code: z.string().min(1),
+})
+export type AddCommentReactionRequest = z.infer<typeof addCommentReactionRequestSchema>
+
+export const removeCommentReactionRequestSchema = z.object({
+  code: z.string().min(1),
+})
+export type RemoveCommentReactionRequest = z.infer<typeof removeCommentReactionRequestSchema>
+
 export type CommentInfo = {
   id: string
   assetId: string
@@ -223,6 +241,7 @@ export type CommentInfo = {
   sessionId: string | null
   isCompleted: boolean
   completionLastChangedBy: AssetUserInfo | null
+  reactionCounts: CommentReactionCount[]
 }
 
 export const commentInfoSchema: z.ZodType<CommentInfo> = z.object({
@@ -241,6 +260,7 @@ export const commentInfoSchema: z.ZodType<CommentInfo> = z.object({
   sessionId: z.string().nullable(),
   isCompleted: z.boolean(),
   completionLastChangedBy: assetUserInfoSchema.nullable(),
+  reactionCounts: z.array(commentReactionCountSchema),
 })
 
 export const completeCommentRequestSchema = z.object({

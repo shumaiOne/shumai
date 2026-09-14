@@ -429,6 +429,8 @@ export function FileViewerRightSidebar({
                     onSelect={() => {
                       onCommentSelect?.(comment)
                     }}
+                    readOnly={readOnly}
+                    isPublic={isPublic}
                   />
                   {comment.replies?.map((reply, index) => (
                     <div key={reply.id}>
@@ -455,6 +457,8 @@ export function FileViewerRightSidebar({
                         onSelect={() => {
                           onCommentSelect?.(reply)
                         }}
+                        readOnly={readOnly}
+                        isPublic={isPublic}
                       />
                     </div>
                   ))}

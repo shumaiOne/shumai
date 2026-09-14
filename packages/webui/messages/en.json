@@ -1424,5 +1424,10 @@
   "provider_not_configured_warning": "This provider is not configured. Configure an API key in the API Key tab before using these models.",
   "failed_to_update_provider": "Failed to update provider",
   "manage_provider": "Manage",
-  "all_modalities": "All"
+  "all_modalities": "All",
+  "add_reaction": "Add reaction",
+  "search_emoji": "Search emoji",
+  "reaction_you": "You reacted with {emoji}",
+  "reaction_you_and_others": "You and {others} reacted with {emoji}",
+  "reaction_others": "{others} reacted with {emoji}"
 }

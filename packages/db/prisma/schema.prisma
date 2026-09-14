@@ -218,6 +218,7 @@ model User {
   teamMembers          TeamMember[]     @relation("UserToTeamMember")
   comments                  AssetComment[]   @relation("UserToAssetComment")
   completionChangedComments AssetComment[]   @relation("UserToAssetCommentCompletionChanged")
+  commentReactions          AssetCommentReaction[] @relation("UserToAssetCommentReaction")
   createdInvites       Invite[]         @relation("UserToInvite")
   createdNotifications Notification[]   @relation("UserToCreatedNotification")
   notifications        Notification[]   @relation("UserToNotification")
@@ -656,6 +657,7 @@ model AssetComment {
   replies     AssetComment[] @relation("CommentReplies")
 
   attachments AssetCommentAttachment[] @relation("CommentToAttachment")
+  reactions   AssetCommentReaction[]   @relation("CommentToReaction")
 
   @@index([assetId])
   @@map("asset_comments")
@@ -673,6 +675,23 @@ model AssetCommentAttachment {
   asset       Asset        @relation("AssetToCommentAttachment", fields: [assetId], references: [id], onDelete: Cascade)
 
   @@map("asset_comment_attachments")
+}
+
+model AssetCommentReaction {
+  id        String   @id @default(ulid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  commentId String       @map("comment_id")
+  comment   AssetComment @relation("CommentToReaction", fields: [commentId], references: [id], onDelete: Cascade)
+
+  userId    String       @map("user_id")
+  user      User         @relation("UserToAssetCommentReaction", fields: [userId], references: [id], onDelete: Cascade)
+
+  code      String
+
+  @@unique([commentId, userId, code])
+  @@index([commentId])
+  @@map("asset_comment_reactions")
 }
 
 model AssetEmbedding {

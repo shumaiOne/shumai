@@ -36,6 +36,7 @@ vi.mock('@shumai/core/src/authz/authz', () => ({
     Asset: 'asset',
     Team: 'team',
     Project: 'project',
+    Comment: 'comment',
   },
 }))
 
@@ -65,6 +66,8 @@ describe('file api', () => {
     vi.spyOn(assetService, 'createComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'completeComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'deleteComment').mockImplementation(vi.fn())
+    vi.spyOn(assetService, 'addCommentReaction').mockImplementation(vi.fn())
+    vi.spyOn(assetService, 'removeCommentReaction').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'getComment').mockResolvedValue({
       id: 'comment1',
       assetId: 'file1',
@@ -215,6 +218,7 @@ describe('file api', () => {
       sessionId: null,
       isCompleted: false,
       completionLastChangedBy: null,
+      reactionCounts: [],
     })
 
     // Mock assetService.getAsset to return teamId for notification
@@ -274,6 +278,7 @@ describe('file api', () => {
       sessionId: null,
       isCompleted: false,
       completionLastChangedBy: null,
+      reactionCounts: [],
     })
 
     // Mock assetService.getAsset to return teamId for notification
@@ -330,6 +335,7 @@ describe('file api', () => {
           sessionId: null,
           isCompleted: false,
           completionLastChangedBy: null,
+          reactionCounts: [],
         },
       ],
       pageInfo: { cursor: 'cursor', total: 1 },
@@ -349,6 +355,7 @@ describe('file api', () => {
       type: ResourceType.Asset,
       id: 'test-id',
     })
+    expect(assetService.listComments).toHaveBeenCalledWith('test-id', expect.anything(), 'user1')
   })
 
   it('POST /files/:fileId/comments/export - success', async () => {
@@ -472,6 +479,7 @@ describe('file api', () => {
       sessionId: null,
       isCompleted: true,
       completionLastChangedBy: { id: 'user1', name: 'Test User' },
+      reactionCounts: [],
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
@@ -518,6 +526,56 @@ describe('file api', () => {
       commentId: 'comment-id',
       userId: 'user1',
     })
+  })
+
+  it('POST /comments/:commentId/reactions', async () => {
+    vi.mocked(assetService.addCommentReaction).mockResolvedValue(undefined)
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/comments/comment-id/reactions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ code: '👍' }),
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.success).toBe(true)
+
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user1', name: 'Test User' },
+      permission: Permission.Read,
+      type: ResourceType.Comment,
+      id: 'comment-id',
+    })
+    expect(assetService.addCommentReaction).toHaveBeenCalledWith('comment-id', 'user1', '👍')
+  })
+
+  it('DELETE /comments/:commentId/reactions', async () => {
+    vi.mocked(assetService.removeCommentReaction).mockResolvedValue(undefined)
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/comments/comment-id/reactions', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ code: '👍' }),
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.success).toBe(true)
+
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user1', name: 'Test User' },
+      permission: Permission.Read,
+      type: ResourceType.Comment,
+      id: 'comment-id',
+    })
+    expect(assetService.removeCommentReaction).toHaveBeenCalledWith('comment-id', 'user1', '👍')
   })
 
   it('POST /teams/:teamId/files - image with compression', async () => {
