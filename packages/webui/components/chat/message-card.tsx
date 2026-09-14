@@ -658,7 +658,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                   className="flex items-center justify-center p-1 rounded-full text-gray-400 hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
                   title={m.add_reaction()}
                 >
-                  <Smile className="w-4 h-4" />
+                  <Smile className="w-5 h-5" />
                 </button>
               </EmojiPickerPopover>
             )}
