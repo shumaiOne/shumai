@@ -67,7 +67,7 @@ export function EmojiPickerPopover({
             <EmojiPicker.Input
               placeholder={m.search_emoji()}
               autoFocus={true}
-              className="h-8 w-full rounded-md border border-input bg-background px-2.5 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-7 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </EmojiPicker.Header>
           <EmojiPicker.Group>
