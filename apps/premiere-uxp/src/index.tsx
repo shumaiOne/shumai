@@ -12,7 +12,7 @@ if (container) {
   const root = createRoot(container)
   root.render(
     <React.StrictMode>
-      <Theme system="spectrum" scale="medium" color="dark">
+      <Theme theme="spectrum" scale="medium" color="dark">
         <App />
       </Theme>
     </React.StrictMode>,

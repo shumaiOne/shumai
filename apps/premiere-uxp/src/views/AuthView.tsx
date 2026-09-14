@@ -125,7 +125,6 @@ export const AuthView: React.FC<AuthViewProps> = ({
               }
               onKeyDown={handleKeyDown}
               disabled={loading}
-              required
             />
             <span className="input-hint">The base URL of your Shumai backend instance.</span>
           </div>
@@ -145,7 +144,6 @@ export const AuthView: React.FC<AuthViewProps> = ({
               }
               onKeyDown={handleKeyDown}
               disabled={loading}
-              required
             />
             <span className="input-hint">
               Generate an API key in Shumai: <strong>Settings &gt; Developer</strong>.
@@ -157,7 +155,6 @@ export const AuthView: React.FC<AuthViewProps> = ({
             onClick={handleConnect}
             style={{ width: '100%', marginTop: '8px' }}
             disabled={loading}
-            pending={loading}
           >
             {loading ? 'Connecting...' : 'Connect Workspace'}
             {!loading && <ArrowRight size={14} slot="icon" />}

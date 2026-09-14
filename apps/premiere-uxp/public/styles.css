@@ -165,7 +165,6 @@ sp-theme {
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
   margin-bottom: 14px;
 }
 
@@ -175,6 +174,7 @@ sp-theme {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-bottom: 6px;
 }
 
 .input-text {
@@ -196,6 +196,7 @@ sp-theme {
   font-size: 11px;
   color: var(--text-secondary);
   line-height: 1.4;
+  margin-top: 6px;
 }
 
 /* Auth Card */
@@ -203,8 +204,9 @@ sp-theme {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  width: 100%;
   max-width: 380px;
-  margin: auto 0;
+  margin: auto;
 }
 
 .auth-header {
