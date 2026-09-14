@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { getShumaiClient } from '../api/client'
 import { saveStoredCredentials } from '../services/storage'
 import { AlertCircle, ArrowRight } from 'lucide-react'
+import { Button } from '@swc-react/button'
+import { Textfield } from '@swc-react/textfield'
 
 interface AuthViewProps {
   initialEndpoint?: string
@@ -113,13 +115,14 @@ export const AuthView: React.FC<AuthViewProps> = ({
             <label className="form-label" htmlFor="endpoint-input">
               Server Endpoint
             </label>
-            <input
+            <Textfield
               id="endpoint-input"
-              className="input-text"
-              type="text"
+              style={{ width: '100%' }}
               placeholder="https://shumai.example.com"
               value={endpoint}
-              onChange={(e) => setEndpoint(e.target.value)}
+              onInput={(e: React.FormEvent<HTMLElement>) =>
+                setEndpoint((e.target as HTMLInputElement).value)
+              }
               onKeyDown={handleKeyDown}
               disabled={loading}
               required
@@ -131,13 +134,15 @@ export const AuthView: React.FC<AuthViewProps> = ({
             <label className="form-label" htmlFor="api-key-input">
               API Key
             </label>
-            <input
+            <Textfield
               id="api-key-input"
-              className="input-text"
               type="password"
+              style={{ width: '100%' }}
               placeholder="Paste your API key here"
               value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              onInput={(e: React.FormEvent<HTMLElement>) =>
+                setApiKey((e.target as HTMLInputElement).value)
+              }
               onKeyDown={handleKeyDown}
               disabled={loading}
               required
@@ -147,28 +152,16 @@ export const AuthView: React.FC<AuthViewProps> = ({
             </span>
           </div>
 
-          <button
-            type="button"
+          <Button
+            variant="accent"
             onClick={handleConnect}
-            className="btn btn-primary"
             style={{ width: '100%', marginTop: '8px' }}
             disabled={loading}
+            pending={loading}
           >
-            {loading ? (
-              <>
-                <div
-                  className="spinner"
-                  style={{ width: '14px', height: '14px', borderWidth: '2px' }}
-                />
-                <span>Connecting...</span>
-              </>
-            ) : (
-              <>
-                <span>Connect Workspace</span>
-                <ArrowRight size={14} />
-              </>
-            )}
-          </button>
+            {loading ? 'Connecting...' : 'Connect Workspace'}
+            {!loading && <ArrowRight size={14} slot="icon" />}
+          </Button>
         </div>
       </div>
     </div>

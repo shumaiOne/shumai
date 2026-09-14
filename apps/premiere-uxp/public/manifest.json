@@ -11,6 +11,9 @@
     }
   ],
   "manifestVersion": 5,
+  "featureFlags": {
+    "enableSWCSupport": true
+  },
   "requiredPermissions": {
     "network": {
       "domains": "all"

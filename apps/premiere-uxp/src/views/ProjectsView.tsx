@@ -10,6 +10,9 @@ import {
   Search,
   AlertCircle,
 } from 'lucide-react'
+import { ActionButton } from '@swc-react/action-button'
+import { Button } from '@swc-react/button'
+import { Textfield } from '@swc-react/textfield'
 
 export interface ProjectSummary {
   id: string
@@ -90,52 +93,52 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <button
-            className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`}
+          <ActionButton
+            quiet
+            size="s"
+            selected={viewMode === 'grid'}
             onClick={() => setViewMode('grid')}
             title="Grid view"
+            aria-label="Grid view"
           >
-            <LayoutGrid size={13} />
-          </button>
-          <button
-            className={`btn-icon ${viewMode === 'list' ? 'active' : ''}`}
+            <LayoutGrid size={13} slot="icon" />
+          </ActionButton>
+          <ActionButton
+            quiet
+            size="s"
+            selected={viewMode === 'list'}
             onClick={() => setViewMode('list')}
             title="List view"
+            aria-label="List view"
           >
-            <List size={13} />
-          </button>
-          <button
-            className="btn-icon"
+            <List size={13} slot="icon" />
+          </ActionButton>
+          <ActionButton
+            quiet
+            size="s"
             onClick={fetchProjects}
             title="Refresh projects"
+            aria-label="Refresh projects"
             disabled={loading}
           >
-            <RefreshCw size={13} className={loading ? 'spinner' : ''} />
-          </button>
+            <RefreshCw size={13} slot="icon" className={loading ? 'spinner' : ''} />
+          </ActionButton>
         </div>
       </div>
 
       {/* Search Input */}
       {projects.length > 2 && (
-        <div style={{ position: 'relative', marginBottom: '12px' }}>
-          <Search
-            size={13}
-            style={{
-              position: 'absolute',
-              left: '8px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'var(--text-secondary)',
-            }}
-          />
-          <input
-            type="text"
-            className="input-text"
-            style={{ width: '100%', paddingLeft: '28px', height: '28px' }}
+        <div style={{ marginBottom: '12px' }}>
+          <Textfield
+            style={{ width: '100%' }}
             placeholder="Filter projects..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+            onInput={(e: React.FormEvent<HTMLElement>) =>
+              setSearchTerm((e.target as HTMLInputElement).value)
+            }
+          >
+            <Search size={13} slot="icon" />
+          </Textfield>
         </div>
       )}
 
@@ -151,9 +154,9 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
           <AlertCircle size={24} style={{ color: 'var(--accent-red)' }} />
           <h3>Error loading projects</h3>
           <p>{error}</p>
-          <button className="btn" onClick={fetchProjects} style={{ marginTop: '8px' }}>
+          <Button variant="secondary" onClick={fetchProjects} style={{ marginTop: '8px' }}>
             Try Again
-          </button>
+          </Button>
         </div>
       )}
 

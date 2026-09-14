@@ -2,6 +2,27 @@
 import { cp, rm, mkdir } from 'node:fs/promises'
 import { existsSync, watch } from 'node:fs'
 import { $ } from 'bun'
+import { aliases } from '@swc-uxp-wrappers/utils'
+import type { BunPlugin } from 'bun'
+
+const swcAliasPlugin: BunPlugin = {
+  name: 'swc-uxp-aliases',
+  setup(build) {
+    for (const [key, target] of Object.entries(aliases)) {
+      const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const filter = new RegExp(`^${escaped}(/.*)?$`)
+      build.onResolve({ filter }, (args) => {
+        const subpath = args.path.slice(key.length)
+        const targetPath = target + subpath
+        try {
+          return { path: import.meta.resolveSync(targetPath) }
+        } catch {
+          return undefined
+        }
+      })
+    }
+  },
+}
 
 const isWatch = process.argv.includes('--watch')
 const isPackage = process.argv.includes('--package')
@@ -25,6 +46,7 @@ async function build(): Promise<boolean> {
       format: 'cjs',
       sourcemap: 'external',
       minify: false,
+      plugins: [swcAliasPlugin],
       external: ['os', 'premierepro', 'uxp'],
       define: {
         'process.env.NODE_ENV': JSON.stringify('production'),

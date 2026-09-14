@@ -3,7 +3,7 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "types": ["node", "@adobe/premierepro"]
+    "types": ["bun", "node", "@adobe/premierepro"]
   },
   "include": ["src/**/*"]
 }

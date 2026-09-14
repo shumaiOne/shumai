@@ -1,5 +1,6 @@
 import React from 'react'
 import { LogOut, Server } from 'lucide-react'
+import { ActionButton } from '@swc-react/action-button'
 
 interface HeaderProps {
   endpoint?: string
@@ -48,14 +49,15 @@ export const Header: React.FC<HeaderProps> = ({ endpoint, onDisconnect }) => {
               {displayHost}
             </span>
           </div>
-          <button
-            className="btn-icon"
+          <ActionButton
+            quiet
+            size="s"
             onClick={onDisconnect}
             title="Disconnect / Change Server"
             aria-label="Disconnect"
           >
-            <LogOut size={13} />
-          </button>
+            <LogOut size={13} slot="icon" />
+          </ActionButton>
         </div>
       )}
     </header>
