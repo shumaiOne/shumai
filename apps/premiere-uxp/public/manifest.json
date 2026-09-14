@@ -1,0 +1,72 @@
+{
+  "id": "com.shumai.premiere",
+  "name": "Shumai",
+  "shortname": "shumai",
+  "version": "0.1.0",
+  "main": "index.html",
+  "host": [
+    {
+      "app": "premierepro",
+      "minVersion": "25.1.0"
+    }
+  ],
+  "manifestVersion": 5,
+  "requiredPermissions": {
+    "network": {
+      "domains": "all"
+    },
+    "localFileSystem": "fullAccess",
+    "clipboard": "readAndWrite"
+  },
+  "entrypoints": [
+    {
+      "id": "shumaiPanel",
+      "type": "panel",
+      "minimumSize": {
+        "width": 280,
+        "height": 400
+      },
+      "maximumSize": {
+        "width": 2000,
+        "height": 2000
+      },
+      "preferredDockedSize": {
+        "width": 320,
+        "height": 600
+      },
+      "preferredFloatingSize": {
+        "width": 360,
+        "height": 640
+      },
+      "label": {
+        "default": "Shumai"
+      },
+      "icons": [
+        {
+          "width": 23,
+          "height": 23,
+          "path": "icons/dark.svg",
+          "scale": [1, 2],
+          "theme": ["darkest", "dark", "medium"]
+        },
+        {
+          "width": 23,
+          "height": 23,
+          "path": "icons/light.svg",
+          "scale": [1, 2],
+          "theme": ["lightest", "light"]
+        }
+      ]
+    }
+  ],
+  "icons": [
+    {
+      "width": 48,
+      "height": 48,
+      "path": "icons/plugin-icon.svg",
+      "scale": [1, 2],
+      "theme": ["darkest", "dark", "medium", "lightest", "light", "all"],
+      "species": ["pluginList"]
+    }
+  ]
+}

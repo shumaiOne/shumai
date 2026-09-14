@@ -2,6 +2,7 @@ node_modules
 .bun
 dist
 out
+*.ccx
 .DS_Store
 *.log
 .env

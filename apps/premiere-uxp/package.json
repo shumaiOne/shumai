@@ -1,0 +1,25 @@
+{
+  "name": "@shumai/premiere-uxp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build": "bun run ./build.ts",
+    "dev": "bun run ./build.ts --watch",
+    "package": "bun run ./build.ts --package",
+    "clean": "rm -rf dist shumai-premiere.ccx"
+  },
+  "dependencies": {
+    "@shumai/api": "workspace:*",
+    "@shumai/dtos": "workspace:*",
+    "hono": "4.13.5",
+    "lucide-react": "1.41.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@adobe/premierepro": "26.3.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7"
+  }
+}
