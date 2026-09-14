@@ -687,7 +687,7 @@ model AssetCommentReaction {
   userId    String       @map("user_id")
   user      User         @relation("UserToAssetCommentReaction", fields: [userId], references: [id], onDelete: Cascade)
 
-  code      String
+  code      String   @db.VarChar(32)
 
   @@unique([commentId, userId, code])
   @@index([commentId])
