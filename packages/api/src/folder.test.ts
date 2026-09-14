@@ -318,6 +318,28 @@ describe('folder api', () => {
     })
   })
 
+  it('POST /folders/:folderId/search passes previewFormat to searchService', async () => {
+    vi.mocked(searchService.search).mockResolvedValue({
+      data: [],
+      pageInfo: { total: 0 },
+    })
+
+    const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
+    const res = await app.request('/folders/test-id/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        previewFormat: 'jpeg',
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    expect(searchService.search).toHaveBeenCalledWith(
+      'test-id',
+      expect.objectContaining({ previewFormat: 'jpeg' }),
+    )
+  })
+
   it('PATCH /folders/:folderId/order', async () => {
     vi.spyOn(assetService, 'updateAssetOrder').mockResolvedValue({
       id: 'test-id',

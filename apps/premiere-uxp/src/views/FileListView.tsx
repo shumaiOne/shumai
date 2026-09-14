@@ -60,6 +60,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
               conditions,
               sort,
               first: 100,
+              previewFormat: 'jpeg',
             },
           }),
           client.api.folders[':folderId'].search.$post({
@@ -70,6 +71,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
               conditions,
               sort,
               first: 100,
+              previewFormat: 'jpeg',
             },
           }),
         ])

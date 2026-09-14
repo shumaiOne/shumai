@@ -48,6 +48,7 @@ export type AssetMinAggregateOutputType = {
   status: $Enums.AssetStatus | null
   transcodeTaskId: string | null
   uploadId: string | null
+  hasJpegPreview: boolean | null
   isDeleted: boolean | null
   deletedAt: Date | null
   sortIndex: string | null
@@ -72,6 +73,7 @@ export type AssetMaxAggregateOutputType = {
   status: $Enums.AssetStatus | null
   transcodeTaskId: string | null
   uploadId: string | null
+  hasJpegPreview: boolean | null
   isDeleted: boolean | null
   deletedAt: Date | null
   sortIndex: string | null
@@ -98,6 +100,7 @@ export type AssetCountAggregateOutputType = {
   transcodeTaskId: number
   uploadId: number
   media: number
+  hasJpegPreview: number
   isDeleted: number
   deletedAt: number
   sortIndex: number
@@ -134,6 +137,7 @@ export type AssetMinAggregateInputType = {
   status?: true
   transcodeTaskId?: true
   uploadId?: true
+  hasJpegPreview?: true
   isDeleted?: true
   deletedAt?: true
   sortIndex?: true
@@ -158,6 +162,7 @@ export type AssetMaxAggregateInputType = {
   status?: true
   transcodeTaskId?: true
   uploadId?: true
+  hasJpegPreview?: true
   isDeleted?: true
   deletedAt?: true
   sortIndex?: true
@@ -184,6 +189,7 @@ export type AssetCountAggregateInputType = {
   transcodeTaskId?: true
   uploadId?: true
   media?: true
+  hasJpegPreview?: true
   isDeleted?: true
   deletedAt?: true
   sortIndex?: true
@@ -297,6 +303,7 @@ export type AssetGroupByOutputType = {
   transcodeTaskId: string | null
   uploadId: string | null
   media:PrismaJson.MediaInfo | null
+  hasJpegPreview: boolean
   isDeleted: boolean
   deletedAt: Date | null
   sortIndex: string | null
@@ -346,6 +353,7 @@ export type AssetWhereInput = {
   transcodeTaskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   uploadId?: Prisma.StringNullableFilter<"Asset"> | string | null
   media?: Prisma.JsonNullableFilter<"Asset">
+  hasJpegPreview?: Prisma.BoolFilter<"Asset"> | boolean
   isDeleted?: Prisma.BoolFilter<"Asset"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   sortIndex?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -396,6 +404,7 @@ export type AssetOrderByWithRelationInput = {
   transcodeTaskId?: Prisma.SortOrderInput | Prisma.SortOrder
   uploadId?: Prisma.SortOrderInput | Prisma.SortOrder
   media?: Prisma.SortOrderInput | Prisma.SortOrder
+  hasJpegPreview?: Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   sortIndex?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -450,6 +459,7 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<{
   transcodeTaskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   uploadId?: Prisma.StringNullableFilter<"Asset"> | string | null
   media?: Prisma.JsonNullableFilter<"Asset">
+  hasJpegPreview?: Prisma.BoolFilter<"Asset"> | boolean
   isDeleted?: Prisma.BoolFilter<"Asset"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   sortIndex?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -500,6 +510,7 @@ export type AssetOrderByWithAggregationInput = {
   transcodeTaskId?: Prisma.SortOrderInput | Prisma.SortOrder
   uploadId?: Prisma.SortOrderInput | Prisma.SortOrder
   media?: Prisma.SortOrderInput | Prisma.SortOrder
+  hasJpegPreview?: Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   sortIndex?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -534,6 +545,7 @@ export type AssetScalarWhereWithAggregatesInput = {
   transcodeTaskId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   uploadId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   media?: Prisma.JsonNullableWithAggregatesFilter<"Asset">
+  hasJpegPreview?: Prisma.BoolWithAggregatesFilter<"Asset"> | boolean
   isDeleted?: Prisma.BoolWithAggregatesFilter<"Asset"> | boolean
   deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Asset"> | Date | string | null
   sortIndex?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
@@ -560,6 +572,7 @@ export type AssetCreateInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -603,6 +616,7 @@ export type AssetUncheckedCreateInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -646,6 +660,7 @@ export type AssetUpdateInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -689,6 +704,7 @@ export type AssetUncheckedUpdateInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -732,6 +748,7 @@ export type AssetCreateManyInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -758,6 +775,7 @@ export type AssetUpdateManyMutationInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -777,6 +795,7 @@ export type AssetUncheckedUpdateManyInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -828,6 +847,7 @@ export type AssetCountOrderByAggregateInput = {
   transcodeTaskId?: Prisma.SortOrder
   uploadId?: Prisma.SortOrder
   media?: Prisma.SortOrder
+  hasJpegPreview?: Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   sortIndex?: Prisma.SortOrder
@@ -857,6 +877,7 @@ export type AssetMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   transcodeTaskId?: Prisma.SortOrder
   uploadId?: Prisma.SortOrder
+  hasJpegPreview?: Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   sortIndex?: Prisma.SortOrder
@@ -881,6 +902,7 @@ export type AssetMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   transcodeTaskId?: Prisma.SortOrder
   uploadId?: Prisma.SortOrder
+  hasJpegPreview?: Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   sortIndex?: Prisma.SortOrder
@@ -1493,6 +1515,7 @@ export type AssetCreateWithoutCreatorInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1535,6 +1558,7 @@ export type AssetUncheckedCreateWithoutCreatorInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1606,6 +1630,7 @@ export type AssetScalarWhereInput = {
   transcodeTaskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   uploadId?: Prisma.StringNullableFilter<"Asset"> | string | null
   media?: Prisma.JsonNullableFilter<"Asset">
+  hasJpegPreview?: Prisma.BoolFilter<"Asset"> | boolean
   isDeleted?: Prisma.BoolFilter<"Asset"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   sortIndex?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -1632,6 +1657,7 @@ export type AssetCreateWithoutTeamRootFolderInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1674,6 +1700,7 @@ export type AssetUncheckedCreateWithoutTeamRootFolderInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1732,6 +1759,7 @@ export type AssetUpdateWithoutTeamRootFolderInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1774,6 +1802,7 @@ export type AssetUncheckedUpdateWithoutTeamRootFolderInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1816,6 +1845,7 @@ export type AssetCreateWithoutProjectRootFolderInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1858,6 +1888,7 @@ export type AssetUncheckedCreateWithoutProjectRootFolderInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1905,6 +1936,7 @@ export type AssetCreateWithoutProjectShareRootInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1947,6 +1979,7 @@ export type AssetUncheckedCreateWithoutProjectShareRootInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1994,6 +2027,7 @@ export type AssetCreateWithoutProjectInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2036,6 +2070,7 @@ export type AssetUncheckedCreateWithoutProjectInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2099,6 +2134,7 @@ export type AssetUpdateWithoutProjectRootFolderInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2141,6 +2177,7 @@ export type AssetUncheckedUpdateWithoutProjectRootFolderInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2194,6 +2231,7 @@ export type AssetUpdateWithoutProjectShareRootInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2236,6 +2274,7 @@ export type AssetUncheckedUpdateWithoutProjectShareRootInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2294,6 +2333,7 @@ export type AssetCreateWithoutShareLinkRootFolderInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2336,6 +2376,7 @@ export type AssetUncheckedCreateWithoutShareLinkRootFolderInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2394,6 +2435,7 @@ export type AssetUpdateWithoutShareLinkRootFolderInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2436,6 +2478,7 @@ export type AssetUncheckedUpdateWithoutShareLinkRootFolderInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2478,6 +2521,7 @@ export type AssetCreateWithoutWatermarkFilesInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2520,6 +2564,7 @@ export type AssetUncheckedCreateWithoutWatermarkFilesInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2578,6 +2623,7 @@ export type AssetUpdateWithoutWatermarkFilesInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2620,6 +2666,7 @@ export type AssetUncheckedUpdateWithoutWatermarkFilesInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2662,6 +2709,7 @@ export type AssetCreateWithoutChildrenInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2704,6 +2752,7 @@ export type AssetUncheckedCreateWithoutChildrenInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2751,6 +2800,7 @@ export type AssetCreateWithoutParentInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2793,6 +2843,7 @@ export type AssetUncheckedCreateWithoutParentInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2845,6 +2896,7 @@ export type AssetCreateWithoutSymlinksInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2887,6 +2939,7 @@ export type AssetUncheckedCreateWithoutSymlinksInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2934,6 +2987,7 @@ export type AssetCreateWithoutTargetInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2976,6 +3030,7 @@ export type AssetUncheckedCreateWithoutTargetInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3039,6 +3094,7 @@ export type AssetUpdateWithoutChildrenInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3081,6 +3137,7 @@ export type AssetUncheckedUpdateWithoutChildrenInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3150,6 +3207,7 @@ export type AssetUpdateWithoutSymlinksInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3192,6 +3250,7 @@ export type AssetUncheckedUpdateWithoutSymlinksInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3250,6 +3309,7 @@ export type AssetCreateWithoutStorageKeyInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3292,6 +3352,7 @@ export type AssetUncheckedCreateWithoutStorageKeyInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3360,6 +3421,7 @@ export type AssetCreateWithoutMetadataValuesInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3402,6 +3464,7 @@ export type AssetUncheckedCreateWithoutMetadataValuesInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3460,6 +3523,7 @@ export type AssetUpdateWithoutMetadataValuesInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3502,6 +3566,7 @@ export type AssetUncheckedUpdateWithoutMetadataValuesInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3544,6 +3609,7 @@ export type AssetCreateWithoutAgentMdInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3586,6 +3652,7 @@ export type AssetUncheckedCreateWithoutAgentMdInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3644,6 +3711,7 @@ export type AssetUpdateWithoutAgentMdInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3686,6 +3754,7 @@ export type AssetUncheckedUpdateWithoutAgentMdInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3728,6 +3797,7 @@ export type AssetCreateWithoutCommentsInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3770,6 +3840,7 @@ export type AssetUncheckedCreateWithoutCommentsInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3828,6 +3899,7 @@ export type AssetUpdateWithoutCommentsInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3870,6 +3942,7 @@ export type AssetUncheckedUpdateWithoutCommentsInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3912,6 +3985,7 @@ export type AssetCreateWithoutCommentAttachmentsInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3954,6 +4028,7 @@ export type AssetUncheckedCreateWithoutCommentAttachmentsInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4012,6 +4087,7 @@ export type AssetUpdateWithoutCommentAttachmentsInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4054,6 +4130,7 @@ export type AssetUncheckedUpdateWithoutCommentAttachmentsInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4096,6 +4173,7 @@ export type AssetCreateWithoutEmbeddingsInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4138,6 +4216,7 @@ export type AssetUncheckedCreateWithoutEmbeddingsInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4196,6 +4275,7 @@ export type AssetUpdateWithoutEmbeddingsInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4238,6 +4318,7 @@ export type AssetUncheckedUpdateWithoutEmbeddingsInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4280,6 +4361,7 @@ export type AssetCreateWithoutNotificationsInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4322,6 +4404,7 @@ export type AssetUncheckedCreateWithoutNotificationsInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4380,6 +4463,7 @@ export type AssetUpdateWithoutNotificationsInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4422,6 +4506,7 @@ export type AssetUncheckedUpdateWithoutNotificationsInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4464,6 +4549,7 @@ export type AssetCreateWithoutTaskInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4506,6 +4592,7 @@ export type AssetUncheckedCreateWithoutTaskInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4574,6 +4661,7 @@ export type AssetCreateWithoutAgentInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4616,6 +4704,7 @@ export type AssetUncheckedCreateWithoutAgentInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4684,6 +4773,7 @@ export type AssetCreateWithoutAgentSessionsInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4726,6 +4816,7 @@ export type AssetUncheckedCreateWithoutAgentSessionsInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4784,6 +4875,7 @@ export type AssetUpdateWithoutAgentSessionsInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4826,6 +4918,7 @@ export type AssetUncheckedUpdateWithoutAgentSessionsInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4868,6 +4961,7 @@ export type AssetCreateWithoutKanbanTargetTasksInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4910,6 +5004,7 @@ export type AssetUncheckedCreateWithoutKanbanTargetTasksInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4968,6 +5063,7 @@ export type AssetUpdateWithoutKanbanTargetTasksInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5010,6 +5106,7 @@ export type AssetUncheckedUpdateWithoutKanbanTargetTasksInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5052,6 +5149,7 @@ export type AssetCreateWithoutKanbanTasksInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -5094,6 +5192,7 @@ export type AssetUncheckedCreateWithoutKanbanTasksInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -5152,6 +5251,7 @@ export type AssetUpdateWithoutKanbanTasksInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5194,6 +5294,7 @@ export type AssetUncheckedUpdateWithoutKanbanTasksInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5236,6 +5337,7 @@ export type AssetCreateWithoutRecentFilesInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -5278,6 +5380,7 @@ export type AssetUncheckedCreateWithoutRecentFilesInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -5336,6 +5439,7 @@ export type AssetUpdateWithoutRecentFilesInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5378,6 +5482,7 @@ export type AssetUncheckedUpdateWithoutRecentFilesInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5420,6 +5525,7 @@ export type AssetCreateManyCreatorInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -5445,6 +5551,7 @@ export type AssetUpdateWithoutCreatorInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5487,6 +5594,7 @@ export type AssetUncheckedUpdateWithoutCreatorInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5529,6 +5637,7 @@ export type AssetUncheckedUpdateManyWithoutCreatorInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5554,6 +5663,7 @@ export type AssetCreateManyProjectInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -5579,6 +5689,7 @@ export type AssetUpdateWithoutProjectInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5621,6 +5732,7 @@ export type AssetUncheckedUpdateWithoutProjectInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5663,6 +5775,7 @@ export type AssetUncheckedUpdateManyWithoutProjectInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5688,6 +5801,7 @@ export type AssetCreateManyParentInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -5713,6 +5827,7 @@ export type AssetCreateManyTargetInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -5738,6 +5853,7 @@ export type AssetUpdateWithoutParentInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5780,6 +5896,7 @@ export type AssetUncheckedUpdateWithoutParentInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5822,6 +5939,7 @@ export type AssetUncheckedUpdateManyWithoutParentInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5847,6 +5965,7 @@ export type AssetUpdateWithoutTargetInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5889,6 +6008,7 @@ export type AssetUncheckedUpdateWithoutTargetInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5931,6 +6051,7 @@ export type AssetUncheckedUpdateManyWithoutTargetInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5956,6 +6077,7 @@ export type AssetCreateManyStorageKeyInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -5981,6 +6103,7 @@ export type AssetUpdateWithoutStorageKeyInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6023,6 +6146,7 @@ export type AssetUncheckedUpdateWithoutStorageKeyInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6065,6 +6189,7 @@ export type AssetUncheckedUpdateManyWithoutStorageKeyInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6090,6 +6215,7 @@ export type AssetCreateManyTaskInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -6115,6 +6241,7 @@ export type AssetUpdateWithoutTaskInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6157,6 +6284,7 @@ export type AssetUncheckedUpdateWithoutTaskInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6199,6 +6327,7 @@ export type AssetUncheckedUpdateManyWithoutTaskInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6224,6 +6353,7 @@ export type AssetCreateManyAgentInput = {
   transcodeTaskId?: string | null
   uploadId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -6249,6 +6379,7 @@ export type AssetUpdateWithoutAgentInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6291,6 +6422,7 @@ export type AssetUncheckedUpdateWithoutAgentInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6333,6 +6465,7 @@ export type AssetUncheckedUpdateManyWithoutAgentInput = {
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6488,6 +6621,7 @@ export type AssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   transcodeTaskId?: boolean
   uploadId?: boolean
   media?: boolean
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: boolean
   sortIndex?: boolean
@@ -6539,6 +6673,7 @@ export type AssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   transcodeTaskId?: boolean
   uploadId?: boolean
   media?: boolean
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: boolean
   sortIndex?: boolean
@@ -6572,6 +6707,7 @@ export type AssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   transcodeTaskId?: boolean
   uploadId?: boolean
   media?: boolean
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: boolean
   sortIndex?: boolean
@@ -6605,6 +6741,7 @@ export type AssetSelectScalar = {
   transcodeTaskId?: boolean
   uploadId?: boolean
   media?: boolean
+  hasJpegPreview?: boolean
   isDeleted?: boolean
   deletedAt?: boolean
   sortIndex?: boolean
@@ -6619,7 +6756,7 @@ export type AssetSelectScalar = {
   projectId?: boolean
 }
 
-export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameNgram" | "type" | "mediaType" | "fileCount" | "sizeByte" | "status" | "transcodeTaskId" | "uploadId" | "media" | "isDeleted" | "deletedAt" | "sortIndex" | "createdAt" | "updatedAt" | "parentId" | "targetId" | "storageKeyId" | "creatorId" | "agentId" | "taskId" | "projectId", ExtArgs["result"]["asset"]>
+export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameNgram" | "type" | "mediaType" | "fileCount" | "sizeByte" | "status" | "transcodeTaskId" | "uploadId" | "media" | "hasJpegPreview" | "isDeleted" | "deletedAt" | "sortIndex" | "createdAt" | "updatedAt" | "parentId" | "targetId" | "storageKeyId" | "creatorId" | "agentId" | "taskId" | "projectId", ExtArgs["result"]["asset"]>
 export type AssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   parent?: boolean | Prisma.Asset$parentArgs<ExtArgs>
   children?: boolean | Prisma.Asset$childrenArgs<ExtArgs>
@@ -6709,6 +6846,7 @@ export type $AssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
      * [MediaInfo]
      */
     media:PrismaJson.MediaInfo | null
+    hasJpegPreview: boolean
     isDeleted: boolean
     deletedAt: Date | null
     sortIndex: string | null
@@ -7179,6 +7317,7 @@ export interface AssetFieldRefs {
   readonly transcodeTaskId: Prisma.FieldRef<"Asset", 'String'>
   readonly uploadId: Prisma.FieldRef<"Asset", 'String'>
   readonly media: Prisma.FieldRef<"Asset", 'Json'>
+  readonly hasJpegPreview: Prisma.FieldRef<"Asset", 'Boolean'>
   readonly isDeleted: Prisma.FieldRef<"Asset", 'Boolean'>
   readonly deletedAt: Prisma.FieldRef<"Asset", 'DateTime'>
   readonly sortIndex: Prisma.FieldRef<"Asset", 'String'>

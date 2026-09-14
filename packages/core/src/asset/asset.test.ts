@@ -9,6 +9,8 @@ import { uploadService } from '@shumai/core/src/upload/upload'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { AssetService } from './asset'
 
+import { ensureJpegInStorage } from '@shumai/core/src/s3/preview-converter'
+
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
     presign: vi.fn().mockResolvedValue('http://mock-s3-url'),
@@ -18,6 +20,14 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
     copyObject: vi.fn().mockResolvedValue(undefined),
   },
 }))
+
+vi.mock('@shumai/core/src/s3/preview-converter', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shumai/core/src/s3/preview-converter')>()
+  return {
+    ...actual,
+    ensureJpegInStorage: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 describe('AssetService', () => {
   setupTestDbHooks()
@@ -1917,6 +1927,146 @@ describe('AssetService', () => {
 
       expect(info.preview).toBeDefined()
       expect(info.preview?.duration).toBeUndefined()
+    })
+
+    it('converts webp thumbnail to jpeg on demand when hasJpegPreview is false', async () => {
+      vi.mocked(ensureJpegInStorage).mockClear()
+      const { project, user } = await setupBasicAssets()
+
+      const image = await prisma.asset.create({
+        data: {
+          name: 'photo.webp',
+          type: AssetType.file,
+          projectId: project.id,
+          creatorId: user.id,
+          sizeByte: 2000,
+          mediaType: 'image/webp',
+          status: 'processed',
+          hasJpegPreview: false,
+          media: {
+            proxyType: 'image',
+            thumbnail: { key: 'shumai/files/1/thumb.webp' },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+        },
+      })
+
+      const preview = await assetService.toPreviewInfo(image, 'jpeg')
+
+      expect(preview).toBeDefined()
+      expect(ensureJpegInStorage).toHaveBeenCalledWith(
+        expect.any(String),
+        'shumai/files/1/thumb.webp',
+        'shumai/files/1/thumb.jpeg',
+      )
+      expect(s3Service.presign).toHaveBeenCalledWith(
+        expect.any(String),
+        'shumai/files/1/thumb.jpeg',
+        'GET',
+      )
+
+      const updated = await prisma.asset.findUnique({ where: { id: image.id } })
+      expect(updated?.hasJpegPreview).toBe(true)
+    })
+
+    it('skips conversion when hasJpegPreview is already true', async () => {
+      vi.mocked(ensureJpegInStorage).mockClear()
+      const { project, user } = await setupBasicAssets()
+
+      const image = await prisma.asset.create({
+        data: {
+          name: 'photo-converted.webp',
+          type: AssetType.file,
+          projectId: project.id,
+          creatorId: user.id,
+          sizeByte: 2000,
+          mediaType: 'image/webp',
+          status: 'processed',
+          hasJpegPreview: true,
+          media: {
+            proxyType: 'image',
+            thumbnail: { key: 'shumai/files/2/thumb.webp' },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+        },
+      })
+
+      const preview = await assetService.toPreviewInfo(image, 'jpeg')
+
+      expect(preview).toBeDefined()
+      expect(ensureJpegInStorage).not.toHaveBeenCalled()
+      expect(s3Service.presign).toHaveBeenCalledWith(
+        expect.any(String),
+        'shumai/files/2/thumb.jpeg',
+        'GET',
+      )
+    })
+
+    it('gracefully falls back to webp when conversion fails', async () => {
+      vi.mocked(ensureJpegInStorage).mockRejectedValueOnce(new Error('Sharp conversion failed'))
+      const { project, user } = await setupBasicAssets()
+
+      const image = await prisma.asset.create({
+        data: {
+          name: 'failing.webp',
+          type: AssetType.file,
+          projectId: project.id,
+          creatorId: user.id,
+          sizeByte: 2000,
+          mediaType: 'image/webp',
+          status: 'processed',
+          hasJpegPreview: false,
+          media: {
+            proxyType: 'image',
+            thumbnail: { key: 'shumai/files/3/thumb.webp' },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+        },
+      })
+
+      const preview = await assetService.toPreviewInfo(image, 'jpeg')
+
+      expect(preview).toBeDefined()
+      expect(s3Service.presign).toHaveBeenCalledWith(
+        expect.any(String),
+        'shumai/files/3/thumb.webp',
+        'GET',
+      )
+
+      const updated = await prisma.asset.findUnique({ where: { id: image.id } })
+      expect(updated?.hasJpegPreview).toBe(false)
+    })
+
+    it('listAssetsByIds forwards previewFormat and converts preview', async () => {
+      vi.mocked(ensureJpegInStorage).mockClear()
+      const { project, user } = await setupBasicAssets()
+
+      const image = await prisma.asset.create({
+        data: {
+          name: 'list-photo.webp',
+          type: AssetType.file,
+          projectId: project.id,
+          creatorId: user.id,
+          sizeByte: 2000,
+          mediaType: 'image/webp',
+          status: 'processed',
+          hasJpegPreview: false,
+          media: {
+            proxyType: 'image',
+            thumbnail: { key: 'shumai/files/4/thumb.webp' },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+        },
+      })
+
+      const list = await assetService.listAssetsByIds([image.id], 'jpeg')
+
+      expect(list).toHaveLength(1)
+      expect(ensureJpegInStorage).toHaveBeenCalledWith(
+        expect.any(String),
+        'shumai/files/4/thumb.webp',
+        'shumai/files/4/thumb.jpeg',
+      )
     })
   })
 

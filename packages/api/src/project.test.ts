@@ -77,6 +77,23 @@ describe('project api', () => {
     })
   })
 
+  it('GET /teams/:teamId/projects with previewFormat=jpeg', async () => {
+    vi.mocked(projectService.listProjects).mockResolvedValue({
+      data: [{ id: 'p1', name: 'p1', rootFolder: 'r1', coverImage: 'http://s3/p1.jpeg' }] as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      pageInfo: { total: 1, cursor: 'abc' },
+    })
+
+    const res = await app.request('/teams/t/projects?previewFormat=jpeg')
+
+    expect(res.status).toBe(200)
+    expect(projectService.listProjects).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teamId: 't',
+        previewFormat: 'jpeg',
+      }),
+    )
+  })
+
   it('POST /teams/:teamId/projects', async () => {
     vi.mocked(projectService.createProject).mockResolvedValue({
       id: 'foo',
@@ -410,6 +427,27 @@ describe('project api', () => {
       updatedAt: '2026-06-21T00:00:00.000Z',
     })
     expect(projectService.getUserProjects).toHaveBeenCalledWith('user1', 10)
+  })
+
+  it('GET /projects with previewFormat=jpeg', async () => {
+    vi.mocked(projectService.getUserProjects).mockResolvedValue([
+      {
+        id: 'proj1',
+        name: 'My Project',
+        teamId: 'team1',
+        rootFolder: 'folder1',
+        coverImage: 'http://s3/proj1.jpeg',
+        enableNotification: true,
+        updatedAt: '2026-06-21T00:00:00.000Z',
+      },
+    ] as unknown as ProjectInfo[])
+
+    const res = await app.request('/projects?first=10&previewFormat=jpeg')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.data[0].coverImage).toBe('http://s3/proj1.jpeg')
+    expect(projectService.getUserProjects).toHaveBeenCalledWith('user1', 10, 'jpeg')
   })
 
   it('GET /projects/:projectId/recents', async () => {

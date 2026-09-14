@@ -1027,4 +1027,21 @@ describe('SearchService — natural sort by name', () => {
 
     expect(result.data.map((a) => a.name)).toEqual(['scene 2', 'scene 9', 'scene 10', 'scene 100'])
   })
+
+  it('forwards previewFormat to listAssetsByIds during search', async () => {
+    const { root } = await setupSearchNaturalSortAssets(['file1'])
+    const spy = vi.spyOn(assetService, 'listAssetsByIds')
+
+    await searchService.search(root.id, {
+      recursively: true,
+      assetType: 'file',
+      operator: 'AND',
+      conditions: [],
+      isSemantic: false,
+      previewFormat: 'jpeg',
+    })
+
+    expect(spy).toHaveBeenCalledWith(expect.any(Array), 'jpeg')
+    spy.mockRestore()
+  })
 })

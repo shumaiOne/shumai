@@ -30,6 +30,7 @@ export type ProjectMinAggregateOutputType = {
   id: string | null
   name: string | null
   coverImageKey: string | null
+  hasJpegCover: boolean | null
   enableNotification: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -42,6 +43,7 @@ export type ProjectMaxAggregateOutputType = {
   id: string | null
   name: string | null
   coverImageKey: string | null
+  hasJpegCover: boolean | null
   enableNotification: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -54,6 +56,7 @@ export type ProjectCountAggregateOutputType = {
   id: number
   name: number
   coverImageKey: number
+  hasJpegCover: number
   metadataOverrides: number
   enableNotification: number
   createdAt: number
@@ -69,6 +72,7 @@ export type ProjectMinAggregateInputType = {
   id?: true
   name?: true
   coverImageKey?: true
+  hasJpegCover?: true
   enableNotification?: true
   createdAt?: true
   updatedAt?: true
@@ -81,6 +85,7 @@ export type ProjectMaxAggregateInputType = {
   id?: true
   name?: true
   coverImageKey?: true
+  hasJpegCover?: true
   enableNotification?: true
   createdAt?: true
   updatedAt?: true
@@ -93,6 +98,7 @@ export type ProjectCountAggregateInputType = {
   id?: true
   name?: true
   coverImageKey?: true
+  hasJpegCover?: true
   metadataOverrides?: true
   enableNotification?: true
   createdAt?: true
@@ -179,6 +185,7 @@ export type ProjectGroupByOutputType = {
   id: string
   name: string
   coverImageKey: string | null
+  hasJpegCover: boolean
   metadataOverrides:PrismaJson.MetadataOverrides | null
   enableNotification: boolean
   createdAt: Date
@@ -213,6 +220,7 @@ export type ProjectWhereInput = {
   id?: Prisma.StringFilter<"Project"> | string
   name?: Prisma.StringFilter<"Project"> | string
   coverImageKey?: Prisma.StringNullableFilter<"Project"> | string | null
+  hasJpegCover?: Prisma.BoolFilter<"Project"> | boolean
   metadataOverrides?: Prisma.JsonNullableFilter<"Project">
   enableNotification?: Prisma.BoolFilter<"Project"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
@@ -239,6 +247,7 @@ export type ProjectOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   coverImageKey?: Prisma.SortOrderInput | Prisma.SortOrder
+  hasJpegCover?: Prisma.SortOrder
   metadataOverrides?: Prisma.SortOrderInput | Prisma.SortOrder
   enableNotification?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -270,6 +279,7 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.ProjectWhereInput | Prisma.ProjectWhereInput[]
   name?: Prisma.StringFilter<"Project"> | string
   coverImageKey?: Prisma.StringNullableFilter<"Project"> | string | null
+  hasJpegCover?: Prisma.BoolFilter<"Project"> | boolean
   metadataOverrides?: Prisma.JsonNullableFilter<"Project">
   enableNotification?: Prisma.BoolFilter<"Project"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
@@ -294,6 +304,7 @@ export type ProjectOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   coverImageKey?: Prisma.SortOrderInput | Prisma.SortOrder
+  hasJpegCover?: Prisma.SortOrder
   metadataOverrides?: Prisma.SortOrderInput | Prisma.SortOrder
   enableNotification?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -313,6 +324,7 @@ export type ProjectScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Project"> | string
   name?: Prisma.StringWithAggregatesFilter<"Project"> | string
   coverImageKey?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
+  hasJpegCover?: Prisma.BoolWithAggregatesFilter<"Project"> | boolean
   metadataOverrides?: Prisma.JsonNullableWithAggregatesFilter<"Project">
   enableNotification?: Prisma.BoolWithAggregatesFilter<"Project"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Project"> | Date | string
@@ -326,6 +338,7 @@ export type ProjectCreateInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -349,6 +362,7 @@ export type ProjectUncheckedCreateInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -372,6 +386,7 @@ export type ProjectUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -395,6 +410,7 @@ export type ProjectUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -418,6 +434,7 @@ export type ProjectCreateManyInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -431,6 +448,7 @@ export type ProjectUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -441,6 +459,7 @@ export type ProjectUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -464,6 +483,7 @@ export type ProjectCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   coverImageKey?: Prisma.SortOrder
+  hasJpegCover?: Prisma.SortOrder
   metadataOverrides?: Prisma.SortOrder
   enableNotification?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -477,6 +497,7 @@ export type ProjectMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   coverImageKey?: Prisma.SortOrder
+  hasJpegCover?: Prisma.SortOrder
   enableNotification?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -489,6 +510,7 @@ export type ProjectMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   coverImageKey?: Prisma.SortOrder
+  hasJpegCover?: Prisma.SortOrder
   enableNotification?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -769,6 +791,7 @@ export type ProjectCreateWithoutTeamInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -791,6 +814,7 @@ export type ProjectUncheckedCreateWithoutTeamInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -842,6 +866,7 @@ export type ProjectScalarWhereInput = {
   id?: Prisma.StringFilter<"Project"> | string
   name?: Prisma.StringFilter<"Project"> | string
   coverImageKey?: Prisma.StringNullableFilter<"Project"> | string | null
+  hasJpegCover?: Prisma.BoolFilter<"Project"> | boolean
   metadataOverrides?: Prisma.JsonNullableFilter<"Project">
   enableNotification?: Prisma.BoolFilter<"Project"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
@@ -855,6 +880,7 @@ export type ProjectCreateWithoutMembersInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -877,6 +903,7 @@ export type ProjectUncheckedCreateWithoutMembersInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -915,6 +942,7 @@ export type ProjectUpdateWithoutMembersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -937,6 +965,7 @@ export type ProjectUncheckedUpdateWithoutMembersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -959,6 +988,7 @@ export type ProjectCreateWithoutShareLinksInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -981,6 +1011,7 @@ export type ProjectUncheckedCreateWithoutShareLinksInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1019,6 +1050,7 @@ export type ProjectUpdateWithoutShareLinksInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1041,6 +1073,7 @@ export type ProjectUncheckedUpdateWithoutShareLinksInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1063,6 +1096,7 @@ export type ProjectCreateWithoutAssetsInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1085,6 +1119,7 @@ export type ProjectUncheckedCreateWithoutAssetsInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1112,6 +1147,7 @@ export type ProjectCreateWithoutRootFolderInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1134,6 +1170,7 @@ export type ProjectUncheckedCreateWithoutRootFolderInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1161,6 +1198,7 @@ export type ProjectCreateWithoutShareRootInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1183,6 +1221,7 @@ export type ProjectUncheckedCreateWithoutShareRootInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1221,6 +1260,7 @@ export type ProjectUpdateWithoutAssetsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1243,6 +1283,7 @@ export type ProjectUncheckedUpdateWithoutAssetsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1276,6 +1317,7 @@ export type ProjectUpdateWithoutRootFolderInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1298,6 +1340,7 @@ export type ProjectUncheckedUpdateWithoutRootFolderInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1331,6 +1374,7 @@ export type ProjectUpdateWithoutShareRootInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1353,6 +1397,7 @@ export type ProjectUncheckedUpdateWithoutShareRootInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1375,6 +1420,7 @@ export type ProjectCreateWithoutInvitesInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1397,6 +1443,7 @@ export type ProjectUncheckedCreateWithoutInvitesInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1435,6 +1482,7 @@ export type ProjectUpdateWithoutInvitesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1457,6 +1505,7 @@ export type ProjectUncheckedUpdateWithoutInvitesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1479,6 +1528,7 @@ export type ProjectCreateWithoutMetadataFieldsInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1501,6 +1551,7 @@ export type ProjectUncheckedCreateWithoutMetadataFieldsInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1539,6 +1590,7 @@ export type ProjectUpdateWithoutMetadataFieldsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1561,6 +1613,7 @@ export type ProjectUncheckedUpdateWithoutMetadataFieldsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1583,6 +1636,7 @@ export type ProjectCreateWithoutNotificationsInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1605,6 +1659,7 @@ export type ProjectUncheckedCreateWithoutNotificationsInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1643,6 +1698,7 @@ export type ProjectUpdateWithoutNotificationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1665,6 +1721,7 @@ export type ProjectUncheckedUpdateWithoutNotificationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1687,6 +1744,7 @@ export type ProjectCreateWithoutCollectionsInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1709,6 +1767,7 @@ export type ProjectUncheckedCreateWithoutCollectionsInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1747,6 +1806,7 @@ export type ProjectUpdateWithoutCollectionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1769,6 +1829,7 @@ export type ProjectUncheckedUpdateWithoutCollectionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1791,6 +1852,7 @@ export type ProjectCreateWithoutAuditLogsInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1813,6 +1875,7 @@ export type ProjectUncheckedCreateWithoutAuditLogsInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1851,6 +1914,7 @@ export type ProjectUpdateWithoutAuditLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1873,6 +1937,7 @@ export type ProjectUncheckedUpdateWithoutAuditLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1895,6 +1960,7 @@ export type ProjectCreateWithoutKanbanTasksInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1917,6 +1983,7 @@ export type ProjectUncheckedCreateWithoutKanbanTasksInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -1955,6 +2022,7 @@ export type ProjectUpdateWithoutKanbanTasksInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1977,6 +2045,7 @@ export type ProjectUncheckedUpdateWithoutKanbanTasksInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1999,6 +2068,7 @@ export type ProjectCreateWithoutRecentFilesInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -2021,6 +2091,7 @@ export type ProjectUncheckedCreateWithoutRecentFilesInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -2059,6 +2130,7 @@ export type ProjectUpdateWithoutRecentFilesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2081,6 +2153,7 @@ export type ProjectUncheckedUpdateWithoutRecentFilesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2103,6 +2176,7 @@ export type ProjectCreateManyTeamInput = {
   id?: string
   name: string
   coverImageKey?: string | null
+  hasJpegCover?: boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: boolean
   createdAt?: Date | string
@@ -2115,6 +2189,7 @@ export type ProjectUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2137,6 +2212,7 @@ export type ProjectUncheckedUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2159,6 +2235,7 @@ export type ProjectUncheckedUpdateManyWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasJpegCover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
   enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2283,6 +2360,7 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   id?: boolean
   name?: boolean
   coverImageKey?: boolean
+  hasJpegCover?: boolean
   metadataOverrides?: boolean
   enableNotification?: boolean
   createdAt?: boolean
@@ -2310,6 +2388,7 @@ export type ProjectSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   id?: boolean
   name?: boolean
   coverImageKey?: boolean
+  hasJpegCover?: boolean
   metadataOverrides?: boolean
   enableNotification?: boolean
   createdAt?: boolean
@@ -2326,6 +2405,7 @@ export type ProjectSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   id?: boolean
   name?: boolean
   coverImageKey?: boolean
+  hasJpegCover?: boolean
   metadataOverrides?: boolean
   enableNotification?: boolean
   createdAt?: boolean
@@ -2342,6 +2422,7 @@ export type ProjectSelectScalar = {
   id?: boolean
   name?: boolean
   coverImageKey?: boolean
+  hasJpegCover?: boolean
   metadataOverrides?: boolean
   enableNotification?: boolean
   createdAt?: boolean
@@ -2351,7 +2432,7 @@ export type ProjectSelectScalar = {
   shareRootId?: boolean
 }
 
-export type ProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "coverImageKey" | "metadataOverrides" | "enableNotification" | "createdAt" | "updatedAt" | "teamId" | "rootFolderId" | "shareRootId", ExtArgs["result"]["project"]>
+export type ProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "coverImageKey" | "hasJpegCover" | "metadataOverrides" | "enableNotification" | "createdAt" | "updatedAt" | "teamId" | "rootFolderId" | "shareRootId", ExtArgs["result"]["project"]>
 export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   rootFolder?: boolean | Prisma.Project$rootFolderArgs<ExtArgs>
@@ -2400,6 +2481,7 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     id: string
     name: string
     coverImageKey: string | null
+    hasJpegCover: boolean
     /**
      * [MetadataOverrides]
      */
@@ -2849,6 +2931,7 @@ export interface ProjectFieldRefs {
   readonly id: Prisma.FieldRef<"Project", 'String'>
   readonly name: Prisma.FieldRef<"Project", 'String'>
   readonly coverImageKey: Prisma.FieldRef<"Project", 'String'>
+  readonly hasJpegCover: Prisma.FieldRef<"Project", 'Boolean'>
   readonly metadataOverrides: Prisma.FieldRef<"Project", 'Json'>
   readonly enableNotification: Prisma.FieldRef<"Project", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"Project", 'DateTime'>

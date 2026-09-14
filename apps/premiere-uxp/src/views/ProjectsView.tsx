@@ -43,7 +43,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
     try {
       const client = getShumaiClient(endpoint, apiKey)
       const res = await client.api.projects.$get({
-        query: { first: '200' },
+        query: { first: '200', previewFormat: 'jpeg' },
       })
 
       if (!res.ok) {

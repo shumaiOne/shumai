@@ -135,7 +135,7 @@ export class SearchService {
 
       // 6. Map back to full rich metadata and return time-based duplicate segments
       const uniqueIds = Array.from(new Set(finalMatches.map((m) => m.assetId)))
-      const fetchedInfos = await this.assetSvc.listAssetsByIds(uniqueIds)
+      const fetchedInfos = await this.assetSvc.listAssetsByIds(uniqueIds, req.previewFormat)
       const assetInfosMap = new Map<string, AssetInfo>()
       for (const info of fetchedInfos) {
         assetInfosMap.set(info.id, info)
@@ -334,7 +334,7 @@ export class SearchService {
 
     // Map back to full rich metadata
     const uniqueIds = Array.from(new Set(finalMatches.map((m) => m.assetId)))
-    const fetchedInfos = await this.assetSvc.listAssetsByIds(uniqueIds)
+    const fetchedInfos = await this.assetSvc.listAssetsByIds(uniqueIds, req.previewFormat)
     const assetInfosMap = new Map<string, AssetInfo>()
     for (const info of fetchedInfos) {
       assetInfosMap.set(info.id, info)

@@ -392,6 +392,7 @@ model Project {
   id                     String   @id @default(ulid())
   name                   String
   coverImageKey          String?  @map("cover_image_key")
+  hasJpegCover           Boolean  @default(false) @map("has_jpeg_cover")
   /// [MetadataOverrides]
   metadataOverrides      Json?    @map("metadata_overrides")
   enableNotification     Boolean  @default(true) @map("enable_notification")
@@ -526,6 +527,7 @@ model Asset {
   uploadId          String?      @map("upload_id")
   /// [MediaInfo]
   media             Json?
+  hasJpegPreview    Boolean      @default(false) @map("has_jpeg_preview")
   isDeleted         Boolean      @default(false) @map("is_deleted")
   deletedAt         DateTime?    @map("deleted_at")
   sortIndex         String?      @map("sort_index")

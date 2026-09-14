@@ -19,6 +19,7 @@ import {
   AssetUserInfo,
   ListRecentsRequest,
   CommentExportFormat,
+  PreviewFormat,
 } from '@shumai/dtos'
 import {
   exportCommentsToFormat,
@@ -32,6 +33,11 @@ import { HTTPException } from 'hono/http-exception'
 import { logger } from '@shumai/core/src/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@shumai/core/src/pagination'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import {
+  ensureJpegInStorage,
+  getJpegKeyForWebp,
+  isWebpKey,
+} from '@shumai/core/src/s3/preview-converter'
 import { dedupeSymlinksToTarget } from './symlink'
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
@@ -133,7 +139,7 @@ export class AssetService {
     return [folderId, ...ids]
   }
 
-  async listAssetsByIds(ids: string[]): Promise<AssetInfo[]> {
+  async listAssetsByIds(ids: string[], previewFormat?: PreviewFormat): Promise<AssetInfo[]> {
     if (ids.length === 0) return []
 
     const assets = await this.prismaClient.asset.findMany({
@@ -145,7 +151,7 @@ export class AssetService {
     const orderedAssets = ids
       .map((id) => assetMap.get(id))
       .filter((a): a is AssetWithIncludes => !!a)
-    const orderedInfos = await this.toAssetInfos(orderedAssets)
+    const orderedInfos = await this.toAssetInfos(orderedAssets, previewFormat)
 
     return orderedInfos
   }
@@ -2036,7 +2042,10 @@ export class AssetService {
     return exportCommentsToFormat(metadata, comments, format, options)
   }
 
-  async toAssetInfos(assets: AssetWithIncludes[]): Promise<AssetInfo[]> {
+  async toAssetInfos(
+    assets: AssetWithIncludes[],
+    previewFormat?: PreviewFormat,
+  ): Promise<AssetInfo[]> {
     const stackIds = new Set<string>()
 
     for (const a of assets) {
@@ -2150,7 +2159,7 @@ export class AssetService {
             id: stackId,
             versions: await Promise.all(
               versions.map(async (v, i) => {
-                const preview = await this.toPreviewInfo(v as Asset)
+                const preview = await this.toPreviewInfo(v as Asset, previewFormat)
                 return {
                   version: versions.length - i,
                   current: i === 0,
@@ -2208,12 +2217,12 @@ export class AssetService {
 
           latestChildren.push({
             type: mediaType,
-            preview: await this.toPreviewInfo(previewAsset),
+            preview: await this.toPreviewInfo(previewAsset, previewFormat),
           })
         }
       }
 
-      const preview = await this.toPreviewInfo(latestVersion as Asset)
+      const preview = await this.toPreviewInfo(latestVersion as Asset, previewFormat)
 
       const creator = latestVersion.creator
         ? {
@@ -2604,24 +2613,48 @@ export class AssetService {
     )
   }
 
-  async toPreviewInfo(asset: Asset | AssetWithIncludes): Promise<PreviewInfo | null> {
+  async toPreviewInfo(
+    asset: Asset | AssetWithIncludes,
+    previewFormat?: PreviewFormat,
+  ): Promise<PreviewInfo | null> {
     if (!asset.media) return null
 
     const proxyType = (asset.media?.proxyType || null) as 'image' | 'video' | 'audio' | 'pdf' | null
 
-    let thumbnailUrl = undefined
+    let rawThumbKey: string | undefined
     if (proxyType === 'image' && asset.media.thumbnail?.key) {
-      thumbnailUrl = await s3Service.presign(
-        process.env.S3_BUCKET || 'shumai',
-        asset.media.thumbnail.key,
-        'GET',
-      )
+      rawThumbKey = asset.media.thumbnail.key
     } else if (asset.media.poster?.key) {
-      thumbnailUrl = await s3Service.presign(
-        process.env.S3_BUCKET || 'shumai',
-        asset.media.poster.key,
-        'GET',
-      )
+      rawThumbKey = asset.media.poster.key
+    }
+
+    let thumbnailUrl = undefined
+    if (rawThumbKey) {
+      const bucket = process.env.S3_BUCKET || 'shumai'
+      let finalKey = rawThumbKey
+      if (previewFormat === 'jpeg' && isWebpKey(rawThumbKey)) {
+        const targetJpegKey = getJpegKeyForWebp(rawThumbKey)
+        if (asset.hasJpegPreview) {
+          finalKey = targetJpegKey
+        } else {
+          try {
+            await ensureJpegInStorage(bucket, rawThumbKey, targetJpegKey)
+            await this.prismaClient.asset.update({
+              where: { id: asset.id },
+              data: { hasJpegPreview: true },
+            })
+            asset.hasJpegPreview = true
+            finalKey = targetJpegKey
+          } catch (err) {
+            logger.warn(
+              { err, assetId: asset.id, rawThumbKey },
+              'Failed to ensure JPEG preview for asset, falling back to WebP',
+            )
+            finalKey = rawThumbKey
+          }
+        }
+      }
+      thumbnailUrl = await s3Service.presign(bucket, finalKey, 'GET')
     }
 
     let spriteUrl = undefined

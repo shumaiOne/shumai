@@ -29,12 +29,22 @@ export const projectInfoSchema = z.object({
 })
 export type ProjectInfo = z.infer<typeof projectInfoSchema>
 
+import { previewFormatSchema, type PreviewFormat } from './search'
+
 export const listProjectsRequestSchema = z
   .object({
     sortBy: z.string().optional(),
     sortDirection: z.enum(['asc', 'desc']).optional(),
+    previewFormat: previewFormatSchema.optional(),
   })
   .merge(paginationParamsSchema)
+
+export const listUserProjectsRequestSchema = z
+  .object({
+    previewFormat: previewFormatSchema.optional(),
+  })
+  .merge(paginationParamsSchema)
+export type ListUserProjectsRequest = z.infer<typeof listUserProjectsRequestSchema>
 
 export const listProjectsResponseSchema = z.object({
   data: z.array(projectInfoSchema),
@@ -90,6 +100,7 @@ export interface ServiceListProjectsRequest {
   userId: string
   sortBy?: string
   sortDirection?: 'asc' | 'desc'
+  previewFormat?: PreviewFormat
   pagination: z.infer<typeof paginationParamsSchema>
 }
 

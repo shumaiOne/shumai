@@ -5,6 +5,12 @@ import { paginateQuery, PaginatedData } from '@shumai/core/src/pagination'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import { getAllowedAgentRoles } from '@shumai/core/src/agent/permissions'
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
+import { logger } from '@shumai/core/src/logger'
+import {
+  ensureJpegInStorage,
+  getJpegKeyForWebp,
+  isWebpKey,
+} from '@shumai/core/src/s3/preview-converter'
 import {
   ServiceCreateProjectRequest,
   ServiceUpdateProjectRequest,
@@ -14,6 +20,7 @@ import {
   ServiceUpdateProjectMemberRoleRequest,
   ProjectInfo,
   ProjectUserInfo,
+  PreviewFormat,
 } from '@shumai/dtos'
 
 export class ProjectService {
@@ -153,7 +160,9 @@ export class ProjectService {
           take,
           include: { rootFolder: true },
         })
-        const infos = await Promise.all(projects.map((p) => this.toProjectInfo(p)))
+        const infos = await Promise.all(
+          projects.map((p) => this.toProjectInfo(p, req.previewFormat)),
+        )
         return infos
       },
       null,
@@ -162,7 +171,11 @@ export class ProjectService {
     return res
   }
 
-  async getUserProjects(userId: string, limit = 200): Promise<ProjectInfo[]> {
+  async getUserProjects(
+    userId: string,
+    limit = 200,
+    previewFormat?: PreviewFormat,
+  ): Promise<ProjectInfo[]> {
     const teamMembers = await prisma.teamMember.findMany({
       where: { userId },
     })
@@ -184,7 +197,7 @@ export class ProjectService {
         take: limit - allProjects.length,
         include: { rootFolder: true },
       })
-      const infos = await Promise.all(teamProjects.map((p) => this.toProjectInfo(p)))
+      const infos = await Promise.all(teamProjects.map((p) => this.toProjectInfo(p, previewFormat)))
       allProjects.push(...infos)
       if (allProjects.length >= limit) {
         break
@@ -503,7 +516,7 @@ export class ProjectService {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async toProjectInfo(p: any): Promise<ProjectInfo> {
+  private async toProjectInfo(p: any, previewFormat?: PreviewFormat): Promise<ProjectInfo> {
     const pi: ProjectInfo = {
       id: p.id,
       name: p.name,
@@ -522,7 +535,30 @@ export class ProjectService {
     if (p.coverImageKey) {
       try {
         const bucket = process.env.S3_BUCKET || 'shumai'
-        const url = await s3Service.presign(bucket, p.coverImageKey, 'GET')
+        let finalKey = p.coverImageKey
+        if (previewFormat === 'jpeg' && isWebpKey(p.coverImageKey)) {
+          const targetJpegKey = getJpegKeyForWebp(p.coverImageKey)
+          if (p.hasJpegCover) {
+            finalKey = targetJpegKey
+          } else {
+            try {
+              await ensureJpegInStorage(bucket, p.coverImageKey, targetJpegKey)
+              await prisma.project.update({
+                where: { id: p.id },
+                data: { hasJpegCover: true },
+              })
+              p.hasJpegCover = true
+              finalKey = targetJpegKey
+            } catch (err) {
+              logger.warn(
+                { err, projectId: p.id, coverImageKey: p.coverImageKey },
+                'Failed to ensure JPEG cover for project, falling back to WebP',
+              )
+              finalKey = p.coverImageKey
+            }
+          }
+        }
+        const url = await s3Service.presign(bucket, finalKey, 'GET')
         pi.coverImage = url
       } catch (e: unknown) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars

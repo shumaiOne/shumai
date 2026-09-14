@@ -5,6 +5,8 @@ import { ProjectService } from './project'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { assetService } from '@shumai/core/src/asset/asset'
 
+import { ensureJpegInStorage } from '@shumai/core/src/s3/preview-converter'
+
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
     presign: vi.fn(),
@@ -12,6 +14,14 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
     deletePrefix: vi.fn().mockResolvedValue(1),
   },
 }))
+
+vi.mock('@shumai/core/src/s3/preview-converter', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shumai/core/src/s3/preview-converter')>()
+  return {
+    ...actual,
+    ensureJpegInStorage: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 describe('ProjectService', () => {
   setupTestDbHooks()
@@ -560,6 +570,79 @@ describe('ProjectService', () => {
 
       const result = await projectService.getUserProjects(user.id)
       expect(result).toEqual([])
+    })
+  })
+
+  describe('previewFormat handling', () => {
+    it('converts webp cover to jpeg on demand and updates hasJpegCover in listProjects', async () => {
+      const team = await prisma.team.create({ data: { name: 'Preview Team' } })
+      const user = await prisma.user.create({
+        data: { name: 'preview-u1', email: 'preview-u1@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'editor', scope: 'team' },
+      })
+
+      const project = await prisma.project.create({
+        data: {
+          name: 'Proj WebP',
+          teamId: team.id,
+          coverImageKey: 'projects/p1/cover.webp',
+          hasJpegCover: false,
+        },
+      })
+
+      const res = await projectService.listProjects({
+        teamId: team.id,
+        userId: user.id,
+        previewFormat: 'jpeg',
+        pagination: {},
+      })
+
+      expect(res.data).toHaveLength(1)
+      expect(ensureJpegInStorage).toHaveBeenCalledWith(
+        expect.any(String),
+        'projects/p1/cover.webp',
+        'projects/p1/cover.jpeg',
+      )
+      expect(s3Service.presign).toHaveBeenCalledWith(
+        expect.any(String),
+        'projects/p1/cover.jpeg',
+        'GET',
+      )
+
+      const updated = await prisma.project.findUnique({ where: { id: project.id } })
+      expect(updated?.hasJpegCover).toBe(true)
+    })
+
+    it('skips conversion if hasJpegCover is already true in getUserProjects', async () => {
+      vi.mocked(ensureJpegInStorage).mockClear()
+      const team = await prisma.team.create({ data: { name: 'Preview Team 2' } })
+      const user = await prisma.user.create({
+        data: { name: 'preview-u2', email: 'preview-u2@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'editor', scope: 'team' },
+      })
+
+      await prisma.project.create({
+        data: {
+          name: 'Proj JPEG',
+          teamId: team.id,
+          coverImageKey: 'projects/p2/cover.webp',
+          hasJpegCover: true,
+        },
+      })
+
+      const result = await projectService.getUserProjects(user.id, 10, 'jpeg')
+
+      expect(result).toHaveLength(1)
+      expect(ensureJpegInStorage).not.toHaveBeenCalled()
+      expect(s3Service.presign).toHaveBeenCalledWith(
+        expect.any(String),
+        'projects/p2/cover.jpeg',
+        'GET',
+      )
     })
   })
 })

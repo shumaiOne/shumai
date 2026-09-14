@@ -44,6 +44,9 @@ export type SearchOperator = z.infer<typeof searchOperatorSchema>
 export const searchAssetTypeSchema = z.enum(['file', 'folder'])
 export type SearchAssetType = z.infer<typeof searchAssetTypeSchema>
 
+export const previewFormatSchema = z.enum(['jpeg', 'webp'])
+export type PreviewFormat = z.infer<typeof previewFormatSchema>
+
 export const searchFilterSchema = z.object({
   operator: searchOperatorSchema.optional().default('AND'),
   conditions: z.array(searchConditionSchema).optional().default([]),
@@ -54,6 +57,7 @@ export const searchFilterSchema = z.object({
   recursively: z.boolean().optional().default(true),
   query: z.string().optional(),
   isSemantic: z.boolean().optional().default(false),
+  previewFormat: previewFormatSchema.optional(),
 })
 export type SearchFilter = z.infer<typeof searchFilterSchema>
 

@@ -8,25 +8,28 @@ import {
   createProjectRequestSchema,
   updateProjectRequestSchema,
   listProjectsRequestSchema,
+  listUserProjectsRequestSchema,
   recentlyDeletedRequestSchema,
   updateProjectMemberRoleRequestSchema,
   addProjectMemberRequestSchema,
   listRecentsRequestSchema,
   recordRecentViewRequestSchema,
 } from '@shumai/dtos'
-import { listMembersQuerySchema, paginationParamsSchema, AuditAction } from '@shumai/dtos'
+import { listMembersQuerySchema, AuditAction } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
 const route = new Hono<{ Variables: { user: User } }>()
-  .get('/projects', zValidator('query', paginationParamsSchema), async (c) => {
+  .get('/projects', zValidator('query', listUserProjectsRequestSchema), async (c) => {
     const user = c.get('user')
     const req = c.req.valid('query')
     const limit = req.first ? Math.min(req.first, 200) : 200
 
-    const allProjects = await projectService.getUserProjects(user.id, limit)
+    const allProjects = req.previewFormat
+      ? await projectService.getUserProjects(user.id, limit, req.previewFormat)
+      : await projectService.getUserProjects(user.id, limit)
 
     return c.json({
       data: allProjects.map((p) => ({
@@ -34,6 +37,8 @@ const route = new Hono<{ Variables: { user: User } }>()
         name: p.name,
         teamId: p.teamId,
         rootFolder: p.rootFolder,
+        coverImage: p.coverImage,
+        coverImageKey: p.coverImageKey,
         enableNotification: p.enableNotification,
         updatedAt: p.updatedAt,
       })),
@@ -197,6 +202,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       userId: user.id,
       sortBy: req.sortBy,
       sortDirection: req.sortDirection,
+      previewFormat: req.previewFormat,
       pagination: req,
     })
 
