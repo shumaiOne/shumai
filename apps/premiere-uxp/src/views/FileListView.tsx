@@ -142,7 +142,15 @@ export const FileListView: React.FC<FileListViewProps> = ({
   })
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        minHeight: 0,
+        overflow: 'hidden',
+      }}
+    >
       <Breadcrumb
         projectName={project.name}
         crumbs={crumbs}
