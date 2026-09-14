@@ -4,6 +4,7 @@ import { Breadcrumb, BreadcrumbCrumb } from '../components/Breadcrumb'
 import { FileItem, FileCardItem, AssetSummary } from '../components/FileItem'
 import { ProjectSummary } from './ProjectsView'
 import { FolderOpen, RefreshCw, AlertCircle, LayoutGrid, List, Search } from 'lucide-react'
+import type { SearchCondition, SearchSort } from '@shumai/dtos'
 
 interface FileListViewProps {
   endpoint: string
@@ -24,28 +25,73 @@ export const FileListView: React.FC<FileListViewProps> = ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
-  const fetchChildren = useCallback(
-    async (folderId: string) => {
+  // Debounce search term by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim())
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  const fetchContents = useCallback(
+    async (folderId: string, query: string) => {
       setLoading(true)
       setError(null)
       try {
         const client = getShumaiClient(endpoint, apiKey)
-        const res = await client.api.folders[':folderId'].children.$get({
-          param: { folderId },
-          query: { first: '100' },
-        })
+        const isSearching = Boolean(query)
 
-        if (!res.ok) {
-          const errData = (await res.json().catch(() => ({}))) as { error?: string }
-          throw new Error(errData.error || `Failed to fetch folder contents (${res.status})`)
+        const conditions: SearchCondition[] = isSearching
+          ? [{ field: 'name', operator: 'contains', value: query }]
+          : []
+
+        const sort: SearchSort = { field: 'name', order: 'asc' }
+
+        // Use the Search API consistent with WebUI: search folders and files in parallel
+        const [foldersRes, filesRes] = await Promise.all([
+          client.api.folders[':folderId'].search.$post({
+            param: { folderId },
+            json: {
+              assetType: 'folder',
+              recursively: isSearching,
+              conditions,
+              sort,
+              first: 100,
+            },
+          }),
+          client.api.folders[':folderId'].search.$post({
+            param: { folderId },
+            json: {
+              assetType: 'file',
+              recursively: isSearching,
+              conditions,
+              sort,
+              first: 100,
+            },
+          }),
+        ])
+
+        if (!foldersRes.ok) {
+          const errData = (await foldersRes.json().catch(() => ({}))) as { error?: string }
+          throw new Error(errData.error || `Failed to search folders (${foldersRes.status})`)
+        }
+        if (!filesRes.ok) {
+          const errData = (await filesRes.json().catch(() => ({}))) as { error?: string }
+          throw new Error(errData.error || `Failed to search files (${filesRes.status})`)
         }
 
-        const body = await res.json()
-        setAssets((body.data || []) as AssetSummary[])
+        const foldersBody = await foldersRes.json()
+        const filesBody = await filesRes.json()
+
+        const folderItems = (foldersBody.data || []) as AssetSummary[]
+        const fileItems = (filesBody.data || []) as AssetSummary[]
+
+        setAssets([...folderItems, ...fileItems])
       } catch (err) {
-        console.error('Error fetching folder contents:', err)
+        console.error('Error fetching folder contents via search API:', err)
         setError(err instanceof Error ? err.message : 'Failed to load folder contents.')
       } finally {
         setLoading(false)
@@ -56,19 +102,21 @@ export const FileListView: React.FC<FileListViewProps> = ({
 
   useEffect(() => {
     if (currentFolderId) {
-      fetchChildren(currentFolderId)
+      fetchContents(currentFolderId, debouncedSearch)
     } else {
       setError('Root folder ID not available for this project.')
       setLoading(false)
     }
-  }, [currentFolderId, fetchChildren])
+  }, [currentFolderId, debouncedSearch, fetchContents])
 
   const handleFolderClick = (folder: AssetSummary) => {
     setCrumbs((prev) => [...prev, { id: folder.id, name: folder.name }])
     setCurrentFolderId(folder.id)
+    setSearchTerm('')
   }
 
   const handleCrumbNavigate = (crumbIndex: number) => {
+    setSearchTerm('')
     if (crumbIndex === -1) {
       setCrumbs([])
       if (project.rootFolder) {
@@ -81,12 +129,8 @@ export const FileListView: React.FC<FileListViewProps> = ({
     }
   }
 
-  // Filter and sort: folders first, then by name
-  const filteredAssets = assets.filter((a) =>
-    a.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
-
-  const sortedAssets = [...filteredAssets].sort((a, b) => {
+  // Folders first, then alphabetical by name
+  const sortedAssets = [...assets].sort((a, b) => {
     if (a.type === 'folder' && b.type !== 'folder') return -1
     if (a.type !== 'folder' && b.type === 'folder') return 1
     return a.name.localeCompare(b.name)
@@ -134,7 +178,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
             </button>
             <button
               className="btn-icon"
-              onClick={() => currentFolderId && fetchChildren(currentFolderId)}
+              onClick={() => currentFolderId && fetchContents(currentFolderId, debouncedSearch)}
               title="Refresh folder"
               disabled={loading || !currentFolderId}
             >
@@ -143,8 +187,8 @@ export const FileListView: React.FC<FileListViewProps> = ({
           </div>
         </div>
 
-        {/* Search input if more than 3 items */}
-        {assets.length > 3 && (
+        {/* Search input if items exist or search is active */}
+        {(assets.length > 0 || searchTerm) && (
           <div style={{ position: 'relative', marginBottom: '10px' }}>
             <Search
               size={13}
@@ -160,7 +204,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
               type="text"
               className="input-text"
               style={{ width: '100%', paddingLeft: '28px', height: '26px' }}
-              placeholder="Filter files..."
+              placeholder="Search files..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -182,7 +226,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
             {currentFolderId && (
               <button
                 className="btn"
-                onClick={() => fetchChildren(currentFolderId)}
+                onClick={() => fetchContents(currentFolderId, debouncedSearch)}
                 style={{ marginTop: '8px' }}
               >
                 Try Again
