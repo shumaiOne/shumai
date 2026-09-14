@@ -285,7 +285,6 @@ sp-theme {
 .file-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   width: 100%;
 }
 
@@ -295,17 +294,25 @@ sp-theme {
   flex-direction: row;
   align-items: center;
   width: 100%;
-  height: 76px;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 6px;
+  margin-bottom: 10px;
   cursor: pointer;
   overflow: hidden;
   transition:
     background-color 0.12s ease,
     border-color 0.12s ease,
     transform 0.12s ease;
+}
+
+.project-row-card {
+  height: 76px;
+}
+
+.file-row-card {
+  height: 89px;
 }
 
 .project-row-card:hover,
@@ -320,12 +327,25 @@ sp-theme {
   transform: scale(0.99);
 }
 
-/* Left Column: Preview Thumbnail (16:9 ratio, 114px x 64px) */
-.project-row-preview,
-.file-row-preview {
+/* Left Column: Preview Thumbnail (Project View: 114px x 64px) */
+.project-row-preview {
   position: relative;
   width: 114px;
   height: 64px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Left Column: Preview Thumbnail (File View: 20% larger, 137px x 77px) */
+.file-row-preview {
+  position: relative;
+  width: 137px;
+  height: 77px;
   border-radius: var(--radius-sm);
   background-color: rgba(0, 0, 0, 0.3);
   overflow: hidden;
@@ -394,7 +414,6 @@ sp-theme {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
   padding-left: 10px;
   padding-right: 4px;
 }
@@ -407,6 +426,10 @@ sp-theme {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.project-row-title {
+  margin-bottom: 4px;
 }
 
 .project-row-subtext,
@@ -426,6 +449,7 @@ sp-theme {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
+  margin-bottom: 4px;
 }
 
 .file-row-chevron {
@@ -480,6 +504,7 @@ sp-theme {
   align-items: center;
   justify-content: space-between;
   padding: 6px 8px;
+  margin-bottom: 3px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background-color 0.1s ease;

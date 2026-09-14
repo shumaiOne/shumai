@@ -134,11 +134,11 @@ export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick
 
   const cardFallback = (
     <div className={`file-row-placeholder ${category}`}>
-      {category === 'folder' && <Folder size={24} fill="currentColor" fillOpacity={0.2} />}
-      {category === 'video' && <Film size={24} />}
-      {category === 'audio' && <Music size={24} />}
-      {category === 'image' && <Image size={24} />}
-      {category === 'file' && <FileText size={24} />}
+      {category === 'folder' && <Folder size={28} fill="currentColor" fillOpacity={0.2} />}
+      {category === 'video' && <Film size={28} />}
+      {category === 'audio' && <Music size={28} />}
+      {category === 'image' && <Image size={28} />}
+      {category === 'file' && <FileText size={28} />}
     </div>
   )
 
