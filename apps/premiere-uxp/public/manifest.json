@@ -4,12 +4,10 @@
   "shortname": "shumai",
   "version": "0.1.0",
   "main": "index.html",
-  "host": [
-    {
-      "app": "premierepro",
-      "minVersion": "25.1.0"
-    }
-  ],
+  "host": {
+    "app": "premierepro",
+    "minVersion": "25.1.0"
+  },
   "manifestVersion": 5,
   "featureFlags": {
     "enableSWCSupport": true
