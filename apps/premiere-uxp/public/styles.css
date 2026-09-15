@@ -274,6 +274,8 @@ sp-theme {
 .breadcrumb-separator {
   color: var(--text-secondary);
   opacity: 0.5;
+  margin: 0 4px;
+  user-select: none;
 }
 
 /* Card View (Horizontal 2-Column Row Layout) */
