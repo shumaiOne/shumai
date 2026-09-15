@@ -1,8 +1,21 @@
 import React, { useState } from 'react'
-import { Folder, Film, Music, Image, FileText, ChevronRight, MessageSquare } from 'lucide-react'
+import {
+  Folder,
+  Film,
+  Music,
+  Image,
+  FileText,
+  ChevronRight,
+  MessageSquare,
+  Clock,
+  User,
+} from 'lucide-react'
 import { Badge } from '@swc-react/badge'
 import { formatDateAgo } from '../utils/date'
+import { formatBytes, formatDuration } from '../utils/format'
 import { resolveAssetUrl } from '../utils/url'
+
+export { formatBytes, formatDuration }
 
 export interface AssetSummary {
   id: string
@@ -12,9 +25,28 @@ export interface AssetSummary {
   sizeByte?: number | null
   mimeType?: string | null
   updatedAt?: string | Date
+  createdAt?: string | Date
   commentsCount?: number
+  fileCount?: number
+  creator?: {
+    id: string
+    name: string
+    image?: string | null
+  } | null
+  agent?: {
+    id: string
+    name: string
+  } | null
   preview?: {
     thumbnailUrl?: string
+    duration?: number
+    pageCount?: number
+    proxyType?: string | null
+  } | null
+  media?: {
+    metadata?: {
+      duration?: number
+    }
   } | null
 }
 
@@ -22,13 +54,6 @@ interface FileItemProps {
   asset: AssetSummary
   endpoint?: string
   onClick: () => void
-}
-
-export function formatBytes(bytes?: number | null): string {
-  if (bytes == null || bytes === 0) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
-  return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`
 }
 
 export function getFileTypeCategory(
@@ -132,6 +157,9 @@ export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick
   const effectiveSize = asset.sizeByte ?? asset.size
   const updatedText = formatDateAgo(asset.updatedAt)
   const thumbUrl = resolveAssetUrl(asset.preview?.thumbnailUrl, endpoint)
+  const duration = asset.preview?.duration ?? asset.media?.metadata?.duration
+  const durationText = formatDuration(duration)
+  const creatorName = asset.creator?.name || asset.agent?.name
 
   const cardFallback = (
     <div className={`file-row-placeholder ${category}`}>
@@ -157,6 +185,7 @@ export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick
         }
       }}
     >
+      {/* Left Column: Preview Only (NO LABELS, NO BADGES) */}
       <div className="file-row-preview">
         {thumbUrl && !isFolder && !imgError ? (
           <img
@@ -168,25 +197,67 @@ export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick
         ) : (
           cardFallback
         )}
+      </div>
 
-        {asset.commentsCount != null && asset.commentsCount > 0 && (
-          <div style={{ position: 'absolute', top: '4px', right: '4px' }}>
-            <Badge variant="informative" size="s" title={`${asset.commentsCount} comments`}>
+      {/* Right Column: Title, Creator, Duration, Size/Info, Comments */}
+      <div className="file-row-content">
+        <div className="file-row-header">
+          <span className="file-row-title" title={asset.name}>
+            {asset.name}
+          </span>
+          {isFolder && <ChevronRight size={14} className="file-row-chevron" />}
+        </div>
+
+        {(creatorName || updatedText) && (
+          <div className="file-row-meta">
+            {creatorName && (
+              <span className="file-row-creator" title={`Created by ${creatorName}`}>
+                <User size={10} className="file-row-meta-icon" />
+                <span className="file-row-creator-name">{creatorName}</span>
+              </span>
+            )}
+            {creatorName && updatedText && <span className="file-row-meta-dot">•</span>}
+            {updatedText && (
+              <span className="file-row-time" title={updatedText}>
+                {updatedText}
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="file-row-footer">
+          <div className="file-row-footer-left">
+            {durationText && (
+              <Badge
+                variant="neutral"
+                size="s"
+                title={`Duration: ${durationText}`}
+                style={{ flexShrink: 0, marginRight: '5px' }}
+              >
+                <Clock size={9} slot="icon" />
+                {durationText}
+              </Badge>
+            )}
+            <span className="file-row-info-item">
+              {isFolder
+                ? asset.fileCount != null
+                  ? `${asset.fileCount} items`
+                  : 'Folder'
+                : formatBytes(effectiveSize)}
+            </span>
+          </div>
+
+          {asset.commentsCount != null && asset.commentsCount > 0 && (
+            <Badge
+              variant="informative"
+              size="s"
+              title={`${asset.commentsCount} comments`}
+              style={{ flexShrink: 0, marginLeft: '4px' }}
+            >
               <MessageSquare size={9} slot="icon" />
               {asset.commentsCount}
             </Badge>
-          </div>
-        )}
-      </div>
-
-      <div className="file-row-content">
-        <div className="file-row-header">
-          <span className="file-row-title">{asset.name}</span>
-          {isFolder && <ChevronRight size={14} className="file-row-chevron" />}
-        </div>
-        <div className="file-row-subtext">
-          <span>{isFolder ? 'Folder' : formatBytes(effectiveSize)}</span>
-          {updatedText && <span>• {updatedText}</span>}
+          )}
         </div>
       </div>
     </div>

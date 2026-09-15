@@ -437,20 +437,6 @@ sp-theme {
   color: var(--text-secondary);
 }
 
-.file-row-comment-badge {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  background-color: rgba(0, 0, 0, 0.7);
-  padding: 1px 4px;
-  border-radius: var(--radius-sm);
-  color: #93c5fd;
-  font-size: 9px;
-}
-
 /* Right Column: Text Content */
 .project-row-content,
 .file-row-content {
@@ -477,13 +463,23 @@ sp-theme {
   margin-bottom: 4px;
 }
 
-.project-row-subtext,
+.project-row-subtext {
+  font-size: 10px;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .file-row-subtext {
   font-size: 10px;
   color: var(--text-secondary);
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -491,16 +487,96 @@ sp-theme {
 
 .file-row-header {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  margin-bottom: 4px;
+  width: 100%;
+  margin-bottom: 3px;
 }
 
 .file-row-chevron {
   color: var(--text-secondary);
   flex-shrink: 0;
   opacity: 0.6;
+  margin-left: 4px;
+}
+
+.file-row-meta {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-bottom: 5px;
+}
+
+.file-row-creator {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  font-size: 10px;
+  color: var(--text-secondary);
+  max-width: 55%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+
+.file-row-creator-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-row-meta-icon {
+  margin-right: 3px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.file-row-meta-dot {
+  font-size: 10px;
+  color: var(--text-secondary);
+  opacity: 0.5;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.file-row-time {
+  font-size: 10px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.file-row-footer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.file-row-footer-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.file-row-info-item {
+  font-size: 10px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .project-cover-gradient {
