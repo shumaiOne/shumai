@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { getShumaiClient } from '../api/client'
 import { ProjectCard } from '../components/ProjectCard'
-import { Briefcase, RefreshCw, AlertCircle } from 'lucide-react'
+import { Briefcase, AlertCircle } from 'lucide-react'
 import { Button } from '@swc-react/button'
 import { ProgressCircle } from '@swc-react/progress-circle'
 import { IllustratedMessage } from '@swc-react/illustrated-message'
@@ -92,7 +92,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
             aria-label="Refresh projects"
             disabled={loading}
           >
-            <RefreshCw size={13} className={loading ? 'spin' : ''} />
+            <sp-icon-refresh size="s" className={loading ? 'spin' : ''}></sp-icon-refresh>
           </button>
         </div>
         <Divider size="s" />

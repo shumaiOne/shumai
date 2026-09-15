@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { getShumaiClient } from '../api/client'
 import { saveStoredCredentials } from '../services/storage'
-import { ArrowRight } from 'lucide-react'
 import { Button } from '@swc-react/button'
 import { Textfield } from '@swc-react/textfield'
 import { FieldLabel } from '@swc-react/field-label'
@@ -160,7 +159,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             {loading ? (
               <ProgressCircle indeterminate size="s" static-color="white" slot="icon" />
             ) : (
-              <ArrowRight size={14} slot="icon" color="white" />
+              <sp-icon-arrow-right size="s" slot="icon"></sp-icon-arrow-right>
             )}
           </Button>
         </div>

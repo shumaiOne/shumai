@@ -5,6 +5,11 @@ import '@spectrum-web-components/theme/theme-dark.js'
 import '@spectrum-web-components/theme/theme-darkest.js'
 import '@spectrum-web-components/theme/theme-light.js'
 import '@spectrum-web-components/theme/scale-medium.js'
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-refresh.js'
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-chevron-down.js'
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-chevron-right.js'
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-log-out.js'
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-arrow-right.js'
 import { App } from './App'
 
 const container = document.getElementById('root')

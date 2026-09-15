@@ -1,5 +1,4 @@
 import React from 'react'
-import { LogOut } from 'lucide-react'
 import { StatusLight } from '@swc-react/status-light'
 import { Divider } from '@swc-react/divider'
 import { ShumaiLogo } from './icons'
@@ -54,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({ endpoint, onDisconnect }) => {
               title="Disconnect / Change Server"
               aria-label="Disconnect"
             >
-              <LogOut size={13} color="#999999" />
+              <sp-icon-log-out size="s"></sp-icon-log-out>
             </button>
           </div>
         )}

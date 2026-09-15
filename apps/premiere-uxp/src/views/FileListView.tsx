@@ -3,7 +3,7 @@ import { getShumaiClient } from '../api/client'
 import { Breadcrumb, BreadcrumbCrumb } from '../components/Breadcrumb'
 import { FileCardItem, AssetSummary } from '../components/FileItem'
 import { ProjectSummary } from './ProjectsView'
-import { FolderOpen, RefreshCw, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react'
+import { FolderOpen, AlertCircle } from 'lucide-react'
 import { ActionButton } from '@swc-react/action-button'
 import { Button } from '@swc-react/button'
 import { Search } from '@swc-react/search'
@@ -328,7 +328,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
             aria-label="Refresh folder"
             disabled={loading || !currentFolderId}
           >
-            <RefreshCw size={13} className={loading ? 'spin' : ''} />
+            <sp-icon-refresh size="s" className={loading ? 'spin' : ''}></sp-icon-refresh>
           </button>
         </div>
         <Divider size="s" />
@@ -404,9 +404,9 @@ export const FileListView: React.FC<FileListViewProps> = ({
                       }}
                     >
                       {foldersExpanded ? (
-                        <ChevronDown size={12} color="#999999" />
+                        <sp-icon-chevron-down size="xs"></sp-icon-chevron-down>
                       ) : (
-                        <ChevronRight size={12} color="#999999" />
+                        <sp-icon-chevron-right size="xs"></sp-icon-chevron-right>
                       )}
                     </button>
                     <span className="section-title">Folders</span>
@@ -474,9 +474,9 @@ export const FileListView: React.FC<FileListViewProps> = ({
                       }}
                     >
                       {filesExpanded ? (
-                        <ChevronDown size={12} color="#999999" />
+                        <sp-icon-chevron-down size="xs"></sp-icon-chevron-down>
                       ) : (
-                        <ChevronRight size={12} color="#999999" />
+                        <sp-icon-chevron-right size="xs"></sp-icon-chevron-right>
                       )}
                     </button>
                     <span className="section-title">Files</span>

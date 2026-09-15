@@ -12,6 +12,15 @@
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
+
+  /* Spectrum Workflow Icon Sizes */
+  --spectrum-workflow-icon-size-xxs: 9px;
+  --spectrum-workflow-icon-size-50: 12px;
+  --spectrum-workflow-icon-size-75: 14px;
+  --spectrum-workflow-icon-size-100: 18px;
+  --spectrum-workflow-icon-size-200: 24px;
+  --spectrum-workflow-icon-size-300: 36px;
+  --spectrum-workflow-icon-size-xxl: 48px;
 }
 
 * {
@@ -60,6 +69,75 @@ sp-action-group-item[selected] svg.lucide,
 .btn-icon:hover svg.lucide,
 .btn-icon.active svg.lucide {
   stroke: var(--text-primary, #e0e0e0);
+}
+
+/* Spectrum Workflow Icons */
+sp-icon,
+sp-icon-refresh,
+sp-icon-chevron-down,
+sp-icon-chevron-right,
+sp-icon-log-out,
+sp-icon-arrow-right {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  fill: currentColor;
+  color: inherit;
+  width: var(--spectrum-icon-inline-size, 14px);
+  height: var(--spectrum-icon-block-size, 14px);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+sp-icon[size='xxs'],
+sp-icon-refresh[size='xxs'],
+sp-icon-chevron-down[size='xxs'],
+sp-icon-chevron-right[size='xxs'],
+sp-icon-log-out[size='xxs'],
+sp-icon-arrow-right[size='xxs'] {
+  width: 9px;
+  height: 9px;
+}
+
+sp-icon[size='xs'],
+sp-icon-refresh[size='xs'],
+sp-icon-chevron-down[size='xs'],
+sp-icon-chevron-right[size='xs'],
+sp-icon-log-out[size='xs'],
+sp-icon-arrow-right[size='xs'] {
+  width: 12px;
+  height: 12px;
+}
+
+sp-icon[size='s'],
+sp-icon-refresh[size='s'],
+sp-icon-chevron-down[size='s'],
+sp-icon-chevron-right[size='s'],
+sp-icon-log-out[size='s'],
+sp-icon-arrow-right[size='s'] {
+  width: 14px;
+  height: 14px;
+}
+
+sp-icon[size='m'],
+sp-icon-refresh[size='m'],
+sp-icon-chevron-down[size='m'],
+sp-icon-chevron-right[size='m'],
+sp-icon-log-out[size='m'],
+sp-icon-arrow-right[size='m'] {
+  width: 18px;
+  height: 18px;
+}
+
+sp-icon[size='l'],
+sp-icon-refresh[size='l'],
+sp-icon-chevron-down[size='l'],
+sp-icon-chevron-right[size='l'],
+sp-icon-log-out[size='l'],
+sp-icon-arrow-right[size='l'] {
+  width: 24px;
+  height: 24px;
 }
 
 .app-container {
@@ -906,5 +984,7 @@ sp-action-group-item[selected] svg.lucide,
 }
 
 .spin {
+  display: inline-flex;
   animation: spin 0.8s linear infinite;
+  transform-origin: center;
 }

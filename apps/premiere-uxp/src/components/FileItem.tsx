@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Folder, Film, Music, Image, FileText, ChevronRight } from 'lucide-react'
+import { Folder, Film, Music, Image, FileText } from 'lucide-react'
 import { formatDateAgo } from '../utils/date'
 import { formatBytes, formatDuration } from '../utils/format'
 import { resolveAssetUrl } from '../utils/url'
@@ -133,7 +133,7 @@ export const FileItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick }) 
             {asset.commentsCount} {asset.commentsCount === 1 ? 'comment' : 'comments'}
           </span>
         )}
-        {isFolder && <ChevronRight size={14} color="#999999" />}
+        {isFolder && <sp-icon-chevron-right size="xs"></sp-icon-chevron-right>}
       </div>
     </div>
   )
@@ -211,7 +211,9 @@ export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick
           <span className="file-row-title" title={asset.name}>
             {asset.name}
           </span>
-          {isFolder && <ChevronRight size={14} color="#999999" className="file-row-chevron" />}
+          {isFolder && (
+            <sp-icon-chevron-right size="xs" className="file-row-chevron"></sp-icon-chevron-right>
+          )}
         </div>
 
         {(creatorName || updatedText) && (
