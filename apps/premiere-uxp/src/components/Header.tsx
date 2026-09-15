@@ -1,5 +1,4 @@
 import React from 'react'
-import { StatusLight } from '@swc-react/status-light'
 import { Divider } from '@swc-react/divider'
 import { ShumaiLogo } from './icons'
 
@@ -32,19 +31,13 @@ export const Header: React.FC<HeaderProps> = ({ endpoint, onDisconnect }) => {
         {endpoint && onDisconnect && (
           <div className="actions-group">
             <div
+              className="header-status"
               title={`Connected to ${endpoint}`}
-              style={{
-                maxWidth: '140px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                display: 'flex',
-                alignItems: 'center',
-              }}
+              role="status"
+              aria-label={`Connected to ${displayHost}`}
             >
-              <StatusLight variant="positive" size="s" style={{ margin: 0 }}>
-                {displayHost}
-              </StatusLight>
+              <span className="status-dot positive" />
+              <span className="status-text">{displayHost}</span>
             </div>
             <sp-button
               quiet
