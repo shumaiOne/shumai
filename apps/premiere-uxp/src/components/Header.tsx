@@ -46,15 +46,17 @@ export const Header: React.FC<HeaderProps> = ({ endpoint, onDisconnect }) => {
                 {displayHost}
               </StatusLight>
             </div>
-            <button
-              type="button"
-              className="btn-icon"
+            <sp-button
+              quiet
+              variant="secondary"
+              size="s"
+              label="Disconnect / Change Server"
+              icon-only
               onClick={onDisconnect}
               title="Disconnect / Change Server"
-              aria-label="Disconnect"
             >
-              <sp-icon-log-out size="s"></sp-icon-log-out>
-            </button>
+              <sp-icon-log-out slot="icon" size="s"></sp-icon-log-out>
+            </sp-button>
           </div>
         )}
       </header>

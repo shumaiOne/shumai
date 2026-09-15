@@ -320,16 +320,22 @@ export const FileListView: React.FC<FileListViewProps> = ({
             />
           </div>
 
-          <button
-            type="button"
-            className="btn-icon"
+          <sp-button
+            quiet
+            variant="secondary"
+            size="s"
+            label="Refresh folder"
+            icon-only
             onClick={() => currentFolderId && fetchContents(currentFolderId, debouncedSearch)}
             title="Refresh folder"
-            aria-label="Refresh folder"
             disabled={loading || !currentFolderId}
           >
-            <sp-icon-refresh size="s" className={loading ? 'spin' : ''}></sp-icon-refresh>
-          </button>
+            <sp-icon-refresh
+              slot="icon"
+              size="s"
+              className={loading ? 'spin' : ''}
+            ></sp-icon-refresh>
+          </sp-button>
         </div>
         <Divider size="s" />
       </div>
@@ -393,22 +399,23 @@ export const FileListView: React.FC<FileListViewProps> = ({
                   }}
                 >
                   <div className="section-header-left">
-                    <button
-                      type="button"
-                      className="btn-icon"
-                      style={{ width: '18px', height: '18px', marginRight: '2px' }}
-                      aria-label={foldersExpanded ? 'Collapse Folders' : 'Expand Folders'}
+                    <sp-button
+                      quiet
+                      variant="secondary"
+                      size="xs"
+                      label={foldersExpanded ? 'Collapse Folders' : 'Expand Folders'}
+                      icon-only
                       onClick={(e) => {
                         e.stopPropagation()
                         setFoldersExpanded(!foldersExpanded)
                       }}
                     >
                       {foldersExpanded ? (
-                        <sp-icon-chevron-down size="xs"></sp-icon-chevron-down>
+                        <sp-icon-chevron-down slot="icon" size="xs"></sp-icon-chevron-down>
                       ) : (
-                        <sp-icon-chevron-right size="xs"></sp-icon-chevron-right>
+                        <sp-icon-chevron-right slot="icon" size="xs"></sp-icon-chevron-right>
                       )}
-                    </button>
+                    </sp-button>
                     <span className="section-title">Folders</span>
                     <span className="count-badge">{foldersTotal ?? folders.length}</span>
                   </div>
@@ -463,22 +470,23 @@ export const FileListView: React.FC<FileListViewProps> = ({
                   }}
                 >
                   <div className="section-header-left">
-                    <button
-                      type="button"
-                      className="btn-icon"
-                      style={{ width: '18px', height: '18px', marginRight: '2px' }}
-                      aria-label={filesExpanded ? 'Collapse Files' : 'Expand Files'}
+                    <sp-button
+                      quiet
+                      variant="secondary"
+                      size="xs"
+                      label={filesExpanded ? 'Collapse Files' : 'Expand Files'}
+                      icon-only
                       onClick={(e) => {
                         e.stopPropagation()
                         setFilesExpanded(!filesExpanded)
                       }}
                     >
                       {filesExpanded ? (
-                        <sp-icon-chevron-down size="xs"></sp-icon-chevron-down>
+                        <sp-icon-chevron-down slot="icon" size="xs"></sp-icon-chevron-down>
                       ) : (
-                        <sp-icon-chevron-right size="xs"></sp-icon-chevron-right>
+                        <sp-icon-chevron-right slot="icon" size="xs"></sp-icon-chevron-right>
                       )}
-                    </button>
+                    </sp-button>
                     <span className="section-title">Files</span>
                     <span className="count-badge">{filesTotal ?? files.length}</span>
                   </div>

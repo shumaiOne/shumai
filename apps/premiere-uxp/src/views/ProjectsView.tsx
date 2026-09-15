@@ -84,16 +84,22 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
             {!loading && <span className="count-badge">{projects.length}</span>}
           </div>
 
-          <button
-            type="button"
-            className="btn-icon"
+          <sp-button
+            quiet
+            variant="secondary"
+            size="s"
+            label="Refresh projects"
+            icon-only
             onClick={fetchProjects}
             title="Refresh projects"
-            aria-label="Refresh projects"
             disabled={loading}
           >
-            <sp-icon-refresh size="s" className={loading ? 'spin' : ''}></sp-icon-refresh>
-          </button>
+            <sp-icon-refresh
+              slot="icon"
+              size="s"
+              className={loading ? 'spin' : ''}
+            ></sp-icon-refresh>
+          </sp-button>
         </div>
         <Divider size="s" />
       </div>
