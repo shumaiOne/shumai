@@ -412,7 +412,7 @@ sp-action-group-item[selected] svg.lucide,
   width: 137px;
   height: 77px;
   border-radius: var(--radius-sm);
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: #000000;
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
@@ -420,12 +420,19 @@ sp-action-group-item[selected] svg.lucide,
   justify-content: center;
 }
 
-.project-row-img,
-.file-row-img {
+.project-row-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.file-row-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background-color: #000000;
 }
 
 .file-row-placeholder {
