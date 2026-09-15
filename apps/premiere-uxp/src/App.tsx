@@ -5,6 +5,7 @@ import { ProjectsView, ProjectSummary } from './views/ProjectsView'
 import { FileListView } from './views/FileListView'
 import { getStoredCredentials, clearStoredCredentials } from './services/storage'
 import { resetClient } from './api/client'
+import { ProgressCircle } from '@swc-react/progress-circle'
 
 type AppView = 'auth' | 'projects' | 'files'
 
@@ -57,7 +58,7 @@ export const App: React.FC = () => {
       <div className="app-container">
         <Header />
         <div className="view-content" style={{ justifyContent: 'center', alignItems: 'center' }}>
-          <div className="spinner" />
+          <ProgressCircle indeterminate size="l" label="Loading Shumai..." />
         </div>
       </div>
     )

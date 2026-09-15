@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Folder, Film, Music, Image, FileText, ChevronRight, MessageSquare } from 'lucide-react'
+import { Badge } from '@swc-react/badge'
 import { formatDateAgo } from '../utils/date'
 import { resolveAssetUrl } from '../utils/url'
 
@@ -112,10 +113,10 @@ export const FileItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick }) 
 
       <div className="item-right">
         {asset.commentsCount != null && asset.commentsCount > 0 && (
-          <span className="comment-badge" title={`${asset.commentsCount} comments`}>
-            <MessageSquare size={10} />
-            <span>{asset.commentsCount}</span>
-          </span>
+          <Badge variant="informative" size="s" title={`${asset.commentsCount} comments`}>
+            <MessageSquare size={10} slot="icon" />
+            {asset.commentsCount}
+          </Badge>
         )}
         {isFolder && <ChevronRight size={14} />}
       </div>
@@ -169,10 +170,12 @@ export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick
         )}
 
         {asset.commentsCount != null && asset.commentsCount > 0 && (
-          <span className="file-row-comment-badge" title={`${asset.commentsCount} comments`}>
-            <MessageSquare size={9} />
-            <span>{asset.commentsCount}</span>
-          </span>
+          <div style={{ position: 'absolute', top: '4px', right: '4px' }}>
+            <Badge variant="informative" size="s" title={`${asset.commentsCount} comments`}>
+              <MessageSquare size={9} slot="icon" />
+              {asset.commentsCount}
+            </Badge>
+          </div>
         )}
       </div>
 

@@ -55,7 +55,6 @@ sp-theme {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
   flex-shrink: 0;
 }
@@ -243,10 +242,8 @@ sp-theme {
 .breadcrumb-bar {
   display: flex;
   align-items: center;
-  gap: 4px;
   padding: 6px 10px;
   background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
   font-size: 11px;
   overflow-x: auto;
   white-space: nowrap;

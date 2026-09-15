@@ -64,17 +64,33 @@
       "dependencies": {
         "@shumai/api": "workspace:*",
         "@shumai/dtos": "workspace:*",
+        "@spectrum-web-components/badge": "0.37.0",
+        "@spectrum-web-components/progress-circle": "0.37.0",
+        "@spectrum-web-components/status-light": "0.37.0",
         "@spectrum-web-components/theme": "0.37.0",
         "@swc-react/action-button": "0.37.0",
+        "@swc-react/action-group": "0.37.0",
+        "@swc-react/badge": "0.37.0",
         "@swc-react/button": "0.37.0",
         "@swc-react/card": "0.37.0",
         "@swc-react/divider": "0.37.0",
+        "@swc-react/field-label": "0.37.0",
+        "@swc-react/help-text": "0.37.0",
+        "@swc-react/illustrated-message": "0.37.0",
+        "@swc-react/progress-circle": "0.37.0",
+        "@swc-react/search": "0.37.0",
+        "@swc-react/status-light": "0.37.0",
         "@swc-react/textfield": "0.37.0",
         "@swc-react/theme": "0.37.0",
         "@swc-uxp-wrappers/action-button": "2.0.0",
+        "@swc-uxp-wrappers/action-group": "2.0.0",
         "@swc-uxp-wrappers/button": "2.0.0",
         "@swc-uxp-wrappers/card": "2.0.0",
         "@swc-uxp-wrappers/divider": "2.0.0",
+        "@swc-uxp-wrappers/field-label": "2.0.0",
+        "@swc-uxp-wrappers/help-text": "2.0.0",
+        "@swc-uxp-wrappers/illustrated-message": "2.0.0",
+        "@swc-uxp-wrappers/search": "2.0.0",
         "@swc-uxp-wrappers/textfield": "2.0.0",
         "@swc-uxp-wrappers/utils": "2.0.1",
         "hono": "4.13.5",
@@ -1157,7 +1173,11 @@
 
     "@spectrum-web-components/action-button": ["@spectrum-web-components/action-button@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-cU/5sHpRSA823sHUH6jZccmizkTxWr/LJHTDJ4jj0LxCLh15OHfxKM+hu/vcc5fXYrAPma5Hp54xTBc/l/frDA=="],
 
+    "@spectrum-web-components/action-group": ["@spectrum-web-components/action-group@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/action-button": "^0.37.0", "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icons-workflow": "^0.37.0", "@spectrum-web-components/reactive-controllers": "^0.37.0" } }, "sha512-unC1SMjhWI080lfHeAMxBL1y2Vyk6fIhKdukWzqQnzMpPdogh+tvKF9kUgPLZ3rq0hFFCquT0ZZezyywvjTWZA=="],
+
     "@spectrum-web-components/asset": ["@spectrum-web-components/asset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-nFZ4/TCHbUcNUay5NI1fLhLejtx7QJ3H+diCNsZXOvmUI+0atcNPid6j5/4CyvSd8PQooEvCgHpbHf39AM57Cg=="],
+
+    "@spectrum-web-components/badge": ["@spectrum-web-components/badge@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-C2ZgSLcQ2crQ/fmgpfy6xAi2Vc+XsPr5bAdfAQG4yy/5S3etSwVzxdDCSY7JB8tWyA/mvQk5vSqUyEB9JmD+PQ=="],
 
     "@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
 
@@ -1173,6 +1193,8 @@
 
     "@spectrum-web-components/divider": ["@spectrum-web-components/divider@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-f08h0pQ4srKw9R1fT+jKHUF3s1GfV2UPpcKrrfXFclXRRlu4AuQBO8Wo6nYUj/yYCz+hRWhlmtxL/BDKmREu9w=="],
 
+    "@spectrum-web-components/field-label": ["@spectrum-web-components/field-label@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/reactive-controllers": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-QTk0IwONj1P8jnsIwr3xyxkNs2fMHBs2nNoHMrmEiW1/6a5TIjIIntmeOj1BUcP2wRbUB5CD3mnh44OWSbmbHQ=="],
+
     "@spectrum-web-components/help-text": ["@spectrum-web-components/help-text@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icons-workflow": "^0.37.0" } }, "sha512-MsBD9I/mVOKRrnTqFxzbtmcLvgIGrA6y7kPwldKSQeFBHmm1oey2dnrlu7NK4OtWUdJJ3dQDKi/REJX35USOcw=="],
 
     "@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
@@ -1183,9 +1205,19 @@
 
     "@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
+    "@spectrum-web-components/illustrated-message": ["@spectrum-web-components/illustrated-message@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/styles": "^0.37.0" } }, "sha512-JUop4B2MgkQpYR6PrEifHOFNNKhVwqoBy1xS1HUKLidlOovagY1Wa769ajeXUBGoL1HLKif3O+CmWTBCwAaa5A=="],
+
+    "@spectrum-web-components/progress-circle": ["@spectrum-web-components/progress-circle@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-OjabwypclIBqjUwwiWDztjy4QRV1guIojhmdv3HaCEbueX0zhv9y9XqYZn3dxKnDubSkNfT4FrYHJXaMsKrovQ=="],
+
     "@spectrum-web-components/quick-actions": ["@spectrum-web-components/quick-actions@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-h9KRwowJ4AQh6UpDcC+iuijm1wPxf/ZhmQgwH4CeYXXl2HU9NuW67QwVkVz7axjNdY5dDh6I2bdwFD/IcZW/ug=="],
 
+    "@spectrum-web-components/reactive-controllers": ["@spectrum-web-components/reactive-controllers@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-1wnWLt88iyTPrElxZqPpyWWzScSkXY3zxi+QxIV0cFGmhRlPsH+XXqs/kGkfzRyNtE4s2AWuRZ2wtbcao6MzJQ=="],
+
+    "@spectrum-web-components/search": ["@spectrum-web-components/search@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-workflow": "^0.37.0", "@spectrum-web-components/textfield": "^0.37.0" } }, "sha512-9ithHfHhMTC4SpVC04XRDP8SEJwI2aEJRbbpjODNJcpUruclweutsektMvh4Jm3Qk3+95C5QE8fZHBIfQ5Quhw=="],
+
     "@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
+
+    "@spectrum-web-components/status-light": ["@spectrum-web-components/status-light@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-oFzV1mB2c148Es6udezsR11xEAgEhOlS+DsMSMxhcn7XPXOSRBKtLMUYJ0Q+F5Fb+lcUfCgNy3sDEDqqbYPtrg=="],
 
     "@spectrum-web-components/styles": ["@spectrum-web-components/styles@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-OGG7KSoKG7Ut/idWHUicNBQdk6Wsi/ZZASj5+UgjMGv8qivZ2XOgqms+Zg4mamnYH2aE80CG/GMxKZ3VB/iAPg=="],
 
@@ -1201,17 +1233,35 @@
 
     "@swc-react/action-button": ["@swc-react/action-button@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/action-button": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-S9NsUcklTFLMz3KCEd3q6rhYEOMu5fTk2TSi3MAQRFAHuCs0whb7ml9bVnyqCyBIGo+r3m20ynRzW/NymV1Ixw=="],
 
+    "@swc-react/action-group": ["@swc-react/action-group@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/action-group": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-+V0KVx0JPBrOd24tGddslLBF7b+0IfReULuxcgZnjDCzfzMseVIphetXSEx9u4MT8ymUBsbrbG8wWHYloxpiQQ=="],
+
+    "@swc-react/badge": ["@swc-react/badge@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/badge": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-kziT/wzswh6eXRAnCxwXa0zTnp8LrmI6A5khrkCVybzGGsR6VAmqBZkjtGmhCjyLazj2LiG+x7xix0UCpbrToA=="],
+
     "@swc-react/button": ["@swc-react/button@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/button": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-8okizgzPhdRGbooPztgqnSHqmVQ64sMb/jWZp1n731hKjx0fKcHzRtn9S1qNg7RaDRPCsEvfLB1k4dBShllaRA=="],
 
     "@swc-react/card": ["@swc-react/card@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/card": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-/DDENblDw9fXULduV9nuYssZVotzM5rV4CwkpieBpukVfySfBCpIC60Zj0ihBsg0mmFQtsd9DINop3nO5SpUpg=="],
 
     "@swc-react/divider": ["@swc-react/divider@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/divider": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-wDTbhe1Qj6ZvBvdWE//wpg/jtVnG3UTG8baBmhZPgVIWSn0KxMeoh9j2XAneEkfhdu6KqZXhp9Wy/cfYw8e+nQ=="],
 
+    "@swc-react/field-label": ["@swc-react/field-label@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/field-label": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-dCwtWlEhXCoh+KFomHDnoAVVsKLUBD4XObeJiSvlg2x3iRcWRDEylsmZjUDqJaTXsbxw0/kRWvtM+TlW1y5Rgw=="],
+
+    "@swc-react/help-text": ["@swc-react/help-text@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/help-text": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-AtiUqtARgHIcqeivy3+ud0912LBZac06u5ww8dV8qdnx+C+eDgI0W2hDBoVxTsUxbhiPy2Emkjrv5ZrypGon4g=="],
+
+    "@swc-react/illustrated-message": ["@swc-react/illustrated-message@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/illustrated-message": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-XMF8hnG9YUj7uBoJJX6z1lLjpC4wkNvvjh2y7toqHvZBPiheWJoNqV1tYvbchZJb2xTmXadWUus59o4lHH5ZzA=="],
+
+    "@swc-react/progress-circle": ["@swc-react/progress-circle@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/progress-circle": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-j1S08ncB1IQ7Piq5UnHCvDF/bC320vTDSFH17i83IyosHYmxiXmOzrjB6SxbPI5SVpAunAjWBFwLkEusGli85w=="],
+
+    "@swc-react/search": ["@swc-react/search@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/search": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-ZxwEj622rtbvyxPHRCL7Y9QKS8sXyt2GcB+11Cb7fxIpAd7bz2vHOwZqFSVE1w4cQrcjKjAKdSqv9lKc9cYgJw=="],
+
+    "@swc-react/status-light": ["@swc-react/status-light@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/status-light": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-HrKaxoxNQ7mwquIwSg9FCzJ1NQHk1lpJ8nYg4mODxXx7fvPbbcLjDA1CFE9k3/GDqD1+yrUEEXMaBX+V+aS/OQ=="],
+
     "@swc-react/textfield": ["@swc-react/textfield@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/textfield": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-jhm1Z9tIOuNDwg4Eqfhxcmcv2I+84hNhVuh7Re8tOYu4hF0ICkifQl0luXXPLAO6mqc7ldkfEtM/yTl9sqJryA=="],
 
     "@swc-react/theme": ["@swc-react/theme@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/theme": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-TA9MpFOWUFd1sY0B6ZX9IDc3gGTsLyLykDBr772vSyuajLjIhG1ZXd9ccOlP1NDK0TF9ySc3MxK0MA4gRmS51g=="],
 
     "@swc-uxp-internal/action-button": ["@spectrum-web-components/action-button@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-cU/5sHpRSA823sHUH6jZccmizkTxWr/LJHTDJ4jj0LxCLh15OHfxKM+hu/vcc5fXYrAPma5Hp54xTBc/l/frDA=="],
+
+    "@swc-uxp-internal/action-group": ["@spectrum-web-components/action-group@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/action-button": "^0.37.0", "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icons-workflow": "^0.37.0", "@spectrum-web-components/reactive-controllers": "^0.37.0" } }, "sha512-unC1SMjhWI080lfHeAMxBL1y2Vyk6fIhKdukWzqQnzMpPdogh+tvKF9kUgPLZ3rq0hFFCquT0ZZezyywvjTWZA=="],
 
     "@swc-uxp-internal/asset": ["@spectrum-web-components/asset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-nFZ4/TCHbUcNUay5NI1fLhLejtx7QJ3H+diCNsZXOvmUI+0atcNPid6j5/4CyvSd8PQooEvCgHpbHf39AM57Cg=="],
 
@@ -1225,6 +1275,8 @@
 
     "@swc-uxp-internal/divider": ["@spectrum-web-components/divider@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-f08h0pQ4srKw9R1fT+jKHUF3s1GfV2UPpcKrrfXFclXRRlu4AuQBO8Wo6nYUj/yYCz+hRWhlmtxL/BDKmREu9w=="],
 
+    "@swc-uxp-internal/field-label": ["@spectrum-web-components/field-label@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/reactive-controllers": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-QTk0IwONj1P8jnsIwr3xyxkNs2fMHBs2nNoHMrmEiW1/6a5TIjIIntmeOj1BUcP2wRbUB5CD3mnh44OWSbmbHQ=="],
+
     "@swc-uxp-internal/help-text": ["@spectrum-web-components/help-text@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icons-workflow": "^0.37.0" } }, "sha512-MsBD9I/mVOKRrnTqFxzbtmcLvgIGrA6y7kPwldKSQeFBHmm1oey2dnrlu7NK4OtWUdJJ3dQDKi/REJX35USOcw=="],
 
     "@swc-uxp-internal/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
@@ -1237,9 +1289,13 @@
 
     "@swc-uxp-internal/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
+    "@swc-uxp-internal/illustrated-message": ["@spectrum-web-components/illustrated-message@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/styles": "^0.37.0" } }, "sha512-JUop4B2MgkQpYR6PrEifHOFNNKhVwqoBy1xS1HUKLidlOovagY1Wa769ajeXUBGoL1HLKif3O+CmWTBCwAaa5A=="],
+
     "@swc-uxp-internal/quick-actions": ["@spectrum-web-components/quick-actions@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-h9KRwowJ4AQh6UpDcC+iuijm1wPxf/ZhmQgwH4CeYXXl2HU9NuW67QwVkVz7axjNdY5dDh6I2bdwFD/IcZW/ug=="],
 
     "@swc-uxp-internal/reactive-controllers": ["@spectrum-web-components/reactive-controllers@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-1wnWLt88iyTPrElxZqPpyWWzScSkXY3zxi+QxIV0cFGmhRlPsH+XXqs/kGkfzRyNtE4s2AWuRZ2wtbcao6MzJQ=="],
+
+    "@swc-uxp-internal/search": ["@spectrum-web-components/search@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-workflow": "^0.37.0", "@spectrum-web-components/textfield": "^0.37.0" } }, "sha512-9ithHfHhMTC4SpVC04XRDP8SEJwI2aEJRbbpjODNJcpUruclweutsektMvh4Jm3Qk3+95C5QE8fZHBIfQ5Quhw=="],
 
     "@swc-uxp-internal/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
 
@@ -1251,6 +1307,8 @@
 
     "@swc-uxp-wrappers/action-button": ["@swc-uxp-wrappers/action-button@2.0.0", "", { "dependencies": { "@swc-uxp-internal/action-button": "npm:@spectrum-web-components/action-button@0.37.0", "@swc-uxp-wrappers/button": "2.0.0" } }, "sha512-MsGVtZRxY9jR8oO6X60FEVcrjLSp05YS/rFfqawr4tGKwyqRaOQ4x9THBLcVpRti6c4MuzpDs5CQ3Duz0NqqDw=="],
 
+    "@swc-uxp-wrappers/action-group": ["@swc-uxp-wrappers/action-group@2.0.0", "", { "dependencies": { "@swc-uxp-internal/action-group": "npm:@spectrum-web-components/action-group@0.37.0", "@swc-uxp-wrappers/action-button": "2.0.0" } }, "sha512-bDN9IlzwaT4Fz8vCHg53/wI1N4C4fM9WtsK8QvpY+V2nwBYF3NdYPLfNBo2g6KjoSOkRR+kDmlDRafj9fU31eA=="],
+
     "@swc-uxp-wrappers/asset": ["@swc-uxp-wrappers/asset@2.0.0", "", { "dependencies": { "@swc-uxp-internal/asset": "npm:@spectrum-web-components/asset@0.37.0" } }, "sha512-NOrlHLLbZyNtjEYYri8GAHON9vPBXTnJ1QLLgdfJ7p++IixZBuHQ6IC/9lO4oDtwNHrwkPziUSvkZQ/8BbSyPQ=="],
 
     "@swc-uxp-wrappers/button": ["@swc-uxp-wrappers/button@2.0.0", "", { "dependencies": { "@swc-uxp-internal/button": "npm:@spectrum-web-components/button@0.37.0" } }, "sha512-gu0SktpuDntmWAyGJ3isNyNHAm2nyKiLWmkPXIZRygSHqpE36wNkeYar6Fdh+wFZcmqYYEL7lIZjqdCZuYcA0w=="],
@@ -1261,9 +1319,15 @@
 
     "@swc-uxp-wrappers/divider": ["@swc-uxp-wrappers/divider@2.0.0", "", { "dependencies": { "@swc-uxp-internal/divider": "npm:@spectrum-web-components/divider@0.37.0" } }, "sha512-HqJ7hmMgF9bfeG/N03tze1N4NQaRzlmIyN637wepB6gxOilLcDtdSIeJ7El5UDzNNEbTp2eFjUW9FuiSiYrwqg=="],
 
+    "@swc-uxp-wrappers/field-label": ["@swc-uxp-wrappers/field-label@2.0.0", "", { "dependencies": { "@swc-uxp-internal/field-label": "npm:@spectrum-web-components/field-label@0.37.0" } }, "sha512-tzOBQafXfxGORNQPQFajOlFolIblgApoiMzm81T8ye/U1NTzOVHozHL3RVXhepESMKu2oAgVUY/8ZQK6h71KRQ=="],
+
     "@swc-uxp-wrappers/help-text": ["@swc-uxp-wrappers/help-text@2.0.0", "", { "dependencies": { "@swc-uxp-internal/help-text": "npm:@spectrum-web-components/help-text@0.37.0" } }, "sha512-caiMb+PbhDC1999Uw5ugYr77PQ7pih/30DNaMry5/7UCeWuiphGGfJEXtwsfr5evdI8pRNILHbrqgiQLqhLuTg=="],
 
+    "@swc-uxp-wrappers/illustrated-message": ["@swc-uxp-wrappers/illustrated-message@2.0.0", "", { "dependencies": { "@swc-uxp-internal/illustrated-message": "npm:@spectrum-web-components/illustrated-message@0.37.0" } }, "sha512-uBZSU0VLGRfpBnCTOCxU/XIZLli6Dvwedu56ZuJc6nl+CqXI1zyEjkqxNmGefYZIHUmlJ/Q/Ko5NTTm+07hvAw=="],
+
     "@swc-uxp-wrappers/quick-actions": ["@swc-uxp-wrappers/quick-actions@2.0.0", "", { "dependencies": { "@swc-uxp-internal/quick-actions": "npm:@spectrum-web-components/quick-actions@0.37.0" } }, "sha512-9tW/T15dJTibR5BQIUGw5i3LhIZWfU91UNBcP/Siuyv3KM6wxYAlAHcnJA+70LNeP0NE+OQuTbo9XJiGT25GjQ=="],
+
+    "@swc-uxp-wrappers/search": ["@swc-uxp-wrappers/search@2.0.0", "", { "dependencies": { "@swc-uxp-internal/search": "npm:@spectrum-web-components/search@0.37.0", "@swc-uxp-wrappers/button": "2.0.0", "@swc-uxp-wrappers/textfield": "2.0.0" } }, "sha512-+59SCaLEJNWci/ETnvFbdlu+GSa5SSivLOIZFNGnbXsXRZ/DN8ldNOAugH1AA/3u7qoYlqAxXWKQYc++DJv6aA=="],
 
     "@swc-uxp-wrappers/textfield": ["@swc-uxp-wrappers/textfield@2.0.0", "", { "dependencies": { "@swc-uxp-internal/textfield": "npm:@spectrum-web-components/textfield@0.37.0", "@swc-uxp-wrappers/help-text": "2.0.0" } }, "sha512-gKs8rxl4y9ajV/mAiibPI1pXRcagiQSBZ1mrk0or3WU7EiFzcP//kSclL2EihtVxLLsxhLFgxwZYjfkavdSCRA=="],
 

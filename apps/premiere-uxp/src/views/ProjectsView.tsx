@@ -1,18 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { getShumaiClient } from '../api/client'
 import { ProjectCard } from '../components/ProjectCard'
-import {
-  Briefcase,
-  ChevronRight,
-  LayoutGrid,
-  List,
-  RefreshCw,
-  Search,
-  AlertCircle,
-} from 'lucide-react'
+import { Briefcase, ChevronRight, LayoutGrid, List, RefreshCw, AlertCircle } from 'lucide-react'
 import { ActionButton } from '@swc-react/action-button'
+import { ActionGroup } from '@swc-react/action-group'
 import { Button } from '@swc-react/button'
-import { Textfield } from '@swc-react/textfield'
+import { Search } from '@swc-react/search'
+import { Badge } from '@swc-react/badge'
+import { ProgressCircle } from '@swc-react/progress-circle'
+import { IllustratedMessage } from '@swc-react/illustrated-message'
+import { Divider } from '@swc-react/divider'
 
 export interface ProjectSummary {
   id: string
@@ -83,36 +80,43 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
           marginBottom: '10px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <h2 style={{ fontSize: '13px', fontWeight: 600 }}>Projects</h2>
           {!loading && (
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-              ({filteredProjects.length})
-            </span>
+            <Badge variant="neutral" size="s">
+              {filteredProjects.length}
+            </Badge>
           )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <ActionButton
+          <ActionGroup
             quiet
             size="s"
-            selected={viewMode === 'grid'}
-            onClick={() => setViewMode('grid')}
-            title="Card view"
-            aria-label="Card view"
+            selects="single"
+            selected={[viewMode]}
+            style={{ display: 'inline-flex' }}
           >
-            <LayoutGrid size={13} slot="icon" />
-          </ActionButton>
-          <ActionButton
-            quiet
-            size="s"
-            selected={viewMode === 'list'}
-            onClick={() => setViewMode('list')}
-            title="Compact list view"
-            aria-label="Compact list view"
-          >
-            <List size={13} slot="icon" />
-          </ActionButton>
+            <ActionButton
+              value="grid"
+              selected={viewMode === 'grid'}
+              onClick={() => setViewMode('grid')}
+              title="Card view"
+              aria-label="Card view"
+            >
+              <LayoutGrid size={13} slot="icon" />
+            </ActionButton>
+            <ActionButton
+              value="list"
+              selected={viewMode === 'list'}
+              onClick={() => setViewMode('list')}
+              title="Compact list view"
+              aria-label="Compact list view"
+            >
+              <List size={13} slot="icon" />
+            </ActionButton>
+          </ActionGroup>
+
           <ActionButton
             quiet
             size="s"
@@ -121,7 +125,11 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
             aria-label="Refresh projects"
             disabled={loading}
           >
-            <RefreshCw size={13} slot="icon" className={loading ? 'spinner' : ''} />
+            {loading ? (
+              <ProgressCircle indeterminate size="s" slot="icon" />
+            ) : (
+              <RefreshCw size={13} slot="icon" />
+            )}
           </ActionButton>
         </div>
       </div>
@@ -129,32 +137,32 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
       {/* Search Input */}
       {projects.length > 2 && (
         <div style={{ marginBottom: '12px' }}>
-          <Textfield
+          <Search
             style={{ width: '100%' }}
             placeholder="Filter projects..."
             value={searchTerm}
             onInput={(e: React.FormEvent<HTMLElement>) =>
               setSearchTerm((e.target as HTMLInputElement).value)
             }
-          >
-            <Search size={13} slot="icon" />
-          </Textfield>
+          />
         </div>
       )}
 
+      <Divider size="s" style={{ marginBottom: '10px' }} />
+
       {loading && (
         <div className="state-container">
-          <div className="spinner" />
-          <p>Loading projects...</p>
+          <ProgressCircle indeterminate size="m" label="Loading projects..." />
+          <p style={{ marginTop: '8px' }}>Loading projects...</p>
         </div>
       )}
 
       {error && !loading && (
         <div className="state-container">
-          <AlertCircle size={24} style={{ color: 'var(--accent-red)' }} />
-          <h3>Error loading projects</h3>
-          <p>{error}</p>
-          <Button variant="secondary" onClick={fetchProjects} style={{ marginTop: '8px' }}>
+          <IllustratedMessage heading="Error loading projects" description={error}>
+            <AlertCircle size={36} style={{ color: 'var(--accent-red)' }} />
+          </IllustratedMessage>
+          <Button variant="secondary" onClick={fetchProjects} style={{ marginTop: '12px' }}>
             Try Again
           </Button>
         </div>
@@ -162,9 +170,12 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
 
       {!loading && !error && projects.length === 0 && (
         <div className="state-container">
-          <Briefcase size={28} />
-          <h3>No projects found</h3>
-          <p>Create a project in your Shumai workspace to get started.</p>
+          <IllustratedMessage
+            heading="No projects found"
+            description="Create a project in your Shumai workspace to get started."
+          >
+            <Briefcase size={36} />
+          </IllustratedMessage>
         </div>
       )}
 
@@ -218,7 +229,10 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
 
           {filteredProjects.length === 0 && (
             <div className="state-container" style={{ padding: '20px 0' }}>
-              <p>No projects match "{searchTerm}".</p>
+              <IllustratedMessage
+                heading="No matching projects"
+                description={`No projects match "${searchTerm}".`}
+              />
             </div>
           )}
         </>

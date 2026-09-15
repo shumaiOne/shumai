@@ -1,6 +1,8 @@
 import React from 'react'
-import { LogOut, Server } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { ActionButton } from '@swc-react/action-button'
+import { StatusLight } from '@swc-react/status-light'
+import { Divider } from '@swc-react/divider'
 
 interface HeaderProps {
   endpoint?: string
@@ -19,26 +21,17 @@ export const Header: React.FC<HeaderProps> = ({ endpoint, onDisconnect }) => {
   }
 
   return (
-    <header className="app-header">
-      <div className="logo-group">
-        <span className="logo-badge">S</span>
-        <span className="app-title">Shumai</span>
-      </div>
+    <>
+      <header className="app-header">
+        <div className="logo-group">
+          <span className="logo-badge">S</span>
+          <span className="app-title">Shumai</span>
+        </div>
 
-      {endpoint && onDisconnect && (
-        <div className="actions-group">
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '11px',
-              color: 'var(--text-secondary)',
-            }}
-            title={`Connected to ${endpoint}`}
-          >
-            <Server size={12} />
-            <span
+        {endpoint && onDisconnect && (
+          <div className="actions-group">
+            <div
+              title={`Connected to ${endpoint}`}
               style={{
                 maxWidth: '140px',
                 overflow: 'hidden',
@@ -46,20 +39,23 @@ export const Header: React.FC<HeaderProps> = ({ endpoint, onDisconnect }) => {
                 whiteSpace: 'nowrap',
               }}
             >
-              {displayHost}
-            </span>
+              <StatusLight variant="positive" size="s">
+                {displayHost}
+              </StatusLight>
+            </div>
+            <ActionButton
+              quiet
+              size="s"
+              onClick={onDisconnect}
+              title="Disconnect / Change Server"
+              aria-label="Disconnect"
+            >
+              <LogOut size={13} slot="icon" />
+            </ActionButton>
           </div>
-          <ActionButton
-            quiet
-            size="s"
-            onClick={onDisconnect}
-            title="Disconnect / Change Server"
-            aria-label="Disconnect"
-          >
-            <LogOut size={13} slot="icon" />
-          </ActionButton>
-        </div>
-      )}
-    </header>
+        )}
+      </header>
+      <Divider size="s" />
+    </>
   )
 }

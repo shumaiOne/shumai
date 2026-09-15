@@ -3,10 +3,15 @@ import { getShumaiClient } from '../api/client'
 import { Breadcrumb, BreadcrumbCrumb } from '../components/Breadcrumb'
 import { FileItem, FileCardItem, AssetSummary } from '../components/FileItem'
 import { ProjectSummary } from './ProjectsView'
-import { FolderOpen, RefreshCw, AlertCircle, LayoutGrid, List, Search } from 'lucide-react'
+import { FolderOpen, RefreshCw, AlertCircle, LayoutGrid, List } from 'lucide-react'
 import { ActionButton } from '@swc-react/action-button'
+import { ActionGroup } from '@swc-react/action-group'
 import { Button } from '@swc-react/button'
-import { Textfield } from '@swc-react/textfield'
+import { Search } from '@swc-react/search'
+import { Badge } from '@swc-react/badge'
+import { ProgressCircle } from '@swc-react/progress-circle'
+import { IllustratedMessage } from '@swc-react/illustrated-message'
+import { Divider } from '@swc-react/divider'
 import type { SearchCondition, SearchSort } from '@shumai/dtos'
 
 interface FileListViewProps {
@@ -168,33 +173,43 @@ export const FileListView: React.FC<FileListViewProps> = ({
             marginBottom: '8px',
           }}
         >
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-            {loading
-              ? 'Refreshing...'
-              : `${sortedAssets.length} item${sortedAssets.length === 1 ? '' : 's'}`}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600 }}>Files</span>
+            {!loading && (
+              <Badge variant="neutral" size="s">
+                {sortedAssets.length}
+              </Badge>
+            )}
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <ActionButton
+            <ActionGroup
               quiet
               size="s"
-              selected={viewMode === 'grid'}
-              onClick={() => setViewMode('grid')}
-              title="Card view"
-              aria-label="Card view"
+              selects="single"
+              selected={[viewMode]}
+              style={{ display: 'inline-flex' }}
             >
-              <LayoutGrid size={13} slot="icon" />
-            </ActionButton>
-            <ActionButton
-              quiet
-              size="s"
-              selected={viewMode === 'list'}
-              onClick={() => setViewMode('list')}
-              title="Compact list view"
-              aria-label="Compact list view"
-            >
-              <List size={13} slot="icon" />
-            </ActionButton>
+              <ActionButton
+                value="grid"
+                selected={viewMode === 'grid'}
+                onClick={() => setViewMode('grid')}
+                title="Card view"
+                aria-label="Card view"
+              >
+                <LayoutGrid size={13} slot="icon" />
+              </ActionButton>
+              <ActionButton
+                value="list"
+                selected={viewMode === 'list'}
+                onClick={() => setViewMode('list')}
+                title="Compact list view"
+                aria-label="Compact list view"
+              >
+                <List size={13} slot="icon" />
+              </ActionButton>
+            </ActionGroup>
+
             <ActionButton
               quiet
               size="s"
@@ -203,7 +218,11 @@ export const FileListView: React.FC<FileListViewProps> = ({
               aria-label="Refresh folder"
               disabled={loading || !currentFolderId}
             >
-              <RefreshCw size={13} slot="icon" className={loading ? 'spinner' : ''} />
+              {loading ? (
+                <ProgressCircle indeterminate size="s" slot="icon" />
+              ) : (
+                <RefreshCw size={13} slot="icon" />
+              )}
             </ActionButton>
           </div>
         </div>
@@ -211,36 +230,36 @@ export const FileListView: React.FC<FileListViewProps> = ({
         {/* Search input if items exist or search is active */}
         {(assets.length > 0 || searchTerm) && (
           <div style={{ marginBottom: '10px' }}>
-            <Textfield
+            <Search
               style={{ width: '100%' }}
               placeholder="Search files..."
               value={searchTerm}
               onInput={(e: React.FormEvent<HTMLElement>) =>
                 setSearchTerm((e.target as HTMLInputElement).value)
               }
-            >
-              <Search size={13} slot="icon" />
-            </Textfield>
+            />
           </div>
         )}
 
+        <Divider size="s" style={{ marginBottom: '10px' }} />
+
         {loading && (
           <div className="state-container">
-            <div className="spinner" />
-            <p>Loading files...</p>
+            <ProgressCircle indeterminate size="m" label="Loading files..." />
+            <p style={{ marginTop: '8px' }}>Loading files...</p>
           </div>
         )}
 
         {error && !loading && (
           <div className="state-container">
-            <AlertCircle size={24} style={{ color: 'var(--accent-red)' }} />
-            <h3>Error loading folder</h3>
-            <p>{error}</p>
+            <IllustratedMessage heading="Error loading folder" description={error}>
+              <AlertCircle size={36} style={{ color: 'var(--accent-red)' }} />
+            </IllustratedMessage>
             {currentFolderId && (
               <Button
                 variant="secondary"
                 onClick={() => fetchContents(currentFolderId, debouncedSearch)}
-                style={{ marginTop: '8px' }}
+                style={{ marginTop: '12px' }}
               >
                 Try Again
               </Button>
@@ -250,13 +269,16 @@ export const FileListView: React.FC<FileListViewProps> = ({
 
         {!loading && !error && sortedAssets.length === 0 && (
           <div className="state-container">
-            <FolderOpen size={28} />
-            <h3>Folder is empty</h3>
-            <p>
-              {searchTerm
-                ? `No files match "${searchTerm}"`
-                : 'No files or subfolders found in this directory.'}
-            </p>
+            <IllustratedMessage
+              heading={searchTerm ? 'No matching files' : 'Folder is empty'}
+              description={
+                searchTerm
+                  ? `No files match "${searchTerm}"`
+                  : 'No files or subfolders found in this directory.'
+              }
+            >
+              <FolderOpen size={36} />
+            </IllustratedMessage>
           </div>
         )}
 

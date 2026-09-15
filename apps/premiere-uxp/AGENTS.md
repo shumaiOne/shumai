@@ -2,7 +2,7 @@
 
 ## Component Library (Spectrum Web Components / SWC)
 
-- **Prefer SWC**: Use Spectrum Web Component React wrappers (`@swc-react/*`) and `@swc-uxp-wrappers/*` for UI elements (Button, ActionButton, Textfield, Card, Divider, etc.).
+- **Always prefer SWC components if possible**: Use Spectrum Web Component React wrappers (`@swc-react/*`) and `@swc-uxp-wrappers/*` for UI elements (Button, ActionButton, Textfield, Card, Divider, ProgressCircle, StatusLight, Badge, Search, FieldLabel, HelpText, IllustratedMessage, ActionGroup, etc.) rather than hand-crafting custom HTML/CSS elements.
 - **SWC Support**: `public/manifest.json` has `"featureFlags": { "enableSWCSupport": true }`.
 - **Package Versions**: Keep SWC packages aligned at version `0.37.0` (matching Adobe UXP compatibility).
 - **Bundler Aliases**: `build.ts` uses `swcAliasPlugin` with `aliases` from `@swc-uxp-wrappers/utils` to resolve internal SWC imports for Bun.

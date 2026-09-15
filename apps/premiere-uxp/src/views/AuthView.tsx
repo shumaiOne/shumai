@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
 import { getShumaiClient } from '../api/client'
 import { saveStoredCredentials } from '../services/storage'
-import { AlertCircle, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Button } from '@swc-react/button'
 import { Textfield } from '@swc-react/textfield'
+import { FieldLabel } from '@swc-react/field-label'
+import { HelpText } from '@swc-react/help-text'
+import { ProgressCircle } from '@swc-react/progress-circle'
 
 interface AuthViewProps {
   initialEndpoint?: string
@@ -104,17 +107,16 @@ export const AuthView: React.FC<AuthViewProps> = ({
         </div>
 
         {errorMessage && (
-          <div className="error-banner" role="alert">
-            <AlertCircle size={14} style={{ flexShrink: 0 }} />
-            <span>{errorMessage}</span>
+          <div style={{ marginBottom: '12px' }}>
+            <HelpText variant="negative" icon>
+              {errorMessage}
+            </HelpText>
           </div>
         )}
 
         <div className="auth-form">
           <div className="form-group">
-            <label className="form-label" htmlFor="endpoint-input">
-              Server Endpoint
-            </label>
+            <FieldLabel for="endpoint-input">Server Endpoint</FieldLabel>
             <Textfield
               id="endpoint-input"
               style={{ width: '100%' }}
@@ -125,14 +127,13 @@ export const AuthView: React.FC<AuthViewProps> = ({
               }
               onKeyDown={handleKeyDown}
               disabled={loading}
+              invalid={Boolean(errorMessage && !endpoint.trim())}
             />
-            <span className="input-hint">The base URL of your Shumai backend instance.</span>
+            <HelpText>The base URL of your Shumai backend instance.</HelpText>
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="api-key-input">
-              API Key
-            </label>
+            <FieldLabel for="api-key-input">API Key</FieldLabel>
             <Textfield
               id="api-key-input"
               type="password"
@@ -144,10 +145,9 @@ export const AuthView: React.FC<AuthViewProps> = ({
               }
               onKeyDown={handleKeyDown}
               disabled={loading}
+              invalid={Boolean(errorMessage && !apiKey.trim())}
             />
-            <span className="input-hint">
-              Generate an API key in Shumai: <strong>Settings &gt; Developer</strong>.
-            </span>
+            <HelpText>Generate an API key in Shumai: Settings &gt; Developer.</HelpText>
           </div>
 
           <Button
@@ -157,7 +157,11 @@ export const AuthView: React.FC<AuthViewProps> = ({
             disabled={loading}
           >
             {loading ? 'Connecting...' : 'Connect Workspace'}
-            {!loading && <ArrowRight size={14} slot="icon" />}
+            {loading ? (
+              <ProgressCircle indeterminate size="s" static-color="white" slot="icon" />
+            ) : (
+              <ArrowRight size={14} slot="icon" />
+            )}
           </Button>
         </div>
       </div>
