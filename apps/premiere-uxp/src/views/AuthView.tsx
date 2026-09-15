@@ -160,7 +160,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             {loading ? (
               <ProgressCircle indeterminate size="s" static-color="white" slot="icon" />
             ) : (
-              <ArrowRight size={14} slot="icon" />
+              <ArrowRight size={14} slot="icon" color="white" />
             )}
           </Button>
         </div>

@@ -346,7 +346,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
                 title="Card view"
                 aria-label="Card view"
               >
-                <LayoutGrid size={13} slot="icon" />
+                <LayoutGrid size={13} slot="icon" color="#999999" />
               </ActionButton>
               <ActionButton
                 value="list"
@@ -355,7 +355,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
                 title="Compact list view"
                 aria-label="Compact list view"
               >
-                <List size={13} slot="icon" />
+                <List size={13} slot="icon" color="#999999" />
               </ActionButton>
             </ActionGroup>
 
@@ -370,7 +370,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
               {loading ? (
                 <ProgressCircle indeterminate size="s" slot="icon" />
               ) : (
-                <RefreshCw size={13} slot="icon" />
+                <RefreshCw size={13} slot="icon" color="#999999" />
               )}
             </ActionButton>
           </div>
@@ -426,7 +426,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
                   : 'No files or subfolders found in this directory.'
               }
             >
-              <FolderOpen size={36} />
+              <FolderOpen size={36} color="#999999" />
             </IllustratedMessage>
           </div>
         )}
@@ -460,9 +460,9 @@ export const FileListView: React.FC<FileListViewProps> = ({
                       }}
                     >
                       {foldersExpanded ? (
-                        <ChevronDown size={12} slot="icon" />
+                        <ChevronDown size={12} slot="icon" color="#999999" />
                       ) : (
-                        <ChevronRight size={12} slot="icon" />
+                        <ChevronRight size={12} slot="icon" color="#999999" />
                       )}
                     </ActionButton>
                     <span className="section-title">Folders</span>
@@ -544,9 +544,9 @@ export const FileListView: React.FC<FileListViewProps> = ({
                       }}
                     >
                       {filesExpanded ? (
-                        <ChevronDown size={12} slot="icon" />
+                        <ChevronDown size={12} slot="icon" color="#999999" />
                       ) : (
-                        <ChevronRight size={12} slot="icon" />
+                        <ChevronRight size={12} slot="icon" color="#999999" />
                       )}
                     </ActionButton>
                     <span className="section-title">Files</span>

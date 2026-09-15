@@ -42,6 +42,26 @@ sp-theme {
   width: 100%;
 }
 
+/* Global SVG / Lucide Icon Theming for Adobe UXP */
+svg.lucide,
+.lucide {
+  stroke: var(--text-secondary, #999999);
+}
+
+sp-action-button svg.lucide,
+sp-action-group-item svg.lucide,
+.btn-icon svg.lucide {
+  stroke: var(--text-secondary, #999999);
+}
+
+sp-action-button:hover svg.lucide,
+sp-action-group-item:hover svg.lucide,
+sp-action-group-item[selected] svg.lucide,
+.btn-icon:hover svg.lucide,
+.btn-icon.active svg.lucide {
+  stroke: var(--text-primary, #e0e0e0);
+}
+
 .app-container {
   display: flex;
   flex-direction: column;
@@ -501,7 +521,8 @@ sp-theme {
   margin-left: 4px;
 }
 
-.file-row-meta {
+.file-row-meta,
+.file-row-details {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -509,13 +530,13 @@ sp-theme {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  margin-bottom: 5px;
+}
+
+.file-row-meta {
+  margin-bottom: 4px;
 }
 
 .file-row-creator {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
   font-size: 10px;
   color: var(--text-secondary);
   max-width: 55%;
@@ -523,18 +544,6 @@ sp-theme {
   white-space: nowrap;
   text-overflow: ellipsis;
   flex-shrink: 1;
-}
-
-.file-row-creator-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.file-row-meta-icon {
-  margin-right: 3px;
-  flex-shrink: 0;
-  opacity: 0.7;
 }
 
 .file-row-meta-dot {
@@ -545,7 +554,8 @@ sp-theme {
   flex-shrink: 0;
 }
 
-.file-row-time {
+.file-row-time,
+.file-row-detail-item {
   font-size: 10px;
   color: var(--text-secondary);
   overflow: hidden;
@@ -554,27 +564,10 @@ sp-theme {
   flex-shrink: 0;
 }
 
-.file-row-footer {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.file-row-footer-left {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.file-row-info-item {
+.item-comments-count {
   font-size: 10px;
   color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-right: 6px;
   white-space: nowrap;
   flex-shrink: 0;
 }

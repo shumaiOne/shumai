@@ -104,7 +104,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
               title="Card view"
               aria-label="Card view"
             >
-              <LayoutGrid size={13} slot="icon" />
+              <LayoutGrid size={13} slot="icon" color="#999999" />
             </ActionButton>
             <ActionButton
               value="list"
@@ -113,7 +113,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
               title="Compact list view"
               aria-label="Compact list view"
             >
-              <List size={13} slot="icon" />
+              <List size={13} slot="icon" color="#999999" />
             </ActionButton>
           </ActionGroup>
 
@@ -128,7 +128,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
             {loading ? (
               <ProgressCircle indeterminate size="s" slot="icon" />
             ) : (
-              <RefreshCw size={13} slot="icon" />
+              <RefreshCw size={13} slot="icon" color="#999999" />
             )}
           </ActionButton>
         </div>
@@ -174,7 +174,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
             heading="No projects found"
             description="Create a project in your Shumai workspace to get started."
           >
-            <Briefcase size={36} />
+            <Briefcase size={36} color="#999999" />
           </IllustratedMessage>
         </div>
       )}
@@ -210,7 +210,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                 >
                   <div className="item-left">
                     <div className="item-icon" style={{ color: 'var(--accent-blue)' }}>
-                      <Briefcase size={16} />
+                      <Briefcase size={16} color="#3b82f6" />
                     </div>
                     <div className="item-meta">
                       <span className="item-name" title={project.name}>
@@ -220,7 +220,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                     </div>
                   </div>
                   <div className="item-right">
-                    <ChevronRight size={14} />
+                    <ChevronRight size={14} color="#999999" />
                   </div>
                 </div>
               ))}

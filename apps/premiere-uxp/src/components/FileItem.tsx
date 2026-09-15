@@ -1,16 +1,5 @@
 import React, { useState } from 'react'
-import {
-  Folder,
-  Film,
-  Music,
-  Image,
-  FileText,
-  ChevronRight,
-  MessageSquare,
-  Clock,
-  User,
-} from 'lucide-react'
-import { Badge } from '@swc-react/badge'
+import { Folder, Film, Music, Image, FileText, ChevronRight } from 'lucide-react'
 import { formatDateAgo } from '../utils/date'
 import { formatBytes, formatDuration } from '../utils/format'
 import { resolveAssetUrl } from '../utils/url'
@@ -86,11 +75,13 @@ export const FileItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick }) 
 
   const iconFallback = (
     <div className={`item-icon ${category}`}>
-      {category === 'folder' && <Folder size={16} fill="currentColor" fillOpacity={0.2} />}
-      {category === 'video' && <Film size={16} />}
-      {category === 'audio' && <Music size={16} />}
-      {category === 'image' && <Image size={16} />}
-      {category === 'file' && <FileText size={16} />}
+      {category === 'folder' && (
+        <Folder size={16} color="#fbbf24" fill="#fbbf24" fillOpacity={0.2} />
+      )}
+      {category === 'video' && <Film size={16} color="#60a5fa" />}
+      {category === 'audio' && <Music size={16} color="#a78bfa" />}
+      {category === 'image' && <Image size={16} color="#f472b6" />}
+      {category === 'file' && <FileText size={16} color="#999999" />}
     </div>
   )
 
@@ -138,18 +129,17 @@ export const FileItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick }) 
 
       <div className="item-right">
         {asset.commentsCount != null && asset.commentsCount > 0 && (
-          <Badge variant="informative" size="s" title={`${asset.commentsCount} comments`}>
-            <MessageSquare size={10} slot="icon" />
-            {asset.commentsCount}
-          </Badge>
+          <span className="item-comments-count" title={`${asset.commentsCount} comments`}>
+            {asset.commentsCount} {asset.commentsCount === 1 ? 'comment' : 'comments'}
+          </span>
         )}
-        {isFolder && <ChevronRight size={14} />}
+        {isFolder && <ChevronRight size={14} color="#999999" />}
       </div>
     </div>
   )
 }
 
-/** Card View Row Item (2 Columns: Left Preview, Right Info) */
+/** Card View Row Item (2 Columns: Left Preview, Right Info as Raw Text) */
 export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick }) => {
   const [imgError, setImgError] = useState(false)
   const category = getFileTypeCategory(asset)
@@ -163,13 +153,29 @@ export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick
 
   const cardFallback = (
     <div className={`file-row-placeholder ${category}`}>
-      {category === 'folder' && <Folder size={28} fill="currentColor" fillOpacity={0.2} />}
-      {category === 'video' && <Film size={28} />}
-      {category === 'audio' && <Music size={28} />}
-      {category === 'image' && <Image size={28} />}
-      {category === 'file' && <FileText size={28} />}
+      {category === 'folder' && (
+        <Folder size={28} color="#fbbf24" fill="#fbbf24" fillOpacity={0.2} />
+      )}
+      {category === 'video' && <Film size={28} color="#60a5fa" />}
+      {category === 'audio' && <Music size={28} color="#a78bfa" />}
+      {category === 'image' && <Image size={28} color="#f472b6" />}
+      {category === 'file' && <FileText size={28} color="#999999" />}
     </div>
   )
+
+  // Assemble raw text details for Line 3 (Duration • Size/Type • Comments)
+  const details: string[] = []
+  if (durationText) {
+    details.push(durationText)
+  }
+  if (isFolder) {
+    details.push(asset.fileCount != null ? `${asset.fileCount} items` : 'Folder')
+  } else if (effectiveSize != null) {
+    details.push(formatBytes(effectiveSize))
+  }
+  if (asset.commentsCount != null && asset.commentsCount > 0) {
+    details.push(`${asset.commentsCount} ${asset.commentsCount === 1 ? 'comment' : 'comments'}`)
+  }
 
   return (
     <div
@@ -199,21 +205,20 @@ export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick
         )}
       </div>
 
-      {/* Right Column: Title, Creator, Duration, Size/Info, Comments */}
+      {/* Right Column: Title, Creator & Date, Duration / Size / Comments as Raw Text */}
       <div className="file-row-content">
         <div className="file-row-header">
           <span className="file-row-title" title={asset.name}>
             {asset.name}
           </span>
-          {isFolder && <ChevronRight size={14} className="file-row-chevron" />}
+          {isFolder && <ChevronRight size={14} color="#999999" className="file-row-chevron" />}
         </div>
 
         {(creatorName || updatedText) && (
           <div className="file-row-meta">
             {creatorName && (
               <span className="file-row-creator" title={`Created by ${creatorName}`}>
-                <User size={10} className="file-row-meta-icon" />
-                <span className="file-row-creator-name">{creatorName}</span>
+                {creatorName}
               </span>
             )}
             {creatorName && updatedText && <span className="file-row-meta-dot">•</span>}
@@ -225,40 +230,16 @@ export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick
           </div>
         )}
 
-        <div className="file-row-footer">
-          <div className="file-row-footer-left">
-            {durationText && (
-              <Badge
-                variant="neutral"
-                size="s"
-                title={`Duration: ${durationText}`}
-                style={{ flexShrink: 0, marginRight: '5px' }}
-              >
-                <Clock size={9} slot="icon" />
-                {durationText}
-              </Badge>
-            )}
-            <span className="file-row-info-item">
-              {isFolder
-                ? asset.fileCount != null
-                  ? `${asset.fileCount} items`
-                  : 'Folder'
-                : formatBytes(effectiveSize)}
-            </span>
+        {details.length > 0 && (
+          <div className="file-row-subtext file-row-details">
+            {details.map((item, idx) => (
+              <React.Fragment key={idx}>
+                {idx > 0 && <span className="file-row-meta-dot">•</span>}
+                <span className="file-row-detail-item">{item}</span>
+              </React.Fragment>
+            ))}
           </div>
-
-          {asset.commentsCount != null && asset.commentsCount > 0 && (
-            <Badge
-              variant="informative"
-              size="s"
-              title={`${asset.commentsCount} comments`}
-              style={{ flexShrink: 0, marginLeft: '4px' }}
-            >
-              <MessageSquare size={9} slot="icon" />
-              {asset.commentsCount}
-            </Badge>
-          )}
-        </div>
+        )}
       </div>
     </div>
   )

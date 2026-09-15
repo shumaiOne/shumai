@@ -50,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({ endpoint, onDisconnect }) => {
               title="Disconnect / Change Server"
               aria-label="Disconnect"
             >
-              <LogOut size={13} slot="icon" />
+              <LogOut size={13} slot="icon" color="#999999" />
             </ActionButton>
           </div>
         )}
