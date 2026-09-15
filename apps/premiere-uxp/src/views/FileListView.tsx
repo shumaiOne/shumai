@@ -1,22 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { getShumaiClient } from '../api/client'
 import { Breadcrumb, BreadcrumbCrumb } from '../components/Breadcrumb'
-import { FileItem, FileCardItem, AssetSummary } from '../components/FileItem'
+import { FileCardItem, AssetSummary } from '../components/FileItem'
 import { ProjectSummary } from './ProjectsView'
-import {
-  FolderOpen,
-  RefreshCw,
-  AlertCircle,
-  LayoutGrid,
-  List,
-  ChevronDown,
-  ChevronRight,
-} from 'lucide-react'
+import { FolderOpen, RefreshCw, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react'
 import { ActionButton } from '@swc-react/action-button'
-import { ActionGroup } from '@swc-react/action-group'
 import { Button } from '@swc-react/button'
 import { Search } from '@swc-react/search'
-import { Badge } from '@swc-react/badge'
 import { ProgressCircle } from '@swc-react/progress-circle'
 import { IllustratedMessage } from '@swc-react/illustrated-message'
 import { Divider } from '@swc-react/divider'
@@ -60,7 +50,6 @@ export const FileListView: React.FC<FileListViewProps> = ({
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
   // Debounce search term by 300ms
   useEffect(() => {
@@ -293,8 +282,6 @@ export const FileListView: React.FC<FileListViewProps> = ({
     }
   }
 
-  const totalItemCount = (foldersTotal ?? folders.length) + (filesTotal ?? files.length)
-
   return (
     <div
       style={{
@@ -312,73 +299,17 @@ export const FileListView: React.FC<FileListViewProps> = ({
         onNavigateToCrumb={handleCrumbNavigate}
       />
 
-      <div className="view-content" onScroll={handleScroll}>
-        {/* Toolbar */}
+      {/* Sticky Header: Search input & Refresh button */}
+      <div className="view-sticky-header">
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            gap: '8px',
             marginBottom: '8px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600 }}>Contents</span>
-            {!loading && (
-              <Badge variant="neutral" size="s">
-                {totalItemCount}
-              </Badge>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <ActionGroup
-              quiet
-              size="s"
-              selects="single"
-              selected={[viewMode]}
-              style={{ display: 'inline-flex' }}
-            >
-              <ActionButton
-                value="grid"
-                selected={viewMode === 'grid'}
-                onClick={() => setViewMode('grid')}
-                title="Card view"
-                aria-label="Card view"
-              >
-                <LayoutGrid size={13} slot="icon" color="#999999" />
-              </ActionButton>
-              <ActionButton
-                value="list"
-                selected={viewMode === 'list'}
-                onClick={() => setViewMode('list')}
-                title="Compact list view"
-                aria-label="Compact list view"
-              >
-                <List size={13} slot="icon" color="#999999" />
-              </ActionButton>
-            </ActionGroup>
-
-            <ActionButton
-              quiet
-              size="s"
-              onClick={() => currentFolderId && fetchContents(currentFolderId, debouncedSearch)}
-              title="Refresh folder"
-              aria-label="Refresh folder"
-              disabled={loading || !currentFolderId}
-            >
-              {loading ? (
-                <ProgressCircle indeterminate size="s" slot="icon" />
-              ) : (
-                <RefreshCw size={13} slot="icon" color="#999999" />
-              )}
-            </ActionButton>
-          </div>
-        </div>
-
-        {/* Search input */}
-        {(totalItemCount > 0 || searchTerm) && (
-          <div style={{ marginBottom: '10px' }}>
+          <div style={{ flex: 1 }}>
             <Search
               style={{ width: '100%' }}
               placeholder="Search files and folders..."
@@ -388,10 +319,22 @@ export const FileListView: React.FC<FileListViewProps> = ({
               }
             />
           </div>
-        )}
 
-        <Divider size="s" style={{ marginBottom: '10px' }} />
+          <button
+            type="button"
+            className="btn-icon"
+            onClick={() => currentFolderId && fetchContents(currentFolderId, debouncedSearch)}
+            title="Refresh folder"
+            aria-label="Refresh folder"
+            disabled={loading || !currentFolderId}
+          >
+            <RefreshCw size={13} className={loading ? 'spin' : ''} />
+          </button>
+        </div>
+        <Divider size="s" />
+      </div>
 
+      <div className="view-content" onScroll={handleScroll}>
         {loading && (
           <div className="state-container">
             <ProgressCircle indeterminate size="m" label="Loading folder contents..." />
@@ -450,9 +393,10 @@ export const FileListView: React.FC<FileListViewProps> = ({
                   }}
                 >
                   <div className="section-header-left">
-                    <ActionButton
-                      quiet
-                      size="s"
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      style={{ width: '18px', height: '18px', marginRight: '2px' }}
                       aria-label={foldersExpanded ? 'Collapse Folders' : 'Expand Folders'}
                       onClick={(e) => {
                         e.stopPropagation()
@@ -460,43 +404,28 @@ export const FileListView: React.FC<FileListViewProps> = ({
                       }}
                     >
                       {foldersExpanded ? (
-                        <ChevronDown size={12} slot="icon" color="#999999" />
+                        <ChevronDown size={12} color="#999999" />
                       ) : (
-                        <ChevronRight size={12} slot="icon" color="#999999" />
+                        <ChevronRight size={12} color="#999999" />
                       )}
-                    </ActionButton>
+                    </button>
                     <span className="section-title">Folders</span>
-                    <Badge variant="neutral" size="s">
-                      {foldersTotal ?? folders.length}
-                    </Badge>
+                    <span className="count-badge">{foldersTotal ?? folders.length}</span>
                   </div>
                 </div>
 
                 {foldersExpanded && (
                   <>
-                    {viewMode === 'list' ? (
-                      <div className="item-list">
-                        {folders.map((folder) => (
-                          <FileItem
-                            key={folder.id}
-                            asset={folder}
-                            endpoint={endpoint}
-                            onClick={() => handleFolderClick(folder)}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="file-card-list">
-                        {folders.map((folder) => (
-                          <FileCardItem
-                            key={folder.id}
-                            asset={folder}
-                            endpoint={endpoint}
-                            onClick={() => handleFolderClick(folder)}
-                          />
-                        ))}
-                      </div>
-                    )}
+                    <div className="file-card-list">
+                      {folders.map((folder) => (
+                        <FileCardItem
+                          key={folder.id}
+                          asset={folder}
+                          endpoint={endpoint}
+                          onClick={() => handleFolderClick(folder)}
+                        />
+                      ))}
+                    </div>
 
                     {foldersHasNext && (
                       <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0' }}>
@@ -534,9 +463,10 @@ export const FileListView: React.FC<FileListViewProps> = ({
                   }}
                 >
                   <div className="section-header-left">
-                    <ActionButton
-                      quiet
-                      size="s"
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      style={{ width: '18px', height: '18px', marginRight: '2px' }}
                       aria-label={filesExpanded ? 'Collapse Files' : 'Expand Files'}
                       onClick={(e) => {
                         e.stopPropagation()
@@ -544,43 +474,28 @@ export const FileListView: React.FC<FileListViewProps> = ({
                       }}
                     >
                       {filesExpanded ? (
-                        <ChevronDown size={12} slot="icon" color="#999999" />
+                        <ChevronDown size={12} color="#999999" />
                       ) : (
-                        <ChevronRight size={12} slot="icon" color="#999999" />
+                        <ChevronRight size={12} color="#999999" />
                       )}
-                    </ActionButton>
+                    </button>
                     <span className="section-title">Files</span>
-                    <Badge variant="neutral" size="s">
-                      {filesTotal ?? files.length}
-                    </Badge>
+                    <span className="count-badge">{filesTotal ?? files.length}</span>
                   </div>
                 </div>
 
                 {filesExpanded && (
                   <>
-                    {viewMode === 'list' ? (
-                      <div className="item-list">
-                        {files.map((file) => (
-                          <FileItem
-                            key={file.id}
-                            asset={file}
-                            endpoint={endpoint}
-                            onClick={() => {}}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="file-card-list">
-                        {files.map((file) => (
-                          <FileCardItem
-                            key={file.id}
-                            asset={file}
-                            endpoint={endpoint}
-                            onClick={() => {}}
-                          />
-                        ))}
-                      </div>
-                    )}
+                    <div className="file-card-list">
+                      {files.map((file) => (
+                        <FileCardItem
+                          key={file.id}
+                          asset={file}
+                          endpoint={endpoint}
+                          onClick={() => {}}
+                        />
+                      ))}
+                    </div>
 
                     {loadingMoreFiles && (
                       <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0' }}>

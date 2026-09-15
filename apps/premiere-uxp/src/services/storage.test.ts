@@ -1,6 +1,27 @@
-// @vitest-environment happy-dom
 import { describe, it, expect, beforeEach } from 'vitest'
 import { getStoredCredentials, saveStoredCredentials, clearStoredCredentials } from './storage'
+
+const localStorageMock = (() => {
+  let store: Record<string, string> = {}
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString()
+    },
+    removeItem: (key: string) => {
+      delete store[key]
+    },
+    clear: () => {
+      store = {}
+    },
+  }
+})()
+
+Object.defineProperty(globalThis, 'localStorage', {
+  value: localStorageMock,
+  configurable: true,
+  writable: true,
+})
 
 describe('Storage Service', () => {
   beforeEach(() => {

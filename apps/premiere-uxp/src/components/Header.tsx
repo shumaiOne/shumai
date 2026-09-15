@@ -1,8 +1,8 @@
 import React from 'react'
 import { LogOut } from 'lucide-react'
-import { ActionButton } from '@swc-react/action-button'
 import { StatusLight } from '@swc-react/status-light'
 import { Divider } from '@swc-react/divider'
+import { ShumaiLogo } from './icons'
 
 interface HeaderProps {
   endpoint?: string
@@ -24,7 +24,9 @@ export const Header: React.FC<HeaderProps> = ({ endpoint, onDisconnect }) => {
     <>
       <header className="app-header">
         <div className="logo-group">
-          <span className="logo-badge">S</span>
+          <div className="logo-icon">
+            <ShumaiLogo width={18} height={18} />
+          </div>
           <span className="app-title">Shumai</span>
         </div>
 
@@ -37,21 +39,23 @@ export const Header: React.FC<HeaderProps> = ({ endpoint, onDisconnect }) => {
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
               }}
             >
-              <StatusLight variant="positive" size="s">
+              <StatusLight variant="positive" size="s" style={{ margin: 0 }}>
                 {displayHost}
               </StatusLight>
             </div>
-            <ActionButton
-              quiet
-              size="s"
+            <button
+              type="button"
+              className="btn-icon"
               onClick={onDisconnect}
               title="Disconnect / Change Server"
               aria-label="Disconnect"
             >
-              <LogOut size={13} slot="icon" color="#999999" />
-            </ActionButton>
+              <LogOut size={13} color="#999999" />
+            </button>
           </div>
         )}
       </header>
