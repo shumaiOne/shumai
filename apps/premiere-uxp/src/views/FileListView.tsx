@@ -3,7 +3,15 @@ import { getShumaiClient } from '../api/client'
 import { Breadcrumb, BreadcrumbCrumb } from '../components/Breadcrumb'
 import { FileItem, FileCardItem, AssetSummary } from '../components/FileItem'
 import { ProjectSummary } from './ProjectsView'
-import { FolderOpen, RefreshCw, AlertCircle, LayoutGrid, List } from 'lucide-react'
+import {
+  FolderOpen,
+  RefreshCw,
+  AlertCircle,
+  LayoutGrid,
+  List,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react'
 import { ActionButton } from '@swc-react/action-button'
 import { ActionGroup } from '@swc-react/action-group'
 import { Button } from '@swc-react/button'
@@ -13,6 +21,8 @@ import { ProgressCircle } from '@swc-react/progress-circle'
 import { IllustratedMessage } from '@swc-react/illustrated-message'
 import { Divider } from '@swc-react/divider'
 import type { SearchCondition, SearchSort } from '@shumai/dtos'
+
+const PAGE_SIZE = 20
 
 interface FileListViewProps {
   endpoint: string
@@ -29,7 +39,23 @@ export const FileListView: React.FC<FileListViewProps> = ({
 }) => {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(project.rootFolder || null)
   const [crumbs, setCrumbs] = useState<BreadcrumbCrumb[]>([])
-  const [assets, setAssets] = useState<AssetSummary[]>([])
+
+  // Folders state
+  const [folders, setFolders] = useState<AssetSummary[]>([])
+  const [foldersTotal, setFoldersTotal] = useState<number | null>(null)
+  const [foldersCursor, setFoldersCursor] = useState<string | null>(null)
+  const [foldersHasNext, setFoldersHasNext] = useState(false)
+  const [foldersExpanded, setFoldersExpanded] = useState(true)
+  const [loadingMoreFolders, setLoadingMoreFolders] = useState(false)
+
+  // Files state
+  const [files, setFiles] = useState<AssetSummary[]>([])
+  const [filesTotal, setFilesTotal] = useState<number | null>(null)
+  const [filesCursor, setFilesCursor] = useState<string | null>(null)
+  const [filesHasNext, setFilesHasNext] = useState(false)
+  const [filesExpanded, setFilesExpanded] = useState(true)
+  const [loadingMoreFiles, setLoadingMoreFiles] = useState(false)
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -44,6 +70,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
     return () => clearTimeout(timer)
   }, [searchTerm])
 
+  // Initial fetch of both folders and files
   const fetchContents = useCallback(
     async (folderId: string, query: string) => {
       setLoading(true)
@@ -58,7 +85,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
 
         const sort: SearchSort = { field: 'name', order: 'asc' }
 
-        // Use the Search API consistent with WebUI: search folders and files in parallel
+        // Fetch first page of folders and files in parallel
         const [foldersRes, filesRes] = await Promise.all([
           client.api.folders[':folderId'].search.$post({
             param: { folderId },
@@ -67,7 +94,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
               recursively: isSearching,
               conditions,
               sort,
-              first: 100,
+              first: PAGE_SIZE,
               previewFormat: 'jpeg',
             },
           }),
@@ -78,7 +105,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
               recursively: isSearching,
               conditions,
               sort,
-              first: 100,
+              first: PAGE_SIZE,
               previewFormat: 'jpeg',
             },
           }),
@@ -99,7 +126,15 @@ export const FileListView: React.FC<FileListViewProps> = ({
         const folderItems = (foldersBody.data || []) as AssetSummary[]
         const fileItems = (filesBody.data || []) as AssetSummary[]
 
-        setAssets([...folderItems, ...fileItems])
+        setFolders(folderItems)
+        setFoldersCursor(foldersBody.pageInfo?.cursor || null)
+        setFoldersHasNext(Boolean(foldersBody.pageInfo?.cursor))
+        setFoldersTotal(foldersBody.pageInfo?.total ?? folderItems.length)
+
+        setFiles(fileItems)
+        setFilesCursor(filesBody.pageInfo?.cursor || null)
+        setFilesHasNext(Boolean(filesBody.pageInfo?.cursor))
+        setFilesTotal(filesBody.pageInfo?.total ?? fileItems.length)
       } catch (err) {
         console.error('Error fetching folder contents via search API:', err)
         setError(err instanceof Error ? err.message : 'Failed to load folder contents.')
@@ -118,6 +153,125 @@ export const FileListView: React.FC<FileListViewProps> = ({
       setLoading(false)
     }
   }, [currentFolderId, debouncedSearch, fetchContents])
+
+  // Paginate next files
+  const fetchNextFilesPage = useCallback(async () => {
+    if (!currentFolderId || !filesHasNext || loadingMoreFiles || loading) return
+    setLoadingMoreFiles(true)
+    try {
+      const client = getShumaiClient(endpoint, apiKey)
+      const isSearching = Boolean(debouncedSearch)
+      const conditions: SearchCondition[] = isSearching
+        ? [{ field: 'name', operator: 'contains', value: debouncedSearch }]
+        : []
+      const sort: SearchSort = { field: 'name', order: 'asc' }
+
+      const res = await client.api.folders[':folderId'].search.$post({
+        param: { folderId: currentFolderId },
+        json: {
+          assetType: 'file',
+          recursively: isSearching,
+          conditions,
+          sort,
+          first: PAGE_SIZE,
+          after: filesCursor || undefined,
+          previewFormat: 'jpeg',
+        },
+      })
+      if (res.ok) {
+        const body = await res.json()
+        const newFiles = (body.data || []) as AssetSummary[]
+        setFiles((prev) => [...prev, ...newFiles])
+        setFilesCursor(body.pageInfo?.cursor || null)
+        setFilesHasNext(Boolean(body.pageInfo?.cursor))
+        if (body.pageInfo?.total != null) {
+          setFilesTotal(body.pageInfo.total)
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching next files page:', err)
+    } finally {
+      setLoadingMoreFiles(false)
+    }
+  }, [
+    currentFolderId,
+    filesHasNext,
+    loadingMoreFiles,
+    loading,
+    endpoint,
+    apiKey,
+    debouncedSearch,
+    filesCursor,
+  ])
+
+  // Paginate next folders
+  const fetchNextFoldersPage = useCallback(async () => {
+    if (!currentFolderId || !foldersHasNext || loadingMoreFolders || loading) return
+    setLoadingMoreFolders(true)
+    try {
+      const client = getShumaiClient(endpoint, apiKey)
+      const isSearching = Boolean(debouncedSearch)
+      const conditions: SearchCondition[] = isSearching
+        ? [{ field: 'name', operator: 'contains', value: debouncedSearch }]
+        : []
+      const sort: SearchSort = { field: 'name', order: 'asc' }
+
+      const res = await client.api.folders[':folderId'].search.$post({
+        param: { folderId: currentFolderId },
+        json: {
+          assetType: 'folder',
+          recursively: isSearching,
+          conditions,
+          sort,
+          first: PAGE_SIZE,
+          after: foldersCursor || undefined,
+          previewFormat: 'jpeg',
+        },
+      })
+      if (res.ok) {
+        const body = await res.json()
+        const newFolders = (body.data || []) as AssetSummary[]
+        setFolders((prev) => [...prev, ...newFolders])
+        setFoldersCursor(body.pageInfo?.cursor || null)
+        setFoldersHasNext(Boolean(body.pageInfo?.cursor))
+        if (body.pageInfo?.total != null) {
+          setFoldersTotal(body.pageInfo.total)
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching next folders page:', err)
+    } finally {
+      setLoadingMoreFolders(false)
+    }
+  }, [
+    currentFolderId,
+    foldersHasNext,
+    loadingMoreFolders,
+    loading,
+    endpoint,
+    apiKey,
+    debouncedSearch,
+    foldersCursor,
+  ])
+
+  // Infinite scroll listener
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    const threshold = 120
+    const isNearBottom = target.scrollHeight - target.scrollTop - target.clientHeight <= threshold
+    if (isNearBottom) {
+      if (filesExpanded && filesHasNext && !loadingMoreFiles) {
+        fetchNextFilesPage()
+      } else if (
+        foldersExpanded &&
+        foldersHasNext &&
+        !loadingMoreFolders &&
+        (!filesExpanded || files.length === 0)
+      ) {
+        fetchNextFoldersPage()
+      }
+    }
+  }
 
   const handleFolderClick = (folder: AssetSummary) => {
     setCrumbs((prev) => [...prev, { id: folder.id, name: folder.name }])
@@ -139,12 +293,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
     }
   }
 
-  // Folders first, then alphabetical by name
-  const sortedAssets = [...assets].sort((a, b) => {
-    if (a.type === 'folder' && b.type !== 'folder') return -1
-    if (a.type !== 'folder' && b.type === 'folder') return 1
-    return a.name.localeCompare(b.name)
-  })
+  const totalItemCount = (foldersTotal ?? folders.length) + (filesTotal ?? files.length)
 
   return (
     <div
@@ -163,7 +312,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
         onNavigateToCrumb={handleCrumbNavigate}
       />
 
-      <div className="view-content">
+      <div className="view-content" onScroll={handleScroll}>
         {/* Toolbar */}
         <div
           style={{
@@ -174,10 +323,10 @@ export const FileListView: React.FC<FileListViewProps> = ({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600 }}>Files</span>
+            <span style={{ fontSize: '12px', fontWeight: 600 }}>Contents</span>
             {!loading && (
               <Badge variant="neutral" size="s">
-                {sortedAssets.length}
+                {totalItemCount}
               </Badge>
             )}
           </div>
@@ -227,12 +376,12 @@ export const FileListView: React.FC<FileListViewProps> = ({
           </div>
         </div>
 
-        {/* Search input if items exist or search is active */}
-        {(assets.length > 0 || searchTerm) && (
+        {/* Search input */}
+        {(totalItemCount > 0 || searchTerm) && (
           <div style={{ marginBottom: '10px' }}>
             <Search
               style={{ width: '100%' }}
-              placeholder="Search files..."
+              placeholder="Search files and folders..."
               value={searchTerm}
               onInput={(e: React.FormEvent<HTMLElement>) =>
                 setSearchTerm((e.target as HTMLInputElement).value)
@@ -245,8 +394,8 @@ export const FileListView: React.FC<FileListViewProps> = ({
 
         {loading && (
           <div className="state-container">
-            <ProgressCircle indeterminate size="m" label="Loading files..." />
-            <p style={{ marginTop: '8px' }}>Loading files...</p>
+            <ProgressCircle indeterminate size="m" label="Loading folder contents..." />
+            <p style={{ marginTop: '8px' }}>Loading folder contents...</p>
           </div>
         )}
 
@@ -267,13 +416,13 @@ export const FileListView: React.FC<FileListViewProps> = ({
           </div>
         )}
 
-        {!loading && !error && sortedAssets.length === 0 && (
+        {!loading && !error && folders.length === 0 && files.length === 0 && (
           <div className="state-container">
             <IllustratedMessage
-              heading={searchTerm ? 'No matching files' : 'Folder is empty'}
+              heading={searchTerm ? 'No matching items' : 'Folder is empty'}
               description={
                 searchTerm
-                  ? `No files match "${searchTerm}"`
+                  ? `No files or subfolders match "${searchTerm}".`
                   : 'No files or subfolders found in this directory.'
               }
             >
@@ -282,37 +431,172 @@ export const FileListView: React.FC<FileListViewProps> = ({
           </div>
         )}
 
-        {!loading && !error && sortedAssets.length > 0 && (
+        {!loading && !error && (folders.length > 0 || files.length > 0) && (
           <>
-            {viewMode === 'list' ? (
-              <div className="item-list">
-                {sortedAssets.map((asset) => (
-                  <FileItem
-                    key={asset.id}
-                    asset={asset}
-                    endpoint={endpoint}
-                    onClick={() => {
-                      if (asset.type === 'folder') {
-                        handleFolderClick(asset)
-                      }
-                    }}
-                  />
-                ))}
+            {/* Folders Section */}
+            {folders.length > 0 && (
+              <div className="section-container">
+                <div
+                  className="section-header"
+                  onClick={() => setFoldersExpanded(!foldersExpanded)}
+                  role="button"
+                  tabIndex={0}
+                  title={foldersExpanded ? 'Collapse Folders' : 'Expand Folders'}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setFoldersExpanded(!foldersExpanded)
+                    }
+                  }}
+                >
+                  <div className="section-header-left">
+                    <ActionButton
+                      quiet
+                      size="s"
+                      aria-label={foldersExpanded ? 'Collapse Folders' : 'Expand Folders'}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setFoldersExpanded(!foldersExpanded)
+                      }}
+                    >
+                      {foldersExpanded ? (
+                        <ChevronDown size={12} slot="icon" />
+                      ) : (
+                        <ChevronRight size={12} slot="icon" />
+                      )}
+                    </ActionButton>
+                    <span className="section-title">Folders</span>
+                    <Badge variant="neutral" size="s">
+                      {foldersTotal ?? folders.length}
+                    </Badge>
+                  </div>
+                </div>
+
+                {foldersExpanded && (
+                  <>
+                    {viewMode === 'list' ? (
+                      <div className="item-list">
+                        {folders.map((folder) => (
+                          <FileItem
+                            key={folder.id}
+                            asset={folder}
+                            endpoint={endpoint}
+                            onClick={() => handleFolderClick(folder)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="file-card-list">
+                        {folders.map((folder) => (
+                          <FileCardItem
+                            key={folder.id}
+                            asset={folder}
+                            endpoint={endpoint}
+                            onClick={() => handleFolderClick(folder)}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {foldersHasNext && (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0' }}>
+                        {loadingMoreFolders ? (
+                          <ProgressCircle indeterminate size="s" label="Loading more folders..." />
+                        ) : (
+                          <ActionButton quiet size="s" onClick={fetchNextFoldersPage}>
+                            Load more folders
+                          </ActionButton>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-            ) : (
-              <div className="file-card-list">
-                {sortedAssets.map((asset) => (
-                  <FileCardItem
-                    key={asset.id}
-                    asset={asset}
-                    endpoint={endpoint}
-                    onClick={() => {
-                      if (asset.type === 'folder') {
-                        handleFolderClick(asset)
-                      }
-                    }}
-                  />
-                ))}
+            )}
+
+            {/* Files Section */}
+            {files.length > 0 && (
+              <div
+                className="section-container"
+                style={{ marginTop: folders.length > 0 && foldersExpanded ? '14px' : '4px' }}
+              >
+                <div
+                  className="section-header"
+                  onClick={() => setFilesExpanded(!filesExpanded)}
+                  role="button"
+                  tabIndex={0}
+                  title={filesExpanded ? 'Collapse Files' : 'Expand Files'}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setFilesExpanded(!filesExpanded)
+                    }
+                  }}
+                >
+                  <div className="section-header-left">
+                    <ActionButton
+                      quiet
+                      size="s"
+                      aria-label={filesExpanded ? 'Collapse Files' : 'Expand Files'}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setFilesExpanded(!filesExpanded)
+                      }}
+                    >
+                      {filesExpanded ? (
+                        <ChevronDown size={12} slot="icon" />
+                      ) : (
+                        <ChevronRight size={12} slot="icon" />
+                      )}
+                    </ActionButton>
+                    <span className="section-title">Files</span>
+                    <Badge variant="neutral" size="s">
+                      {filesTotal ?? files.length}
+                    </Badge>
+                  </div>
+                </div>
+
+                {filesExpanded && (
+                  <>
+                    {viewMode === 'list' ? (
+                      <div className="item-list">
+                        {files.map((file) => (
+                          <FileItem
+                            key={file.id}
+                            asset={file}
+                            endpoint={endpoint}
+                            onClick={() => {}}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="file-card-list">
+                        {files.map((file) => (
+                          <FileCardItem
+                            key={file.id}
+                            asset={file}
+                            endpoint={endpoint}
+                            onClick={() => {}}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {loadingMoreFiles && (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0' }}>
+                        <ProgressCircle indeterminate size="s" label="Loading more files..." />
+                      </div>
+                    )}
+
+                    {filesHasNext && !loadingMoreFiles && (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0' }}>
+                        <ActionButton quiet size="s" onClick={fetchNextFilesPage}>
+                          Load more files
+                        </ActionButton>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
           </>

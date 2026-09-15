@@ -278,6 +278,47 @@ sp-theme {
   user-select: none;
 }
 
+/* Collapsible Section Headers */
+.section-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.section-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  margin-bottom: 6px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.section-header:hover {
+  opacity: 0.85;
+}
+
+.section-header-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 2px;
+  margin-right: 6px;
+}
+
 /* Card View (Horizontal 2-Column Row Layout) */
 .project-card-list,
 .file-card-list,
