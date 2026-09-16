@@ -133,6 +133,37 @@ type SpStatusLightCustomElementProps = import('react').DetailedHTMLProps<
   slot?: string
 }
 
+type SpProgressCircleCustomElementProps = import('react').DetailedHTMLProps<
+  import('react').HTMLAttributes<HTMLElement>,
+  HTMLElement
+> & {
+  size?: 's' | 'm' | 'l'
+  indeterminate?: boolean
+  label?: string
+  slot?: string
+  'static-color'?: 'white' | string
+}
+
+type SpTopNavCustomElementProps = import('react').DetailedHTMLProps<
+  import('react').HTMLAttributes<HTMLElement>,
+  HTMLElement
+> & {
+  selected?: string
+  quiet?: boolean
+  compact?: boolean
+  label?: string
+}
+
+type SpTopNavItemCustomElementProps = import('react').DetailedHTMLProps<
+  import('react').HTMLAttributes<HTMLElement>,
+  HTMLElement
+> & {
+  value?: string
+  selected?: boolean
+  href?: string
+  disabled?: boolean
+}
+
 declare namespace React {
   namespace JSX {
     interface IntrinsicElements {
@@ -142,6 +173,23 @@ declare namespace React {
       'sp-icon-chevron-right': SpIconCustomElementProps
       'sp-icon-log-out': SpIconCustomElementProps
       'sp-icon-arrow-right': SpIconCustomElementProps
+      'sp-icon-filmstrip': SpIconCustomElementProps
+      'sp-icon-folder': SpIconCustomElementProps
+      'sp-icon-folder-open': SpIconCustomElementProps
+      'sp-icon-audio': SpIconCustomElementProps
+      'sp-icon-image': SpIconCustomElementProps
+      'sp-icon-document': SpIconCustomElementProps
+      'sp-icon-link': SpIconCustomElementProps
+      'sp-icon-unlink': SpIconCustomElementProps
+      'sp-icon-link-out': SpIconCustomElementProps
+      'sp-icon-download': SpIconCustomElementProps
+      'sp-icon-briefcase': SpIconCustomElementProps
+      'sp-icon-alert-circle': SpIconCustomElementProps
+      'sp-icon-alert-triangle': SpIconCustomElementProps
+      'sp-icon-checkmark-circle': SpIconCustomElementProps
+      'sp-icon-close': SpIconCustomElementProps
+      'sp-icon-movie-camera': SpIconCustomElementProps
+      'sp-icon-video-filled': SpIconCustomElementProps
       'sp-button': SpButtonCustomElementProps
       'sp-button-group': SpButtonGroupCustomElementProps
       'sp-action-button': SpActionButtonCustomElementProps
@@ -151,6 +199,9 @@ declare namespace React {
       'sp-menu-divider': SpMenuDividerCustomElementProps
       'sp-menu-group': SpMenuGroupCustomElementProps
       'sp-status-light': SpStatusLightCustomElementProps
+      'sp-progress-circle': SpProgressCircleCustomElementProps
+      'sp-top-nav': SpTopNavCustomElementProps
+      'sp-top-nav-item': SpTopNavItemCustomElementProps
     }
   }
 }
@@ -163,6 +214,23 @@ declare namespace JSX {
     'sp-icon-chevron-right': SpIconCustomElementProps
     'sp-icon-log-out': SpIconCustomElementProps
     'sp-icon-arrow-right': SpIconCustomElementProps
+    'sp-icon-filmstrip': SpIconCustomElementProps
+    'sp-icon-folder': SpIconCustomElementProps
+    'sp-icon-folder-open': SpIconCustomElementProps
+    'sp-icon-audio': SpIconCustomElementProps
+    'sp-icon-image': SpIconCustomElementProps
+    'sp-icon-document': SpIconCustomElementProps
+    'sp-icon-link': SpIconCustomElementProps
+    'sp-icon-unlink': SpIconCustomElementProps
+    'sp-icon-link-out': SpIconCustomElementProps
+    'sp-icon-download': SpIconCustomElementProps
+    'sp-icon-briefcase': SpIconCustomElementProps
+    'sp-icon-alert-circle': SpIconCustomElementProps
+    'sp-icon-alert-triangle': SpIconCustomElementProps
+    'sp-icon-checkmark-circle': SpIconCustomElementProps
+    'sp-icon-close': SpIconCustomElementProps
+    'sp-icon-movie-camera': SpIconCustomElementProps
+    'sp-icon-video-filled': SpIconCustomElementProps
     'sp-button': SpButtonCustomElementProps
     'sp-button-group': SpButtonGroupCustomElementProps
     'sp-action-button': SpActionButtonCustomElementProps
@@ -172,6 +240,9 @@ declare namespace JSX {
     'sp-menu-divider': SpMenuDividerCustomElementProps
     'sp-menu-group': SpMenuGroupCustomElementProps
     'sp-status-light': SpStatusLightCustomElementProps
+    'sp-progress-circle': SpProgressCircleCustomElementProps
+    'sp-top-nav': SpTopNavCustomElementProps
+    'sp-top-nav-item': SpTopNavItemCustomElementProps
   }
 }
 

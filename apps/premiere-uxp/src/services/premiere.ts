@@ -1,4 +1,4 @@
-import type { Project, premierepro } from '@adobe/premierepro'
+import type { Project, Sequence, premierepro } from '@adobe/premierepro'
 
 /**
  * Safely resolves the Premiere Pro host module (`premierepro`).
@@ -56,6 +56,59 @@ export async function getActiveProject(): Promise<Project | null> {
   } catch (err) {
     console.error('Failed to get active project:', err)
     return null
+  }
+}
+
+/**
+ * Retrieves the currently active sequence of the project.
+ */
+export async function getActiveSequence(project?: Project | null): Promise<Sequence | null> {
+  const pr = project || (await getActiveProject())
+  if (!pr) return null
+  try {
+    const seq = await pr.getActiveSequence()
+    return seq || null
+  } catch (err) {
+    console.error('Failed to get active sequence:', err)
+    return null
+  }
+}
+
+/**
+ * Retrieves all sequences in the project.
+ */
+export async function getAllSequences(project?: Project | null): Promise<Sequence[]> {
+  const pr = project || (await getActiveProject())
+  if (!pr) return []
+  try {
+    const seqs = await pr.getSequences()
+    return seqs || []
+  } catch (err) {
+    console.error('Failed to get all sequences:', err)
+    return []
+  }
+}
+
+/**
+ * Opens and activates a sequence in the Premiere Pro timeline.
+ */
+export async function openSequenceInTimeline(
+  sequence: Sequence,
+  project?: Project | null,
+): Promise<boolean> {
+  const pr = project || (await getActiveProject())
+  if (!pr) return false
+  try {
+    const opened = await pr.openSequence(sequence)
+    try {
+      await pr.setActiveSequence(sequence)
+    } catch {
+      // setActiveSequence may not be required if openSequence already focuses it
+    }
+    return opened ?? true
+  } catch (err) {
+    console.error('Failed to open sequence in timeline:', err)
+    return false
   }
 }
 

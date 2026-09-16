@@ -3,9 +3,11 @@ import { getShumaiClient } from '../api/client'
 import { Breadcrumb, BreadcrumbCrumb } from '../components/Breadcrumb'
 import { FileCardItem, AssetSummary } from '../components/FileItem'
 import { ImportVideoDialog } from '../components/ImportVideoDialog'
+import { LinkSequenceDialog } from '../components/LinkSequenceDialog'
+import { getAllSequenceLinksFromCache } from '../services/linkStorage'
+import type { LinkedSequenceAsset } from '../types/link'
 import { importAssetIntoPremiere, type ProxyOption } from '../services/import'
 import { ProjectSummary } from './ProjectsView'
-import { FolderOpen, AlertCircle } from 'lucide-react'
 import { ActionButton } from '@swc-react/action-button'
 import { Button } from '@swc-react/button'
 import { Search } from '@swc-react/search'
@@ -54,6 +56,27 @@ export const FileListView: React.FC<FileListViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [videoForDialog, setVideoForDialog] = useState<AssetSummary | null>(null)
+  const [assetForLinkDialog, setAssetForLinkDialog] = useState<AssetSummary | null>(null)
+  const [linkedAssetsMap, setLinkedAssetsMap] = useState<Record<string, LinkedSequenceAsset>>({})
+
+  // Load cached sequence links on mount
+  useEffect(() => {
+    const cachedLinks = getAllSequenceLinksFromCache()
+    const map: Record<string, LinkedSequenceAsset> = {}
+    for (const link of cachedLinks) {
+      map[link.assetId] = link
+    }
+    setLinkedAssetsMap(map)
+  }, [])
+
+  const refreshLinkedAssets = useCallback(() => {
+    const cachedLinks = getAllSequenceLinksFromCache()
+    const map: Record<string, LinkedSequenceAsset> = {}
+    for (const link of cachedLinks) {
+      map[link.assetId] = link
+    }
+    setLinkedAssetsMap(map)
+  }, [])
 
   // Import task state
   const [importStatus, setImportStatus] = useState<{
@@ -432,7 +455,10 @@ export const FileListView: React.FC<FileListViewProps> = ({
         {error && !loading && (
           <div className="state-container">
             <IllustratedMessage heading="Error loading folder" description={error}>
-              <AlertCircle size={36} style={{ color: 'var(--accent-red)' }} />
+              <sp-icon-alert-circle
+                size="xxl"
+                style={{ color: 'var(--accent-red)' }}
+              ></sp-icon-alert-circle>
             </IllustratedMessage>
             {currentFolderId && (
               <Button
@@ -456,7 +482,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
                   : 'No files or subfolders found in this directory.'
               }
             >
-              <FolderOpen size={36} color="#999999" />
+              <sp-icon-folder-open size="xxl" style={{ color: '#999999' }}></sp-icon-folder-open>
             </IllustratedMessage>
           </div>
         )}
@@ -585,6 +611,9 @@ export const FileListView: React.FC<FileListViewProps> = ({
                           onClick={() => {}}
                           onImportRaw={handleImportRaw}
                           onSelectVideoForImport={setVideoForDialog}
+                          onLinkSequence={setAssetForLinkDialog}
+                          isLinked={Boolean(linkedAssetsMap[file.id])}
+                          linkedSequenceName={linkedAssetsMap[file.id]?.sequenceName}
                         />
                       ))}
                     </div>
@@ -619,6 +648,24 @@ export const FileListView: React.FC<FileListViewProps> = ({
         onClose={() => setVideoForDialog(null)}
         onImportRaw={handleImportRaw}
         onImportProxy={handleImportProxy}
+      />
+
+      {/* Sequence Linking Modal Dialog */}
+      <LinkSequenceDialog
+        asset={assetForLinkDialog}
+        endpoint={endpoint}
+        apiKey={apiKey}
+        isOpen={assetForLinkDialog != null}
+        onClose={() => setAssetForLinkDialog(null)}
+        onLinkSuccess={(newLink, addedCount) => {
+          refreshLinkedAssets()
+          setImportStatus({
+            id: Date.now().toString(),
+            fileName: newLink.assetName,
+            status: 'success',
+            message: `Linked to "${newLink.sequenceName}". Synced ${addedCount} comment ${addedCount === 1 ? 'marker' : 'markers'}.`,
+          })
+        }}
       />
 
       {/* Toast Notification for Import Progress & Status */}

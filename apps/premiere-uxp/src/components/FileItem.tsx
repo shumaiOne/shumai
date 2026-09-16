@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { Folder, Film, Music, Image, FileText, Download } from 'lucide-react'
 import { formatDateAgo } from '../utils/date'
 import { formatBytes, formatDuration } from '../utils/format'
 import { resolveAssetUrl } from '../utils/url'
@@ -59,6 +58,9 @@ export interface FileItemProps {
   onClick: (e: React.MouseEvent) => void
   onImportRaw?: (asset: AssetSummary) => void
   onSelectVideoForImport?: (asset: AssetSummary) => void
+  onLinkSequence?: (asset: AssetSummary) => void
+  isLinked?: boolean
+  linkedSequenceName?: string
 }
 
 export function getFileTypeCategory(
@@ -87,6 +89,9 @@ export const FileItem: React.FC<FileItemProps> = ({
   onClick,
   onImportRaw,
   onSelectVideoForImport,
+  onLinkSequence,
+  isLinked = false,
+  linkedSequenceName,
 }) => {
   const [imgError, setImgError] = useState(false)
   const category = getFileTypeCategory(asset)
@@ -98,12 +103,20 @@ export const FileItem: React.FC<FileItemProps> = ({
   const iconFallback = (
     <div className={`item-icon ${category}`}>
       {category === 'folder' && (
-        <Folder size={16} color="#fbbf24" fill="#fbbf24" fillOpacity={0.2} />
+        <sp-icon-folder size="s" style={{ color: '#fbbf24' }}></sp-icon-folder>
       )}
-      {category === 'video' && <Film size={16} color="#60a5fa" />}
-      {category === 'audio' && <Music size={16} color="#a78bfa" />}
-      {category === 'image' && <Image size={16} color="#f472b6" />}
-      {category === 'file' && <FileText size={16} color="#999999" />}
+      {category === 'video' && (
+        <sp-icon-filmstrip size="s" style={{ color: '#60a5fa' }}></sp-icon-filmstrip>
+      )}
+      {category === 'audio' && (
+        <sp-icon-audio size="s" style={{ color: '#a78bfa' }}></sp-icon-audio>
+      )}
+      {category === 'image' && (
+        <sp-icon-image size="s" style={{ color: '#f472b6' }}></sp-icon-image>
+      )}
+      {category === 'file' && (
+        <sp-icon-document size="s" style={{ color: '#999999' }}></sp-icon-document>
+      )}
     </div>
   )
 
@@ -175,22 +188,51 @@ export const FileItem: React.FC<FileItemProps> = ({
         )}
         {isFolder ? (
           <sp-icon-chevron-right size="xs"></sp-icon-chevron-right>
-        ) : onImportRaw || onSelectVideoForImport ? (
-          <sp-action-button
-            quiet
-            size="xs"
-            icon-only
-            label="Import into Premiere Pro"
-            title="Import into Premiere Pro"
-            className="item-row-import-btn"
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation()
-              handleImportAction()
-            }}
-          >
-            <Download size={13} slot="icon" />
-          </sp-action-button>
-        ) : null}
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {onLinkSequence && (category === 'video' || category === 'audio') && (
+              <sp-action-button
+                quiet
+                size="xs"
+                icon-only
+                label={
+                  isLinked ? `Linked to ${linkedSequenceName || 'Sequence'}` : 'Link to Sequence'
+                }
+                title={
+                  isLinked ? `Linked to ${linkedSequenceName || 'Sequence'}` : 'Link to Sequence'
+                }
+                className="item-row-link-btn"
+                style={{ marginRight: 4 }}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation()
+                  onLinkSequence(asset)
+                }}
+              >
+                <sp-icon-link
+                  size="s"
+                  slot="icon"
+                  style={isLinked ? { color: '#3b82f6' } : undefined}
+                ></sp-icon-link>
+              </sp-action-button>
+            )}
+            {(onImportRaw || onSelectVideoForImport) && (
+              <sp-action-button
+                quiet
+                size="xs"
+                icon-only
+                label="Import into Premiere Pro"
+                title="Import into Premiere Pro"
+                className="item-row-import-btn"
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation()
+                  handleImportAction()
+                }}
+              >
+                <sp-icon-download size="s" slot="icon"></sp-icon-download>
+              </sp-action-button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -203,6 +245,9 @@ export const FileCardItem: React.FC<FileItemProps> = ({
   onClick,
   onImportRaw,
   onSelectVideoForImport,
+  onLinkSequence,
+  isLinked = false,
+  linkedSequenceName,
 }) => {
   const [imgError, setImgError] = useState(false)
   const category = getFileTypeCategory(asset)
@@ -217,12 +262,20 @@ export const FileCardItem: React.FC<FileItemProps> = ({
   const cardFallback = (
     <div className={`file-row-placeholder ${category}`}>
       {category === 'folder' && (
-        <Folder size={28} color="#fbbf24" fill="#fbbf24" fillOpacity={0.2} />
+        <sp-icon-folder size="l" style={{ color: '#fbbf24' }}></sp-icon-folder>
       )}
-      {category === 'video' && <Film size={28} color="#60a5fa" />}
-      {category === 'audio' && <Music size={28} color="#a78bfa" />}
-      {category === 'image' && <Image size={28} color="#f472b6" />}
-      {category === 'file' && <FileText size={28} color="#999999" />}
+      {category === 'video' && (
+        <sp-icon-filmstrip size="l" style={{ color: '#60a5fa' }}></sp-icon-filmstrip>
+      )}
+      {category === 'audio' && (
+        <sp-icon-audio size="l" style={{ color: '#a78bfa' }}></sp-icon-audio>
+      )}
+      {category === 'image' && (
+        <sp-icon-image size="l" style={{ color: '#f472b6' }}></sp-icon-image>
+      )}
+      {category === 'file' && (
+        <sp-icon-document size="l" style={{ color: '#999999' }}></sp-icon-document>
+      )}
     </div>
   )
 
@@ -256,6 +309,9 @@ export const FileCardItem: React.FC<FileItemProps> = ({
   }
   if (asset.commentsCount != null && asset.commentsCount > 0) {
     details.push(`${asset.commentsCount} ${asset.commentsCount === 1 ? 'comment' : 'comments'}`)
+  }
+  if (isLinked) {
+    details.push(`Linked: ${linkedSequenceName || 'Sequence'}`)
   }
 
   return (
@@ -323,25 +379,54 @@ export const FileCardItem: React.FC<FileItemProps> = ({
       </div>
 
       {/* Far Right Action Column (Centered Vertically across the card) */}
-      <div className="file-row-actions">
+      <div className="file-row-actions" style={{ display: 'flex', alignItems: 'center' }}>
         {isFolder ? (
           <sp-icon-chevron-right size="xs" className="file-row-chevron"></sp-icon-chevron-right>
-        ) : onImportRaw || onSelectVideoForImport ? (
-          <sp-action-button
-            quiet
-            size="xs"
-            icon-only
-            label="Import into Premiere Pro"
-            title="Import into Premiere Pro"
-            className="file-row-import-btn"
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation()
-              handleImportAction()
-            }}
-          >
-            <Download size={13} slot="icon" />
-          </sp-action-button>
-        ) : null}
+        ) : (
+          <>
+            {onLinkSequence && (category === 'video' || category === 'audio') && (
+              <sp-action-button
+                quiet
+                size="xs"
+                icon-only
+                label={
+                  isLinked ? `Linked to ${linkedSequenceName || 'Sequence'}` : 'Link to Sequence'
+                }
+                title={
+                  isLinked ? `Linked to ${linkedSequenceName || 'Sequence'}` : 'Link to Sequence'
+                }
+                className="file-row-link-btn"
+                style={{ marginRight: 4 }}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation()
+                  onLinkSequence(asset)
+                }}
+              >
+                <sp-icon-link
+                  size="s"
+                  slot="icon"
+                  style={isLinked ? { color: '#3b82f6' } : undefined}
+                ></sp-icon-link>
+              </sp-action-button>
+            )}
+            {(onImportRaw || onSelectVideoForImport) && (
+              <sp-action-button
+                quiet
+                size="xs"
+                icon-only
+                label="Import into Premiere Pro"
+                title="Import into Premiere Pro"
+                className="file-row-import-btn"
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation()
+                  handleImportAction()
+                }}
+              >
+                <sp-icon-download size="s" slot="icon"></sp-icon-download>
+              </sp-action-button>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

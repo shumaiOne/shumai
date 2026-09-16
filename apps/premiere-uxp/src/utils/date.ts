@@ -1,6 +1,7 @@
-export function formatDateAgo(dateInput?: string | Date | null): string {
+export function formatDateAgo(dateInput?: string | number | Date | null): string {
   if (!dateInput) return ''
-  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
+  const date =
+    typeof dateInput === 'string' || typeof dateInput === 'number' ? new Date(dateInput) : dateInput
   if (isNaN(date.getTime())) return ''
 
   const now = new Date()

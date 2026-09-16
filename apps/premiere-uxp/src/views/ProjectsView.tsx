@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getShumaiClient } from '../api/client'
 import { ProjectCard } from '../components/ProjectCard'
-import { Briefcase, AlertCircle } from 'lucide-react'
 import { Button } from '@swc-react/button'
 import { ProgressCircle } from '@swc-react/progress-circle'
 import { IllustratedMessage } from '@swc-react/illustrated-message'
@@ -115,7 +114,10 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
         {error && !loading && (
           <div className="state-container">
             <IllustratedMessage heading="Error loading projects" description={error}>
-              <AlertCircle size={36} style={{ color: 'var(--accent-red)' }} />
+              <sp-icon-alert-circle
+                size="xxl"
+                style={{ color: 'var(--accent-red)' }}
+              ></sp-icon-alert-circle>
             </IllustratedMessage>
             <Button variant="secondary" onClick={fetchProjects} style={{ marginTop: '12px' }}>
               Try Again
@@ -129,7 +131,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
               heading="No projects found"
               description="Create a project in your Shumai workspace to get started."
             >
-              <Briefcase size={36} color="#999999" />
+              <sp-icon-briefcase size="xxl" style={{ color: '#999999' }}></sp-icon-briefcase>
             </IllustratedMessage>
           </div>
         )}

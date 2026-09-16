@@ -51,7 +51,6 @@
     "@swc-uxp-wrappers/textfield": "2.0.0",
     "@swc-uxp-wrappers/utils": "2.0.1",
     "hono": "4.13.5",
-    "lucide-react": "1.41.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },

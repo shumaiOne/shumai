@@ -8,7 +8,7 @@ import {
   getPremiereModule,
   getUxpModule,
 } from './premiere'
-import type { Project } from '@adobe/premierepro'
+import type { Project, Sequence } from '@adobe/premierepro'
 
 describe('premiere service', () => {
   beforeEach(() => {
@@ -200,6 +200,49 @@ describe('premiere service', () => {
       const dummyBuffer = new ArrayBuffer(16)
       await writeBinaryFile(mockFile, dummyBuffer)
       expect(mockFile.write).toHaveBeenCalledWith(dummyBuffer, { format: 'binary-format-token' })
+    })
+  })
+
+  describe('sequence functions', () => {
+    it('getActiveSequence returns active sequence from project', async () => {
+      const { getActiveSequence } = await import('./premiere')
+      const mockSeq = { name: 'Seq 1', guid: 'guid-1' }
+      const mockProject = {
+        getActiveSequence: vi.fn().mockResolvedValue(mockSeq),
+      }
+
+      const seq = await getActiveSequence(mockProject as unknown as Project)
+      expect(seq).toBe(mockSeq)
+    })
+
+    it('getAllSequences returns array of sequences', async () => {
+      const { getAllSequences } = await import('./premiere')
+      const mockSeq1 = { name: 'Seq 1', guid: 'guid-1' }
+      const mockSeq2 = { name: 'Seq 2', guid: 'guid-2' }
+      const mockProject = {
+        getSequences: vi.fn().mockResolvedValue([mockSeq1, mockSeq2]),
+      }
+
+      const seqs = await getAllSequences(mockProject as unknown as Project)
+      expect(seqs).toHaveLength(2)
+      expect(seqs[0].name).toBe('Seq 1')
+    })
+
+    it('openSequenceInTimeline opens and activates sequence', async () => {
+      const { openSequenceInTimeline } = await import('./premiere')
+      const mockSeq = { name: 'Seq 1', guid: 'guid-1' }
+      const mockProject = {
+        openSequence: vi.fn().mockResolvedValue(true),
+        setActiveSequence: vi.fn().mockResolvedValue(true),
+      }
+
+      const result = await openSequenceInTimeline(
+        mockSeq as unknown as Sequence,
+        mockProject as unknown as Project,
+      )
+      expect(result).toBe(true)
+      expect(mockProject.openSequence).toHaveBeenCalledWith(mockSeq)
+      expect(mockProject.setActiveSequence).toHaveBeenCalledWith(mockSeq)
     })
   })
 })

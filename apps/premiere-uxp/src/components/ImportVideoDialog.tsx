@@ -3,7 +3,7 @@ import type { AssetSummary } from './FileItem'
 import { fetchVideoProxies, type ProxyOption } from '../services/import'
 import { formatBytes, formatDuration } from '../utils/format'
 import { resolveAssetUrl } from '../utils/url'
-import { Film, File, X, Loader2 } from 'lucide-react'
+import { ProgressCircle } from '@swc-react/progress-circle'
 
 export interface ImportVideoDialogProps {
   asset: AssetSummary | null
@@ -124,7 +124,7 @@ export const ImportVideoDialog: React.FC<ImportVideoDialogProps> = ({
             title="Close dialog"
             aria-label="Close dialog"
           >
-            <X size={14} />
+            <sp-icon-close size="s"></sp-icon-close>
           </button>
         </div>
 
@@ -134,7 +134,7 @@ export const ImportVideoDialog: React.FC<ImportVideoDialogProps> = ({
             {thumbUrl && !thumbError ? (
               <img src={thumbUrl} alt={asset.name} onError={() => setThumbError(true)} />
             ) : (
-              <Film size={18} color="#60a5fa" />
+              <sp-icon-filmstrip size="m" style={{ color: '#60a5fa' }}></sp-icon-filmstrip>
             )}
           </div>
           <div className="shumai-dialog-asset-meta">
@@ -167,7 +167,11 @@ export const ImportVideoDialog: React.FC<ImportVideoDialogProps> = ({
             }}
           >
             <div className="shumai-option-left">
-              <File size={16} className="shumai-option-icon" color="#60a5fa" />
+              <sp-icon-document
+                size="s"
+                className="shumai-option-icon"
+                style={{ color: '#60a5fa' }}
+              ></sp-icon-document>
               <div className="shumai-option-texts">
                 <span className="shumai-option-title">Original File</span>
                 <span className="shumai-option-meta">
@@ -187,7 +191,7 @@ export const ImportVideoDialog: React.FC<ImportVideoDialogProps> = ({
 
           {loadingProxies ? (
             <div className="shumai-dialog-loading">
-              <Loader2 size={14} className="spin" />
+              <ProgressCircle indeterminate size="s" label="Checking available proxies..." />
               <span>Checking available proxies...</span>
             </div>
           ) : proxies.length > 0 ? (
@@ -209,7 +213,11 @@ export const ImportVideoDialog: React.FC<ImportVideoDialogProps> = ({
                   }}
                 >
                   <div className="shumai-option-left">
-                    <Film size={16} className="shumai-option-icon" color="#a78bfa" />
+                    <sp-icon-filmstrip
+                      size="s"
+                      className="shumai-option-icon"
+                      style={{ color: '#a78bfa' }}
+                    ></sp-icon-filmstrip>
                     <div className="shumai-option-texts">
                       <span className="shumai-option-title">{proxy.label}</span>
                       <span className="shumai-option-meta">

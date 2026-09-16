@@ -7,6 +7,12 @@
 - **Package Versions**: Keep SWC packages aligned at version `0.37.0` (matching Adobe UXP compatibility).
 - **Bundler Aliases**: `build.ts` uses `swcAliasPlugin` with `aliases` from `@swc-uxp-wrappers/utils` to resolve internal SWC imports for Bun.
 
+## Icons
+
+- **Always use Spectrum Workflow Icons (`@spectrum-web-components/icons-workflow`)**: Never use external icon libraries like `lucide-react`.
+- **Registration**: All workflow icons used must be imported and registered in `src/index.tsx` (e.g. `import '@spectrum-web-components/icons-workflow/icons/sp-icon-movie-camera.js'`). Note: Ensure the icon exists in `@spectrum-web-components/icons-workflow/icons/` (Spectrum 1 compatible) rather than only `icons-s2/` (which falls back to an empty circular DefaultIcon under Spectrum 1).
+- **Typing**: Add custom element declarations to `src/declarations.d.ts` under both `declare namespace React.JSX` and `declare global.JSX.IntrinsicElements` with `SpIconCustomElementProps`.
+
 ## Adobe UXP Layout Engine Rules (Critical CSS Gotchas)
 
 Adobe UXP's layout engine (Yoga-based) does **not** support several standard modern CSS features:

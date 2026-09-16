@@ -1,6 +1,5 @@
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { getDerivedArtifactDirectory, stemFromKey } from '@shumai/core/src/utils/filename'
-import { mapConcurrent } from '../utils/async'
 import { prisma, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
 import { execFile } from 'child_process'
@@ -12,6 +11,7 @@ import PDFDocument from 'pdfkit'
 import sharp from 'sharp'
 import { ulid } from 'ulid'
 import { promisify } from 'util'
+import { mapConcurrent } from '../utils/async'
 import { dataFormatNames } from './dataFormatNames'
 
 const execFileAsync = promisify(execFile)
