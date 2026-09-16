@@ -16,7 +16,7 @@
     "network": {
       "domains": "all"
     },
-    "localFileSystem": "fullAccess",
+    "localFileSystem": "request",
     "clipboard": "readAndWrite"
   },
   "entrypoints": [

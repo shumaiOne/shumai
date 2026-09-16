@@ -87,12 +87,7 @@ describe('premiere service', () => {
 
       const success = await importFilesIntoProject(project, ['/path/to/video.mp4'])
       expect(success).toBe(true)
-      expect(project.importFiles).toHaveBeenCalledWith(
-        ['/path/to/video.mp4'],
-        true,
-        undefined,
-        false,
-      )
+      expect(project.importFiles).toHaveBeenCalledWith(['/path/to/video.mp4'], true, null, false)
     })
 
     it('handles import error gracefully', async () => {

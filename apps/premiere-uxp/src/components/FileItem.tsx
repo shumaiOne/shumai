@@ -174,6 +174,7 @@ export const FileItem: React.FC<FileItemProps> = ({
           <sp-action-button
             quiet
             size="xs"
+            icon-only
             label="Import into Premiere Pro"
             title="Import into Premiere Pro"
             className="item-row-import-btn"
@@ -286,23 +287,6 @@ export const FileCardItem: React.FC<FileItemProps> = ({
           <span className="file-row-title" title={asset.name}>
             {asset.name}
           </span>
-          {isFolder ? (
-            <sp-icon-chevron-right size="xs" className="file-row-chevron"></sp-icon-chevron-right>
-          ) : onImportRaw || onSelectVideoForImport ? (
-            <sp-action-button
-              quiet
-              size="xs"
-              label="Import into Premiere Pro"
-              title="Import into Premiere Pro"
-              className="file-row-import-btn"
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation()
-                handleImportAction()
-              }}
-            >
-              <Download size={13} slot="icon" />
-            </sp-action-button>
-          ) : null}
         </div>
 
         {(creatorName || updatedText) && (
@@ -331,6 +315,28 @@ export const FileCardItem: React.FC<FileItemProps> = ({
             ))}
           </div>
         )}
+      </div>
+
+      {/* Far Right Action Column (Centered Vertically across the card) */}
+      <div className="file-row-actions">
+        {isFolder ? (
+          <sp-icon-chevron-right size="xs" className="file-row-chevron"></sp-icon-chevron-right>
+        ) : onImportRaw || onSelectVideoForImport ? (
+          <sp-action-button
+            quiet
+            size="xs"
+            icon-only
+            label="Import into Premiere Pro"
+            title="Import into Premiere Pro"
+            className="file-row-import-btn"
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation()
+              handleImportAction()
+            }}
+          >
+            <Download size={13} slot="icon" />
+          </sp-action-button>
+        ) : null}
       </div>
     </div>
   )

@@ -71,7 +71,8 @@ export async function importFilesIntoProject(
     return await project.importFiles(
       filePaths,
       true, // suppressUI
-      undefined, // targetBin (undefined defaults to project root)
+      // @ts-expect-error Premiere Pro UXP requires null instead of undefined to default to project root
+      null, // targetBin; `null` defaults to project root
       false, // asNumberedStills
     )
   } catch (err) {

@@ -178,17 +178,7 @@ export async function importAssetIntoPremiere({
     defaultFileName = `${baseName}_proxy_${resTag}.mp4`
   }
 
-  // 3. Open native save picker
-  const saveFile = await promptSaveFile(defaultFileName)
-  if (!saveFile) {
-    return {
-      success: false,
-      cancelled: true,
-      message: 'Import cancelled by user.',
-    }
-  }
-
-  // 4. Resolve download URL
+  // 3. Resolve download URL first to fail fast before creating empty file on disk
   onProgress?.(`Preparing download link for ${defaultFileName}...`)
   let downloadUrl: string
   if (type === 'raw') {
@@ -199,6 +189,16 @@ export async function importAssetIntoPremiere({
       throw new Error('Proxy URL not available.')
     }
     downloadUrl = proxyItem.url
+  }
+
+  // 4. Open native save picker
+  const saveFile = await promptSaveFile(defaultFileName)
+  if (!saveFile) {
+    return {
+      success: false,
+      cancelled: true,
+      message: 'Import cancelled by user.',
+    }
   }
 
   // 5. Download binary data

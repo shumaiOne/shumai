@@ -163,10 +163,26 @@ describe('import service', () => {
       expect(result.message).toContain('Please open or create a project')
     })
 
-    it('returns cancelled when user cancels file picker', async () => {
+    it('returns cancelled when user cancels file picker after URL resolution', async () => {
       // Mocking incomplete Premiere Project object in unit test
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.spyOn(premiereModule, 'getActiveProject').mockResolvedValue({} as any)
+      vi.spyOn(clientModule, 'getShumaiClient').mockReturnValue({
+        api: {
+          files: {
+            'download-links': {
+              $post: vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                  files: [{ id: 'asset-1', name: 'Sample.mov', url: 'https://s3.example.com/raw' }],
+                }),
+              }),
+            },
+          },
+        },
+        // Partial mock of Hono client for unit test isolation
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
       vi.spyOn(premiereModule, 'promptSaveFile').mockResolvedValue(null)
 
       const result = await importAssetIntoPremiere({
@@ -178,6 +194,41 @@ describe('import service', () => {
 
       expect(result.success).toBe(false)
       expect(result.cancelled).toBe(true)
+      expect(premiereModule.promptSaveFile).toHaveBeenCalledWith('Sample.mov')
+    })
+
+    it('fails before opening file picker if download link resolution fails', async () => {
+      // Mocking incomplete Premiere Project object in unit test
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(premiereModule, 'getActiveProject').mockResolvedValue({} as any)
+      vi.spyOn(clientModule, 'getShumaiClient').mockReturnValue({
+        api: {
+          files: {
+            'download-links': {
+              $post: vi.fn().mockResolvedValue({
+                ok: false,
+                status: 401,
+                json: async () => ({ error: 'Unauthorized: Invalid API Key' }),
+              }),
+            },
+          },
+        },
+        // Partial mock of Hono client for unit test isolation
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+      const promptSpy = vi.spyOn(premiereModule, 'promptSaveFile')
+
+      await expect(
+        importAssetIntoPremiere({
+          endpoint: 'http://test',
+          apiKey: 'key',
+          asset: mockAsset,
+          type: 'raw',
+        }),
+      ).rejects.toThrow('Unauthorized: Invalid API Key')
+
+      // Ensure save picker is never triggered if auth/link resolution fails
+      expect(promptSpy).not.toHaveBeenCalled()
     })
 
     it('downloads and imports file successfully', async () => {

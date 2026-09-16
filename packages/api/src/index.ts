@@ -45,6 +45,8 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .use('/projects/*', tokenAuthMiddleware)
   .use('/folders', tokenAuthMiddleware)
   .use('/folders/*', tokenAuthMiddleware)
+  .use('/files', tokenAuthMiddleware)
+  .use('/files/*', tokenAuthMiddleware)
   .use('/teams/:teamId/upload/tasks', tokenAuthMiddleware)
   .use('/teams/:teamId/upload/tasks/*', tokenAuthMiddleware)
 

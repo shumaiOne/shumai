@@ -1086,16 +1086,41 @@ sp-button[icon-only] sp-icon-arrow-right {
 }
 
 /* Import Action Button on File Cards */
+.file-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0 4px;
+}
+
 .file-row-import-btn,
 .item-row-import-btn {
   opacity: 0.7;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-row-import-btn {
+  margin-left: 0;
+}
+
+.item-row-import-btn {
   margin-left: 6px;
 }
 
 .file-row-card:hover .file-row-import-btn,
 .item-row:hover .item-row-import-btn {
   opacity: 1;
+}
+
+sp-action-button[icon-only] svg.lucide,
+sp-action-button[icon-only] .lucide {
+  margin: auto;
+  display: inline-flex;
 }
 
 /* Modal Dialog for Video Import */
