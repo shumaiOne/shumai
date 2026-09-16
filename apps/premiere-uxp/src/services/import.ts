@@ -46,24 +46,69 @@ export async function resolveRawDownloadUrl(
   endpoint: string,
   apiKey: string,
   assetId: string,
+  knownAsset?: AssetSummary,
 ): Promise<{ url: string; name?: string }> {
   const client = getShumaiClient(endpoint, apiKey)
-  const res = await client.api.files['download-links'].$post({
+
+  // 1. If original key is known directly from asset summary, presign via download-url endpoint
+  const directKey = knownAsset?.media?.original?.key
+  if (directKey) {
+    try {
+      const res = await client.api.files['download-url']?.$post({
+        json: { key: directKey, assetId },
+      })
+      if (res?.ok) {
+        const data = await res.json()
+        if (data.url) {
+          return { url: data.url, name: knownAsset?.name }
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to resolve download URL via known key:', err)
+    }
+  }
+
+  // 2. Fetch full asset details via GET /api/files/:fileId to get the original media key
+  try {
+    const detailRes = await client.api.files[':fileId']?.$get({
+      param: { fileId: assetId },
+    })
+    if (detailRes?.ok) {
+      const assetData = await detailRes.json()
+      const originalKey = assetData.media?.original?.key
+      if (originalKey) {
+        const urlRes = await client.api.files['download-url']?.$post({
+          json: { key: originalKey, assetId },
+        })
+        if (urlRes?.ok) {
+          const urlData = await urlRes.json()
+          if (urlData.url) {
+            return { url: urlData.url, name: assetData.name || knownAsset?.name }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch asset details for download URL:', err)
+  }
+
+  // 3. Fallback to POST /api/files/download-links batch resolution
+  const res = await client.api.files['download-links']?.$post({
     json: { ids: [assetId] },
   })
 
-  if (!res.ok) {
+  if (res?.ok) {
+    const data = await res.json()
+    const file = data.files?.[0]
+    if (file?.url) {
+      return { url: file.url, name: file.name || knownAsset?.name }
+    }
+  } else if (res) {
     const errData = (await res.json().catch(() => ({}))) as { error?: string }
     throw new Error(errData.error || `Failed to get download link (${res.status})`)
   }
 
-  const data = await res.json()
-  const file = data.files?.[0]
-  if (!file?.url) {
-    throw new Error('No download URL returned from server.')
-  }
-
-  return { url: file.url, name: file.name }
+  throw new Error('No download URL returned from server.')
 }
 
 /**
@@ -182,7 +227,7 @@ export async function importAssetIntoPremiere({
   onProgress?.(`Preparing download link for ${defaultFileName}...`)
   let downloadUrl: string
   if (type === 'raw') {
-    const rawInfo = await resolveRawDownloadUrl(endpoint, apiKey, asset.id)
+    const rawInfo = await resolveRawDownloadUrl(endpoint, apiKey, asset.id, asset)
     downloadUrl = rawInfo.url
   } else {
     if (!proxyItem?.url) {

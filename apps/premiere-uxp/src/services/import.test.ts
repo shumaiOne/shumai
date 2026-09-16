@@ -46,7 +46,84 @@ describe('import service', () => {
   })
 
   describe('resolveRawDownloadUrl', () => {
-    it('resolves download URL from download-links endpoint', async () => {
+    it('resolves directly via download-url when original key is in knownAsset', async () => {
+      const mockDownloadUrlPost = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ url: 'https://s3.example.com/direct-raw.mp4' }),
+      })
+
+      vi.spyOn(clientModule, 'getShumaiClient').mockReturnValue({
+        api: {
+          files: {
+            'download-url': {
+              $post: mockDownloadUrlPost,
+            },
+          },
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      const knownAsset: AssetSummary = {
+        id: 'file-1',
+        name: 'direct-raw.mp4',
+        type: 'file',
+        media: {
+          original: {
+            key: 'files/test/direct-raw.mp4',
+          },
+        },
+      }
+
+      const result = await resolveRawDownloadUrl('http://test', 'key', 'file-1', knownAsset)
+      expect(result.url).toBe('https://s3.example.com/direct-raw.mp4')
+      expect(result.name).toBe('direct-raw.mp4')
+      expect(mockDownloadUrlPost).toHaveBeenCalledWith({
+        json: { key: 'files/test/direct-raw.mp4', assetId: 'file-1' },
+      })
+    })
+
+    it('resolves via GET :fileId and download-url when not in knownAsset', async () => {
+      const mockGet = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'file-1',
+          name: 'remote-video.mp4',
+          media: {
+            original: {
+              key: 'files/remote/video.mp4',
+            },
+          },
+        }),
+      })
+      const mockDownloadUrlPost = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ url: 'https://s3.example.com/presigned-remote.mp4' }),
+      })
+
+      vi.spyOn(clientModule, 'getShumaiClient').mockReturnValue({
+        api: {
+          files: {
+            ':fileId': {
+              $get: mockGet,
+            },
+            'download-url': {
+              $post: mockDownloadUrlPost,
+            },
+          },
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      const result = await resolveRawDownloadUrl('http://test', 'key', 'file-1')
+      expect(result.url).toBe('https://s3.example.com/presigned-remote.mp4')
+      expect(result.name).toBe('remote-video.mp4')
+      expect(mockGet).toHaveBeenCalledWith({ param: { fileId: 'file-1' } })
+      expect(mockDownloadUrlPost).toHaveBeenCalledWith({
+        json: { key: 'files/remote/video.mp4', assetId: 'file-1' },
+      })
+    })
+
+    it('falls back to download-links endpoint when download-url is unavailable', async () => {
       const mockPost = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -72,7 +149,7 @@ describe('import service', () => {
       expect(mockPost).toHaveBeenCalledWith({ json: { ids: ['file-1'] } })
     })
 
-    it('throws error when endpoint fails', async () => {
+    it('throws error when all resolution methods fail', async () => {
       vi.spyOn(clientModule, 'getShumaiClient').mockReturnValue({
         api: {
           files: {

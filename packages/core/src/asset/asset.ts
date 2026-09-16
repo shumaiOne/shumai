@@ -2383,6 +2383,7 @@ export class AssetService {
     const assets = await this.prismaClient.asset.findMany({
       where: { id: { in: assetIds }, isDeleted: false },
       select: {
+        id: true,
         projectId: true,
         type: true,
         target: { select: { projectId: true } },
@@ -2394,6 +2395,16 @@ export class AssetService {
       let projId = asset.projectId
       if (asset.type === 'symlink' && asset.target?.projectId) {
         projId = asset.target.projectId
+      }
+      if (!projId) {
+        try {
+          const ctx = await this.getAssetContext(asset.id)
+          if (ctx.projectId) {
+            projId = ctx.projectId
+          }
+        } catch {
+          // ignore if no team/project context
+        }
       }
       if (projId) {
         projectIds.add(projId)

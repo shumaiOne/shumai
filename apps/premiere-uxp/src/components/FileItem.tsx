@@ -33,6 +33,11 @@ export interface AssetSummary {
     proxyType?: string | null
   } | null
   media?: {
+    original?: {
+      key?: string
+      filesizeInBytes?: number
+      codec?: string
+    } | null
     metadata?: {
       duration?: number
     }
