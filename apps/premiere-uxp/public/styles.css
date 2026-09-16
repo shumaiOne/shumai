@@ -1085,27 +1085,241 @@ sp-button[icon-only] sp-icon-arrow-right {
   transform-origin: center;
 }
 
-/* Action Menu & Menu Sections */
-.file-row-action-menu,
-.item-row-action-menu {
+/* Import Action Button on File Cards */
+.file-row-import-btn,
+.item-row-import-btn {
   opacity: 0.7;
   flex-shrink: 0;
   margin-left: 6px;
 }
 
-.file-row-card:hover .file-row-action-menu,
-.item-row:hover .item-row-action-menu {
+.file-row-card:hover .file-row-import-btn,
+.item-row:hover .item-row-import-btn {
   opacity: 1;
 }
 
-.shumai-menu-section-header {
-  display: block;
+/* Modal Dialog for Video Import */
+.shumai-dialog-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+.shumai-dialog {
+  background-color: #262626;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.shumai-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.shumai-dialog-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.shumai-dialog-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shumai-dialog-close:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.shumai-dialog-asset-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background-color: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.shumai-dialog-thumb {
+  width: 48px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background-color: #000000;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shumai-dialog-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shumai-dialog-asset-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.shumai-dialog-asset-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shumai-dialog-asset-details {
   font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.shumai-dialog-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.shumai-dialog-section-label {
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-secondary);
-  padding: 4px 10px 2px;
+  margin-bottom: 2px;
+}
+
+.shumai-option-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.shumai-option-card:hover {
+  background-color: var(--bg-hover);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.shumai-option-card.selected {
+  background-color: rgba(59, 130, 246, 0.15);
+  border-color: var(--accent-blue);
+}
+
+.shumai-option-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.shumai-option-icon {
+  flex-shrink: 0;
+}
+
+.shumai-option-texts {
+  display: flex;
+  flex-direction: column;
+}
+
+.shumai-option-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.shumai-option-meta {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 1px;
+}
+
+.shumai-option-radio {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shumai-option-card.selected .shumai-option-radio {
+  border-color: var(--accent-blue);
+  background-color: var(--accent-blue);
+}
+
+.shumai-option-card.selected .shumai-option-radio-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #ffffff;
+}
+
+.shumai-dialog-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 4px 0;
+}
+
+.shumai-dialog-loading,
+.shumai-dialog-empty-proxies {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 6px 4px;
+}
+
+.shumai-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-color);
+  background-color: rgba(0, 0, 0, 0.15);
 }
 
 /* Import Toast Notification */

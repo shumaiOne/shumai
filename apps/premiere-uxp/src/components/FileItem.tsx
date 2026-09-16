@@ -1,10 +1,8 @@
-import React, { useState, useRef } from 'react'
-import { Folder, Film, Music, Image, FileText } from 'lucide-react'
+import React, { useState } from 'react'
+import { Folder, Film, Music, Image, FileText, Download } from 'lucide-react'
 import { formatDateAgo } from '../utils/date'
 import { formatBytes, formatDuration } from '../utils/format'
 import { resolveAssetUrl } from '../utils/url'
-import { FileActionMenu, type FileActionMenuHandle } from './FileActionMenu'
-import type { ProxyOption } from '../services/import'
 
 export { formatBytes, formatDuration }
 
@@ -55,7 +53,7 @@ export interface FileItemProps {
   apiKey?: string
   onClick: (e: React.MouseEvent) => void
   onImportRaw?: (asset: AssetSummary) => void
-  onImportProxy?: (asset: AssetSummary, proxy: ProxyOption) => void
+  onSelectVideoForImport?: (asset: AssetSummary) => void
 }
 
 export function getFileTypeCategory(
@@ -81,13 +79,11 @@ export function getFileTypeCategory(
 export const FileItem: React.FC<FileItemProps> = ({
   asset,
   endpoint = '',
-  apiKey = '',
   onClick,
   onImportRaw,
-  onImportProxy,
+  onSelectVideoForImport,
 }) => {
   const [imgError, setImgError] = useState(false)
-  const menuHandleRef = useRef<FileActionMenuHandle>(null)
   const category = getFileTypeCategory(asset)
   const isFolder = category === 'folder'
   const effectiveSize = asset.sizeByte ?? asset.size
@@ -106,20 +102,21 @@ export const FileItem: React.FC<FileItemProps> = ({
     </div>
   )
 
+  const handleImportAction = () => {
+    if (isFolder) return
+    if (category === 'video' && onSelectVideoForImport) {
+      onSelectVideoForImport(asset)
+    } else if (onImportRaw) {
+      onImportRaw(asset)
+    }
+  }
+
   const handleRowClick = (e: React.MouseEvent) => {
     if (isFolder) {
       onClick(e)
     } else {
       e.stopPropagation()
-      menuHandleRef.current?.openMenu()
-    }
-  }
-
-  const handleRowContextMenu = (e: React.MouseEvent) => {
-    if (!isFolder) {
-      e.preventDefault()
-      e.stopPropagation()
-      menuHandleRef.current?.openMenu()
+      handleImportAction()
     }
   }
 
@@ -127,7 +124,6 @@ export const FileItem: React.FC<FileItemProps> = ({
     <div
       className="item-row"
       onClick={handleRowClick}
-      onContextMenu={handleRowContextMenu}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -174,16 +170,20 @@ export const FileItem: React.FC<FileItemProps> = ({
         )}
         {isFolder ? (
           <sp-icon-chevron-right size="xs"></sp-icon-chevron-right>
-        ) : onImportRaw && onImportProxy ? (
-          <FileActionMenu
-            ref={menuHandleRef}
-            asset={asset}
-            endpoint={endpoint}
-            apiKey={apiKey}
-            onImportRaw={onImportRaw}
-            onImportProxy={onImportProxy}
-            className="item-row-action-menu"
-          />
+        ) : onImportRaw || onSelectVideoForImport ? (
+          <sp-action-button
+            quiet
+            size="xs"
+            label="Import into Premiere Pro"
+            title="Import into Premiere Pro"
+            className="item-row-import-btn"
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation()
+              handleImportAction()
+            }}
+          >
+            <Download size={13} slot="icon" />
+          </sp-action-button>
         ) : null}
       </div>
     </div>
@@ -194,13 +194,11 @@ export const FileItem: React.FC<FileItemProps> = ({
 export const FileCardItem: React.FC<FileItemProps> = ({
   asset,
   endpoint = '',
-  apiKey = '',
   onClick,
   onImportRaw,
-  onImportProxy,
+  onSelectVideoForImport,
 }) => {
   const [imgError, setImgError] = useState(false)
-  const menuHandleRef = useRef<FileActionMenuHandle>(null)
   const category = getFileTypeCategory(asset)
   const isFolder = category === 'folder'
   const effectiveSize = asset.sizeByte ?? asset.size
@@ -222,20 +220,21 @@ export const FileCardItem: React.FC<FileItemProps> = ({
     </div>
   )
 
+  const handleImportAction = () => {
+    if (isFolder) return
+    if (category === 'video' && onSelectVideoForImport) {
+      onSelectVideoForImport(asset)
+    } else if (onImportRaw) {
+      onImportRaw(asset)
+    }
+  }
+
   const handleCardClick = (e: React.MouseEvent) => {
     if (isFolder) {
       onClick(e)
     } else {
       e.stopPropagation()
-      menuHandleRef.current?.openMenu()
-    }
-  }
-
-  const handleCardContextMenu = (e: React.MouseEvent) => {
-    if (!isFolder) {
-      e.preventDefault()
-      e.stopPropagation()
-      menuHandleRef.current?.openMenu()
+      handleImportAction()
     }
   }
 
@@ -257,7 +256,6 @@ export const FileCardItem: React.FC<FileItemProps> = ({
     <div
       className="file-row-card"
       onClick={handleCardClick}
-      onContextMenu={handleCardContextMenu}
       role="button"
       tabIndex={0}
       title={asset.name}
@@ -290,16 +288,20 @@ export const FileCardItem: React.FC<FileItemProps> = ({
           </span>
           {isFolder ? (
             <sp-icon-chevron-right size="xs" className="file-row-chevron"></sp-icon-chevron-right>
-          ) : onImportRaw && onImportProxy ? (
-            <FileActionMenu
-              ref={menuHandleRef}
-              asset={asset}
-              endpoint={endpoint}
-              apiKey={apiKey}
-              onImportRaw={onImportRaw}
-              onImportProxy={onImportProxy}
-              className="file-row-action-menu"
-            />
+          ) : onImportRaw || onSelectVideoForImport ? (
+            <sp-action-button
+              quiet
+              size="xs"
+              label="Import into Premiere Pro"
+              title="Import into Premiere Pro"
+              className="file-row-import-btn"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation()
+                handleImportAction()
+              }}
+            >
+              <Download size={13} slot="icon" />
+            </sp-action-button>
           ) : null}
         </div>
 

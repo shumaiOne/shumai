@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { getShumaiClient } from '../api/client'
 import { Breadcrumb, BreadcrumbCrumb } from '../components/Breadcrumb'
 import { FileCardItem, AssetSummary } from '../components/FileItem'
+import { ImportVideoDialog } from '../components/ImportVideoDialog'
 import { importAssetIntoPremiere, type ProxyOption } from '../services/import'
 import { ProjectSummary } from './ProjectsView'
 import { FolderOpen, AlertCircle } from 'lucide-react'
@@ -52,6 +53,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [videoForDialog, setVideoForDialog] = useState<AssetSummary | null>(null)
 
   // Import task state
   const [importStatus, setImportStatus] = useState<{
@@ -582,7 +584,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
                           apiKey={apiKey}
                           onClick={() => {}}
                           onImportRaw={handleImportRaw}
-                          onImportProxy={handleImportProxy}
+                          onSelectVideoForImport={setVideoForDialog}
                         />
                       ))}
                     </div>
@@ -607,6 +609,17 @@ export const FileListView: React.FC<FileListViewProps> = ({
           </>
         )}
       </div>
+
+      {/* Video Import Modal Dialog */}
+      <ImportVideoDialog
+        asset={videoForDialog}
+        endpoint={endpoint}
+        apiKey={apiKey}
+        isOpen={videoForDialog != null}
+        onClose={() => setVideoForDialog(null)}
+        onImportRaw={handleImportRaw}
+        onImportProxy={handleImportProxy}
+      />
 
       {/* Toast Notification for Import Progress & Status */}
       {importStatus && (
