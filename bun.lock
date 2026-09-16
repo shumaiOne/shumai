@@ -64,17 +64,17 @@
       "dependencies": {
         "@shumai/api": "workspace:*",
         "@shumai/dtos": "workspace:*",
-        "@spectrum-web-components/action-menu": "1.12.2",
+        "@spectrum-web-components/action-menu": "0.37.0",
         "@spectrum-web-components/badge": "0.37.0",
         "@spectrum-web-components/icon": "1.12.2",
         "@spectrum-web-components/icons-workflow": "1.12.2",
-        "@spectrum-web-components/menu": "1.12.2",
+        "@spectrum-web-components/menu": "0.37.0",
         "@spectrum-web-components/progress-circle": "0.37.0",
         "@spectrum-web-components/status-light": "0.37.0",
         "@spectrum-web-components/theme": "0.37.0",
         "@swc-react/action-button": "0.37.0",
         "@swc-react/action-group": "0.37.0",
-        "@swc-react/action-menu": "1.12.2",
+        "@swc-react/action-menu": "0.37.0",
         "@swc-react/badge": "0.37.0",
         "@swc-react/button": "0.37.0",
         "@swc-react/card": "0.37.0",
@@ -82,7 +82,7 @@
         "@swc-react/field-label": "0.37.0",
         "@swc-react/help-text": "0.37.0",
         "@swc-react/illustrated-message": "0.37.0",
-        "@swc-react/menu": "1.12.2",
+        "@swc-react/menu": "0.37.0",
         "@swc-react/progress-circle": "0.37.0",
         "@swc-react/search": "0.37.0",
         "@swc-react/status-light": "0.37.0",
@@ -640,7 +640,7 @@
 
     "@floating-ui/core": ["@floating-ui/core@1.8.0", "", { "dependencies": { "@floating-ui/utils": "^0.2.12" } }, "sha512-0CIZ5itps/8x7BG8dEIhs53BvCUH2PCoogtakwRTut+Arm58sJooJ0AuZhLw2HJYIR5cMLNPBSS728sPho2khQ=="],
 
-    "@floating-ui/dom": ["@floating-ui/dom@1.7.4", "", { "dependencies": { "@floating-ui/core": "^1.7.3", "@floating-ui/utils": "^0.2.10" } }, "sha512-OOchDgh4F2CchOX94cRVqhvy7b3AFb+/rQXyswmzmGakRfkMgoWVjfnLWkRirfLEfuD4ysVW16eXzwt3jHIzKA=="],
+    "@floating-ui/dom": ["@floating-ui/dom@1.8.0", "", { "dependencies": { "@floating-ui/core": "^1.8.0", "@floating-ui/utils": "^0.2.12" } }, "sha512-yXSrzeHZBTZadLOlfyhCkJHNeLJnHRnRInwdZ40L7ZiaAtrBwoYlsDrX3v5zB1Utk7CLfzcOVnVVWoXEky7Ceg=="],
 
     "@floating-ui/react": ["@floating-ui/react@0.27.20", "", { "dependencies": { "@floating-ui/react-dom": "^2.1.9", "@floating-ui/utils": "^0.2.12", "tabbable": "^6.0.0" }, "peerDependencies": { "react": ">=17.0.0", "react-dom": ">=17.0.0" } }, "sha512-CMqMy7OaXl9W0eq1Uy7L7i2Y/anPvHmFmESd2CEw0t5YvZhcVCeo4MBevAmswRllX7Y2dEidA4ozGPunLSTQpw=="],
 
@@ -829,8 +829,6 @@
     "@lit-labs/react": ["@lit-labs/react@1.2.1", "", {}, "sha512-DiZdJYFU0tBbdQkfwwRSwYyI/mcWkg3sWesKRsHUd4G+NekTmmeq9fzsurvcKTNVa0comNljwtg4Hvi1ds3V+A=="],
 
     "@lit-labs/ssr-dom-shim": ["@lit-labs/ssr-dom-shim@1.6.0", "", {}, "sha512-VHb0ALPMTlgKjM6yIxxoQNnpKyUKLD04VzeQdsiXkMqkvYlAHxq9glGLmgbb889/1GsohSOAjvQYoiBppXFqrQ=="],
-
-    "@lit/react": ["@lit/react@1.0.8", "", { "peerDependencies": { "@types/react": "17 || 18 || 19" } }, "sha512-p2+YcF+JE67SRX3mMlJ1TKCSTsgyOVdAwd/nxp3NuV1+Cb6MWALbN6nT7Ld4tpmYofcE5kcaSY1YBB9erY+6fw=="],
 
     "@lit/reactive-element": ["@lit/reactive-element@2.1.2", "", { "dependencies": { "@lit-labs/ssr-dom-shim": "^1.5.0" } }, "sha512-pbCDiVMnne1lYUIaYNN5wrwQXDtHaYtg7YEFPeW+hws6U47WeFvISGUWekPGKWOP1ygrs0ef0o1VJMk1exos5A=="],
 
@@ -1182,17 +1180,17 @@
 
     "@smithy/util-utf8": ["@smithy/util-utf8@4.5.2", "", { "dependencies": { "@smithy/core": "^3.33.2", "tslib": "^2.6.2" } }, "sha512-7wNWV7SugHpcMA7uzEawJNpE0GrasXM7a9E+1+Wm6NxVuDClESac/AKt+G7jMZNUz5vBLWqKlqVV7Sv7AtUr6Q=="],
 
-    "@spectrum-web-components/action-button": ["@spectrum-web-components/action-button@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/button": "1.12.2", "@spectrum-web-components/icon": "1.12.2", "@spectrum-web-components/icons-ui": "1.12.2", "@spectrum-web-components/shared": "1.12.2" } }, "sha512-iH9gAJhbRAa4D8oxQSXYq8b9uXu7KIT7ZhpEdFYqk0AwMs+doIqLT0EDy9P90BI9nHRZvDWUnQ0pS+nkzbq+0g=="],
+    "@spectrum-web-components/action-button": ["@spectrum-web-components/action-button@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-cU/5sHpRSA823sHUH6jZccmizkTxWr/LJHTDJ4jj0LxCLh15OHfxKM+hu/vcc5fXYrAPma5Hp54xTBc/l/frDA=="],
 
     "@spectrum-web-components/action-group": ["@spectrum-web-components/action-group@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/action-button": "^0.37.0", "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icons-workflow": "^0.37.0", "@spectrum-web-components/reactive-controllers": "^0.37.0" } }, "sha512-unC1SMjhWI080lfHeAMxBL1y2Vyk6fIhKdukWzqQnzMpPdogh+tvKF9kUgPLZ3rq0hFFCquT0ZZezyywvjTWZA=="],
 
-    "@spectrum-web-components/action-menu": ["@spectrum-web-components/action-menu@1.12.2", "", { "dependencies": { "@spectrum-web-components/action-button": "1.12.2", "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/field-label": "1.12.2", "@spectrum-web-components/icon": "1.12.2", "@spectrum-web-components/icons-workflow": "1.12.2", "@spectrum-web-components/menu": "1.12.2", "@spectrum-web-components/overlay": "1.12.2", "@spectrum-web-components/picker": "1.12.2", "@spectrum-web-components/popover": "1.12.2", "@spectrum-web-components/progress-circle": "1.12.2", "@spectrum-web-components/shared": "1.12.2", "@spectrum-web-components/tooltip": "1.12.2", "@spectrum-web-components/tray": "1.12.2" } }, "sha512-co+8op1RVC2OvIiKVrah333c999zoD92bUi/gzqFA/rFlWJoNoShasiglgdiEZ15DvbDpijbzRqGKtpywLg9oA=="],
+    "@spectrum-web-components/action-menu": ["@spectrum-web-components/action-menu@0.37.0", "", { "dependencies": { "@spectrum-web-components/action-button": "^0.37.0", "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-workflow": "^0.37.0", "@spectrum-web-components/picker": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-Xgta0n0bSRSBwh5ZZhwFC3YicwqcAYgvmSZQiZ6TEgccNMpwsgFj66e/r3K1dCEkVcsONfV3dbuIu3eqTCAXSA=="],
 
     "@spectrum-web-components/asset": ["@spectrum-web-components/asset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-nFZ4/TCHbUcNUay5NI1fLhLejtx7QJ3H+diCNsZXOvmUI+0atcNPid6j5/4CyvSd8PQooEvCgHpbHf39AM57Cg=="],
 
     "@spectrum-web-components/badge": ["@spectrum-web-components/badge@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-C2ZgSLcQ2crQ/fmgpfy6xAi2Vc+XsPr5bAdfAQG4yy/5S3etSwVzxdDCSY7JB8tWyA/mvQk5vSqUyEB9JmD+PQ=="],
 
-    "@spectrum-web-components/base": ["@spectrum-web-components/base@1.12.2", "", { "dependencies": { "lit": "^2.5.0 || ^3.1.3" } }, "sha512-7vB3182FqJzRevafUWlFRw/bfM4ZjC+Mmh5Fh0mDmVcP/SohUowrmHsQns1fsQPi+/O8iMP8XbtT7sAFp6ejkA=="],
+    "@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
 
     "@spectrum-web-components/button": ["@spectrum-web-components/button@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/clear-button": "^0.37.0", "@spectrum-web-components/close-button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-Cz69UtdNDqNVAMUjz2i1RjZ4LetR+bTnUvaDlj8heQHYR/ZHKdnMWaxS1DnZjlu7+osFo57XJPLyhlEEgYT1Ig=="],
 
@@ -1204,15 +1202,15 @@
 
     "@spectrum-web-components/close-button": ["@spectrum-web-components/close-button@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-sqqDyi725V3/3oy2J+IbUTlcHpZKEY7m+wXifanQ5mDOjP/8zX17DDZgSX2X7HI4IFevBSVYZxCV2MUhG5Zp1w=="],
 
-    "@spectrum-web-components/divider": ["@spectrum-web-components/divider@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2" } }, "sha512-SilrSo86s9EqcZGysE+j06QZ2LTDKFZYigiHhfsCsZP/cpcitJVdYg+BZ1S6UpuPvidjlpzTafQO4qu7mQfMnw=="],
+    "@spectrum-web-components/divider": ["@spectrum-web-components/divider@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-f08h0pQ4srKw9R1fT+jKHUF3s1GfV2UPpcKrrfXFclXRRlu4AuQBO8Wo6nYUj/yYCz+hRWhlmtxL/BDKmREu9w=="],
 
-    "@spectrum-web-components/field-label": ["@spectrum-web-components/field-label@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/icon": "1.12.2", "@spectrum-web-components/icons-ui": "1.12.2", "@spectrum-web-components/reactive-controllers": "1.12.2", "@spectrum-web-components/shared": "1.12.2" } }, "sha512-XZ98+MkyQn5ZX8bOOpZ92ehV0ArrqMnY+r0AzlwABBIXkn1OiHkMk50RF3SFN6UYcb0QvMwT+tUgXkYjppVQbw=="],
+    "@spectrum-web-components/field-label": ["@spectrum-web-components/field-label@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/reactive-controllers": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-QTk0IwONj1P8jnsIwr3xyxkNs2fMHBs2nNoHMrmEiW1/6a5TIjIIntmeOj1BUcP2wRbUB5CD3mnh44OWSbmbHQ=="],
 
     "@spectrum-web-components/help-text": ["@spectrum-web-components/help-text@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icons-workflow": "^0.37.0" } }, "sha512-MsBD9I/mVOKRrnTqFxzbtmcLvgIGrA6y7kPwldKSQeFBHmm1oey2dnrlu7NK4OtWUdJJ3dQDKi/REJX35USOcw=="],
 
     "@spectrum-web-components/icon": ["@spectrum-web-components/icon@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/iconset": "1.12.2", "@spectrum-web-components/reactive-controllers": "1.12.2" } }, "sha512-mvnP1wcjdRVQCV73Le0rKJ22EhPi2jb5xAktRaPdYQebH0yjqVV1EvRNB5ZQPLqVzzDz9UzBm2RzOoGDupu+Jg=="],
 
-    "@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/icon": "1.12.2", "@spectrum-web-components/iconset": "1.12.2" } }, "sha512-ibSFBD1gM6NkU+88g7QOPcee8E2JpClwiI/VZ/6EXbvOa/9QvQR23NfcYZIWHu8p3Wh7Lyas4MO+NdKlt6b09g=="],
+    "@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
 
     "@spectrum-web-components/icons-workflow": ["@spectrum-web-components/icons-workflow@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/icon": "1.12.2" } }, "sha512-r8r5YhaCwlw8D839HIbqZ+G3J1H49/ibbnp4golnfa96u9oY0OTkQIrdpPefrDxgk4eLXAjwovCMQk7hCWtuNw=="],
 
@@ -1220,15 +1218,15 @@
 
     "@spectrum-web-components/illustrated-message": ["@spectrum-web-components/illustrated-message@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/styles": "^0.37.0" } }, "sha512-JUop4B2MgkQpYR6PrEifHOFNNKhVwqoBy1xS1HUKLidlOovagY1Wa769ajeXUBGoL1HLKif3O+CmWTBCwAaa5A=="],
 
-    "@spectrum-web-components/menu": ["@spectrum-web-components/menu@1.12.2", "", { "dependencies": { "@lit-labs/observers": "2.0.2", "@spectrum-web-components/action-button": "1.12.2", "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/divider": "1.12.2", "@spectrum-web-components/icon": "1.12.2", "@spectrum-web-components/icons-ui": "1.12.2", "@spectrum-web-components/overlay": "1.12.2", "@spectrum-web-components/popover": "1.12.2", "@spectrum-web-components/reactive-controllers": "1.12.2", "@spectrum-web-components/shared": "1.12.2" } }, "sha512-lPdn5TXVfLWXm+O1Y6orhCEEqsiXl2SokRgAFunxFvnUTStp/fgTzwATeSlB71iSd+VN3k8h9NuvCIXkyC7W4A=="],
+    "@spectrum-web-components/menu": ["@spectrum-web-components/menu@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/action-button": "^0.37.0", "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/divider": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/overlay": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-WG7lqePUERK/xE6/DlyfNzbW8gjSkQPEwGSxbe8AFOWTImzQALAz0rxmGTzHOkoThvsSGErt/mC7WiXkL5IWjQ=="],
 
-    "@spectrum-web-components/modal": ["@spectrum-web-components/modal@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2" } }, "sha512-p5HfcR2V5KtsPuX3JPVOI6h2IHPv/tEN+8mXju551sf/jJDosa4F8Heg7xY39U9xhqg1nLEdP3vPGYo2ynJwzg=="],
+    "@spectrum-web-components/modal": ["@spectrum-web-components/modal@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-GXtRZdXFHZoP3UKu5oG7TQFEOShHhxGE5p7vvN7oFPm2Yz1WtpmjH2HdBFb2mI8BmEvKax/KEG5kZCrTDQpTvg=="],
 
-    "@spectrum-web-components/overlay": ["@spectrum-web-components/overlay@1.12.2", "", { "dependencies": { "@floating-ui/dom": "1.7.4", "@floating-ui/utils": "0.2.10", "@spectrum-web-components/action-button": "1.12.2", "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/reactive-controllers": "1.12.2", "@spectrum-web-components/shared": "1.12.2", "@spectrum-web-components/theme": "1.12.2", "focus-trap": "7.6.5" } }, "sha512-yYGo8MtN6NJMDVU5e8fm6w3G4Gc7XZXaCWEtDXwJD3s3Pw9FZnWWraxbGlIRswBwCjR67RJ17pdG320fo0HhVA=="],
+    "@spectrum-web-components/overlay": ["@spectrum-web-components/overlay@0.37.0", "", { "dependencies": { "@floating-ui/dom": "^1.5.1", "@floating-ui/utils": "^0.1.1", "@spectrum-web-components/action-button": "^0.37.0", "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/reactive-controllers": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0", "@spectrum-web-components/theme": "^0.37.0" } }, "sha512-kMEXAWdHJ/RGLbR4GHAEvgb03uaKNJSakVYgqoxQ15Z8PTq669FZQZMvYGr5VftRaXpejm5n1GK+KxuK6Cy+uw=="],
 
-    "@spectrum-web-components/picker": ["@spectrum-web-components/picker@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/button": "1.12.2", "@spectrum-web-components/field-label": "1.12.2", "@spectrum-web-components/icon": "1.12.2", "@spectrum-web-components/icons-ui": "1.12.2", "@spectrum-web-components/icons-workflow": "1.12.2", "@spectrum-web-components/menu": "1.12.2", "@spectrum-web-components/overlay": "1.12.2", "@spectrum-web-components/popover": "1.12.2", "@spectrum-web-components/progress-circle": "1.12.2", "@spectrum-web-components/reactive-controllers": "1.12.2", "@spectrum-web-components/shared": "1.12.2", "@spectrum-web-components/tooltip": "1.12.2", "@spectrum-web-components/tray": "1.12.2" } }, "sha512-WJsf1zBtic6wMNXNjMu6/vEwumrDzvG+qq/Q60T7/8dna9XGmDtwVyRWPzYiKwuzXzOCtF+fjG2R9tbyYxmoFQ=="],
+    "@spectrum-web-components/picker": ["@spectrum-web-components/picker@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/icons-workflow": "^0.37.0", "@spectrum-web-components/menu": "^0.37.0", "@spectrum-web-components/overlay": "^0.37.0", "@spectrum-web-components/popover": "^0.37.0", "@spectrum-web-components/reactive-controllers": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0", "@spectrum-web-components/tray": "^0.37.0" } }, "sha512-9PEysOL7auFrlwFRkZWYb+OI2yTAZ+GM2mvEqkHfONU98g0aZO6oyjtg69RUNH9VUveqUfoEEBiZ0ihyuAL3cA=="],
 
-    "@spectrum-web-components/popover": ["@spectrum-web-components/popover@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/overlay": "1.12.2" } }, "sha512-lZ2A/IgL3tOFy8/quDae16M+CIjnY56VnabLPcCl9WjX/F9BWMNk88YH5Hr+q6S4U26IueOAjAYg6vWuvZY1oA=="],
+    "@spectrum-web-components/popover": ["@spectrum-web-components/popover@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/overlay": "^0.37.0" } }, "sha512-UilQj4W2HgDMopON2RG7wEYxnGViAWBJYFaTuO7dCLgEHuQMbIN6h30JvSwfz5Z0Vr/eJgSd3I7xj0K9Bl2c6Q=="],
 
     "@spectrum-web-components/progress-circle": ["@spectrum-web-components/progress-circle@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-OjabwypclIBqjUwwiWDztjy4QRV1guIojhmdv3HaCEbueX0zhv9y9XqYZn3dxKnDubSkNfT4FrYHJXaMsKrovQ=="],
 
@@ -1238,7 +1236,7 @@
 
     "@spectrum-web-components/search": ["@spectrum-web-components/search@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-workflow": "^0.37.0", "@spectrum-web-components/textfield": "^0.37.0" } }, "sha512-9ithHfHhMTC4SpVC04XRDP8SEJwI2aEJRbbpjODNJcpUruclweutsektMvh4Jm3Qk3+95C5QE8fZHBIfQ5Quhw=="],
 
-    "@spectrum-web-components/shared": ["@spectrum-web-components/shared@1.12.2", "", { "dependencies": { "@lit-labs/observers": "2.0.2", "@spectrum-web-components/base": "1.12.2", "focus-visible": "5.2.1" } }, "sha512-1vRimMtdKllujoFPbuDoPP0eSHZJfExWld2jeqboMKjzNTDvBfoOIN3ZOz7ClOVyrJOQDJSP2htCVfDBYl72Ug=="],
+    "@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
 
     "@spectrum-web-components/status-light": ["@spectrum-web-components/status-light@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-oFzV1mB2c148Es6udezsR11xEAgEhOlS+DsMSMxhcn7XPXOSRBKtLMUYJ0Q+F5Fb+lcUfCgNy3sDEDqqbYPtrg=="],
 
@@ -1248,11 +1246,9 @@
 
     "@spectrum-web-components/theme": ["@spectrum-web-components/theme@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/styles": "^0.37.0" } }, "sha512-xfKnzwWmjD6zN1T7Jo+3yLRdjh7qx8CX2FCL/PrUu8sE2Jo4cO3/vKYLAt27bbeHF5+zxKx2hOZdPOgEpZG9Hg=="],
 
-    "@spectrum-web-components/tooltip": ["@spectrum-web-components/tooltip@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/overlay": "1.12.2", "@spectrum-web-components/reactive-controllers": "1.12.2", "@spectrum-web-components/shared": "1.12.2" } }, "sha512-Q0tbH/7SuInvizNf8f5IdnIhhI21tjGysLJP6HeK+nVjNHOoA45wrphverXVpeQmMhbek6nPizHoeI6fxToxEg=="],
+    "@spectrum-web-components/tray": ["@spectrum-web-components/tray@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/modal": "^0.37.0", "@spectrum-web-components/reactive-controllers": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0", "@spectrum-web-components/underlay": "^0.37.0" } }, "sha512-vYjGeIYaVWQ0+6hZMQy25qqB+AjQZllEkpO/ua9nGXSvo/wbb43H6duSwVhmT2hkyqLy0sBw7Yt2LFgPYiSySQ=="],
 
-    "@spectrum-web-components/tray": ["@spectrum-web-components/tray@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/modal": "1.12.2", "@spectrum-web-components/reactive-controllers": "1.12.2", "@spectrum-web-components/shared": "1.12.2", "@spectrum-web-components/underlay": "1.12.2" } }, "sha512-SBxSH1yz/b+OnsUPSCfDa9XXjK3Q0cNBxPU5gURwnbIeZXH0VV0nefZkQXTmkJK3d3B9BpLi8zaJk+cj4L0JaA=="],
-
-    "@spectrum-web-components/underlay": ["@spectrum-web-components/underlay@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2" } }, "sha512-YWGXxBkSg/oCBLYD83Rknlf58gCIee2YOtTTGyEpyGJEsK6Rd7P4s/JV+DjELKMpxFL9yG7P4hMoKGoXJvPQZA=="],
+    "@spectrum-web-components/underlay": ["@spectrum-web-components/underlay@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-H3a3HmxrqGY6+N9nQwiapxXVLEIJoQ87naoXKy7ZnEmRyUnPcLjBaoXvLZKKXEDosaYxE3Mm6dnfjyKpk5PM1Q=="],
 
     "@sqlite.org/sqlite-wasm": ["@sqlite.org/sqlite-wasm@3.48.0-build4", "", { "bin": { "sqlite-wasm": "bin/index.js" } }, "sha512-hI6twvUkzOmyGZhQMza1gpfqErZxXRw6JEsiVjUbo7tFanVD+8Oil0Ih3l2nGzHdxPI41zFmfUQG7GHqhciKZQ=="],
 
@@ -1264,7 +1260,7 @@
 
     "@swc-react/action-group": ["@swc-react/action-group@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/action-group": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-+V0KVx0JPBrOd24tGddslLBF7b+0IfReULuxcgZnjDCzfzMseVIphetXSEx9u4MT8ymUBsbrbG8wWHYloxpiQQ=="],
 
-    "@swc-react/action-menu": ["@swc-react/action-menu@1.12.2", "", { "dependencies": { "@lit/react": "^1.0.8", "@spectrum-web-components/action-menu": "1.12.2" }, "peerDependencies": { "next": "~13.4 || ~14" }, "optionalPeers": ["next"] }, "sha512-mNu4ekp+kaiP9PpLmFryMpQZP8GrvQQ6jhQqQmOHL2asUNySK4oRxUedM1fEY2Arfg+9CJIFSxCMXVcF0Q5FLg=="],
+    "@swc-react/action-menu": ["@swc-react/action-menu@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/action-menu": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-tw32XTQaLBpG7BE0i56Te1Hxcl38DX93BLiuRIN2B36s1Vrn9n0cPcY4nyBVlNu/Z+uhGu44qamZLf2qiZsRcA=="],
 
     "@swc-react/badge": ["@swc-react/badge@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/badge": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-kziT/wzswh6eXRAnCxwXa0zTnp8LrmI6A5khrkCVybzGGsR6VAmqBZkjtGmhCjyLazj2LiG+x7xix0UCpbrToA=="],
 
@@ -1280,7 +1276,7 @@
 
     "@swc-react/illustrated-message": ["@swc-react/illustrated-message@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/illustrated-message": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-XMF8hnG9YUj7uBoJJX6z1lLjpC4wkNvvjh2y7toqHvZBPiheWJoNqV1tYvbchZJb2xTmXadWUus59o4lHH5ZzA=="],
 
-    "@swc-react/menu": ["@swc-react/menu@1.12.2", "", { "dependencies": { "@lit/react": "^1.0.8", "@spectrum-web-components/menu": "1.12.2" }, "peerDependencies": { "next": "~13.4 || ~14" }, "optionalPeers": ["next"] }, "sha512-CzfA45IIigxuwcTuOvvNnt4Wc2eF+TSePIMow+CBBZA9sbU17A/HKnRsGTRehQh7wVijjQnecgfRRODQZhwP9w=="],
+    "@swc-react/menu": ["@swc-react/menu@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/menu": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-oGiVmTUAVRVgwiU81GrUTX+LSwtigZy5JaqPb/I48bzmay6iWd2PkkWs6HiWxpu8oK5tRkauegPYJFW12ZzcbQ=="],
 
     "@swc-react/progress-circle": ["@swc-react/progress-circle@0.37.0", "", { "dependencies": { "@lit-labs/react": "^1.1.1", "@spectrum-web-components/progress-circle": "^0.37.0" }, "peerDependencies": { "next": "~13.4" }, "optionalPeers": ["next"] }, "sha512-j1S08ncB1IQ7Piq5UnHCvDF/bC320vTDSFH17i83IyosHYmxiXmOzrjB6SxbPI5SVpAunAjWBFwLkEusGli85w=="],
 
@@ -2151,8 +2147,6 @@
     "flat-cache": ["flat-cache@4.0.1", "", { "dependencies": { "flatted": "^3.2.9", "keyv": "^4.5.4" } }, "sha512-f7ccFPK3SXFHpx15UIGyRJ/FJQctuKZ0zVuN3frBo4HnK3cay9VEW0R6yPYFHC0AgqhukPzKjq22t5DmAyqGyw=="],
 
     "flatted": ["flatted@3.4.4", "", {}, "sha512-5+ybhBZANEJxaH3X5evAFatUxLfEHSr7n6kYJ+1Qd0mUqr4eu9gIf6GDbWHf8RJijHrjjO8G+la14SlL2SeS1Q=="],
-
-    "focus-trap": ["focus-trap@7.6.5", "", { "dependencies": { "tabbable": "^6.2.0" } }, "sha512-7Ke1jyybbbPZyZXFxEftUtxFGLMpE2n6A+z//m4CRDlj0hW+o3iYSmh8nFlYMurOiJVDmJRilUQtJr08KfIxlg=="],
 
     "focus-visible": ["focus-visible@5.2.1", "", {}, "sha512-8Bx950VD1bWTQJEH/AM6SpEk+SU55aVnp4Ujhuuxy3eMEBCRwBnTBnVXr9YAPvZL3/CNjCa8u4IWfNmEO53whA=="],
 
@@ -3212,8 +3206,6 @@
 
     "@eslint-community/eslint-utils/eslint-visitor-keys": ["eslint-visitor-keys@3.4.3", "", {}, "sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag=="],
 
-    "@floating-ui/react-dom/@floating-ui/dom": ["@floating-ui/dom@1.8.0", "", { "dependencies": { "@floating-ui/core": "^1.8.0", "@floating-ui/utils": "^0.2.12" } }, "sha512-yXSrzeHZBTZadLOlfyhCkJHNeLJnHRnRInwdZ40L7ZiaAtrBwoYlsDrX3v5zB1Utk7CLfzcOVnVVWoXEky7Ceg=="],
-
     "@grpc/grpc-js/@grpc/proto-loader": ["@grpc/proto-loader@0.8.1", "", { "dependencies": { "lodash.camelcase": "^4.3.0", "long": "^5.0.0", "protobufjs": "^7.5.5", "yargs": "^17.7.2" }, "bin": { "proto-loader-gen-types": "build/bin/proto-loader-gen-types.js" } }, "sha512-wtF6h+DY6M3YaDBPAmvuuA6jV8Sif9MjtOI5euKFWRgCDl5PeDpPsHR9u2l6St5ceY8AZgoNDww5+HvEsXFsGg=="],
 
     "@inlang/sdk/@sinclair/typebox": ["@sinclair/typebox@0.31.30", "", {}, "sha512-MGsM7bVmHg3sUKCphlu3SGQ+T+5JTbygZWYArfKQCW5anJeACHeqLhcnf+R7XlCWZ+QR3C8JTBx3kCKJTN69ow=="],
@@ -3252,229 +3244,103 @@
 
     "@shumai/webui/lucide-react": ["lucide-react@1.37.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-LPsB4rD1TD6wZu1djKOf9vUnS1jTNaHbolXebXDgiTdb6jeA1agIJhJsIybCmjKmQClcOaal1o1OaiYahEftyQ=="],
 
-    "@spectrum-web-components/action-button/@spectrum-web-components/button": ["@spectrum-web-components/button@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/clear-button": "1.12.2", "@spectrum-web-components/close-button": "1.12.2", "@spectrum-web-components/icon": "1.12.2", "@spectrum-web-components/icons-ui": "1.12.2", "@spectrum-web-components/progress-circle": "1.12.2", "@spectrum-web-components/reactive-controllers": "1.12.2", "@spectrum-web-components/shared": "1.12.2" } }, "sha512-THab5wD0gzF4vOzUrQwvrNoHYk5fvtVHXNlY272YmEMaVGCP/mpqS2Kf5Pbd9sSNKhe5uRn9QRCVve+e4TZjCw=="],
-
-    "@spectrum-web-components/action-group/@spectrum-web-components/action-button": ["@spectrum-web-components/action-button@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-cU/5sHpRSA823sHUH6jZccmizkTxWr/LJHTDJ4jj0LxCLh15OHfxKM+hu/vcc5fXYrAPma5Hp54xTBc/l/frDA=="],
-
-    "@spectrum-web-components/action-group/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
+    "@spectrum-web-components/action-button/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
     "@spectrum-web-components/action-group/@spectrum-web-components/icons-workflow": ["@spectrum-web-components/icons-workflow@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0" } }, "sha512-D1Dg+ZjlqbaU/2uKYhmMtZXQMVUw9J9LevHSKSzMFL+Y++JMqRROQuzwAOFW7tttCw1w0+3kIuv2ohkeE+8fNQ=="],
 
     "@spectrum-web-components/action-group/@spectrum-web-components/reactive-controllers": ["@spectrum-web-components/reactive-controllers@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-1wnWLt88iyTPrElxZqPpyWWzScSkXY3zxi+QxIV0cFGmhRlPsH+XXqs/kGkfzRyNtE4s2AWuRZ2wtbcao6MzJQ=="],
 
-    "@spectrum-web-components/action-menu/@spectrum-web-components/progress-circle": ["@spectrum-web-components/progress-circle@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/reactive-controllers": "1.12.2", "@spectrum-web-components/shared": "1.12.2" } }, "sha512-I7gAZM8gza/gDZ+tJuKcWF8lld4030GcJpLcySb1NTzBpJlnIItPuybBolSpSb+QzmFTAnlGJaRWTXPZkC8hwA=="],
+    "@spectrum-web-components/action-menu/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
-    "@spectrum-web-components/asset/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@spectrum-web-components/badge/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@spectrum-web-components/badge/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@spectrum-web-components/button/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
+    "@spectrum-web-components/action-menu/@spectrum-web-components/icons-workflow": ["@spectrum-web-components/icons-workflow@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0" } }, "sha512-D1Dg+ZjlqbaU/2uKYhmMtZXQMVUw9J9LevHSKSzMFL+Y++JMqRROQuzwAOFW7tttCw1w0+3kIuv2ohkeE+8fNQ=="],
 
     "@spectrum-web-components/button/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
-    "@spectrum-web-components/button/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
-
-    "@spectrum-web-components/button/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@spectrum-web-components/card/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
     "@spectrum-web-components/card/@spectrum-web-components/icons-workflow": ["@spectrum-web-components/icons-workflow@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0" } }, "sha512-D1Dg+ZjlqbaU/2uKYhmMtZXQMVUw9J9LevHSKSzMFL+Y++JMqRROQuzwAOFW7tttCw1w0+3kIuv2ohkeE+8fNQ=="],
-
-    "@spectrum-web-components/card/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@spectrum-web-components/checkbox/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
 
     "@spectrum-web-components/checkbox/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
-    "@spectrum-web-components/checkbox/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
+    "@spectrum-web-components/field-label/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
-    "@spectrum-web-components/checkbox/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@spectrum-web-components/clear-button/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@spectrum-web-components/close-button/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@spectrum-web-components/help-text/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
+    "@spectrum-web-components/field-label/@spectrum-web-components/reactive-controllers": ["@spectrum-web-components/reactive-controllers@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-1wnWLt88iyTPrElxZqPpyWWzScSkXY3zxi+QxIV0cFGmhRlPsH+XXqs/kGkfzRyNtE4s2AWuRZ2wtbcao6MzJQ=="],
 
     "@spectrum-web-components/help-text/@spectrum-web-components/icons-workflow": ["@spectrum-web-components/icons-workflow@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0" } }, "sha512-D1Dg+ZjlqbaU/2uKYhmMtZXQMVUw9J9LevHSKSzMFL+Y++JMqRROQuzwAOFW7tttCw1w0+3kIuv2ohkeE+8fNQ=="],
 
-    "@spectrum-web-components/illustrated-message/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
+    "@spectrum-web-components/icon/@spectrum-web-components/base": ["@spectrum-web-components/base@1.12.2", "", { "dependencies": { "lit": "^2.5.0 || ^3.1.3" } }, "sha512-7vB3182FqJzRevafUWlFRw/bfM4ZjC+Mmh5Fh0mDmVcP/SohUowrmHsQns1fsQPi+/O8iMP8XbtT7sAFp6ejkA=="],
 
-    "@spectrum-web-components/overlay/@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
+    "@spectrum-web-components/icons-ui/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
-    "@spectrum-web-components/overlay/@spectrum-web-components/theme": ["@spectrum-web-components/theme@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/styles": "1.12.2" } }, "sha512-JWzjsTybXBevJpFlH3HRD+MbssGu2K3/8hv0THU1Wy7khSxNIvfsCAg1Twjt9qTr7BNgw5gfCdMoMDj0qD7Ilg=="],
+    "@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
-    "@spectrum-web-components/picker/@spectrum-web-components/button": ["@spectrum-web-components/button@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/clear-button": "1.12.2", "@spectrum-web-components/close-button": "1.12.2", "@spectrum-web-components/icon": "1.12.2", "@spectrum-web-components/icons-ui": "1.12.2", "@spectrum-web-components/progress-circle": "1.12.2", "@spectrum-web-components/reactive-controllers": "1.12.2", "@spectrum-web-components/shared": "1.12.2" } }, "sha512-THab5wD0gzF4vOzUrQwvrNoHYk5fvtVHXNlY272YmEMaVGCP/mpqS2Kf5Pbd9sSNKhe5uRn9QRCVve+e4TZjCw=="],
+    "@spectrum-web-components/icons-workflow/@spectrum-web-components/base": ["@spectrum-web-components/base@1.12.2", "", { "dependencies": { "lit": "^2.5.0 || ^3.1.3" } }, "sha512-7vB3182FqJzRevafUWlFRw/bfM4ZjC+Mmh5Fh0mDmVcP/SohUowrmHsQns1fsQPi+/O8iMP8XbtT7sAFp6ejkA=="],
 
-    "@spectrum-web-components/picker/@spectrum-web-components/progress-circle": ["@spectrum-web-components/progress-circle@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/reactive-controllers": "1.12.2", "@spectrum-web-components/shared": "1.12.2" } }, "sha512-I7gAZM8gza/gDZ+tJuKcWF8lld4030GcJpLcySb1NTzBpJlnIItPuybBolSpSb+QzmFTAnlGJaRWTXPZkC8hwA=="],
+    "@spectrum-web-components/iconset/@spectrum-web-components/base": ["@spectrum-web-components/base@1.12.2", "", { "dependencies": { "lit": "^2.5.0 || ^3.1.3" } }, "sha512-7vB3182FqJzRevafUWlFRw/bfM4ZjC+Mmh5Fh0mDmVcP/SohUowrmHsQns1fsQPi+/O8iMP8XbtT7sAFp6ejkA=="],
 
-    "@spectrum-web-components/progress-circle/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
+    "@spectrum-web-components/menu/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
-    "@spectrum-web-components/quick-actions/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
+    "@spectrum-web-components/overlay/@floating-ui/utils": ["@floating-ui/utils@0.1.6", "", {}, "sha512-OfX7E2oUDYxtBvsuS4e/jSn4Q9Qb6DzgeYtsAdkPZ47znpoNsMgZw0+tVijiv3uGNR6dgNlty6r9rzIzHjtd/A=="],
+
+    "@spectrum-web-components/overlay/@spectrum-web-components/reactive-controllers": ["@spectrum-web-components/reactive-controllers@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-1wnWLt88iyTPrElxZqPpyWWzScSkXY3zxi+QxIV0cFGmhRlPsH+XXqs/kGkfzRyNtE4s2AWuRZ2wtbcao6MzJQ=="],
+
+    "@spectrum-web-components/picker/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
+
+    "@spectrum-web-components/picker/@spectrum-web-components/icons-workflow": ["@spectrum-web-components/icons-workflow@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0" } }, "sha512-D1Dg+ZjlqbaU/2uKYhmMtZXQMVUw9J9LevHSKSzMFL+Y++JMqRROQuzwAOFW7tttCw1w0+3kIuv2ohkeE+8fNQ=="],
+
+    "@spectrum-web-components/picker/@spectrum-web-components/reactive-controllers": ["@spectrum-web-components/reactive-controllers@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-1wnWLt88iyTPrElxZqPpyWWzScSkXY3zxi+QxIV0cFGmhRlPsH+XXqs/kGkfzRyNtE4s2AWuRZ2wtbcao6MzJQ=="],
 
     "@spectrum-web-components/reactive-controllers/@spectrum-web-components/progress-circle": ["@spectrum-web-components/progress-circle@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/reactive-controllers": "1.12.2", "@spectrum-web-components/shared": "1.12.2" } }, "sha512-I7gAZM8gza/gDZ+tJuKcWF8lld4030GcJpLcySb1NTzBpJlnIItPuybBolSpSb+QzmFTAnlGJaRWTXPZkC8hwA=="],
-
-    "@spectrum-web-components/search/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
 
     "@spectrum-web-components/search/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
     "@spectrum-web-components/search/@spectrum-web-components/icons-workflow": ["@spectrum-web-components/icons-workflow@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0" } }, "sha512-D1Dg+ZjlqbaU/2uKYhmMtZXQMVUw9J9LevHSKSzMFL+Y++JMqRROQuzwAOFW7tttCw1w0+3kIuv2ohkeE+8fNQ=="],
 
-    "@spectrum-web-components/status-light/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@spectrum-web-components/styles/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@spectrum-web-components/textfield/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
     "@spectrum-web-components/textfield/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
-
-    "@spectrum-web-components/textfield/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
 
     "@spectrum-web-components/textfield/@spectrum-web-components/icons-workflow": ["@spectrum-web-components/icons-workflow@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0" } }, "sha512-D1Dg+ZjlqbaU/2uKYhmMtZXQMVUw9J9LevHSKSzMFL+Y++JMqRROQuzwAOFW7tttCw1w0+3kIuv2ohkeE+8fNQ=="],
 
-    "@spectrum-web-components/textfield/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@spectrum-web-components/theme/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@swc-react/action-button/@spectrum-web-components/action-button": ["@spectrum-web-components/action-button@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-cU/5sHpRSA823sHUH6jZccmizkTxWr/LJHTDJ4jj0LxCLh15OHfxKM+hu/vcc5fXYrAPma5Hp54xTBc/l/frDA=="],
-
-    "@swc-react/divider/@spectrum-web-components/divider": ["@spectrum-web-components/divider@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-f08h0pQ4srKw9R1fT+jKHUF3s1GfV2UPpcKrrfXFclXRRlu4AuQBO8Wo6nYUj/yYCz+hRWhlmtxL/BDKmREu9w=="],
-
-    "@swc-react/field-label/@spectrum-web-components/field-label": ["@spectrum-web-components/field-label@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/reactive-controllers": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-QTk0IwONj1P8jnsIwr3xyxkNs2fMHBs2nNoHMrmEiW1/6a5TIjIIntmeOj1BUcP2wRbUB5CD3mnh44OWSbmbHQ=="],
-
-    "@swc-uxp-internal/action-button/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
+    "@spectrum-web-components/tray/@spectrum-web-components/reactive-controllers": ["@spectrum-web-components/reactive-controllers@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-1wnWLt88iyTPrElxZqPpyWWzScSkXY3zxi+QxIV0cFGmhRlPsH+XXqs/kGkfzRyNtE4s2AWuRZ2wtbcao6MzJQ=="],
 
     "@swc-uxp-internal/action-button/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
-
-    "@swc-uxp-internal/action-button/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
-
-    "@swc-uxp-internal/action-button/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@swc-uxp-internal/action-group/@spectrum-web-components/action-button": ["@spectrum-web-components/action-button@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-cU/5sHpRSA823sHUH6jZccmizkTxWr/LJHTDJ4jj0LxCLh15OHfxKM+hu/vcc5fXYrAPma5Hp54xTBc/l/frDA=="],
-
-    "@swc-uxp-internal/action-group/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
 
     "@swc-uxp-internal/action-group/@spectrum-web-components/icons-workflow": ["@spectrum-web-components/icons-workflow@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0" } }, "sha512-D1Dg+ZjlqbaU/2uKYhmMtZXQMVUw9J9LevHSKSzMFL+Y++JMqRROQuzwAOFW7tttCw1w0+3kIuv2ohkeE+8fNQ=="],
 
     "@swc-uxp-internal/action-group/@spectrum-web-components/reactive-controllers": ["@spectrum-web-components/reactive-controllers@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-1wnWLt88iyTPrElxZqPpyWWzScSkXY3zxi+QxIV0cFGmhRlPsH+XXqs/kGkfzRyNtE4s2AWuRZ2wtbcao6MzJQ=="],
 
-    "@swc-uxp-internal/asset/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@swc-uxp-internal/button/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
     "@swc-uxp-internal/button/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
-
-    "@swc-uxp-internal/button/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
-
-    "@swc-uxp-internal/button/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@swc-uxp-internal/card/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
 
     "@swc-uxp-internal/card/@spectrum-web-components/icons-workflow": ["@spectrum-web-components/icons-workflow@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0" } }, "sha512-D1Dg+ZjlqbaU/2uKYhmMtZXQMVUw9J9LevHSKSzMFL+Y++JMqRROQuzwAOFW7tttCw1w0+3kIuv2ohkeE+8fNQ=="],
 
-    "@swc-uxp-internal/card/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@swc-uxp-internal/checkbox/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
     "@swc-uxp-internal/checkbox/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
-
-    "@swc-uxp-internal/checkbox/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
-
-    "@swc-uxp-internal/checkbox/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@swc-uxp-internal/divider/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@swc-uxp-internal/field-label/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
 
     "@swc-uxp-internal/field-label/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
-    "@swc-uxp-internal/field-label/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
-
     "@swc-uxp-internal/field-label/@spectrum-web-components/reactive-controllers": ["@spectrum-web-components/reactive-controllers@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-1wnWLt88iyTPrElxZqPpyWWzScSkXY3zxi+QxIV0cFGmhRlPsH+XXqs/kGkfzRyNtE4s2AWuRZ2wtbcao6MzJQ=="],
-
-    "@swc-uxp-internal/field-label/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@swc-uxp-internal/help-text/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
 
     "@swc-uxp-internal/help-text/@spectrum-web-components/icons-workflow": ["@spectrum-web-components/icons-workflow@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0" } }, "sha512-D1Dg+ZjlqbaU/2uKYhmMtZXQMVUw9J9LevHSKSzMFL+Y++JMqRROQuzwAOFW7tttCw1w0+3kIuv2ohkeE+8fNQ=="],
 
-    "@swc-uxp-internal/icon/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
     "@swc-uxp-internal/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
-    "@swc-uxp-internal/icons/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
     "@swc-uxp-internal/icons/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-uxp-internal/icons-ui/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
 
     "@swc-uxp-internal/icons-ui/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
     "@swc-uxp-internal/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
-    "@swc-uxp-internal/icons-workflow/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
     "@swc-uxp-internal/icons-workflow/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
-
-    "@swc-uxp-internal/iconset/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@swc-uxp-internal/illustrated-message/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@swc-uxp-internal/menu/@spectrum-web-components/action-button": ["@spectrum-web-components/action-button@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-cU/5sHpRSA823sHUH6jZccmizkTxWr/LJHTDJ4jj0LxCLh15OHfxKM+hu/vcc5fXYrAPma5Hp54xTBc/l/frDA=="],
-
-    "@swc-uxp-internal/menu/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@swc-uxp-internal/menu/@spectrum-web-components/divider": ["@spectrum-web-components/divider@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-f08h0pQ4srKw9R1fT+jKHUF3s1GfV2UPpcKrrfXFclXRRlu4AuQBO8Wo6nYUj/yYCz+hRWhlmtxL/BDKmREu9w=="],
 
     "@swc-uxp-internal/menu/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
-    "@swc-uxp-internal/menu/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
-
-    "@swc-uxp-internal/menu/@spectrum-web-components/overlay": ["@spectrum-web-components/overlay@0.37.0", "", { "dependencies": { "@floating-ui/dom": "^1.5.1", "@floating-ui/utils": "^0.1.1", "@spectrum-web-components/action-button": "^0.37.0", "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/reactive-controllers": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0", "@spectrum-web-components/theme": "^0.37.0" } }, "sha512-kMEXAWdHJ/RGLbR4GHAEvgb03uaKNJSakVYgqoxQ15Z8PTq669FZQZMvYGr5VftRaXpejm5n1GK+KxuK6Cy+uw=="],
-
-    "@swc-uxp-internal/menu/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@swc-uxp-internal/overlay/@floating-ui/dom": ["@floating-ui/dom@1.8.0", "", { "dependencies": { "@floating-ui/core": "^1.8.0", "@floating-ui/utils": "^0.2.12" } }, "sha512-yXSrzeHZBTZadLOlfyhCkJHNeLJnHRnRInwdZ40L7ZiaAtrBwoYlsDrX3v5zB1Utk7CLfzcOVnVVWoXEky7Ceg=="],
-
     "@swc-uxp-internal/overlay/@floating-ui/utils": ["@floating-ui/utils@0.1.6", "", {}, "sha512-OfX7E2oUDYxtBvsuS4e/jSn4Q9Qb6DzgeYtsAdkPZ47znpoNsMgZw0+tVijiv3uGNR6dgNlty6r9rzIzHjtd/A=="],
 
-    "@swc-uxp-internal/overlay/@spectrum-web-components/action-button": ["@spectrum-web-components/action-button@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-cU/5sHpRSA823sHUH6jZccmizkTxWr/LJHTDJ4jj0LxCLh15OHfxKM+hu/vcc5fXYrAPma5Hp54xTBc/l/frDA=="],
-
-    "@swc-uxp-internal/overlay/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
     "@swc-uxp-internal/overlay/@spectrum-web-components/reactive-controllers": ["@spectrum-web-components/reactive-controllers@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-1wnWLt88iyTPrElxZqPpyWWzScSkXY3zxi+QxIV0cFGmhRlPsH+XXqs/kGkfzRyNtE4s2AWuRZ2wtbcao6MzJQ=="],
-
-    "@swc-uxp-internal/overlay/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@swc-uxp-internal/popover/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@swc-uxp-internal/popover/@spectrum-web-components/overlay": ["@spectrum-web-components/overlay@0.37.0", "", { "dependencies": { "@floating-ui/dom": "^1.5.1", "@floating-ui/utils": "^0.1.1", "@spectrum-web-components/action-button": "^0.37.0", "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/reactive-controllers": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0", "@spectrum-web-components/theme": "^0.37.0" } }, "sha512-kMEXAWdHJ/RGLbR4GHAEvgb03uaKNJSakVYgqoxQ15Z8PTq669FZQZMvYGr5VftRaXpejm5n1GK+KxuK6Cy+uw=="],
-
-    "@swc-uxp-internal/quick-actions/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@swc-uxp-internal/search/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
 
     "@swc-uxp-internal/search/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
     "@swc-uxp-internal/search/@spectrum-web-components/icons-workflow": ["@spectrum-web-components/icons-workflow@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0" } }, "sha512-D1Dg+ZjlqbaU/2uKYhmMtZXQMVUw9J9LevHSKSzMFL+Y++JMqRROQuzwAOFW7tttCw1w0+3kIuv2ohkeE+8fNQ=="],
 
-    "@swc-uxp-internal/shared/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@swc-uxp-internal/styles/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@swc-uxp-internal/textfield/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
     "@swc-uxp-internal/textfield/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
-    "@swc-uxp-internal/textfield/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
-
     "@swc-uxp-internal/textfield/@spectrum-web-components/icons-workflow": ["@spectrum-web-components/icons-workflow@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0" } }, "sha512-D1Dg+ZjlqbaU/2uKYhmMtZXQMVUw9J9LevHSKSzMFL+Y++JMqRROQuzwAOFW7tttCw1w0+3kIuv2ohkeE+8fNQ=="],
-
-    "@swc-uxp-internal/textfield/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@swc-uxp-internal/theme/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
 
     "@tailwindcss/node/lightningcss": ["lightningcss@1.32.0", "", { "dependencies": { "detect-libc": "^2.0.3" }, "optionalDependencies": { "lightningcss-android-arm64": "1.32.0", "lightningcss-darwin-arm64": "1.32.0", "lightningcss-darwin-x64": "1.32.0", "lightningcss-freebsd-x64": "1.32.0", "lightningcss-linux-arm-gnueabihf": "1.32.0", "lightningcss-linux-arm64-gnu": "1.32.0", "lightningcss-linux-arm64-musl": "1.32.0", "lightningcss-linux-x64-gnu": "1.32.0", "lightningcss-linux-x64-musl": "1.32.0", "lightningcss-win32-arm64-msvc": "1.32.0", "lightningcss-win32-x64-msvc": "1.32.0" } }, "sha512-NXYBzinNrblfraPGyrbPoD19C1h9lfI/1mzgWYvXUTe414Gz/X1FD2XBZSZM7rRTrMA8JL3OtAaGifrIKhQ5yQ=="],
 
@@ -3626,89 +3492,45 @@
 
     "@prisma/studio-core/@radix-ui/react-toggle/@radix-ui/react-use-controllable-state": ["@radix-ui/react-use-controllable-state@1.2.2", "", { "dependencies": { "@radix-ui/react-use-effect-event": "0.0.2", "@radix-ui/react-use-layout-effect": "1.1.1" }, "peerDependencies": { "@types/react": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-BjasUjixPFdS+NKkypcyyN5Pmg83Olst0+c6vGov0diwTEo6mgdqVR6hxcEgFuh4QrAs7Rc+9KuGJ9TVCj0Zzg=="],
 
-    "@spectrum-web-components/action-button/@spectrum-web-components/button/@spectrum-web-components/clear-button": ["@spectrum-web-components/clear-button@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2" } }, "sha512-iTDs+FQJkHelR+f4Iz3JL+i5ltbI5XHpweFYLn6UgP+tO6hjZfIr1iw6bCaDs1MEHLIJez1a4mYl0aR6orKa6Q=="],
-
-    "@spectrum-web-components/action-button/@spectrum-web-components/button/@spectrum-web-components/close-button": ["@spectrum-web-components/close-button@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2" } }, "sha512-T1owl+MncqZTMapRZvwGI0IRzzYigzDpsGWR4yu4yc8MDD8D9k067KFZeh2Og1o5uzLNMT9jr6qUh795Xk6rtg=="],
-
-    "@spectrum-web-components/action-button/@spectrum-web-components/button/@spectrum-web-components/progress-circle": ["@spectrum-web-components/progress-circle@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "@spectrum-web-components/reactive-controllers": "1.12.2", "@spectrum-web-components/shared": "1.12.2" } }, "sha512-I7gAZM8gza/gDZ+tJuKcWF8lld4030GcJpLcySb1NTzBpJlnIItPuybBolSpSb+QzmFTAnlGJaRWTXPZkC8hwA=="],
-
-    "@spectrum-web-components/action-group/@spectrum-web-components/action-button/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
-
-    "@spectrum-web-components/action-group/@spectrum-web-components/action-button/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
-
-    "@spectrum-web-components/action-group/@spectrum-web-components/action-button/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
+    "@spectrum-web-components/action-button/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
     "@spectrum-web-components/action-group/@spectrum-web-components/icons-workflow/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
-    "@spectrum-web-components/button/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
+    "@spectrum-web-components/action-menu/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
-    "@spectrum-web-components/button/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
+    "@spectrum-web-components/button/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
     "@spectrum-web-components/card/@spectrum-web-components/icons-workflow/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
     "@spectrum-web-components/checkbox/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
-    "@spectrum-web-components/checkbox/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
+    "@spectrum-web-components/field-label/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
     "@spectrum-web-components/help-text/@spectrum-web-components/icons-workflow/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
-    "@spectrum-web-components/overlay/@spectrum-web-components/theme/@spectrum-web-components/styles": ["@spectrum-web-components/styles@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2", "lit": "^2.5.0 || ^3.1.3" } }, "sha512-6vYe/VEbjJ4VDcOSbjxEZaKatwRdxp6yLgEf+qtlo7YOSTAM2016kr6MaqV3EbKXBsVJP8qe9j2hoq29MLGqyA=="],
+    "@spectrum-web-components/menu/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
-    "@spectrum-web-components/picker/@spectrum-web-components/button/@spectrum-web-components/clear-button": ["@spectrum-web-components/clear-button@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2" } }, "sha512-iTDs+FQJkHelR+f4Iz3JL+i5ltbI5XHpweFYLn6UgP+tO6hjZfIr1iw6bCaDs1MEHLIJez1a4mYl0aR6orKa6Q=="],
+    "@spectrum-web-components/picker/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
-    "@spectrum-web-components/picker/@spectrum-web-components/button/@spectrum-web-components/close-button": ["@spectrum-web-components/close-button@1.12.2", "", { "dependencies": { "@spectrum-web-components/base": "1.12.2" } }, "sha512-T1owl+MncqZTMapRZvwGI0IRzzYigzDpsGWR4yu4yc8MDD8D9k067KFZeh2Og1o5uzLNMT9jr6qUh795Xk6rtg=="],
+    "@spectrum-web-components/reactive-controllers/@spectrum-web-components/progress-circle/@spectrum-web-components/base": ["@spectrum-web-components/base@1.12.2", "", { "dependencies": { "lit": "^2.5.0 || ^3.1.3" } }, "sha512-7vB3182FqJzRevafUWlFRw/bfM4ZjC+Mmh5Fh0mDmVcP/SohUowrmHsQns1fsQPi+/O8iMP8XbtT7sAFp6ejkA=="],
+
+    "@spectrum-web-components/reactive-controllers/@spectrum-web-components/progress-circle/@spectrum-web-components/shared": ["@spectrum-web-components/shared@1.12.2", "", { "dependencies": { "@lit-labs/observers": "2.0.2", "@spectrum-web-components/base": "1.12.2", "focus-visible": "5.2.1" } }, "sha512-1vRimMtdKllujoFPbuDoPP0eSHZJfExWld2jeqboMKjzNTDvBfoOIN3ZOz7ClOVyrJOQDJSP2htCVfDBYl72Ug=="],
 
     "@spectrum-web-components/search/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
     "@spectrum-web-components/textfield/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
-    "@spectrum-web-components/textfield/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-react/action-button/@spectrum-web-components/action-button/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@swc-react/action-button/@spectrum-web-components/action-button/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
-
-    "@swc-react/action-button/@spectrum-web-components/action-button/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
-
-    "@swc-react/action-button/@spectrum-web-components/action-button/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
-    "@swc-react/divider/@spectrum-web-components/divider/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@swc-react/field-label/@spectrum-web-components/field-label/@spectrum-web-components/base": ["@spectrum-web-components/base@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-3JOI36CemlFzXKAuennOBZ2k99ayd6yooG8eX24z58r0nT6I+3q6jYbytBRJuj48Y7vxwxqMIKX4V118A1dmMQ=="],
-
-    "@swc-react/field-label/@spectrum-web-components/field-label/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
-
-    "@swc-react/field-label/@spectrum-web-components/field-label/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
-
-    "@swc-react/field-label/@spectrum-web-components/field-label/@spectrum-web-components/reactive-controllers": ["@spectrum-web-components/reactive-controllers@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-1wnWLt88iyTPrElxZqPpyWWzScSkXY3zxi+QxIV0cFGmhRlPsH+XXqs/kGkfzRyNtE4s2AWuRZ2wtbcao6MzJQ=="],
-
-    "@swc-react/field-label/@spectrum-web-components/field-label/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
     "@swc-uxp-internal/action-button/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-uxp-internal/action-button/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-uxp-internal/action-group/@spectrum-web-components/action-button/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
-
-    "@swc-uxp-internal/action-group/@spectrum-web-components/action-button/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
-
-    "@swc-uxp-internal/action-group/@spectrum-web-components/action-button/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
 
     "@swc-uxp-internal/action-group/@spectrum-web-components/icons-workflow/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
     "@swc-uxp-internal/button/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
-    "@swc-uxp-internal/button/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
     "@swc-uxp-internal/card/@spectrum-web-components/icons-workflow/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
     "@swc-uxp-internal/checkbox/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
-    "@swc-uxp-internal/checkbox/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
     "@swc-uxp-internal/field-label/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-uxp-internal/field-label/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
     "@swc-uxp-internal/help-text/@spectrum-web-components/icons-workflow/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
 
@@ -3716,35 +3538,9 @@
 
     "@swc-uxp-internal/menu/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
-    "@swc-uxp-internal/menu/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-uxp-internal/menu/@spectrum-web-components/overlay/@floating-ui/dom": ["@floating-ui/dom@1.8.0", "", { "dependencies": { "@floating-ui/core": "^1.8.0", "@floating-ui/utils": "^0.2.12" } }, "sha512-yXSrzeHZBTZadLOlfyhCkJHNeLJnHRnRInwdZ40L7ZiaAtrBwoYlsDrX3v5zB1Utk7CLfzcOVnVVWoXEky7Ceg=="],
-
-    "@swc-uxp-internal/menu/@spectrum-web-components/overlay/@floating-ui/utils": ["@floating-ui/utils@0.1.6", "", {}, "sha512-OfX7E2oUDYxtBvsuS4e/jSn4Q9Qb6DzgeYtsAdkPZ47znpoNsMgZw0+tVijiv3uGNR6dgNlty6r9rzIzHjtd/A=="],
-
-    "@swc-uxp-internal/menu/@spectrum-web-components/overlay/@spectrum-web-components/reactive-controllers": ["@spectrum-web-components/reactive-controllers@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-1wnWLt88iyTPrElxZqPpyWWzScSkXY3zxi+QxIV0cFGmhRlPsH+XXqs/kGkfzRyNtE4s2AWuRZ2wtbcao6MzJQ=="],
-
-    "@swc-uxp-internal/overlay/@floating-ui/dom/@floating-ui/utils": ["@floating-ui/utils@0.2.12", "", {}, "sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=="],
-
-    "@swc-uxp-internal/overlay/@spectrum-web-components/action-button/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
-
-    "@swc-uxp-internal/overlay/@spectrum-web-components/action-button/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
-
-    "@swc-uxp-internal/popover/@spectrum-web-components/overlay/@floating-ui/dom": ["@floating-ui/dom@1.8.0", "", { "dependencies": { "@floating-ui/core": "^1.8.0", "@floating-ui/utils": "^0.2.12" } }, "sha512-yXSrzeHZBTZadLOlfyhCkJHNeLJnHRnRInwdZ40L7ZiaAtrBwoYlsDrX3v5zB1Utk7CLfzcOVnVVWoXEky7Ceg=="],
-
-    "@swc-uxp-internal/popover/@spectrum-web-components/overlay/@floating-ui/utils": ["@floating-ui/utils@0.1.6", "", {}, "sha512-OfX7E2oUDYxtBvsuS4e/jSn4Q9Qb6DzgeYtsAdkPZ47znpoNsMgZw0+tVijiv3uGNR6dgNlty6r9rzIzHjtd/A=="],
-
-    "@swc-uxp-internal/popover/@spectrum-web-components/overlay/@spectrum-web-components/action-button": ["@spectrum-web-components/action-button@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/button": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/icons-ui": "^0.37.0", "@spectrum-web-components/shared": "^0.37.0" } }, "sha512-cU/5sHpRSA823sHUH6jZccmizkTxWr/LJHTDJ4jj0LxCLh15OHfxKM+hu/vcc5fXYrAPma5Hp54xTBc/l/frDA=="],
-
-    "@swc-uxp-internal/popover/@spectrum-web-components/overlay/@spectrum-web-components/reactive-controllers": ["@spectrum-web-components/reactive-controllers@0.37.0", "", { "dependencies": { "lit": "^2.5.0" } }, "sha512-1wnWLt88iyTPrElxZqPpyWWzScSkXY3zxi+QxIV0cFGmhRlPsH+XXqs/kGkfzRyNtE4s2AWuRZ2wtbcao6MzJQ=="],
-
-    "@swc-uxp-internal/popover/@spectrum-web-components/overlay/@spectrum-web-components/shared": ["@spectrum-web-components/shared@0.37.0", "", { "dependencies": { "@lit-labs/observers": "^2.0.0", "@spectrum-web-components/base": "^0.37.0", "focus-visible": "^5.1.0" } }, "sha512-i2yJ1tpQxUffP0xcx9QfusxKlRS3eOBZXjCnxhiicHIIlQtK+mPENbUTe2mRmVLT3WPwIt6mNzoO8w/p5h0Pxw=="],
-
     "@swc-uxp-internal/search/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
     "@swc-uxp-internal/textfield/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-uxp-internal/textfield/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
     "@tailwindcss/node/lightningcss/lightningcss-android-arm64": ["lightningcss-android-arm64@1.32.0", "", { "os": "android", "cpu": "arm64" }, "sha512-YK7/ClTt4kAK0vo6w3X+Pnm0D2cf2vPHbhOXdoNti1Ga0al1P4TBZhwjATvjNwLEBCnKvjJc2jQgHXH0NEwlAg=="],
 
@@ -3806,45 +3602,17 @@
 
     "@prisma/studio-core/@radix-ui/react-toggle/@radix-ui/react-use-controllable-state/@radix-ui/react-use-layout-effect": ["@radix-ui/react-use-layout-effect@1.1.1", "", { "peerDependencies": { "@types/react": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-RbJRS4UWQFkzHTTwVymMTUv8EqYhOp8dOOviLj2ugtTiXRaRQS7GLGxZTLL1jWhMeoSCf5zmcZkqTl9IiYfXcQ=="],
 
-    "@spectrum-web-components/action-group/@spectrum-web-components/action-button/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@spectrum-web-components/action-group/@spectrum-web-components/action-button/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
     "@spectrum-web-components/action-group/@spectrum-web-components/icons-workflow/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
     "@spectrum-web-components/card/@spectrum-web-components/icons-workflow/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
     "@spectrum-web-components/help-text/@spectrum-web-components/icons-workflow/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
-    "@swc-react/action-button/@spectrum-web-components/action-button/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-react/action-button/@spectrum-web-components/action-button/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-react/field-label/@spectrum-web-components/field-label/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-react/field-label/@spectrum-web-components/field-label/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-uxp-internal/action-group/@spectrum-web-components/action-button/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-uxp-internal/action-group/@spectrum-web-components/action-button/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
     "@swc-uxp-internal/action-group/@spectrum-web-components/icons-workflow/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
     "@swc-uxp-internal/card/@spectrum-web-components/icons-workflow/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
 
     "@swc-uxp-internal/help-text/@spectrum-web-components/icons-workflow/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-uxp-internal/menu/@spectrum-web-components/overlay/@floating-ui/dom/@floating-ui/utils": ["@floating-ui/utils@0.2.12", "", {}, "sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=="],
-
-    "@swc-uxp-internal/overlay/@spectrum-web-components/action-button/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-uxp-internal/overlay/@spectrum-web-components/action-button/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-uxp-internal/popover/@spectrum-web-components/overlay/@floating-ui/dom/@floating-ui/utils": ["@floating-ui/utils@0.2.12", "", {}, "sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=="],
-
-    "@swc-uxp-internal/popover/@spectrum-web-components/overlay/@spectrum-web-components/action-button/@spectrum-web-components/icon": ["@spectrum-web-components/icon@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DZ1yOKHxNQygzIJ7u9akYComDnMmxuTzfmYxxt9sHdUXmc1NbMkCJqEaAG/LYsdb+hc4xWaDTT9SzArLKZ/btA=="],
-
-    "@swc-uxp-internal/popover/@spectrum-web-components/overlay/@spectrum-web-components/action-button/@spectrum-web-components/icons-ui": ["@spectrum-web-components/icons-ui@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0", "@spectrum-web-components/icon": "^0.37.0", "@spectrum-web-components/iconset": "^0.37.0" } }, "sha512-DmaK+NDIgYhtYW19Y4lZoGYLfnFWPBjLNcLWGTQtc41yccEmgWrJbaf9n+nP4TADVJMT5dKNgE2vHnmDABtydg=="],
 
     "dockerode/tar-fs/tar-stream/readable-stream": ["readable-stream@3.6.2", "", { "dependencies": { "inherits": "^2.0.3", "string_decoder": "^1.1.1", "util-deprecate": "^1.0.1" } }, "sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA=="],
 
@@ -3855,9 +3623,5 @@
     "readdir-glob/minimatch/brace-expansion/balanced-match": ["balanced-match@1.0.2", "", {}, "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="],
 
     "@prisma/studio-core/@radix-ui/react-toggle/@radix-ui/react-primitive/@radix-ui/react-slot/@radix-ui/react-compose-refs": ["@radix-ui/react-compose-refs@1.1.2", "", { "peerDependencies": { "@types/react": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-z4eqJvfiNnFMHIIvXP3CY57y2WJs5g2v3X0zm9mEJkrkNv4rDxu+sg9Jh8EkXyeqBkB7SOcboo9dMVqhyrACIg=="],
-
-    "@swc-uxp-internal/popover/@spectrum-web-components/overlay/@spectrum-web-components/action-button/@spectrum-web-components/icon/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
-
-    "@swc-uxp-internal/popover/@spectrum-web-components/overlay/@spectrum-web-components/action-button/@spectrum-web-components/icons-ui/@spectrum-web-components/iconset": ["@spectrum-web-components/iconset@0.37.0", "", { "dependencies": { "@spectrum-web-components/base": "^0.37.0" } }, "sha512-s1TBjWeQtGdGf6n+r+aG2glv77IgR0pNs0HLusGyYt6jzWFkP276fE7Neqq/2XvG9a9zvAwngffnWS3td/Gtmg=="],
   }
 }
