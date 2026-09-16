@@ -7,8 +7,10 @@ import {
   getSequenceLink,
   saveSequenceLink,
   removeSequenceLink,
+  normalizeGuid,
   LINK_STORAGE_PROP_KEY,
 } from './linkStorage'
+import * as commentUtils from './commentUtils'
 import type { Project, Sequence } from '@adobe/premierepro'
 import type { LinkedSequenceAsset } from '../types/link'
 
@@ -304,6 +306,154 @@ describe('linkStorage service', () => {
         guid: 'synced-marker-2',
       })
       expect(mockProps.createClearValueAction).toHaveBeenCalledWith(LINK_STORAGE_PROP_KEY)
+    })
+
+    it('removes markers by comment matching fallback when syncedMarkerGuids is empty', async () => {
+      localStorage.setItem('shumai_uxp_endpoint', 'https://shumai.example.com')
+      localStorage.setItem('shumai_uxp_api_key', 'test-api-key')
+
+      vi.spyOn(commentUtils, 'fetchAssetComments').mockResolvedValue([
+        {
+          id: 'comm-1',
+          creator: {
+            id: 'u1',
+            name: 'Director',
+          } as unknown as import('@shumai/dtos').CommentInfo['creator'],
+          message: 'Please trim this scene',
+        } as unknown as import('@shumai/dtos').CommentInfo,
+      ])
+
+      const mockCompoundAction = { addAction: vi.fn() }
+      const mockProps = {
+        getValue: vi.fn().mockReturnValue(
+          JSON.stringify({
+            ...sampleLink,
+            syncedMarkerGuids: [],
+          }),
+        ),
+        createClearValueAction: vi.fn().mockReturnValue({ id: 'action-clear' }),
+      }
+
+      const mockLegacyShumaiMarker = {
+        guid: 'legacy-guid-1',
+        getName: () => 'Director',
+        getComments: () => 'Please trim this scene',
+      }
+      const mockManualMarker = {
+        guid: 'manual-guid-2',
+        getName: () => 'Editor',
+        getComments: () => 'My own note',
+      }
+
+      const mockSeqMarkers = {
+        getMarkers: vi.fn().mockReturnValue([mockLegacyShumaiMarker, mockManualMarker]),
+        createRemoveMarkerAction: vi.fn().mockImplementation((marker) => ({
+          type: 'remove-marker',
+          guid: marker.guid,
+        })),
+      }
+
+      const mockPpro = {
+        Properties: {
+          getProperties: vi.fn().mockResolvedValue(mockProps),
+        },
+        Markers: {
+          getMarkers: vi.fn().mockResolvedValue(mockSeqMarkers),
+        },
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(globalThis as any).window = {
+        require: vi.fn().mockImplementation((name: string) => {
+          if (name === 'premierepro') return mockPpro
+          return null
+        }),
+      }
+
+      const mockSeq = { guid: 'seq-guid-1' }
+      const mockProj = {
+        guid: 'proj-1',
+        lockedAccess: vi.fn((cb) => cb()),
+        executeTransaction: vi.fn((cb) => {
+          cb(mockCompoundAction)
+          return true
+        }),
+      }
+
+      const success = await removeSequenceLink(
+        mockProj as unknown as Project,
+        mockSeq as unknown as Sequence,
+      )
+      expect(success).toBe(true)
+
+      expect(mockSeqMarkers.createRemoveMarkerAction).toHaveBeenCalledWith(mockLegacyShumaiMarker)
+      expect(mockSeqMarkers.createRemoveMarkerAction).not.toHaveBeenCalledWith(mockManualMarker)
+    })
+
+    it('attempts individual marker removals if compound batch remove returns false', async () => {
+      const mockCompoundAction = { addAction: vi.fn() }
+      const mockProps = {
+        getValue: vi.fn().mockReturnValue(
+          JSON.stringify({
+            ...sampleLink,
+            syncedMarkerGuids: ['synced-1'],
+          }),
+        ),
+        createClearValueAction: vi.fn().mockReturnValue({ id: 'action-clear' }),
+      }
+
+      const mockMarker = { guid: 'synced-1' }
+      const mockSeqMarkers = {
+        getMarkers: vi.fn().mockReturnValue([mockMarker]),
+        createRemoveMarkerAction: vi.fn().mockReturnValue({ type: 'remove-marker' }),
+      }
+
+      const mockPpro = {
+        Properties: {
+          getProperties: vi.fn().mockResolvedValue(mockProps),
+        },
+        Markers: {
+          getMarkers: vi.fn().mockResolvedValue(mockSeqMarkers),
+        },
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(globalThis as any).window = {
+        require: vi.fn().mockImplementation((name: string) => {
+          if (name === 'premierepro') return mockPpro
+          return null
+        }),
+      }
+
+      let txCount = 0
+      const mockProj = {
+        guid: 'proj-1',
+        lockedAccess: vi.fn((cb) => cb()),
+        executeTransaction: vi.fn((cb) => {
+          txCount++
+          cb(mockCompoundAction)
+          if (txCount === 1) return false // batch failed
+          return true // individual succeeded
+        }),
+      }
+
+      const mockSeq = { guid: 'seq-guid-1' }
+      const success = await removeSequenceLink(
+        mockProj as unknown as Project,
+        mockSeq as unknown as Sequence,
+      )
+      expect(success).toBe(true)
+      expect(txCount).toBeGreaterThanOrEqual(2)
+    })
+  })
+
+  describe('normalizeGuid', () => {
+    it('normalizes GUIDs with uppercase, braces, whitespace, and objects', () => {
+      expect(normalizeGuid('{1234-ABCD-5678}')).toBe('1234-abcd-5678')
+      expect(normalizeGuid('  ABC-DEF  ')).toBe('abc-def')
+      expect(normalizeGuid({ toString: () => '{Guid-Obj}' })).toBe('guid-obj')
+      expect(normalizeGuid(null)).toBe('')
+      expect(normalizeGuid(undefined)).toBe('')
     })
   })
 })

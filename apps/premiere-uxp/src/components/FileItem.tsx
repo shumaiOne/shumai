@@ -192,47 +192,48 @@ export const FileItem: React.FC<FileItemProps> = ({
           <sp-icon-chevron-right size="xs"></sp-icon-chevron-right>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            {(onLinkSequence || onUnlinkSequence) && (category === 'video' || category === 'audio') && (
-              <sp-action-button
-                quiet
-                size="xs"
-                icon-only
-                label={
-                  isLinked
-                    ? onUnlinkSequence
-                      ? `Unlink from ${linkedSequenceName || 'Sequence'}`
-                      : `Linked to ${linkedSequenceName || 'Sequence'}`
-                    : 'Link to Sequence'
-                }
-                title={
-                  isLinked
-                    ? onUnlinkSequence
-                      ? `Unlink from ${linkedSequenceName || 'Sequence'}`
-                      : `Linked to ${linkedSequenceName || 'Sequence'}`
-                    : 'Link to Sequence'
-                }
-                className="item-row-link-btn"
-                style={{ marginRight: 4 }}
-                onClick={(e: React.MouseEvent) => {
-                  e.stopPropagation()
-                  if (isLinked && onUnlinkSequence) {
-                    onUnlinkSequence(asset)
-                  } else if (onLinkSequence) {
-                    onLinkSequence(asset)
+            {(onLinkSequence || onUnlinkSequence) &&
+              (category === 'video' || category === 'audio') && (
+                <sp-action-button
+                  quiet
+                  size="xs"
+                  icon-only
+                  label={
+                    isLinked
+                      ? onUnlinkSequence
+                        ? `Unlink from ${linkedSequenceName || 'Sequence'}`
+                        : `Linked to ${linkedSequenceName || 'Sequence'}`
+                      : 'Link to Sequence'
                   }
-                }}
-              >
-                {isLinked ? (
-                  <sp-icon-unlink
-                    size="s"
-                    slot="icon"
-                    style={{ color: '#f87171' }}
-                  ></sp-icon-unlink>
-                ) : (
-                  <sp-icon-link size="s" slot="icon"></sp-icon-link>
-                )}
-              </sp-action-button>
-            )}
+                  title={
+                    isLinked
+                      ? onUnlinkSequence
+                        ? `Unlink from ${linkedSequenceName || 'Sequence'}`
+                        : `Linked to ${linkedSequenceName || 'Sequence'}`
+                      : 'Link to Sequence'
+                  }
+                  className="item-row-link-btn"
+                  style={{ marginRight: 4 }}
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation()
+                    if (isLinked && onUnlinkSequence) {
+                      onUnlinkSequence(asset)
+                    } else if (onLinkSequence) {
+                      onLinkSequence(asset)
+                    }
+                  }}
+                >
+                  {isLinked ? (
+                    <sp-icon-unlink
+                      size="s"
+                      slot="icon"
+                      style={{ color: '#f87171' }}
+                    ></sp-icon-unlink>
+                  ) : (
+                    <sp-icon-link size="s" slot="icon"></sp-icon-link>
+                  )}
+                </sp-action-button>
+              )}
             {(onImportRaw || onSelectVideoForImport) && (
               <sp-action-button
                 quiet
@@ -396,47 +397,48 @@ export const FileCardItem: React.FC<FileItemProps> = ({
           <sp-icon-chevron-right size="xs" className="file-row-chevron"></sp-icon-chevron-right>
         ) : (
           <>
-            {(onLinkSequence || onUnlinkSequence) && (category === 'video' || category === 'audio') && (
-              <sp-action-button
-                quiet
-                size="xs"
-                icon-only
-                label={
-                  isLinked
-                    ? onUnlinkSequence
-                      ? `Unlink from ${linkedSequenceName || 'Sequence'}`
-                      : `Linked to ${linkedSequenceName || 'Sequence'}`
-                    : 'Link to Sequence'
-                }
-                title={
-                  isLinked
-                    ? onUnlinkSequence
-                      ? `Unlink from ${linkedSequenceName || 'Sequence'}`
-                      : `Linked to ${linkedSequenceName || 'Sequence'}`
-                    : 'Link to Sequence'
-                }
-                className="file-row-link-btn"
-                style={{ marginRight: 4 }}
-                onClick={(e: React.MouseEvent) => {
-                  e.stopPropagation()
-                  if (isLinked && onUnlinkSequence) {
-                    onUnlinkSequence(asset)
-                  } else if (onLinkSequence) {
-                    onLinkSequence(asset)
+            {(onLinkSequence || onUnlinkSequence) &&
+              (category === 'video' || category === 'audio') && (
+                <sp-action-button
+                  quiet
+                  size="xs"
+                  icon-only
+                  label={
+                    isLinked
+                      ? onUnlinkSequence
+                        ? `Unlink from ${linkedSequenceName || 'Sequence'}`
+                        : `Linked to ${linkedSequenceName || 'Sequence'}`
+                      : 'Link to Sequence'
                   }
-                }}
-              >
-                {isLinked ? (
-                  <sp-icon-unlink
-                    size="s"
-                    slot="icon"
-                    style={{ color: '#f87171' }}
-                  ></sp-icon-unlink>
-                ) : (
-                  <sp-icon-link size="s" slot="icon"></sp-icon-link>
-                )}
-              </sp-action-button>
-            )}
+                  title={
+                    isLinked
+                      ? onUnlinkSequence
+                        ? `Unlink from ${linkedSequenceName || 'Sequence'}`
+                        : `Linked to ${linkedSequenceName || 'Sequence'}`
+                      : 'Link to Sequence'
+                  }
+                  className="file-row-link-btn"
+                  style={{ marginRight: 4 }}
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation()
+                    if (isLinked && onUnlinkSequence) {
+                      onUnlinkSequence(asset)
+                    } else if (onLinkSequence) {
+                      onLinkSequence(asset)
+                    }
+                  }}
+                >
+                  {isLinked ? (
+                    <sp-icon-unlink
+                      size="s"
+                      slot="icon"
+                      style={{ color: '#f87171' }}
+                    ></sp-icon-unlink>
+                  ) : (
+                    <sp-icon-link size="s" slot="icon"></sp-icon-link>
+                  )}
+                </sp-action-button>
+              )}
             {(onImportRaw || onSelectVideoForImport) && (
               <sp-action-button
                 quiet

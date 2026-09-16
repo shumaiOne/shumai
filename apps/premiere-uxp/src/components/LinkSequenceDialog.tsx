@@ -3,7 +3,7 @@ import type { Sequence, Project } from '@adobe/premierepro'
 import type { AssetSummary } from './FileItem'
 import type { LinkedSequenceAsset } from '../types/link'
 import { getActiveProject, getAllSequences, getActiveSequence } from '../services/premiere'
-import { getAllLinkedSequences, removeSequenceLink } from '../services/linkStorage'
+import { getAllLinkedSequences, normalizeGuid, removeSequenceLink } from '../services/linkStorage'
 import { fetchAssetComments, syncCommentsToSequence } from '../services/markers'
 import { resolveAssetUrl } from '../utils/url'
 import { formatBytes, formatDuration } from '../utils/format'
@@ -88,14 +88,14 @@ export const LinkSequenceDialog: React.FC<LinkSequenceDialogProps> = ({
           return
         }
 
-        const activeGuid = activeSeq?.guid ? activeSeq.guid.toString() : ''
+        const activeGuid = normalizeGuid(activeSeq?.guid)
         const linksMap = new Map<string, LinkedSequenceAsset>()
         for (const link of existingLinks) {
-          linksMap.set(link.sequenceGuid, link)
+          linksMap.set(normalizeGuid(link.sequenceGuid), link)
         }
 
         const options: SequenceOption[] = allSeqs.map((seq) => {
-          const guidStr = seq.guid ? seq.guid.toString() : ''
+          const guidStr = normalizeGuid(seq.guid)
           return {
             sequence: seq,
             guid: guidStr,
@@ -147,7 +147,9 @@ export const LinkSequenceDialog: React.FC<LinkSequenceDialogProps> = ({
 
   const handleConfirm = useCallback(async () => {
     if (!asset || !project || !selectedGuid || linking) return
-    const targetOption = sequences.find((opt) => opt.guid === selectedGuid)
+    const targetOption = sequences.find(
+      (opt) => normalizeGuid(opt.guid) === normalizeGuid(selectedGuid),
+    )
     if (!targetOption) return
 
     setLinking(true)
@@ -161,9 +163,9 @@ export const LinkSequenceDialog: React.FC<LinkSequenceDialogProps> = ({
       const comments = await fetchAssetComments(endpoint, apiKey, asset.id)
 
       // 2. Prepare initial link metadata
-      const prGuidStr = project.guid ? project.guid.toString() : undefined
+      const prGuidStr = project.guid ? normalizeGuid(project.guid) : undefined
       const initialLink: LinkedSequenceAsset = {
-        sequenceGuid: targetOption.guid,
+        sequenceGuid: normalizeGuid(targetOption.guid),
         sequenceName: targetOption.name,
         assetId: asset.id,
         assetName: asset.name,
@@ -175,7 +177,7 @@ export const LinkSequenceDialog: React.FC<LinkSequenceDialogProps> = ({
             : [],
         syncedMarkerGuids:
           targetOption.currentLink?.assetId === asset.id
-            ? targetOption.currentLink.syncedMarkerGuids || []
+            ? (targetOption.currentLink.syncedMarkerGuids || []).map(normalizeGuid)
             : [],
         lastSyncAt: Date.now(),
         totalCommentsSynced:

@@ -7,6 +7,7 @@ import { LinkSequenceDialog } from '../components/LinkSequenceDialog'
 import {
   getAllSequenceLinksFromCache,
   getAllLinkedSequences,
+  normalizeGuid,
   removeSequenceLink,
   removeSequenceLinkFromCache,
 } from '../services/linkStorage'
@@ -117,7 +118,9 @@ export const FileListView: React.FC<FileListViewProps> = ({
         const pr = await getActiveProject()
         if (pr) {
           const allSeqs = await getAllSequences(pr)
-          const targetSeq = allSeqs.find((s) => s.guid && s.guid.toString() === link.sequenceGuid)
+          const targetSeq = allSeqs.find(
+            (s) => normalizeGuid(s.guid) === normalizeGuid(link.sequenceGuid),
+          )
           if (targetSeq) {
             await removeSequenceLink(pr, targetSeq)
           } else {

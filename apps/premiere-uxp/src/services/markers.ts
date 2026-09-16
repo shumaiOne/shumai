@@ -1,53 +1,11 @@
 import type { Project, Sequence } from '@adobe/premierepro'
 import { getPremiereModule } from './premiere'
 import type { LinkedSequenceAsset } from '../types/link'
-import { saveSequenceLink } from './linkStorage'
+import { normalizeGuid, saveSequenceLink } from './linkStorage'
 import type { CommentInfo } from '@shumai/dtos'
-import { getShumaiClient } from '../api/client'
+import { fetchAssetComments, formatCommentBody } from './commentUtils'
 
-/**
- * Fetches timecoded comments for an asset from Shumai.
- */
-export async function fetchAssetComments(
-  endpoint: string,
-  apiKey: string,
-  assetId: string,
-): Promise<CommentInfo[]> {
-  try {
-    const client = getShumaiClient(endpoint, apiKey)
-    const res = await client.api.files[':fileId'].comments.$get({
-      param: { fileId: assetId },
-      query: { first: '100' },
-    })
-    if (!res.ok) {
-      console.warn('[markers] Failed to fetch comments for asset:', res.status)
-      return []
-    }
-    const data = await res.json()
-    return (data?.data as CommentInfo[]) || []
-  } catch (err) {
-    console.error('[markers] Error fetching asset comments:', err)
-    return []
-  }
-}
-
-/**
- * Formats a Shumai comment into marker text including any threaded replies.
- */
-export function formatCommentBody(comment: CommentInfo): string {
-  let body = comment.message || ''
-
-  if (comment.replies && comment.replies.length > 0) {
-    body += '\n\n--- Replies ---'
-    for (const reply of comment.replies) {
-      const author = reply.creator?.name || 'User'
-      const replyMsg = reply.message || ''
-      body += `\n${author}: ${replyMsg}`
-    }
-  }
-
-  return body
-}
+export { fetchAssetComments, formatCommentBody }
 
 export interface SyncCommentsResult {
   updatedLink: LinkedSequenceAsset
@@ -57,7 +15,8 @@ export interface SyncCommentsResult {
 /**
  * Synchronizes new Shumai comments to a Premiere Pro sequence as markers.
  * Comments without timestamps (`second == null`) default to time 0 (sequence start),
- * matching Frame.io convention. Deleted markers in Premiere are not re-created.
+ * matching Frame.io convention. Newly created marker GUIDs are captured and stored
+ * so they can be accurately removed when the sequence is unlinked.
  */
 export async function syncCommentsToSequence(
   project: Project,
@@ -72,7 +31,14 @@ export async function syncCommentsToSequence(
   const alreadySyncedSet = new Set(existingLink.syncedCommentIds)
   const newComments = comments.filter((c) => !alreadySyncedSet.has(c.id))
 
-  if (newComments.length === 0) {
+  const currentMarkerGuids = (existingLink.syncedMarkerGuids || [])
+    .map(normalizeGuid)
+    .filter(Boolean)
+  const needsGuidBackfill =
+    currentMarkerGuids.length < (existingLink.syncedCommentIds?.length || 0) &&
+    ppro?.Markers != null
+
+  if (newComments.length === 0 && !needsGuidBackfill) {
     const updatedLink: LinkedSequenceAsset = {
       ...existingLink,
       lastSyncAt: now,
@@ -112,54 +78,98 @@ export async function syncCommentsToSequence(
     let beforeGuids = new Set<string>()
     try {
       const beforeMarkers = sequenceMarkers.getMarkers() || []
-      beforeGuids = new Set(
-        beforeMarkers.map((m) => (m.guid ? m.guid.toString() : '')).filter(Boolean),
-      )
+      beforeGuids = new Set(beforeMarkers.map((m) => normalizeGuid(m.guid)).filter(Boolean))
+      console.log('[markers] Existing markers before sync:', beforeMarkers.length)
     } catch (err) {
       console.warn('[markers] Could not get existing markers before sync:', err)
     }
 
-    project.lockedAccess(() => {
-      project.executeTransaction((compoundAction) => {
-        for (const comment of newComments) {
-          const markerSeconds = zeroPointSeconds + (comment.second ?? 0)
-          const startTime = ppro.TickTime.createWithSeconds(markerSeconds)
-          const duration = ppro.TickTime.TIME_ZERO
-          const markerName = comment.creator?.name || 'Comment'
-          const markerText = formatCommentBody(comment)
+    if (newComments.length > 0) {
+      let txSuccess = false
+      project.lockedAccess(() => {
+        txSuccess = project.executeTransaction((compoundAction) => {
+          for (const comment of newComments) {
+            const markerSeconds = zeroPointSeconds + (comment.second ?? 0)
+            const startTime = ppro.TickTime.createWithSeconds(markerSeconds)
+            const duration = ppro.TickTime.TIME_ZERO
+            const markerName = comment.creator?.name || 'Comment'
+            const markerText = formatCommentBody(comment)
 
-          const addMarkerAction = sequenceMarkers.createAddMarkerAction(
-            markerName,
-            ppro.Marker.MARKER_TYPE_COMMENT,
-            startTime,
-            duration,
-            markerText,
-          )
-          compoundAction.addAction(addMarkerAction)
-        }
-      }, 'Sync Shumai Comments')
-    })
+            const addMarkerAction = sequenceMarkers.createAddMarkerAction(
+              markerName,
+              ppro.Marker.MARKER_TYPE_COMMENT,
+              startTime,
+              duration,
+              markerText,
+            )
+            compoundAction.addAction(addMarkerAction)
+          }
+        }, 'Sync Shumai Comments')
+      })
+      console.log('[markers] executeTransaction result:', txSuccess)
+    }
 
-    // Identify newly added markers by GUID
-    try {
-      const afterMarkers = sequenceMarkers.getMarkers() || []
+    // Re-fetch fresh Markers object after transaction to ensure newly committed markers are seen
+    const freshSequenceMarkers = await ppro.Markers.getMarkers(sequence)
+    const afterMarkers = freshSequenceMarkers.getMarkers() || []
+    console.log('[markers] Markers after sync transaction:', afterMarkers.length)
+
+    // 1. Identify newly added markers by GUID difference
+    for (const m of afterMarkers) {
+      const guidStr = normalizeGuid(m.guid)
+      if (guidStr && !beforeGuids.has(guidStr) && !newMarkerGuids.includes(guidStr)) {
+        newMarkerGuids.push(guidStr)
+      }
+    }
+
+    // 2. Fallback / Backfill: Match any comment markers by content/author
+    const allExpectedComments = [...newComments]
+    if (needsGuidBackfill) {
+      const alreadySyncedComments = comments.filter((c) => alreadySyncedSet.has(c.id))
+      allExpectedComments.push(...alreadySyncedComments)
+    }
+
+    const currentKnownGuids = new Set([...currentMarkerGuids, ...newMarkerGuids])
+    for (const comment of allExpectedComments) {
+      const commentBody = formatCommentBody(comment)
+      const commentAuthor = comment.creator?.name || 'Comment'
       for (const m of afterMarkers) {
-        const guidStr = m.guid ? m.guid.toString() : ''
-        if (guidStr && !beforeGuids.has(guidStr)) {
-          newMarkerGuids.push(guidStr)
+        const g = normalizeGuid(m.guid)
+        if (!g || currentKnownGuids.has(g)) continue
+        try {
+          const mName = m.getName()
+          const mComments = m.getComments()
+          if (
+            (mName === commentAuthor && mComments === commentBody) ||
+            (mComments && comment.message && mComments.includes(comment.message))
+          ) {
+            newMarkerGuids.push(g)
+            currentKnownGuids.add(g)
+            break
+          }
+        } catch {
+          // ignore
         }
       }
-    } catch (err) {
-      console.warn('[markers] Could not retrieve newly created marker GUIDs:', err)
     }
+
+    console.log(
+      '[markers] Total newly captured/backfilled marker GUIDs:',
+      newMarkerGuids.length,
+      newMarkerGuids,
+    )
   } catch (err) {
     console.error('[markers] Failed to execute add markers transaction:', err)
   }
 
+  const updatedMarkerGuids = Array.from(
+    new Set([...currentMarkerGuids, ...newMarkerGuids.map(normalizeGuid)]),
+  )
+
   const updatedLink: LinkedSequenceAsset = {
     ...existingLink,
     syncedCommentIds: [...existingLink.syncedCommentIds, ...newComments.map((c) => c.id)],
-    syncedMarkerGuids: [...(existingLink.syncedMarkerGuids || []), ...newMarkerGuids],
+    syncedMarkerGuids: updatedMarkerGuids,
     totalCommentsSynced: existingLink.totalCommentsSynced + newComments.length,
     lastSyncAt: now,
   }

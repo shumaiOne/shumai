@@ -112,11 +112,7 @@ describe('markers service', () => {
           if (callCount === 1) {
             return [{ guid: 'old-guid-1' }]
           }
-          return [
-            { guid: 'old-guid-1' },
-            { guid: 'marker-guid-2' },
-            { guid: 'marker-guid-3' },
-          ]
+          return [{ guid: 'old-guid-1' }, { guid: 'marker-guid-2' }, { guid: 'marker-guid-3' }]
         }),
         createAddMarkerAction: vi.fn().mockImplementation((name, type, time, dur, comment) => {
           return { name, type, time, dur, comment }
@@ -209,6 +205,85 @@ describe('markers service', () => {
       )
       expect(mockSeqMarkers.createAddMarkerAction).toHaveBeenCalledTimes(2)
       expect(mockCompoundAction.addAction).toHaveBeenCalled()
+    })
+
+    it('backfills missing marker GUIDs from sequence when syncedMarkerGuids is incomplete', async () => {
+      const existingLink: LinkedSequenceAsset = {
+        sequenceGuid: 'seq-guid-1',
+        sequenceName: 'Sequence 01',
+        assetId: 'asset-1',
+        assetName: 'video.mp4',
+        syncedCommentIds: ['comm-1'],
+        syncedMarkerGuids: [], // missing GUIDs from previous sync
+        totalCommentsSynced: 1,
+        lastSyncAt: 1000,
+      }
+
+      const mockLegacyMarker = {
+        guid: '{LEGACY-MARKER-GUID-1}',
+        getName: () => 'Director',
+        getComments: () => 'Existing comment message',
+      }
+
+      const mockSeqMarkers = {
+        getMarkers: vi.fn().mockReturnValue([mockLegacyMarker]),
+        createAddMarkerAction: vi.fn(),
+      }
+
+      const mockPpro = {
+        Marker: { MARKER_TYPE_COMMENT: 'CommentMarkerType' },
+        Markers: {
+          getMarkers: vi.fn().mockResolvedValue(mockSeqMarkers),
+        },
+        TickTime: {
+          TIME_ZERO: { ticks: '0' },
+          createWithSeconds: vi.fn((sec) => ({ seconds: sec })),
+        },
+        Properties: {
+          getProperties: vi.fn().mockResolvedValue({
+            createSetValueAction: vi.fn().mockReturnValue({}),
+          }),
+        },
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(globalThis as any).window = {
+        require: vi.fn().mockImplementation((name: string) => {
+          if (name === 'premierepro') return mockPpro
+          return null
+        }),
+      }
+
+      const comments: Partial<CommentInfo>[] = [
+        {
+          id: 'comm-1',
+          second: 10,
+          message: 'Existing comment message',
+          creator: { id: 'u1', name: 'Director' } as unknown as CommentInfo['creator'],
+          replies: [],
+        },
+      ]
+
+      const mockProject = {
+        guid: 'proj-1',
+        lockedAccess: vi.fn((cb) => cb()),
+        executeTransaction: vi.fn(),
+      }
+      const mockSeq = {
+        guid: 'seq-guid-1',
+        getZeroPoint: vi.fn().mockResolvedValue({ seconds: 0 }),
+      }
+
+      const result = await syncCommentsToSequence(
+        mockProject as unknown as Project,
+        mockSeq as unknown as Sequence,
+        comments as CommentInfo[],
+        existingLink,
+      )
+
+      expect(result.addedCount).toBe(0)
+      expect(result.updatedLink.syncedMarkerGuids).toEqual(['legacy-marker-guid-1'])
+      expect(mockSeqMarkers.createAddMarkerAction).not.toHaveBeenCalled()
     })
   })
 })

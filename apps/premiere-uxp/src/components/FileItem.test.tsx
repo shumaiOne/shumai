@@ -246,4 +246,3 @@ describe('FileItem and FileCardItem UI Components', () => {
     expect(mockOnUnlinkSequence).toHaveBeenCalledWith(videoAsset)
   })
 })
-

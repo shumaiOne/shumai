@@ -8,7 +8,7 @@ import {
   openSequenceInTimeline,
   getPremiereModule,
 } from '../services/premiere'
-import { getAllLinkedSequences, removeSequenceLink } from '../services/linkStorage'
+import { getAllLinkedSequences, normalizeGuid, removeSequenceLink } from '../services/linkStorage'
 import { fetchAssetComments, syncCommentsToSequence } from '../services/markers'
 import { resolveAssetUrl } from '../utils/url'
 import { formatDateAgo } from '../utils/date'
@@ -99,7 +99,11 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
   // Sync Now handler
   const handleSyncNow = async (link: LinkedSequenceAsset) => {
     if (!project || syncingGuid) return
-    const targetSeq = allSeqs.find((s) => s.guid && s.guid.toString() === link.sequenceGuid)
+    const targetSeq =
+      allSeqs.find((s) => normalizeGuid(s.guid) === normalizeGuid(link.sequenceGuid)) ||
+      (await getAllSequences(project)).find(
+        (s) => normalizeGuid(s.guid) === normalizeGuid(link.sequenceGuid),
+      )
     if (!targetSeq) return
 
     setSyncingGuid(link.sequenceGuid)
@@ -113,7 +117,11 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
       )
 
       setLinkedSequences((prev) =>
-        prev.map((item) => (item.sequenceGuid === updatedLink.sequenceGuid ? updatedLink : item)),
+        prev.map((item) =>
+          normalizeGuid(item.sequenceGuid) === normalizeGuid(updatedLink.sequenceGuid)
+            ? updatedLink
+            : item,
+        ),
       )
 
       setToastMessage(
@@ -132,14 +140,20 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
   // Unlink handler
   const handleUnlink = async (link: LinkedSequenceAsset) => {
     if (!project || unlinkingGuid) return
-    const targetSeq = allSeqs.find((s) => s.guid && s.guid.toString() === link.sequenceGuid)
+    const targetSeq =
+      allSeqs.find((s) => normalizeGuid(s.guid) === normalizeGuid(link.sequenceGuid)) ||
+      (await getAllSequences(project)).find(
+        (s) => normalizeGuid(s.guid) === normalizeGuid(link.sequenceGuid),
+      )
     if (!targetSeq) return
 
     setUnlinkingGuid(link.sequenceGuid)
     try {
       await removeSequenceLink(project, targetSeq)
       setLinkedSequences((prev) => {
-        const next = prev.filter((item) => item.sequenceGuid !== link.sequenceGuid)
+        const next = prev.filter(
+          (item) => normalizeGuid(item.sequenceGuid) !== normalizeGuid(link.sequenceGuid),
+        )
         onLinkCountChange?.(next.length)
         return next
       })
@@ -155,7 +169,11 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
   // Open Sequence in Timeline handler
   const handleOpenSequence = async (link: LinkedSequenceAsset) => {
     if (!project) return
-    const targetSeq = allSeqs.find((s) => s.guid && s.guid.toString() === link.sequenceGuid)
+    const targetSeq =
+      allSeqs.find((s) => normalizeGuid(s.guid) === normalizeGuid(link.sequenceGuid)) ||
+      (await getAllSequences(project)).find(
+        (s) => normalizeGuid(s.guid) === normalizeGuid(link.sequenceGuid),
+      )
     if (!targetSeq) return
 
     await openSequenceInTimeline(targetSeq, project)
@@ -173,8 +191,10 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
     )
   }
 
-  const activeGuidStr = activeSeq?.guid ? activeSeq.guid.toString() : ''
-  const currentSequenceLink = linkedSequences.find((item) => item.sequenceGuid === activeGuidStr)
+  const activeGuidStr = normalizeGuid(activeSeq?.guid)
+  const currentSequenceLink = linkedSequences.find(
+    (item) => normalizeGuid(item.sequenceGuid) === activeGuidStr,
+  )
 
   if (linkedSequences.length === 0) {
     return (
@@ -368,7 +388,7 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
         <div className="sequence-section-title">All Sequence Assets ({linkedSequences.length})</div>
 
         {linkedSequences.map((link) => {
-          const isActive = link.sequenceGuid === activeGuidStr
+          const isActive = normalizeGuid(link.sequenceGuid) === activeGuidStr
           const isSyncing = syncingGuid === link.sequenceGuid
           const isUnlinking = unlinkingGuid === link.sequenceGuid
 
