@@ -6,6 +6,7 @@ import { ImportVideoDialog } from '../components/ImportVideoDialog'
 import { LinkSequenceDialog } from '../components/LinkSequenceDialog'
 import {
   getAllSequenceLinksFromCache,
+  getAllLinkedSequences,
   removeSequenceLink,
   removeSequenceLinkFromCache,
 } from '../services/linkStorage'
@@ -29,6 +30,7 @@ interface FileListViewProps {
   apiKey: string
   project: ProjectSummary
   onBackToProjects: () => void
+  onLinkCountChange?: (count: number) => void
 }
 
 export const FileListView: React.FC<FileListViewProps> = ({
@@ -36,6 +38,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
   apiKey,
   project,
   onBackToProjects,
+  onLinkCountChange,
 }) => {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(project.rootFolder || null)
   const [crumbs, setCrumbs] = useState<BreadcrumbCrumb[]>([])
@@ -64,29 +67,52 @@ export const FileListView: React.FC<FileListViewProps> = ({
   const [assetForLinkDialog, setAssetForLinkDialog] = useState<AssetSummary | null>(null)
   const [linkedAssetsMap, setLinkedAssetsMap] = useState<Record<string, LinkedSequenceAsset>>({})
 
-  // Load cached sequence links on mount
-  useEffect(() => {
+  // Refresh links from cache and active Premiere project
+  const refreshLinkedAssets = useCallback(async () => {
+    // 1. Immediately read from cache (fast, non-blocking)
     const cachedLinks = getAllSequenceLinksFromCache()
-    const map: Record<string, LinkedSequenceAsset> = {}
-    for (const link of cachedLinks) {
-      map[link.assetId] = link
+    if (cachedLinks.length > 0) {
+      const map: Record<string, LinkedSequenceAsset> = {}
+      for (const link of cachedLinks) {
+        map[link.assetId] = link
+      }
+      setLinkedAssetsMap((prev) => ({ ...prev, ...map }))
+      onLinkCountChange?.(cachedLinks.length)
     }
-    setLinkedAssetsMap(map)
-  }, [])
 
-  const refreshLinkedAssets = useCallback(() => {
-    const cachedLinks = getAllSequenceLinksFromCache()
-    const map: Record<string, LinkedSequenceAsset> = {}
-    for (const link of cachedLinks) {
-      map[link.assetId] = link
+    // 2. Query active project in Premiere Pro for live persistent links
+    try {
+      const pr = await getActiveProject()
+      if (pr) {
+        const liveLinks = await getAllLinkedSequences(pr)
+        const liveMap: Record<string, LinkedSequenceAsset> = {}
+        for (const link of liveLinks) {
+          liveMap[link.assetId] = link
+        }
+        setLinkedAssetsMap(liveMap)
+        onLinkCountChange?.(liveLinks.length)
+      }
+    } catch (err) {
+      console.warn('[FileListView] Could not get linked sequences from active project:', err)
     }
-    setLinkedAssetsMap(map)
-  }, [])
+  }, [onLinkCountChange])
+
+  useEffect(() => {
+    void refreshLinkedAssets()
+  }, [refreshLinkedAssets])
 
   const handleUnlinkAsset = useCallback(
     async (asset: AssetSummary) => {
       const link = linkedAssetsMap[asset.id]
       if (!link) return
+
+      // Optimistically remove from state immediately
+      setLinkedAssetsMap((prev) => {
+        const copy = { ...prev }
+        delete copy[asset.id]
+        return copy
+      })
+
       try {
         const pr = await getActiveProject()
         if (pr) {
@@ -100,7 +126,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
         } else {
           removeSequenceLinkFromCache(link.sequenceGuid)
         }
-        refreshLinkedAssets()
+        void refreshLinkedAssets()
         setImportStatus({
           id: Date.now().toString(),
           fileName: asset.name,
@@ -112,6 +138,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
         }, 3000)
       } catch (err) {
         console.error('Failed to unlink asset:', err)
+        void refreshLinkedAssets()
         setImportStatus({
           id: Date.now().toString(),
           fileName: asset.name,
@@ -478,7 +505,12 @@ export const FileListView: React.FC<FileListViewProps> = ({
             size="s"
             label="Refresh folder"
             icon-only
-            onClick={() => currentFolderId && fetchContents(currentFolderId, debouncedSearch)}
+            onClick={() => {
+              if (currentFolderId) {
+                fetchContents(currentFolderId, debouncedSearch)
+                void refreshLinkedAssets()
+              }
+            }}
             title="Refresh folder"
             disabled={loading || !currentFolderId}
           >
@@ -707,7 +739,11 @@ export const FileListView: React.FC<FileListViewProps> = ({
         isOpen={assetForLinkDialog != null}
         onClose={() => setAssetForLinkDialog(null)}
         onLinkSuccess={(newLink, addedCount) => {
-          refreshLinkedAssets()
+          setLinkedAssetsMap((prev) => ({
+            ...prev,
+            [newLink.assetId]: newLink,
+          }))
+          void refreshLinkedAssets()
           setImportStatus({
             id: Date.now().toString(),
             fileName: newLink.assetName,

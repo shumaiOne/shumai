@@ -11,21 +11,80 @@ function getStorageKey(projectGuid?: string | null): string {
 
 /**
  * Reads all cached sequence links for a project from localStorage.
+ * If projectGuid is omitted or null, aggregates across all project keys in localStorage.
  */
 export function getAllSequenceLinksFromCache(projectGuid?: string | null): LinkedSequenceAsset[] {
   if (typeof localStorage === 'undefined') return []
   try {
-    let raw = localStorage.getItem(getStorageKey(projectGuid))
-    if (!raw && projectGuid) {
-      raw = localStorage.getItem(getStorageKey(null))
+    if (projectGuid) {
+      let raw = localStorage.getItem(getStorageKey(projectGuid))
+      if (!raw) {
+        raw = localStorage.getItem(getStorageKey(null))
+      }
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) return parsed
+        if (typeof parsed === 'object' && parsed !== null) {
+          return Object.values(parsed)
+        }
+      }
+      return []
     }
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed)) return parsed
-    if (typeof parsed === 'object' && parsed !== null) {
-      return Object.values(parsed)
+
+    // When projectGuid is not provided, aggregate all cached sequence links
+    const results: LinkedSequenceAsset[] = []
+    const seenGuids = new Set<string>()
+
+    // Check default key
+    const defaultRaw = localStorage.getItem(getStorageKey(null))
+    if (defaultRaw) {
+      try {
+        const parsed = JSON.parse(defaultRaw)
+        const items: LinkedSequenceAsset[] = Array.isArray(parsed)
+          ? parsed
+          : typeof parsed === 'object' && parsed !== null
+            ? Object.values(parsed)
+            : []
+        for (const item of items) {
+          if (item.sequenceGuid && !seenGuids.has(item.sequenceGuid)) {
+            seenGuids.add(item.sequenceGuid)
+            results.push(item)
+          }
+        }
+      } catch {
+        // Ignore JSON error
+      }
     }
-    return []
+
+    // Scan all keys matching STORAGE_PREFIX in localStorage
+    if (typeof localStorage.length === 'number') {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = typeof localStorage.key === 'function' ? localStorage.key(i) : null
+        if (key && key.startsWith(STORAGE_PREFIX)) {
+          const raw = localStorage.getItem(key)
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw)
+              const items: LinkedSequenceAsset[] = Array.isArray(parsed)
+                ? parsed
+                : typeof parsed === 'object' && parsed !== null
+                  ? Object.values(parsed)
+                  : []
+              for (const item of items) {
+                if (item.sequenceGuid && !seenGuids.has(item.sequenceGuid)) {
+                  seenGuids.add(item.sequenceGuid)
+                  results.push(item)
+                }
+              }
+            } catch {
+              // Ignore corrupted item
+            }
+          }
+        }
+      }
+    }
+
+    return results
   } catch (err) {
     console.warn('[linkStorage] Failed to read cached links from localStorage:', err)
     return []
@@ -52,11 +111,20 @@ export function saveSequenceLinkToCache(
 ): void {
   if (typeof localStorage === 'undefined') return
   try {
-    const all = getAllSequenceLinksFromCache(projectGuid).filter(
+    if (projectGuid) {
+      const all = getAllSequenceLinksFromCache(projectGuid).filter(
+        (item) => item.sequenceGuid !== linkData.sequenceGuid,
+      )
+      all.push(linkData)
+      localStorage.setItem(getStorageKey(projectGuid), JSON.stringify(all))
+    }
+
+    // Always also update default key so it's accessible when projectGuid is unknown
+    const defaultAll = getAllSequenceLinksFromCache(null).filter(
       (item) => item.sequenceGuid !== linkData.sequenceGuid,
     )
-    all.push(linkData)
-    localStorage.setItem(getStorageKey(projectGuid), JSON.stringify(all))
+    defaultAll.push(linkData)
+    localStorage.setItem(getStorageKey(null), JSON.stringify(defaultAll))
   } catch (err) {
     console.warn('[linkStorage] Failed to save link to localStorage:', err)
   }
@@ -71,10 +139,38 @@ export function removeSequenceLinkFromCache(
 ): void {
   if (typeof localStorage === 'undefined') return
   try {
-    const all = getAllSequenceLinksFromCache(projectGuid).filter(
+    if (projectGuid) {
+      const all = getAllSequenceLinksFromCache(projectGuid).filter(
+        (item) => item.sequenceGuid !== sequenceGuid,
+      )
+      localStorage.setItem(getStorageKey(projectGuid), JSON.stringify(all))
+    }
+
+    const defaultAll = getAllSequenceLinksFromCache(null).filter(
       (item) => item.sequenceGuid !== sequenceGuid,
     )
-    localStorage.setItem(getStorageKey(projectGuid), JSON.stringify(all))
+    localStorage.setItem(getStorageKey(null), JSON.stringify(defaultAll))
+
+    // Also remove from any other keys matching STORAGE_PREFIX
+    if (typeof localStorage.length === 'number') {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = typeof localStorage.key === 'function' ? localStorage.key(i) : null
+        if (key && key.startsWith(STORAGE_PREFIX)) {
+          const raw = localStorage.getItem(key)
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw)
+              if (Array.isArray(parsed)) {
+                const filtered = parsed.filter((item) => item.sequenceGuid !== sequenceGuid)
+                localStorage.setItem(key, JSON.stringify(filtered))
+              }
+            } catch {
+              // Ignore
+            }
+          }
+        }
+      }
+    }
   } catch (err) {
     console.warn('[linkStorage] Failed to remove link from localStorage:', err)
   }

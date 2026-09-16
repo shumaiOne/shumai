@@ -6,6 +6,7 @@ import { ProjectsView, ProjectSummary } from './views/ProjectsView'
 import { FileListView } from './views/FileListView'
 import { SequencesView } from './views/SequencesView'
 import { getStoredCredentials, clearStoredCredentials } from './services/storage'
+import { getAllSequenceLinksFromCache } from './services/linkStorage'
 import { resetClient } from './api/client'
 import { autoSyncService } from './services/autoSyncService'
 import { ProgressCircle } from '@swc-react/progress-circle'
@@ -28,6 +29,8 @@ export const App: React.FC = () => {
       setApiKey(creds.apiKey)
       setView('projects')
       autoSyncService.start(creds.endpoint, creds.apiKey)
+      const cached = getAllSequenceLinksFromCache()
+      setLinkedCount(cached.length)
     } else {
       setView('auth')
     }
@@ -117,6 +120,7 @@ export const App: React.FC = () => {
           apiKey={apiKey}
           project={selectedProject}
           onBackToProjects={handleBackToProjects}
+          onLinkCountChange={setLinkedCount}
         />
       )}
     </div>

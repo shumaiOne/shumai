@@ -25,6 +25,10 @@ const localStorageMock = (() => {
     clear: () => {
       store = {}
     },
+    key: (index: number) => Object.keys(store)[index] || null,
+    get length() {
+      return Object.keys(store).length
+    },
   }
 })()
 
@@ -87,6 +91,22 @@ describe('linkStorage service', () => {
 
       removeSequenceLinkFromCache('seq-guid-1', 'proj-1')
       expect(getSequenceLinkFromCache('seq-guid-1', 'proj-1')).toBeNull()
+    })
+
+    it('returns all links across projects when projectGuid is omitted', () => {
+      saveSequenceLinkToCache(sampleLink, 'proj-1')
+      const link2: LinkedSequenceAsset = {
+        ...sampleLink,
+        sequenceGuid: 'seq-guid-2',
+        sequenceName: 'Sequence 02',
+        assetId: 'asset-2',
+      }
+      saveSequenceLinkToCache(link2, 'proj-2')
+
+      const all = getAllSequenceLinksFromCache()
+      expect(all).toHaveLength(2)
+      expect(all.map((l) => l.sequenceGuid)).toContain('seq-guid-1')
+      expect(all.map((l) => l.sequenceGuid)).toContain('seq-guid-2')
     })
   })
 
