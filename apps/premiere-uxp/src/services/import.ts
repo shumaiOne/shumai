@@ -3,7 +3,7 @@ import type { AssetSummary } from '../components/FileItem'
 import {
   getActiveProject,
   importFilesIntoProject,
-  promptSaveFile,
+  promptSelectFolder,
   writeBinaryFile,
 } from './premiere'
 
@@ -171,6 +171,84 @@ export async function fetchVideoProxies(
   return proxies
 }
 
+/**
+ * Resolves a unique filename within the specified existing file names in a folder.
+ * If requestedName exists, it appends _1, _2, etc. before the file extension.
+ * Comparison is case-insensitive to safely handle Windows and macOS filesystems.
+ */
+export function getUniqueFileName(existingNames: string[], requestedName: string): string {
+  const existingSet = new Set(existingNames.map((n) => n.toLowerCase()))
+  if (!existingSet.has(requestedName.toLowerCase())) {
+    return requestedName
+  }
+
+  const dotIndex = requestedName.lastIndexOf('.')
+  const base = dotIndex > 0 ? requestedName.slice(0, dotIndex) : requestedName
+  const ext = dotIndex > 0 ? requestedName.slice(dotIndex) : ''
+
+  let counter = 1
+  while (true) {
+    const candidate = `${base}_${counter}${ext}`
+    if (!existingSet.has(candidate.toLowerCase())) {
+      return candidate
+    }
+    counter++
+  }
+}
+
+/**
+ * Reads existing file/folder names inside a UXP FolderEntry safely.
+ */
+export async function getFolderEntryNames(folder: UxpFolderEntry): Promise<string[]> {
+  try {
+    if (typeof folder.getEntries === 'function') {
+      const entries = await folder.getEntries()
+      return entries.map((e) => e.name)
+    }
+    const folderRecord = folder as unknown as Record<string, unknown>
+    if (typeof folderRecord.getFiles === 'function') {
+      const files = await (folderRecord.getFiles as () => Promise<Array<{ name: string }>>)()
+      return files.map((f) => f.name)
+    }
+  } catch (err) {
+    console.warn('Failed to read folder entries:', err)
+  }
+  return []
+}
+
+/**
+ * Creates a unique file entry in the target folder, preventing overwrites by auto-incrementing suffixes (_1, _2).
+ */
+export async function createUniqueFileInFolder(
+  folder: UxpFolderEntry,
+  requestedName: string,
+): Promise<{ file: UxpFileEntry; name: string }> {
+  const existingNames = await getFolderEntryNames(folder)
+  const candidateName = getUniqueFileName(existingNames, requestedName)
+
+  try {
+    const file = await folder.createFile(candidateName, { overwrite: false })
+    return { file, name: candidateName }
+  } catch (err) {
+    console.warn(`Could not create file "${candidateName}" with overwrite: false, retrying...`, err)
+    const dotIndex = requestedName.lastIndexOf('.')
+    const base = dotIndex > 0 ? requestedName.slice(0, dotIndex) : requestedName
+    const ext = dotIndex > 0 ? requestedName.slice(dotIndex) : ''
+
+    for (let counter = 1; counter <= 50; counter++) {
+      const retryName = `${base}_${counter}${ext}`
+      try {
+        const file = await folder.createFile(retryName, { overwrite: false })
+        return { file, name: retryName }
+      } catch {
+        continue
+      }
+    }
+    const fallbackFile = await folder.createFile(candidateName, { overwrite: true })
+    return { file: fallbackFile, name: candidateName }
+  }
+}
+
 export interface ImportAssetOptions {
   endpoint: string
   apiKey: string
@@ -184,15 +262,17 @@ export interface ImportResult {
   success: boolean
   cancelled?: boolean
   message: string
+  fileName?: string
 }
 
 /**
  * Orchestrates the full import workflow:
  * 1. Checks active Premiere Pro project
- * 2. Prompts user with native file save picker (Frame.io pattern)
- * 3. Downloads file from Shumai S3 presigned URL
- * 4. Saves binary to disk
- * 5. Calls Premiere project.importFiles
+ * 2. Prompts user with native folder picker (Frame.io pattern)
+ * 3. Resolves download URL from Shumai S3 presigned URL
+ * 4. Resolves unique filename in folder with auto-increment (_1, _2) on collision
+ * 5. Downloads binary data and writes to disk
+ * 6. Calls Premiere project.importFiles
  */
 export async function importAssetIntoPremiere({
   endpoint,
@@ -211,34 +291,9 @@ export async function importAssetIntoPremiere({
     }
   }
 
-  // 2. Determine default filename
-  let defaultFileName: string
-  if (type === 'raw') {
-    defaultFileName = asset.name
-  } else {
-    const rawName = asset.name
-    const dotIndex = rawName.lastIndexOf('.')
-    const baseName = dotIndex !== -1 ? rawName.slice(0, dotIndex) : rawName
-    const resTag = proxyItem ? proxyItem.label.split(' ')[0] : 'proxy'
-    defaultFileName = `${baseName}_proxy_${resTag}.mp4`
-  }
-
-  // 3. Resolve download URL first to fail fast before creating empty file on disk
-  onProgress?.(`Preparing download link for ${defaultFileName}...`)
-  let downloadUrl: string
-  if (type === 'raw') {
-    const rawInfo = await resolveRawDownloadUrl(endpoint, apiKey, asset.id, asset)
-    downloadUrl = rawInfo.url
-  } else {
-    if (!proxyItem?.url) {
-      throw new Error('Proxy URL not available.')
-    }
-    downloadUrl = proxyItem.url
-  }
-
-  // 4. Open native save picker
-  const saveFile = await promptSaveFile(defaultFileName)
-  if (!saveFile) {
+  // 2. Open native folder picker (Frame.io pattern)
+  const targetFolder = await promptSelectFolder()
+  if (!targetFolder) {
     return {
       success: false,
       cancelled: true,
@@ -246,8 +301,34 @@ export async function importAssetIntoPremiere({
     }
   }
 
+  // 3. Determine default filename & download URL
+  onProgress?.('Preparing download link...')
+  let downloadUrl: string
+  let defaultFileName: string
+  if (type === 'raw') {
+    const rawInfo = await resolveRawDownloadUrl(endpoint, apiKey, asset.id, asset)
+    downloadUrl = rawInfo.url
+    defaultFileName = rawInfo.name || asset.name
+  } else {
+    if (!proxyItem?.url) {
+      throw new Error('Proxy URL not available.')
+    }
+    downloadUrl = proxyItem.url
+    const rawName = asset.name
+    const dotIndex = rawName.lastIndexOf('.')
+    const baseName = dotIndex !== -1 ? rawName.slice(0, dotIndex) : rawName
+    const resTag = proxyItem ? proxyItem.label.split(' ')[0] : 'proxy'
+    defaultFileName = `${baseName}_proxy_${resTag}.mp4`
+  }
+
+  // 4. Create unique file in destination folder with collision avoidance (_1, _2)
+  const { file: saveFile, name: finalFileName } = await createUniqueFileInFolder(
+    targetFolder,
+    defaultFileName,
+  )
+
   // 5. Download binary data
-  onProgress?.(`Downloading ${defaultFileName}...`)
+  onProgress?.(`Downloading ${finalFileName}...`)
   const response = await fetch(downloadUrl)
   if (!response.ok) {
     throw new Error(`Failed to download file (HTTP ${response.status})`)
@@ -255,18 +336,19 @@ export async function importAssetIntoPremiere({
   const arrayBuffer = await response.arrayBuffer()
 
   // 6. Write file to disk
-  onProgress?.(`Saving ${defaultFileName} to disk...`)
+  onProgress?.(`Saving ${finalFileName} to disk...`)
   await writeBinaryFile(saveFile, arrayBuffer)
 
   // 7. Import into Premiere Pro
-  onProgress?.(`Importing into Premiere Pro...`)
+  onProgress?.('Importing into Premiere Pro...')
   const imported = await importFilesIntoProject(project, [saveFile.nativePath])
   if (!imported) {
-    throw new Error(`Premiere Pro could not import "${defaultFileName}".`)
+    throw new Error(`Premiere Pro could not import "${finalFileName}".`)
   }
 
   return {
     success: true,
-    message: `Successfully imported ${defaultFileName} into Premiere Pro.`,
+    fileName: finalFileName,
+    message: `Successfully imported ${finalFileName} into Premiere Pro.`,
   }
 }

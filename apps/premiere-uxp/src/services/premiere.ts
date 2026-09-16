@@ -82,6 +82,23 @@ export async function importFilesIntoProject(
 }
 
 /**
+ * Opens the native OS folder picker to ask the user where to save files.
+ * Returns the selected UxpFolderEntry, or null if the user cancelled.
+ */
+export async function promptSelectFolder(): Promise<UxpFolderEntry | null> {
+  const uxp = getUxpModule()
+  if (!uxp?.storage?.localFileSystem) {
+    throw new Error('UXP storage.localFileSystem is not available.')
+  }
+  try {
+    return await uxp.storage.localFileSystem.getFolder()
+  } catch (err) {
+    console.error('Error in promptSelectFolder:', err)
+    return null
+  }
+}
+
+/**
  * Opens the native OS file picker to ask the user where to save a file.
  * Returns the selected UxpFileEntry, or null if the user cancelled.
  */

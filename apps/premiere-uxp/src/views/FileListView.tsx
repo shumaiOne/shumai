@@ -93,7 +93,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
       if (result.success) {
         setImportStatus({
           id: taskId,
-          fileName: label,
+          fileName: result.fileName || label,
           status: 'success',
           message: result.message,
         })

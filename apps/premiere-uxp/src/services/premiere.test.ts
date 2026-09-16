@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   getActiveProject,
   importFilesIntoProject,
+  promptSelectFolder,
   promptSaveFile,
   writeBinaryFile,
   getPremiereModule,
@@ -97,6 +98,42 @@ describe('premiere service', () => {
 
       const success = await importFilesIntoProject(project, ['/path/to/video.mp4'])
       expect(success).toBe(false)
+    })
+  })
+
+  describe('promptSelectFolder', () => {
+    it('throws when UXP storage is unavailable', async () => {
+      await expect(promptSelectFolder()).rejects.toThrow('UXP storage')
+    })
+
+    it('delegates to uxp.storage.localFileSystem.getFolder', async () => {
+      const mockFolder: UxpFolderEntry = {
+        isFile: false,
+        isFolder: true,
+        name: 'Downloads',
+        nativePath: '/Users/test/Downloads',
+        createFile: vi.fn(),
+        getEntries: vi.fn().mockResolvedValue([]),
+      }
+      // Mocking UXP window environment on globalThis
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(globalThis as any).window = {
+        require: vi.fn().mockImplementation((name: string) => {
+          if (name === 'uxp') {
+            return {
+              storage: {
+                localFileSystem: {
+                  getFolder: vi.fn().mockResolvedValue(mockFolder),
+                },
+              },
+            }
+          }
+          return null
+        }),
+      }
+
+      const folder = await promptSelectFolder()
+      expect(folder).toBe(mockFolder)
     })
   })
 

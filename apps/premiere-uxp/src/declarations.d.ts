@@ -175,6 +175,8 @@ declare namespace JSX {
   }
 }
 
+type UxpEntry = UxpFileEntry | UxpFolderEntry
+
 interface UxpFileEntry {
   readonly isFile: true
   readonly isFolder: false
@@ -189,7 +191,8 @@ interface UxpFolderEntry {
   readonly name: string
   readonly nativePath: string
   createFile(name: string, options?: { overwrite?: boolean }): Promise<UxpFileEntry>
-  getFiles(): Promise<UxpFileEntry[]>
+  getEntries(): Promise<UxpEntry[]>
+  getFiles?(): Promise<UxpFileEntry[]>
 }
 
 interface UxpLocalFileSystem {
