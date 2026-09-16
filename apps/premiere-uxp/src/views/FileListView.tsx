@@ -2,12 +2,15 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { getShumaiClient } from '../api/client'
 import { Breadcrumb, BreadcrumbCrumb } from '../components/Breadcrumb'
 import { FileCardItem, AssetSummary } from '../components/FileItem'
+import { ContextMenu } from '../components/ContextMenu'
+import { importAssetIntoPremiere, type ProxyOption } from '../services/import'
 import { ProjectSummary } from './ProjectsView'
 import { FolderOpen, AlertCircle } from 'lucide-react'
 import { ActionButton } from '@swc-react/action-button'
 import { Button } from '@swc-react/button'
 import { Search } from '@swc-react/search'
 import { ProgressCircle } from '@swc-react/progress-circle'
+import { StatusLight } from '@swc-react/status-light'
 import { IllustratedMessage } from '@swc-react/illustrated-message'
 import { Divider } from '@swc-react/divider'
 import type { SearchCondition, SearchSort } from '@shumai/dtos'
@@ -50,6 +53,116 @@ export const FileListView: React.FC<FileListViewProps> = ({
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+
+  // Context Menu state
+  const [menuState, setMenuState] = useState<{
+    asset: AssetSummary
+    position: { x: number; y: number }
+  } | null>(null)
+
+  // Import task state
+  const [importStatus, setImportStatus] = useState<{
+    id: string
+    fileName: string
+    status: 'importing' | 'success' | 'error'
+    message: string
+  } | null>(null)
+
+  const handleFileClick = (e: React.MouseEvent, file: AssetSummary) => {
+    e.stopPropagation()
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setMenuState({
+      asset: file,
+      position: { x: e.clientX || rect.left, y: e.clientY || rect.top },
+    })
+  }
+
+  const handleFileContextMenu = (e: React.MouseEvent, file: AssetSummary) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setMenuState({
+      asset: file,
+      position: { x: e.clientX, y: e.clientY },
+    })
+  }
+
+  const handleFileMenuTrigger = (e: React.MouseEvent, file: AssetSummary) => {
+    e.stopPropagation()
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setMenuState({
+      asset: file,
+      position: { x: rect.left - 120, y: rect.bottom + 4 },
+    })
+  }
+
+  const runImport = async (asset: AssetSummary, type: 'raw' | 'proxy', proxyItem?: ProxyOption) => {
+    const taskId = Date.now().toString()
+    const label = type === 'raw' ? asset.name : `${asset.name} (${proxyItem?.label || 'Proxy'})`
+    setImportStatus({
+      id: taskId,
+      fileName: label,
+      status: 'importing',
+      message: 'Starting import...',
+    })
+
+    try {
+      const result = await importAssetIntoPremiere({
+        endpoint,
+        apiKey,
+        asset,
+        type,
+        proxyItem,
+        onProgress: (msg) => {
+          setImportStatus((prev) => (prev?.id === taskId ? { ...prev, message: msg } : prev))
+        },
+      })
+
+      if (result.cancelled) {
+        setImportStatus(null)
+        return
+      }
+
+      if (result.success) {
+        setImportStatus({
+          id: taskId,
+          fileName: label,
+          status: 'success',
+          message: result.message,
+        })
+        setTimeout(() => {
+          setImportStatus((prev) => (prev?.id === taskId ? null : prev))
+        }, 4000)
+      } else {
+        setImportStatus({
+          id: taskId,
+          fileName: label,
+          status: 'error',
+          message: result.message,
+        })
+        setTimeout(() => {
+          setImportStatus((prev) => (prev?.id === taskId ? null : prev))
+        }, 6000)
+      }
+    } catch (err) {
+      setImportStatus({
+        id: taskId,
+        fileName: label,
+        status: 'error',
+        message: err instanceof Error ? err.message : 'Import failed.',
+      })
+      setTimeout(() => {
+        setImportStatus((prev) => (prev?.id === taskId ? null : prev))
+      }, 6000)
+    }
+  }
+
+  const handleImportRaw = (asset: AssetSummary) => {
+    runImport(asset, 'raw')
+  }
+
+  const handleImportProxy = (asset: AssetSummary, proxy: ProxyOption) => {
+    runImport(asset, 'proxy', proxy)
+  }
 
   // Debounce search term by 300ms
   useEffect(() => {
@@ -405,7 +518,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
                       size="xs"
                       label={foldersExpanded ? 'Collapse Folders' : 'Expand Folders'}
                       icon-only
-                      onClick={(e) => {
+                      onClick={(e: React.MouseEvent) => {
                         e.stopPropagation()
                         setFoldersExpanded(!foldersExpanded)
                       }}
@@ -476,7 +589,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
                       size="xs"
                       label={filesExpanded ? 'Collapse Files' : 'Expand Files'}
                       icon-only
-                      onClick={(e) => {
+                      onClick={(e: React.MouseEvent) => {
                         e.stopPropagation()
                         setFilesExpanded(!filesExpanded)
                       }}
@@ -500,7 +613,9 @@ export const FileListView: React.FC<FileListViewProps> = ({
                           key={file.id}
                           asset={file}
                           endpoint={endpoint}
-                          onClick={() => {}}
+                          onClick={(e) => handleFileClick(e, file)}
+                          onContextMenu={(e) => handleFileContextMenu(e, file)}
+                          onMenuTrigger={(e) => handleFileMenuTrigger(e, file)}
                         />
                       ))}
                     </div>
@@ -525,6 +640,44 @@ export const FileListView: React.FC<FileListViewProps> = ({
           </>
         )}
       </div>
+
+      {/* Toast Notification for Import Progress & Status */}
+      {importStatus && (
+        <div className={`shumai-import-toast ${importStatus.status}`}>
+          <div className="shumai-toast-left">
+            {importStatus.status === 'importing' && (
+              <ProgressCircle indeterminate size="s" label="Importing..." />
+            )}
+            {importStatus.status === 'success' && <StatusLight variant="positive"></StatusLight>}
+            {importStatus.status === 'error' && <StatusLight variant="negative"></StatusLight>}
+            <div className="shumai-toast-text">
+              <span className="shumai-toast-title">{importStatus.fileName}</span>
+              <span className="shumai-toast-msg">{importStatus.message}</span>
+            </div>
+          </div>
+          <sp-action-button
+            quiet
+            size="xs"
+            onClick={() => setImportStatus(null)}
+            title="Dismiss notification"
+          >
+            ×
+          </sp-action-button>
+        </div>
+      )}
+
+      {/* Floating Context Menu */}
+      {menuState && (
+        <ContextMenu
+          asset={menuState.asset}
+          position={menuState.position}
+          endpoint={endpoint}
+          apiKey={apiKey}
+          onClose={() => setMenuState(null)}
+          onImportRaw={handleImportRaw}
+          onImportProxy={handleImportProxy}
+        />
+      )}
     </div>
   )
 }

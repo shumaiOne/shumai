@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Folder, Film, Music, Image, FileText } from 'lucide-react'
+import { Folder, Film, Music, Image, FileText, MoreVertical } from 'lucide-react'
 import { formatDateAgo } from '../utils/date'
 import { formatBytes, formatDuration } from '../utils/format'
 import { resolveAssetUrl } from '../utils/url'
@@ -36,13 +36,23 @@ export interface AssetSummary {
     metadata?: {
       duration?: number
     }
+    videoTranscodes?: Array<{
+      id: string
+      url: string
+      key: string
+      width: number
+      height: number
+      size: number
+    }>
   } | null
 }
 
 interface FileItemProps {
   asset: AssetSummary
   endpoint?: string
-  onClick: () => void
+  onClick: (e: React.MouseEvent) => void
+  onContextMenu?: (e: React.MouseEvent) => void
+  onMenuTrigger?: (e: React.MouseEvent) => void
 }
 
 export function getFileTypeCategory(
@@ -65,7 +75,13 @@ export function getFileTypeCategory(
 }
 
 /** List View Row Item */
-export const FileItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick }) => {
+export const FileItem: React.FC<FileItemProps> = ({
+  asset,
+  endpoint,
+  onClick,
+  onContextMenu,
+  onMenuTrigger,
+}) => {
   const [imgError, setImgError] = useState(false)
   const category = getFileTypeCategory(asset)
   const isFolder = category === 'folder'
@@ -89,12 +105,19 @@ export const FileItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick }) 
     <div
       className="item-row"
       onClick={onClick}
+      onContextMenu={(e) => {
+        if (!isFolder && onContextMenu) {
+          e.preventDefault()
+          e.stopPropagation()
+          onContextMenu(e)
+        }
+      }}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          onClick()
+          onClick(e as unknown as React.MouseEvent)
         }
       }}
     >
@@ -133,14 +156,35 @@ export const FileItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick }) 
             {asset.commentsCount} {asset.commentsCount === 1 ? 'comment' : 'comments'}
           </span>
         )}
-        {isFolder && <sp-icon-chevron-right size="xs"></sp-icon-chevron-right>}
+        {isFolder ? (
+          <sp-icon-chevron-right size="xs"></sp-icon-chevron-right>
+        ) : (
+          <sp-action-button
+            quiet
+            size="xs"
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation()
+              onMenuTrigger?.(e)
+            }}
+            title="Options"
+            className="item-row-action-btn"
+          >
+            <MoreVertical size={13} slot="icon" />
+          </sp-action-button>
+        )}
       </div>
     </div>
   )
 }
 
 /** Card View Row Item (2 Columns: Left Preview, Right Info as Raw Text) */
-export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick }) => {
+export const FileCardItem: React.FC<FileItemProps> = ({
+  asset,
+  endpoint,
+  onClick,
+  onContextMenu,
+  onMenuTrigger,
+}) => {
   const [imgError, setImgError] = useState(false)
   const category = getFileTypeCategory(asset)
   const isFolder = category === 'folder'
@@ -181,13 +225,20 @@ export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick
     <div
       className="file-row-card"
       onClick={onClick}
+      onContextMenu={(e) => {
+        if (!isFolder && onContextMenu) {
+          e.preventDefault()
+          e.stopPropagation()
+          onContextMenu(e)
+        }
+      }}
       role="button"
       tabIndex={0}
       title={asset.name}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          onClick()
+          onClick(e as unknown as React.MouseEvent)
         }
       }}
     >
@@ -211,8 +262,21 @@ export const FileCardItem: React.FC<FileItemProps> = ({ asset, endpoint, onClick
           <span className="file-row-title" title={asset.name}>
             {asset.name}
           </span>
-          {isFolder && (
+          {isFolder ? (
             <sp-icon-chevron-right size="xs" className="file-row-chevron"></sp-icon-chevron-right>
+          ) : (
+            <sp-action-button
+              quiet
+              size="xs"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation()
+                onMenuTrigger?.(e)
+              }}
+              title="Options"
+              className="file-row-action-btn"
+            >
+              <MoreVertical size={13} slot="icon" />
+            </sp-action-button>
           )}
         </div>
 

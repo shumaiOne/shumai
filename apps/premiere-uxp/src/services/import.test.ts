@@ -1,0 +1,244 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import {
+  formatResolutionLabel,
+  getResolutionRank,
+  resolveRawDownloadUrl,
+  fetchVideoProxies,
+  importAssetIntoPremiere,
+} from './import'
+import * as premiereModule from './premiere'
+import * as clientModule from '../api/client'
+import type { AssetSummary } from '../components/FileItem'
+
+describe('import service', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  describe('formatResolutionLabel', () => {
+    it('formats given resolution strings', () => {
+      expect(formatResolutionLabel(undefined, undefined, '1080p')).toBe('1080p (MP4)')
+      expect(formatResolutionLabel(undefined, undefined, '720')).toBe('720p (MP4)')
+    })
+
+    it('formats given height numbers', () => {
+      expect(formatResolutionLabel(1920, 1080)).toBe('1080p (MP4)')
+      expect(formatResolutionLabel(1280, 720)).toBe('720p (MP4)')
+    })
+
+    it('formats by width if height is missing', () => {
+      expect(formatResolutionLabel(1920, undefined)).toBe('1080p (MP4)')
+      expect(formatResolutionLabel(1280, undefined)).toBe('720p (MP4)')
+      expect(formatResolutionLabel(3840, undefined)).toBe('2160p (MP4)')
+    })
+
+    it('falls back to Proxy (MP4)', () => {
+      expect(formatResolutionLabel(undefined, undefined)).toBe('Proxy (MP4)')
+    })
+  })
+
+  describe('getResolutionRank', () => {
+    it('extracts resolution numeric rank', () => {
+      expect(getResolutionRank('1080p (MP4)')).toBe(1080)
+      expect(getResolutionRank('720p (MP4)')).toBe(720)
+      expect(getResolutionRank('Proxy (MP4)')).toBe(0)
+    })
+  })
+
+  describe('resolveRawDownloadUrl', () => {
+    it('resolves download URL from download-links endpoint', async () => {
+      const mockPost = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          files: [{ id: 'file-1', name: 'video.mov', url: 'https://s3.example.com/video.mov' }],
+        }),
+      })
+
+      vi.spyOn(clientModule, 'getShumaiClient').mockReturnValue({
+        api: {
+          files: {
+            'download-links': {
+              $post: mockPost,
+            },
+          },
+        },
+        // Partial mock of Hono client for unit test isolation
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      const result = await resolveRawDownloadUrl('http://test', 'key', 'file-1')
+      expect(result.url).toBe('https://s3.example.com/video.mov')
+      expect(result.name).toBe('video.mov')
+      expect(mockPost).toHaveBeenCalledWith({ json: { ids: ['file-1'] } })
+    })
+
+    it('throws error when endpoint fails', async () => {
+      vi.spyOn(clientModule, 'getShumaiClient').mockReturnValue({
+        api: {
+          files: {
+            'download-links': {
+              $post: vi.fn().mockResolvedValue({
+                ok: false,
+                status: 500,
+                json: async () => ({ error: 'Server error' }),
+              }),
+            },
+          },
+        },
+        // Partial mock of Hono client for unit test isolation
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      await expect(resolveRawDownloadUrl('http://test', 'key', 'file-1')).rejects.toThrow(
+        'Server error',
+      )
+    })
+  })
+
+  describe('fetchVideoProxies', () => {
+    it('returns available proxies sorted descending', async () => {
+      const mockGet = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'file-1',
+          media: {
+            videoTranscodes: [
+              {
+                id: 't-720',
+                key: 'files/720.mp4',
+                url: 'https://s3.example.com/720.mp4',
+                width: 1280,
+                height: 720,
+              },
+              {
+                id: 't-1080',
+                key: 'files/1080.mp4',
+                url: 'https://s3.example.com/1080.mp4',
+                width: 1920,
+                height: 1080,
+              },
+            ],
+          },
+        }),
+      })
+
+      vi.spyOn(clientModule, 'getShumaiClient').mockReturnValue({
+        api: {
+          files: {
+            ':fileId': {
+              $get: mockGet,
+            },
+          },
+        },
+        // Partial mock of Hono client for unit test isolation
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      const proxies = await fetchVideoProxies('http://test', 'key', 'file-1')
+      expect(proxies).toHaveLength(2)
+      // Highest resolution first
+      expect(proxies[0].label).toBe('1080p (MP4)')
+      expect(proxies[1].label).toBe('720p (MP4)')
+    })
+  })
+
+  describe('importAssetIntoPremiere', () => {
+    const mockAsset: AssetSummary = {
+      id: 'asset-1',
+      name: 'Sample.mov',
+      type: 'file',
+    }
+
+    it('returns error when no active project in Premiere', async () => {
+      vi.spyOn(premiereModule, 'getActiveProject').mockResolvedValue(null)
+
+      const result = await importAssetIntoPremiere({
+        endpoint: 'http://test',
+        apiKey: 'key',
+        asset: mockAsset,
+        type: 'raw',
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('Please open or create a project')
+    })
+
+    it('returns cancelled when user cancels file picker', async () => {
+      // Mocking incomplete Premiere Project object in unit test
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(premiereModule, 'getActiveProject').mockResolvedValue({} as any)
+      vi.spyOn(premiereModule, 'promptSaveFile').mockResolvedValue(null)
+
+      const result = await importAssetIntoPremiere({
+        endpoint: 'http://test',
+        apiKey: 'key',
+        asset: mockAsset,
+        type: 'raw',
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.cancelled).toBe(true)
+    })
+
+    it('downloads and imports file successfully', async () => {
+      // Mocking incomplete Premiere Project object in unit test
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mockProject = {} as any
+      vi.spyOn(premiereModule, 'getActiveProject').mockResolvedValue(mockProject)
+
+      const mockSaveFile = {
+        isFile: true as const,
+        isFolder: false as const,
+        name: 'Sample.mov',
+        nativePath: '/Users/test/Sample.mov',
+        write: vi.fn().mockResolvedValue(undefined),
+      }
+      vi.spyOn(premiereModule, 'promptSaveFile').mockResolvedValue(mockSaveFile)
+      vi.spyOn(premiereModule, 'writeBinaryFile').mockResolvedValue(undefined)
+      vi.spyOn(premiereModule, 'importFilesIntoProject').mockResolvedValue(true)
+
+      vi.spyOn(clientModule, 'getShumaiClient').mockReturnValue({
+        api: {
+          files: {
+            'download-links': {
+              $post: vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                  files: [{ id: 'asset-1', name: 'Sample.mov', url: 'https://s3.example.com/raw' }],
+                }),
+              }),
+            },
+          },
+        },
+        // Partial mock of Hono client for unit test isolation
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      // Mock global fetch
+      const dummyBuffer = new ArrayBuffer(8)
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => dummyBuffer,
+        // Mocking Response object for unit test
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      const onProgress = vi.fn()
+      const result = await importAssetIntoPremiere({
+        endpoint: 'http://test',
+        apiKey: 'key',
+        asset: mockAsset,
+        type: 'raw',
+        onProgress,
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.message).toContain('Successfully imported Sample.mov')
+      expect(premiereModule.importFilesIntoProject).toHaveBeenCalledWith(mockProject, [
+        '/Users/test/Sample.mov',
+      ])
+      expect(onProgress).toHaveBeenCalled()
+      fetchSpy.mockRestore()
+    })
+  })
+})

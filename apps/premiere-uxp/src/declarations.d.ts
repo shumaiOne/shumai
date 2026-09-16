@@ -49,6 +49,60 @@ type SpActionButtonCustomElementProps = import('react').DetailedHTMLProps<
   slot?: string
 }
 
+type SpMenuCustomElementProps = import('react').DetailedHTMLProps<
+  import('react').HTMLAttributes<HTMLElement>,
+  HTMLElement
+> & {
+  slot?: string
+}
+
+type SpMenuItemCustomElementProps = import('react').DetailedHTMLProps<
+  import('react').HTMLAttributes<HTMLElement>,
+  HTMLElement
+> & {
+  disabled?: boolean
+  selected?: boolean
+  value?: string
+  slot?: string
+}
+
+type SpMenuDividerCustomElementProps = import('react').DetailedHTMLProps<
+  import('react').HTMLAttributes<HTMLElement>,
+  HTMLElement
+> & {
+  size?: 's' | 'm' | 'l'
+}
+
+type SpMenuGroupCustomElementProps = import('react').DetailedHTMLProps<
+  import('react').HTMLAttributes<HTMLElement>,
+  HTMLElement
+> & {
+  slot?: string
+}
+
+type SpStatusLightCustomElementProps = import('react').DetailedHTMLProps<
+  import('react').HTMLAttributes<HTMLElement>,
+  HTMLElement
+> & {
+  variant?:
+    | 'negative'
+    | 'notice'
+    | 'positive'
+    | 'info'
+    | 'neutral'
+    | 'yellow'
+    | 'fuchsia'
+    | 'indigo'
+    | 'seafoam'
+    | 'chartreuse'
+    | 'magenta'
+    | 'celery'
+    | 'purple'
+    | string
+  disabled?: boolean
+  slot?: string
+}
+
 declare namespace React {
   namespace JSX {
     interface IntrinsicElements {
@@ -61,6 +115,11 @@ declare namespace React {
       'sp-button': SpButtonCustomElementProps
       'sp-button-group': SpButtonGroupCustomElementProps
       'sp-action-button': SpActionButtonCustomElementProps
+      'sp-menu': SpMenuCustomElementProps
+      'sp-menu-item': SpMenuItemCustomElementProps
+      'sp-menu-divider': SpMenuDividerCustomElementProps
+      'sp-menu-group': SpMenuGroupCustomElementProps
+      'sp-status-light': SpStatusLightCustomElementProps
     }
   }
 }
@@ -76,5 +135,59 @@ declare namespace JSX {
     'sp-button': SpButtonCustomElementProps
     'sp-button-group': SpButtonGroupCustomElementProps
     'sp-action-button': SpActionButtonCustomElementProps
+    'sp-menu': SpMenuCustomElementProps
+    'sp-menu-item': SpMenuItemCustomElementProps
+    'sp-menu-divider': SpMenuDividerCustomElementProps
+    'sp-menu-group': SpMenuGroupCustomElementProps
+    'sp-status-light': SpStatusLightCustomElementProps
   }
+}
+
+interface UxpFileEntry {
+  readonly isFile: true
+  readonly isFolder: false
+  readonly name: string
+  readonly nativePath: string
+  write(data: ArrayBuffer | string, options?: { format?: unknown; append?: boolean }): Promise<void>
+}
+
+interface UxpFolderEntry {
+  readonly isFile: false
+  readonly isFolder: true
+  readonly name: string
+  readonly nativePath: string
+  createFile(name: string, options?: { overwrite?: boolean }): Promise<UxpFileEntry>
+  getFiles(): Promise<UxpFileEntry[]>
+}
+
+interface UxpLocalFileSystem {
+  getFileForSaving(
+    defaultName?: string,
+    options?: { types?: string[] },
+  ): Promise<UxpFileEntry | null>
+  getFileForOpening(options?: {
+    allowMultiple?: boolean
+    types?: string[]
+  }): Promise<UxpFileEntry | UxpFileEntry[] | null>
+  getFolder(): Promise<UxpFolderEntry | null>
+  getTemporaryFolder(): Promise<UxpFolderEntry>
+  getDataFolder(): Promise<UxpFolderEntry>
+  getPluginFolder(): Promise<UxpFolderEntry>
+}
+
+interface UxpStorageFormats {
+  readonly binary: unknown
+  readonly utf8: unknown
+}
+
+interface UxpModule {
+  storage: {
+    localFileSystem: UxpLocalFileSystem
+    formats: UxpStorageFormats
+  }
+}
+
+declare module 'uxp' {
+  const uxp: UxpModule
+  export = uxp
 }
