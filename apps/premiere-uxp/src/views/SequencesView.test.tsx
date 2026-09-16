@@ -46,7 +46,7 @@ describe('SequencesView Component', () => {
 
     expect(screen.getByText('No Linked Sequences')).toBeDefined()
     expect(screen.getByText(/Sequence 01/i)).toBeDefined()
-    expect(screen.getByText(/Browse Assets to Link/i)).toBeDefined()
+    expect(screen.queryByText(/Browse Assets to Link/i)).toBeNull()
   })
 
   it('renders linked sequence card and handles unlink', async () => {

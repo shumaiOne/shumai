@@ -716,15 +716,26 @@ sp-button[icon-only] sp-icon-arrow-right {
 }
 
 .project-row-card:hover,
-.file-row-card:hover {
+.file-row-card:not(.is-file):hover,
+.file-row-card.is-folder:hover {
   background-color: var(--bg-hover);
   border-color: rgba(255, 255, 255, 0.25);
   transform: translateY(-1px);
 }
 
 .project-row-card:active,
-.file-row-card:active {
+.file-row-card:not(.is-file):active,
+.file-row-card.is-folder:active {
   transform: scale(0.99);
+}
+
+.file-row-card.is-file {
+  cursor: default;
+}
+
+.file-row-card.is-file:hover,
+.file-row-card.is-file:active {
+  transform: none;
 }
 
 /* Left Column: Preview Thumbnail (Project View: 114px x 64px) */
@@ -1224,12 +1235,15 @@ sp-button[icon-only] sp-icon-arrow-right {
 }
 
 .file-row-import-btn,
-.item-row-import-btn {
+.item-row-import-btn,
+.file-row-link-btn,
+.item-row-link-btn {
   opacity: 0.7;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
 }
 
 .file-row-import-btn {
@@ -1272,7 +1286,7 @@ sp-action-button[icon-only] .lucide {
   border-radius: var(--radius-md);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
   width: 100%;
-  max-width: 320px;
+  max-width: 360px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1311,16 +1325,16 @@ sp-action-button[icon-only] .lucide {
 
 .shumai-dialog-asset-info {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px 14px;
   background-color: rgba(0, 0, 0, 0.25);
   border-bottom: 1px solid var(--border-color);
 }
 
 .shumai-dialog-thumb {
-  width: 48px;
-  height: 32px;
+  width: 100%;
+  height: 130px;
   border-radius: var(--radius-sm);
   background-color: #000000;
   overflow: hidden;
@@ -1333,14 +1347,14 @@ sp-action-button[icon-only] .lucide {
 .shumai-dialog-thumb img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .shumai-dialog-asset-meta {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  flex: 1;
+  width: 100%;
 }
 
 .shumai-dialog-asset-name {

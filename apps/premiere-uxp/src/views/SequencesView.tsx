@@ -24,7 +24,6 @@ export interface SequencesViewProps {
 export const SequencesView: React.FC<SequencesViewProps> = ({
   endpoint,
   apiKey,
-  onSwitchToBrowse,
   onLinkCountChange,
 }) => {
   const [project, setProject] = useState<Project | null>(null)
@@ -227,12 +226,6 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
             Linking a sequence enables automatic synchronization of comments from Shumai as timeline
             markers.
           </div>
-          {onSwitchToBrowse && (
-            <sp-button size="s" variant="accent" onClick={onSwitchToBrowse}>
-              <sp-icon-folder-open size="s" slot="icon"></sp-icon-folder-open>
-              Browse Assets to Link
-            </sp-button>
-          )}
         </div>
       </div>
     )
@@ -366,12 +359,6 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
                 ? 'This sequence is not linked to any Shumai asset.'
                 : 'Open a sequence in the timeline to view its linked asset.'}
             </div>
-            {activeSeq && onSwitchToBrowse && (
-              <sp-button size="xs" variant="secondary" quiet onClick={onSwitchToBrowse}>
-                <sp-icon-folder-open size="s" slot="icon"></sp-icon-folder-open>
-                Browse Assets to Link
-              </sp-button>
-            )}
           </div>
         )}
       </div>

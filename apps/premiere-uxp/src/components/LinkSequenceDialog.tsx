@@ -245,11 +245,11 @@ export const LinkSequenceDialog: React.FC<LinkSequenceDialogProps> = ({
             {thumbUrl && !thumbError ? (
               <img src={thumbUrl} alt={asset.name} onError={() => setThumbError(true)} />
             ) : asset.type === 'video' ? (
-              <sp-icon-filmstrip size="m" style={{ color: '#60a5fa' }}></sp-icon-filmstrip>
+              <sp-icon-filmstrip size="xxl" style={{ color: '#60a5fa' }}></sp-icon-filmstrip>
             ) : asset.type === 'audio' ? (
-              <sp-icon-audio size="m" style={{ color: '#a78bfa' }}></sp-icon-audio>
+              <sp-icon-audio size="xxl" style={{ color: '#a78bfa' }}></sp-icon-audio>
             ) : (
-              <sp-icon-document size="m" style={{ color: '#999999' }}></sp-icon-document>
+              <sp-icon-document size="xxl" style={{ color: '#999999' }}></sp-icon-document>
             )}
           </div>
           <div className="shumai-dialog-asset-meta">

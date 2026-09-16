@@ -24,20 +24,20 @@
       "id": "shumaiPanel",
       "type": "panel",
       "minimumSize": {
-        "width": 280,
-        "height": 400
+        "width": 320,
+        "height": 480
       },
       "maximumSize": {
         "width": 2000,
         "height": 2000
       },
       "preferredDockedSize": {
-        "width": 320,
-        "height": 600
+        "width": 400,
+        "height": 720
       },
       "preferredFloatingSize": {
-        "width": 360,
-        "height": 640
+        "width": 460,
+        "height": 780
       },
       "label": {
         "default": "Shumai"

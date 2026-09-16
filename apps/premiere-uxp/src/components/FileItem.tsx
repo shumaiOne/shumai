@@ -291,9 +291,6 @@ export const FileCardItem: React.FC<FileItemProps> = ({
   const handleCardClick = (e: React.MouseEvent) => {
     if (isFolder) {
       onClick(e)
-    } else {
-      e.stopPropagation()
-      handleImportAction()
     }
   }
 
@@ -316,17 +313,21 @@ export const FileCardItem: React.FC<FileItemProps> = ({
 
   return (
     <div
-      className="file-row-card"
-      onClick={handleCardClick}
-      role="button"
-      tabIndex={0}
-      title={asset.name}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          handleCardClick(e as unknown as React.MouseEvent)
-        }
-      }}
+      className={`file-row-card ${isFolder ? 'is-folder' : 'is-file'}`}
+      onClick={isFolder ? handleCardClick : undefined}
+      role={isFolder ? 'button' : undefined}
+      tabIndex={isFolder ? 0 : undefined}
+      title={isFolder ? asset.name : undefined}
+      onKeyDown={
+        isFolder
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                handleCardClick(e as unknown as React.MouseEvent)
+              }
+            }
+          : undefined
+      }
     >
       {/* Left Column: Preview Only (NO LABELS, NO BADGES) */}
       <div className="file-row-preview">
@@ -345,24 +346,16 @@ export const FileCardItem: React.FC<FileItemProps> = ({
       {/* Right Column: Title, Creator & Date, Duration / Size / Comments as Raw Text */}
       <div className="file-row-content">
         <div className="file-row-header">
-          <span className="file-row-title" title={asset.name}>
+          <span className="file-row-title" title={isFolder ? asset.name : undefined}>
             {asset.name}
           </span>
         </div>
 
         {(creatorName || updatedText) && (
           <div className="file-row-meta">
-            {creatorName && (
-              <span className="file-row-creator" title={`Created by ${creatorName}`}>
-                {creatorName}
-              </span>
-            )}
+            {creatorName && <span className="file-row-creator">{creatorName}</span>}
             {creatorName && updatedText && <span className="file-row-meta-dot">•</span>}
-            {updatedText && (
-              <span className="file-row-time" title={updatedText}>
-                {updatedText}
-              </span>
-            )}
+            {updatedText && <span className="file-row-time">{updatedText}</span>}
           </div>
         )}
 

@@ -415,7 +415,12 @@ export const FileListView: React.FC<FileListViewProps> = ({
         >
           <div style={{ flex: 1 }}>
             <Search
-              style={{ width: '100%' }}
+              style={
+                {
+                  width: '100%',
+                  '--mod-search-inline-size': '100%',
+                } as React.CSSProperties
+              }
               placeholder="Search files and folders..."
               value={searchTerm}
               onInput={(e: React.FormEvent<HTMLElement>) =>

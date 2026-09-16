@@ -134,7 +134,7 @@ export const ImportVideoDialog: React.FC<ImportVideoDialogProps> = ({
             {thumbUrl && !thumbError ? (
               <img src={thumbUrl} alt={asset.name} onError={() => setThumbError(true)} />
             ) : (
-              <sp-icon-filmstrip size="m" style={{ color: '#60a5fa' }}></sp-icon-filmstrip>
+              <sp-icon-filmstrip size="xxl" style={{ color: '#60a5fa' }}></sp-icon-filmstrip>
             )}
           </div>
           <div className="shumai-dialog-asset-meta">
@@ -167,11 +167,6 @@ export const ImportVideoDialog: React.FC<ImportVideoDialogProps> = ({
             }}
           >
             <div className="shumai-option-left">
-              <sp-icon-document
-                size="s"
-                className="shumai-option-icon"
-                style={{ color: '#60a5fa' }}
-              ></sp-icon-document>
               <div className="shumai-option-texts">
                 <span className="shumai-option-title">Original File</span>
                 <span className="shumai-option-meta">
@@ -213,11 +208,6 @@ export const ImportVideoDialog: React.FC<ImportVideoDialogProps> = ({
                   }}
                 >
                   <div className="shumai-option-left">
-                    <sp-icon-filmstrip
-                      size="s"
-                      className="shumai-option-icon"
-                      style={{ color: '#a78bfa' }}
-                    ></sp-icon-filmstrip>
                     <div className="shumai-option-texts">
                       <span className="shumai-option-title">{proxy.label}</span>
                       <span className="shumai-option-meta">

@@ -133,7 +133,7 @@ describe('FileItem and FileCardItem UI Components', () => {
     expect(mockOnImportRaw).not.toHaveBeenCalled()
   })
 
-  it('FileCardItem calls onImportRaw when download button or card is clicked for non-video', () => {
+  it('FileCardItem calls onImportRaw when download button is clicked for non-video, but clicking card does not', () => {
     render(
       <FileCardItem
         asset={imageAsset}
@@ -144,6 +144,10 @@ describe('FileItem and FileCardItem UI Components', () => {
     )
 
     expect(screen.getByText('logo.png')).toBeTruthy()
+    // Clicking the file title / card text should NOT trigger import
+    fireEvent.click(screen.getByText('logo.png'))
+    expect(mockOnImportRaw).not.toHaveBeenCalled()
+
     const downloadBtn = screen.getByTitle('Import into Premiere Pro')
     expect(downloadBtn).toBeTruthy()
 
