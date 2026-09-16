@@ -12,3 +12,20 @@ if (typeof window !== 'undefined' && window.customElements) {
     origDefine(name, constructor, options)
   }
 }
+
+// Polyfill window.matchMedia for Adobe UXP environment
+if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
+  window.matchMedia = (query: string): MediaQueryList => {
+    const mql: MediaQueryList = {
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }
+    return mql
+  }
+}
