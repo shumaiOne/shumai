@@ -417,8 +417,8 @@ export const FileListView: React.FC<FileListViewProps> = ({
             <Search
               style={
                 {
-                  width: '100%',
-                  '--mod-search-inline-size': '100%',
+                  width: '220px',
+                  '--mod-search-inline-size': '220px',
                 } as React.CSSProperties
               }
               placeholder="Search files and folders..."
