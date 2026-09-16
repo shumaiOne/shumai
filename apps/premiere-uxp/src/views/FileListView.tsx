@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { getShumaiClient } from '../api/client'
 import { Breadcrumb, BreadcrumbCrumb } from '../components/Breadcrumb'
 import { FileCardItem, AssetSummary } from '../components/FileItem'
-import { ContextMenu } from '../components/ContextMenu'
 import { importAssetIntoPremiere, type ProxyOption } from '../services/import'
 import { ProjectSummary } from './ProjectsView'
 import { FolderOpen, AlertCircle } from 'lucide-react'
@@ -54,12 +53,6 @@ export const FileListView: React.FC<FileListViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
-  // Context Menu state
-  const [menuState, setMenuState] = useState<{
-    asset: AssetSummary
-    position: { x: number; y: number }
-  } | null>(null)
-
   // Import task state
   const [importStatus, setImportStatus] = useState<{
     id: string
@@ -67,33 +60,6 @@ export const FileListView: React.FC<FileListViewProps> = ({
     status: 'importing' | 'success' | 'error'
     message: string
   } | null>(null)
-
-  const handleFileClick = (e: React.MouseEvent, file: AssetSummary) => {
-    e.stopPropagation()
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    setMenuState({
-      asset: file,
-      position: { x: e.clientX || rect.left, y: e.clientY || rect.top },
-    })
-  }
-
-  const handleFileContextMenu = (e: React.MouseEvent, file: AssetSummary) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setMenuState({
-      asset: file,
-      position: { x: e.clientX, y: e.clientY },
-    })
-  }
-
-  const handleFileMenuTrigger = (e: React.MouseEvent, file: AssetSummary) => {
-    e.stopPropagation()
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    setMenuState({
-      asset: file,
-      position: { x: rect.left - 120, y: rect.bottom + 4 },
-    })
-  }
 
   const runImport = async (asset: AssetSummary, type: 'raw' | 'proxy', proxyItem?: ProxyOption) => {
     const taskId = Date.now().toString()
@@ -613,9 +579,10 @@ export const FileListView: React.FC<FileListViewProps> = ({
                           key={file.id}
                           asset={file}
                           endpoint={endpoint}
-                          onClick={(e) => handleFileClick(e, file)}
-                          onContextMenu={(e) => handleFileContextMenu(e, file)}
-                          onMenuTrigger={(e) => handleFileMenuTrigger(e, file)}
+                          apiKey={apiKey}
+                          onClick={() => {}}
+                          onImportRaw={handleImportRaw}
+                          onImportProxy={handleImportProxy}
                         />
                       ))}
                     </div>
@@ -664,19 +631,6 @@ export const FileListView: React.FC<FileListViewProps> = ({
             ×
           </sp-action-button>
         </div>
-      )}
-
-      {/* Floating Context Menu */}
-      {menuState && (
-        <ContextMenu
-          asset={menuState.asset}
-          position={menuState.position}
-          endpoint={endpoint}
-          apiKey={apiKey}
-          onClose={() => setMenuState(null)}
-          onImportRaw={handleImportRaw}
-          onImportProxy={handleImportProxy}
-        />
       )}
     </div>
   )

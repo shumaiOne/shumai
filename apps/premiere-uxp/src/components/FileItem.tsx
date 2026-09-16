@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
-import { Folder, Film, Music, Image, FileText, MoreVertical } from 'lucide-react'
+import React, { useState, useRef } from 'react'
+import { Folder, Film, Music, Image, FileText } from 'lucide-react'
 import { formatDateAgo } from '../utils/date'
 import { formatBytes, formatDuration } from '../utils/format'
 import { resolveAssetUrl } from '../utils/url'
+import { FileActionMenu, type FileActionMenuHandle } from './FileActionMenu'
+import type { ProxyOption } from '../services/import'
 
 export { formatBytes, formatDuration }
 
@@ -47,12 +49,13 @@ export interface AssetSummary {
   } | null
 }
 
-interface FileItemProps {
+export interface FileItemProps {
   asset: AssetSummary
   endpoint?: string
+  apiKey?: string
   onClick: (e: React.MouseEvent) => void
-  onContextMenu?: (e: React.MouseEvent) => void
-  onMenuTrigger?: (e: React.MouseEvent) => void
+  onImportRaw?: (asset: AssetSummary) => void
+  onImportProxy?: (asset: AssetSummary, proxy: ProxyOption) => void
 }
 
 export function getFileTypeCategory(
@@ -77,12 +80,14 @@ export function getFileTypeCategory(
 /** List View Row Item */
 export const FileItem: React.FC<FileItemProps> = ({
   asset,
-  endpoint,
+  endpoint = '',
+  apiKey = '',
   onClick,
-  onContextMenu,
-  onMenuTrigger,
+  onImportRaw,
+  onImportProxy,
 }) => {
   const [imgError, setImgError] = useState(false)
+  const menuHandleRef = useRef<FileActionMenuHandle>(null)
   const category = getFileTypeCategory(asset)
   const isFolder = category === 'folder'
   const effectiveSize = asset.sizeByte ?? asset.size
@@ -101,23 +106,34 @@ export const FileItem: React.FC<FileItemProps> = ({
     </div>
   )
 
+  const handleRowClick = (e: React.MouseEvent) => {
+    if (isFolder) {
+      onClick(e)
+    } else {
+      e.stopPropagation()
+      menuHandleRef.current?.openMenu()
+    }
+  }
+
+  const handleRowContextMenu = (e: React.MouseEvent) => {
+    if (!isFolder) {
+      e.preventDefault()
+      e.stopPropagation()
+      menuHandleRef.current?.openMenu()
+    }
+  }
+
   return (
     <div
       className="item-row"
-      onClick={onClick}
-      onContextMenu={(e) => {
-        if (!isFolder && onContextMenu) {
-          e.preventDefault()
-          e.stopPropagation()
-          onContextMenu(e)
-        }
-      }}
+      onClick={handleRowClick}
+      onContextMenu={handleRowContextMenu}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          onClick(e as unknown as React.MouseEvent)
+          handleRowClick(e as unknown as React.MouseEvent)
         }
       }}
     >
@@ -158,20 +174,17 @@ export const FileItem: React.FC<FileItemProps> = ({
         )}
         {isFolder ? (
           <sp-icon-chevron-right size="xs"></sp-icon-chevron-right>
-        ) : (
-          <sp-action-button
-            quiet
-            size="xs"
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation()
-              onMenuTrigger?.(e)
-            }}
-            title="Options"
-            className="item-row-action-btn"
-          >
-            <MoreVertical size={13} slot="icon" />
-          </sp-action-button>
-        )}
+        ) : onImportRaw && onImportProxy ? (
+          <FileActionMenu
+            ref={menuHandleRef}
+            asset={asset}
+            endpoint={endpoint}
+            apiKey={apiKey}
+            onImportRaw={onImportRaw}
+            onImportProxy={onImportProxy}
+            className="item-row-action-menu"
+          />
+        ) : null}
       </div>
     </div>
   )
@@ -180,12 +193,14 @@ export const FileItem: React.FC<FileItemProps> = ({
 /** Card View Row Item (2 Columns: Left Preview, Right Info as Raw Text) */
 export const FileCardItem: React.FC<FileItemProps> = ({
   asset,
-  endpoint,
+  endpoint = '',
+  apiKey = '',
   onClick,
-  onContextMenu,
-  onMenuTrigger,
+  onImportRaw,
+  onImportProxy,
 }) => {
   const [imgError, setImgError] = useState(false)
+  const menuHandleRef = useRef<FileActionMenuHandle>(null)
   const category = getFileTypeCategory(asset)
   const isFolder = category === 'folder'
   const effectiveSize = asset.sizeByte ?? asset.size
@@ -207,6 +222,23 @@ export const FileCardItem: React.FC<FileItemProps> = ({
     </div>
   )
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (isFolder) {
+      onClick(e)
+    } else {
+      e.stopPropagation()
+      menuHandleRef.current?.openMenu()
+    }
+  }
+
+  const handleCardContextMenu = (e: React.MouseEvent) => {
+    if (!isFolder) {
+      e.preventDefault()
+      e.stopPropagation()
+      menuHandleRef.current?.openMenu()
+    }
+  }
+
   // Assemble raw text details for Line 3 (Duration • Size/Type • Comments)
   const details: string[] = []
   if (durationText) {
@@ -224,21 +256,15 @@ export const FileCardItem: React.FC<FileItemProps> = ({
   return (
     <div
       className="file-row-card"
-      onClick={onClick}
-      onContextMenu={(e) => {
-        if (!isFolder && onContextMenu) {
-          e.preventDefault()
-          e.stopPropagation()
-          onContextMenu(e)
-        }
-      }}
+      onClick={handleCardClick}
+      onContextMenu={handleCardContextMenu}
       role="button"
       tabIndex={0}
       title={asset.name}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          onClick(e as unknown as React.MouseEvent)
+          handleCardClick(e as unknown as React.MouseEvent)
         }
       }}
     >
@@ -264,20 +290,17 @@ export const FileCardItem: React.FC<FileItemProps> = ({
           </span>
           {isFolder ? (
             <sp-icon-chevron-right size="xs" className="file-row-chevron"></sp-icon-chevron-right>
-          ) : (
-            <sp-action-button
-              quiet
-              size="xs"
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation()
-                onMenuTrigger?.(e)
-              }}
-              title="Options"
-              className="file-row-action-btn"
-            >
-              <MoreVertical size={13} slot="icon" />
-            </sp-action-button>
-          )}
+          ) : onImportRaw && onImportProxy ? (
+            <FileActionMenu
+              ref={menuHandleRef}
+              asset={asset}
+              endpoint={endpoint}
+              apiKey={apiKey}
+              onImportRaw={onImportRaw}
+              onImportProxy={onImportProxy}
+              className="file-row-action-menu"
+            />
+          ) : null}
         </div>
 
         {(creatorName || updatedText) && (

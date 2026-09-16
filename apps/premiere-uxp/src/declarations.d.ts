@@ -49,11 +49,41 @@ type SpActionButtonCustomElementProps = import('react').DetailedHTMLProps<
   slot?: string
 }
 
+type SpActionMenuCustomElementProps = import('react').DetailedHTMLProps<
+  import('react').HTMLAttributes<HTMLElement>,
+  HTMLElement
+> & {
+  quiet?: boolean
+  size?: 'xs' | 's' | 'm' | 'l' | 'xl'
+  label?: string
+  disabled?: boolean
+  open?: boolean
+  placement?:
+    | 'top'
+    | 'top-start'
+    | 'top-end'
+    | 'right'
+    | 'right-start'
+    | 'right-end'
+    | 'bottom'
+    | 'bottom-start'
+    | 'bottom-end'
+    | 'left'
+    | 'left-start'
+    | 'left-end'
+  'force-popover'?: boolean
+  selects?: 'single'
+  value?: string
+  slot?: string
+}
+
 type SpMenuCustomElementProps = import('react').DetailedHTMLProps<
   import('react').HTMLAttributes<HTMLElement>,
   HTMLElement
 > & {
   slot?: string
+  selects?: 'single' | 'multiple' | 'inherit'
+  label?: string
 }
 
 type SpMenuItemCustomElementProps = import('react').DetailedHTMLProps<
@@ -115,6 +145,7 @@ declare namespace React {
       'sp-button': SpButtonCustomElementProps
       'sp-button-group': SpButtonGroupCustomElementProps
       'sp-action-button': SpActionButtonCustomElementProps
+      'sp-action-menu': SpActionMenuCustomElementProps
       'sp-menu': SpMenuCustomElementProps
       'sp-menu-item': SpMenuItemCustomElementProps
       'sp-menu-divider': SpMenuDividerCustomElementProps
@@ -135,6 +166,7 @@ declare namespace JSX {
     'sp-button': SpButtonCustomElementProps
     'sp-button-group': SpButtonGroupCustomElementProps
     'sp-action-button': SpActionButtonCustomElementProps
+    'sp-action-menu': SpActionMenuCustomElementProps
     'sp-menu': SpMenuCustomElementProps
     'sp-menu-item': SpMenuItemCustomElementProps
     'sp-menu-divider': SpMenuDividerCustomElementProps
