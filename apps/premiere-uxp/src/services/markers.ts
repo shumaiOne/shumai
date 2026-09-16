@@ -56,8 +56,8 @@ export interface SyncCommentsResult {
 
 /**
  * Synchronizes new Shumai comments to a Premiere Pro sequence as markers.
- * Only comments with timestamps (`second != null`) that have not yet been synced
- * are created. Deleted markers in Premiere are not re-created.
+ * Comments without timestamps (`second == null`) default to time 0 (sequence start),
+ * matching Frame.io convention. Deleted markers in Premiere are not re-created.
  */
 export async function syncCommentsToSequence(
   project: Project,
@@ -68,9 +68,9 @@ export async function syncCommentsToSequence(
   const ppro = getPremiereModule()
   const now = Date.now()
 
-  // Filter only comments with timestamps that have not been synced yet
+  // Filter comments that have not been synced yet; non-timestamped comments default to time 0
   const alreadySyncedSet = new Set(existingLink.syncedCommentIds)
-  const newComments = comments.filter((c) => c.second != null && !alreadySyncedSet.has(c.id))
+  const newComments = comments.filter((c) => !alreadySyncedSet.has(c.id))
 
   if (newComments.length === 0) {
     const updatedLink: LinkedSequenceAsset = {

@@ -79,10 +79,9 @@ describe('markers service', () => {
       totalCommentsSynced: 1,
     }
 
-    it('returns without creating markers if no new timestamped comments exist', async () => {
+    it('returns without creating markers if no new comments exist', async () => {
       const comments: Partial<CommentInfo>[] = [
         { id: 'comm-1', second: 10, message: 'Already synced' },
-        { id: 'comm-2', second: null, message: 'General comment with no timestamp' },
       ]
 
       const mockProject = {
@@ -104,7 +103,7 @@ describe('markers service', () => {
       expect(mockProject.executeTransaction).not.toHaveBeenCalled()
     })
 
-    it('creates markers for new timestamped comments in a transaction', async () => {
+    it('creates markers for new comments, placing non-timestamped comments at time 0 (zeroPoint)', async () => {
       const mockCompoundAction = { addAction: vi.fn() }
       const mockSeqMarkers = {
         createAddMarkerAction: vi.fn().mockImplementation((name, type, time, dur, comment) => {
@@ -145,6 +144,13 @@ describe('markers service', () => {
           creator: { id: 'u1', name: 'Director' } as unknown as CommentInfo['creator'],
           replies: [],
         },
+        {
+          id: 'comm-3',
+          second: null,
+          message: 'General comment without timestamp',
+          creator: { id: 'u2', name: 'Producer' } as unknown as CommentInfo['creator'],
+          replies: [],
+        },
       ]
 
       const mockProject = {
@@ -167,12 +173,13 @@ describe('markers service', () => {
         existingLink,
       )
 
-      expect(result.addedCount).toBe(1)
-      expect(result.updatedLink.syncedCommentIds).toEqual(['comm-1', 'comm-2'])
-      expect(result.updatedLink.totalCommentsSynced).toBe(2)
+      expect(result.addedCount).toBe(2)
+      expect(result.updatedLink.syncedCommentIds).toEqual(['comm-1', 'comm-2', 'comm-3'])
+      expect(result.updatedLink.totalCommentsSynced).toBe(3)
 
-      // Time should be offset by zeroPoint (3600 + 15.5 = 3615.5)
+      // Time should be offset by zeroPoint (3600 + 15.5 = 3615.5 for comm-2, 3600 + 0 = 3600 for comm-3)
       expect(mockPpro.TickTime.createWithSeconds).toHaveBeenCalledWith(3615.5)
+      expect(mockPpro.TickTime.createWithSeconds).toHaveBeenCalledWith(3600)
       expect(mockSeqMarkers.createAddMarkerAction).toHaveBeenCalledWith(
         'Director',
         'CommentMarkerType',
@@ -180,6 +187,14 @@ describe('markers service', () => {
         mockPpro.TickTime.TIME_ZERO,
         'New timestamped comment',
       )
+      expect(mockSeqMarkers.createAddMarkerAction).toHaveBeenCalledWith(
+        'Producer',
+        'CommentMarkerType',
+        { seconds: 3600 },
+        mockPpro.TickTime.TIME_ZERO,
+        'General comment without timestamp',
+      )
+      expect(mockSeqMarkers.createAddMarkerAction).toHaveBeenCalledTimes(2)
       expect(mockCompoundAction.addAction).toHaveBeenCalled()
     })
   })
