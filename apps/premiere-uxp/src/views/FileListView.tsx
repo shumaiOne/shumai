@@ -386,6 +386,51 @@ export const FileListView: React.FC<FileListViewProps> = ({
     }
   }
 
+  const applySearchInputStyles = useCallback((el: unknown) => {
+    if (!el || typeof el !== 'object' || !('shadowRoot' in el)) return
+    const host = el as HTMLElement
+    const apply = () => {
+      const root = host.shadowRoot
+      if (!root) return
+      const textfield = root.querySelector('#textfield') as HTMLElement | null
+      const form = root.querySelector('#form') as HTMLElement | null
+      const input = (root.querySelector('input.input') ||
+        root.querySelector('.input') ||
+        root.querySelector('input')) as HTMLInputElement | null
+      const button = root.querySelector('#button') as HTMLElement | null
+
+      if (textfield) {
+        textfield.style.width = '100%'
+        textfield.style.cursor = 'text'
+      }
+      if (form) {
+        form.style.width = '100%'
+        form.style.display = 'flex'
+        form.style.alignItems = 'center'
+        form.style.flex = '1'
+        form.style.minWidth = '0'
+      }
+      if (input) {
+        input.style.width = '100%'
+        input.style.flex = '1'
+        input.style.minWidth = '0'
+        input.style.cursor = 'text'
+        input.style.boxSizing = 'border-box'
+      }
+      if (button) {
+        button.style.flexShrink = '0'
+      }
+    }
+
+    apply()
+    if (
+      'updateComplete' in host &&
+      (host as { updateComplete?: Promise<unknown> }).updateComplete
+    ) {
+      void (host as { updateComplete: Promise<unknown> }).updateComplete.then(apply)
+    }
+  }, [])
+
   return (
     <div
       style={{
@@ -396,15 +441,22 @@ export const FileListView: React.FC<FileListViewProps> = ({
         overflow: 'hidden',
       }}
     >
-      <Breadcrumb
-        projectName={project.name}
-        crumbs={crumbs}
-        onNavigateToProjects={onBackToProjects}
-        onNavigateToCrumb={handleCrumbNavigate}
-      />
-
-      {/* Sticky Header: Search input & Refresh button */}
-      <div className="view-sticky-header">
+      {/* Sticky Header: Breadcrumb & Actions */}
+      <div
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          backgroundColor: 'var(--spectrum-global-color-gray-100)',
+          padding: '12px 16px 0 16px',
+        }}
+      >
+        <Breadcrumb
+          projectName={project.name}
+          crumbs={crumbs}
+          onNavigateToProjects={onBackToProjects}
+          onNavigateToCrumb={handleCrumbNavigate}
+        />
         <div
           style={{
             display: 'flex',
@@ -414,19 +466,52 @@ export const FileListView: React.FC<FileListViewProps> = ({
           }}
         >
           <div style={{ flex: 1 }}>
-            <Search
-              style={
-                {
-                  width: '220px',
-                  '--mod-search-inline-size': '220px',
-                } as React.CSSProperties
-              }
-              placeholder="Search files and folders..."
-              value={searchTerm}
-              onInput={(e: React.FormEvent<HTMLElement>) =>
-                setSearchTerm((e.target as HTMLInputElement).value)
-              }
-            />
+            <div
+              style={{ width: '220px', cursor: 'text' }}
+              onPointerDown={(e) => {
+                const target = e.target as HTMLElement | null
+                if (!target?.closest('#button') && !target?.closest('sp-clear-button')) {
+                  const spSearch = e.currentTarget.querySelector('sp-search') as
+                    | (HTMLElement & {
+                        focusElement?: HTMLElement
+                      })
+                    | null
+                  const input =
+                    (spSearch?.shadowRoot?.querySelector('input') as HTMLInputElement | null) ||
+                    (spSearch?.focusElement as HTMLInputElement | null)
+                  input?.focus?.()
+                }
+              }}
+              onClick={(e) => {
+                const target = e.target as HTMLElement | null
+                if (!target?.closest('#button') && !target?.closest('sp-clear-button')) {
+                  const spSearch = e.currentTarget.querySelector('sp-search') as
+                    | (HTMLElement & {
+                        focusElement?: HTMLElement
+                      })
+                    | null
+                  const input =
+                    (spSearch?.shadowRoot?.querySelector('input') as HTMLInputElement | null) ||
+                    (spSearch?.focusElement as HTMLInputElement | null)
+                  input?.focus?.()
+                }
+              }}
+            >
+              <Search
+                ref={applySearchInputStyles}
+                style={
+                  {
+                    width: '220px',
+                    '--mod-search-inline-size': '220px',
+                  } as React.CSSProperties
+                }
+                placeholder="Search files and folders..."
+                value={searchTerm}
+                onInput={(e: React.FormEvent<HTMLElement>) =>
+                  setSearchTerm((e.target as HTMLInputElement).value)
+                }
+              />
+            </div>
           </div>
 
           <sp-button

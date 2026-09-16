@@ -1,46 +1,98 @@
+function patchSpSearchConstructor(constructor: CustomElementConstructor) {
+  type LitCustomElement = {
+    connectedCallback?: (this: HTMLElement) => void
+    firstUpdated?: (this: HTMLElement, changedProperties: unknown) => void
+    updated?: (this: HTMLElement, changedProperties: unknown) => void
+  }
+  const proto = constructor.prototype as LitCustomElement & HTMLElement
+  if ((proto as unknown as { shumaiSearchPatched?: boolean }).shumaiSearchPatched) {
+    return
+  }
+  ;(proto as unknown as { shumaiSearchPatched?: boolean }).shumaiSearchPatched = true
+
+  const applySearchDomFix = (instance: HTMLElement) => {
+    const root = instance.shadowRoot
+    if (!root) return
+
+    const textfield = root.querySelector('#textfield') as HTMLElement | null
+    const form = root.querySelector('#form') as HTMLElement | null
+    const input = (root.querySelector('input.input') ||
+      root.querySelector('.input') ||
+      root.querySelector('input')) as HTMLInputElement | null
+    const button = root.querySelector('#button') as HTMLElement | null
+
+    if (textfield) {
+      textfield.style.width = '100%'
+      textfield.style.cursor = 'text'
+    }
+    if (form) {
+      form.style.width = '100%'
+      form.style.display = 'flex'
+      form.style.alignItems = 'center'
+      form.style.flex = '1'
+      form.style.minWidth = '0'
+    }
+    if (input) {
+      input.style.width = '100%'
+      input.style.flex = '1'
+      input.style.minWidth = '0'
+      input.style.cursor = 'text'
+      input.style.boxSizing = 'border-box'
+    }
+    if (button) {
+      button.style.flexShrink = '0'
+    }
+  }
+
+  const origConnectedCallback = proto.connectedCallback
+  proto.connectedCallback = function (this: HTMLElement) {
+    origConnectedCallback?.call(this)
+
+    // Forward clicks to inner input
+    this.addEventListener('click', (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      if (!target?.closest('#button') && !target?.closest('sp-clear-button')) {
+        const input = (this.shadowRoot?.querySelector('input') ||
+          (this as unknown as { focusElement?: HTMLElement }).focusElement) as HTMLElement | null
+        input?.focus?.()
+      }
+    })
+
+    applySearchDomFix(this)
+  }
+
+  const origFirstUpdated = proto.firstUpdated
+  proto.firstUpdated = function (this: HTMLElement, changedProperties: unknown) {
+    origFirstUpdated?.call(this, changedProperties)
+    applySearchDomFix(this)
+  }
+
+  const origUpdated = proto.updated
+  proto.updated = function (this: HTMLElement, changedProperties: unknown) {
+    origUpdated?.call(this, changedProperties)
+    applySearchDomFix(this)
+  }
+}
+
 // Guard against duplicate custom element registrations during UXP development and plugin reload
 if (typeof window !== 'undefined' && window.customElements) {
+  const existingSpSearch = window.customElements.get('sp-search')
+  if (existingSpSearch) {
+    patchSpSearchConstructor(existingSpSearch)
+  }
+
   const origDefine = window.customElements.define.bind(window.customElements)
   window.customElements.define = (
     name: string,
     constructor: CustomElementConstructor,
     options?: ElementDefinitionOptions,
   ) => {
-    if (window.customElements.get(name)) {
-      return
+    if (name === 'sp-search') {
+      patchSpSearchConstructor(constructor)
     }
 
-    if (name === 'sp-search') {
-      // In Adobe UXP, sp-search's internal <input> and <form> inside Shadow DOM do not stretch to 100% width,
-      // and #textfield lacks cursor: text and click-to-focus forwarding.
-      type CustomElementWithLifecycle = {
-        connectedCallback?: (this: HTMLElement & { focus?: () => void }) => void
-      }
-      const proto = constructor.prototype as CustomElementWithLifecycle
-      const origConnectedCallback = proto.connectedCallback
-      proto.connectedCallback = function (this: HTMLElement & { focus?: () => void }) {
-        origConnectedCallback?.call(this)
-
-        // Forward clicks anywhere in the search box to focus the input
-        this.addEventListener('click', (e: MouseEvent) => {
-          const target = e.target as HTMLElement | null
-          if (!target?.closest('#button') && !target?.closest('sp-clear-button')) {
-            this.focus?.()
-          }
-        })
-
-        // Force Shadow DOM elements to stretch full width and show text cursor
-        if (this.shadowRoot && !this.shadowRoot.querySelector('style[data-shumai-search-fix]')) {
-          const style = document.createElement('style')
-          style.setAttribute('data-shumai-search-fix', 'true')
-          style.textContent = `
-            #textfield { width: 100% !important; cursor: text !important; }
-            #form { width: 100% !important; display: flex !important; align-items: center !important; }
-            .input { width: 100% !important; flex: 1 !important; cursor: text !important; }
-          `
-          this.shadowRoot.appendChild(style)
-        }
-      }
+    if (window.customElements.get(name)) {
+      return
     }
 
     origDefine(name, constructor, options)
