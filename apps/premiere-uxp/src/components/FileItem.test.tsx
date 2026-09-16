@@ -172,4 +172,78 @@ describe('FileItem and FileCardItem UI Components', () => {
     expect(mockOnSelectVideoForImport).toHaveBeenCalledWith(videoAsset)
     expect(mockOnImportRaw).not.toHaveBeenCalled()
   })
+
+  it('FileCardItem renders sp-icon-link when isLinked is false, and triggers onLinkSequence on click', () => {
+    const mockOnLinkSequence = vi.fn()
+    const { container } = render(
+      <FileCardItem
+        asset={videoAsset}
+        onClick={mockOnClick}
+        onLinkSequence={mockOnLinkSequence}
+        isLinked={false}
+      />,
+    )
+
+    const linkIcon = container.querySelector('sp-icon-link')
+    const unlinkIcon = container.querySelector('sp-icon-unlink')
+    expect(linkIcon).toBeTruthy()
+    expect(unlinkIcon).toBeNull()
+
+    const linkBtn = screen.getByTitle('Link to Sequence')
+    expect(linkBtn).toBeTruthy()
+    fireEvent.click(linkBtn)
+    expect(mockOnLinkSequence).toHaveBeenCalledWith(videoAsset)
+  })
+
+  it('FileCardItem renders sp-icon-unlink when isLinked is true, and triggers onUnlinkSequence on click', () => {
+    const mockOnLinkSequence = vi.fn()
+    const mockOnUnlinkSequence = vi.fn()
+    const { container } = render(
+      <FileCardItem
+        asset={videoAsset}
+        onClick={mockOnClick}
+        onLinkSequence={mockOnLinkSequence}
+        onUnlinkSequence={mockOnUnlinkSequence}
+        isLinked={true}
+        linkedSequenceName="Cut_v1"
+      />,
+    )
+
+    const linkIcon = container.querySelector('sp-icon-link')
+    const unlinkIcon = container.querySelector('sp-icon-unlink')
+    expect(linkIcon).toBeNull()
+    expect(unlinkIcon).toBeTruthy()
+
+    const unlinkBtn = screen.getByTitle('Unlink from Cut_v1')
+    expect(unlinkBtn).toBeTruthy()
+    fireEvent.click(unlinkBtn)
+    expect(mockOnUnlinkSequence).toHaveBeenCalledWith(videoAsset)
+    expect(mockOnLinkSequence).not.toHaveBeenCalled()
+  })
+
+  it('FileItem renders sp-icon-unlink when isLinked is true', () => {
+    const mockOnLinkSequence = vi.fn()
+    const mockOnUnlinkSequence = vi.fn()
+    const { container } = render(
+      <FileItem
+        asset={videoAsset}
+        onClick={mockOnClick}
+        onLinkSequence={mockOnLinkSequence}
+        onUnlinkSequence={mockOnUnlinkSequence}
+        isLinked={true}
+        linkedSequenceName="Cut_v1"
+      />,
+    )
+
+    const linkIcon = container.querySelector('sp-icon-link')
+    const unlinkIcon = container.querySelector('sp-icon-unlink')
+    expect(linkIcon).toBeNull()
+    expect(unlinkIcon).toBeTruthy()
+
+    const unlinkBtn = screen.getByTitle('Unlink from Cut_v1')
+    expect(unlinkBtn).toBeTruthy()
+    fireEvent.click(unlinkBtn)
+    expect(mockOnUnlinkSequence).toHaveBeenCalledWith(videoAsset)
+  })
 })
+

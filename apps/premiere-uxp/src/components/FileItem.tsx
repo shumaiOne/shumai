@@ -59,6 +59,7 @@ export interface FileItemProps {
   onImportRaw?: (asset: AssetSummary) => void
   onSelectVideoForImport?: (asset: AssetSummary) => void
   onLinkSequence?: (asset: AssetSummary) => void
+  onUnlinkSequence?: (asset: AssetSummary) => void
   isLinked?: boolean
   linkedSequenceName?: string
 }
@@ -90,6 +91,7 @@ export const FileItem: React.FC<FileItemProps> = ({
   onImportRaw,
   onSelectVideoForImport,
   onLinkSequence,
+  onUnlinkSequence,
   isLinked = false,
   linkedSequenceName,
 }) => {
@@ -190,29 +192,45 @@ export const FileItem: React.FC<FileItemProps> = ({
           <sp-icon-chevron-right size="xs"></sp-icon-chevron-right>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            {onLinkSequence && (category === 'video' || category === 'audio') && (
+            {(onLinkSequence || onUnlinkSequence) && (category === 'video' || category === 'audio') && (
               <sp-action-button
                 quiet
                 size="xs"
                 icon-only
                 label={
-                  isLinked ? `Linked to ${linkedSequenceName || 'Sequence'}` : 'Link to Sequence'
+                  isLinked
+                    ? onUnlinkSequence
+                      ? `Unlink from ${linkedSequenceName || 'Sequence'}`
+                      : `Linked to ${linkedSequenceName || 'Sequence'}`
+                    : 'Link to Sequence'
                 }
                 title={
-                  isLinked ? `Linked to ${linkedSequenceName || 'Sequence'}` : 'Link to Sequence'
+                  isLinked
+                    ? onUnlinkSequence
+                      ? `Unlink from ${linkedSequenceName || 'Sequence'}`
+                      : `Linked to ${linkedSequenceName || 'Sequence'}`
+                    : 'Link to Sequence'
                 }
                 className="item-row-link-btn"
                 style={{ marginRight: 4 }}
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation()
-                  onLinkSequence(asset)
+                  if (isLinked && onUnlinkSequence) {
+                    onUnlinkSequence(asset)
+                  } else if (onLinkSequence) {
+                    onLinkSequence(asset)
+                  }
                 }}
               >
-                <sp-icon-link
-                  size="s"
-                  slot="icon"
-                  style={isLinked ? { color: '#3b82f6' } : undefined}
-                ></sp-icon-link>
+                {isLinked ? (
+                  <sp-icon-unlink
+                    size="s"
+                    slot="icon"
+                    style={{ color: '#f87171' }}
+                  ></sp-icon-unlink>
+                ) : (
+                  <sp-icon-link size="s" slot="icon"></sp-icon-link>
+                )}
               </sp-action-button>
             )}
             {(onImportRaw || onSelectVideoForImport) && (
@@ -246,6 +264,7 @@ export const FileCardItem: React.FC<FileItemProps> = ({
   onImportRaw,
   onSelectVideoForImport,
   onLinkSequence,
+  onUnlinkSequence,
   isLinked = false,
   linkedSequenceName,
 }) => {
@@ -377,29 +396,45 @@ export const FileCardItem: React.FC<FileItemProps> = ({
           <sp-icon-chevron-right size="xs" className="file-row-chevron"></sp-icon-chevron-right>
         ) : (
           <>
-            {onLinkSequence && (category === 'video' || category === 'audio') && (
+            {(onLinkSequence || onUnlinkSequence) && (category === 'video' || category === 'audio') && (
               <sp-action-button
                 quiet
                 size="xs"
                 icon-only
                 label={
-                  isLinked ? `Linked to ${linkedSequenceName || 'Sequence'}` : 'Link to Sequence'
+                  isLinked
+                    ? onUnlinkSequence
+                      ? `Unlink from ${linkedSequenceName || 'Sequence'}`
+                      : `Linked to ${linkedSequenceName || 'Sequence'}`
+                    : 'Link to Sequence'
                 }
                 title={
-                  isLinked ? `Linked to ${linkedSequenceName || 'Sequence'}` : 'Link to Sequence'
+                  isLinked
+                    ? onUnlinkSequence
+                      ? `Unlink from ${linkedSequenceName || 'Sequence'}`
+                      : `Linked to ${linkedSequenceName || 'Sequence'}`
+                    : 'Link to Sequence'
                 }
                 className="file-row-link-btn"
                 style={{ marginRight: 4 }}
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation()
-                  onLinkSequence(asset)
+                  if (isLinked && onUnlinkSequence) {
+                    onUnlinkSequence(asset)
+                  } else if (onLinkSequence) {
+                    onLinkSequence(asset)
+                  }
                 }}
               >
-                <sp-icon-link
-                  size="s"
-                  slot="icon"
-                  style={isLinked ? { color: '#3b82f6' } : undefined}
-                ></sp-icon-link>
+                {isLinked ? (
+                  <sp-icon-unlink
+                    size="s"
+                    slot="icon"
+                    style={{ color: '#f87171' }}
+                  ></sp-icon-unlink>
+                ) : (
+                  <sp-icon-link size="s" slot="icon"></sp-icon-link>
+                )}
               </sp-action-button>
             )}
             {(onImportRaw || onSelectVideoForImport) && (

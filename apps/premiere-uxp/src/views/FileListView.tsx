@@ -4,7 +4,12 @@ import { Breadcrumb, BreadcrumbCrumb } from '../components/Breadcrumb'
 import { FileCardItem, AssetSummary } from '../components/FileItem'
 import { ImportVideoDialog } from '../components/ImportVideoDialog'
 import { LinkSequenceDialog } from '../components/LinkSequenceDialog'
-import { getAllSequenceLinksFromCache } from '../services/linkStorage'
+import {
+  getAllSequenceLinksFromCache,
+  removeSequenceLink,
+  removeSequenceLinkFromCache,
+} from '../services/linkStorage'
+import { getActiveProject, getAllSequences } from '../services/premiere'
 import type { LinkedSequenceAsset } from '../types/link'
 import { importAssetIntoPremiere, type ProxyOption } from '../services/import'
 import { ProjectSummary } from './ProjectsView'
@@ -77,6 +82,49 @@ export const FileListView: React.FC<FileListViewProps> = ({
     }
     setLinkedAssetsMap(map)
   }, [])
+
+  const handleUnlinkAsset = useCallback(
+    async (asset: AssetSummary) => {
+      const link = linkedAssetsMap[asset.id]
+      if (!link) return
+      try {
+        const pr = await getActiveProject()
+        if (pr) {
+          const allSeqs = await getAllSequences(pr)
+          const targetSeq = allSeqs.find((s) => s.guid && s.guid.toString() === link.sequenceGuid)
+          if (targetSeq) {
+            await removeSequenceLink(pr, targetSeq)
+          } else {
+            removeSequenceLinkFromCache(link.sequenceGuid, pr.guid ? pr.guid.toString() : null)
+          }
+        } else {
+          removeSequenceLinkFromCache(link.sequenceGuid)
+        }
+        refreshLinkedAssets()
+        setImportStatus({
+          id: Date.now().toString(),
+          fileName: asset.name,
+          status: 'success',
+          message: `Unlinked from "${link.sequenceName}".`,
+        })
+        setTimeout(() => {
+          setImportStatus((prev) => (prev?.fileName === asset.name ? null : prev))
+        }, 3000)
+      } catch (err) {
+        console.error('Failed to unlink asset:', err)
+        setImportStatus({
+          id: Date.now().toString(),
+          fileName: asset.name,
+          status: 'error',
+          message: 'Failed to unlink sequence.',
+        })
+        setTimeout(() => {
+          setImportStatus((prev) => (prev?.fileName === asset.name ? null : prev))
+        }, 4000)
+      }
+    },
+    [linkedAssetsMap, refreshLinkedAssets],
+  )
 
   // Import task state
   const [importStatus, setImportStatus] = useState<{
@@ -612,6 +660,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
                           onImportRaw={handleImportRaw}
                           onSelectVideoForImport={setVideoForDialog}
                           onLinkSequence={setAssetForLinkDialog}
+                          onUnlinkSequence={handleUnlinkAsset}
                           isLinked={Boolean(linkedAssetsMap[file.id])}
                           linkedSequenceName={linkedAssetsMap[file.id]?.sequenceName}
                         />
