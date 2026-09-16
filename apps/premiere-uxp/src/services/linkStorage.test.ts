@@ -223,5 +223,87 @@ describe('linkStorage service', () => {
       expect(success).toBe(true)
       expect(mockProps.createClearValueAction).toHaveBeenCalledWith(LINK_STORAGE_PROP_KEY)
     })
+
+    it('removes synced markers matching syncedMarkerGuids on removeSequenceLink, preserving manual markers', async () => {
+      const mockCompoundAction = { addAction: vi.fn() }
+      const mockProps = {
+        getValue: vi.fn().mockReturnValue(
+          JSON.stringify({
+            ...sampleLink,
+            syncedMarkerGuids: ['synced-marker-1', 'synced-marker-2'],
+          }),
+        ),
+        createClearValueAction: vi.fn().mockReturnValue({ id: 'action-clear' }),
+      }
+
+      const mockMarker1 = {
+        guid: 'synced-marker-1',
+        name: 'Director (edited)',
+        comments: 'Edited comment',
+      }
+      const mockMarker2 = { guid: 'synced-marker-2', name: 'Producer', comments: 'Another comment' }
+      const mockManualMarker = {
+        guid: 'manual-user-marker',
+        name: 'Editor Note',
+        comments: 'Manual marker',
+      }
+
+      const mockSeqMarkers = {
+        getMarkers: vi.fn().mockReturnValue([mockMarker1, mockManualMarker, mockMarker2]),
+        createRemoveMarkerAction: vi.fn().mockImplementation((marker) => ({
+          type: 'remove-marker',
+          guid: marker.guid,
+        })),
+      }
+
+      const mockPpro = {
+        Properties: {
+          getProperties: vi.fn().mockResolvedValue(mockProps),
+        },
+        Markers: {
+          getMarkers: vi.fn().mockResolvedValue(mockSeqMarkers),
+        },
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(globalThis as any).window = {
+        require: vi.fn().mockImplementation((name: string) => {
+          if (name === 'premierepro') return mockPpro
+          return null
+        }),
+      }
+
+      const mockSeq = { guid: 'seq-guid-1' }
+      const mockProj = {
+        guid: 'proj-1',
+        lockedAccess: vi.fn((cb) => cb()),
+        executeTransaction: vi.fn((cb) => {
+          cb(mockCompoundAction)
+          return true
+        }),
+      }
+
+      const success = await removeSequenceLink(
+        mockProj as unknown as Project,
+        mockSeq as unknown as Sequence,
+      )
+      expect(success).toBe(true)
+
+      // Only synced-marker-1 and synced-marker-2 should be removed; manual-user-marker must NOT be removed
+      expect(mockSeqMarkers.createRemoveMarkerAction).toHaveBeenCalledTimes(2)
+      expect(mockSeqMarkers.createRemoveMarkerAction).toHaveBeenCalledWith(mockMarker1)
+      expect(mockSeqMarkers.createRemoveMarkerAction).toHaveBeenCalledWith(mockMarker2)
+      expect(mockSeqMarkers.createRemoveMarkerAction).not.toHaveBeenCalledWith(mockManualMarker)
+
+      expect(mockCompoundAction.addAction).toHaveBeenCalledWith({
+        type: 'remove-marker',
+        guid: 'synced-marker-1',
+      })
+      expect(mockCompoundAction.addAction).toHaveBeenCalledWith({
+        type: 'remove-marker',
+        guid: 'synced-marker-2',
+      })
+      expect(mockProps.createClearValueAction).toHaveBeenCalledWith(LINK_STORAGE_PROP_KEY)
+    })
   })
 })

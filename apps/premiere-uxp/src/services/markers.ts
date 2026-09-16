@@ -93,6 +93,8 @@ export async function syncCommentsToSequence(
     return { updatedLink, addedCount: newComments.length }
   }
 
+  const newMarkerGuids: string[] = []
+
   try {
     const sequenceMarkers = await ppro.Markers.getMarkers(sequence)
     let zeroPointSeconds = 0
@@ -104,6 +106,17 @@ export async function syncCommentsToSequence(
       }
     } catch {
       // zeroPoint defaults to 0
+    }
+
+    // Capture existing marker GUIDs before adding new markers
+    let beforeGuids = new Set<string>()
+    try {
+      const beforeMarkers = sequenceMarkers.getMarkers() || []
+      beforeGuids = new Set(
+        beforeMarkers.map((m) => (m.guid ? m.guid.toString() : '')).filter(Boolean),
+      )
+    } catch (err) {
+      console.warn('[markers] Could not get existing markers before sync:', err)
     }
 
     project.lockedAccess(() => {
@@ -126,6 +139,19 @@ export async function syncCommentsToSequence(
         }
       }, 'Sync Shumai Comments')
     })
+
+    // Identify newly added markers by GUID
+    try {
+      const afterMarkers = sequenceMarkers.getMarkers() || []
+      for (const m of afterMarkers) {
+        const guidStr = m.guid ? m.guid.toString() : ''
+        if (guidStr && !beforeGuids.has(guidStr)) {
+          newMarkerGuids.push(guidStr)
+        }
+      }
+    } catch (err) {
+      console.warn('[markers] Could not retrieve newly created marker GUIDs:', err)
+    }
   } catch (err) {
     console.error('[markers] Failed to execute add markers transaction:', err)
   }
@@ -133,6 +159,7 @@ export async function syncCommentsToSequence(
   const updatedLink: LinkedSequenceAsset = {
     ...existingLink,
     syncedCommentIds: [...existingLink.syncedCommentIds, ...newComments.map((c) => c.id)],
+    syncedMarkerGuids: [...(existingLink.syncedMarkerGuids || []), ...newMarkerGuids],
     totalCommentsSynced: existingLink.totalCommentsSynced + newComments.length,
     lastSyncAt: now,
   }

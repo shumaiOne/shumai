@@ -105,7 +105,19 @@ describe('markers service', () => {
 
     it('creates markers for new comments, placing non-timestamped comments at time 0 (zeroPoint)', async () => {
       const mockCompoundAction = { addAction: vi.fn() }
+      let callCount = 0
       const mockSeqMarkers = {
+        getMarkers: vi.fn().mockImplementation(() => {
+          callCount++
+          if (callCount === 1) {
+            return [{ guid: 'old-guid-1' }]
+          }
+          return [
+            { guid: 'old-guid-1' },
+            { guid: 'marker-guid-2' },
+            { guid: 'marker-guid-3' },
+          ]
+        }),
         createAddMarkerAction: vi.fn().mockImplementation((name, type, time, dur, comment) => {
           return { name, type, time, dur, comment }
         }),
@@ -175,6 +187,7 @@ describe('markers service', () => {
 
       expect(result.addedCount).toBe(2)
       expect(result.updatedLink.syncedCommentIds).toEqual(['comm-1', 'comm-2', 'comm-3'])
+      expect(result.updatedLink.syncedMarkerGuids).toEqual(['marker-guid-2', 'marker-guid-3'])
       expect(result.updatedLink.totalCommentsSynced).toBe(3)
 
       // Time should be offset by zeroPoint (3600 + 15.5 = 3615.5 for comm-2, 3600 + 0 = 3600 for comm-3)

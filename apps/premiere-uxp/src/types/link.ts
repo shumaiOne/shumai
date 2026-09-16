@@ -6,6 +6,7 @@ export interface LinkedSequenceAsset {
   assetThumbnailUrl?: string
   projectId?: string
   syncedCommentIds: string[]
+  syncedMarkerGuids?: string[]
   lastSyncAt: number
   totalCommentsSynced: number
 }

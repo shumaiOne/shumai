@@ -285,15 +285,42 @@ export async function saveSequenceLink(
 }
 
 /**
- * Removes the persistent link metadata from the sequence and cache.
+ * Removes the persistent link metadata from the sequence and cache,
+ * and deletes any markers that were synced from Shumai (matching Frame.io behavior).
  */
 export async function removeSequenceLink(project: Project, sequence: Sequence): Promise<boolean> {
   const ppro = getPremiereModule()
   const seqGuidStr = sequence.guid ? sequence.guid.toString() : ''
   const prGuidStr = project.guid ? project.guid.toString() : null
 
+  // Retrieve link metadata before clearing, to identify synced marker GUIDs
+  const linkData = await getSequenceLink(sequence, project)
+
   // Remove from cache
   removeSequenceLinkFromCache(seqGuidStr, prGuidStr)
+
+  // Remove synced markers from the sequence timeline
+  if (ppro?.Markers && linkData?.syncedMarkerGuids && linkData.syncedMarkerGuids.length > 0) {
+    try {
+      const sequenceMarkers = await ppro.Markers.getMarkers(sequence)
+      const allMarkers = sequenceMarkers.getMarkers() || []
+      const targetGuids = new Set(linkData.syncedMarkerGuids)
+      const markersToRemove = allMarkers.filter((m) => m.guid && targetGuids.has(m.guid.toString()))
+
+      if (markersToRemove.length > 0) {
+        project.lockedAccess(() => {
+          project.executeTransaction((compoundAction) => {
+            for (const marker of markersToRemove) {
+              const removeAction = sequenceMarkers.createRemoveMarkerAction(marker)
+              compoundAction.addAction(removeAction)
+            }
+          }, 'Remove Shumai Synced Markers')
+        })
+      }
+    } catch (err) {
+      console.warn('[linkStorage] Failed to remove synced markers from sequence:', err)
+    }
+  }
 
   if (!ppro?.Properties) {
     return true

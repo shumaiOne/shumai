@@ -3,7 +3,7 @@ import type { Sequence, Project } from '@adobe/premierepro'
 import type { AssetSummary } from './FileItem'
 import type { LinkedSequenceAsset } from '../types/link'
 import { getActiveProject, getAllSequences, getActiveSequence } from '../services/premiere'
-import { getAllLinkedSequences } from '../services/linkStorage'
+import { getAllLinkedSequences, removeSequenceLink } from '../services/linkStorage'
 import { fetchAssetComments, syncCommentsToSequence } from '../services/markers'
 import { resolveAssetUrl } from '../utils/url'
 import { formatBytes, formatDuration } from '../utils/format'
@@ -152,6 +152,11 @@ export const LinkSequenceDialog: React.FC<LinkSequenceDialogProps> = ({
 
     setLinking(true)
     try {
+      // If sequence was linked to another asset, remove its previous link and markers first
+      if (targetOption.currentLink && targetOption.currentLink.assetId !== asset.id) {
+        await removeSequenceLink(project, targetOption.sequence)
+      }
+
       // 1. Fetch timecoded comments for this asset
       const comments = await fetchAssetComments(endpoint, apiKey, asset.id)
 
@@ -167,6 +172,10 @@ export const LinkSequenceDialog: React.FC<LinkSequenceDialogProps> = ({
         syncedCommentIds:
           targetOption.currentLink?.assetId === asset.id
             ? targetOption.currentLink.syncedCommentIds
+            : [],
+        syncedMarkerGuids:
+          targetOption.currentLink?.assetId === asset.id
+            ? targetOption.currentLink.syncedMarkerGuids || []
             : [],
         lastSyncAt: Date.now(),
         totalCommentsSynced:
