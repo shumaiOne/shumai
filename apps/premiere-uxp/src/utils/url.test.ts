@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveAssetUrl } from './url'
+import { resolveAssetUrl, normalizeEndpoint, isSameEndpoint } from './url'
 
 describe('resolveAssetUrl', () => {
   it('returns undefined for empty or null inputs', () => {
@@ -41,5 +41,32 @@ describe('resolveAssetUrl', () => {
       'https://04e37a3c563610bccea6a3ce6f8618ca.r2.cloudflarestorage.com/shumai/files/01KYKNT8NEJ3Q1G6A6K08M2XHC/Float%2002-480p.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=8112ab30'
     const endpoint = 'https://staging.shumai.one'
     expect(resolveAssetUrl(r2Url, endpoint)).toBe(r2Url)
+  })
+})
+
+describe('normalizeEndpoint', () => {
+  it('handles empty and null values', () => {
+    expect(normalizeEndpoint('')).toBe('')
+    expect(normalizeEndpoint(null)).toBe('')
+    expect(normalizeEndpoint(undefined)).toBe('')
+  })
+
+  it('trims whitespace and trailing slashes and converts to lower case', () => {
+    expect(normalizeEndpoint(' https://STAGING.shumai.one/// ')).toBe('https://staging.shumai.one')
+    expect(normalizeEndpoint('http://localhost:3000/')).toBe('http://localhost:3000')
+  })
+})
+
+describe('isSameEndpoint', () => {
+  it('returns true when endpoints match ignoring slashes and casing', () => {
+    expect(isSameEndpoint('https://staging.shumai.one/', 'https://STAGING.shumai.one')).toBe(true)
+    expect(isSameEndpoint('http://localhost:3000', 'http://localhost:3000/')).toBe(true)
+  })
+
+  it('returns false when endpoints differ', () => {
+    expect(isSameEndpoint('http://localhost:3000', 'https://staging.shumai.one')).toBe(false)
+    expect(isSameEndpoint('http://localhost:3000', 'http://127.0.0.1:3000')).toBe(false)
+    expect(isSameEndpoint('', 'http://localhost:3000')).toBe(false)
+    expect(isSameEndpoint(null, undefined)).toBe(false)
   })
 })

@@ -3,6 +3,7 @@ import { getPremiereModule } from './premiere'
 import type { LinkedSequenceAsset } from '../types/link'
 import { getStoredCredentials } from './storage'
 import { fetchAssetComments, formatCommentBody } from './commentUtils'
+import { isSameEndpoint } from '../utils/url'
 
 export const LINK_STORAGE_PROP_KEY = 'shumai_linked_asset'
 const STORAGE_PREFIX = '@shumai/premiere-uxp:project-links'
@@ -372,7 +373,11 @@ export async function removeSequenceLink(project: Project, sequence: Sequence): 
         )
         try {
           const creds = getStoredCredentials()
-          if (creds?.endpoint && creds?.apiKey) {
+          const canFetchComments =
+            creds?.endpoint &&
+            creds?.apiKey &&
+            (!linkData.endpoint || isSameEndpoint(linkData.endpoint, creds.endpoint))
+          if (canFetchComments) {
             const comments = await fetchAssetComments(
               creds.endpoint,
               creds.apiKey,

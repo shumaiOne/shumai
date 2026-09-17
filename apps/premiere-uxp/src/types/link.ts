@@ -4,6 +4,7 @@ export interface LinkedSequenceAsset {
   assetId: string
   assetName: string
   assetThumbnailUrl?: string
+  endpoint?: string
   projectId?: string
   syncedCommentIds: string[]
   syncedMarkerGuids?: string[]

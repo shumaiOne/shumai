@@ -69,6 +69,16 @@ describe('linkStorage service', () => {
       expect(result).toEqual(sampleLink)
     })
 
+    it('saves and retrieves link with endpoint from cache', () => {
+      const linkWithEndpoint: LinkedSequenceAsset = {
+        ...sampleLink,
+        endpoint: 'https://staging.shumai.one',
+      }
+      saveSequenceLinkToCache(linkWithEndpoint, 'proj-1')
+      const result = getSequenceLinkFromCache('seq-guid-1', 'proj-1')
+      expect(result?.endpoint).toBe('https://staging.shumai.one')
+    })
+
     it('returns null when link is not in cache', () => {
       expect(getSequenceLinkFromCache('unknown-seq', 'proj-1')).toBeNull()
     })
@@ -451,6 +461,35 @@ describe('linkStorage service', () => {
       )
       expect(success).toBe(true)
       expect(txCount).toBeGreaterThanOrEqual(2)
+    })
+
+    it('skips fallback comment fetch if link endpoint does not match current session endpoint', async () => {
+      localStorage.setItem('shumai_uxp_endpoint', 'https://staging.shumai.one')
+      localStorage.setItem('shumai_uxp_api_key', 'test-key')
+
+      const fetchCommentsSpy = vi.spyOn(commentUtils, 'fetchAssetComments')
+
+      const mockSeq = {
+        guid: 'seq-diff-endpoint',
+        name: 'Diff Endpoint Seq',
+      }
+      const mockProj = {
+        guid: 'proj-diff',
+        lockedAccess: (fn: () => void) => fn(),
+        executeTransaction: () => true,
+      }
+
+      const linkFromLocal: LinkedSequenceAsset = {
+        ...sampleLink,
+        sequenceGuid: 'seq-diff-endpoint',
+        endpoint: 'http://localhost:3000',
+        syncedMarkerGuids: [], // Trigger fallback
+      }
+
+      saveSequenceLinkToCache(linkFromLocal, 'proj-diff')
+
+      await removeSequenceLink(mockProj as unknown as Project, mockSeq as unknown as Sequence)
+      expect(fetchCommentsSpy).not.toHaveBeenCalled()
     })
   })
 

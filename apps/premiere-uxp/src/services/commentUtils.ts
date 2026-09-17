@@ -9,22 +9,19 @@ export async function fetchAssetComments(
   apiKey: string,
   assetId: string,
 ): Promise<CommentInfo[]> {
-  try {
-    const client = getShumaiClient(endpoint, apiKey)
-    const res = await client.api.files[':fileId'].comments.$get({
-      param: { fileId: assetId },
-      query: { first: '100' },
-    })
-    if (!res.ok) {
-      console.warn('[commentUtils] Failed to fetch comments for asset:', res.status)
-      return []
-    }
-    const data = await res.json()
-    return (data?.data as CommentInfo[]) || []
-  } catch (err) {
-    console.error('[commentUtils] Error fetching asset comments:', err)
-    return []
+  const client = getShumaiClient(endpoint, apiKey)
+  const res = await client.api.files[':fileId'].comments.$get({
+    param: { fileId: assetId },
+    query: { first: '100' },
+  })
+
+  if (!res.ok) {
+    const errData = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(errData.error || `Failed to fetch comments (HTTP ${res.status})`)
   }
+
+  const data = await res.json()
+  return (data?.data as CommentInfo[]) || []
 }
 
 /**

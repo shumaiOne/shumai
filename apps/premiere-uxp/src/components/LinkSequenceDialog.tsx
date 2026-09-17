@@ -170,6 +170,7 @@ export const LinkSequenceDialog: React.FC<LinkSequenceDialogProps> = ({
         assetId: asset.id,
         assetName: asset.name,
         assetThumbnailUrl: asset.preview?.thumbnailUrl,
+        endpoint: endpoint.trim().replace(/\/+$/, ''),
         projectId: prGuidStr,
         syncedCommentIds:
           targetOption.currentLink?.assetId === asset.id

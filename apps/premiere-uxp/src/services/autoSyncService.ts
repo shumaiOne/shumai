@@ -2,6 +2,7 @@ import type { Sequence } from '@adobe/premierepro'
 import { getActiveProject, getAllSequences, getPremiereModule } from './premiere'
 import { getAllLinkedSequences, normalizeGuid } from './linkStorage'
 import { fetchAssetComments, syncCommentsToSequence } from './markers'
+import { isSameEndpoint } from '../utils/url'
 
 const SYNC_INTERVAL_MS = 12000 // 12 seconds
 
@@ -143,6 +144,11 @@ class AutoSyncService {
 
         for (const link of linkedItems) {
           if (this.endpoint !== currentEndpoint || this.apiKey !== currentApiKey) break
+
+          // Skip links created against a different server endpoint
+          if (link.endpoint && !isSameEndpoint(link.endpoint, currentEndpoint)) {
+            continue
+          }
 
           const targetSeq = seqsMap.get(normalizeGuid(link.sequenceGuid))
           if (!targetSeq) continue

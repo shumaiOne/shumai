@@ -173,7 +173,16 @@ describe('LinkSequenceDialog Component', () => {
       'test-key',
       'asset-vid-1',
     )
-    expect(markersService.syncCommentsToSequence).toHaveBeenCalled()
+    expect(markersService.syncCommentsToSequence).toHaveBeenCalledWith(
+      mockProject,
+      mockSeq1,
+      expect.any(Array),
+      expect.objectContaining({
+        endpoint: 'https://api.shumai.test',
+        sequenceGuid: 'seq-1',
+        assetId: 'asset-vid-1',
+      }),
+    )
     expect(mockOnLinkSuccess).toHaveBeenCalledWith(mockUpdatedLink, 1)
     expect(mockOnClose).toHaveBeenCalled()
   })

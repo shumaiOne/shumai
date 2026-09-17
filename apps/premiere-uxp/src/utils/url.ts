@@ -23,3 +23,21 @@ export function resolveAssetUrl(url?: string | null, endpoint?: string): string 
 
   return url
 }
+
+/**
+ * Normalizes an endpoint URL by trimming whitespace, stripping trailing slashes,
+ * and converting to lower case for reliable comparison.
+ */
+export function normalizeEndpoint(endpoint?: string | null): string {
+  if (!endpoint) return ''
+  return endpoint.trim().replace(/\/+$/, '').toLowerCase()
+}
+
+/**
+ * Checks if two endpoints refer to the same server URL.
+ */
+export function isSameEndpoint(ep1?: string | null, ep2?: string | null): boolean {
+  const n1 = normalizeEndpoint(ep1)
+  const n2 = normalizeEndpoint(ep2)
+  return Boolean(n1 && n2 && n1 === n2)
+}

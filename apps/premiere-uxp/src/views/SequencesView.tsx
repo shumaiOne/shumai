@@ -10,7 +10,7 @@ import {
 } from '../services/premiere'
 import { getAllLinkedSequences, normalizeGuid, removeSequenceLink } from '../services/linkStorage'
 import { fetchAssetComments, syncCommentsToSequence } from '../services/markers'
-import { resolveAssetUrl } from '../utils/url'
+import { resolveAssetUrl, isSameEndpoint } from '../utils/url'
 import { formatDateAgo } from '../utils/date'
 import { ProgressCircle } from '@swc-react/progress-circle'
 
@@ -19,6 +19,16 @@ export interface SequencesViewProps {
   apiKey: string
   onSwitchToBrowse?: () => void
   onLinkCountChange?: (count: number) => void
+}
+
+function formatServerHost(serverUrl?: string): string {
+  if (!serverUrl) return 'Other server'
+  try {
+    const parsed = new URL(serverUrl)
+    return parsed.host
+  } catch {
+    return serverUrl
+  }
 }
 
 export const SequencesView: React.FC<SequencesViewProps> = ({
@@ -33,7 +43,7 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
   const [loading, setLoading] = useState(true)
   const [syncingGuid, setSyncingGuid] = useState<string | null>(null)
   const [unlinkingGuid, setUnlinkingGuid] = useState<string | null>(null)
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const loadData = useCallback(async () => {
     try {
@@ -96,9 +106,25 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
     }
   }, [loadData])
 
+  const showToast = (type: 'success' | 'error', message: string, duration = 4000) => {
+    setToast({ type, message })
+    setTimeout(() => {
+      setToast((prev) => (prev?.message === message ? null : prev))
+    }, duration)
+  }
+
   // Sync Now handler
   const handleSyncNow = async (link: LinkedSequenceAsset) => {
     if (!project || syncingGuid) return
+    if (link.endpoint && !isSameEndpoint(link.endpoint, endpoint)) {
+      showToast(
+        'error',
+        `Cannot sync comments: sequence was linked to "${formatServerHost(link.endpoint)}". Connect to that server to sync.`,
+        5000,
+      )
+      return
+    }
+
     const targetSeq =
       allSeqs.find((s) => normalizeGuid(s.guid) === normalizeGuid(link.sequenceGuid)) ||
       (await getAllSequences(project)).find(
@@ -124,14 +150,19 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
         ),
       )
 
-      setToastMessage(
+      showToast(
+        'success',
         addedCount > 0
           ? `Synced ${addedCount} new comment ${addedCount === 1 ? 'marker' : 'markers'} for "${link.sequenceName}".`
           : `All comments are already synced for "${link.sequenceName}".`,
       )
-      setTimeout(() => setToastMessage(null), 4000)
     } catch (err) {
       console.error('[SequencesView] Failed to sync comments:', err)
+      showToast(
+        'error',
+        err instanceof Error ? err.message : 'Failed to sync comments from server.',
+        5000,
+      )
     } finally {
       setSyncingGuid(null)
     }
@@ -157,10 +188,10 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
         onLinkCountChange?.(next.length)
         return next
       })
-      setToastMessage(`Unlinked "${link.sequenceName}" from "${link.assetName}".`)
-      setTimeout(() => setToastMessage(null), 3000)
+      showToast('success', `Unlinked "${link.sequenceName}" from "${link.assetName}".`, 3000)
     } catch (err) {
       console.error('[SequencesView] Failed to unlink sequence:', err)
+      showToast('error', 'Failed to unlink sequence.', 4000)
     } finally {
       setUnlinkingGuid(null)
     }
@@ -178,6 +209,41 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
 
     await openSequenceInTimeline(targetSeq, project)
     setActiveSeq(targetSeq)
+  }
+
+  const renderToast = () => {
+    if (!toast) return null
+    const isError = toast.type === 'error'
+    return (
+      <div
+        style={{
+          marginBottom: 10,
+          padding: '6px 10px',
+          borderRadius: 4,
+          backgroundColor: isError ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+          border: isError
+            ? '1px solid rgba(239, 68, 68, 0.3)'
+            : '1px solid rgba(59, 130, 246, 0.3)',
+          color: isError ? '#f87171' : '#60a5fa',
+          fontSize: 11,
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
+        {isError ? (
+          <sp-icon-alert-circle
+            size="s"
+            style={{ marginRight: 6, flexShrink: 0 }}
+          ></sp-icon-alert-circle>
+        ) : (
+          <sp-icon-checkmark-circle
+            size="s"
+            style={{ marginRight: 6, flexShrink: 0 }}
+          ></sp-icon-checkmark-circle>
+        )}
+        <span>{toast.message}</span>
+      </div>
+    )
   }
 
   if (loading) {
@@ -199,27 +265,7 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
   if (linkedSequences.length === 0) {
     return (
       <div className="sequences-view-container sequences-empty-container">
-        {toastMessage && (
-          <div
-            style={{
-              marginBottom: 10,
-              padding: '6px 10px',
-              borderRadius: 4,
-              backgroundColor: 'rgba(59, 130, 246, 0.15)',
-              border: '1px solid rgba(59, 130, 246, 0.3)',
-              color: '#60a5fa',
-              fontSize: 11,
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            <sp-icon-checkmark-circle
-              size="s"
-              style={{ marginRight: 6, flexShrink: 0 }}
-            ></sp-icon-checkmark-circle>
-            <span>{toastMessage}</span>
-          </div>
-        )}
+        {renderToast()}
 
         <div className="sequence-empty-state unified-empty">
           <sp-icon-movie-camera
@@ -254,117 +300,141 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
   return (
     <div className="sequences-view-container">
       {/* Toast Notification */}
-      {toastMessage && (
-        <div
-          style={{
-            marginBottom: 10,
-            padding: '6px 10px',
-            borderRadius: 4,
-            backgroundColor: 'rgba(59, 130, 246, 0.15)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
-            color: '#60a5fa',
-            fontSize: 11,
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <sp-icon-checkmark-circle
-            size="s"
-            style={{ marginRight: 6, flexShrink: 0 }}
-          ></sp-icon-checkmark-circle>
-          <span>{toastMessage}</span>
-        </div>
-      )}
+      {renderToast()}
 
       {/* SECTION 1: Current Sequence Asset */}
       <div className="sequence-section">
         <div className="sequence-section-title">Current Sequence Asset</div>
 
         {currentSequenceLink ? (
-          <div className="sequence-link-card current-active">
-            <div className="sequence-card-row">
-              <div className="sequence-card-left">
-                <div className="sequence-card-thumb">
-                  {currentSequenceLink.assetThumbnailUrl ? (
-                    <img
-                      src={resolveAssetUrl(currentSequenceLink.assetThumbnailUrl, endpoint)}
-                      alt={currentSequenceLink.assetName}
-                    />
-                  ) : (
-                    <sp-icon-movie-camera
-                      size="m"
-                      style={{ color: '#3b82f6' }}
-                    ></sp-icon-movie-camera>
-                  )}
-                </div>
-                <div className="sequence-card-info">
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <span className="sequence-card-title">{currentSequenceLink.sequenceName}</span>
-                    <span
-                      style={{
-                        fontSize: '9px',
-                        marginLeft: 6,
-                        padding: '1px 4px',
-                        borderRadius: 3,
-                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                        color: '#60a5fa',
-                        fontWeight: 600,
-                      }}
-                    >
-                      Active
-                    </span>
+          (() => {
+            const isCurrentForeign = Boolean(
+              currentSequenceLink.endpoint &&
+              !isSameEndpoint(currentSequenceLink.endpoint, endpoint),
+            )
+            return (
+              <div className="sequence-link-card current-active">
+                <div className="sequence-card-row">
+                  <div className="sequence-card-left">
+                    <div className="sequence-card-thumb">
+                      {currentSequenceLink.assetThumbnailUrl ? (
+                        <img
+                          src={resolveAssetUrl(
+                            currentSequenceLink.assetThumbnailUrl,
+                            currentSequenceLink.endpoint || endpoint,
+                          )}
+                          alt={currentSequenceLink.assetName}
+                        />
+                      ) : (
+                        <sp-icon-movie-camera
+                          size="m"
+                          style={{ color: '#3b82f6' }}
+                        ></sp-icon-movie-camera>
+                      )}
+                    </div>
+                    <div className="sequence-card-info">
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span className="sequence-card-title">
+                          {currentSequenceLink.sequenceName}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            marginLeft: 6,
+                            padding: '1px 4px',
+                            borderRadius: 3,
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            color: '#60a5fa',
+                            fontWeight: 600,
+                          }}
+                        >
+                          Active
+                        </span>
+                        {isCurrentForeign && (
+                          <span
+                            style={{
+                              fontSize: '9px',
+                              marginLeft: 6,
+                              padding: '1px 4px',
+                              borderRadius: 3,
+                              backgroundColor: 'rgba(234, 179, 8, 0.2)',
+                              color: '#facc15',
+                              fontWeight: 600,
+                            }}
+                            title={`Linked to: ${currentSequenceLink.endpoint}`}
+                          >
+                            Server: {formatServerHost(currentSequenceLink.endpoint)}
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        className="sequence-card-subtitle"
+                        title={currentSequenceLink.assetName}
+                      >
+                        Asset: {currentSequenceLink.assetName}
+                      </span>
+                    </div>
                   </div>
-                  <span className="sequence-card-subtitle" title={currentSequenceLink.assetName}>
-                    Asset: {currentSequenceLink.assetName}
+
+                  <div className="sequence-card-actions">
+                    <sp-action-button
+                      quiet
+                      size="xs"
+                      label={
+                        isCurrentForeign
+                          ? `Linked to different server (${formatServerHost(currentSequenceLink.endpoint)})`
+                          : 'Sync comments now'
+                      }
+                      title={
+                        isCurrentForeign
+                          ? `Linked to different server (${formatServerHost(currentSequenceLink.endpoint)}). Connect to that server to sync comments.`
+                          : 'Sync comments now'
+                      }
+                      disabled={
+                        syncingGuid === currentSequenceLink.sequenceGuid || isCurrentForeign
+                      }
+                      onClick={() => handleSyncNow(currentSequenceLink)}
+                    >
+                      {syncingGuid === currentSequenceLink.sequenceGuid ? (
+                        <ProgressCircle indeterminate size="s" slot="icon" label="Syncing..." />
+                      ) : (
+                        <sp-icon-refresh size="s" slot="icon"></sp-icon-refresh>
+                      )}
+                    </sp-action-button>
+
+                    <sp-action-button
+                      quiet
+                      size="xs"
+                      label="Unlink sequence"
+                      title="Unlink sequence"
+                      disabled={unlinkingGuid === currentSequenceLink.sequenceGuid}
+                      onClick={() => handleUnlink(currentSequenceLink)}
+                    >
+                      {unlinkingGuid === currentSequenceLink.sequenceGuid ? (
+                        <ProgressCircle indeterminate size="s" slot="icon" label="Unlinking..." />
+                      ) : (
+                        <sp-icon-unlink
+                          size="s"
+                          slot="icon"
+                          style={{ color: '#f87171' }}
+                        ></sp-icon-unlink>
+                      )}
+                    </sp-action-button>
+                  </div>
+                </div>
+
+                <div className="sequence-card-footer">
+                  <span>
+                    {currentSequenceLink.totalCommentsSynced}{' '}
+                    {currentSequenceLink.totalCommentsSynced === 1 ? 'comment' : 'comments'} synced
+                  </span>
+                  <span>
+                    Last sync: {formatDateAgo(currentSequenceLink.lastSyncAt) || 'Just now'}
                   </span>
                 </div>
               </div>
-
-              <div className="sequence-card-actions">
-                <sp-action-button
-                  quiet
-                  size="xs"
-                  label="Sync comments now"
-                  title="Sync comments now"
-                  disabled={syncingGuid === currentSequenceLink.sequenceGuid}
-                  onClick={() => handleSyncNow(currentSequenceLink)}
-                >
-                  {syncingGuid === currentSequenceLink.sequenceGuid ? (
-                    <ProgressCircle indeterminate size="s" slot="icon" label="Syncing..." />
-                  ) : (
-                    <sp-icon-refresh size="s" slot="icon"></sp-icon-refresh>
-                  )}
-                </sp-action-button>
-
-                <sp-action-button
-                  quiet
-                  size="xs"
-                  label="Unlink sequence"
-                  title="Unlink sequence"
-                  disabled={unlinkingGuid === currentSequenceLink.sequenceGuid}
-                  onClick={() => handleUnlink(currentSequenceLink)}
-                >
-                  {unlinkingGuid === currentSequenceLink.sequenceGuid ? (
-                    <ProgressCircle indeterminate size="s" slot="icon" label="Unlinking..." />
-                  ) : (
-                    <sp-icon-unlink
-                      size="s"
-                      slot="icon"
-                      style={{ color: '#f87171' }}
-                    ></sp-icon-unlink>
-                  )}
-                </sp-action-button>
-              </div>
-            </div>
-
-            <div className="sequence-card-footer">
-              <span>
-                {currentSequenceLink.totalCommentsSynced}{' '}
-                {currentSequenceLink.totalCommentsSynced === 1 ? 'comment' : 'comments'} synced
-              </span>
-              <span>Last sync: {formatDateAgo(currentSequenceLink.lastSyncAt) || 'Just now'}</span>
-            </div>
-          </div>
+            )
+          })()
         ) : (
           <div className="sequence-empty-state compact">
             <sp-icon-movie-camera
@@ -391,6 +461,7 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
           const isActive = normalizeGuid(link.sequenceGuid) === activeGuidStr
           const isSyncing = syncingGuid === link.sequenceGuid
           const isUnlinking = unlinkingGuid === link.sequenceGuid
+          const isForeign = Boolean(link.endpoint && !isSameEndpoint(link.endpoint, endpoint))
 
           return (
             <div
@@ -402,7 +473,7 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
                   <div className="sequence-card-thumb">
                     {link.assetThumbnailUrl ? (
                       <img
-                        src={resolveAssetUrl(link.assetThumbnailUrl, endpoint)}
+                        src={resolveAssetUrl(link.assetThumbnailUrl, link.endpoint || endpoint)}
                         alt={link.assetName}
                       />
                     ) : (
@@ -430,6 +501,22 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
                           Active
                         </span>
                       )}
+                      {isForeign && (
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            marginLeft: 6,
+                            padding: '1px 4px',
+                            borderRadius: 3,
+                            backgroundColor: 'rgba(234, 179, 8, 0.2)',
+                            color: '#facc15',
+                            fontWeight: 600,
+                          }}
+                          title={`Linked to ${link.endpoint}`}
+                        >
+                          Server: {formatServerHost(link.endpoint)}
+                        </span>
+                      )}
                     </div>
                     <span className="sequence-card-subtitle" title={link.assetName}>
                       Asset: {link.assetName}
@@ -453,9 +540,17 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
                   <sp-action-button
                     quiet
                     size="xs"
-                    label="Sync comments now"
-                    title="Sync comments now"
-                    disabled={isSyncing}
+                    label={
+                      isForeign
+                        ? `Linked to different server (${formatServerHost(link.endpoint)})`
+                        : 'Sync comments now'
+                    }
+                    title={
+                      isForeign
+                        ? `Linked to different server (${formatServerHost(link.endpoint)}). Connect to that server to sync comments.`
+                        : 'Sync comments now'
+                    }
+                    disabled={isSyncing || isForeign}
                     onClick={() => handleSyncNow(link)}
                   >
                     {isSyncing ? (
