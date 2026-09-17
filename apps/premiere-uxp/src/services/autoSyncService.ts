@@ -1,13 +1,12 @@
 import type { Sequence } from '@adobe/premierepro'
 import { getActiveProject, getAllSequences, getPremiereModule } from './premiere'
-import { getAllLinkedSequences } from './linkStorage'
+import { getAllLinkedSequences, normalizeGuid } from './linkStorage'
 import { fetchAssetComments, syncCommentsToSequence } from './markers'
 
 const SYNC_INTERVAL_MS = 12000 // 12 seconds
 
 class AutoSyncService {
   private timer: ReturnType<typeof setInterval> | null = null
-  private isSyncing = false
   private endpoint = ''
   private apiKey = ''
   private cleanupListeners: (() => void) | null = null
@@ -61,11 +60,11 @@ class AutoSyncService {
 
   private setupListeners(): void {
     const onFocus = () => {
-      void this.syncAllLinkedSequences()
+      void this.triggerImmediateSync()
     }
     const onVisibilityChange = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        void this.syncAllLinkedSequences()
+        void this.triggerImmediateSync()
       }
     }
 
@@ -80,7 +79,7 @@ class AutoSyncService {
     const ppro = getPremiereModule()
     let hasSeqListener = false
     const onSequenceActivated = () => {
-      void this.syncAllLinkedSequences()
+      void this.triggerImmediateSync()
     }
 
     if (ppro?.EventManager && ppro.Constants?.SequenceEvent?.ACTIVATED) {
@@ -88,11 +87,10 @@ class AutoSyncService {
         ppro.EventManager.addGlobalEventListener(
           ppro.Constants.SequenceEvent.ACTIVATED,
           onSequenceActivated,
-          true,
         )
         hasSeqListener = true
       } catch (err) {
-        console.warn('[autoSyncService] Could not add SequenceEvent.ACTIVATED listener:', err)
+        console.warn('[autoSyncService] Could not register SequenceEvent listener:', err)
       }
     }
 
@@ -120,32 +118,38 @@ class AutoSyncService {
     if (this.syncPromise) {
       return this.syncPromise
     }
-    if (!this.endpoint || !this.apiKey) return
+    const currentEndpoint = this.endpoint
+    const currentApiKey = this.apiKey
+    if (!currentEndpoint || !currentApiKey) return
 
     this.syncPromise = (async () => {
       try {
         const project = await getActiveProject()
-        if (!project) return
+        if (!project || this.endpoint !== currentEndpoint || this.apiKey !== currentApiKey) return
 
         const allSeqs = await getAllSequences(project)
-        if (!allSeqs || allSeqs.length === 0) return
+        if (!allSeqs || allSeqs.length === 0 || this.endpoint !== currentEndpoint) return
 
         const linkedItems = await getAllLinkedSequences(project, allSeqs)
-        if (!linkedItems || linkedItems.length === 0) return
+        if (!linkedItems || linkedItems.length === 0 || this.endpoint !== currentEndpoint) return
 
         const seqsMap = new Map<string, Sequence>()
         for (const s of allSeqs) {
-          if (s.guid) {
-            seqsMap.set(s.guid.toString(), s)
+          const normGuid = normalizeGuid(s.guid)
+          if (normGuid) {
+            seqsMap.set(normGuid, s)
           }
         }
 
         for (const link of linkedItems) {
-          const targetSeq = seqsMap.get(link.sequenceGuid)
+          if (this.endpoint !== currentEndpoint || this.apiKey !== currentApiKey) break
+
+          const targetSeq = seqsMap.get(normalizeGuid(link.sequenceGuid))
           if (!targetSeq) continue
 
           try {
-            const comments = await fetchAssetComments(this.endpoint, this.apiKey, link.assetId)
+            const comments = await fetchAssetComments(currentEndpoint, currentApiKey, link.assetId)
+            if (this.endpoint !== currentEndpoint) break
             await syncCommentsToSequence(project, targetSeq, comments, link)
           } catch (itemErr) {
             console.error(`[autoSyncService] Error syncing sequence ${link.sequenceName}:`, itemErr)

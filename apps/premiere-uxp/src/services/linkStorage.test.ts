@@ -4,6 +4,7 @@ import {
   getSequenceLinkFromCache,
   removeSequenceLinkFromCache,
   getAllSequenceLinksFromCache,
+  getAllLinkedSequences,
   getSequenceLink,
   saveSequenceLink,
   removeSequenceLink,
@@ -109,6 +110,12 @@ describe('linkStorage service', () => {
       expect(all).toHaveLength(2)
       expect(all.map((l) => l.sequenceGuid)).toContain('seq-guid-1')
       expect(all.map((l) => l.sequenceGuid)).toContain('seq-guid-2')
+    })
+
+    it('does not return links from default cache when projectGuid is specified', () => {
+      saveSequenceLinkToCache(sampleLink, null)
+      const result = getAllSequenceLinksFromCache('proj-unknown')
+      expect(result).toEqual([])
     })
   })
 
@@ -444,6 +451,49 @@ describe('linkStorage service', () => {
       )
       expect(success).toBe(true)
       expect(txCount).toBeGreaterThanOrEqual(2)
+    })
+  })
+
+  describe('getAllLinkedSequences', () => {
+    it('does not leak cached links across projects when a project has an empty sequence list', async () => {
+      saveSequenceLinkToCache(sampleLink, 'proj-A')
+      const defaultLink: LinkedSequenceAsset = {
+        ...sampleLink,
+        sequenceGuid: 'seq-default',
+        sequenceName: 'Default Seq',
+      }
+      saveSequenceLinkToCache(defaultLink, null)
+
+      const mockProjB = {
+        guid: 'proj-B',
+        getSequences: vi.fn().mockResolvedValue([]),
+      }
+
+      const results = await getAllLinkedSequences(mockProjB as unknown as Project, [])
+      expect(results).toEqual([])
+    })
+
+    it('restores cached link only if the sequence actually exists in the project', async () => {
+      saveSequenceLinkToCache(sampleLink, 'proj-A')
+
+      const mockSeq1 = { guid: 'seq-guid-1' }
+      const mockSeq2 = { guid: 'seq-guid-2' }
+
+      const mockProjA = {
+        guid: 'proj-A',
+        getSequences: vi.fn().mockResolvedValue([mockSeq1]),
+      }
+
+      const results = await getAllLinkedSequences(mockProjA as unknown as Project, [
+        mockSeq1 as unknown as Sequence,
+      ])
+      expect(results).toHaveLength(1)
+      expect(results[0].sequenceGuid).toBe('seq-guid-1')
+
+      const resultsSeq2 = await getAllLinkedSequences(mockProjA as unknown as Project, [
+        mockSeq2 as unknown as Sequence,
+      ])
+      expect(resultsSeq2).toHaveLength(0)
     })
   })
 

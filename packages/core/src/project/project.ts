@@ -106,11 +106,15 @@ export class ProjectService {
     if (!project) throw new Error('Project not found')
     if (!project.team) throw new Error('Project has no team')
 
+    const isCoverChanged =
+      req.coverImageKey !== undefined && req.coverImageKey !== project.coverImageKey
+
     const updatedProject = await prisma.project.update({
       where: { id: req.projectId },
       data: {
         name: req.name,
         coverImageKey: req.coverImageKey,
+        ...(isCoverChanged ? { hasJpegCover: false } : {}),
         enableNotification: req.enableNotification,
       },
       include: { rootFolder: true },

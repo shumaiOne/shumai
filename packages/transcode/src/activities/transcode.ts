@@ -678,7 +678,7 @@ export async function updateAssetMediaActivity(params: UpdateAssetMediaActivityP
   await prisma.asset.update({
     where: { id: params.assetId },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data: { media: params.mediaInfo as any },
+    data: { media: params.mediaInfo as any, hasJpegPreview: false },
   })
 }
 

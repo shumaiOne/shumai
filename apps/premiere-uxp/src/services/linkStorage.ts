@@ -35,10 +35,7 @@ export function getAllSequenceLinksFromCache(projectGuid?: string | null): Linke
   try {
     const normProj = projectGuid ? normalizeGuid(projectGuid) : null
     if (normProj) {
-      let raw = localStorage.getItem(getStorageKey(normProj))
-      if (!raw) {
-        raw = localStorage.getItem(getStorageKey(null))
-      }
+      const raw = localStorage.getItem(getStorageKey(normProj))
       if (raw) {
         const parsed = JSON.parse(raw)
         if (Array.isArray(parsed)) return parsed
@@ -263,12 +260,12 @@ export async function getAllLinkedSequences(
     }
   }
 
-  // Also check cache for any items matching project or known sequences
+  // Also check cache for any items matching known sequences
   const cached = getAllSequenceLinksFromCache(prGuidStr)
   for (const item of cached) {
     const normItemSeq = normalizeGuid(item.sequenceGuid)
     if (!results.some((r) => normalizeGuid(r.sequenceGuid) === normItemSeq)) {
-      if (checkedGuids.size === 0 || checkedGuids.has(normItemSeq)) {
+      if (checkedGuids.has(normItemSeq)) {
         results.push(item)
       }
     }

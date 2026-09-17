@@ -49,14 +49,7 @@ export async function syncCommentsToSequence(
 
   if (!ppro?.Markers || !ppro?.TickTime) {
     console.warn('[markers] premierepro Markers or TickTime module not available')
-    const updatedLink: LinkedSequenceAsset = {
-      ...existingLink,
-      syncedCommentIds: [...existingLink.syncedCommentIds, ...newComments.map((c) => c.id)],
-      totalCommentsSynced: existingLink.totalCommentsSynced + newComments.length,
-      lastSyncAt: now,
-    }
-    await saveSequenceLink(project, sequence, updatedLink)
-    return { updatedLink, addedCount: newComments.length }
+    return { updatedLink: existingLink, addedCount: 0 }
   }
 
   const newMarkerGuids: string[] = []
@@ -87,26 +80,32 @@ export async function syncCommentsToSequence(
     if (newComments.length > 0) {
       let txSuccess = false
       project.lockedAccess(() => {
-        txSuccess = project.executeTransaction((compoundAction) => {
-          for (const comment of newComments) {
-            const markerSeconds = zeroPointSeconds + (comment.second ?? 0)
-            const startTime = ppro.TickTime.createWithSeconds(markerSeconds)
-            const duration = ppro.TickTime.TIME_ZERO
-            const markerName = comment.creator?.name || 'Comment'
-            const markerText = formatCommentBody(comment)
+        txSuccess =
+          project.executeTransaction((compoundAction) => {
+            for (const comment of newComments) {
+              const markerSeconds = zeroPointSeconds + (comment.second ?? 0)
+              const startTime = ppro.TickTime.createWithSeconds(markerSeconds)
+              const duration = ppro.TickTime.TIME_ZERO
+              const markerName = comment.creator?.name || 'Comment'
+              const markerText = formatCommentBody(comment)
 
-            const addMarkerAction = sequenceMarkers.createAddMarkerAction(
-              markerName,
-              ppro.Marker.MARKER_TYPE_COMMENT,
-              startTime,
-              duration,
-              markerText,
-            )
-            compoundAction.addAction(addMarkerAction)
-          }
-        }, 'Sync Shumai Comments')
+              const addMarkerAction = sequenceMarkers.createAddMarkerAction(
+                markerName,
+                ppro.Marker.MARKER_TYPE_COMMENT,
+                startTime,
+                duration,
+                markerText,
+              )
+              compoundAction.addAction(addMarkerAction)
+            }
+          }, 'Sync Shumai Comments') === true
       })
       console.log('[markers] executeTransaction result:', txSuccess)
+
+      if (!txSuccess) {
+        console.warn('[markers] Failed to execute add markers transaction (returned false)')
+        return { updatedLink: existingLink, addedCount: 0 }
+      }
     }
 
     // Re-fetch fresh Markers object after transaction to ensure newly committed markers are seen
@@ -158,22 +157,23 @@ export async function syncCommentsToSequence(
       newMarkerGuids.length,
       newMarkerGuids,
     )
+
+    const updatedMarkerGuids = Array.from(
+      new Set([...currentMarkerGuids, ...newMarkerGuids.map(normalizeGuid)]),
+    )
+
+    const updatedLink: LinkedSequenceAsset = {
+      ...existingLink,
+      syncedCommentIds: [...existingLink.syncedCommentIds, ...newComments.map((c) => c.id)],
+      syncedMarkerGuids: updatedMarkerGuids,
+      totalCommentsSynced: existingLink.totalCommentsSynced + newComments.length,
+      lastSyncAt: now,
+    }
+
+    await saveSequenceLink(project, sequence, updatedLink)
+    return { updatedLink, addedCount: newComments.length }
   } catch (err) {
     console.error('[markers] Failed to execute add markers transaction:', err)
+    return { updatedLink: existingLink, addedCount: 0 }
   }
-
-  const updatedMarkerGuids = Array.from(
-    new Set([...currentMarkerGuids, ...newMarkerGuids.map(normalizeGuid)]),
-  )
-
-  const updatedLink: LinkedSequenceAsset = {
-    ...existingLink,
-    syncedCommentIds: [...existingLink.syncedCommentIds, ...newComments.map((c) => c.id)],
-    syncedMarkerGuids: updatedMarkerGuids,
-    totalCommentsSynced: existingLink.totalCommentsSynced + newComments.length,
-    lastSyncAt: now,
-  }
-
-  await saveSequenceLink(project, sequence, updatedLink)
-  return { updatedLink, addedCount: newComments.length }
 }

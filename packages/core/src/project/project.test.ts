@@ -644,5 +644,44 @@ describe('ProjectService', () => {
         'GET',
       )
     })
+
+    it('resets hasJpegCover to false when coverImageKey changes during updateProject and reconverts', async () => {
+      vi.mocked(ensureJpegInStorage).mockClear()
+      const team = await prisma.team.create({ data: { name: 'Preview Team 3' } })
+      const user = await prisma.user.create({
+        data: { name: 'preview-u3', email: 'preview-u3@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'editor', scope: 'team' },
+      })
+
+      const project = await prisma.project.create({
+        data: {
+          name: 'Proj Original',
+          teamId: team.id,
+          coverImageKey: 'projects/p3/original.webp',
+          hasJpegCover: true,
+        },
+      })
+
+      await projectService.updateProject({
+        projectId: project.id,
+        coverImageKey: 'projects/p3/replacement.webp',
+      })
+
+      const afterUpdate = await prisma.project.findUnique({ where: { id: project.id } })
+      expect(afterUpdate?.coverImageKey).toBe('projects/p3/replacement.webp')
+      expect(afterUpdate?.hasJpegCover).toBe(false)
+
+      const fetched = await projectService.getUserProjects(user.id, 10, 'jpeg')
+      expect(fetched).toHaveLength(1)
+      expect(ensureJpegInStorage).toHaveBeenCalledWith(
+        expect.any(String),
+        'projects/p3/replacement.webp',
+        'projects/p3/replacement.jpeg',
+      )
+      const afterFetch = await prisma.project.findUnique({ where: { id: project.id } })
+      expect(afterFetch?.hasJpegCover).toBe(true)
+    })
   })
 })

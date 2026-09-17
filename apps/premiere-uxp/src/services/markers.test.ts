@@ -285,5 +285,121 @@ describe('markers service', () => {
       expect(result.updatedLink.syncedMarkerGuids).toEqual(['legacy-marker-guid-1'])
       expect(mockSeqMarkers.createAddMarkerAction).not.toHaveBeenCalled()
     })
+
+    it('does not advance synced comments when executeTransaction returns false', async () => {
+      const mockSeqMarkers = {
+        getMarkers: vi.fn().mockReturnValue([]),
+        createAddMarkerAction: vi.fn().mockReturnValue({}),
+      }
+
+      const mockPpro = {
+        Marker: { MARKER_TYPE_COMMENT: 'CommentMarkerType' },
+        Markers: {
+          getMarkers: vi.fn().mockResolvedValue(mockSeqMarkers),
+        },
+        TickTime: {
+          TIME_ZERO: { ticks: '0' },
+          createWithSeconds: vi.fn((sec) => ({ seconds: sec })),
+        },
+        Properties: {
+          getProperties: vi.fn().mockResolvedValue({
+            createSetValueAction: vi.fn().mockReturnValue({}),
+          }),
+        },
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(globalThis as any).window = {
+        require: vi.fn().mockImplementation((name: string) => {
+          if (name === 'premierepro') return mockPpro
+          return null
+        }),
+      }
+
+      const comments: Partial<CommentInfo>[] = [
+        { id: 'comm-1', second: 10, message: 'Already synced' },
+        { id: 'comm-2', second: 20, message: 'New comment' },
+      ]
+
+      const mockProject = {
+        guid: 'proj-1',
+        lockedAccess: vi.fn((cb) => cb()),
+        executeTransaction: vi.fn().mockReturnValue(false),
+      }
+      const mockSeq = {
+        guid: 'seq-guid-1',
+        getZeroPoint: vi.fn().mockResolvedValue({ seconds: 0 }),
+      }
+
+      const result = await syncCommentsToSequence(
+        mockProject as unknown as Project,
+        mockSeq as unknown as Sequence,
+        comments as CommentInfo[],
+        existingLink,
+      )
+
+      expect(result.addedCount).toBe(0)
+      expect(result.updatedLink.syncedCommentIds).toEqual(['comm-1'])
+      expect(result.updatedLink.totalCommentsSynced).toBe(1)
+    })
+
+    it('does not advance synced comments when executeTransaction throws an error', async () => {
+      const mockSeqMarkers = {
+        getMarkers: vi.fn().mockReturnValue([]),
+        createAddMarkerAction: vi.fn().mockReturnValue({}),
+      }
+
+      const mockPpro = {
+        Marker: { MARKER_TYPE_COMMENT: 'CommentMarkerType' },
+        Markers: {
+          getMarkers: vi.fn().mockResolvedValue(mockSeqMarkers),
+        },
+        TickTime: {
+          TIME_ZERO: { ticks: '0' },
+          createWithSeconds: vi.fn((sec) => ({ seconds: sec })),
+        },
+        Properties: {
+          getProperties: vi.fn().mockResolvedValue({
+            createSetValueAction: vi.fn().mockReturnValue({}),
+          }),
+        },
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(globalThis as any).window = {
+        require: vi.fn().mockImplementation((name: string) => {
+          if (name === 'premierepro') return mockPpro
+          return null
+        }),
+      }
+
+      const comments: Partial<CommentInfo>[] = [
+        { id: 'comm-1', second: 10, message: 'Already synced' },
+        { id: 'comm-2', second: 20, message: 'New comment' },
+      ]
+
+      const mockProject = {
+        guid: 'proj-1',
+        lockedAccess: vi.fn(() => {
+          throw new Error('Transaction execution crashed')
+        }),
+        executeTransaction: vi.fn(),
+      }
+      const mockSeq = {
+        guid: 'seq-guid-1',
+        getZeroPoint: vi.fn().mockResolvedValue({ seconds: 0 }),
+      }
+
+      const result = await syncCommentsToSequence(
+        mockProject as unknown as Project,
+        mockSeq as unknown as Sequence,
+        comments as CommentInfo[],
+        existingLink,
+      )
+
+      expect(result.addedCount).toBe(0)
+      expect(result.updatedLink.syncedCommentIds).toEqual(['comm-1'])
+      expect(result.updatedLink.totalCommentsSynced).toBe(1)
+    })
   })
 })

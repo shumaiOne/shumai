@@ -62,4 +62,54 @@ describe('autoSyncService', () => {
     )
     expect(markersService.syncCommentsToSequence).toHaveBeenCalled()
   })
+
+  it('normalizes sequence GUIDs with braces and uppercase when matching against linked sequences', async () => {
+    const mockSeq = { guid: '{B991F605-7BD7-4028-B05F-0BC36B66CD0A}', name: 'Seq Braced' }
+    const mockProject = { guid: 'proj-1' }
+    const mockLink = {
+      sequenceGuid: 'b991f605-7bd7-4028-b05f-0bc36b66cd0a',
+      sequenceName: 'Seq Braced',
+      assetId: 'asset-99',
+      assetName: 'video.mp4',
+      syncedCommentIds: [],
+      lastSyncAt: 0,
+      totalCommentsSynced: 0,
+    }
+
+    vi.spyOn(premiereService, 'getActiveProject').mockResolvedValue(
+      mockProject as unknown as Project,
+    )
+    vi.spyOn(premiereService, 'getAllSequences').mockResolvedValue([mockSeq as unknown as Sequence])
+    vi.spyOn(linkStorage, 'getAllLinkedSequences').mockResolvedValue([mockLink])
+    vi.spyOn(markersService, 'fetchAssetComments').mockResolvedValue([
+      { id: 'comm-1', second: 1, message: 'braced guid comment' } as unknown as CommentInfo,
+    ])
+    vi.spyOn(markersService, 'syncCommentsToSequence').mockResolvedValue({
+      updatedLink: { ...mockLink, syncedCommentIds: ['comm-1'] },
+      addedCount: 1,
+    })
+
+    autoSyncService.start('https://api.shumai.test', 'test-key')
+    await autoSyncService.triggerImmediateSync()
+
+    expect(markersService.fetchAssetComments).toHaveBeenCalledWith(
+      'https://api.shumai.test',
+      'test-key',
+      'asset-99',
+    )
+    expect(markersService.syncCommentsToSequence).toHaveBeenCalledWith(
+      mockProject,
+      mockSeq,
+      expect.any(Array),
+      mockLink,
+    )
+  })
+
+  it('aborts syncing when stop() is called and credentials are reset', async () => {
+    const fetchSpy = vi.spyOn(markersService, 'fetchAssetComments')
+    autoSyncService.start('https://api.shumai.test', 'test-key')
+    autoSyncService.stop()
+    await autoSyncService.triggerImmediateSync()
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
 })

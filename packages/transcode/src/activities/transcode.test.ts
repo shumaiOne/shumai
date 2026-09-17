@@ -581,6 +581,7 @@ describe('Transcode Activities', () => {
         storageKey: { create: { key: 'v.mp4' } },
         status: 'uploaded',
         type: 'file',
+        hasJpegPreview: true,
       },
     })
 
@@ -591,6 +592,7 @@ describe('Transcode Activities', () => {
     const updated = await prisma.asset.findUnique({ where: { id: asset.id } })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((updated?.media as any).duration).toBe(123)
+    expect(updated?.hasJpegPreview).toBe(false)
     expect(s3Service.putObject).toHaveBeenCalled()
   })
   it('should call transcodeService.transcodeVideo', async () => {
