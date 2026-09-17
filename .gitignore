@@ -3,6 +3,7 @@ node_modules
 dist
 out
 *.ccx
+!apps/premiere-uxp/shumai-premiere.ccx
 .DS_Store
 *.log
 .env

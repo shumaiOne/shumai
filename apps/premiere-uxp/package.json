@@ -7,7 +7,7 @@
     "build": "bun run ./build.ts",
     "dev": "bun run ./build.ts --watch",
     "package": "bun run ./build.ts --package",
-    "clean": "rm -rf dist shumai-premiere.ccx"
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@shumai/api": "workspace:*",

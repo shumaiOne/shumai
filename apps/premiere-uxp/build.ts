@@ -67,7 +67,10 @@ async function build(): Promise<boolean> {
     // 3. Package .ccx if requested
     if (isPackage) {
       console.log('📦 Packaging shumai-premiere.ccx...')
-      await $`cd dist && zip -r ../shumai-premiere.ccx . -x '*.map'`
+      if (existsSync('shumai-premiere.ccx')) {
+        await rm('shumai-premiere.ccx')
+      }
+      await $`cd dist && zip -r ../shumai-premiere.ccx . -x '*.map' -x '.DS_Store' -x '__MACOSX*'`
       console.log('✅ Package created.')
     }
 
