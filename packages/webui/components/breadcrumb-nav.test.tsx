@@ -123,4 +123,25 @@ describe('BreadcrumbNav component', () => {
 
     expect(screen.getByRole('button', { name: /Show omitted folders/i })).toBeDefined()
   })
+
+  it('renders chatbot toggle button when onChatbotToggle is provided', () => {
+    const onChatbotToggle = vi.fn()
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav {...baseProps} onChatbotToggle={onChatbotToggle} />
+      </QueryClientProvider>,
+    )
+
+    expect(container.querySelector('.lucide-bot')).not.toBeNull()
+  })
+
+  it('does not render chatbot toggle button when onChatbotToggle is undefined', () => {
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav {...baseProps} onChatbotToggle={undefined} />
+      </QueryClientProvider>,
+    )
+
+    expect(container.querySelector('.lucide-bot')).toBeNull()
+  })
 })

@@ -363,20 +363,26 @@ describe('TeamService', () => {
     })
 
     const settings = await teamService.getSettings(team.id)
-    expect(settings).toEqual({ semanticSearchEnabled: false })
+    expect(settings).toEqual({ semanticSearchEnabled: false, appearance: { hideAgent: false } })
 
     await teamService.updateSettings(team.id, 'theme', 'dark')
 
     const newSettings = await teamService.getSettings(team.id)
-    expect(newSettings).toEqual({ theme: 'dark', semanticSearchEnabled: false })
+    expect(newSettings).toEqual({
+      theme: 'dark',
+      semanticSearchEnabled: false,
+      appearance: { hideAgent: false },
+    })
 
     await teamService.updateSettings(team.id, 'transcode.videoStrategy', 'all')
     await teamService.updateSettings(team.id, 'transcode.hardwareAcceleration', 'auto')
+    await teamService.updateSettings(team.id, 'appearance.hideAgent', true)
 
     const finalSettings = await teamService.getSettings(team.id)
     expect(finalSettings).toEqual({
       theme: 'dark',
       transcode: { videoStrategy: 'all', hardwareAcceleration: 'auto' },
+      appearance: { hideAgent: true },
       semanticSearchEnabled: false,
     })
   })

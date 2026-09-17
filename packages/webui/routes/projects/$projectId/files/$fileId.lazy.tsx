@@ -16,6 +16,7 @@ import { useMemberStore } from '@/ui/stores/members'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useUiStore } from '@/ui/stores/ui'
+import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 import { type Annotation } from '@/ui/types'
 import { useMutation } from '@tanstack/react-query'
 import { createLazyFileRoute } from '@tanstack/react-router'
@@ -72,6 +73,7 @@ function FileViewPage() {
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const { fileViewRightSidebarCollapsed } = useUiStore()
   const { isChatbotOpen } = useChatbotStore()
+  const hideAgent = useUserMetadataStore((s) => Boolean(s.metadata['appearance.hideAgent']))
   const [currentTime, setCurrentTime] = useState(0)
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
   const [compareActiveAsset, setCompareActiveAsset] = useState<AssetInfo | null>(null)
@@ -713,7 +715,7 @@ function FileViewPage() {
             </FileViewer>
           )}
         </div>
-        {(!fileViewRightSidebarCollapsed || isChatbotOpen) && (
+        {(!fileViewRightSidebarCollapsed || (isChatbotOpen && !hideAgent)) && (
           <>
             <ResizeHandle
               onResize={(delta) => {
@@ -725,7 +727,7 @@ function FileViewPage() {
               style={{ width: rightSidebarWidth }}
               className="flex-shrink-0 bg-background flex flex-col"
             >
-              {isChatbotOpen ? (
+              {isChatbotOpen && !hideAgent ? (
                 <ChatbotSidebar
                   projectId={projectId}
                   contextAssetId={activeFileId}

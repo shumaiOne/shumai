@@ -24,23 +24,53 @@ export class UserMetadataService {
   }
 
   async listMetadata(userId: string, teamId: string): Promise<UserMetadataItem[]> {
-    const items = await prisma.userMetadata.findMany({
-      where: {
-        userId,
-        teamId,
-      },
-      orderBy: {
-        key: 'asc',
-      },
+    const [items, team] = await Promise.all([
+      prisma.userMetadata.findMany({
+        where: {
+          userId,
+          teamId,
+        },
+        orderBy: {
+          key: 'asc',
+        },
+      }),
+      prisma.team.findUnique({
+        where: { id: teamId },
+        select: { settings: true },
+      }),
+    ])
+
+    const result: UserMetadataItem[] = items
+      .filter((item) => item.key !== 'appearance.hideAgent')
+      .map((item) => ({
+        key: item.key,
+        value: item.value,
+      }))
+
+    const teamSettings = team?.settings as PrismaJson.Settings | null
+    const hideAgent = teamSettings?.appearance?.hideAgent ?? false
+
+    result.push({
+      key: 'appearance.hideAgent',
+      value: hideAgent,
     })
 
-    return items.map((item) => ({
-      key: item.key,
-      value: item.value,
-    }))
+    return result
   }
 
   async getMetadata(userId: string, teamId: string, key: string): Promise<UserMetadataItem | null> {
+    if (key === 'appearance.hideAgent') {
+      const team = await prisma.team.findUnique({
+        where: { id: teamId },
+        select: { settings: true },
+      })
+      const teamSettings = team?.settings as PrismaJson.Settings | null
+      return {
+        key: 'appearance.hideAgent',
+        value: teamSettings?.appearance?.hideAgent ?? false,
+      }
+    }
+
     const item = await prisma.userMetadata.findUnique({
       where: {
         userIdTeamIdKey: {

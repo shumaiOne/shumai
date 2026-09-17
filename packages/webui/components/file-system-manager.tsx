@@ -101,6 +101,7 @@ export default function FileSystemManager({
 
   const { members, fetchMembers } = useMemberStore()
   const { metadata, fetchMetadata, setMetadata: setUserMetadata } = useUserMetadataStore()
+  const hideAgent = Boolean(metadata['appearance.hideAgent'])
 
   useEffect(() => {
     if (teamId) {
@@ -570,7 +571,7 @@ export default function FileSystemManager({
             rootFolderId={rootFolderId}
           />
 
-          {(!isRightSidebarCollapsed || isChatbotOpen) && (
+          {(!isRightSidebarCollapsed || (isChatbotOpen && !hideAgent)) && (
             <>
               <ResizeHandle
                 onResize={(delta) => {
@@ -582,7 +583,7 @@ export default function FileSystemManager({
                 style={{ width: rightSidebarWidth }}
                 className="bg-background flex flex-col flex-shrink-0"
               >
-                {isChatbotOpen ? (
+                {isChatbotOpen && !hideAgent ? (
                   <ChatbotSidebar projectId={projectId} contextAssetId={assetId} />
                 ) : singleSelectedFile ? (
                   <FileViewerRightSidebar

@@ -260,6 +260,21 @@ describe('team api', () => {
     expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'transcode.hardwareAcceleration', 'auto')
   })
 
+  it('PATCH /teams/:teamId/settings updates appearance.hideAgent', async () => {
+    mockUpdateSettings.mockResolvedValue({ appearance: { hideAgent: true } })
+
+    const res = await app.request('/teams/t1/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'appearance.hideAgent', value: true }),
+    })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.appearance.hideAgent).toBe(true)
+    expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'appearance.hideAgent', true)
+  })
+
   it('GET /teams/:teamId/user-metadata returns all metadata for the user in the team', async () => {
     mockListUserMetadata.mockResolvedValue([
       { key: 'key1', value: 'value1' },

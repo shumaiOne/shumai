@@ -19,6 +19,7 @@ import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Separator } from '../ui/separator'
 import { cn } from '@/ui/lib/utils'
+import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 
 type FileBrowserToolbarProps = {
   teamId: string
@@ -63,6 +64,7 @@ export function FileBrowserToolbar({
   const activeFiltersCount = filterConditions.length
   const isCollection = !!collection
   const queryClient = useQueryClient()
+  const hideAgent = useUserMetadataStore((s) => Boolean(s.metadata['appearance.hideAgent']))
 
   const { data: folderInfo } = useQuery({
     queryKey: ['folders', assetId],
@@ -365,7 +367,7 @@ export function FileBrowserToolbar({
               )}
             </Button>
 
-            {!isRecentlyDeleted && !isRecents && (
+            {!isRecentlyDeleted && !isRecents && !hideAgent && (
               <>
                 <Separator orientation="vertical" />
                 <Button

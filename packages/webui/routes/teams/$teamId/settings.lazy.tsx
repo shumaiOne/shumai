@@ -13,6 +13,7 @@ import { McpConfigCard } from '@/ui/components/settings/McpConfigCard'
 import { NotificationSettings } from '@/ui/components/settings/NotificationSettings'
 import { DeveloperSettings } from '@/ui/components/settings/DeveloperSettings'
 import { QuotasSettings } from '@/ui/components/settings/QuotasSettings'
+import { AppearanceSettings } from '@/ui/components/settings/AppearanceSettings'
 import { ImageVideoGenerationSettings } from '@/ui/components/settings/ImageVideoGenerationSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { cn } from '@/ui/lib/utils'
@@ -30,6 +31,7 @@ import {
   Bell,
   Key,
   Gauge,
+  Palette,
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
@@ -52,6 +54,7 @@ type SettingsTab =
   | 'general'
   | 'transcode'
   | 'quotas'
+  | 'appearance'
   | 'skills'
   | 'mcp'
   | 'providers'
@@ -65,6 +68,7 @@ const VALID_SETTINGS_TABS: readonly SettingsTab[] = [
   'general',
   'transcode',
   'quotas',
+  'appearance',
   'skills',
   'mcp',
   'providers',
@@ -166,6 +170,7 @@ function TeamSettingsPage() {
     const ownerOnlyTabs: SettingsTab[] = [
       'transcode',
       'quotas',
+      'appearance',
       'providers',
       'image-video',
       'skills',
@@ -426,6 +431,22 @@ function TeamSettingsPage() {
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
                   )}
                 </button>
+
+                <button
+                  onClick={() => handleTabChange('appearance')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                    activeTab === 'appearance'
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                      : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  )}
+                >
+                  <Palette className="w-5 h-5" />
+                  {m.appearance()}
+                  {activeTab === 'appearance' && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+                  )}
+                </button>
               </>
             )}
 
@@ -545,6 +566,7 @@ function TeamSettingsPage() {
                   {activeTab === 'general' && m.general_settings()}
                   {activeTab === 'transcode' && m.media_processing()}
                   {activeTab === 'quotas' && m.resource_quotas()}
+                  {activeTab === 'appearance' && m.appearance_settings()}
                   {activeTab === 'skills' && m.skills_management()}
                   {activeTab === 'mcp' && m.mcp_servers()}
                   {activeTab === 'providers' && m.ai_providers()}
@@ -558,6 +580,7 @@ function TeamSettingsPage() {
                   {activeTab === 'general' && m.general_settings_description()}
                   {activeTab === 'transcode' && m.transcode_description()}
                   {activeTab === 'quotas' && m.resource_quotas_description()}
+                  {activeTab === 'appearance' && m.appearance_settings_description()}
                   {activeTab === 'skills' && m.skills_description()}
                   {activeTab === 'mcp' && m.mcp_servers_description()}
                   {activeTab === 'providers' && m.providers_description()}
@@ -827,6 +850,8 @@ function TeamSettingsPage() {
               {activeTab === 'developer' && <DeveloperSettings teamId={teamId} />}
 
               {activeTab === 'quotas' && <QuotasSettings teamId={teamId} />}
+
+              {activeTab === 'appearance' && <AppearanceSettings teamId={teamId} />}
             </div>
           </div>
         </main>

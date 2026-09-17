@@ -45,11 +45,37 @@ describe('UserMetadataService', () => {
     await userMetadataService.upsertMetadata(user.id, team.id, 'key2', 'value2')
 
     const list = await userMetadataService.listMetadata(user.id, team.id)
-    expect(list).toHaveLength(2)
+    expect(list).toHaveLength(3)
     expect(list).toEqual([
       { key: 'key1', value: 'value1' },
       { key: 'key2', value: 'value2' },
+      { key: 'appearance.hideAgent', value: false },
     ])
+  })
+
+  it('should return team appearance.hideAgent when configured', async () => {
+    const user = await prisma.user.create({
+      data: {
+        name: 'Test User HideAgent',
+        email: `testha-${Date.now()}@example.com`,
+        password: 'pw',
+      },
+    })
+    const team = await prisma.team.create({
+      data: {
+        name: 'Test Team HideAgent',
+        settings: {
+          transcode: { videoStrategy: 'best_match' },
+          appearance: { hideAgent: true },
+        },
+      },
+    })
+
+    const list = await userMetadataService.listMetadata(user.id, team.id)
+    expect(list).toContainEqual({ key: 'appearance.hideAgent', value: true })
+
+    const meta = await userMetadataService.getMetadata(user.id, team.id, 'appearance.hideAgent')
+    expect(meta).toEqual({ key: 'appearance.hideAgent', value: true })
   })
 
   it('should return null if metadata not found', async () => {

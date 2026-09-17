@@ -1429,5 +1429,11 @@
   "search_emoji": "搜索表情",
   "reaction_you": "你回应了 {emoji}",
   "reaction_you_and_others": "你和 {others} 回应了 {emoji}",
-  "reaction_others": "{others} 回应了 {emoji}"
+  "reaction_others": "{others} 回应了 {emoji}",
+  "appearance_settings": "外观",
+  "appearance_settings_description": "管理团队的视觉外观与界面显示设置。",
+  "hide_agent": "隐藏 Agent",
+  "hide_agent_description": "在整个团队中隐藏 AGENTS.md 按钮、Agent 聊天侧边栏和触发按钮。",
+  "appearance_settings_updated": "外观设置已更新",
+  "failed_update_appearance_settings": "更新外观设置失败"
 }

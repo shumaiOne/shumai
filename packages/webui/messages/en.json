@@ -1429,5 +1429,11 @@
   "search_emoji": "Search emoji",
   "reaction_you": "You reacted with {emoji}",
   "reaction_you_and_others": "You and {others} reacted with {emoji}",
-  "reaction_others": "{others} reacted with {emoji}"
+  "reaction_others": "{others} reacted with {emoji}",
+  "appearance_settings": "Appearance",
+  "appearance_settings_description": "Manage visual appearance and interface display settings for your team.",
+  "hide_agent": "Hide Agent",
+  "hide_agent_description": "Hide the AGENTS.md button, agent-chat sidebar, and chatbot trigger button across the entire team.",
+  "appearance_settings_updated": "Appearance settings updated",
+  "failed_update_appearance_settings": "Failed to update appearance settings"
 }

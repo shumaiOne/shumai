@@ -89,6 +89,10 @@ export const updateTeamSettingsRequestSchema = z.union([
     key: z.literal('transcode.hardwareAcceleration'),
     value: z.nativeEnum(HardwareAcceleration),
   }),
+  z.object({
+    key: z.literal('appearance.hideAgent'),
+    value: z.boolean(),
+  }),
 ])
 export type UpdateTeamSettingsRequest = z.infer<typeof updateTeamSettingsRequestSchema>
 

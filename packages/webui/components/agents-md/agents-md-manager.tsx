@@ -5,6 +5,7 @@ import { ResizeHandle } from '@/ui/components/resize-handle'
 import { useChatbotStore } from '@/ui/stores/chatbot'
 import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useUiStore } from '@/ui/stores/ui'
+import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 import type { AncestorFolder, AssetInfo } from '@shumai/dtos'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -36,6 +37,7 @@ export default function AgentsMdManager({
     setFileListLeftSidebarCollapsed: setIsLeftSidebarCollapsed,
   } = useUiStore()
   const { isChatbotOpen, setIsChatbotOpen } = useChatbotStore()
+  const hideAgent = useUserMetadataStore((s) => Boolean(s.metadata['appearance.hideAgent']))
 
   const { data: folderInfo } = useQuery({
     queryKey: ['folders', assetId],
@@ -136,7 +138,7 @@ export default function AgentsMdManager({
           />
         </div>
 
-        {isChatbotOpen && (
+        {isChatbotOpen && !hideAgent && (
           <>
             <ResizeHandle
               onResize={(delta) => {

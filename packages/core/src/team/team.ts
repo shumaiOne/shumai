@@ -302,6 +302,12 @@ export class TeamService {
     })
     settings.semanticSearchEnabled = !!embeddingAgent
 
+    if (!settings.appearance) {
+      settings.appearance = { hideAgent: false }
+    } else if (settings.appearance.hideAgent === undefined) {
+      settings.appearance.hideAgent = false
+    }
+
     return settings
   }
 
@@ -325,6 +331,12 @@ export class TeamService {
       }
       settings.transcode.hardwareAcceleration = value
       delete settings['transcode.hardwareAcceleration']
+    } else if (key === 'appearance.hideAgent') {
+      if (!settings.appearance) {
+        settings.appearance = {}
+      }
+      settings.appearance.hideAgent = value
+      delete settings['appearance.hideAgent']
     } else {
       settings[key] = value
     }

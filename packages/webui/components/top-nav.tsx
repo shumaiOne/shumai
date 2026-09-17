@@ -3,12 +3,14 @@ import { BreadcrumbNav } from './breadcrumb-nav'
 import { ShumaiLogo } from '@/ui/components/ui/icons'
 import { useUiStore } from '@/ui/stores/ui'
 import { useChatbotStore } from '@/ui/stores/chatbot'
+import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 import { useIsMobile } from '@/ui/hooks/use-mobile'
 
 export function TopNav() {
   const { projectState } = useTopNavStore()
   const uiStore = useUiStore()
   const { isChatbotOpen, setIsChatbotOpen } = useChatbotStore()
+  const hideAgent = useUserMetadataStore((s) => Boolean(s.metadata['appearance.hideAgent']))
   const isMobile = useIsMobile()
 
   if (isMobile && projectState?.fileId) {
@@ -72,7 +74,7 @@ export function TopNav() {
     isPublic && projectState.onRightSidebarToggle
       ? projectState.onRightSidebarToggle
       : () => {
-          if (!isPublic && isChatbotOpen) {
+          if (!isPublic && isChatbotOpen && !hideAgent) {
             setIsChatbotOpen(false)
             if (isFileView) {
               uiStore.setFileViewRightSidebarCollapsed(false)
@@ -92,11 +94,12 @@ export function TopNav() {
           }
         }
 
-  const onChatbotToggle = isPublic
-    ? undefined
-    : () => {
-        setIsChatbotOpen(!isChatbotOpen)
-      }
+  const onChatbotToggle =
+    isPublic || hideAgent
+      ? undefined
+      : () => {
+          setIsChatbotOpen(!isChatbotOpen)
+        }
 
   const displayStyle = projectId ? (uiStore.viewModes[projectId] ?? 'card') : 'card'
   const onDisplayStyleChange = isPublic
@@ -122,8 +125,8 @@ export function TopNav() {
       onLeftSidebarToggle={onLeftSidebarToggle}
       isRightSidebarCollapsed={isRightSidebarCollapsed}
       onRightSidebarToggle={onRightSidebarToggle}
-      isChatbotOpen={!isPublic && isChatbotOpen}
-      onChatbotToggle={onChatbotToggle}
+      isChatbotOpen={!isPublic && !hideAgent && isChatbotOpen}
+      onChatbotToggle={hideAgent ? undefined : onChatbotToggle}
       isPublic={isPublic}
       shareId={shareId}
       allowDownload={allowDownload}

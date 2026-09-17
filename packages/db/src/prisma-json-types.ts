@@ -79,9 +79,14 @@ declare global {
       enabledModels?: EnabledMediaModelConfig[]
     }
 
+    export interface AppearanceSettings {
+      hideAgent?: boolean
+    }
+
     export interface Settings {
       transcode: TranscodeSettings
       mediaGeneration?: MediaGenerationSettings
+      appearance?: AppearanceSettings
     }
 
     // ----------------------------------------------------------------------
