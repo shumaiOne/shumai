@@ -1,0 +1,122 @@
+---
+title: NLE Export & Premiere Pro Plugin
+description: Export timestamped review comments to popular NLE formats or use the native Premiere Pro UXP plugin to import assets and auto-sync timeline markers.
+---
+
+Shumai integrates directly into video editing workflows. You can export review comments into industry-standard non-linear editor (NLE) marker formats from the web interface, or use the native Adobe Premiere Pro UXP plugin to import media assets and synchronize comments to timeline markers in real-time.
+
+---
+
+## Comments Export to NLE
+
+Comments left during video and audio reviews can be exported directly from the web interface to external editing software.
+
+### How to Export Comments
+
+1. Open any video or audio asset in the Shumai media viewer.
+2. In the right sidebar, navigate to the **Comments** tab.
+3. Click the **More Options** (`...`) menu located next to **All Comments**.
+4. Hover over **Export Comments** and select your editing software format:
+
+| Format             | File Extension | Target Software                    |
+| :----------------- | :------------- | :--------------------------------- |
+| **Premiere Pro**   | `.xml`         | Adobe Premiere Pro marker sequence |
+| **Resolve**        | `.edl`         | DaVinci Resolve timeline markers   |
+| **FCP 10.4.0+**    | `.fiojson`     | Apple Final Cut Pro marker data    |
+| **Media Composer** | `.xml`         | Avid Media Composer markers        |
+
+Once downloaded, import the marker file into your editing software to overlay all review notes and timestamps onto your timeline.
+
+---
+
+## Premiere Pro UXP Plugin
+
+The official Shumai Premiere Pro UXP plugin provides a native panel inside Adobe Premiere Pro, enabling editors to browse workspace assets, import media or proxies directly into the project bin, and automatically synchronize review comments to sequence markers.
+
+### Minimum Version Requirements
+
+| Software               | Minimum Version Required                          |
+| :--------------------- | :------------------------------------------------ |
+| **Adobe Premiere Pro** | **`25.1.0`** or higher (Premiere Pro 2025 v25.1+) |
+| **Shumai Server**      | **`0.4.6`** or higher                             |
+
+---
+
+### Installation
+
+You can install the Shumai Premiere Pro plugin using either the packaged `.ccx` installer or the Adobe UXP Developer Tools.
+
+#### Option 1: Install via Creative Cloud (.ccx)
+
+This is the recommended and quickest installation method for standard users.
+
+> [!IMPORTANT]
+> **Prerequisites:**
+>
+> - You must have **Adobe Premiere Pro** (v25.1.0+) and the **Adobe Creative Cloud desktop application** installed on your system.
+> - Adobe Premiere Pro must be recognized and listed in the Creative Cloud desktop app under your installed applications.
+
+1. Download the pre-built plugin package [`shumai-premiere.ccx`](https://github.com/shumaiOne/shumai/raw/main/apps/premiere-uxp/shumai-premiere.ccx) from the repository (located at `apps/premiere-uxp/shumai-premiere.ccx`).
+2. Double-click the downloaded `.ccx` file, or drag and drop it directly into the **Adobe Creative Cloud** desktop app.
+3. Follow the on-screen prompts in Creative Cloud to approve and install the plugin.
+4. Launch or restart Adobe Premiere Pro.
+
+#### Option 2: Install via Adobe UXP Developer Tools (UDT)
+
+This method is intended for developers or users building from source code.
+
+> [!NOTE]
+> Refer to the official [Adobe UXP Developer Tools Documentation](https://developer.adobe.com/premiere-pro/uxp/getting-started/quickstart/) for details on installing and setting up the UXP Developer Tool (UDT).
+
+1. Clone the Shumai repository:
+   ```bash
+   git clone https://github.com/shumaiOne/shumai.git
+   cd shumai
+   ```
+2. Install dependencies and build the UXP plugin:
+   ```bash
+   bun install
+   bun run --filter @shumai/premiere-uxp build
+   ```
+3. Open the **Adobe UXP Developer Tool** (UDT).
+4. Click **Add Plugin** and select the manifest file located at:
+   ```text
+   apps/premiere-uxp/dist/manifest.json
+   ```
+   _(Or `apps/premiere-uxp/public/manifest.json` when running in watch mode)._
+5. Open Adobe Premiere Pro. In the UDT application, find the Shumai plugin in your list, click the `•••` action menu, and select **Load** (or **Load & Watch**).
+
+---
+
+### Connecting to Your Shumai Server
+
+1. In Premiere Pro, open the plugin panel by navigating to **Window** > **Extensions** > **Shumai** (or **Window** > **Shumai**).
+2. Enter your connection credentials:
+   - **Endpoint URL:** The URL of your Shumai server (e.g. `http://localhost:3000` or `https://shumai.yourdomain.com`).
+   - **API Key:** A valid API key generated in Shumai. To create one, open Shumai in your browser, go to **Team Settings** > **Developer**, and generate a new API key.
+3. Click **Connect**. Once connected, your credentials are saved locally in Premiere Pro.
+
+---
+
+### What the Shumai UXP Plugin Can Do
+
+The plugin integrates two core workflows directly into Premiere Pro:
+
+#### 1. Browse & Import Assets into Premiere Pro
+
+- **Browse & Search:** Navigate through your Shumai projects, folders, and media assets with breadcrumb navigation and instant search.
+- **Choose Download Quality:** Select **Import** on any asset to choose between:
+  - **Original (Raw):** Downloads and imports the full original master media file.
+  - **Video Proxy:** Downloads and imports an optimized proxy transcode (e.g. 1080p, 720p, 540p, or 360p MP4) for lighter, smoother editing playback.
+- **Native Destination Selection:** Prompts a native system folder picker so you can choose exactly where on your local disk the media file should be saved.
+- **Automatic Bin Import:** After saving to disk, the file is automatically imported into your active Premiere Pro project bin.
+
+#### 2. Auto-Sync Comments to Sequence Markers
+
+- **Link Sequence:** In the plugin file list, select **Link Sequence** on any video asset to link it with your currently active timeline sequence.
+- **Automatic Marker Creation:** The plugin immediately fetches existing comments from Shumai and converts them into native Premiere Pro sequence markers:
+  - **Accurate Timestamps:** Comments placed at specific timecodes appear at the corresponding timeline frames. Comments without timestamps are placed at the beginning of the sequence (`00:00:00:00`).
+  - **Author & Content:** The marker name shows the commenter's name, and the marker notes include the comment body along with formatted threaded replies.
+- **Continuous Background Sync:** The plugin continuously syncs in the background (every 12 seconds), and triggers an immediate sync whenever you switch focus to the panel or activate a sequence.
+- **Sequences Dashboard:** Switch to the **Sequences** tab at any time to see all linked sequences in your project, view the last sync time, trigger an instant manual sync, or unlink sequences.
+- **Clean Unlink:** When unlinking an asset from a sequence, Shumai cleanly cleans up the markers it generated without affecting other project markers.
