@@ -96,6 +96,20 @@ export const updateTeamSettingsRequestSchema = z.union([
 ])
 export type UpdateTeamSettingsRequest = z.infer<typeof updateTeamSettingsRequestSchema>
 
+export interface TeamAppearanceSettings {
+  hideAgent?: boolean
+}
+
+export interface TeamSettingsResponse {
+  transcode?: {
+    videoStrategy?: VideoTranscodeStrategy
+    hardwareAcceleration?: HardwareAcceleration
+  }
+  appearance?: TeamAppearanceSettings
+  semanticSearchEnabled?: boolean
+  [key: string]: unknown
+}
+
 export const sandboxSettingsSchema = z.object({
   networkSandboxEnabled: z.boolean(),
   allowedDomains: z.array(z.string()),

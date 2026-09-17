@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { TeamSettingsResponse } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { Switch } from '@/ui/components/ui/switch'
@@ -15,14 +16,14 @@ interface AppearanceSettingsProps {
 export function AppearanceSettings({ teamId }: AppearanceSettingsProps) {
   const queryClient = useQueryClient()
 
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings, isLoading } = useQuery<TeamSettingsResponse>({
     queryKey: ['teams', teamId, 'settings'],
     queryFn: async () => {
       const res = await client.api.teams[':teamId'].settings.$get({
         param: { teamId },
       })
       if (!res.ok) throw new Error(m.failed_load_settings())
-      return await res.json()
+      return (await res.json()) as TeamSettingsResponse
     },
     enabled: !!teamId,
   })
@@ -52,9 +53,7 @@ export function AppearanceSettings({ teamId }: AppearanceSettingsProps) {
     },
   })
 
-  const hideAgent =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Boolean((settings as any)?.appearance?.hideAgent)
+  const hideAgent = Boolean(settings?.appearance?.hideAgent)
 
   const handleToggleHideAgent = (checked: boolean) => {
     updateSettings(checked)
