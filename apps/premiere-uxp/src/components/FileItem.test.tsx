@@ -2,7 +2,13 @@
 import React from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import { getFileTypeCategory, FileItem, FileCardItem, type AssetSummary } from './FileItem'
+import {
+  getFileTypeCategory,
+  getAssetVersionLabel,
+  FileItem,
+  FileCardItem,
+  type AssetSummary,
+} from './FileItem'
 
 // Configure React 19 act environment for happy-dom
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -244,5 +250,120 @@ describe('FileItem and FileCardItem UI Components', () => {
     expect(unlinkBtn).toBeTruthy()
     fireEvent.click(unlinkBtn)
     expect(mockOnUnlinkSequence).toHaveBeenCalledWith(videoAsset)
+  })
+
+  it('FileCardItem renders version in details when asset has versionStack', () => {
+    const versionedAsset: AssetSummary = {
+      id: 'vid-v2',
+      name: 'interview_cut.mp4',
+      type: 'file',
+      mimeType: 'video/mp4',
+      sizeByte: 20 * 1024 * 1024,
+      versionStack: {
+        id: 'stack-1',
+        versions: [
+          { version: 2, current: true, id: 'vid-v2', name: 'interview_cut.mp4' },
+          { version: 1, current: false, id: 'vid-v1', name: 'interview_cut_v1.mp4' },
+        ],
+      },
+    }
+
+    render(<FileCardItem asset={versionedAsset} onClick={mockOnClick} />)
+
+    expect(screen.getByText('v2')).toBeTruthy()
+  })
+
+  it('FileCardItem does not render version when asset has no versionStack', () => {
+    render(<FileCardItem asset={videoAsset} onClick={mockOnClick} />)
+
+    expect(screen.queryByText(/^v\d+$/)).toBeNull()
+  })
+
+  it('FileItem renders version in subtext when asset has versionStack', () => {
+    const versionedAsset: AssetSummary = {
+      id: 'vid-v2',
+      name: 'interview_cut.mp4',
+      type: 'file',
+      mimeType: 'video/mp4',
+      sizeByte: 20 * 1024 * 1024,
+      versionStack: {
+        id: 'stack-1',
+        versions: [
+          { version: 2, current: true, id: 'vid-v2', name: 'interview_cut.mp4' },
+          { version: 1, current: false, id: 'vid-v1', name: 'interview_cut_v1.mp4' },
+        ],
+      },
+    }
+
+    render(<FileItem asset={versionedAsset} onClick={mockOnClick} />)
+
+    expect(screen.getByText(/v2 •/)).toBeTruthy()
+  })
+})
+
+describe('getAssetVersionLabel', () => {
+  it('returns null for folder asset', () => {
+    const folder: AssetSummary = {
+      id: 'f1',
+      name: 'Footage',
+      type: 'folder',
+    }
+    expect(getAssetVersionLabel(folder)).toBeNull()
+  })
+
+  it('returns null for standalone file without versionStack', () => {
+    const file: AssetSummary = {
+      id: 'file1',
+      name: 'clip.mp4',
+      type: 'file',
+    }
+    expect(getAssetVersionLabel(file)).toBeNull()
+  })
+
+  it('returns null when versionStack has empty versions array', () => {
+    const file: AssetSummary = {
+      id: 'file1',
+      name: 'clip.mp4',
+      type: 'file',
+      versionStack: {
+        id: 'stack-1',
+        versions: [],
+      },
+    }
+    expect(getAssetVersionLabel(file)).toBeNull()
+  })
+
+  it('returns formatted version matching asset id', () => {
+    const file: AssetSummary = {
+      id: 'ver-1',
+      name: 'cut.mov',
+      type: 'file',
+      versionStack: {
+        id: 'stack-1',
+        versions: [
+          { version: 3, current: false, id: 'ver-3' },
+          { version: 2, current: false, id: 'ver-2' },
+          { version: 1, current: false, id: 'ver-1' },
+        ],
+      },
+    }
+    expect(getAssetVersionLabel(file)).toBe('v1')
+  })
+
+  it('returns current version when asset id is stack id or does not match', () => {
+    const file: AssetSummary = {
+      id: 'stack-1',
+      name: 'cut.mov',
+      type: 'version_stack',
+      versionStack: {
+        id: 'stack-1',
+        versions: [
+          { version: 3, current: true, id: 'ver-3' },
+          { version: 2, current: false, id: 'ver-2' },
+          { version: 1, current: false, id: 'ver-1' },
+        ],
+      },
+    }
+    expect(getAssetVersionLabel(file)).toBe('v3')
   })
 })

@@ -917,6 +917,11 @@ sp-button[icon-only] sp-icon-arrow-right {
   flex-shrink: 0;
 }
 
+.file-row-version {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .item-comments-count {
   font-size: 10px;
   color: var(--text-secondary);

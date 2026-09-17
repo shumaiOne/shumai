@@ -49,6 +49,17 @@ export interface AssetSummary {
       size: number
     }>
   } | null
+  versionStack?: {
+    id: string
+    versions: Array<{
+      version: number
+      current: boolean
+      id: string
+      name?: string | null
+      createdAt?: string | null
+      previewUrl?: string | null
+    }>
+  } | null
 }
 
 export interface FileItemProps {
@@ -83,6 +94,25 @@ export function getFileTypeCategory(
   return 'file'
 }
 
+export function getAssetVersionLabel(asset: AssetSummary): string | null {
+  if (asset.versionStack?.versions && asset.versionStack.versions.length > 0) {
+    const matched = asset.versionStack.versions.find((v) => v.id === asset.id)
+    if (matched?.version != null) {
+      return `v${matched.version}`
+    }
+    const current = asset.versionStack.versions.find((v) => v.current)
+    if (current?.version != null) {
+      return `v${current.version}`
+    }
+    const first = asset.versionStack.versions[0]
+    if (first?.version != null) {
+      return `v${first.version}`
+    }
+    return `v${asset.versionStack.versions.length}`
+  }
+  return null
+}
+
 /** List View Row Item */
 export const FileItem: React.FC<FileItemProps> = ({
   asset,
@@ -98,6 +128,7 @@ export const FileItem: React.FC<FileItemProps> = ({
   const [imgError, setImgError] = useState(false)
   const category = getFileTypeCategory(asset)
   const isFolder = category === 'folder'
+  const versionLabel = getAssetVersionLabel(asset)
   const effectiveSize = asset.sizeByte ?? asset.size
   const updatedText = formatDateAgo(asset.updatedAt)
   const thumbUrl = resolveAssetUrl(asset.preview?.thumbnailUrl, endpoint)
@@ -176,6 +207,7 @@ export const FileItem: React.FC<FileItemProps> = ({
             {asset.name}
           </span>
           <span className="item-subtext">
+            {versionLabel ? `${versionLabel} • ` : ''}
             {isFolder ? 'Folder' : formatBytes(effectiveSize)}
             {updatedText ? ` • ${updatedText}` : ''}
           </span>
@@ -314,8 +346,12 @@ export const FileCardItem: React.FC<FileItemProps> = ({
     }
   }
 
-  // Assemble raw text details for Line 3 (Duration • Size/Type • Comments)
+  // Assemble raw text details for Line 3 (Version • Duration • Size/Type • Comments)
   const details: string[] = []
+  const versionLabel = getAssetVersionLabel(asset)
+  if (versionLabel) {
+    details.push(versionLabel)
+  }
   if (durationText) {
     details.push(durationText)
   }
@@ -384,7 +420,11 @@ export const FileCardItem: React.FC<FileItemProps> = ({
             {details.map((item, idx) => (
               <React.Fragment key={idx}>
                 {idx > 0 && <span className="file-row-meta-dot">•</span>}
-                <span className="file-row-detail-item">{item}</span>
+                <span
+                  className={`file-row-detail-item${item === versionLabel ? ' file-row-version' : ''}`}
+                >
+                  {item}
+                </span>
               </React.Fragment>
             ))}
           </div>
