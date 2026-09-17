@@ -6,6 +6,7 @@ import {
   promptSelectFolder,
   writeBinaryFile,
 } from './premiere'
+import { resolveAssetUrl } from '../utils/url'
 
 export interface ProxyOption {
   id: string
@@ -321,6 +322,8 @@ export async function importAssetIntoPremiere({
     defaultFileName = `${baseName}_proxy_${resTag}.mp4`
   }
 
+  const resolvedDownloadUrl = resolveAssetUrl(downloadUrl, endpoint) || downloadUrl
+
   // 4. Create unique file in destination folder with collision avoidance (_1, _2)
   const { file: saveFile, name: finalFileName } = await createUniqueFileInFolder(
     targetFolder,
@@ -329,7 +332,7 @@ export async function importAssetIntoPremiere({
 
   // 5. Download binary data
   onProgress?.(`Downloading ${finalFileName}...`)
-  const response = await fetch(downloadUrl)
+  const response = await fetch(resolvedDownloadUrl)
   if (!response.ok) {
     throw new Error(`Failed to download file (HTTP ${response.status})`)
   }

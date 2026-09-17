@@ -7,9 +7,8 @@
  * the user-configured Shumai endpoint.
  *
  * Handles:
- * 1. Relative paths (/files/..., /api/...)
- * 2. Host/Port mismatch when the backend defaulted S3 URL to localhost:3000
- *    while the client connected via 127.0.0.1 or a remote IP/domain.
+ * - Relative paths (/files/..., /api/...) by prepending the endpoint.
+ * - Absolute URLs (http://, https://) are preserved as-is.
  */
 export function resolveAssetUrl(url?: string | null, endpoint?: string): string | undefined {
   if (!url) return undefined
@@ -17,28 +16,10 @@ export function resolveAssetUrl(url?: string | null, endpoint?: string): string 
 
   const cleanEndpoint = endpoint.replace(/\/+$/, '')
 
-  let resolved = url
-
-  // Handle relative URLs
-  if (url.startsWith('/')) {
-    resolved = `${cleanEndpoint}${url}`
-  } else {
-    // Handle absolute URLs with host mismatch
-    try {
-      const parsedUrl = new URL(url)
-      const parsedEndpoint = new URL(cleanEndpoint)
-
-      // If host differs (e.g. localhost vs 127.0.0.1 or remote server address)
-      if (parsedUrl.host !== parsedEndpoint.host) {
-        parsedUrl.protocol = parsedEndpoint.protocol
-        parsedUrl.hostname = parsedEndpoint.hostname
-        parsedUrl.port = parsedEndpoint.port
-        resolved = parsedUrl.toString()
-      }
-    } catch {
-      // If URL parsing fails, fallback to raw url
-    }
+  // Handle relative URLs (e.g. /files/..., /api/...)
+  if (url.startsWith('/') && !url.startsWith('//')) {
+    return `${cleanEndpoint}${url}`
   }
 
-  return resolved
+  return url
 }

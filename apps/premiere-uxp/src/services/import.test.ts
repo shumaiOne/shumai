@@ -555,5 +555,65 @@ describe('import service', () => {
       ])
       fetchSpy.mockRestore()
     })
+
+    it('resolves relative download URL with endpoint before fetching', async () => {
+      // Mocking incomplete Premiere Project object in unit test
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mockProject = {} as any
+      vi.spyOn(premiereModule, 'getActiveProject').mockResolvedValue(mockProject)
+
+      const mockSaveFile = {
+        isFile: true as const,
+        isFolder: false as const,
+        name: 'Sample.mov',
+        nativePath: '/Users/test/Downloads/Sample.mov',
+        write: vi.fn().mockResolvedValue(undefined),
+      }
+      const mockFolder = {
+        isFile: false as const,
+        isFolder: true as const,
+        name: 'Downloads',
+        nativePath: '/Users/test/Downloads',
+        createFile: vi.fn().mockResolvedValue(mockSaveFile),
+        getEntries: vi.fn().mockResolvedValue([]),
+      }
+      vi.spyOn(premiereModule, 'promptSelectFolder').mockResolvedValue(mockFolder)
+      vi.spyOn(premiereModule, 'writeBinaryFile').mockResolvedValue(undefined)
+      vi.spyOn(premiereModule, 'importFilesIntoProject').mockResolvedValue(true)
+
+      vi.spyOn(clientModule, 'getShumaiClient').mockReturnValue({
+        api: {
+          files: {
+            'download-links': {
+              $post: vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                  files: [{ id: 'asset-1', name: 'Sample.mov', url: '/api/upload/local?key=test' }],
+                }),
+              }),
+            },
+          },
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      const dummyBuffer = new ArrayBuffer(8)
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => dummyBuffer,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      const result = await importAssetIntoPremiere({
+        endpoint: 'http://test:3000',
+        apiKey: 'key',
+        asset: mockAsset,
+        type: 'raw',
+      })
+
+      expect(result.success).toBe(true)
+      expect(fetchSpy).toHaveBeenCalledWith('http://test:3000/api/upload/local?key=test')
+      fetchSpy.mockRestore()
+    })
   })
 })

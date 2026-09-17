@@ -22,22 +22,24 @@ describe('resolveAssetUrl', () => {
     )
   })
 
-  it('rewrites host when server presigned with localhost but client connected via 127.0.0.1', () => {
-    const raw = 'http://localhost:3000/files/shumai/files/cat.webp'
+  it('preserves absolute URLs intact even when hosts differ', () => {
+    const localRaw = 'http://localhost:3000/files/shumai/files/cat.webp'
     const endpoint = 'http://127.0.0.1:3000'
-    expect(resolveAssetUrl(raw, endpoint)).toBe('http://127.0.0.1:3000/files/shumai/files/cat.webp')
-  })
+    expect(resolveAssetUrl(localRaw, endpoint)).toBe(localRaw)
 
-  it('rewrites host and protocol when client connected via remote HTTPS server', () => {
-    const raw = 'http://localhost:3000/files/shumai/files/cat.webp'
-    const endpoint = 'https://shumai.example.com'
-    expect(resolveAssetUrl(raw, endpoint)).toBe(
-      'https://shumai.example.com/files/shumai/files/cat.webp',
-    )
+    const remoteEndpoint = 'https://shumai.example.com'
+    expect(resolveAssetUrl(localRaw, remoteEndpoint)).toBe(localRaw)
   })
 
   it('keeps matching absolute URLs intact', () => {
     const raw = 'http://localhost:3000/files/shumai/cat.png'
     expect(resolveAssetUrl(raw, 'http://localhost:3000')).toBe(raw)
+  })
+
+  it('preserves remote cloud storage presigned URLs without rewriting host', () => {
+    const r2Url =
+      'https://04e37a3c563610bccea6a3ce6f8618ca.r2.cloudflarestorage.com/shumai/files/01KYKNT8NEJ3Q1G6A6K08M2XHC/Float%2002-480p.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=8112ab30'
+    const endpoint = 'https://staging.shumai.one'
+    expect(resolveAssetUrl(r2Url, endpoint)).toBe(r2Url)
   })
 })
