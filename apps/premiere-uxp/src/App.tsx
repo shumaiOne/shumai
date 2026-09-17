@@ -102,12 +102,7 @@ export const App: React.FC = () => {
       )}
 
       {view !== 'auth' && mainTab === 'sequences' && (
-        <SequencesView
-          endpoint={endpoint}
-          apiKey={apiKey}
-          onSwitchToBrowse={() => setMainTab('browse')}
-          onLinkCountChange={setLinkedCount}
-        />
+        <SequencesView endpoint={endpoint} apiKey={apiKey} onLinkCountChange={setLinkedCount} />
       )}
 
       {view !== 'auth' && mainTab === 'browse' && view === 'projects' && (

@@ -17,14 +17,12 @@ import { ProgressCircle } from '@swc-react/progress-circle'
 export interface SequencesViewProps {
   endpoint: string
   apiKey: string
-  onSwitchToBrowse?: () => void
   onLinkCountChange?: (count: number) => void
 }
 
 export const SequencesView: React.FC<SequencesViewProps> = ({
   endpoint,
   apiKey,
-  onSwitchToBrowse,
   onLinkCountChange,
 }) => {
   const [project, setProject] = useState<Project | null>(null)
@@ -279,7 +277,7 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
             style={{
               fontSize: 11,
               color: 'var(--text-secondary)',
-              marginBottom: 16,
+              marginBottom: 0,
               maxWidth: 280,
               lineHeight: 1.4,
             }}
@@ -287,12 +285,6 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
             Linking a sequence enables automatic synchronization of comments from Shumai as timeline
             markers.
           </div>
-
-          {onSwitchToBrowse && (
-            <sp-button size="s" variant="primary" onClick={onSwitchToBrowse}>
-              Browse Assets to Link
-            </sp-button>
-          )}
         </div>
       </div>
     )

@@ -13,7 +13,6 @@ import type { CommentInfo } from '@shumai/dtos'
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 describe('SequencesView Component', () => {
-  const mockSwitchToBrowse = vi.fn()
   const mockOnLinkCountChange = vi.fn()
 
   beforeEach(() => {
@@ -40,7 +39,6 @@ describe('SequencesView Component', () => {
         <SequencesView
           endpoint="https://api.shumai.test"
           apiKey="test-key"
-          onSwitchToBrowse={mockSwitchToBrowse}
           onLinkCountChange={mockOnLinkCountChange}
         />,
       )
@@ -48,10 +46,7 @@ describe('SequencesView Component', () => {
 
     expect(screen.getByText('No Linked Sequences')).toBeDefined()
     expect(screen.getByText(/Sequence 01/i)).toBeDefined()
-    const browseButton = screen.getByText('Browse Assets to Link')
-    expect(browseButton).toBeDefined()
-    fireEvent.click(browseButton)
-    expect(mockSwitchToBrowse).toHaveBeenCalled()
+    expect(screen.queryByText('Browse Assets to Link')).toBeNull()
   })
 
   it('renders linked sequence card and handles unlink', async () => {
@@ -80,7 +75,6 @@ describe('SequencesView Component', () => {
         <SequencesView
           endpoint="https://api.shumai.test"
           apiKey="test-key"
-          onSwitchToBrowse={mockSwitchToBrowse}
           onLinkCountChange={mockOnLinkCountChange}
         />,
       )
@@ -141,7 +135,6 @@ describe('SequencesView Component', () => {
         <SequencesView
           endpoint="https://staging.shumai.one"
           apiKey="staging-key"
-          onSwitchToBrowse={mockSwitchToBrowse}
           onLinkCountChange={mockOnLinkCountChange}
         />,
       )
@@ -191,7 +184,6 @@ describe('SequencesView Component', () => {
         <SequencesView
           endpoint="https://staging.shumai.one"
           apiKey="staging-key"
-          onSwitchToBrowse={mockSwitchToBrowse}
           onLinkCountChange={mockOnLinkCountChange}
         />,
       )
@@ -246,7 +238,6 @@ describe('SequencesView Component', () => {
         <SequencesView
           endpoint="https://staging.shumai.one"
           apiKey="staging-key"
-          onSwitchToBrowse={mockSwitchToBrowse}
           onLinkCountChange={mockOnLinkCountChange}
         />,
       )
