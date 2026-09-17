@@ -81,7 +81,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
         }
       }
       setLinkedAssetsMap((prev) => ({ ...prev, ...map }))
-      onLinkCountChange?.(cachedLinks.length)
+      onLinkCountChange?.(Object.keys(map).length)
     }
 
     // 2. Query active project in Premiere Pro for live persistent links
@@ -96,7 +96,7 @@ export const FileListView: React.FC<FileListViewProps> = ({
           }
         }
         setLinkedAssetsMap(liveMap)
-        onLinkCountChange?.(liveLinks.length)
+        onLinkCountChange?.(Object.keys(liveMap).length)
       }
     } catch (err) {
       console.warn('[FileListView] Could not get linked sequences from active project:', err)

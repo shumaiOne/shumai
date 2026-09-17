@@ -21,19 +21,10 @@ export interface SequencesViewProps {
   onLinkCountChange?: (count: number) => void
 }
 
-function formatServerHost(serverUrl?: string): string {
-  if (!serverUrl) return 'Other server'
-  try {
-    const parsed = new URL(serverUrl)
-    return parsed.host
-  } catch {
-    return serverUrl
-  }
-}
-
 export const SequencesView: React.FC<SequencesViewProps> = ({
   endpoint,
   apiKey,
+  onSwitchToBrowse,
   onLinkCountChange,
 }) => {
   const [project, setProject] = useState<Project | null>(null)
@@ -65,15 +56,19 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
       setActiveSeq(currentActive)
       setAllSeqs(seqsList)
 
-      const links = await getAllLinkedSequences(pr, seqsList)
-      setLinkedSequences(links)
-      onLinkCountChange?.(links.length)
+      const allLinks = await getAllLinkedSequences(pr, seqsList)
+      // Hide foreign links entirely: only show sequences linked to the current endpoint
+      const currentServerLinks = allLinks.filter(
+        (link) => !link.endpoint || isSameEndpoint(link.endpoint, endpoint),
+      )
+      setLinkedSequences(currentServerLinks)
+      onLinkCountChange?.(currentServerLinks.length)
     } catch (err) {
       console.error('[SequencesView] Failed to load sequences data:', err)
     } finally {
       setLoading(false)
     }
-  }, [onLinkCountChange])
+  }, [endpoint, onLinkCountChange])
 
   useEffect(() => {
     void loadData()
@@ -119,7 +114,7 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
     if (link.endpoint && !isSameEndpoint(link.endpoint, endpoint)) {
       showToast(
         'error',
-        `Cannot sync comments: sequence was linked to "${formatServerHost(link.endpoint)}". Connect to that server to sync.`,
+        `Cannot sync comments: sequence was linked to "${link.endpoint}". Connect to that server to sync.`,
         5000,
       )
       return
@@ -292,6 +287,12 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
             Linking a sequence enables automatic synchronization of comments from Shumai as timeline
             markers.
           </div>
+
+          {onSwitchToBrowse && (
+            <sp-button size="s" variant="primary" onClick={onSwitchToBrowse}>
+              Browse Assets to Link
+            </sp-button>
+          )}
         </div>
       </div>
     )
@@ -307,134 +308,93 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
         <div className="sequence-section-title">Current Sequence Asset</div>
 
         {currentSequenceLink ? (
-          (() => {
-            const isCurrentForeign = Boolean(
-              currentSequenceLink.endpoint &&
-              !isSameEndpoint(currentSequenceLink.endpoint, endpoint),
-            )
-            return (
-              <div className="sequence-link-card current-active">
-                <div className="sequence-card-row">
-                  <div className="sequence-card-left">
-                    <div className="sequence-card-thumb">
-                      {currentSequenceLink.assetThumbnailUrl ? (
-                        <img
-                          src={resolveAssetUrl(
-                            currentSequenceLink.assetThumbnailUrl,
-                            currentSequenceLink.endpoint || endpoint,
-                          )}
-                          alt={currentSequenceLink.assetName}
-                        />
-                      ) : (
-                        <sp-icon-movie-camera
-                          size="m"
-                          style={{ color: '#3b82f6' }}
-                        ></sp-icon-movie-camera>
+          <div className="sequence-link-card current-active">
+            <div className="sequence-card-row">
+              <div className="sequence-card-left">
+                <div className="sequence-card-thumb">
+                  {currentSequenceLink.assetThumbnailUrl ? (
+                    <img
+                      src={resolveAssetUrl(
+                        currentSequenceLink.assetThumbnailUrl,
+                        currentSequenceLink.endpoint || endpoint,
                       )}
-                    </div>
-                    <div className="sequence-card-info">
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <span className="sequence-card-title">
-                          {currentSequenceLink.sequenceName}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: '9px',
-                            marginLeft: 6,
-                            padding: '1px 4px',
-                            borderRadius: 3,
-                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                            color: '#60a5fa',
-                            fontWeight: 600,
-                          }}
-                        >
-                          Active
-                        </span>
-                        {isCurrentForeign && (
-                          <span
-                            style={{
-                              fontSize: '9px',
-                              marginLeft: 6,
-                              padding: '1px 4px',
-                              borderRadius: 3,
-                              backgroundColor: 'rgba(234, 179, 8, 0.2)',
-                              color: '#facc15',
-                              fontWeight: 600,
-                            }}
-                            title={`Linked to: ${currentSequenceLink.endpoint}`}
-                          >
-                            Server: {formatServerHost(currentSequenceLink.endpoint)}
-                          </span>
-                        )}
-                      </div>
-                      <span
-                        className="sequence-card-subtitle"
-                        title={currentSequenceLink.assetName}
-                      >
-                        Asset: {currentSequenceLink.assetName}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="sequence-card-actions">
-                    <sp-action-button
-                      quiet
-                      size="xs"
-                      label={
-                        isCurrentForeign
-                          ? `Linked to different server (${formatServerHost(currentSequenceLink.endpoint)})`
-                          : 'Sync comments now'
-                      }
-                      title={
-                        isCurrentForeign
-                          ? `Linked to different server (${formatServerHost(currentSequenceLink.endpoint)}). Connect to that server to sync comments.`
-                          : 'Sync comments now'
-                      }
-                      disabled={
-                        syncingGuid === currentSequenceLink.sequenceGuid || isCurrentForeign
-                      }
-                      onClick={() => handleSyncNow(currentSequenceLink)}
-                    >
-                      {syncingGuid === currentSequenceLink.sequenceGuid ? (
-                        <ProgressCircle indeterminate size="s" slot="icon" label="Syncing..." />
-                      ) : (
-                        <sp-icon-refresh size="s" slot="icon"></sp-icon-refresh>
-                      )}
-                    </sp-action-button>
-
-                    <sp-action-button
-                      quiet
-                      size="xs"
-                      label="Unlink sequence"
-                      title="Unlink sequence"
-                      disabled={unlinkingGuid === currentSequenceLink.sequenceGuid}
-                      onClick={() => handleUnlink(currentSequenceLink)}
-                    >
-                      {unlinkingGuid === currentSequenceLink.sequenceGuid ? (
-                        <ProgressCircle indeterminate size="s" slot="icon" label="Unlinking..." />
-                      ) : (
-                        <sp-icon-unlink
-                          size="s"
-                          slot="icon"
-                          style={{ color: '#f87171' }}
-                        ></sp-icon-unlink>
-                      )}
-                    </sp-action-button>
-                  </div>
+                      alt={currentSequenceLink.assetName}
+                    />
+                  ) : (
+                    <sp-icon-movie-camera
+                      size="m"
+                      style={{ color: '#3b82f6' }}
+                    ></sp-icon-movie-camera>
+                  )}
                 </div>
-
-                <div className="sequence-card-footer">
-                  <span>
-                    {currentSequenceLink.totalCommentsSynced}{' '}
-                    {currentSequenceLink.totalCommentsSynced === 1 ? 'comment' : 'comments'} synced
-                  </span>
-                  <span>
-                    Last sync: {formatDateAgo(currentSequenceLink.lastSyncAt) || 'Just now'}
+                <div className="sequence-card-info">
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <span className="sequence-card-title">{currentSequenceLink.sequenceName}</span>
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        marginLeft: 6,
+                        padding: '1px 4px',
+                        borderRadius: 3,
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        color: '#60a5fa',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Active
+                    </span>
+                  </div>
+                  <span className="sequence-card-subtitle" title={currentSequenceLink.assetName}>
+                    Asset: {currentSequenceLink.assetName}
                   </span>
                 </div>
               </div>
-            )
-          })()
+
+              <div className="sequence-card-actions">
+                <sp-action-button
+                  quiet
+                  size="xs"
+                  label="Sync comments now"
+                  title="Sync comments now"
+                  disabled={syncingGuid === currentSequenceLink.sequenceGuid}
+                  onClick={() => handleSyncNow(currentSequenceLink)}
+                >
+                  {syncingGuid === currentSequenceLink.sequenceGuid ? (
+                    <ProgressCircle indeterminate size="s" slot="icon" label="Syncing..." />
+                  ) : (
+                    <sp-icon-refresh size="s" slot="icon"></sp-icon-refresh>
+                  )}
+                </sp-action-button>
+
+                <sp-action-button
+                  quiet
+                  size="xs"
+                  label="Unlink sequence"
+                  title="Unlink sequence"
+                  disabled={unlinkingGuid === currentSequenceLink.sequenceGuid}
+                  onClick={() => handleUnlink(currentSequenceLink)}
+                >
+                  {unlinkingGuid === currentSequenceLink.sequenceGuid ? (
+                    <ProgressCircle indeterminate size="s" slot="icon" label="Unlinking..." />
+                  ) : (
+                    <sp-icon-unlink
+                      size="s"
+                      slot="icon"
+                      style={{ color: '#f87171' }}
+                    ></sp-icon-unlink>
+                  )}
+                </sp-action-button>
+              </div>
+            </div>
+
+            <div className="sequence-card-footer">
+              <span>
+                {currentSequenceLink.totalCommentsSynced}{' '}
+                {currentSequenceLink.totalCommentsSynced === 1 ? 'comment' : 'comments'} synced
+              </span>
+              <span>Last sync: {formatDateAgo(currentSequenceLink.lastSyncAt) || 'Just now'}</span>
+            </div>
+          </div>
         ) : (
           <div className="sequence-empty-state compact">
             <sp-icon-movie-camera
@@ -461,7 +421,6 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
           const isActive = normalizeGuid(link.sequenceGuid) === activeGuidStr
           const isSyncing = syncingGuid === link.sequenceGuid
           const isUnlinking = unlinkingGuid === link.sequenceGuid
-          const isForeign = Boolean(link.endpoint && !isSameEndpoint(link.endpoint, endpoint))
 
           return (
             <div
@@ -501,22 +460,6 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
                           Active
                         </span>
                       )}
-                      {isForeign && (
-                        <span
-                          style={{
-                            fontSize: '9px',
-                            marginLeft: 6,
-                            padding: '1px 4px',
-                            borderRadius: 3,
-                            backgroundColor: 'rgba(234, 179, 8, 0.2)',
-                            color: '#facc15',
-                            fontWeight: 600,
-                          }}
-                          title={`Linked to ${link.endpoint}`}
-                        >
-                          Server: {formatServerHost(link.endpoint)}
-                        </span>
-                      )}
                     </div>
                     <span className="sequence-card-subtitle" title={link.assetName}>
                       Asset: {link.assetName}
@@ -540,17 +483,9 @@ export const SequencesView: React.FC<SequencesViewProps> = ({
                   <sp-action-button
                     quiet
                     size="xs"
-                    label={
-                      isForeign
-                        ? `Linked to different server (${formatServerHost(link.endpoint)})`
-                        : 'Sync comments now'
-                    }
-                    title={
-                      isForeign
-                        ? `Linked to different server (${formatServerHost(link.endpoint)}). Connect to that server to sync comments.`
-                        : 'Sync comments now'
-                    }
-                    disabled={isSyncing || isForeign}
+                    label="Sync comments now"
+                    title="Sync comments now"
+                    disabled={isSyncing}
                     onClick={() => handleSyncNow(link)}
                   >
                     {isSyncing ? (

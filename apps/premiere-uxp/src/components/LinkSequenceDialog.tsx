@@ -5,7 +5,7 @@ import type { LinkedSequenceAsset } from '../types/link'
 import { getActiveProject, getAllSequences, getActiveSequence } from '../services/premiere'
 import { getAllLinkedSequences, normalizeGuid, removeSequenceLink } from '../services/linkStorage'
 import { fetchAssetComments, syncCommentsToSequence } from '../services/markers'
-import { resolveAssetUrl } from '../utils/url'
+import { resolveAssetUrl, isSameEndpoint } from '../utils/url'
 import { formatBytes, formatDuration } from '../utils/format'
 import { ProgressCircle } from '@swc-react/progress-circle'
 
@@ -91,7 +91,9 @@ export const LinkSequenceDialog: React.FC<LinkSequenceDialogProps> = ({
         const activeGuid = normalizeGuid(activeSeq?.guid)
         const linksMap = new Map<string, LinkedSequenceAsset>()
         for (const link of existingLinks) {
-          linksMap.set(normalizeGuid(link.sequenceGuid), link)
+          if (!link.endpoint || isSameEndpoint(link.endpoint, endpoint)) {
+            linksMap.set(normalizeGuid(link.sequenceGuid), link)
+          }
         }
 
         const options: SequenceOption[] = allSeqs.map((seq) => {
@@ -129,7 +131,7 @@ export const LinkSequenceDialog: React.FC<LinkSequenceDialogProps> = ({
     return () => {
       isMounted = false
     }
-  }, [isOpen, asset])
+  }, [isOpen, asset, endpoint])
 
   // Escape key handler
   useEffect(() => {

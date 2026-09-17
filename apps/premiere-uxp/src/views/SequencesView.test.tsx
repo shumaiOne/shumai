@@ -48,7 +48,10 @@ describe('SequencesView Component', () => {
 
     expect(screen.getByText('No Linked Sequences')).toBeDefined()
     expect(screen.getByText(/Sequence 01/i)).toBeDefined()
-    expect(screen.queryByText(/Browse Assets to Link/i)).toBeNull()
+    const browseButton = screen.getByText('Browse Assets to Link')
+    expect(browseButton).toBeDefined()
+    fireEvent.click(browseButton)
+    expect(mockSwitchToBrowse).toHaveBeenCalled()
   })
 
   it('renders linked sequence card and handles unlink', async () => {
@@ -96,8 +99,9 @@ describe('SequencesView Component', () => {
     expect(linkStorage.removeSequenceLink).toHaveBeenCalledWith(mockProject, mockSeq)
   })
 
-  it('displays foreign server badge and disables sync button when linked to a different endpoint', async () => {
-    const mockSeq = { guid: 'seq-1', name: 'Sequence Foreign' }
+  it('filters out foreign endpoint links from the view and link count', async () => {
+    const mockSeq1 = { guid: 'seq-1', name: 'Sequence Foreign' }
+    const mockSeq2 = { guid: 'seq-2', name: 'Sequence Staging' }
     const mockProject = { guid: 'proj-1' }
     const foreignLink = {
       sequenceGuid: 'seq-1',
@@ -109,13 +113,28 @@ describe('SequencesView Component', () => {
       lastSyncAt: Date.now(),
       totalCommentsSynced: 0,
     }
+    const stagingLink = {
+      sequenceGuid: 'seq-2',
+      sequenceName: 'Sequence Staging',
+      assetId: 'asset-staging',
+      assetName: 'staging_asset.mp4',
+      endpoint: 'https://staging.shumai.one',
+      syncedCommentIds: [],
+      lastSyncAt: Date.now(),
+      totalCommentsSynced: 0,
+    }
 
     vi.spyOn(premiereService, 'getActiveProject').mockResolvedValue(
       mockProject as unknown as Project,
     )
-    vi.spyOn(premiereService, 'getActiveSequence').mockResolvedValue(mockSeq as unknown as Sequence)
-    vi.spyOn(premiereService, 'getAllSequences').mockResolvedValue([mockSeq as unknown as Sequence])
-    vi.spyOn(linkStorage, 'getAllLinkedSequences').mockResolvedValue([foreignLink])
+    vi.spyOn(premiereService, 'getActiveSequence').mockResolvedValue(
+      mockSeq1 as unknown as Sequence,
+    )
+    vi.spyOn(premiereService, 'getAllSequences').mockResolvedValue([
+      mockSeq1 as unknown as Sequence,
+      mockSeq2 as unknown as Sequence,
+    ])
+    vi.spyOn(linkStorage, 'getAllLinkedSequences').mockResolvedValue([foreignLink, stagingLink])
 
     await act(async () => {
       render(
@@ -128,13 +147,18 @@ describe('SequencesView Component', () => {
       )
     })
 
-    // Foreign server badge should be displayed
-    expect(screen.getAllByText('Server: localhost:3000').length).toBeGreaterThan(0)
+    // Foreign link should be completely hidden
+    expect(screen.queryByText('dev_asset.mp4')).toBeNull()
+    expect(screen.queryByText(/Server:/i)).toBeNull()
 
-    // Sync button should be disabled with tooltip explaining the server mismatch
-    const syncButtons = screen.getAllByTitle(/Linked to different server \(localhost:3000\)/i)
-    expect(syncButtons.length).toBeGreaterThan(0)
-    expect(syncButtons[0].hasAttribute('disabled')).toBe(true)
+    // Matching link should be visible
+    expect(screen.getAllByText(/staging_asset.mp4/i).length).toBeGreaterThan(0)
+
+    // Active sequence (seq-1) is linked to foreign server, so current sequence card should show unlinked state
+    expect(screen.getByText('This sequence is not linked to any Shumai asset.')).toBeDefined()
+
+    // Link count reported to parent should only count staging link (1)
+    expect(mockOnLinkCountChange).toHaveBeenCalledWith(1)
   })
 
   it('shows error toast when manual sync fails', async () => {
