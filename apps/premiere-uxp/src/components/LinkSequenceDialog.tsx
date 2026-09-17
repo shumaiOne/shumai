@@ -315,11 +315,6 @@ export const LinkSequenceDialog: React.FC<LinkSequenceDialogProps> = ({
                   }}
                 >
                   <div className="shumai-option-left">
-                    <sp-icon-filmstrip
-                      size="s"
-                      className="shumai-option-icon"
-                      style={{ color: '#3b82f6' }}
-                    ></sp-icon-filmstrip>
                     <div className="shumai-option-texts">
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <span className="shumai-option-title">{opt.name}</span>

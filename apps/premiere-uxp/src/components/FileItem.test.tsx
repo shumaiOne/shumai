@@ -299,6 +299,46 @@ describe('FileItem and FileCardItem UI Components', () => {
 
     expect(screen.getByText(/v2 •/)).toBeTruthy()
   })
+
+  it('FileCardItem renders createdAt time when provided', () => {
+    const assetWithDates: AssetSummary = {
+      id: 'date-1',
+      name: 'render.mp4',
+      type: 'file',
+      createdAt: new Date(Date.now() - 3600 * 1000).toISOString(),
+      updatedAt: new Date(Date.now() - 60 * 1000).toISOString(),
+    }
+
+    render(<FileCardItem asset={assetWithDates} onClick={mockOnClick} />)
+    expect(screen.getByText('1h ago')).toBeTruthy()
+    expect(screen.queryByText('1m ago')).toBeNull()
+  })
+
+  it('FileCardItem falls back to updatedAt if createdAt is absent', () => {
+    const assetWithUpdatedOnly: AssetSummary = {
+      id: 'date-2',
+      name: 'render2.mp4',
+      type: 'file',
+      updatedAt: new Date(Date.now() - 60 * 1000).toISOString(),
+    }
+
+    render(<FileCardItem asset={assetWithUpdatedOnly} onClick={mockOnClick} />)
+    expect(screen.getByText('1m ago')).toBeTruthy()
+  })
+
+  it('FileItem renders createdAt time in subtext when provided', () => {
+    const assetWithDates: AssetSummary = {
+      id: 'date-3',
+      name: 'render3.mp4',
+      type: 'file',
+      createdAt: new Date(Date.now() - 3600 * 1000).toISOString(),
+      updatedAt: new Date(Date.now() - 60 * 1000).toISOString(),
+    }
+
+    render(<FileItem asset={assetWithDates} onClick={mockOnClick} />)
+    expect(screen.getByText(/1h ago/)).toBeTruthy()
+    expect(screen.queryByText(/1m ago/)).toBeNull()
+  })
 })
 
 describe('getAssetVersionLabel', () => {

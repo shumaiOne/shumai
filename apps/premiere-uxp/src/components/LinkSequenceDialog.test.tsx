@@ -82,7 +82,7 @@ describe('LinkSequenceDialog Component', () => {
     expect(screen.getByText(/no active premiere pro project found/i)).toBeDefined()
   })
 
-  it('lists project sequences and highlights active sequence', async () => {
+  it('lists project sequences and highlights active sequence without sequence icon', async () => {
     const mockSeq1 = { guid: 'seq-1', name: 'Rough Cut' }
     const mockSeq2 = { guid: 'seq-2', name: 'Fine Cut' }
     const mockProject = { guid: 'proj-1' }
@@ -99,8 +99,9 @@ describe('LinkSequenceDialog Component', () => {
     )
     vi.spyOn(linkStorage, 'getAllLinkedSequences').mockResolvedValue([])
 
+    let renderedContainer: HTMLElement = null!
     await act(async () => {
-      render(
+      const { container } = render(
         <LinkSequenceDialog
           asset={videoAsset}
           endpoint="https://api.shumai.test"
@@ -110,11 +111,15 @@ describe('LinkSequenceDialog Component', () => {
           onLinkSuccess={mockOnLinkSuccess}
         />,
       )
+      renderedContainer = container
     })
 
     expect(screen.getByText('Rough Cut')).toBeDefined()
     expect(screen.getByText('Fine Cut')).toBeDefined()
     expect(screen.getByText('Active')).toBeDefined()
+    expect(renderedContainer.querySelectorAll('.shumai-option-card sp-icon-filmstrip').length).toBe(
+      0,
+    )
   })
 
   it('executes sync and invokes onLinkSuccess on confirmation', async () => {

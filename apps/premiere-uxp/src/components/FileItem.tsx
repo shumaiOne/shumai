@@ -130,7 +130,7 @@ export const FileItem: React.FC<FileItemProps> = ({
   const isFolder = category === 'folder'
   const versionLabel = getAssetVersionLabel(asset)
   const effectiveSize = asset.sizeByte ?? asset.size
-  const updatedText = formatDateAgo(asset.updatedAt)
+  const timeText = formatDateAgo(asset.createdAt || asset.updatedAt)
   const thumbUrl = resolveAssetUrl(asset.preview?.thumbnailUrl, endpoint)
 
   const iconFallback = (
@@ -209,7 +209,7 @@ export const FileItem: React.FC<FileItemProps> = ({
           <span className="item-subtext">
             {versionLabel ? `${versionLabel} • ` : ''}
             {isFolder ? 'Folder' : formatBytes(effectiveSize)}
-            {updatedText ? ` • ${updatedText}` : ''}
+            {timeText ? ` • ${timeText}` : ''}
           </span>
         </div>
       </div>
@@ -305,7 +305,7 @@ export const FileCardItem: React.FC<FileItemProps> = ({
   const category = getFileTypeCategory(asset)
   const isFolder = category === 'folder'
   const effectiveSize = asset.sizeByte ?? asset.size
-  const updatedText = formatDateAgo(asset.updatedAt)
+  const timeText = formatDateAgo(asset.createdAt || asset.updatedAt)
   const thumbUrl = resolveAssetUrl(asset.preview?.thumbnailUrl, endpoint)
   const duration = asset.preview?.duration ?? asset.media?.metadata?.duration
   const durationText = formatDuration(duration)
@@ -407,11 +407,11 @@ export const FileCardItem: React.FC<FileItemProps> = ({
           </span>
         </div>
 
-        {(creatorName || updatedText) && (
+        {(creatorName || timeText) && (
           <div className="file-row-meta">
             {creatorName && <span className="file-row-creator">{creatorName}</span>}
-            {creatorName && updatedText && <span className="file-row-meta-dot">•</span>}
-            {updatedText && <span className="file-row-time">{updatedText}</span>}
+            {creatorName && timeText && <span className="file-row-meta-dot">•</span>}
+            {timeText && <span className="file-row-time">{timeText}</span>}
           </div>
         )}
 
