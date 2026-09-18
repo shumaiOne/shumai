@@ -64,39 +64,14 @@ https://www.conventionalcommits.org/en/v1.0.0/#summary
 
 ## Changelog Guidelines
 
-We maintain a project-wide `CHANGELOG.md` based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+We maintain `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-Before opening a pull request, update `CHANGELOG.md` under the `## [Unreleased]` section:
+Before opening a pull request, add an entry under `## [Unreleased]` for any user-facing changes:
 
-- **Mandatory for User-Facing Changes**: Any pull request that introduces new features, bug fixes, UI enhancements, API modifications, or breaking behaviors MUST add an entry under `## [Unreleased]`.
-- **Optional for Internal Maintenance**: Internal refactors, test additions, routine dependency updates, or CI maintenance without external behavior changes may omit changelog updates.
-- **Write for End Users, Not Code Reviewers**:
-  - Focus on the **user value, outcome, or observable behavior**, not internal code mechanics.
-  - Avoid internal implementation details, class names, file paths, private function names, or schema column names unless documenting a developer tool/API.
-  - Examples:
-    - ❌ *Implementation detail*: `refactor(db): migrate SessionStorage to normalized DAG entries with lazy thread synchronization`
-    - ✅ *User-centric*: `**agent**: Improve chat responsiveness and reliability when loading conversations with deep message histories`
-    - ❌ *Implementation detail*: `fix(s3): stream downloadToFile and putObject to prevent OOM on large files`
-    - ✅ *User-centric*: `**storage**: Prevent server memory issues when downloading and uploading large media files`
-- **Two-Part Release Notes**: At release time, release notes present these user-friendly highlights from `CHANGELOG.md` at the top, followed by an automatically generated pull request list below for developer traceability.
-- **Categories**: Place your entry under the corresponding category header:
-  - `### Added`: New user-facing features, tools, endpoints, or capabilities.
-  - `### Fixed`: Bug fixes or error resolution.
-  - `### Changed`: Changes to existing features, workflows, or UI behaviors.
-  - `### Deprecated`: Features slated for future removal.
-  - `### Removed`: Features or APIs that have been deleted.
-  - `### Security`: Security vulnerability fixes.
-- **Formatting**:
-  - Use concise, imperative descriptions.
-  - Bold the scope when relevant: `- **<scope>**: <Description>`.
-  - **Do NOT include a PR number or link** in the entry, because the PR does not exist yet when committing to the branch prior to opening the PR (the release pipeline automatically appends the detailed PR list).
-  - Example:
-    ```markdown
-    ## [Unreleased]
-
-    ### Added
-    - **comment**: Add emoji reaction support for comments
-    ```
+- **Focus on User Impact**: Describe the user-facing outcome or observable behavior in plain terms, not internal code mechanics, file paths, or private symbols.
+- **Formatting**: `- **<scope>**: <Description>` (e.g. `- **comment**: Add emoji reaction support for comments`).
+- **No PR Numbers**: Do not include PR numbers or links; the release pipeline automatically appends the detailed PR list.
+- **Internal Changes**: Routine refactors, test additions, or internal chores without external behavior changes may omit changelog updates.
 
 ---
 
