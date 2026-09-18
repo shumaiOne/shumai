@@ -2,6 +2,7 @@ import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { teamService } from '@shumai/core/src/team/team'
 import { describe, expect, it } from 'vitest'
+import type { TeamSettingsResponse } from '@shumai/dtos'
 
 describe('TeamService', () => {
   setupTestDbHooks()
@@ -10,6 +11,7 @@ describe('TeamService', () => {
     const team = await teamService.ensureDefaultTeam()
     expect(team).toBeDefined()
     expect(team.name).toBe('Default Team')
+    expect((team.settings as TeamSettingsResponse | null)?.transcode?.threads).toBe(0)
   })
 
   it('should create team', async () => {
@@ -376,12 +378,13 @@ describe('TeamService', () => {
 
     await teamService.updateSettings(team.id, 'transcode.videoStrategy', 'all')
     await teamService.updateSettings(team.id, 'transcode.hardwareAcceleration', 'auto')
+    await teamService.updateSettings(team.id, 'transcode.threads', 4)
     await teamService.updateSettings(team.id, 'appearance.hideAgent', true)
 
     const finalSettings = await teamService.getSettings(team.id)
     expect(finalSettings).toEqual({
       theme: 'dark',
-      transcode: { videoStrategy: 'all', hardwareAcceleration: 'auto' },
+      transcode: { videoStrategy: 'all', hardwareAcceleration: 'auto', threads: 4 },
       appearance: { hideAgent: true },
       semanticSearchEnabled: false,
     })

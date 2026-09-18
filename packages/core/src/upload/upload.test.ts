@@ -195,6 +195,58 @@ describe('UploadService', () => {
       transcode: {
         videoStrategy: 'best_match',
         hardwareAcceleration: 'off',
+        threads: 0,
+        sprite: true,
+        poster: true,
+      },
+    })
+  })
+
+  it('should pass custom transcode.threads from team settings to transcode task', async () => {
+    await prisma.team.update({
+      where: { id: teamId },
+      data: {
+        settings: {
+          transcode: {
+            videoStrategy: 'all',
+            hardwareAcceleration: 'auto',
+            threads: 12,
+          },
+        },
+      },
+    })
+
+    const task = await prisma.task.create({
+      data: { creatorId: userId, total: 1, uploaded: 0, type: 'upload' },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'video-custom-threads.mp4',
+        type: AssetType.file,
+        project: { connect: { id: projectId } },
+        parent: { connect: { id: parentId } },
+        status: AssetStatus.uploading,
+        storageKey: {
+          connectOrCreate: {
+            where: { key: 'test-key-threads' },
+            create: { key: 'test-key-threads' },
+          },
+        },
+      },
+    })
+
+    await uploadService.confirmFileUpload(userId, task.id, { fileId: asset.id })
+
+    const workflowTask = await prisma.workflowTask.findFirst({
+      where: { assetId: asset.id, type: WorkflowTaskType.transcode_video },
+    })
+    expect(workflowTask).toBeDefined()
+    expect(workflowTask?.payload).toEqual({
+      projectId: projectId,
+      transcode: {
+        videoStrategy: 'all',
+        hardwareAcceleration: 'auto',
+        threads: 12,
         sprite: true,
         poster: true,
       },

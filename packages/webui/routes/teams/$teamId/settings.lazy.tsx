@@ -3,6 +3,7 @@ import {
   VideoTranscodeStrategy,
   HardwareAcceleration,
   UpdateTeamSettingsRequest,
+  TeamSettingsResponse,
 } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { AgentsSettings } from '@/ui/components/settings/AgentsSettings'
@@ -16,6 +17,7 @@ import { QuotasSettings } from '@/ui/components/settings/QuotasSettings'
 import { AppearanceSettings } from '@/ui/components/settings/AppearanceSettings'
 import { ImageVideoGenerationSettings } from '@/ui/components/settings/ImageVideoGenerationSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
+import { Slider } from '@/ui/components/ui/slider'
 import { cn } from '@/ui/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -309,6 +311,23 @@ function TeamSettingsPage() {
     })
   }
 
+  const [localThreads, setLocalThreads] = useState<number | null>(null)
+  const serverThreads = (settings as TeamSettingsResponse | undefined)?.transcode?.threads ?? 0
+
+  useEffect(() => {
+    setLocalThreads(null)
+  }, [serverThreads])
+
+  const handleThreadsChange = (value: number) => {
+    updateSettings({
+      teamId,
+      data: {
+        key: 'transcode.threads',
+        value,
+      },
+    })
+  }
+
   if (isSettingsLoading || isMeLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -333,6 +352,8 @@ function TeamSettingsPage() {
   const currentHardwareAcceleration =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (settings as any)?.transcode?.hardwareAcceleration || HardwareAcceleration.off
+
+  const currentThreads = localThreads ?? serverThreads
 
   return (
     <div className="h-full bg-background font-sans selection:bg-primary/20 transition-colors duration-300">
@@ -809,6 +830,41 @@ function TeamSettingsPage() {
                             <div className="text-sm text-muted-foreground">
                               {m.hardware_acceleration_auto_description()}
                             </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* FFmpeg Threads */}
+                      <div className="space-y-4 pt-6 border-t border-border">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-medium">{m.ffmpeg_threads()}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {m.ffmpeg_threads_description()}
+                            </p>
+                          </div>
+                          <span className="font-mono text-sm font-semibold px-2.5 py-1 rounded bg-muted text-foreground border border-border">
+                            {currentThreads === 0
+                              ? m.threads_auto()
+                              : m.threads_count({ count: currentThreads })}
+                          </span>
+                        </div>
+                        <div className="pt-2 px-1">
+                          <Slider
+                            value={[currentThreads]}
+                            min={0}
+                            max={32}
+                            step={1}
+                            onValueChange={([val]) => setLocalThreads(val)}
+                            onValueCommit={([val]) => {
+                              setLocalThreads(val)
+                              handleThreadsChange(val)
+                            }}
+                          />
+                          <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                            <span>{m.threads_auto()} (0)</span>
+                            <span>16</span>
+                            <span>32</span>
                           </div>
                         </div>
                       </div>

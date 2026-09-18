@@ -187,6 +187,7 @@ describe('transcodeVideoWorkflow', () => {
         transcode: {
           videoStrategy: 'best_match',
           hardwareAcceleration: 'auto',
+          threads: 8,
         },
       },
       createdAt: new Date(),
@@ -238,6 +239,7 @@ describe('transcodeVideoWorkflow', () => {
         filePath: '/tmp/video.mp4',
         hardwareAcceleration: 'auto',
         sourceVideoBitrate: 850000,
+        threads: 8,
       }),
     )
   })
@@ -252,7 +254,9 @@ describe('transcodeVideoWorkflow', () => {
       output: null,
       payload: {
         projectId: 'proj-1',
-        transcode: {},
+        transcode: {
+          threads: 4,
+        },
       },
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -303,6 +307,7 @@ describe('transcodeVideoWorkflow', () => {
     expect(mockActivities.transcodeAudioActivity).toHaveBeenCalledWith({
       assetKey: 'audio.wav',
       filePath: '/tmp/video.mp4',
+      threads: 4,
     })
 
     expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith({

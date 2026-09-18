@@ -29,6 +29,13 @@ export class VideoTranscoder {
     return this
   }
 
+  setThreads(threads?: number): this {
+    if (threads !== undefined) {
+      this.spec.threads = threads
+    }
+    return this
+  }
+
   withSprite(): this {
     this.spec.sprite = true
     return this

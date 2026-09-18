@@ -90,6 +90,10 @@ export const updateTeamSettingsRequestSchema = z.union([
     value: z.nativeEnum(HardwareAcceleration),
   }),
   z.object({
+    key: z.literal('transcode.threads'),
+    value: z.number().int().min(0).max(32),
+  }),
+  z.object({
     key: z.literal('appearance.hideAgent'),
     value: z.boolean(),
   }),
@@ -104,6 +108,7 @@ export interface TeamSettingsResponse {
   transcode?: {
     videoStrategy?: VideoTranscodeStrategy
     hardwareAcceleration?: HardwareAcceleration
+    threads?: number
   }
   appearance?: TeamAppearanceSettings
   semanticSearchEnabled?: boolean

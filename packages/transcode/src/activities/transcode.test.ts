@@ -606,6 +606,7 @@ describe('Transcode Activities', () => {
       originalFps: 30,
       hardwareAcceleration: 'auto',
       sourceVideoBitrate: 600_000,
+      threads: 8,
     })
 
     expect(transcodeService.transcodeVideo).toHaveBeenCalledWith(
@@ -613,6 +614,7 @@ describe('Transcode Activities', () => {
         inputFile: '/tmp/v.mp4',
         hardwareAcceleration: 'auto',
         sourceVideoBitrate: 600_000,
+        threads: 8,
       }),
     )
   })
@@ -1013,12 +1015,14 @@ describe('Transcode Activities', () => {
       const res = await transcodeAudioActivity({
         assetKey: 'files/proj-123/a.wav',
         filePath: '/tmp/a.wav',
+        threads: 4,
       })
 
       expect(transcodeService.transcodeAudio).toHaveBeenCalledWith({
         inputFile: '/tmp/a.wav',
         outputFile: expect.stringContaining('a-audio-proxy.mp4'),
         bitrate: '128k',
+        threads: 4,
       })
 
       expect(s3Service.putObject).toHaveBeenCalledWith(

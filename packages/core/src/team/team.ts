@@ -33,7 +33,7 @@ export class TeamService {
         data: {
           name: 'Default Team',
           settings: {
-            transcode: { videoStrategy: 'best_match', hardwareAcceleration: 'off' },
+            transcode: { videoStrategy: 'best_match', hardwareAcceleration: 'off', threads: 0 },
           },
           sandbox: { create: {} },
         },
@@ -332,6 +332,12 @@ export class TeamService {
         TeamSettingsResponse['transcode']
       >['hardwareAcceleration']
       delete settings['transcode.hardwareAcceleration']
+    } else if (key === 'transcode.threads') {
+      if (!settings.transcode) {
+        settings.transcode = {}
+      }
+      settings.transcode.threads = Number(value)
+      delete settings['transcode.threads']
     } else if (key === 'appearance.hideAgent') {
       if (!settings.appearance) {
         settings.appearance = {}

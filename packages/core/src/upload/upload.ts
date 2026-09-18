@@ -331,6 +331,7 @@ export class UploadService {
       })
     } else {
       const settings = team.settings as PrismaJson.Settings | null
+      const threads = settings?.transcode?.threads ?? 0
       if (isVideo) {
         const strategy = settings?.transcode?.videoStrategy || 'best_match'
         const hardwareAcceleration = settings?.transcode?.hardwareAcceleration || 'off'
@@ -338,12 +339,15 @@ export class UploadService {
         await new VideoTranscoder(tx as any, asset.id, team.id, projectId)
           .setStrategy(strategy)
           .setHardwareAcceleration(hardwareAcceleration)
+          .setThreads(threads)
           .withSprite()
           .withPoster()
           .submit()
       } else if (isAudio) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await new VideoTranscoder(tx as any, asset.id, team.id, projectId).submit()
+        await new VideoTranscoder(tx as any, asset.id, team.id, projectId)
+          .setThreads(threads)
+          .submit()
       } else if (isImage) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await new ImageTranscoder(tx as any, asset.id, team.id, projectId).withThumbnail().submit()

@@ -116,6 +116,7 @@ export interface TranscodeVideoParams {
   hardwareAcceleration?: 'off' | 'auto'
   videoBitrate?: string
   sourceVideoBitrate?: number
+  threads?: number
 }
 
 export interface EncoderConfig {
@@ -627,6 +628,10 @@ export class TranscodeService {
       args.push('-c:a', 'aac', '-b:a', '128k')
     }
 
+    if (params.threads && params.threads > 0) {
+      args.push('-threads', params.threads.toString())
+    }
+
     args.push('-movflags', '+faststart', '-max_muxing_queue_size', '1024', params.outputFile)
 
     await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
@@ -1084,20 +1089,14 @@ export class TranscodeService {
     inputFile: string
     outputFile: string
     bitrate?: string
+    threads?: number
   }): Promise<void> {
     const bitrate = params.bitrate || '128k'
-    const args = [
-      '-i',
-      params.inputFile,
-      '-vn',
-      '-c:a',
-      'aac',
-      '-b:a',
-      bitrate,
-      '-ac',
-      '2',
-      params.outputFile,
-    ]
+    const args = ['-i', params.inputFile, '-vn', '-c:a', 'aac', '-b:a', bitrate, '-ac', '2']
+    if (params.threads && params.threads > 0) {
+      args.push('-threads', params.threads.toString())
+    }
+    args.push(params.outputFile)
     await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
   }
 

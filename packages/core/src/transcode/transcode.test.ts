@@ -614,6 +614,76 @@ describe('TranscodeService', () => {
     )
   })
 
+  it('transcodeAudio should pass -threads when threads > 0', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(child_process.execFile as any).mockImplementation((file: string, args: string[], cb: any) => {
+      cb(null, { stdout: '', stderr: '' })
+    })
+
+    await transcodeService.transcodeAudio({
+      inputFile: 'input.wav',
+      outputFile: 'output.mp4',
+      bitrate: '128k',
+      threads: 4,
+    })
+
+    expect(child_process.execFile).toHaveBeenCalledWith(
+      'ffmpeg',
+      [
+        '-y',
+        '-loglevel',
+        'warning',
+        '-i',
+        'input.wav',
+        '-vn',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '128k',
+        '-ac',
+        '2',
+        '-threads',
+        '4',
+        'output.mp4',
+      ],
+      expect.any(Function),
+    )
+  })
+
+  it('transcodeAudio should omit -threads when threads is 0', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(child_process.execFile as any).mockImplementation((file: string, args: string[], cb: any) => {
+      cb(null, { stdout: '', stderr: '' })
+    })
+
+    await transcodeService.transcodeAudio({
+      inputFile: 'input.wav',
+      outputFile: 'output.mp4',
+      bitrate: '128k',
+      threads: 0,
+    })
+
+    expect(child_process.execFile).toHaveBeenCalledWith(
+      'ffmpeg',
+      [
+        '-y',
+        '-loglevel',
+        'warning',
+        '-i',
+        'input.wav',
+        '-vn',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '128k',
+        '-ac',
+        '2',
+        'output.mp4',
+      ],
+      expect.any(Function),
+    )
+  })
+
   it('should generate PDF sprite sheet and poster using pdftoppm, ffmpeg, and sharp', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(child_process.execFile as any).mockImplementation(
@@ -1635,6 +1705,74 @@ describe('TranscodeService', () => {
       expect(child_process.execFile).not.toHaveBeenCalledWith(
         'ffmpeg',
         expect.arrayContaining(['-maxrate']),
+        expect.any(Function),
+      )
+    })
+
+    it('transcodeVideo with threads > 0 should pass -threads to ffmpeg', async () => {
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const outputFile = path.join(tempDir, 'out_threads.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1280,
+        height: 720,
+        threads: 6,
+      })
+
+      expect(child_process.execFile).toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining(['-threads', '6']),
+        expect.any(Function),
+      )
+    })
+
+    it('transcodeVideo with threads 0 or undefined should omit -threads', async () => {
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const outputFile = path.join(tempDir, 'out_threads_0.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1280,
+        height: 720,
+        threads: 0,
+      })
+
+      expect(child_process.execFile).not.toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining(['-threads']),
         expect.any(Function),
       )
     })

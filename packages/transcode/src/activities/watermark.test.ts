@@ -352,6 +352,7 @@ describe('Watermark Activities', () => {
             transcode: {
               videoStrategy: 'best_match',
               hardwareAcceleration: 'auto',
+              threads: 6,
             },
           },
         },
@@ -398,6 +399,7 @@ describe('Watermark Activities', () => {
           hardwareAcceleration: 'auto',
           sourceVideoBitrate: 1800000,
           disableAudio: true,
+          threads: 6,
         }),
       )
 

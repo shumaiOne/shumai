@@ -223,6 +223,7 @@ export interface VideoActivityParams {
   originalFps: number
   hardwareAcceleration?: PrismaJson.HardwareAcceleration
   sourceVideoBitrate?: number
+  threads?: number
 }
 
 export async function transcodeVideoActivity(
@@ -267,6 +268,7 @@ export async function transcodeVideoActivity(
       disableAudio,
       hardwareAcceleration: params.hardwareAcceleration,
       sourceVideoBitrate: params.sourceVideoBitrate,
+      threads: params.threads,
     })
 
     const stat = fs.statSync(outputFile)
@@ -302,6 +304,7 @@ export async function transcodeVideoActivity(
 export interface AudioActivityParams {
   assetKey: string
   filePath: string
+  threads?: number
 }
 
 export async function transcodeAudioActivity(
@@ -326,6 +329,7 @@ export async function transcodeAudioActivity(
       inputFile: params.filePath,
       outputFile,
       bitrate: '128k',
+      threads: params.threads,
     })
 
     const stat = fs.statSync(outputFile)

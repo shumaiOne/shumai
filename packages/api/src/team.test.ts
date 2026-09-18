@@ -260,6 +260,44 @@ describe('team api', () => {
     expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'transcode.hardwareAcceleration', 'auto')
   })
 
+  it('PATCH /teams/:teamId/settings updates transcode.threads', async () => {
+    mockUpdateSettings.mockResolvedValue({ transcode: { threads: 8 } })
+
+    const res = await app.request('/teams/t1/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'transcode.threads', value: 8 }),
+    })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.transcode.threads).toBe(8)
+    expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'transcode.threads', 8)
+  })
+
+  it('PATCH /teams/:teamId/settings rejects invalid transcode.threads', async () => {
+    const resNegative = await app.request('/teams/t1/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'transcode.threads', value: -1 }),
+    })
+    expect(resNegative.status).toBe(400)
+
+    const resTooLarge = await app.request('/teams/t1/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'transcode.threads', value: 33 }),
+    })
+    expect(resTooLarge.status).toBe(400)
+
+    const resFloat = await app.request('/teams/t1/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'transcode.threads', value: 4.5 }),
+    })
+    expect(resFloat.status).toBe(400)
+  })
+
   it('PATCH /teams/:teamId/settings updates appearance.hideAgent', async () => {
     mockUpdateSettings.mockResolvedValue({ appearance: { hideAgent: true } })
 

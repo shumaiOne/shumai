@@ -150,6 +150,7 @@ export async function transcodeWatermarkMediaActivity(
 
   const teamSettings = asset.project?.team?.settings as PrismaJson.Settings | null
   const hardwareAcceleration = teamSettings?.transcode?.hardwareAcceleration ?? 'off'
+  const threads = teamSettings?.transcode?.threads ?? 0
 
   // The config column is declared as PrismaJson.WatermarkConfigSpec, which is
   // structurally identical to the DTO type, so no cast is required.
@@ -338,6 +339,7 @@ export async function transcodeWatermarkMediaActivity(
           overlayFile: overlayPngPath,
           hardwareAcceleration,
           sourceVideoBitrate,
+          threads,
         })
 
         const stat = fs.statSync(outFilePath)

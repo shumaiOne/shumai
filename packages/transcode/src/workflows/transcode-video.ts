@@ -105,6 +105,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
           originalFps: metadata.frameRate,
           hardwareAcceleration: spec.hardwareAcceleration,
           sourceVideoBitrate: metadata.videoBitRate || metadata.bitRate,
+          threads: spec.threads,
         })
 
         if (res === '180p') {
@@ -120,6 +121,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       const audioTranscode = await executeActivity(workerQueue, transcodeAudioActivity, {
         assetKey: key,
         filePath,
+        threads: spec.threads,
       })
       mediaInfo.videoTranscodes.push(audioTranscode)
     }

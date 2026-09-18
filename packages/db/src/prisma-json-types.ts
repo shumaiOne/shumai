@@ -59,6 +59,7 @@ declare global {
     export interface TranscodeSettings {
       videoStrategy: VideoTranscodeStrategy
       hardwareAcceleration?: HardwareAcceleration
+      threads?: number
     }
 
     export interface MediaProviderConfig {
@@ -314,6 +315,7 @@ declare global {
     export interface TaskSpec {
       videoStrategy?: VideoTranscodeStrategy
       hardwareAcceleration?: HardwareAcceleration
+      threads?: number
       thumbnail?: boolean
       sprite?: boolean
       poster?: boolean
