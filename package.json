@@ -38,7 +38,8 @@
     "release:local": "bun run scripts/release-local.ts",
     "release:patch": "bun run scripts/release.ts patch",
     "release:minor": "bun run scripts/release.ts minor",
-    "release:major": "bun run scripts/release.ts major"
+    "release:major": "bun run scripts/release.ts major",
+    "changelog:extract": "bun run scripts/extract-changelog.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

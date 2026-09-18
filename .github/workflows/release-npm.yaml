@@ -68,18 +68,42 @@ jobs:
       - name: Build NPM packages
         run: bun run build-npm
 
+      - name: Generate release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CHANGELOG_NOTES=$(bun run scripts/extract-changelog.ts "${{ env.RELEASE_TAG }}" 2>/dev/null || true)
+          PR_NOTES=$(gh api "repos/${{ github.repository }}/releases/generate-notes" -f tag_name="${{ env.RELEASE_TAG }}" --jq .body 2>/dev/null || true)
+
+          {
+            if [ -n "$CHANGELOG_NOTES" ]; then
+              echo "$CHANGELOG_NOTES"
+              echo ""
+              echo "---"
+              echo ""
+            fi
+            if [ -n "$PR_NOTES" ]; then
+              echo "$PR_NOTES"
+            fi
+          } > /tmp/release-notes.md
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          if [ ! -s /tmp/release-notes.md ]; then
+            NOTES_FLAG="--generate-notes"
+          else
+            NOTES_FLAG="--notes-file /tmp/release-notes.md"
+          fi
           if gh release view "${{ env.RELEASE_TAG }}" >/dev/null 2>&1; then
             gh release edit "${{ env.RELEASE_TAG }}" \
               --title "${{ env.RELEASE_TAG }}" \
-              --generate-notes
+              $NOTES_FLAG
           else
             gh release create "${{ env.RELEASE_TAG }}" \
               --title "${{ env.RELEASE_TAG }}" \
-              --generate-notes
+              $NOTES_FLAG
           fi
 
       - name: Upgrade npm for trusted publishing

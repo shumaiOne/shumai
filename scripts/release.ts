@@ -99,6 +99,45 @@ function updateVersions(newVersion: string) {
   }
 }
 
+function updateChangelog(newVersion: string) {
+  const changelogFile = 'CHANGELOG.md'
+  if (!existsSync(changelogFile)) {
+    return
+  }
+
+  const content = readFileSync(changelogFile, 'utf-8')
+  if (content.includes(`## [${newVersion}]`) || content.includes(`## [v${newVersion}]`)) {
+    console.log(`  Changelog already contains ## [${newVersion}], skipping update`)
+    return
+  }
+
+  const unreleasedRegex = /^## \[Unreleased\]/m
+  if (!unreleasedRegex.test(content)) {
+    console.warn('  Warning: No ## [Unreleased] header found in CHANGELOG.md')
+    return
+  }
+
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const dateStr = `${year}-${month}-${day}`
+
+  const replacement = `## [Unreleased]
+
+### Added
+
+### Fixed
+
+### Changed
+
+## [${newVersion}] - ${dateStr}`
+
+  const updatedContent = content.replace(unreleasedRegex, replacement)
+  writeFileSync(changelogFile, updatedContent, 'utf-8')
+  console.log(`  Updated ${changelogFile} for v${newVersion} (${dateStr})`)
+}
+
 function shellQuote(value: string) {
   return `'${value.replace(/'/g, `'\\''`)}'`
 }
@@ -151,6 +190,7 @@ if (bumpTypes.has(releaseTarget)) {
 
 console.log(`Bumping version from ${currentVersion} to ${newVersion}...`)
 updateVersions(newVersion)
+updateChangelog(newVersion)
 console.log()
 
 // 3. Update bun.lock
