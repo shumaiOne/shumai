@@ -90,4 +90,13 @@ describe('Task Activities', () => {
     expect(updated?.outputTokens).toBe(200)
     expect(updated?.model).toBe('gpt-4o')
   })
+
+  it('should not throw error when updating status of a non-existent or purged task', async () => {
+    await expect(
+      updateTaskStatusActivity({
+        taskId: 'non-existent-task-id',
+        status: WorkflowTaskStatus.failed,
+      }),
+    ).resolves.not.toThrow()
+  })
 })

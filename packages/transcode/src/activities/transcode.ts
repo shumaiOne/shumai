@@ -12,7 +12,16 @@ import {
   isMarkdownDocument,
   isOfficeDocument,
 } from '@shumai/core/src/utils/mime'
-import { ApplicationFailure } from '@temporalio/activity'
+import { ApplicationFailure, Context } from '@temporalio/activity'
+import { getLocalTaskAbortSignal } from '@shumai/workflow-core'
+
+function getActivityCancellationSignal(taskId?: string): AbortSignal | undefined {
+  try {
+    return Context.current().cancellationSignal
+  } catch {
+    return getLocalTaskAbortSignal(taskId)
+  }
+}
 import * as path from 'path'
 import * as fs from 'fs'
 import * as os from 'os'
@@ -234,6 +243,7 @@ export async function getMediaInfoActivity(params: {
 }
 
 export interface VideoActivityParams {
+  taskId?: string
   assetKey: string
   filePath: string
   videoSpec: PrismaJson.VideoTranscode
@@ -251,6 +261,14 @@ export async function transcodeVideoActivity(
   const stem = stemFromKey(params.assetKey)
   const res = params.videoSpec.resolution || `${params.videoSpec.height}p`
   const key = path.posix.join(path.posix.dirname(params.assetKey), `${stem}-${res}.mp4`)
+
+  const signal = getActivityCancellationSignal(params.taskId)
+  if (signal?.aborted) {
+    throw ApplicationFailure.create({
+      message: 'Video transcoding cancelled',
+      nonRetryable: true,
+    })
+  }
 
   try {
     await s3Service.headObject(bucket, key)
@@ -287,6 +305,7 @@ export async function transcodeVideoActivity(
       hardwareAcceleration: params.hardwareAcceleration,
       sourceVideoBitrate: params.sourceVideoBitrate,
       threads: params.threads,
+      signal,
     })
 
     const stat = fs.statSync(outputFile)
@@ -298,6 +317,19 @@ export async function transcodeVideoActivity(
   } catch (err) {
     const { code, message } = getErrorDetails(err)
     const lowerMsg = message.toLowerCase()
+
+    if (
+      signal?.aborted ||
+      code === 'ABORT_ERR' ||
+      message.includes('aborted') ||
+      lowerMsg.includes('abort')
+    ) {
+      throw ApplicationFailure.create({
+        message: 'Video transcoding cancelled',
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
 
     if (
       code === 'ENOENT' ||
@@ -321,6 +353,7 @@ export async function transcodeVideoActivity(
 }
 
 export interface AudioActivityParams {
+  taskId?: string
   assetKey: string
   filePath: string
   threads?: number
@@ -332,6 +365,14 @@ export async function transcodeAudioActivity(
   const bucket = process.env.S3_BUCKET || 'shumai'
   const stem = stemFromKey(params.assetKey)
   const key = path.posix.join(path.posix.dirname(params.assetKey), `${stem}-audio-proxy.mp4`)
+
+  const signal = getActivityCancellationSignal(params.taskId)
+  if (signal?.aborted) {
+    throw ApplicationFailure.create({
+      message: 'Audio transcoding cancelled',
+      nonRetryable: true,
+    })
+  }
 
   try {
     await s3Service.headObject(bucket, key)
@@ -349,6 +390,7 @@ export async function transcodeAudioActivity(
       outputFile,
       bitrate: '128k',
       threads: params.threads,
+      signal,
     })
 
     const stat = fs.statSync(outputFile)
@@ -360,6 +402,19 @@ export async function transcodeAudioActivity(
   } catch (err) {
     const { code, message } = getErrorDetails(err)
     const lowerMsg = message.toLowerCase()
+
+    if (
+      signal?.aborted ||
+      code === 'ABORT_ERR' ||
+      message.includes('aborted') ||
+      lowerMsg.includes('abort')
+    ) {
+      throw ApplicationFailure.create({
+        message: 'Audio transcoding cancelled',
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
 
     if (
       code === 'ENOENT' ||
@@ -451,6 +506,7 @@ export async function transcodeImageActivity(
 }
 
 export interface GenerateSpriteActivityParams {
+  taskId?: string
   assetKey: string
   filePath: string
   mediaInfo: PrismaJson.MediaInfo
@@ -460,6 +516,14 @@ export interface GenerateSpriteActivityParams {
 
 export async function generateSpriteActivity(params: GenerateSpriteActivityParams) {
   const bucket = process.env.S3_BUCKET || 'shumai'
+  const signal = getActivityCancellationSignal(params.taskId)
+  if (signal?.aborted) {
+    throw ApplicationFailure.create({
+      message: 'Sprite/Poster generation cancelled',
+      nonRetryable: true,
+    })
+  }
+
   try {
     await s3Service.headObject(bucket, params.spriteSpec.key)
     await s3Service.headObject(bucket, params.posterSpec.key)
@@ -478,6 +542,7 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
         params.filePath,
         spriteFile,
         posterFile,
+        signal,
       )
       if (params.mediaInfo && params.mediaInfo.metadata) {
         params.mediaInfo.metadata.totalFrames = pdfRes.pageCount
@@ -491,6 +556,7 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
         spriteFile,
         posterFile,
         params.mediaInfo.duration,
+        signal,
       )
     }
 
@@ -517,6 +583,19 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
   } catch (err) {
     const { code, message } = getErrorDetails(err)
     const lowerMsg = message.toLowerCase()
+
+    if (
+      signal?.aborted ||
+      code === 'ABORT_ERR' ||
+      message.includes('aborted') ||
+      lowerMsg.includes('abort')
+    ) {
+      throw ApplicationFailure.create({
+        message: 'Sprite/Poster generation cancelled',
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
 
     if (
       code === 'ENOENT' ||
@@ -710,6 +789,7 @@ export async function updateAssetMediaActivity(params: UpdateAssetMediaActivityP
 }
 
 export async function takeScreenshotsActivity(params: {
+  taskId?: string
   assetKey: string
   assetId: string
   start: number
@@ -718,11 +798,33 @@ export async function takeScreenshotsActivity(params: {
   commentTimestamp?: number | null
   annotations?: PrismaJson.AnnotationList | null
 }): Promise<Array<{ key: string; timestamp: number }>> {
+  const signal = getActivityCancellationSignal(params.taskId)
+  if (signal?.aborted) {
+    throw ApplicationFailure.create({
+      message: 'Screenshot extraction cancelled',
+      nonRetryable: true,
+    })
+  }
+
   try {
-    return await transcodeService.takeScreenshots(params)
+    return await transcodeService.takeScreenshots({ ...params, signal })
   } catch (err) {
     const { code, message } = getErrorDetails(err)
     const lowerMsg = message.toLowerCase()
+
+    if (
+      signal?.aborted ||
+      code === 'ABORT_ERR' ||
+      message.includes('aborted') ||
+      lowerMsg.includes('abort')
+    ) {
+      throw ApplicationFailure.create({
+        message: 'Screenshot extraction cancelled',
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+
     if (
       code === 'ENOENT' ||
       lowerMsg.includes('enoent') ||
@@ -843,6 +945,7 @@ export async function overlayAnnotationsActivity(params: {
 }
 
 export async function renderPdfPagesActivity(params: {
+  taskId?: string
   assetKey: string
   assetId: string
   start: number
@@ -850,11 +953,33 @@ export async function renderPdfPagesActivity(params: {
   commentTimestamp?: number | null
   annotations?: PrismaJson.AnnotationList | null
 }): Promise<Array<{ key: string; page: number }>> {
+  const signal = getActivityCancellationSignal(params.taskId)
+  if (signal?.aborted) {
+    throw ApplicationFailure.create({
+      message: 'PDF page rendering cancelled',
+      nonRetryable: true,
+    })
+  }
+
   try {
-    return await transcodeService.renderPdfPages(params)
+    return await transcodeService.renderPdfPages({ ...params, signal })
   } catch (err) {
     const { code, message } = getErrorDetails(err)
     const lowerMsg = message.toLowerCase()
+
+    if (
+      signal?.aborted ||
+      code === 'ABORT_ERR' ||
+      message.includes('aborted') ||
+      lowerMsg.includes('abort')
+    ) {
+      throw ApplicationFailure.create({
+        message: 'PDF page rendering cancelled',
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+
     if (
       code === 'ENOENT' ||
       lowerMsg.includes('enoent') ||

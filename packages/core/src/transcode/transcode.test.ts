@@ -1776,5 +1776,41 @@ describe('TranscodeService', () => {
         expect.any(Function),
       )
     })
+
+    it('transcodeVideo with signal should pass signal to execFile', async () => {
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          optionsOrCallback: unknown,
+          maybeCallback?: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = (
+            typeof optionsOrCallback === 'function' ? optionsOrCallback : maybeCallback
+          ) as (err: Error | null, result: { stdout: string; stderr: string }) => void
+          if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const controller = new AbortController()
+      const outputFile = path.join(tempDir, 'out_signal.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1280,
+        height: 720,
+        signal: controller.signal,
+      })
+
+      expect(child_process.execFile).toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.any(Array),
+        { signal: controller.signal },
+        expect.any(Function),
+      )
+    })
   })
 })

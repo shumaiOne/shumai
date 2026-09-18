@@ -70,7 +70,7 @@ export interface UpdateTaskStatusParams {
 }
 
 export async function updateTaskStatusActivity(params: UpdateTaskStatusParams): Promise<void> {
-  await prisma.workflowTask.update({
+  await prisma.workflowTask.updateMany({
     where: { id: params.taskId },
     data: {
       status: params.status,
@@ -99,7 +99,7 @@ export interface UpdateTaskUsageParams {
 }
 
 export async function updateTaskUsageActivity(params: UpdateTaskUsageParams): Promise<void> {
-  await prisma.workflowTask.update({
+  await prisma.workflowTask.updateMany({
     where: { id: params.taskId },
     data: {
       inputTokens: params.inputTokens,
@@ -120,7 +120,7 @@ export interface UpdateWorkflowTaskParams {
 }
 
 export async function updateWorkflowTaskActivity(params: UpdateWorkflowTaskParams): Promise<void> {
-  await prisma.workflowTask.update({
+  await prisma.workflowTask.updateMany({
     where: { id: params.taskId },
     data: {
       ...(params.status !== undefined ? { status: params.status } : {}),

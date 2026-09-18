@@ -33,6 +33,7 @@ export async function takeVideoScreenshotsWorkflow(task: WorkflowTask): Promise<
     const { takeScreenshotsActivity } = getActivities()
 
     const screenshots = await executeActivity(workerQueue, takeScreenshotsActivity, {
+      taskId: task.id,
       assetKey: targetKey,
       assetId: asset.id,
       start: payload.screenshot.start,

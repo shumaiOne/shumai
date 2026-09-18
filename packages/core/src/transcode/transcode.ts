@@ -117,6 +117,7 @@ export interface TranscodeVideoParams {
   videoBitrate?: string
   sourceVideoBitrate?: number
   threads?: number
+  signal?: AbortSignal
 }
 
 export interface EncoderConfig {
@@ -634,7 +635,13 @@ export class TranscodeService {
 
     args.push('-movflags', '+faststart', '-max_muxing_queue_size', '1024', params.outputFile)
 
-    await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    if (params.signal) {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], {
+        signal: params.signal,
+      })
+    } else {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    }
   }
 
   async transcodeImage(
@@ -741,6 +748,7 @@ export class TranscodeService {
     outputSprite: string,
     outputPoster: string,
     duration: number,
+    signal?: AbortSignal,
   ): Promise<void> {
     const spriteFps = 100 / duration
     const filterComplex = `[0:v]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out];[0:v]scale=-2:300:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
@@ -771,19 +779,30 @@ export class TranscodeService {
       '1024',
       outputPoster,
     ]
-    await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    if (signal) {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], { signal })
+    } else {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    }
   }
 
   async generatePdfSprite(
     inputFile: string,
     outputSprite: string,
     outputPoster: string,
+    signal?: AbortSignal,
   ): Promise<{ pageCount: number; originalWidth: number; originalHeight: number }> {
     const tmpDir = this.createTempDir('pdf-sprite-')
     try {
       const pagePrefix = path.join(tmpDir, 'page')
       try {
-        await execFileAsync('pdftoppm', ['-png', '-f', '1', '-l', '100', inputFile, pagePrefix])
+        if (signal) {
+          await execFileAsync('pdftoppm', ['-png', '-f', '1', '-l', '100', inputFile, pagePrefix], {
+            signal,
+          })
+        } else {
+          await execFileAsync('pdftoppm', ['-png', '-f', '1', '-l', '100', inputFile, pagePrefix])
+        }
       } catch (err) {
         const errCode = (err as Record<string, unknown>)?.code
         const msg = err instanceof Error ? err.message : String(err)
@@ -840,7 +859,11 @@ export class TranscodeService {
         '75',
         outputSprite,
       ]
-      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...spriteArgs])
+      if (signal) {
+        await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...spriteArgs], { signal })
+      } else {
+        await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...spriteArgs])
+      }
 
       await sharp(firstPagePath, { limitInputPixels: false })
         .toColorspace('srgb')
@@ -1090,6 +1113,7 @@ export class TranscodeService {
     outputFile: string
     bitrate?: string
     threads?: number
+    signal?: AbortSignal
   }): Promise<void> {
     const bitrate = params.bitrate || '128k'
     const args = ['-i', params.inputFile, '-vn', '-c:a', 'aac', '-b:a', bitrate, '-ac', '2']
@@ -1097,7 +1121,13 @@ export class TranscodeService {
       args.push('-threads', params.threads.toString())
     }
     args.push(params.outputFile)
-    await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    if (params.signal) {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], {
+        signal: params.signal,
+      })
+    } else {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    }
   }
 
   async extractVideoFrames(params: ExtractVideoFramesParams): Promise<string[]> {
@@ -1198,6 +1228,7 @@ export class TranscodeService {
     count: number
     commentTimestamp?: number | null
     annotations?: PrismaJson.AnnotationList | null
+    signal?: AbortSignal
   }): Promise<Array<{ key: string; timestamp: number }>> {
     const bucket = process.env.S3_BUCKET || 'shumai'
     const tmpDir = this.createTempDir('screenshot-')
@@ -1259,7 +1290,13 @@ export class TranscodeService {
           '80',
           localShotPath,
         ]
-        await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+        if (params.signal) {
+          await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], {
+            signal: params.signal,
+          })
+        } else {
+          await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+        }
 
         const isMatch =
           commentTimestamp !== undefined &&
@@ -1295,6 +1332,7 @@ export class TranscodeService {
     end: number
     commentTimestamp?: number | null
     annotations?: PrismaJson.AnnotationList | null
+    signal?: AbortSignal
   }): Promise<Array<{ key: string; page: number }>> {
     const bucket = process.env.S3_BUCKET || 'shumai'
     const tmpDir = this.createTempDir('pdf-pages-')
@@ -1307,7 +1345,7 @@ export class TranscodeService {
       // 2. Render pages via pdftoppm (-png -f start -l end)
       const pagePrefix = path.join(tmpDir, 'page')
       try {
-        await execFileAsync('pdftoppm', [
+        const pdftoppmArgs = [
           '-png',
           '-f',
           params.start.toString(),
@@ -1315,7 +1353,12 @@ export class TranscodeService {
           params.end.toString(),
           pdfPath,
           pagePrefix,
-        ])
+        ]
+        if (params.signal) {
+          await execFileAsync('pdftoppm', pdftoppmArgs, { signal: params.signal })
+        } else {
+          await execFileAsync('pdftoppm', pdftoppmArgs)
+        }
       } catch (err) {
         const errCode = (err as Record<string, unknown>)?.code
         const msg = err instanceof Error ? err.message : String(err)

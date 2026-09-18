@@ -476,5 +476,35 @@ describe('LocalExecutor Integration Tests', () => {
       resolveChat(undefined)
       await new Promise((resolve) => setTimeout(resolve, 50))
     })
+
+    it('aborts local task abort signal when task is cancelled', async () => {
+      const { getLocalTaskAbortSignal } = await import('./workflow-utils')
+      let resolveChat: (value: unknown) => void = () => {}
+      const chatPromise = new Promise((resolve) => {
+        resolveChat = resolve
+      })
+      mocks.agentChat.mockImplementationOnce(() => chatPromise)
+
+      const task = await prisma.workflowTask.create({
+        data: {
+          assetId: 'test-asset-abort-signal',
+          type: WorkflowTaskType.chat,
+          status: WorkflowTaskStatus.pending,
+        },
+      })
+
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      const signal = getLocalTaskAbortSignal(task.id)
+      expect(signal).toBeDefined()
+      expect(signal?.aborted).toBe(false)
+
+      await executor.cancel(task.id)
+
+      expect(signal?.aborted).toBe(true)
+
+      resolveChat(undefined)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    })
   })
 })

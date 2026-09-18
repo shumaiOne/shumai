@@ -784,6 +784,26 @@ describe('Transcode Activities', () => {
       ).rejects.toThrowError(/Video transcoding failed/)
     })
 
+    it('should throw non-retryable ApplicationFailure when transcodeVideoActivity is cancelled', async () => {
+      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+      const abortError = new Error('The operation was aborted')
+      abortError.name = 'AbortError'
+      vi.mocked(transcodeService.transcodeVideo).mockRejectedValue(abortError)
+
+      const promise = transcodeVideoActivity({
+        assetKey: 'v.mp4',
+        filePath: '/tmp/v.mp4',
+        videoSpec: { resolution: '720p', width: 1280, height: 720 },
+        duration: 10,
+        originalFps: 30,
+      })
+
+      await expect(promise).rejects.toThrowError(/Video transcoding cancelled/)
+      await expect(promise).rejects.toMatchObject({
+        nonRetryable: true,
+      })
+    })
+
     it('should throw non-retryable ApplicationFailure when transcodeImageActivity fails with sharp error', async () => {
       vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
       vi.mocked(transcodeService.transcodeImage).mockRejectedValue(new Error('sharp failed'))

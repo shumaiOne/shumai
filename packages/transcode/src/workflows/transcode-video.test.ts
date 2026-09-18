@@ -304,11 +304,13 @@ describe('transcodeVideoWorkflow', () => {
 
     await transcodeVideoWorkflow(task)
 
-    expect(mockActivities.transcodeAudioActivity).toHaveBeenCalledWith({
-      assetKey: 'audio.wav',
-      filePath: '/tmp/video.mp4',
-      threads: 4,
-    })
+    expect(mockActivities.transcodeAudioActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetKey: 'audio.wav',
+        filePath: '/tmp/video.mp4',
+        threads: 4,
+      }),
+    )
 
     expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith({
       assetId: 'asset-audio',

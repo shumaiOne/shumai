@@ -87,6 +87,7 @@ describe('takeVideoScreenshotsWorkflow', () => {
     await takeVideoScreenshotsWorkflow(task)
 
     expect(mockActivities.takeScreenshotsActivity).toHaveBeenCalledWith({
+      taskId: 'task-screenshot',
       assetKey: 'video.mp4',
       assetId: 'asset-video',
       start: 0,
@@ -157,6 +158,7 @@ describe('takeVideoScreenshotsWorkflow', () => {
     await takeVideoScreenshotsWorkflow(task)
 
     expect(mockActivities.takeScreenshotsActivity).toHaveBeenCalledWith({
+      taskId: 'task-screenshot-proxy',
       assetKey: 'proxy-1080p.mp4',
       assetId: 'asset-video-proxy',
       start: 1.2345,

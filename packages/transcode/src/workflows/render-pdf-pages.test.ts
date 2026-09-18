@@ -88,6 +88,7 @@ describe('renderPdfPagesWorkflow', () => {
     await renderPdfPagesWorkflow(task)
 
     expect(mockActivities.renderPdfPagesActivity).toHaveBeenCalledWith({
+      taskId: 'task-pdf-pages',
       assetKey: 'doc.pdf',
       assetId: 'asset-pdf',
       start: 1,
