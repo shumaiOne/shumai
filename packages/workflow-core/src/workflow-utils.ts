@@ -159,14 +159,6 @@ export async function executeActivity(
   logger.debug({ queue, activityName }, `Executing activity ${activityName} on queue ${queue}`)
 
   try {
-    const cancelSignal = getLocalTaskAbortSignal()
-    if (cancelSignal?.aborted) {
-      throw wf.ApplicationFailure.create({
-        message: `Activity ${activityName} cancelled: workflow task was aborted`,
-        nonRetryable: true,
-      })
-    }
-
     // result holds the untyped return value from the dynamic activity proxy, so we type it as any.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any
