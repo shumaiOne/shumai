@@ -746,7 +746,7 @@ function TeamSettingsPage() {
               )}
 
               {activeTab === 'transcode' && (
-                <div className="h-full overflow-y-auto pr-1">
+                <div className="h-full overflow-y-auto pr-1 pb-8">
                   <Card>
                     <CardHeader>
                       <CardTitle>{m.transcode_settings()}</CardTitle>
