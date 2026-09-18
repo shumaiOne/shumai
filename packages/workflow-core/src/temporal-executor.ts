@@ -1,5 +1,6 @@
 import { Connection, Client } from '@temporalio/client'
-import { WorkflowTask, WorkflowTaskType } from '@shumai/db'
+import { prisma, WorkflowTask, WorkflowTaskType } from '@shumai/db'
+import { logger } from '@shumai/core/src/logger'
 import { Executor } from './executor'
 import { TaskQueueAgent, TaskQueueTranscode } from './workflow-utils'
 
@@ -80,9 +81,18 @@ export class TemporalExecutor implements Executor {
 
   async cancel(taskId: string): Promise<void> {
     const client = await this.getClient()
-    const workflowId = `chat-${taskId}`
-    const handle = client.workflow.getHandle(workflowId)
-    await handle.cancel()
+    const task = await prisma.workflowTask.findUnique({
+      where: { id: taskId },
+      select: { type: true },
+    })
+    const workflowId = task?.type ? `${task.type}-${taskId}` : `chat-${taskId}`
+    try {
+      const handle = client.workflow.getHandle(workflowId)
+      await handle.cancel()
+      logger.info({ taskId, workflowId }, '[TemporalExecutor] Cancelled workflow task')
+    } catch (err) {
+      logger.warn({ taskId, workflowId, err }, '[TemporalExecutor] Failed to cancel workflow task')
+    }
   }
 
   start(): void {

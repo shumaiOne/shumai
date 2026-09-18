@@ -72,6 +72,7 @@ export class ConcurrencyLimiter {
 export class LocalExecutor implements Executor {
   private interval: Timer | null = null
   private processingTasks = new Set<string>()
+  private heartbeatIntervals = new Map<string, Timer>()
 
   private transcodeLimiter: ConcurrencyLimiter
   private generalLimiter: ConcurrencyLimiter
@@ -135,14 +136,23 @@ export class LocalExecutor implements Executor {
         // 2. Start heartbeat updater immediately
         const heartbeatInterval = setInterval(async () => {
           try {
-            await prisma.workflowTask.update({
+            const { count } = await prisma.workflowTask.updateMany({
               where: { id: task.id },
               data: { heartbeat: new Date() },
             })
+            if (count === 0) {
+              clearInterval(heartbeatInterval)
+              this.heartbeatIntervals.delete(task.id)
+              logger.debug(
+                { taskId: task.id },
+                '[LocalExecutor] Stopped heartbeat for deleted or cancelled task',
+              )
+            }
           } catch (err) {
             console.error(`[LocalExecutor] Failed to update heartbeat for task ${task.id}:`, err)
           }
         }, 5000)
+        this.heartbeatIntervals.set(task.id, heartbeatInterval)
 
         const limiter =
           task.type && task.type.startsWith('transcode')
@@ -156,6 +166,7 @@ export class LocalExecutor implements Executor {
             } finally {
               // 3. Clean up the heartbeat updater and processing set when the task finishes
               clearInterval(heartbeatInterval)
+              this.heartbeatIntervals.delete(task.id)
               this.processingTasks.delete(task.id)
             }
           })
@@ -168,7 +179,13 @@ export class LocalExecutor implements Executor {
   }
 
   async cancel(taskId: string): Promise<void> {
+    const timer = this.heartbeatIntervals.get(taskId)
+    if (timer) {
+      clearInterval(timer)
+      this.heartbeatIntervals.delete(taskId)
+    }
     triggerLocalCancel(taskId)
+    logger.info({ taskId }, '[LocalExecutor] Cancelled workflow task')
   }
 
   start(): void {
@@ -181,6 +198,10 @@ export class LocalExecutor implements Executor {
       clearInterval(this.interval)
       this.interval = null
     }
+    for (const timer of this.heartbeatIntervals.values()) {
+      clearInterval(timer)
+    }
+    this.heartbeatIntervals.clear()
   }
 
   // Returns the array of task promises so tests can await them to avoid early rollback.
@@ -239,14 +260,23 @@ export class LocalExecutor implements Executor {
         // even while the task is queued waiting for limiter capacity.
         const heartbeatInterval = setInterval(async () => {
           try {
-            await prisma.workflowTask.update({
+            const { count } = await prisma.workflowTask.updateMany({
               where: { id: task.id },
               data: { heartbeat: new Date() },
             })
+            if (count === 0) {
+              clearInterval(heartbeatInterval)
+              this.heartbeatIntervals.delete(task.id)
+              logger.debug(
+                { taskId: task.id },
+                '[LocalExecutor] Stopped heartbeat for deleted or cancelled task',
+              )
+            }
           } catch (err) {
             console.error(`[LocalExecutor] Failed to update heartbeat for task ${task.id}:`, err)
           }
         }, 5000)
+        this.heartbeatIntervals.set(task.id, heartbeatInterval)
 
         const limiter =
           task.type && task.type.startsWith('transcode')
@@ -260,6 +290,7 @@ export class LocalExecutor implements Executor {
             } finally {
               // 3. Clean up the heartbeat updater and processing set when the task finishes
               clearInterval(heartbeatInterval)
+              this.heartbeatIntervals.delete(task.id)
               this.processingTasks.delete(task.id)
             }
           })
@@ -285,7 +316,7 @@ export class LocalExecutor implements Executor {
     } catch (err) {
       console.error(`Error in workflow ${task.type} for task ${task.id}:`, err)
       try {
-        await prisma.workflowTask.update({
+        await prisma.workflowTask.updateMany({
           where: { id: task.id },
           data: {
             status: WorkflowTaskStatus.failed,

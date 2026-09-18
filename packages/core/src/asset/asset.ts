@@ -1380,6 +1380,7 @@ export class AssetService {
 
       for (const task of inFlightTasks) {
         try {
+          logger.info({ taskId: task.id }, 'Cancelling in-flight workflow task for purging asset')
           await cancelWorkflowTask(task.id)
         } catch (err) {
           logger.warn({ taskId: task.id, err }, 'Failed to cancel workflow task during purge')
@@ -1477,6 +1478,7 @@ export class AssetService {
 
       for (const task of inFlightTasks) {
         try {
+          logger.info({ taskId: task.id }, 'Cancelling in-flight workflow task before purge')
           await cancelWorkflowTask(task.id)
         } catch (err) {
           logger.warn({ taskId: task.id, err }, 'Failed to cancel workflow task during purge')

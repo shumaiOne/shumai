@@ -413,5 +413,68 @@ describe('LocalExecutor Integration Tests', () => {
 
       unregisterLocalCancelHandler(taskId)
     })
+
+    it('clears active heartbeat timer when cancelling a task', async () => {
+      let resolveChat: (value: unknown) => void = () => {}
+      const chatPromise = new Promise((resolve) => {
+        resolveChat = resolve
+      })
+      mocks.agentChat.mockImplementationOnce(() => chatPromise)
+
+      const task = await prisma.workflowTask.create({
+        data: {
+          assetId: 'test-asset-cancel',
+          type: WorkflowTaskType.chat,
+          status: WorkflowTaskStatus.pending,
+        },
+      })
+
+      // Wait briefly for submit to start and establish heartbeat
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      // Heartbeat timer should be tracked
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const heartbeats = (executor as any).heartbeatIntervals as Map<string, Timer>
+      expect(heartbeats.has(task.id)).toBe(true)
+
+      await executor.cancel(task.id)
+
+      // Timer should be cleared and removed
+      expect(heartbeats.has(task.id)).toBe(false)
+
+      resolveChat(undefined)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    })
+
+    it('handles heartbeat updateMany returning 0 when task is deleted from database', async () => {
+      let resolveChat: (value: unknown) => void = () => {}
+      const chatPromise = new Promise((resolve) => {
+        resolveChat = resolve
+      })
+      mocks.agentChat.mockImplementationOnce(() => chatPromise)
+
+      const task = await prisma.workflowTask.create({
+        data: {
+          assetId: 'test-asset-deleted',
+          type: WorkflowTaskType.chat,
+          status: WorkflowTaskStatus.pending,
+        },
+      })
+
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      // Delete the task from DB while task is running
+      await prisma.workflowTask.delete({ where: { id: task.id } })
+
+      // UpdateMany should safely return count 0 without throwing P2025
+      const { count } = await prisma.workflowTask.updateMany({
+        where: { id: task.id },
+        data: { heartbeat: new Date() },
+      })
+      expect(count).toBe(0)
+
+      resolveChat(undefined)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    })
   })
 })
