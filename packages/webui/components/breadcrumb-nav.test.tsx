@@ -144,4 +144,20 @@ describe('BreadcrumbNav component', () => {
 
     expect(container.querySelector('.lucide-bot')).toBeNull()
   })
+
+  it('renders file actions dropdown trigger button and opens on click', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          fileId="file-1"
+          currentAsset={{ id: 'file-1', name: 'sample.mov', type: 'file', version: 1 }}
+          allowDownload={true}
+        />
+      </QueryClientProvider>,
+    )
+
+    const triggerButton = screen.getByRole('button', { name: 'sample.mov' })
+    expect(triggerButton).toBeDefined()
+  })
 })

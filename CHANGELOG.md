@@ -12,6 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **release**: Automatically populate GitHub release bodies from CHANGELOG.md and promote unreleased notes during version bumps
 - **settings**: Add FFmpeg threads slider to team media processing settings
 
+### Fixed
+
+- **asset**: Fix proxy download filename using original file extension instead of proxy extension
+- **webui**: Center breadcrumb file action popup menu on the chevron icon
+
 ## [0.4.6] - 2026-09-17
 
 ### Added
