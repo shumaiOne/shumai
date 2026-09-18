@@ -69,7 +69,7 @@ We maintain `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.c
 Before opening a pull request, add an entry under `## [Unreleased]` for any user-facing changes:
 
 - **Focus on User Impact**: Describe the user-facing outcome or observable behavior in plain terms, not internal code mechanics, file paths, or private symbols.
-- **Formatting**: `- **<scope>**: <Description>` (e.g. `- **comment**: Add emoji reaction support for comments`).
+- **Formatting**: `- **<scope>**: <Description>` (e.g. `- **asset**: Fix an issue where moving a video to trash while it was still transcoding could cause it to lose its trashed status`).
 - **No PR Numbers**: Do not include PR numbers or links; the release pipeline automatically appends the detailed PR list.
 - **Internal Changes**: Routine refactors, test additions, or internal chores without external behavior changes may omit changelog updates.
 

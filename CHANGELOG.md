@@ -14,8 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- **asset**: Preserve trashed status during background media processing and cancel in-flight jobs upon permanent purge
-- **transcode**: Terminate running media processes and abort downstream activities on workflow task cancellation
+- **asset**: Fix an issue where moving a video to trash while it was still transcoding could cause it to lose its trashed status
+- **transcode**: Immediately stop background video processing and transcoding when a file is permanently deleted from the trash
 
 ## [0.4.6] - 2026-09-17
 
