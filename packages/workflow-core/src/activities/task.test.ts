@@ -48,6 +48,27 @@ describe('Task Activities', () => {
     expect(updated?.status).toBe(AssetStatus.processing)
   })
 
+  it('should NOT overwrite trashed status when asset is soft-deleted (isDeleted: true)', async () => {
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'trashed-video.mp4',
+        storageKey: { create: { key: 'trashed-video.mp4' } },
+        status: AssetStatus.trashed,
+        isDeleted: true,
+        type: 'file',
+      },
+    })
+
+    await updateAssetStatusActivity({
+      assetId: asset.id,
+      status: AssetStatus.processed,
+    })
+
+    const updated = await prisma.asset.findUnique({ where: { id: asset.id } })
+    expect(updated?.status).toBe(AssetStatus.trashed)
+    expect(updated?.isDeleted).toBe(true)
+  })
+
   it('should update task usage', async () => {
     const task = await prisma.workflowTask.create({
       data: {

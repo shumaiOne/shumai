@@ -595,6 +595,57 @@ describe('Transcode Activities', () => {
     expect(updated?.hasJpegPreview).toBe(false)
     expect(s3Service.putObject).toHaveBeenCalled()
   })
+
+  it('should throw non-retryable ApplicationFailure and not upload when asset is pending_purge in updateAssetMediaActivity', async () => {
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'purging.mp4',
+        storageKey: { create: { key: 'purging.mp4' } },
+        status: 'pending_purge',
+        type: 'file',
+      },
+    })
+
+    const putObjectSpy = vi.mocked(s3Service.putObject)
+    putObjectSpy.mockClear()
+
+    await expect(
+      updateAssetMediaActivity({
+        assetId: asset.id,
+        mediaInfo: { duration: 100 } as unknown as PrismaJson.MediaInfo,
+      }),
+    ).rejects.toThrow('Asset not found, has no key, or is being purged')
+
+    expect(putObjectSpy).not.toHaveBeenCalled()
+  })
+
+  it('should throw non-retryable ApplicationFailure and not upload when asset is pending_purge in transcodeVideoActivity', async () => {
+    await prisma.asset.create({
+      data: {
+        name: 'purging-video.mp4',
+        storageKey: { create: { key: 'purging-video.mp4' } },
+        status: 'pending_purge',
+        type: 'file',
+      },
+    })
+
+    vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+    const putObjectSpy = vi.mocked(s3Service.putObject)
+    putObjectSpy.mockClear()
+
+    await expect(
+      transcodeVideoActivity({
+        assetKey: 'purging-video.mp4',
+        filePath: '/tmp/purging-video.mp4',
+        videoSpec: { resolution: '720p', width: 1280, height: 720 },
+        duration: 10,
+        originalFps: 30,
+      }),
+    ).rejects.toThrow('Asset or storage key has been purged or is pending purge')
+
+    expect(putObjectSpy).not.toHaveBeenCalled()
+  })
+
   it('should call transcodeService.transcodeVideo', async () => {
     vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
 
@@ -1250,6 +1301,57 @@ describe('Transcode Activities', () => {
         where: { assetId: folderAsset.id, type: 'ai_metadata_autofill' },
       })
       expect(task).toBeNull()
+    })
+
+    it('should create ai_metadata_autofill task when asset is in trash (isDeleted: true)', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'Test User Trashed Autofill', email: 'test-trashed-autofill@test.com' },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'Test Team Trashed Autofill' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'owner' },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project Trashed Autofill', teamId: team.id },
+      })
+      const autofillAgent = await prisma.agent.create({
+        data: {
+          id: user.id,
+          type: 'autofill',
+          enabled: true,
+          teamId: team.id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          config: { provider: 'test', model: 'test' } as any,
+        },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'trashed-video.mp4',
+          mediaType: 'video/mp4',
+          type: 'file',
+          status: 'trashed',
+          isDeleted: true,
+          projectId: project.id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          media: { proxyType: 'video' } as any,
+        },
+      })
+
+      await createAutofillTaskIfEnabledActivity({
+        assetId: asset.id,
+        teamId: team.id,
+        projectId: project.id,
+      })
+
+      const task = await prisma.workflowTask.findFirst({
+        where: { assetId: asset.id, type: 'ai_metadata_autofill' },
+      })
+      expect(task).toBeDefined()
+      expect(task?.status).toBe('pending')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((task?.payload as any)?.agent?.agentId).toBe(autofillAgent.id)
     })
   })
 })

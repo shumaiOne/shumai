@@ -1,4 +1,4 @@
-import { prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
+import { AssetStatus, prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
@@ -44,6 +44,24 @@ function getErrorDetails(err: unknown): { code?: string; message: string; name?:
   }
   return {
     message: String(err),
+  }
+}
+
+async function ensureAssetNotPurging(assetKey: string): Promise<void> {
+  const sk = await prisma.storageKey.findUnique({
+    where: { key: assetKey },
+    include: { assets: { select: { id: true, status: true } } },
+  })
+  if (
+    sk &&
+    (sk.status === 'purging' ||
+      sk.assets.length === 0 ||
+      sk.assets.every((a) => a.status === AssetStatus.pending_purge))
+  ) {
+    throw ApplicationFailure.create({
+      message: 'Asset or storage key has been purged or is pending purge',
+      nonRetryable: true,
+    })
   }
 }
 
@@ -273,6 +291,7 @@ export async function transcodeVideoActivity(
 
     const stat = fs.statSync(outputFile)
     const stream = Bun.file(outputFile).stream()
+    await ensureAssetNotPurging(params.assetKey)
     await s3Service.putObject(bucket, key, stream, stat.size, 'video/mp4')
 
     return { ...params.videoSpec, key }
@@ -334,6 +353,7 @@ export async function transcodeAudioActivity(
 
     const stat = fs.statSync(outputFile)
     const stream = Bun.file(outputFile).stream()
+    await ensureAssetNotPurging(params.assetKey)
     await s3Service.putObject(bucket, key, stream, stat.size, 'video/mp4')
 
     return { width: 0, height: 0, key }
@@ -400,6 +420,7 @@ export async function transcodeImageActivity(
       },
     )
     const buffer = fs.readFileSync(outputFile)
+    await ensureAssetNotPurging(params.assetKey)
     await s3Service.putObject(bucket, key, buffer, buffer.length, 'image/webp')
 
     return { ...params.imageSpec, key }
@@ -474,6 +495,7 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
     }
 
     const spriteBuffer = fs.readFileSync(spriteFile)
+    await ensureAssetNotPurging(params.assetKey)
     await s3Service.putObject(
       bucket,
       params.spriteSpec.key,
@@ -610,6 +632,7 @@ export async function generatePdfProxyActivity(
 
     const stat = fs.statSync(pdfFilePath)
     const stream = Bun.file(pdfFilePath).stream()
+    await ensureAssetNotPurging(params.assetKey)
     await s3Service.putObject(bucket, pdfProxyKey, stream, stat.size, 'application/pdf')
 
     return { pdfProxyKey, pdfFilePath }
@@ -668,9 +691,9 @@ export async function updateAssetMediaActivity(params: UpdateAssetMediaActivityP
     include: { storageKey: true },
   })
   const key = asset?.storageKey?.key
-  if (!asset || !key) {
+  if (!asset || !key || asset.status === AssetStatus.pending_purge) {
     throw ApplicationFailure.create({
-      message: 'Asset not found or has no key',
+      message: 'Asset not found, has no key, or is being purged',
       nonRetryable: true,
     })
   }
@@ -937,7 +960,7 @@ export async function createAutofillTaskIfEnabledActivity(
       project: true,
     },
   })
-  if (!asset || (asset.type !== 'file' && asset.type !== 'version_stack') || asset.isDeleted) {
+  if (!asset || (asset.type !== 'file' && asset.type !== 'version_stack')) {
     return
   }
 

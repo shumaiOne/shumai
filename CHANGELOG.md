@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **release**: Automatically populate GitHub release bodies from CHANGELOG.md and promote unreleased notes during version bumps
 - **settings**: Add FFmpeg threads slider to team media processing settings
 
+### Fixed
+
+- **asset**: Preserve trashed status during background media processing and cancel in-flight jobs upon permanent purge
+
 ## [0.4.6] - 2026-09-17
 
 ### Added

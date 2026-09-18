@@ -85,8 +85,8 @@ export interface UpdateAssetStatusParams {
 }
 
 export async function updateAssetStatusActivity(params: UpdateAssetStatusParams): Promise<void> {
-  await prisma.asset.update({
-    where: { id: params.assetId },
+  await prisma.asset.updateMany({
+    where: { id: params.assetId, isDeleted: false },
     data: { status: params.status },
   })
 }

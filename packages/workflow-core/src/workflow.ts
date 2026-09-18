@@ -1,4 +1,4 @@
-import { prisma, registerWorkflowTrigger, WorkflowTask } from '@shumai/db'
+import { prisma, registerWorkflowCancel, registerWorkflowTrigger, WorkflowTask } from '@shumai/db'
 import path from 'path'
 import { ulid } from 'ulid'
 import * as taskActivities from './activities/task'
@@ -186,4 +186,7 @@ export class WorkflowService {
 export const workflowService = new WorkflowService()
 registerWorkflowTrigger(async (task) => {
   await workflowService.submit(task)
+})
+registerWorkflowCancel(async (taskId) => {
+  await workflowService.cancel(taskId)
 })

@@ -18,6 +18,20 @@ export function registerWorkflowTrigger(cb: WorkflowTriggerCallback) {
   onWorkflowTaskCreated = cb
 }
 
+// Global callback for workflow task cancellation (decouples db/core packages from workflow engine)
+type WorkflowCancelCallback = (taskId: string) => Promise<void>
+let onWorkflowTaskCancelled: WorkflowCancelCallback | null = null
+
+export function registerWorkflowCancel(cb: WorkflowCancelCallback) {
+  onWorkflowTaskCancelled = cb
+}
+
+export async function cancelWorkflowTask(taskId: string): Promise<void> {
+  if (onWorkflowTaskCancelled) {
+    await onWorkflowTaskCancelled(taskId)
+  }
+}
+
 const isTest = process.env.NODE_ENV === 'test'
 
 const globalForPrisma = globalThis as unknown as {

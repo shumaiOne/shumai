@@ -1,4 +1,4 @@
-import { prisma } from '@shumai/db'
+import { cancelWorkflowTask, prisma } from '@shumai/db'
 import {
   AncestorFolder,
   AssetInfo,
@@ -28,7 +28,15 @@ import {
   type ExportOptions,
   type ExportResult,
 } from './comments-export'
-import { type Asset, AssetStatus, AssetType, Prisma, type StorageKey } from '@shumai/db'
+import {
+  type Asset,
+  AssetStatus,
+  AssetType,
+  Prisma,
+  type StorageKey,
+  WorkflowTaskStatus,
+  WorkflowTaskType,
+} from '@shumai/db'
 import { HTTPException } from 'hono/http-exception'
 import { logger } from '@shumai/core/src/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@shumai/core/src/pagination'
@@ -1341,7 +1349,7 @@ export class AssetService {
   private async cascadeStatusToPendingPurge(rootIds: string[]): Promise<void> {
     if (rootIds.length === 0) return
 
-    await this.prismaClient.$executeRaw`
+    const rows = await this.prismaClient.$queryRaw<{ id: string }[]>`
       WITH RECURSIVE descendant AS (
         SELECT id FROM assets WHERE id = ANY(${rootIds})
         UNION ALL
@@ -1356,15 +1364,34 @@ export class AssetService {
         WHERE s.type = 'symlink' AND s.target_id IN (SELECT id FROM all_purging_targets)
       )
       UPDATE assets SET status = 'pending_purge', updated_at = NOW()
-      WHERE id IN (SELECT id FROM all_purging_targets) OR id IN (SELECT id FROM all_affected_symlinks);
+      WHERE id IN (SELECT id FROM all_purging_targets) OR id IN (SELECT id FROM all_affected_symlinks)
+      RETURNING id;
     `
+
+    const affectedIds = rows.map((r) => r.id)
+    if (affectedIds.length > 0) {
+      const inFlightTasks = await this.prismaClient.workflowTask.findMany({
+        where: {
+          assetId: { in: affectedIds },
+          status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
+        },
+        select: { id: true },
+      })
+
+      for (const task of inFlightTasks) {
+        try {
+          await cancelWorkflowTask(task.id)
+        } catch (err) {
+          logger.warn({ taskId: task.id, err }, 'Failed to cancel workflow task during purge')
+        }
+      }
+    }
   }
 
   async emptyTrash(projectId: string): Promise<void> {
     const trashedRoots = await this.prismaClient.asset.findMany({
       where: {
         projectId,
-        status: 'trashed',
         isDeleted: true,
       },
       select: { id: true },
@@ -1416,9 +1443,9 @@ export class AssetService {
     // Find up to 100 expired roots, ordered by oldest first to avoid starvation
     const expiredRoots = await this.prismaClient.asset.findMany({
       where: {
-        status: 'trashed',
-        deletedAt: { lt: thirtyDaysAgo },
         isDeleted: true,
+        status: { not: AssetStatus.pending_purge },
+        deletedAt: { lt: thirtyDaysAgo },
       },
       orderBy: { deletedAt: 'asc' },
       select: { id: true },
@@ -1433,6 +1460,34 @@ export class AssetService {
    * Stage 2: Delete DB records for assets marked as 'pending_purge'.
    */
   private async purgePendingAssets() {
+    const pendingAssets = await this.prismaClient.asset.findMany({
+      where: { status: AssetStatus.pending_purge },
+      select: { id: true },
+    })
+    const pendingAssetIds = pendingAssets.map((a) => a.id)
+
+    if (pendingAssetIds.length > 0) {
+      const inFlightTasks = await this.prismaClient.workflowTask.findMany({
+        where: {
+          assetId: { in: pendingAssetIds },
+          status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
+        },
+        select: { id: true },
+      })
+
+      for (const task of inFlightTasks) {
+        try {
+          await cancelWorkflowTask(task.id)
+        } catch (err) {
+          logger.warn({ taskId: task.id, err }, 'Failed to cancel workflow task during purge')
+        }
+      }
+
+      await this.prismaClient.workflowTask.deleteMany({
+        where: { assetId: { in: pendingAssetIds } },
+      })
+    }
+
     const { count } = await this.prismaClient.asset.deleteMany({
       where: { status: AssetStatus.pending_purge },
     })
@@ -1575,11 +1630,30 @@ export class AssetService {
           }
         }
 
+        const activeTask = await tx.workflowTask.findFirst({
+          where: {
+            assetId: a.id,
+            status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
+            type: {
+              in: [
+                WorkflowTaskType.transcode,
+                WorkflowTaskType.transcode_video,
+                WorkflowTaskType.transcode_image,
+                WorkflowTaskType.transcode_pdf,
+                WorkflowTaskType.transcode_pdf_pages,
+                WorkflowTaskType.transcode_screenshot,
+                WorkflowTaskType.transcode_image_annotation,
+                WorkflowTaskType.transcode_watermark,
+              ],
+            },
+          },
+        })
+
         await tx.asset.update({
           where: { id: a.id },
           data: {
             isDeleted: false,
-            status: 'processed',
+            status: activeTask ? AssetStatus.processing : AssetStatus.processed,
             deletedAt: null,
           },
         })

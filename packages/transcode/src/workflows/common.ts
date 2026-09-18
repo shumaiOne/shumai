@@ -16,9 +16,9 @@ export async function fetchAssetWithKey(workerQueue: string, assetId: string) {
   const { getAssetActivity } = getActivities()
   const asset = await executeActivity(workerQueue, getAssetActivity, assetId)
   const key = asset?.storageKey?.key
-  if (!asset || !key) {
+  if (!asset || !key || asset.status === 'pending_purge') {
     throw ApplicationFailure.create({
-      message: 'Asset not found or has no key',
+      message: 'Asset not found, has no key, or is being purged',
       nonRetryable: true,
     })
   }

@@ -3,13 +3,14 @@ import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { HTTPException } from 'hono/http-exception'
 
-import { AssetType, AssetStatus, Prisma } from '@shumai/db'
+import { AssetType, AssetStatus, Prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { uploadService } from '@shumai/core/src/upload/upload'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { AssetService } from './asset'
 
 import { ensureJpegInStorage } from '@shumai/core/src/s3/preview-converter'
+import { workflowService } from '@shumai/workflow-core'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
@@ -3004,6 +3005,65 @@ describe('AssetService — natural sort by name', () => {
 
       await expect(assetService.emptyTrash(project.id)).resolves.not.toThrow()
     })
+
+    it('should purge trashed assets whose status was processed, cancel their in-flight tasks, and delete WorkflowTasks', async () => {
+      const cancelSpy = vi.spyOn(workflowService, 'cancel').mockResolvedValue(undefined)
+
+      const team = await prisma.team.create({ data: { name: 'Purge Task Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Purge Task Project', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User Purge', email: `test-purge-${Date.now()}@example.com` },
+      })
+
+      // Asset was deleted, but status was set to 'processed' by background activity
+      const file = await prisma.asset.create({
+        data: {
+          name: 'skewed-status.mp4',
+          type: AssetType.file,
+          status: AssetStatus.processed,
+          isDeleted: true,
+          deletedAt: new Date(),
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: rootFolder.id } },
+          creator: { connect: { id: user.id } },
+          storageKey: { create: { key: 'files/skewed-status/raw.mp4' } },
+        },
+      })
+
+      // In-flight task for this asset
+      const task = await prisma.workflowTask.create({
+        data: {
+          assetId: file.id,
+          type: WorkflowTaskType.transcode_video,
+          status: WorkflowTaskStatus.processing,
+        },
+      })
+
+      await assetService.emptyTrash(project.id)
+
+      // Asset should be deleted from DB
+      const assetInDb = await prisma.asset.findUnique({ where: { id: file.id } })
+      expect(assetInDb).toBeNull()
+
+      // Task should be cancelled
+      expect(cancelSpy).toHaveBeenCalledWith(task.id)
+
+      // WorkflowTask should be deleted from DB
+      const taskInDb = await prisma.workflowTask.findUnique({ where: { id: task.id } })
+      expect(taskInDb).toBeNull()
+
+      cancelSpy.mockRestore()
+    })
   })
 
   describe('expireTrashedAssets', () => {
@@ -4856,6 +4916,90 @@ describe('AssetService — natural sort by name', () => {
       expect(stackInfo).toBeDefined()
       // Should reflect active version (v2) comments count
       expect(stackInfo?.commentsCount).toBe(1)
+    })
+  })
+
+  describe('restoreAssets with in-flight transcoding', () => {
+    it('should restore asset with status "processing" if a transcode task is still active', async () => {
+      const team = await prisma.team.create({ data: { name: 'Restore Transcode Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Restore Transcode Project', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const file = await prisma.asset.create({
+        data: {
+          name: 'transcoding-video.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          status: AssetStatus.trashed,
+          isDeleted: true,
+          deletedAt: new Date(),
+        },
+      })
+
+      // Create an active transcode task
+      await prisma.workflowTask.create({
+        data: {
+          assetId: file.id,
+          type: WorkflowTaskType.transcode_video,
+          status: WorkflowTaskStatus.processing,
+        },
+      })
+
+      await assetService.restoreAssets([file.id])
+
+      const restored = await prisma.asset.findUnique({ where: { id: file.id } })
+      expect(restored?.isDeleted).toBe(false)
+      expect(restored?.status).toBe(AssetStatus.processing)
+    })
+
+    it('should restore asset with status "processed" if no active transcode task exists', async () => {
+      const team = await prisma.team.create({ data: { name: 'Restore Completed Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Restore Completed Project', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const file = await prisma.asset.create({
+        data: {
+          name: 'completed-video.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          status: AssetStatus.trashed,
+          isDeleted: true,
+          deletedAt: new Date(),
+        },
+      })
+
+      // Completed transcode task
+      await prisma.workflowTask.create({
+        data: {
+          assetId: file.id,
+          type: WorkflowTaskType.transcode_video,
+          status: WorkflowTaskStatus.completed,
+        },
+      })
+
+      await assetService.restoreAssets([file.id])
+
+      const restored = await prisma.asset.findUnique({ where: { id: file.id } })
+      expect(restored?.isDeleted).toBe(false)
+      expect(restored?.status).toBe(AssetStatus.processed)
     })
   })
 })
