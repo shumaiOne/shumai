@@ -392,6 +392,7 @@ describe('transcodeVideoWorkflow', () => {
       posterSpec: {
         key: 'files/asset-poster/poster.webp',
       },
+      taskId: 'task-poster',
     })
 
     expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith({

@@ -12,6 +12,7 @@ import {
   isMarkdownDocument,
   isOfficeDocument,
 } from '@shumai/core/src/utils/mime'
+import { logger } from '@shumai/core/src/logger'
 import { ApplicationFailure, Context } from '@temporalio/activity'
 import { getLocalTaskAbortSignal } from '@shumai/workflow-core'
 
@@ -781,11 +782,20 @@ export async function updateAssetMediaActivity(params: UpdateAssetMediaActivityP
   const buffer = Buffer.from(JSON.stringify(params.mediaInfo))
   await s3Service.putObject(bucket, infoKey, buffer, buffer.length, 'application/json')
 
-  await prisma.asset.update({
-    where: { id: params.assetId },
+  const { count } = await prisma.asset.updateMany({
+    where: {
+      id: params.assetId,
+      status: { not: AssetStatus.pending_purge },
+    },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: { media: params.mediaInfo as any, hasJpegPreview: false },
   })
+  if (count === 0) {
+    logger.info(
+      { assetId: params.assetId },
+      '[updateAssetMediaActivity] Asset was deleted or pending purge before media update completed',
+    )
+  }
 }
 
 export async function takeScreenshotsActivity(params: {
@@ -845,11 +855,21 @@ export async function takeScreenshotsActivity(params: {
 export interface ExtractPosterActivityParams {
   assetKey: string
   posterSpec: PrismaJson.PosterInfo
+  taskId?: string
+  signal?: AbortSignal
 }
 
 export async function extractPosterActivity(
   params: ExtractPosterActivityParams,
 ): Promise<{ poster: PrismaJson.PosterInfo }> {
+  const signal = params.signal || getActivityCancellationSignal(params.taskId)
+  if (signal?.aborted) {
+    throw ApplicationFailure.create({
+      message: 'Poster extraction cancelled',
+      nonRetryable: true,
+    })
+  }
+
   const bucket = process.env.S3_BUCKET || 'shumai'
   try {
     await s3Service.headObject(bucket, params.posterSpec.key)
@@ -883,9 +903,10 @@ export async function extractPosterActivity(
       '75',
       posterFile,
     ]
-    await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], { signal })
 
     const posterBuffer = fs.readFileSync(posterFile)
+    await ensureAssetNotPurging(params.assetKey)
     await s3Service.putObject(
       bucket,
       params.posterSpec.key,
@@ -898,6 +919,20 @@ export async function extractPosterActivity(
   } catch (err) {
     const { code, message } = getErrorDetails(err)
     const lowerMsg = message.toLowerCase()
+
+    if (
+      signal?.aborted ||
+      code === 'ABORT_ERR' ||
+      message.includes('aborted') ||
+      lowerMsg.includes('abort')
+    ) {
+      throw ApplicationFailure.create({
+        message: 'Poster extraction cancelled',
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+
     if (
       code === 'ENOENT' ||
       lowerMsg.includes('enoent') ||

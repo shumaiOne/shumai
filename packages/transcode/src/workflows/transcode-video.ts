@@ -68,6 +68,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       const posterResult = await executeActivity(workerQueue, extractPosterActivity, {
         assetKey: key,
         posterSpec,
+        taskId: task.id,
       })
       mediaInfo.poster = posterResult.poster
       await executeActivity(workerQueue, updateAssetMediaActivity, {

@@ -506,5 +506,60 @@ describe('LocalExecutor Integration Tests', () => {
       resolveChat(undefined)
       await new Promise((resolve) => setTimeout(resolve, 50))
     })
+
+    it('cancels queued local tasks before execution when limiter is saturated', async () => {
+      let resolveFirstTranscode: (value: unknown) => void = () => {}
+      const firstTranscodePromise = new Promise((resolve) => {
+        resolveFirstTranscode = resolve
+      })
+      mocks.transcodeMedia.mockImplementationOnce(() => firstTranscodePromise)
+      mocks.transcodeMedia.mockImplementationOnce(() => Promise.resolve())
+
+      // 1. Task 1 starts and occupies the single transcode slot
+      const task1 = await prisma.workflowTask.create({
+        data: {
+          assetId: 'asset-queued-cancel-1',
+          type: WorkflowTaskType.transcode,
+          status: WorkflowTaskStatus.pending,
+        },
+      })
+
+      // 2. Task 2 is submitted and queued because concurrency limit is 1
+      const task2 = await prisma.workflowTask.create({
+        data: {
+          assetId: 'asset-queued-cancel-2',
+          type: WorkflowTaskType.transcode,
+          status: WorkflowTaskStatus.pending,
+        },
+      })
+
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      // Task 1 should be running
+      expect(mocks.transcodeMedia).toHaveBeenCalledWith(expect.objectContaining({ id: task1.id }))
+      // Task 2 should not have started yet
+      expect(mocks.transcodeMedia).not.toHaveBeenCalledWith(
+        expect.objectContaining({ id: task2.id }),
+      )
+
+      // 3. Cancel task 2 while it is still waiting in the queue
+      await executor.cancel(task2.id)
+
+      // 4. Release task 1 so the concurrency slot becomes available
+      resolveFirstTranscode(undefined)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      // 5. Verify task 2's workflow was NEVER executed
+      expect(mocks.transcodeMedia).not.toHaveBeenCalledWith(
+        expect.objectContaining({ id: task2.id }),
+      )
+
+      // 6. Verify task 2 was marked failed / cancelled
+      const dbTask2 = await prisma.workflowTask.findUnique({
+        where: { id: task2.id },
+      })
+      expect(dbTask2?.status).toBe(WorkflowTaskStatus.failed)
+      expect((dbTask2?.output as { error?: string })?.error).toContain('cancelled')
+    })
   })
 })

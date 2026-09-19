@@ -4,6 +4,7 @@ import { Executor } from './executor'
 import * as taskActivities from './activities/task'
 import {
   getConcurrencyLimit,
+  registerLocalTaskAbortController,
   runInLocalTaskContext,
   triggerLocalCancel,
   unregisterLocalTaskAbortController,
@@ -162,6 +163,7 @@ export class LocalExecutor implements Executor {
         this.heartbeatIntervals.set(task.id, heartbeatInterval)
 
         const abortController = new AbortController()
+        registerLocalTaskAbortController(task.id, abortController)
 
         const limiter =
           task.type && task.type.startsWith('transcode')
@@ -171,6 +173,24 @@ export class LocalExecutor implements Executor {
         limiter
           .run(async () => {
             try {
+              if (abortController.signal.aborted) {
+                logger.info(
+                  { taskId: task.id },
+                  '[LocalExecutor] Queued task was aborted before execution',
+                )
+                try {
+                  await prisma.workflowTask.updateMany({
+                    where: { id: task.id, status: WorkflowTaskStatus.processing },
+                    data: {
+                      status: WorkflowTaskStatus.failed,
+                      output: { error: 'Workflow task was cancelled before execution' },
+                    },
+                  })
+                } catch {
+                  // Ignore if task was already deleted
+                }
+                return
+              }
               await runInLocalTaskContext({ taskId: task.id, abortController }, async () => {
                 await this.processTaskWrapper(task)
               })
@@ -239,6 +259,7 @@ export class LocalExecutor implements Executor {
           ],
         },
         orderBy: { id: 'asc' },
+        take: 50,
       })
 
       for (const task of tasks) {
@@ -300,6 +321,7 @@ export class LocalExecutor implements Executor {
         this.heartbeatIntervals.set(task.id, heartbeatInterval)
 
         const abortController = new AbortController()
+        registerLocalTaskAbortController(task.id, abortController)
 
         const limiter =
           task.type && task.type.startsWith('transcode')
@@ -309,6 +331,24 @@ export class LocalExecutor implements Executor {
         const promise = limiter
           .run(async () => {
             try {
+              if (abortController.signal.aborted) {
+                logger.info(
+                  { taskId: task.id },
+                  '[LocalExecutor] Queued task was aborted before execution',
+                )
+                try {
+                  await prisma.workflowTask.updateMany({
+                    where: { id: task.id, status: WorkflowTaskStatus.processing },
+                    data: {
+                      status: WorkflowTaskStatus.failed,
+                      output: { error: 'Workflow task was cancelled before execution' },
+                    },
+                  })
+                } catch {
+                  // Ignore if task was already deleted
+                }
+                return
+              }
               await runInLocalTaskContext({ taskId: task.id, abortController }, async () => {
                 await this.processTaskWrapper(task)
               })
