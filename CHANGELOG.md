@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **asset**: Fix an issue where moving a video to trash while it was still transcoding could cause it to lose its trashed status
 - **transcode**: Immediately stop background video processing and transcoding when a file is permanently deleted from the trash
+- **asset**: Fix proxy download filename using original file extension instead of proxy extension
+- **webui**: Center breadcrumb file action popup menu on the chevron icon
 
 ## [0.4.6] - 2026-09-17
 

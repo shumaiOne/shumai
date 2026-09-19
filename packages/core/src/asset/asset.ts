@@ -54,6 +54,8 @@ import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/perm
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { uploadService } from '@shumai/core/src/upload/upload'
+import path from 'path'
+import { stemFromKey } from '@shumai/core/src/utils/filename'
 
 export const assetInclude = {
   creator: true,
@@ -2670,6 +2672,7 @@ export class AssetService {
 
     let storageKey = asset.storageKey.key
     let assetDir = storageKey.substring(0, storageKey.lastIndexOf('/') + 1)
+    let targetName = asset.name
 
     if (!key.startsWith(assetDir) && asset.parentId) {
       // Check if requested key belongs to another version in the same version stack
@@ -2679,11 +2682,14 @@ export class AssetService {
           isDeleted: false,
           storageKey: { key: { startsWith: key.substring(0, key.lastIndexOf('/') + 1) } },
         },
-        select: { storageKey: { select: { key: true } } },
+        select: { name: true, storageKey: { select: { key: true } } },
       })
       if (sibling?.storageKey?.key) {
         storageKey = sibling.storageKey.key
         assetDir = storageKey.substring(0, storageKey.lastIndexOf('/') + 1)
+        if (sibling.name) {
+          targetName = sibling.name
+        }
       }
     }
 
@@ -2691,13 +2697,35 @@ export class AssetService {
       throw new Error('Key does not belong to this asset')
     }
 
-    return s3Service.presign(
-      process.env.S3_BUCKET || 'shumai',
-      key,
-      'GET',
-      true,
-      asset.name ?? undefined,
-    )
+    let downloadFilename: string | undefined
+    if (key === storageKey) {
+      downloadFilename = targetName ?? undefined
+    } else {
+      const keyBasename = path.posix.basename(key)
+      const originalStem = stemFromKey(storageKey)
+      const assetStem = targetName ? stemFromKey(targetName) : originalStem
+
+      if (
+        originalStem &&
+        assetStem &&
+        originalStem !== assetStem &&
+        keyBasename.startsWith(originalStem + '-')
+      ) {
+        downloadFilename = assetStem + keyBasename.slice(originalStem.length)
+      } else if (
+        originalStem &&
+        assetStem &&
+        originalStem !== assetStem &&
+        keyBasename.startsWith('watermark-' + originalStem + '-')
+      ) {
+        downloadFilename =
+          'watermark-' + assetStem + keyBasename.slice(('watermark-' + originalStem).length)
+      } else {
+        downloadFilename = keyBasename
+      }
+    }
+
+    return s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET', true, downloadFilename)
   }
 
   async toPreviewInfo(

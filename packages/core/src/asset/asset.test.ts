@@ -3176,7 +3176,53 @@ describe('AssetService — natural sort by name', () => {
         'files/01TESTULID000000000000000/test-720p.mp4',
         'GET',
         true,
-        'test.mp4',
+        'test-720p.mp4',
+      )
+    })
+
+    it('downloading video proxy for test.mov should use proxy filename with mp4 extension instead of test.mov', async () => {
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'test.mov',
+          type: AssetType.file,
+          status: AssetStatus.uploaded,
+          storageKey: {
+            create: { key: 'files/01TESTULID000000000000000/test.mov' },
+          },
+        },
+      })
+
+      await assetService.getDownloadUrl(asset.id, 'files/01TESTULID000000000000000/test-1080p.mp4')
+
+      expect(s3Service.presign).toHaveBeenCalledWith(
+        expect.any(String),
+        'files/01TESTULID000000000000000/test-1080p.mp4',
+        'GET',
+        true,
+        'test-1080p.mp4',
+      )
+    })
+
+    it('downloading proxy for a renamed asset should preserve new stem with proxy resolution and extension', async () => {
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'awesome.mov',
+          type: AssetType.file,
+          status: AssetStatus.uploaded,
+          storageKey: {
+            create: { key: 'files/01TESTULID000000000000000/test.mov' },
+          },
+        },
+      })
+
+      await assetService.getDownloadUrl(asset.id, 'files/01TESTULID000000000000000/test-1080p.mp4')
+
+      expect(s3Service.presign).toHaveBeenCalledWith(
+        expect.any(String),
+        'files/01TESTULID000000000000000/test-1080p.mp4',
+        'GET',
+        true,
+        'awesome-1080p.mp4',
       )
     })
 

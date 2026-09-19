@@ -133,6 +133,7 @@ export function BreadcrumbNav({
   const { openMobileMenu } = useDualSidebarStore()
   const [isManageVersionsOpen, setIsManageVersionsOpen] = useState(false)
   const [isLinkedTasksOpen, setIsLinkedTasksOpen] = useState(false)
+  const [isFileMenuOpen, setIsFileMenuOpen] = useState(false)
 
   const targetAssetId = fileId || currentAsset.id
   const isRecentlyDeleted = currentAsset.name === 'Recently Deleted'
@@ -249,17 +250,32 @@ export function BreadcrumbNav({
       }
 
       return (
-        <DropdownMenu modal={false}>
-          <DropdownMenuTrigger className="flex items-center gap-1 truncate rounded px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
+        <DropdownMenu modal={false} open={isFileMenuOpen} onOpenChange={setIsFileMenuOpen}>
+          <div
+            className="flex items-center gap-1 truncate rounded px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer select-none"
+            onClick={() => setIsFileMenuOpen((prev) => !prev)}
+          >
             <span className="truncate">{currentAsset.name}</span>
             {currentAsset.version !== undefined && (
               <Badge variant="outline" className="px-1 py-0 text-xs shrink-0">
                 v{currentAsset.version}
               </Badge>
             )}
-            <ChevronDown className="h-4 w-4 shrink-0" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="start">
+            <DropdownMenuTrigger
+              asChild
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                aria-label={currentAsset.name}
+                className="flex items-center justify-center p-0.5 rounded shrink-0 focus:outline-none"
+              >
+                <ChevronDown className="h-4 w-4 shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+          </div>
+          <DropdownMenuContent className="w-56" align="center">
             {allowDownload &&
               (hasVideoTranscodes ? (
                 <DropdownMenuSub>
