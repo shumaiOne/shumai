@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatRemainingTime } from './time'
+import { formatRemainingTime, getTrashDaysLeft } from './time'
 
 describe('formatRemainingTime', () => {
   const baseNow = new Date('2026-08-17T12:00:00Z')
@@ -42,5 +42,34 @@ describe('formatRemainingTime', () => {
 
   it('accepts ISO strings', () => {
     expect(formatRemainingTime('2026-08-17T15:18:00Z', baseNow)).toBe('3h 18m')
+  })
+})
+
+describe('getTrashDaysLeft', () => {
+  const now = new Date('2026-08-17T12:00:00Z')
+
+  it('returns the full retention window for a freshly deleted asset', () => {
+    expect(getTrashDaysLeft('2026-08-17T12:00:00Z', now)).toBe(30)
+  })
+
+  it('counts down as days pass', () => {
+    expect(getTrashDaysLeft('2026-08-16T12:00:00Z', now)).toBe(29)
+    expect(getTrashDaysLeft('2026-08-06T12:00:00Z', now)).toBe(19)
+  })
+
+  it('rounds partial days up', () => {
+    // Deleted 23h ago: 29d 1h remain, which rounds up to 30
+    expect(getTrashDaysLeft('2026-08-16T13:00:00Z', now)).toBe(30)
+  })
+
+  it('never returns less than zero once the retention window has elapsed', () => {
+    expect(getTrashDaysLeft('2026-07-01T12:00:00Z', now)).toBe(0)
+  })
+
+  it('returns null when there is no valid deletedAt', () => {
+    expect(getTrashDaysLeft(null, now)).toBeNull()
+    expect(getTrashDaysLeft(undefined, now)).toBeNull()
+    expect(getTrashDaysLeft('', now)).toBeNull()
+    expect(getTrashDaysLeft('not-a-date', now)).toBeNull()
   })
 })

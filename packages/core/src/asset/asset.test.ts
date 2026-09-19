@@ -2530,6 +2530,184 @@ describe('AssetService', () => {
       expect(updatedEntry?.sessionId).toBe(session.id)
     })
   })
+
+  describe('listChildren with showDeleted', () => {
+    const createImageFile = async (params: {
+      name: string
+      projectId: string
+      parentId: string
+      creatorId: string
+      thumbnailKey: string
+      duration?: number
+      sortIndex?: string
+    }) => {
+      return prisma.asset.create({
+        data: {
+          name: params.name,
+          type: AssetType.file,
+          status: AssetStatus.processed,
+          isDeleted: true,
+          projectId: params.projectId,
+          parentId: params.parentId,
+          creatorId: params.creatorId,
+          sizeByte: 100,
+          sortIndex: params.sortIndex,
+          mediaType: 'image/png',
+          media: {
+            proxyType: 'image',
+            thumbnail: { key: params.thumbnailKey },
+            metadata: { duration: params.duration },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+        },
+      })
+    }
+
+    it('returns previews for children of a folder trashed via deleteAssets', async () => {
+      const { project, user, assets } = await setupBasicAssets()
+
+      const folder = await prisma.asset.create({
+        data: {
+          name: 'Trashed Folder',
+          type: AssetType.folder,
+          status: AssetStatus.uploaded,
+          projectId: project.id,
+          parentId: assets.root.id,
+          creatorId: user.id,
+        },
+      })
+
+      await createImageFile({
+        name: 'inside-1.png',
+        projectId: project.id,
+        parentId: folder.id,
+        creatorId: user.id,
+        thumbnailKey: 'thumb-1',
+      })
+      await createImageFile({
+        name: 'inside-2.png',
+        projectId: project.id,
+        parentId: folder.id,
+        creatorId: user.id,
+        thumbnailKey: 'thumb-2',
+      })
+
+      await assetService.deleteAssets([folder.id])
+
+      const result = await assetService.listChildren({
+        projectId: project.id,
+        showDeleted: true,
+        assetType: 'folder',
+      })
+
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0].id).toBe(folder.id)
+      expect(result.data[0].deletedAt).not.toBeNull()
+      expect(result.data[0].latestChildren).toHaveLength(2)
+      expect(result.data[0].latestChildren?.every((c) => c.preview?.thumbnailUrl)).toBe(true)
+    })
+
+    it('resolves the latest deleted version for a trashed version stack child', async () => {
+      const { project, user, assets } = await setupBasicAssets()
+
+      const folder = await prisma.asset.create({
+        data: {
+          name: 'Trashed Folder With Stack',
+          type: AssetType.folder,
+          status: AssetStatus.uploaded,
+          projectId: project.id,
+          parentId: assets.root.id,
+          creatorId: user.id,
+        },
+      })
+
+      const stack = await prisma.asset.create({
+        data: {
+          name: 'clip',
+          type: AssetType.version_stack,
+          status: AssetStatus.processed,
+          projectId: project.id,
+          parentId: folder.id,
+          creatorId: user.id,
+        },
+      })
+
+      await createImageFile({
+        name: 'clip-v1.png',
+        projectId: project.id,
+        parentId: stack.id,
+        creatorId: user.id,
+        thumbnailKey: 'v1-thumb',
+        duration: 11,
+        sortIndex: 'a1',
+      })
+      await createImageFile({
+        name: 'clip-v2.png',
+        projectId: project.id,
+        parentId: stack.id,
+        creatorId: user.id,
+        thumbnailKey: 'v2-thumb',
+        duration: 42,
+        sortIndex: 'a0',
+      })
+
+      await assetService.deleteAssets([folder.id])
+
+      const result = await assetService.listChildren({
+        projectId: project.id,
+        showDeleted: true,
+        assetType: 'folder',
+      })
+
+      const previews = result.data[0].latestChildren ?? []
+      expect(previews).toHaveLength(1)
+      // The latest version (lowest sortIndex) must be the one used for the preview
+      expect(previews[0].preview?.duration).toBe(42)
+      expect(previews[0].preview?.thumbnailUrl).toBeDefined()
+    })
+
+    it('still hides soft-deleted children when browsing a folder normally', async () => {
+      const { project, user, assets } = await setupBasicAssets()
+
+      const folder = await prisma.asset.create({
+        data: {
+          name: 'Active Folder',
+          type: AssetType.folder,
+          status: AssetStatus.uploaded,
+          projectId: project.id,
+          parentId: assets.root.id,
+          creatorId: user.id,
+        },
+      })
+
+      await prisma.asset.create({
+        data: {
+          name: 'active.png',
+          type: AssetType.file,
+          status: AssetStatus.processed,
+          isDeleted: false,
+          projectId: project.id,
+          parentId: folder.id,
+          creatorId: user.id,
+        },
+      })
+      await prisma.asset.create({
+        data: {
+          name: 'deleted.png',
+          type: AssetType.file,
+          status: AssetStatus.processed,
+          isDeleted: true,
+          deletedAt: new Date(),
+          projectId: project.id,
+          parentId: folder.id,
+          creatorId: user.id,
+        },
+      })
+
+      const folderInfo = await assetService.getAsset({ assetId: folder.id })
+      expect(folderInfo.latestChildren).toHaveLength(1)
+    })
+  })
 })
 
 describe('AssetService — natural sort by name', () => {

@@ -20,6 +20,7 @@ import {
   ListRecentsRequest,
   CommentExportFormat,
   PreviewFormat,
+  TRASH_RETENTION_DAYS,
 } from '@shumai/dtos'
 import {
   exportCommentsToFormat,
@@ -97,6 +98,31 @@ export const assetInclude = {
 export type AssetWithIncludes = Prisma.AssetGetPayload<{
   include: typeof assetInclude
 }>
+
+/**
+ * Same shape as {@link assetInclude}, but keeps soft-deleted children.
+ *
+ * The "Recently Deleted" view needs this because deleting a folder soft-deletes
+ * all of its descendants by cascade, so filtering out deleted children leaves
+ * the folder card with no previews of what was inside it.
+ */
+export const assetIncludeIncludingDeletedChildren = {
+  ...assetInclude,
+  target: {
+    ...assetInclude.target,
+    include: {
+      ...assetInclude.target.include,
+      children: {
+        ...assetInclude.target.include.children,
+        where: {},
+      },
+    },
+  },
+  children: {
+    ...assetInclude.children,
+    where: {},
+  },
+} as const
 
 type CommentWithIncludes = Prisma.AssetCommentGetPayload<{
   include: {
@@ -698,7 +724,7 @@ export class AssetService {
         throw new Error('ProjectID is required when ShowDeleted is true')
       }
       const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - TRASH_RETENTION_DAYS)
 
       where = {
         projectId: req.projectId,
@@ -751,11 +777,13 @@ export class AssetService {
         break
     }
 
+    const include = req.showDeleted ? assetIncludeIncludingDeletedChildren : assetInclude
+
     const { data: assets, pageInfo } = await paginateQuery(
       async (skip, take) => {
         return this.prismaClient.asset.findMany({
           where,
-          include: assetInclude,
+          include,
           orderBy,
           skip,
           take,
@@ -765,7 +793,9 @@ export class AssetService {
       req,
     )
 
-    const infos = await this.toAssetInfos(assets)
+    const infos = await this.toAssetInfos(assets, undefined, {
+      includeDeletedChildren: req.showDeleted,
+    })
 
     return { data: infos, pageInfo }
   }
@@ -1441,7 +1471,7 @@ export class AssetService {
    * Cascade the 'pending_purge' status to all their descendants.
    */
   private async expireTrashedAssets() {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const thirtyDaysAgo = new Date(Date.now() - TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000)
 
     // Find up to 100 expired roots, ordered by oldest first to avoid starvation
     const expiredRoots = await this.prismaClient.asset.findMany({
@@ -2123,7 +2153,9 @@ export class AssetService {
   async toAssetInfos(
     assets: AssetWithIncludes[],
     previewFormat?: PreviewFormat,
+    options?: { includeDeletedChildren?: boolean },
   ): Promise<AssetInfo[]> {
+    const includeDeletedChildren = options?.includeDeletedChildren ?? false
     const stackIds = new Set<string>()
 
     for (const a of assets) {
@@ -2154,7 +2186,10 @@ export class AssetService {
     const versionsMap = new Map<string, AssetWithIncludes['children'][0][]>()
     if (stackIds.size > 0) {
       const allVersions = await this.prismaClient.asset.findMany({
-        where: { parentId: { in: Array.from(stackIds) }, isDeleted: false },
+        where: {
+          parentId: { in: Array.from(stackIds) },
+          ...(includeDeletedChildren ? {} : { isDeleted: false }),
+        },
         include: {
           creator: true,
           agent: { include: { user: true } },
@@ -2280,7 +2315,7 @@ export class AssetService {
         folderForPreview.children
       ) {
         for (const child of folderForPreview.children) {
-          if (child.isDeleted) continue
+          if (!includeDeletedChildren && child.isDeleted) continue
           let previewAsset = child as Asset
           let mediaType = child.mediaType
 

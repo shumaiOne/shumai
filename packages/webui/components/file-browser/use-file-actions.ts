@@ -141,7 +141,9 @@ export function useFileActions({
   }
 
   const confirmDelete = () => {
-    const fileIds = itemsToDelete.filter((i) => i.type === 'file').map((i) => i.id!)
+    const fileIds = itemsToDelete
+      .filter((i) => i.type === 'file' || i.type === 'version_stack')
+      .map((i) => i.id!)
     const folderIds = itemsToDelete.filter((i) => i.type === 'folder').map((i) => i.id!)
 
     if (fileIds.length > 0) {
@@ -183,7 +185,9 @@ export function useFileActions({
   }
 
   const handleRestore = (items: AssetInfo[]) => {
-    const fileIds = items.filter((i) => i.type === 'file').map((i) => i.id!)
+    const fileIds = items
+      .filter((i) => i.type === 'file' || i.type === 'version_stack')
+      .map((i) => i.id!)
     const folderIds = items.filter((i) => i.type === 'folder').map((i) => i.id!)
 
     if (fileIds.length > 0) {

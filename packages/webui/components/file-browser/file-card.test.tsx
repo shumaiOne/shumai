@@ -223,15 +223,16 @@ describe('FileCard', () => {
 
     renderComponent({ item: itemWithComments })
 
+    const wrapper = screen.getByTestId('file-card-preview-badges')
+    expect(wrapper.className).toContain('absolute')
+    expect(wrapper.className).toContain('bottom-1')
+    expect(wrapper.className).toContain('left-1')
+    expect(wrapper.className).toContain('pointer-events-none')
+
     const commentsBadge = screen.getByTestId('file-card-comments-count')
-    expect(commentsBadge).toBeTruthy()
     expect(commentsBadge.textContent).toContain('5')
-    expect(commentsBadge.className).toContain('absolute')
-    expect(commentsBadge.className).toContain('bottom-1')
-    expect(commentsBadge.className).toContain('left-1')
     expect(commentsBadge.className).toContain('bg-black/60')
     expect(commentsBadge.className).toContain('text-white')
-    expect(commentsBadge.className).toContain('pointer-events-none')
     expect(commentsBadge.className).toContain('tabular-nums')
   })
 
@@ -252,5 +253,46 @@ describe('FileCard', () => {
 
     renderComponent({ item: itemNoComments })
     expect(screen.queryByTestId('file-card-comments-count')).toBeNull()
+  })
+
+  it('renders the days-left badge in preview area for recently deleted items', () => {
+    const deletedItem: AssetInfo = {
+      ...fileItem,
+      deletedAt: new Date().toISOString(),
+    } as AssetInfo
+
+    renderComponent({ item: deletedItem, isRecentlyDeleted: true })
+
+    const badge = screen.getByTestId('file-card-days-left')
+    expect(badge.textContent).toMatch(/30\s*(d|天)/)
+  })
+
+  it('places the comments badge to the right of the days-left badge', () => {
+    const deletedItem: AssetInfo = {
+      ...fileItem,
+      deletedAt: new Date().toISOString(),
+      commentsCount: 3,
+    } as AssetInfo
+
+    renderComponent({ item: deletedItem, isRecentlyDeleted: true })
+
+    const wrapper = screen.getByTestId('file-card-preview-badges')
+    const order = Array.from(wrapper.children).map((child) => child.getAttribute('data-testid'))
+    expect(order).toEqual(['file-card-days-left', 'file-card-comments-count'])
+  })
+
+  it('does not render the days-left badge outside of recently deleted', () => {
+    const deletedItem: AssetInfo = {
+      ...fileItem,
+      deletedAt: new Date().toISOString(),
+    } as AssetInfo
+
+    renderComponent({ item: deletedItem, isRecentlyDeleted: false })
+    expect(screen.queryByTestId('file-card-days-left')).toBeNull()
+  })
+
+  it('does not render the days-left badge when deletedAt is missing', () => {
+    renderComponent({ item: fileItem, isRecentlyDeleted: true })
+    expect(screen.queryByTestId('file-card-days-left')).toBeNull()
   })
 })

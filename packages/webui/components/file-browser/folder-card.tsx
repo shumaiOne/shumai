@@ -11,7 +11,8 @@ import { cn } from '@/ui/lib/utils'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
 import type { AssetInfo, ChildPreview } from '@shumai/dtos'
 import { m } from '@/ui/paraglide/messages.js'
-import { Download, Edit, History, MoreHorizontal, Trash2 } from 'lucide-react'
+import { getTrashDaysLeft } from '@/ui/lib/time'
+import { Clock, Download, Edit, History, MoreHorizontal, Trash2 } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
 import { FilePreview } from './file-preview'
@@ -230,6 +231,14 @@ export function FolderCard({
       .trim()
   }, [])
 
+  const daysLeft = isRecentlyDeleted ? getTrashDaysLeft(item.deletedAt) : null
+  const daysLeftTooltip =
+    daysLeft === null
+      ? ''
+      : daysLeft === 1
+        ? m.n_days_left_singular({ count: daysLeft })
+        : m.n_days_left_plural({ count: daysLeft })
+
   return (
     <div
       ref={setNodeRef}
@@ -333,7 +342,20 @@ export function FolderCard({
           </div>
 
           {item.latestChildren && item.latestChildren.length > 0 && (
-            <FolderPreviewGrid items={item.latestChildren} />
+            <div data-testid="folder-preview-grid" className="h-full w-full">
+              <FolderPreviewGrid items={item.latestChildren} />
+            </div>
+          )}
+
+          {daysLeft !== null && (
+            <span
+              data-testid="folder-card-days-left"
+              title={daysLeftTooltip}
+              className="pointer-events-none absolute bottom-1 left-1 z-10 flex items-center gap-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white"
+            >
+              <Clock className="h-3.5 w-3.5" />
+              <span>{m.days_left_short({ count: daysLeft })}</span>
+            </span>
           )}
         </div>
 

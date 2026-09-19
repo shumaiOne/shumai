@@ -1,6 +1,12 @@
 import { z } from 'zod'
 import { paginationPageInfoSchema, paginationParamsSchema } from './pagination'
 
+/**
+ * Number of days a soft-deleted asset is kept before it is permanently purged.
+ * Shared between the backend retention logic and the WebUI countdown labels.
+ */
+export const TRASH_RETENTION_DAYS = 30
+
 export const assetInfoPaginatedListSchema = z.object({
   data: z.array(z.lazy(() => assetInfoSchema)),
   pageInfo: paginationPageInfoSchema,

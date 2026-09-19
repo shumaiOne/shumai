@@ -11,12 +11,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **changelog**: Introduce Keep a Changelog support, historical release summaries, and automated release notes extraction
 - **release**: Automatically populate GitHub release bodies from CHANGELOG.md and promote unreleased notes during version bumps
 - **settings**: Add FFmpeg threads slider to team media processing settings
+- **asset**: Show previews of a folder's contents and a "days left" countdown for each item in Recently Deleted
 
 ### Fixed
 
 - **asset**: Fix an issue where moving a video to trash while it was still transcoding could cause it to lose its trashed status
 - **transcode**: Immediately stop background video processing and transcoding when a file is permanently deleted from the trash
 - **asset**: Fix proxy download filename using original file extension instead of proxy extension
+- **asset**: Fix an issue where deleting or restoring a version stack from the file list did nothing
 - **webui**: Center breadcrumb file action popup menu on the chevron icon
 
 ## [0.4.6] - 2026-09-17

@@ -22,12 +22,13 @@ import {
 } from '@/ui/components/ui/tooltip'
 import { ProgressCircle } from '@/ui/components/ui/progress-circle'
 import { Skeleton } from '@/ui/components/ui/skeleton'
-import { formatTimeAgo } from '@/ui/lib/time'
+import { formatTimeAgo, getTrashDaysLeft } from '@/ui/lib/time'
 import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
 import { cn } from '@/ui/lib/utils'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
 import {
+  Clock,
   Download,
   Edit,
   History,
@@ -252,6 +253,14 @@ export function FileCard({
     })
   }, [displayItem.createdAt, displayItem.agent, displayItem.creator?.name])
 
+  const daysLeft = isRecentlyDeleted ? getTrashDaysLeft(displayItem.deletedAt) : null
+  const daysLeftTooltip =
+    daysLeft === null
+      ? ''
+      : daysLeft === 1
+        ? m.n_days_left_singular({ count: daysLeft })
+        : m.n_days_left_plural({ count: daysLeft })
+
   return (
     <div
       ref={setNodeRef}
@@ -333,14 +342,32 @@ export function FileCard({
         ) : (
           <>
             <FilePreview item={displayItem} showDuration />
-            {typeof displayItem.commentsCount === 'number' && displayItem.commentsCount > 0 && (
-              <span
-                data-testid="file-card-comments-count"
-                className="pointer-events-none absolute bottom-1 left-1 z-10 flex items-center gap-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white"
+            {(daysLeft !== null ||
+              (typeof displayItem.commentsCount === 'number' && displayItem.commentsCount > 0)) && (
+              <div
+                data-testid="file-card-preview-badges"
+                className="pointer-events-none absolute bottom-1 left-1 z-10 flex items-center gap-1"
               >
-                <MessageCircleMore className="h-3.5 w-3.5" />
-                <span>{displayItem.commentsCount}</span>
-              </span>
+                {daysLeft !== null && (
+                  <span
+                    data-testid="file-card-days-left"
+                    title={daysLeftTooltip}
+                    className="flex items-center gap-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white"
+                  >
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>{m.days_left_short({ count: daysLeft })}</span>
+                  </span>
+                )}
+                {typeof displayItem.commentsCount === 'number' && displayItem.commentsCount > 0 && (
+                  <span
+                    data-testid="file-card-comments-count"
+                    className="flex items-center gap-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white"
+                  >
+                    <MessageCircleMore className="h-3.5 w-3.5" />
+                    <span>{displayItem.commentsCount}</span>
+                  </span>
+                )}
+              </div>
             )}
           </>
         )}

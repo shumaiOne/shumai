@@ -1,5 +1,8 @@
 import { differenceInDays, format, isToday, isYesterday, parseISO } from 'date-fns'
+import { TRASH_RETENTION_DAYS } from '@shumai/dtos'
 import { m } from '@/ui/paraglide/messages.js'
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 export const formatTimeAgo = (dateString: string) => {
   const date = parseISO(dateString)
@@ -70,4 +73,21 @@ export const formatRemainingTime = (targetDate: string | Date, now: Date = new D
     return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
   }
   return minutes > 0 ? `${minutes}m` : '< 1m'
+}
+
+/**
+ * Whole days remaining before a soft-deleted asset is permanently purged.
+ * Returns `null` when there is no valid `deletedAt` timestamp, and `0` once the
+ * retention window has elapsed.
+ */
+export const getTrashDaysLeft = (
+  deletedAt: string | null | undefined,
+  now: Date = new Date(),
+): number | null => {
+  if (!deletedAt) return null
+  const deleted = parseISO(deletedAt)
+  if (isNaN(deleted.getTime())) return null
+
+  const expiresAtMs = deleted.getTime() + TRASH_RETENTION_DAYS * MS_PER_DAY
+  return Math.max(0, Math.ceil((expiresAtMs - now.getTime()) / MS_PER_DAY))
 }

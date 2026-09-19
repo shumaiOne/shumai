@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FileBrowser } from './file-browser'
+import { client } from '@/ui/api/client'
 import type { AssetInfo } from '@shumai/dtos'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
@@ -126,6 +127,7 @@ describe('FileBrowser', () => {
   let queryClient: QueryClient
 
   beforeEach(() => {
+    vi.clearAllMocks()
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     })
@@ -311,5 +313,57 @@ describe('FileBrowser', () => {
     expect(screen.getByTestId('file-preview-dialog-content')).toBeDefined()
     expect(screen.getByTestId('folder-preview-icon')).toBeDefined()
     expect(screen.getAllByText('Linked Folder').length).toBeGreaterThan(0)
+  })
+
+  const mockVersionStack: AssetInfo = {
+    id: 'stack-1',
+    name: 'stacked_clip.mp4',
+    type: 'version_stack',
+    sizeByte: 0,
+    fileCount: 2,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+    status: 'processed',
+  } as AssetInfo
+
+  it('deletes a version stack through the delete dialog', async () => {
+    renderComponent({ folders: [], files: [mockVersionStack] })
+
+    const card = screen.getByTestId('file-card')
+    fireEvent.keyDown(within(card).getByRole('button', { name: '' }), {
+      key: 'ArrowDown',
+      code: 'ArrowDown',
+    })
+    fireEvent.click(await screen.findByRole('menuitem', { name: /^Delete$|^删除$/ }))
+
+    const dialog = await screen.findByRole('alertdialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Delete$|^删除$/ }))
+
+    await waitFor(() => {
+      expect(vi.mocked(client.api.files.$delete)).toHaveBeenCalledWith({
+        json: { ids: ['stack-1'] },
+      })
+    })
+  })
+
+  it('restores a version stack through the context action in recently deleted', async () => {
+    renderComponent({
+      folders: [],
+      files: [mockVersionStack],
+      isRecentlyDeleted: true,
+    })
+
+    const card = screen.getByTestId('file-card')
+    fireEvent.keyDown(within(card).getByRole('button', { name: '' }), {
+      key: 'ArrowDown',
+      code: 'ArrowDown',
+    })
+    fireEvent.click(await screen.findByRole('menuitem', { name: /^Restore$|^恢复$/ }))
+
+    await waitFor(() => {
+      expect(vi.mocked(client.api.files.restore.$post)).toHaveBeenCalledWith({
+        json: { ids: ['stack-1'] },
+      })
+    })
   })
 })
