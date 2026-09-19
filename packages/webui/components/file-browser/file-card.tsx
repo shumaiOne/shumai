@@ -380,13 +380,13 @@ export function FileCard({
             <svg
               viewBox="0 0 50 50"
               data-testid="file-card-preparing-circle"
-              className="h-16 w-16 animate-preparing-breathe"
+              className="h-16 w-16 opacity-60 animate-preparing-breathe"
             >
               <circle
                 cx="25"
                 cy="25"
                 r="20"
-                className="stroke-primary"
+                className="stroke-muted-foreground"
                 strokeWidth="4"
                 fill="transparent"
               />
