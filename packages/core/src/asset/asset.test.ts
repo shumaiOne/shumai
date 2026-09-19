@@ -2554,11 +2554,36 @@ describe('AssetService', () => {
           sortIndex: params.sortIndex,
           mediaType: 'image/png',
           media: {
+            duration: 0,
+            filesize: 0,
+            frames: 0,
+            imageTranscodes: [],
+            videoTranscodes: [],
+            finishedAt: new Date(0).toISOString(),
+            metadata:
+              params.duration === undefined
+                ? null
+                : {
+                    originalHeight: 0,
+                    originalWidth: 0,
+                    hasAudio: false,
+                    duration: params.duration,
+                    bitRate: 0,
+                    frameRate: 0,
+                    totalFrames: 0,
+                    startTimecode: '00:00:00:00',
+                    format: null,
+                  },
+            original: null,
             proxyType: 'image',
-            thumbnail: { key: params.thumbnailKey },
-            metadata: { duration: params.duration },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } as any,
+            thumbnail: {
+              key: params.thumbnailKey,
+              width: 0,
+              height: 0,
+              quality: 0,
+              format: 'png',
+            },
+          },
         },
       })
     }
