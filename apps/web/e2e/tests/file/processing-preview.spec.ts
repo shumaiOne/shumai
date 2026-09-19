@@ -5,7 +5,7 @@ import { fileCard } from '../../helpers/files'
 // state we set up directly in the database.
 test.use({ fileOptions: { mediaType: 'binary' } })
 
-test('shows the poster preview and a processing overlay while a video is still transcoding', async ({
+test('shows the poster preview and "Preparing..." while a video is still transcoding', async ({
   file,
   prisma,
 }) => {
@@ -51,11 +51,10 @@ test('shows the poster preview and a processing overlay while a video is still t
   await expect(card).toBeVisible()
 
   // The preview (poster thumbnail used as the sprite scrubber base) is rendered instead of a
-  // blank placeholder.
+  // blank placeholder, and its opacity breathes while transcoding is in progress.
   await expect(card.locator('img[alt="Thumbnail"]')).toBeVisible()
+  await expect(card.getByTestId('file-card-preview-media')).toHaveClass(/animate-pulse/)
 
-  // A processing overlay is shown on top of the visible preview.
-  const overlay = card.getByTestId('file-card-processing-overlay')
-  await expect(overlay).toBeVisible()
-  await expect(overlay).toContainText(/Processing|处理中/i)
+  // The creator row is replaced by a "Preparing..." label while transcoding.
+  await expect(card.getByText(/Preparing|准备中/i)).toBeVisible()
 })

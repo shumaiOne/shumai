@@ -132,6 +132,7 @@
   "activity_notifications": "Activity Notifications",
   "activity_notifications_description": "Receive in-app updates for comments, uploads, and automated background analysis tasks inside this project.",
   "processing": "Processing...",
+  "preparing": "Preparing...",
   "project_updated": "Project updated",
   "failed_update_project": "Failed to update project",
   "project_notification_updated": "Project notification settings updated",

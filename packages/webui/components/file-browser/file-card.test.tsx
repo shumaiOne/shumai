@@ -296,10 +296,11 @@ describe('FileCard', () => {
     expect(screen.queryByTestId('file-card-days-left')).toBeNull()
   })
 
-  it('shows the preview with a processing overlay while the asset is still processing', () => {
+  it('breathes the preview and shows "Preparing..." in place of the creator while processing', () => {
     const processingItem: AssetInfo = {
       ...fileItem,
       status: 'processing',
+      creator: { id: 'u1', name: 'Alice' },
       preview: {
         proxyType: 'video',
         thumbnailUrl: 'https://example.com/poster.webp',
@@ -312,32 +313,50 @@ describe('FileCard', () => {
 
     renderComponent({ item: processingItem })
 
-    // The preview (sprite scrubber base thumbnail) is rendered instead of a skeleton.
-    const thumbnail = screen.getByAltText('Thumbnail')
-    expect(thumbnail.getAttribute('src')).toBe('https://example.com/poster.webp')
+    // The preview (sprite scrubber base thumbnail) is rendered and breathes instead of an overlay.
+    const media = screen.getByTestId('file-card-preview-media')
+    expect(media.className).toContain('animate-pulse')
+    expect(screen.getByAltText('Thumbnail').getAttribute('src')).toBe(
+      'https://example.com/poster.webp',
+    )
 
-    const overlay = screen.getByTestId('file-card-processing-overlay')
-    expect(overlay.className).toContain('bg-background/50')
-    expect(overlay.className).toContain('pointer-events-none')
-    expect(overlay.textContent).toMatch(/Processing|处理中/i)
+    // The creator row is replaced by the status label while processing.
+    expect(screen.getByText(/Preparing|准备中/i)).toBeTruthy()
+    expect(screen.queryByText(/Alice/i)).toBeNull()
   })
 
-  it('shows the processing label without a preview overlay when no preview is available yet', () => {
+  it('shows "Uploading..." in place of the creator while uploading', () => {
+    const uploadingItem: AssetInfo = {
+      ...fileItem,
+      status: 'uploading',
+      creator: { id: 'u1', name: 'Alice' },
+    } as AssetInfo
+
+    renderComponent({ item: uploadingItem })
+
+    expect(screen.getByText(/Uploading|上传中/i)).toBeTruthy()
+    expect(screen.queryByText(/Alice/i)).toBeNull()
+  })
+
+  it('shows a skeleton and "Preparing..." when processing without a preview yet', () => {
     const processingItem: AssetInfo = {
       ...fileItem,
       status: 'processing',
+      creator: { id: 'u1', name: 'Alice' },
     } as AssetInfo
 
     renderComponent({ item: processingItem })
 
-    expect(screen.queryByTestId('file-card-processing-overlay')).toBeNull()
-    expect(screen.getByText(/Processing|处理中/i)).toBeTruthy()
+    expect(screen.queryByTestId('file-card-preview-media')).toBeNull()
+    expect(screen.getByText(/Preparing|准备中/i)).toBeTruthy()
+    expect(screen.queryByText(/Alice/i)).toBeNull()
   })
 
-  it('does not show the processing overlay once the asset is processed', () => {
+  it('stops breathing the preview and shows the creator once processed', () => {
     const processedItem: AssetInfo = {
       ...fileItem,
       status: 'processed',
+      creator: { id: 'u1', name: 'Alice' },
       preview: {
         proxyType: 'video',
         thumbnailUrl: 'https://example.com/poster.webp',
@@ -346,9 +365,11 @@ describe('FileCard', () => {
 
     renderComponent({ item: processedItem })
 
-    expect(screen.queryByTestId('file-card-processing-overlay')).toBeNull()
+    const media = screen.getByTestId('file-card-preview-media')
+    expect(media.className).not.toContain('animate-pulse')
     expect(screen.getByAltText('Preview').getAttribute('src')).toBe(
       'https://example.com/poster.webp',
     )
+    expect(screen.getByText(/Alice/i)).toBeTruthy()
   })
 })

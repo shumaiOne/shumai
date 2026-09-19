@@ -266,6 +266,15 @@ export function FileCard({
   const hasPreview = Boolean(displayItem.preview?.thumbnailUrl || displayItem.preview?.spriteUrl)
   const isProcessing = displayItem.status === 'processing' || displayItem.status === 'uploaded'
 
+  // While uploading/transcoding, the creator row is replaced by a short status label so the real
+  // date/author only appears once the asset is ready.
+  const statusText =
+    displayItem.status === 'uploading'
+      ? m.uploading()
+      : displayItem.status === 'uploaded' || displayItem.status === 'processing'
+        ? m.preparing()
+        : null
+
   const previewBadges =
     daysLeft !== null ||
     (typeof displayItem.commentsCount === 'number' && displayItem.commentsCount > 0) ? (
@@ -352,17 +361,12 @@ export function FileCard({
           </div>
         ) : hasPreview ? (
           <>
-            <FilePreview item={displayItem} showDuration />
-            {isProcessing && (
-              <div
-                data-testid="file-card-processing-overlay"
-                className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/50"
-              >
-                <span className="text-sm font-medium text-foreground">
-                  {m.file_card_processing()}
-                </span>
-              </div>
-            )}
+            <div
+              data-testid="file-card-preview-media"
+              className={cn('h-full w-full', isProcessing && 'animate-pulse')}
+            >
+              <FilePreview item={displayItem} showDuration />
+            </div>
             {previewBadges}
           </>
         ) : displayItem.status === 'error' ? (
@@ -372,12 +376,7 @@ export function FileCard({
             </span>
           </div>
         ) : displayItem.status === 'processing' || displayItem.status === 'uploaded' ? (
-          <div className="flex h-full w-full items-center justify-center bg-background/50">
-            <Skeleton className="absolute inset-0 h-full w-full" />
-            <span className="z-10 font-medium px-2 text-center text-sm text-muted-foreground">
-              {m.file_card_processing()}
-            </span>
-          </div>
+          <Skeleton className="absolute inset-0 h-full w-full" />
         ) : (
           <>
             <FilePreview item={displayItem} showDuration />
@@ -418,7 +417,7 @@ export function FileCard({
             >
               <TooltipTrigger asChild>
                 <p ref={creatorRef} className="text-sm text-muted-foreground line-clamp-2 h-[2lh]">
-                  {creatorText}
+                  {statusText ?? creatorText}
                 </p>
               </TooltipTrigger>
               {isCreatorTooltipOpen && (

@@ -132,6 +132,7 @@
   "activity_notifications": "活动通知",
   "activity_notifications_description": "接收此项目中评论、上传及自动后台分析任务的应用内通知。",
   "processing": "处理中...",
+  "preparing": "准备中...",
   "project_updated": "项目已更新",
   "failed_update_project": "更新项目失败",
   "project_notification_updated": "项目通知设置已更新",
