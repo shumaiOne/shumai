@@ -106,6 +106,7 @@ apps/web/e2e/
 | Upload a video file, wait for transcode, and create a comment with draw at a non-zero timestamp | `tests/file/video-draw-comment.spec.ts` |
 | Upload an audio file, wait for transcode, and create a comment at a non-zero timestamp | `tests/file/audio-timestamp-comment.spec.ts` |
 | Show a breathing poster preview and "Preparing..." while a video is still transcoding | `tests/file/processing-preview.spec.ts` |
+| Show a preparing circle before the poster is generated | `tests/file/processing-preview.spec.ts` |
 
 ## Conventions
 

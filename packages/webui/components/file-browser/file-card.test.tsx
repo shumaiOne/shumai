@@ -323,6 +323,9 @@ describe('FileCard', () => {
     // The creator row is replaced by the status label while processing.
     expect(screen.getByText(/Preparing|准备中/i)).toBeTruthy()
     expect(screen.queryByText(/Alice/i)).toBeNull()
+
+    // The duration badge is hidden until the asset is ready.
+    expect(screen.queryByText('00:10')).toBeNull()
   })
 
   it('shows "Uploading..." in place of the creator while uploading', () => {
@@ -338,7 +341,7 @@ describe('FileCard', () => {
     expect(screen.queryByText(/Alice/i)).toBeNull()
   })
 
-  it('shows a skeleton and "Preparing..." when processing without a preview yet', () => {
+  it('shows a preparing circle and "Preparing..." when processing without a preview yet', () => {
     const processingItem: AssetInfo = {
       ...fileItem,
       status: 'processing',
@@ -348,6 +351,9 @@ describe('FileCard', () => {
     renderComponent({ item: processingItem })
 
     expect(screen.queryByTestId('file-card-preview-media')).toBeNull()
+    const circle = screen.getByTestId('file-card-preparing-circle')
+    expect(circle.tagName.toLowerCase()).toBe('svg')
+    expect(circle.querySelector('circle')?.getAttribute('fill')).toBe('transparent')
     expect(screen.getByText(/Preparing|准备中/i)).toBeTruthy()
     expect(screen.queryByText(/Alice/i)).toBeNull()
   })
@@ -360,6 +366,7 @@ describe('FileCard', () => {
       preview: {
         proxyType: 'video',
         thumbnailUrl: 'https://example.com/poster.webp',
+        duration: 10,
       },
     } as AssetInfo
 
@@ -371,5 +378,8 @@ describe('FileCard', () => {
       'https://example.com/poster.webp',
     )
     expect(screen.getByText(/Alice/i)).toBeTruthy()
+
+    // The duration badge appears once processing is done.
+    expect(screen.getByText('00:10')).toBeTruthy()
   })
 })

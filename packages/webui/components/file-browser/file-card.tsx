@@ -21,7 +21,6 @@ import {
   TooltipTrigger,
 } from '@/ui/components/ui/tooltip'
 import { ProgressCircle } from '@/ui/components/ui/progress-circle'
-import { Skeleton } from '@/ui/components/ui/skeleton'
 import { formatTimeAgo, getTrashDaysLeft } from '@/ui/lib/time'
 import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
 import { cn } from '@/ui/lib/utils'
@@ -365,7 +364,7 @@ export function FileCard({
               data-testid="file-card-preview-media"
               className={cn('h-full w-full', isProcessing && 'animate-pulse')}
             >
-              <FilePreview item={displayItem} showDuration />
+              <FilePreview item={displayItem} showDuration={!isProcessing} />
             </div>
             {previewBadges}
           </>
@@ -376,7 +375,23 @@ export function FileCard({
             </span>
           </div>
         ) : displayItem.status === 'processing' || displayItem.status === 'uploaded' ? (
-          <Skeleton className="absolute inset-0 h-full w-full" />
+          <div className="flex h-full w-full items-center justify-center">
+            {/* Same geometry as the upload progress ring, but empty inside and no percentage. */}
+            <svg
+              viewBox="0 0 50 50"
+              data-testid="file-card-preparing-circle"
+              className="h-16 w-16 animate-preparing-breathe"
+            >
+              <circle
+                cx="25"
+                cy="25"
+                r="20"
+                className="stroke-primary"
+                strokeWidth="4"
+                fill="transparent"
+              />
+            </svg>
+          </div>
         ) : (
           <>
             <FilePreview item={displayItem} showDuration />

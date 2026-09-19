@@ -57,4 +57,26 @@ test('shows the poster preview and "Preparing..." while a video is still transco
 
   // The creator row is replaced by a "Preparing..." label while transcoding.
   await expect(card.getByText(/Preparing|准备中/i)).toBeVisible()
+
+  // The duration badge is hidden until the asset is ready.
+  await expect(card.getByText('00:10')).toHaveCount(0)
+})
+
+test('shows a preparing circle before the poster is generated', async ({ file, prisma }) => {
+  const { page, projectId, fileId, fileName } = file
+
+  // Simulate an asset whose upload finished but whose poster does not exist yet.
+  await prisma.asset.update({
+    where: { id: fileId },
+    data: { status: 'processing', mediaType: 'video/mp4' },
+  })
+
+  await page.goto(`/projects/${projectId}`)
+
+  const card = fileCard(page, fileName)
+  await expect(card).toBeVisible()
+
+  // A size-breathing circle stands in until the poster is available, with a "Preparing..." label.
+  await expect(card.getByTestId('file-card-preparing-circle')).toBeVisible()
+  await expect(card.getByText(/Preparing|准备中/i)).toBeVisible()
 })

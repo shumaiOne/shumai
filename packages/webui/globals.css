@@ -114,8 +114,21 @@
   --color-sidebar-ring: var(--sidebar-ring);
 
   --animate-upload-breathing: upload-breathing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
+  --animate-preparing-breathe: preparing-breathe 1.6s ease-in-out infinite;
   --animate-drift-slow: drift-slow 15s ease-in-out infinite alternate;
   --animate-drift-medium: drift-medium 12s ease-in-out infinite alternate;
+
+  @keyframes preparing-breathe {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.18);
+    }
+  }
 
   @keyframes upload-breathing {
     0% {
