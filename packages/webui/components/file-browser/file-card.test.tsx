@@ -295,4 +295,60 @@ describe('FileCard', () => {
     renderComponent({ item: fileItem, isRecentlyDeleted: true })
     expect(screen.queryByTestId('file-card-days-left')).toBeNull()
   })
+
+  it('shows the preview with a processing overlay while the asset is still processing', () => {
+    const processingItem: AssetInfo = {
+      ...fileItem,
+      status: 'processing',
+      preview: {
+        proxyType: 'video',
+        thumbnailUrl: 'https://example.com/poster.webp',
+        spriteUrl: 'https://example.com/sprite.webp',
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 10,
+      },
+    } as AssetInfo
+
+    renderComponent({ item: processingItem })
+
+    // The preview (sprite scrubber base thumbnail) is rendered instead of a skeleton.
+    const thumbnail = screen.getByAltText('Thumbnail')
+    expect(thumbnail.getAttribute('src')).toBe('https://example.com/poster.webp')
+
+    const overlay = screen.getByTestId('file-card-processing-overlay')
+    expect(overlay.className).toContain('bg-background/50')
+    expect(overlay.className).toContain('pointer-events-none')
+    expect(overlay.textContent).toMatch(/Processing|处理中/i)
+  })
+
+  it('shows the processing label without a preview overlay when no preview is available yet', () => {
+    const processingItem: AssetInfo = {
+      ...fileItem,
+      status: 'processing',
+    } as AssetInfo
+
+    renderComponent({ item: processingItem })
+
+    expect(screen.queryByTestId('file-card-processing-overlay')).toBeNull()
+    expect(screen.getByText(/Processing|处理中/i)).toBeTruthy()
+  })
+
+  it('does not show the processing overlay once the asset is processed', () => {
+    const processedItem: AssetInfo = {
+      ...fileItem,
+      status: 'processed',
+      preview: {
+        proxyType: 'video',
+        thumbnailUrl: 'https://example.com/poster.webp',
+      },
+    } as AssetInfo
+
+    renderComponent({ item: processedItem })
+
+    expect(screen.queryByTestId('file-card-processing-overlay')).toBeNull()
+    expect(screen.getByAltText('Preview').getAttribute('src')).toBe(
+      'https://example.com/poster.webp',
+    )
+  })
 })

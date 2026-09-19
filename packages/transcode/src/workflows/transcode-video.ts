@@ -77,6 +77,43 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       })
     }
 
+    // Generate the sprite (and its poster fallback) before the expensive proxy transcodes so the
+    // file list can show a poster/sprite preview while the asset is still processing.
+    if (spec.sprite || (spec.poster && !mediaInfo.poster)) {
+      const lastSlashIndex = key.lastIndexOf('/')
+      const assetDir = lastSlashIndex === -1 ? '' : key.substring(0, lastSlashIndex)
+
+      const spriteSpec: PrismaJson.SpriteInfo = {
+        key: assetDir ? `${assetDir}/sprite.webp` : 'sprite.webp',
+        frames: 100,
+        tileX: 10,
+        tileY: 10,
+      }
+      const posterSpec: PrismaJson.PosterInfo = mediaInfo.poster || {
+        key: assetDir ? `${assetDir}/poster.webp` : 'poster.webp',
+      }
+
+      const spriteResult = await executeActivity(workerQueue, generateSpriteActivity, {
+        taskId: task.id,
+        assetKey: key,
+        filePath,
+        spriteSpec,
+        posterSpec,
+        mediaInfo,
+      })
+      if (spec.sprite) {
+        mediaInfo.sprite = spriteResult.sprite
+      }
+      if (!mediaInfo.poster) {
+        mediaInfo.poster = spriteResult.poster
+      }
+
+      await executeActivity(workerQueue, updateAssetMediaActivity, {
+        assetId: asset.id,
+        mediaInfo,
+      })
+    }
+
     const metadata = mediaInfo.metadata
 
     if (mediaInfo.proxyType === 'video' && metadata) {
@@ -136,36 +173,6 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
         imageSpec: { width: 300, height: 300, quality: 80, format: 'webp', isPreview: true },
       })
       mediaInfo.thumbnail = thumbTranscode
-    }
-
-    if (spec.sprite || (spec.poster && !mediaInfo.poster)) {
-      const lastSlashIndex = key.lastIndexOf('/')
-      const assetDir = lastSlashIndex === -1 ? '' : key.substring(0, lastSlashIndex)
-
-      const spriteSpec: PrismaJson.SpriteInfo = {
-        key: assetDir ? `${assetDir}/sprite.webp` : 'sprite.webp',
-        frames: 100,
-        tileX: 10,
-        tileY: 10,
-      }
-      const posterSpec: PrismaJson.PosterInfo = mediaInfo.poster || {
-        key: assetDir ? `${assetDir}/poster.webp` : 'poster.webp',
-      }
-
-      const spriteResult = await executeActivity(workerQueue, generateSpriteActivity, {
-        taskId: task.id,
-        assetKey: key,
-        filePath,
-        spriteSpec,
-        posterSpec,
-        mediaInfo,
-      })
-      if (spec.sprite) {
-        mediaInfo.sprite = spriteResult.sprite
-      }
-      if (!mediaInfo.poster) {
-        mediaInfo.poster = spriteResult.poster
-      }
     }
 
     await executeActivity(workerQueue, updateAssetMediaActivity, {

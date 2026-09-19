@@ -402,4 +402,99 @@ describe('transcodeVideoWorkflow', () => {
       }),
     })
   })
+
+  it('should persist poster/sprite before transcoding proxies so previews are available early', async () => {
+    const task: WorkflowTask = {
+      id: 'task-sprite',
+      assetId: 'asset-sprite',
+      type: WorkflowTaskType.transcode_video,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: {
+          poster: true,
+          sprite: true,
+          videoStrategy: 'best_match',
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid-sprite',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-sprite',
+      storageKey: { key: 'files/asset-sprite/video.mp4' },
+      mediaType: 'video/mp4',
+    })
+
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      proxyType: 'video',
+      metadata: {
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 10,
+        frameRate: 30,
+        totalFrames: 300,
+        startTimecode: '00:00:00:00',
+        bitRate: 1000,
+        hasAudio: false,
+        format: {},
+      },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    mockActivities.extractPosterActivity.mockResolvedValue({
+      poster: { key: 'files/asset-sprite/poster.webp' },
+    })
+    mockActivities.generateSpriteActivity.mockResolvedValue({
+      sprite: { key: 'files/asset-sprite/sprite.webp', frames: 100, tileX: 10, tileY: 10 },
+      poster: { key: 'files/asset-sprite/poster.webp' },
+    })
+    mockActivities.transcodeVideoActivity.mockResolvedValue({
+      key: 'files/asset-sprite/video-180p.mp4',
+      width: 320,
+      height: 180,
+    })
+
+    // Capture a snapshot of the media payload at each commit: the workflow mutates the same
+    // `mediaInfo` object in place, so the recorded mock call args would reflect the final state.
+    const commitSnapshots: Array<{ sprite?: unknown; videoTranscodes: unknown[] }> = []
+    mockActivities.updateAssetMediaActivity.mockImplementation(
+      (params: { mediaInfo: { sprite?: unknown; videoTranscodes?: unknown[] } }) => {
+        commitSnapshots.push({
+          sprite: params.mediaInfo.sprite,
+          videoTranscodes: [...(params.mediaInfo.videoTranscodes ?? [])],
+        })
+        return Promise.resolve()
+      },
+    )
+
+    await transcodeVideoWorkflow(task)
+
+    const spriteOrder = mockActivities.generateSpriteActivity.mock.invocationCallOrder[0]
+    const firstProxyOrder = mockActivities.transcodeVideoActivity.mock.invocationCallOrder[0]
+
+    // Sprite generation must run before any proxy transcode.
+    expect(spriteOrder).toBeLessThan(firstProxyOrder)
+
+    // The media commit that carries the sprite must land before the first proxy transcode too,
+    // and must not yet contain any proxy transcodes.
+    const spriteCommitIndex = commitSnapshots.findIndex((snapshot) => snapshot.sprite !== undefined)
+    expect(spriteCommitIndex).toBeGreaterThanOrEqual(0)
+    expect(commitSnapshots[spriteCommitIndex].videoTranscodes).toEqual([])
+
+    expect(
+      mockActivities.updateAssetMediaActivity.mock.invocationCallOrder[spriteCommitIndex],
+    ).toBeLessThan(firstProxyOrder)
+  })
 })

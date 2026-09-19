@@ -261,6 +261,40 @@ export function FileCard({
         ? m.n_days_left_singular({ count: daysLeft })
         : m.n_days_left_plural({ count: daysLeft })
 
+  // A preview (poster thumbnail and/or sprite) can be available before transcoding finishes,
+  // since the poster/sprite are generated and persisted ahead of the proxy transcodes.
+  const hasPreview = Boolean(displayItem.preview?.thumbnailUrl || displayItem.preview?.spriteUrl)
+  const isProcessing = displayItem.status === 'processing' || displayItem.status === 'uploaded'
+
+  const previewBadges =
+    daysLeft !== null ||
+    (typeof displayItem.commentsCount === 'number' && displayItem.commentsCount > 0) ? (
+      <div
+        data-testid="file-card-preview-badges"
+        className="pointer-events-none absolute bottom-1 left-1 z-10 flex items-center gap-1"
+      >
+        {daysLeft !== null && (
+          <span
+            data-testid="file-card-days-left"
+            title={daysLeftTooltip}
+            className="flex items-center gap-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white"
+          >
+            <Clock className="h-3.5 w-3.5" />
+            <span>{m.days_left_short({ count: daysLeft })}</span>
+          </span>
+        )}
+        {typeof displayItem.commentsCount === 'number' && displayItem.commentsCount > 0 && (
+          <span
+            data-testid="file-card-comments-count"
+            className="flex items-center gap-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white"
+          >
+            <MessageCircleMore className="h-3.5 w-3.5" />
+            <span>{displayItem.commentsCount}</span>
+          </span>
+        )}
+      </div>
+    ) : null
+
   return (
     <div
       ref={setNodeRef}
@@ -312,63 +346,42 @@ export function FileCard({
       </div>
 
       <div className="relative aspect-square overflow-hidden bg-muted/30">
-        {displayItem.status === 'uploading' ||
-        displayItem.status === 'processing' ||
-        displayItem.status === 'uploaded' ||
-        displayItem.status === 'error' ? (
+        {displayItem.status === 'uploading' ? (
           <div className="flex h-full w-full items-center justify-center bg-background/50">
-            {displayItem.status !== 'error' && (
-              <Skeleton className="absolute inset-0 h-full w-full" />
-            )}
-            {displayItem.status === 'uploading' ? (
-              <ProgressCircle progress={uploadPercent} className="w-16 h-16 z-10" />
-            ) : (
-              <span
-                className={cn(
-                  'z-10 font-medium px-2 text-center text-sm',
-                  displayItem.status === 'error'
-                    ? 'text-destructive font-semibold'
-                    : 'text-muted-foreground capitalize',
-                )}
+            <ProgressCircle progress={uploadPercent} className="w-16 h-16 z-10" />
+          </div>
+        ) : hasPreview ? (
+          <>
+            <FilePreview item={displayItem} showDuration />
+            {isProcessing && (
+              <div
+                data-testid="file-card-processing-overlay"
+                className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/50"
               >
-                {displayItem.status === 'uploaded'
-                  ? 'Processing'
-                  : displayItem.status === 'error'
-                    ? 'Failed to upload'
-                    : displayItem.status}
-              </span>
+                <span className="text-sm font-medium text-foreground">
+                  {m.file_card_processing()}
+                </span>
+              </div>
             )}
+            {previewBadges}
+          </>
+        ) : displayItem.status === 'error' ? (
+          <div className="flex h-full w-full items-center justify-center bg-background/50">
+            <span className="z-10 font-medium px-2 text-center text-sm text-destructive font-semibold">
+              {m.failed_to_upload()}
+            </span>
+          </div>
+        ) : displayItem.status === 'processing' || displayItem.status === 'uploaded' ? (
+          <div className="flex h-full w-full items-center justify-center bg-background/50">
+            <Skeleton className="absolute inset-0 h-full w-full" />
+            <span className="z-10 font-medium px-2 text-center text-sm text-muted-foreground">
+              {m.file_card_processing()}
+            </span>
           </div>
         ) : (
           <>
             <FilePreview item={displayItem} showDuration />
-            {(daysLeft !== null ||
-              (typeof displayItem.commentsCount === 'number' && displayItem.commentsCount > 0)) && (
-              <div
-                data-testid="file-card-preview-badges"
-                className="pointer-events-none absolute bottom-1 left-1 z-10 flex items-center gap-1"
-              >
-                {daysLeft !== null && (
-                  <span
-                    data-testid="file-card-days-left"
-                    title={daysLeftTooltip}
-                    className="flex items-center gap-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white"
-                  >
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>{m.days_left_short({ count: daysLeft })}</span>
-                  </span>
-                )}
-                {typeof displayItem.commentsCount === 'number' && displayItem.commentsCount > 0 && (
-                  <span
-                    data-testid="file-card-comments-count"
-                    className="flex items-center gap-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white"
-                  >
-                    <MessageCircleMore className="h-3.5 w-3.5" />
-                    <span>{displayItem.commentsCount}</span>
-                  </span>
-                )}
-              </div>
-            )}
+            {previewBadges}
           </>
         )}
       </div>

@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **release**: Automatically populate GitHub release bodies from CHANGELOG.md and promote unreleased notes during version bumps
 - **settings**: Add FFmpeg threads slider to team media processing settings
 - **asset**: Show previews of a folder's contents and a "days left" countdown for each item in Recently Deleted
+- **asset**: Show the poster and hover preview for a video in the file list while it is still transcoding, instead of a blank placeholder
 
 ### Fixed
 
