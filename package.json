@@ -39,7 +39,9 @@
     "release:patch": "bun run scripts/release.ts patch",
     "release:minor": "bun run scripts/release.ts minor",
     "release:major": "bun run scripts/release.ts major",
-    "changelog:extract": "bun run scripts/extract-changelog.ts"
+    "changelog:extract": "bun run scripts/extract-changelog.ts",
+    "docs:changelog": "bun run scripts/generate-docs-changelog.ts",
+    "docs:changelog:check": "bun run scripts/generate-docs-changelog.ts --check"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

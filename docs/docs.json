@@ -12,6 +12,14 @@
     "light": "#F5B895",
     "dark": "#A8384D"
   },
+  "navbar": {
+    "links": [
+      {
+        "label": "Changelog",
+        "href": "/changelog"
+      }
+    ]
+  },
   "navigation": {
     "groups": [
       {
@@ -67,6 +75,10 @@
       {
         "group": "Temporal Deployment",
         "pages": ["configuration/temporal"]
+      },
+      {
+        "group": "Releases",
+        "pages": ["changelog"]
       }
     ]
   }

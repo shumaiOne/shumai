@@ -1,23 +1,9 @@
-# Changelog
+---
+title: 'Changelog'
+description: 'Recent updates, new features, and improvements in Shumai'
+---
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-
-## [Unreleased]
-
-### Added
-
-- **docs**: Add a Changelog section to the documentation site so users can explore release notes and updates directly in Mintlify
-
-### Fixed
-
-- **docker**: Fix an issue where the bundled PostgreSQL container published port 5432 on the host, causing deployment to fail on machines where that port was already in use; the database is now only reachable by Shumai itself
-- **cli**: Only manage and check PID files in daemon mode, preventing stale PID files, crash-loop conflicts, or spurious process checks during normal foreground and Docker execution
-
-### Changed
-
-## [0.4.7] - 2026-09-19
+<Update label="v0.4.7" description="September 19, 2026">
 
 ### Added
 
@@ -35,7 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **asset**: Fix an issue where deleting or restoring a version stack from the file list did nothing
 - **webui**: Center breadcrumb file action popup menu on the chevron icon
 
-## [0.4.6] - 2026-09-17
+</Update>
+
+<Update label="v0.4.6" description="September 17, 2026">
 
 ### Added
 
@@ -53,7 +41,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Add NLE export and Premiere Pro UXP plugin documentation ([#412](https://github.com/shumaiOne/shumai/pull/412))
 
-## [0.4.5] - 2026-09-13
+</Update>
+
+<Update label="v0.4.5" description="September 13, 2026">
 
 ### Added
 
@@ -63,7 +53,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **webui**: Show comments count badge in file card preview area ([#403](https://github.com/shumaiOne/shumai/pull/403))
 - **agent**: Use deterministic storage keys for preset avatars ([#404](https://github.com/shumaiOne/shumai/pull/404))
 
-## [0.4.4] - 2026-09-09
+</Update>
+
+<Update label="v0.4.4" description="September 9, 2026">
 
 ### Added
 
@@ -79,7 +71,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **agent**: Restrict pageCount and duration recommendations to matching media types ([#397](https://github.com/shumaiOne/shumai/pull/397))
 - **transcode**: Co-locate screenshots and derived artifacts in asset storage directory ([#399](https://github.com/shumaiOne/shumai/pull/399))
 
-## [0.4.3] - 2026-09-06
+</Update>
+
+<Update label="v0.4.3" description="September 6, 2026">
 
 ### Added
 
@@ -104,7 +98,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **deps**: Upgrade bun to 1.4.2 and update packages ([#384](https://github.com/shumaiOne/shumai/pull/384))
 - **i18n**: Update paraglide-js to 2.25.0 and stop checking in generated code ([#386](https://github.com/shumaiOne/shumai/pull/386))
 
-## [0.4.2] - 2026-09-03
+</Update>
+
+<Update label="v0.4.2" description="September 3, 2026">
 
 ### Added
 
@@ -126,7 +122,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **webui**: Use semantic system colors in notification settings ([#379](https://github.com/shumaiOne/shumai/pull/379))
 
-## [0.4.1] - 2026-08-30
+</Update>
+
+<Update label="v0.4.1" description="August 30, 2026">
 
 ### Added
 
@@ -143,7 +141,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **agent**: Remove executeAgentToolWorkflow and invoke core services directly ([#362](https://github.com/shumaiOne/shumai/pull/362))
 
-## [0.4.0] - 2026-08-28
+</Update>
+
+<Update label="v0.4.0" description="August 28, 2026">
 
 ### Added
 
@@ -163,7 +163,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Add SECURITY.md with a private disclosure path ([#357](https://github.com/shumaiOne/shumai/pull/357))
 
-## [0.3.11] - 2026-08-25
+</Update>
+
+<Update label="v0.3.11" description="August 25, 2026">
 
 ### Added
 
@@ -174,7 +176,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **webui**: Prevent left carousel remounting and scroll jump on file selection ([#351](https://github.com/shumaiOne/shumai/pull/351))
 
-## [0.3.10] - 2026-08-23
+</Update>
+
+<Update label="v0.3.10" description="August 23, 2026">
 
 ### Added
 
@@ -188,7 +192,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **webui**: Sidebar selection styling, kanban active state, pointer cursors, and owner dashboard ([#344](https://github.com/shumaiOne/shumai/pull/344))
 - **kanban**: Improve drag-drop to column bottom, remove empty drop line, and fix timeline alignment ([#346](https://github.com/shumaiOne/shumai/pull/346))
 
-## [0.3.9] - 2026-08-18
+</Update>
+
+<Update label="v0.3.9" description="August 18, 2026">
 
 ### Added
 
@@ -208,7 +214,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **team-settings**: Add resource quotas documentation and update readme features ([#326](https://github.com/shumaiOne/shumai/pull/326))
 
-## [0.3.8] - 2026-08-15
+</Update>
+
+<Update label="v0.3.8" description="August 15, 2026">
 
 ### Added
 
@@ -221,7 +229,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **core**: Rename latest version child record on version stack rename ([#312](https://github.com/shumaiOne/shumai/pull/312))
 
-## [0.3.7] - 2026-08-14
+</Update>
+
+<Update label="v0.3.7" description="August 14, 2026">
 
 ### Added
 
@@ -235,7 +245,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **webui**: Fix select field height and multi-select overflow/interaction issues ([#307](https://github.com/shumaiOne/shumai/pull/307))
 
-## [0.3.6] - 2026-08-12
+</Update>
+
+<Update label="v0.3.6" description="August 12, 2026">
 
 ### Added
 
@@ -254,7 +266,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **mcp**: Add MCP support documentation to README and docs ([#300](https://github.com/shumaiOne/shumai/pull/300))
 
-## [0.3.5] - 2026-08-09
+</Update>
+
+<Update label="v0.3.5" description="August 9, 2026">
 
 ### Added
 
@@ -268,7 +282,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **webui**: Batch download no longer flashes a tab per file ([#287](https://github.com/shumaiOne/shumai/pull/287))
 - **webui**: Enable rename and delete actions in file detail top bar breadcrumb ([#288](https://github.com/shumaiOne/shumai/pull/288))
 
-## [0.3.4] - 2026-08-08
+</Update>
+
+<Update label="v0.3.4" description="August 8, 2026">
 
 ### Added
 
@@ -293,7 +309,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **e2e**: Stabilize watermark share spec on Firefox ([#279](https://github.com/shumaiOne/shumai/pull/279))
 - Split e2e scripts into app and webui targets ([#280](https://github.com/shumaiOne/shumai/pull/280))
 
-## [0.3.3] - 2026-08-05
+</Update>
+
+<Update label="v0.3.3" description="August 5, 2026">
 
 ### Added
 
@@ -327,7 +345,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **e2e**: Add search in file list and save-search-as-collection cases ([#261](https://github.com/shumaiOne/shumai/pull/261))
 - **e2e**: Add member permission change tests ([#268](https://github.com/shumaiOne/shumai/pull/268))
 
-## [0.3.2] - 2026-07-30
+</Update>
+
+<Update label="v0.3.2" description="July 30, 2026">
 
 ### Added
 
@@ -338,7 +358,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **agent**: Download original document asset instead of pdf proxy ([#247](https://github.com/shumaiOne/shumai/pull/247))
 - **webui**: Persist chatbot sidebar input text across route navigation ([#249](https://github.com/shumaiOne/shumai/pull/249))
 
-## [0.3.1] - 2026-07-30
+</Update>
+
+<Update label="v0.3.1" description="July 30, 2026">
 
 ### Added
 
@@ -356,7 +378,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **webui**: Update file size formatting to SI decimal standard ([#245](https://github.com/shumaiOne/shumai/pull/245))
 - **s3**: Enforce property syntax in S3Service interface and fix ReadableStream handling in S3StorageService ([#246](https://github.com/shumaiOne/shumai/pull/246))
 
-## [0.3.0] - 2026-07-28
+</Update>
+
+<Update label="v0.3.0" description="July 28, 2026">
 
 ### Added
 
@@ -379,7 +403,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **workflow**: Add docker compose deployment verification job ([#231](https://github.com/shumaiOne/shumai/pull/231))
 
-## [0.2.3] - 2026-07-25
+</Update>
+
+<Update label="v0.2.3" description="July 25, 2026">
 
 ### Fixed
 
@@ -392,7 +418,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **e2e**: Split transcode workflow E2E tests into per-workflow test files ([#222](https://github.com/shumaiOne/shumai/pull/222))
 
-## [0.2.2] - 2026-07-23
+</Update>
+
+<Update label="v0.2.2" description="July 23, 2026">
 
 ### Added
 
@@ -406,7 +434,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **webui**: Prevent horizontal overflow in search dialog result rows ([#214](https://github.com/shumaiOne/shumai/pull/214))
 - **webui**: Invalidate upload tasks query when upload task starts and completes ([#218](https://github.com/shumaiOne/shumai/pull/218))
 
-## [0.2.1] - 2026-07-22
+</Update>
+
+<Update label="v0.2.1" description="July 22, 2026">
 
 ### Added
 
@@ -421,7 +451,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **core**: Split generated providers into per-provider files ([#210](https://github.com/shumaiOne/shumai/pull/210))
 
-## [0.2.0] - 2026-07-21
+</Update>
+
+<Update label="v0.2.0" description="July 21, 2026">
 
 ### Added
 
@@ -443,7 +475,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **asset**: Exclude soft-deleted children from latestChildren preview ([#206](https://github.com/shumaiOne/shumai/pull/206))
 - **agent**: Pass latest version asset from version stack to prompt builder ([#207](https://github.com/shumaiOne/shumai/pull/207))
 
-## [0.1.10] - 2026-07-16
+</Update>
+
+<Update label="v0.1.10" description="July 16, 2026">
 
 ### Added
 
@@ -455,7 +489,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **e2e**: Add E2E workflow tests for remaining agent and transcode services ([#189](https://github.com/shumaiOne/shumai/pull/189))
 
-## [0.1.9] - 2026-07-14
+</Update>
+
+<Update label="v0.1.9" description="July 14, 2026">
 
 ### Added
 
@@ -467,7 +503,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **api/chat**: Remove direct Prisma query from API layer ([#187](https://github.com/shumaiOne/shumai/pull/187))
 
-## [0.1.8] - 2026-07-10
+</Update>
+
+<Update label="v0.1.8" description="July 10, 2026">
 
 ### Added
 
@@ -481,7 +519,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **readme**: Clarify displayed file size represents original file size ([#182](https://github.com/shumaiOne/shumai/pull/182))
 
-## [0.1.7] - 2026-07-06
+</Update>
+
+<Update label="v0.1.7" description="July 6, 2026">
 
 ### Added
 
@@ -501,7 +541,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Improve documentation and examples for S3 compatible storage ([#177](https://github.com/shumaiOne/shumai/pull/177))
 
-## [0.1.6] - 2026-07-04
+</Update>
+
+<Update label="v0.1.6" description="July 4, 2026">
 
 ### Added
 
@@ -520,7 +562,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **webui**: Add frame-accurate comment seek roundtrip e2e ([#168](https://github.com/shumaiOne/shumai/pull/168))
 - **webui**: Verify video player restarts playback after end ([#169](https://github.com/shumaiOne/shumai/pull/169))
 
-## [0.1.5] - 2026-07-02
+</Update>
+
+<Update label="v0.1.5" description="July 2, 2026">
 
 ### Changed
 
@@ -530,7 +574,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **release**: Add Aliyun ACR push to release workflow ([#164](https://github.com/shumaiOne/shumai/pull/164))
 
-## [0.1.4] - 2026-07-01
+</Update>
+
+<Update label="v0.1.4" description="July 1, 2026">
 
 ### Added
 
@@ -541,7 +587,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **webui**: Preserve video ended state by skipping playhead snap on ended ([#162](https://github.com/shumaiOne/shumai/pull/162))
 
-## [0.1.3] - 2026-06-30
+</Update>
+
+<Update label="v0.1.3" description="June 30, 2026">
 
 ### Added
 
@@ -554,19 +602,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **webui**: Fix missing left sidebar for nested folders ([#159](https://github.com/shumaiOne/shumai/pull/159))
 - **api**: Fix update team settings and make request schema type-safe ([#160](https://github.com/shumaiOne/shumai/pull/160))
 
-## [0.1.2] - 2026-06-25
+</Update>
+
+<Update label="v0.1.2" description="June 25, 2026">
 
 ### Changed
 
 - **s3**: Remove automatic port appending to AWS_ENDPOINT_URL_S3 ([#155](https://github.com/shumaiOne/shumai/pull/155))
 
-## [0.1.1] - 2026-06-23
+</Update>
+
+<Update label="v0.1.1" description="June 23, 2026">
 
 ### Added
 
 - **docker**: Add root entrypoint with privilege dropping for data volumes ([#151](https://github.com/shumaiOne/shumai/pull/151))
 
-## [0.1.0] - 2026-06-22
+</Update>
+
+<Update label="v0.1.0" description="June 22, 2026">
 
 ### Added
 
@@ -576,7 +630,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **webui**: Truncate long folder, collection, and share link names in sidebar ([#149](https://github.com/shumaiOne/shumai/pull/149))
 
-## [0.0.11] - 2026-06-22
+</Update>
+
+<Update label="v0.0.11" description="June 22, 2026">
 
 ### Added
 
@@ -589,7 +645,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **cli**: Rename npm package to @shumai-one/shumai-cli ([#148](https://github.com/shumaiOne/shumai/pull/148))
 
-## [0.0.10] - 2026-06-21
+</Update>
+
+<Update label="v0.0.10" description="June 21, 2026">
 
 ### Changed
 
@@ -599,7 +657,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **readme**: Polish structure, correct grammar, and add dependencies table ([#143](https://github.com/shumaiOne/shumai/pull/143))
 
-## [0.0.9] - 2026-06-20
+</Update>
+
+<Update label="v0.0.9" description="June 20, 2026">
 
 ### Added
 
@@ -610,7 +670,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **release**: Add smoke tests to local release stage ([#140](https://github.com/shumaiOne/shumai/pull/140))
 
-## [0.0.8] - 2026-06-19
+</Update>
+
+<Update label="v0.0.8" description="June 19, 2026">
 
 ### Added
 
@@ -638,7 +700,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **webui**: Fix search dialog layout height, scroll areas, and restrict filter toggle click ([#135](https://github.com/shumaiOne/shumai/pull/135))
 
-## [0.0.7] - 2026-06-17
+</Update>
+
+<Update label="v0.0.7" description="June 17, 2026">
 
 ### Added
 
@@ -659,7 +723,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Improve and restructure shumai documentation ([#118](https://github.com/shumaiOne/shumai/pull/118))
 
-## [0.0.6] - 2026-06-15
+</Update>
+
+<Update label="v0.0.6" description="June 15, 2026">
 
 ### Added
 
@@ -685,25 +751,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **readme**: Add comprehensive README.md ([#103](https://github.com/shumaiOne/shumai/pull/103))
 - **readme**: Improve remote deployment and temporal execution instructions ([#105](https://github.com/shumaiOne/shumai/pull/105))
 
-## [0.0.5] - 2026-06-13
+</Update>
+
+<Update label="v0.0.5" description="June 13, 2026">
 
 ### Added
 
 - **npm**: Auto deploy database migrations on package start ([#101](https://github.com/shumaiOne/shumai/pull/101))
 
-## [0.0.4] - 2026-06-12
+</Update>
+
+<Update label="v0.0.4" description="June 12, 2026">
 
 ### Fixed
 
 - **cli/docker**: Resolve global CLI external dependencies and fix Docker 404 error ([#100](https://github.com/shumaiOne/shumai/pull/100))
 
-## [0.0.3] - 2026-06-12
+</Update>
+
+<Update label="v0.0.3" description="June 12, 2026">
 
 ### Fixed
 
 - **cli**: Resolve platform binary path resolution under nested node_modules ([#99](https://github.com/shumaiOne/shumai/pull/99))
 
-## [0.0.2] - 2026-06-12
+</Update>
+
+<Update label="v0.0.2" description="June 12, 2026">
 
 ### Fixed
 
@@ -713,8 +787,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Add release-npm.yaml workflow ([#97](https://github.com/shumaiOne/shumai/pull/97))
 
-## [0.0.1] - 2026-06-12
+</Update>
+
+<Update label="v0.0.1" description="June 12, 2026">
 
 ### Added
 
 - Initial release of Shumai
+
+</Update>

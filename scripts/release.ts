@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process'
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { syncDocsChangelog } from './generate-docs-changelog'
 
 const releaseTarget = process.argv[2]
 const bumpTypes = new Set(['major', 'minor', 'patch'])
@@ -136,6 +137,13 @@ function updateChangelog(newVersion: string) {
   const updatedContent = content.replace(unreleasedRegex, replacement)
   writeFileSync(changelogFile, updatedContent, 'utf-8')
   console.log(`  Updated ${changelogFile} for v${newVersion} (${dateStr})`)
+
+  try {
+    syncDocsChangelog()
+    console.log('  Updated docs/changelog.mdx')
+  } catch (error) {
+    console.warn('  Warning: Failed to update docs/changelog.mdx:', error)
+  }
 }
 
 function shellQuote(value: string) {
