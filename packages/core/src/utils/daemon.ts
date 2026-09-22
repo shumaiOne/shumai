@@ -17,6 +17,9 @@ const PID_DIR = join(SHUMAI_DIR, 'pids')
 const LOG_DIR = join(SHUMAI_DIR, 'logs')
 
 function isProcessRunning(pid: number): boolean {
+  if (pid <= 1) {
+    return false
+  }
   try {
     process.kill(pid, 0)
     return true
@@ -35,7 +38,7 @@ async function stopProcess(appName: string, pidFile: string): Promise<boolean> {
   }
 
   const pid = parseInt(readFileSync(pidFile, 'utf8').trim(), 10)
-  if (isNaN(pid)) {
+  if (isNaN(pid) || pid <= 1) {
     console.log(`Invalid PID found in ${pidFile}. Cleaning up file.`)
     try {
       unlinkSync(pidFile)
@@ -180,18 +183,25 @@ export async function handleDaemonCommands(
   appName: string,
   runFn: () => Promise<void>,
 ): Promise<void> {
-  const pidFile = join(PID_DIR, `${appName}.pid`)
-  const logFile = join(LOG_DIR, `${appName}.log`)
-
-  // Ensure directories exist
-  mkdirSync(PID_DIR, { recursive: true })
-  mkdirSync(LOG_DIR, { recursive: true })
-
   const args = process.argv.slice(2)
   const isStop = args.includes('stop')
   const isRestart = args.includes('restart')
   const isLogs = args.includes('logs')
   const isDaemon = args.includes('-d') && process.env.SHUMAI_DAEMONIZED !== 'true'
+  const isDaemonizedChild = process.env.SHUMAI_DAEMONIZED === 'true'
+
+  // Normal foreground startup: do not create, check, or track PID files
+  if (!isStop && !isRestart && !isLogs && !isDaemon && !isDaemonizedChild) {
+    await runFn()
+    return
+  }
+
+  const pidFile = join(PID_DIR, `${appName}.pid`)
+  const logFile = join(LOG_DIR, `${appName}.log`)
+
+  // Ensure directories exist for daemon commands
+  mkdirSync(PID_DIR, { recursive: true })
+  mkdirSync(LOG_DIR, { recursive: true })
 
   if (isStop) {
     await stopProcess(appName, pidFile)
@@ -216,27 +226,7 @@ export async function handleDaemonCommands(
     process.exit(0)
   }
 
-  // Normal Startup logic: check if already running
-  if (existsSync(pidFile)) {
-    const pid = parseInt(readFileSync(pidFile, 'utf8').trim(), 10)
-    if (!isNaN(pid) && pid !== process.pid) {
-      if (isProcessRunning(pid)) {
-        console.error(
-          `${appName} is already running (PID: ${pid}). Use '${appName} stop' or '${appName} restart'.`,
-        )
-        process.exit(1)
-      } else {
-        // Process is dead, clean up PID file
-        try {
-          unlinkSync(pidFile)
-        } catch {
-          // Ignore
-        }
-      }
-    }
-  }
-
-  // Write the PID file
+  // Daemonized child startup (SHUMAI_DAEMONIZED === 'true')
   writeFileSync(pidFile, process.pid.toString(), 'utf8')
 
   const cleanPidFile = () => {

@@ -67,15 +67,26 @@ describe('handleDaemonCommands', () => {
     }
   })
 
-  it('runs the runFn on normal startup', async () => {
+  it('runs the runFn on normal foreground startup without creating a PID file', async () => {
     process.argv = ['node', 'script.js']
     const runFn = vi.fn().mockResolvedValue(undefined)
 
     await handleDaemonCommands(appName, runFn)
 
     expect(runFn).toHaveBeenCalled()
-    expect(existsSync(pidFile)).toBe(true)
-    expect(readFileSync(pidFile, 'utf8').trim()).toBe(process.pid.toString())
+    expect(existsSync(pidFile)).toBe(false)
+  })
+
+  it('runs foreground startup even if a stale or conflicting PID file exists', async () => {
+    process.argv = ['node', 'script.js']
+    const runFn = vi.fn().mockResolvedValue(undefined)
+
+    mkdirSync(join(mockTempDir, '.shumai', 'pids'), { recursive: true })
+    writeFileSync(pidFile, '12345')
+
+    await handleDaemonCommands(appName, runFn)
+
+    expect(runFn).toHaveBeenCalled()
   })
 
   it('stops the process if stop command is passed', async () => {
@@ -121,5 +132,27 @@ describe('handleDaemonCommands', () => {
     expect(mockKill).toHaveBeenCalledWith(12345, 'SIGTERM')
     expect(spawn).toHaveBeenCalled()
     expect(mockExit).toHaveBeenCalledWith(0)
+  })
+
+  it('runs and manages PID file when running as a daemonized child', async () => {
+    process.argv = ['node', 'script.js']
+    const originalEnv = process.env.SHUMAI_DAEMONIZED
+    process.env.SHUMAI_DAEMONIZED = 'true'
+
+    try {
+      const runFn = vi.fn().mockResolvedValue(undefined)
+
+      await handleDaemonCommands(appName, runFn)
+
+      expect(runFn).toHaveBeenCalled()
+      expect(existsSync(pidFile)).toBe(true)
+      expect(readFileSync(pidFile, 'utf8').trim()).toBe(process.pid.toString())
+    } finally {
+      if (originalEnv !== undefined) {
+        process.env.SHUMAI_DAEMONIZED = originalEnv
+      } else {
+        delete process.env.SHUMAI_DAEMONIZED
+      }
+    }
   })
 })
