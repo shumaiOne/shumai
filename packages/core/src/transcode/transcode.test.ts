@@ -2166,18 +2166,11 @@ describe('TranscodeService', () => {
 
       const spritePath = path.join(tempDir, 'sprite.webp')
       const posterPath = path.join(tempDir, 'poster.webp')
-      await transcodeService.generateSprite(
-        'input.mp4',
-        spritePath,
-        posterPath,
-        100,
-        undefined,
-        {
-          isHdr: true,
-          hdrType: 'pq',
-          colorTransfer: 'smpte2084',
-        },
-      )
+      await transcodeService.generateSprite('input.mp4', spritePath, posterPath, 100, undefined, {
+        isHdr: true,
+        hdrType: 'pq',
+        colorTransfer: 'smpte2084',
+      })
 
       const filterIdx = executedArgs.indexOf('-filter_complex')
       expect(filterIdx).toBeGreaterThan(-1)

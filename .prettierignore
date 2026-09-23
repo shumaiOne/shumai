@@ -8,3 +8,4 @@ src/ui/components/ui
 packages/webui/paraglide
 *.md
 **/*.md
+docs/changelog.mdx
