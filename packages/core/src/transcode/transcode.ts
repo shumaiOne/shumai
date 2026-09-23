@@ -962,9 +962,9 @@ export class TranscodeService {
         colorTransfer: hdrOptions.colorTransfer,
         availableFilters,
       })
-      filterComplex = `[0:v]${tonemap}[vsdr];[vsdr]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out];[vsdr]scale=-2:300:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
+      filterComplex = `[0:v]${tonemap},split=2[v_sprite][v_thumb];[v_sprite]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out];[v_thumb]scale=-2:300:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
     } else {
-      filterComplex = `[0:v]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out];[0:v]scale=-2:300:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
+      filterComplex = `[0:v]split=2[v_sprite][v_thumb];[v_sprite]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out];[v_thumb]scale=-2:300:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
     }
 
     const args = [

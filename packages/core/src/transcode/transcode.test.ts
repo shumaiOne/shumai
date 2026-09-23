@@ -2141,5 +2141,80 @@ describe('TranscodeService', () => {
       expect(executedArgs).toContain('-x264-params')
       expect(executedArgs).toContain('colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc')
     })
+
+    it('generateSprite uses split=2 filterComplex for HDR inputs', async () => {
+      let executedArgs: string[] = []
+      ;(
+        child_process.execFile as unknown as {
+          mockImplementation: (
+            fn: (
+              file: string,
+              args: string[],
+              cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+            ) => unknown,
+          ) => void
+        }
+      ).mockImplementation((_file, args, cb) => {
+        if (args.includes('-filters')) {
+          cb(null, { stdout: ' ... zscale ... \n ... tonemap ... ', stderr: '' })
+          return {}
+        }
+        executedArgs = args
+        cb(null, { stdout: '', stderr: '' })
+        return {}
+      })
+
+      const spritePath = path.join(tempDir, 'sprite.webp')
+      const posterPath = path.join(tempDir, 'poster.webp')
+      await transcodeService.generateSprite(
+        'input.mp4',
+        spritePath,
+        posterPath,
+        100,
+        undefined,
+        {
+          isHdr: true,
+          hdrType: 'pq',
+          colorTransfer: 'smpte2084',
+        },
+      )
+
+      const filterIdx = executedArgs.indexOf('-filter_complex')
+      expect(filterIdx).toBeGreaterThan(-1)
+      const filterStr = executedArgs[filterIdx + 1]
+      expect(filterStr).toContain('split=2[v_sprite][v_thumb]')
+      expect(filterStr).toContain('[v_sprite]fps=')
+      expect(filterStr).toContain('[v_thumb]scale=')
+    })
+
+    it('generateSprite uses split=2 filterComplex for SDR inputs', async () => {
+      let executedArgs: string[] = []
+      ;(
+        child_process.execFile as unknown as {
+          mockImplementation: (
+            fn: (
+              file: string,
+              args: string[],
+              cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+            ) => unknown,
+          ) => void
+        }
+      ).mockImplementation((_file, args, cb) => {
+        executedArgs = args
+        cb(null, { stdout: '', stderr: '' })
+        return {}
+      })
+
+      const spritePath = path.join(tempDir, 'sprite.webp')
+      const posterPath = path.join(tempDir, 'poster.webp')
+      await transcodeService.generateSprite('input.mp4', spritePath, posterPath, 100)
+
+      const filterIdx = executedArgs.indexOf('-filter_complex')
+      expect(filterIdx).toBeGreaterThan(-1)
+      const filterStr = executedArgs[filterIdx + 1]
+      expect(filterStr).toContain('[0:v]split=2[v_sprite][v_thumb]')
+      expect(filterStr).toContain('[v_sprite]fps=')
+      expect(filterStr).toContain('[v_thumb]scale=')
+    })
   })
 })
