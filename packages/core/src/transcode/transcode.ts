@@ -16,6 +16,13 @@ import { dataFormatNames } from './dataFormatNames'
 
 const execFileAsync = promisify(execFile)
 
+if (process.platform === 'darwin') {
+  const brewIcd = '/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json'
+  if (!process.env.VK_ICD_FILENAMES && !process.env.VK_DRIVER_FILES && fs.existsSync(brewIcd)) {
+    process.env.VK_ICD_FILENAMES = brewIcd
+  }
+}
+
 export interface CjkFontConfig {
   fontPath: string
   fontName?: string
