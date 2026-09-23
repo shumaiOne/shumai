@@ -181,6 +181,12 @@ export async function transcodeWatermarkMediaActivity(
     let startTimecode = '00:00:00:00'
     let hasAudio = false
     let sourceVideoBitrate: number | undefined
+    let colorTransfer: string | undefined
+    let colorPrimaries: string | undefined
+    let colorSpace: string | undefined
+    let isHdr: boolean | undefined
+    let hdrType: PrismaJson.HdrType | undefined
+    let dvProfile: number | undefined
 
     if (isVideo) {
       const info = await transcodeService.getVideoInfo(rawFilePath)
@@ -194,6 +200,12 @@ export async function transcodeWatermarkMediaActivity(
       startTimecode = info.startTimecode || '00:00:00:00'
       hasAudio = info.hasAudio
       sourceVideoBitrate = info.videoBitRate || info.bitRate
+      colorTransfer = info.colorTransfer
+      colorPrimaries = info.colorPrimaries
+      colorSpace = info.colorSpace
+      isHdr = info.isHdr
+      hdrType = info.hdrType
+      dvProfile = info.dvProfile
     } else if (isImage) {
       const info = await transcodeService.getImageInfo(rawFilePath)
       originalWidth = info.originalWidth
@@ -258,6 +270,12 @@ export async function transcodeWatermarkMediaActivity(
         totalFrames,
         startTimecode,
         hasAudio,
+        colorTransfer: colorTransfer ?? originalMedia?.metadata?.colorTransfer,
+        colorPrimaries: colorPrimaries ?? originalMedia?.metadata?.colorPrimaries,
+        colorSpace: colorSpace ?? originalMedia?.metadata?.colorSpace,
+        isHdr: isHdr ?? originalMedia?.metadata?.isHdr,
+        hdrType: hdrType ?? originalMedia?.metadata?.hdrType,
+        dvProfile: dvProfile ?? originalMedia?.metadata?.dvProfile,
         format: {},
       },
       original: {
@@ -320,6 +338,8 @@ export async function transcodeWatermarkMediaActivity(
         const targetWidth = vt.width || originalWidth
         const targetHeight = vt.height || originalHeight
         const resolution = vt.resolution || `${targetHeight}p`
+        const isVtHdr = Boolean(vt.hdr)
+        const suffix = isVtHdr ? `${resolution}-hdr` : resolution
 
         const svgString = generateWatermarkSvg(config, targetWidth, targetHeight, blockImagesMap)
         const overlayPngBuffer = await transcodeService.renderSvgToPng(svgString)
@@ -327,7 +347,7 @@ export async function transcodeWatermarkMediaActivity(
         const overlayPngPath = path.join(tmpDir, `watermarkOverlay-${i}.png`)
         fs.writeFileSync(overlayPngPath, overlayPngBuffer)
 
-        const outFileName = `${stem}-watermark-${params.watermarkConfigId}-${resolution}.mp4`
+        const outFileName = `${stem}-watermark-${params.watermarkConfigId}-${suffix}.mp4`
         const outFilePath = path.join(tmpDir, outFileName)
 
         await transcodeService.transcodeVideo({
@@ -340,6 +360,12 @@ export async function transcodeWatermarkMediaActivity(
           hardwareAcceleration,
           sourceVideoBitrate,
           threads,
+          hdr: isVtHdr,
+          sourceIsHdr: isHdr ?? originalMedia?.metadata?.isHdr,
+          sourceHdrType: hdrType ?? originalMedia?.metadata?.hdrType,
+          sourceColorTransfer: colorTransfer ?? originalMedia?.metadata?.colorTransfer,
+          sourceColorPrimaries: colorPrimaries ?? originalMedia?.metadata?.colorPrimaries,
+          sourceColorSpace: colorSpace ?? originalMedia?.metadata?.colorSpace,
         })
 
         const stat = fs.statSync(outFilePath)
@@ -359,6 +385,7 @@ export async function transcodeWatermarkMediaActivity(
           width: targetWidth,
           height: targetHeight,
           resolution,
+          hdr: isVtHdr,
         })
       }
       mediaInfo.filesize = totalSize

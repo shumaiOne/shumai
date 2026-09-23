@@ -84,6 +84,7 @@ interface BreadcrumbNavProps {
       key: string
       width: number
       height: number
+      hdr?: boolean
     }>
   }
   versions?: Array<{
@@ -294,13 +295,14 @@ export function BreadcrumbNav({
                         else if (longSide >= 960) resolution = '540p'
                         else if (longSide >= 640) resolution = '360p'
                         else if (longSide >= 320) resolution = '180p'
+                        const label = t.hdr ? `${resolution} (HDR)` : resolution
                         return (
                           <DropdownMenuItem
-                            key={resolution}
+                            key={t.key || `${resolution}-${t.hdr ? 'hdr' : 'sdr'}`}
                             onClick={() => handleDownload(t.key)}
                             className="flex items-center justify-between"
                           >
-                            <span>{resolution}</span>
+                            <span>{label}</span>
                             <span className="text-xs text-muted-foreground">MP4</span>
                           </DropdownMenuItem>
                         )

@@ -168,4 +168,58 @@ describe('takeVideoScreenshotsWorkflow', () => {
       annotations: [],
     })
   })
+
+  it('should prioritize SDR proxy over higher-resolution HDR proxy to avoid washed-out annotations', async () => {
+    const task: WorkflowTask = {
+      id: 'task-screenshot-sdr-prioritized',
+      assetId: 'asset-video-hdr',
+      type: WorkflowTaskType.transcode_screenshot,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        screenshot: {
+          start: 2.0,
+          end: 2.0,
+          count: 1,
+          commentTimestamp: 2.0,
+          annotations: [],
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-video-hdr',
+      storageKey: { key: 'raw-hdr.mp4' },
+      mediaType: 'video/mp4',
+      media: {
+        videoTranscodes: [
+          { key: 'proxy-1080p-hdr.mp4', height: 1080, width: 1920, hdr: true },
+          { key: 'proxy-720p.mp4', height: 720, width: 1280, hdr: false },
+        ],
+      },
+    })
+
+    mockActivities.takeScreenshotsActivity.mockResolvedValue([
+      { key: 'files/asset-video-hdr/screenshots/shot1.webp', timestamp: 2.0 },
+    ])
+
+    await takeVideoScreenshotsWorkflow(task)
+
+    expect(mockActivities.takeScreenshotsActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetKey: 'proxy-720p.mp4',
+      }),
+    )
+  })
 })

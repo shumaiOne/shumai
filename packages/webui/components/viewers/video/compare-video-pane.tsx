@@ -45,6 +45,28 @@ function computeResolutions(file: AssetInfo): DisplayTranscode[] {
   })
 }
 
+function getInitialResolution(resolutions: DisplayTranscode[]): DisplayTranscode | null {
+  if (resolutions.length === 0) return null
+  if (typeof window === 'undefined') return resolutions[0]
+
+  const prefersHdr =
+    typeof window.matchMedia === 'function' && window.matchMedia('(dynamic-range: high)').matches
+  const hasHdr = resolutions.some((r) => r.hdr)
+  const hasSdr = resolutions.some((r) => !r.hdr)
+
+  let candidates = resolutions
+  if (prefersHdr && hasHdr) {
+    candidates = resolutions.filter((r) => r.hdr)
+  } else if (!prefersHdr && hasSdr) {
+    candidates = resolutions.filter((r) => !r.hdr)
+  }
+
+  const screenWidth = window.innerWidth * (window.devicePixelRatio || 1)
+  const sorted = [...candidates].sort((a, b) => (a.width ?? 0) - (b.width ?? 0))
+  const bestFit = sorted.find((r) => (r.width ?? 0) >= screenWidth)
+  return bestFit || sorted[sorted.length - 1]
+}
+
 export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPaneProps>(
   function CompareVideoPane(
     {
@@ -96,8 +118,9 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
     const totalFrames = resolveTotalFrames({ dbTotalFrames, containerDuration, frameRate })
 
     const resolutions = computeResolutions(file)
-    const initialRes = resolutions[0]
+    const initialRes = getInitialResolution(resolutions)
     const [currentResolution, setCurrentResolution] = useState(initialRes?.resolution ?? '')
+    const [isCurrentHdr, setIsCurrentHdr] = useState(initialRes?.hdr)
     const currentSrcRef = useRef(initialRes?.url)
 
     const isAudio = file.proxyType === 'audio'
@@ -137,8 +160,10 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
     // if the parent renders this pane without a per-asset `key`. Runs before the
     // video.js init effect below (declaration order) so the ref is fresh.
     useEffect(() => {
-      setCurrentResolution(initialRes?.resolution ?? '')
-      currentSrcRef.current = initialRes?.url
+      const res = getInitialResolution(resolutions)
+      setCurrentResolution(res?.resolution ?? '')
+      setIsCurrentHdr(res?.hdr)
+      currentSrcRef.current = res?.url
     }, [file.id])
 
     // Initialize video.js
@@ -178,13 +203,15 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       })
       player.on('pause', () => setIsPlaying(false))
       player.on('ended', () => setIsPlaying(false))
-      player.on('loadedmetadata', () => setIsPlayerReady(true))
-      player.on('loadstart', () => setIsPlayerReady(false))
+
       player.on('timeupdate', () => {
-        const playerDuration = player.duration() || containerDuration || 0
-        const bufferedEnd = player.bufferedEnd()
-        if (playerDuration > 0) setBuffered((bufferedEnd / playerDuration) * 100)
+        setBuffered(player.bufferedPercent())
       })
+
+      player.on('loadedmetadata', () => {
+        setIsPlayerReady(true)
+      })
+      player.on('loadstart', () => setIsPlayerReady(false))
       player.on('volumechange', () => {
         setPlayerVolume(player.volume() || 0)
         setPlayerMuted(player.muted() || false)
@@ -223,6 +250,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
           playbackRate,
           isLooping,
           currentResolution,
+          isCurrentHdr,
           resolutions,
           buffered,
         },
@@ -239,6 +267,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       playbackRate,
       isLooping,
       currentResolution,
+      isCurrentHdr,
       buffered,
     ])
 
@@ -294,14 +323,20 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
     )
 
     const changeResolution = useCallback(
-      (resolution: string) => {
+      (resolution: string, hdr?: boolean) => {
         const player = playerRef.current
         if (!player) return
-        const target = resolutions.find((r) => r.resolution === resolution)
+        const target =
+          hdr !== undefined
+            ? resolutions.find(
+                (r) => r.resolution === resolution && Boolean(r.hdr) === Boolean(hdr),
+              )
+            : resolutions.find((r) => r.resolution === resolution)
         if (!target) return
         const wasPlaying = !player.paused()
         const currentT = player.currentTime()
         setCurrentResolution(resolution)
+        setIsCurrentHdr(target.hdr)
         currentSrcRef.current = target.url
         player.src({ type: 'video/mp4', src: target.url })
         player.one('loadedmetadata', () => {

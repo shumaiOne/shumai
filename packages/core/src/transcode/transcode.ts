@@ -87,6 +87,8 @@ export function parseCsvContent(content: string): string[][] {
   }
 }
 
+export type HdrType = 'pq' | 'hlg' | 'dovi_p5' | 'dovi_p8' | 'sdr'
+
 export interface MediaMetadata {
   originalWidth: number
   originalHeight: number
@@ -103,6 +105,13 @@ export interface MediaMetadata {
   audioSampleRate?: number
   audioBitDepth?: number
   mimeType: string
+  colorTransfer?: string
+  colorPrimaries?: string
+  colorSpace?: string
+  isHdr?: boolean
+  hdrType?: HdrType
+  dvProfile?: number
+  dvCompatibilityId?: number
 }
 
 export interface TranscodeVideoParams {
@@ -118,6 +127,12 @@ export interface TranscodeVideoParams {
   sourceVideoBitrate?: number
   threads?: number
   signal?: AbortSignal
+  hdr?: boolean
+  sourceIsHdr?: boolean
+  sourceHdrType?: HdrType
+  sourceColorTransfer?: string
+  sourceColorPrimaries?: string
+  sourceColorSpace?: string
 }
 
 export interface EncoderConfig {
@@ -222,6 +237,40 @@ export function calculateMaxBitrate(
     maxrate: `${maxrateKbps}k`,
     bufsize: `${bufsizeKbps}k`,
   }
+}
+
+export function buildSdrToneMapFilterChain(options: {
+  hdrType?: HdrType
+  availableFilters?: Set<string>
+  colorTransfer?: string
+}): string {
+  if (options.hdrType === 'dovi_p5') {
+    if (options.availableFilters && !options.availableFilters.has('libplacebo')) {
+      throw new Error('libplacebo filter is required for Dolby Vision Profile 5 processing')
+    }
+    return 'libplacebo=tonemapping=auto:colorspace=bt709:color_primaries=bt709:color_trc=bt709:format=yuv420p'
+  }
+
+  if (options.availableFilters) {
+    if (!options.availableFilters.has('zscale') || !options.availableFilters.has('tonemap')) {
+      throw new Error('zscale and tonemap filters are required for HDR tone mapping')
+    }
+  }
+
+  const tin =
+    options.hdrType === 'hlg' || options.colorTransfer === 'arib-std-b67'
+      ? 'arib-std-b67'
+      : 'smpte2084'
+  return `zscale=tin=${tin}:pin=bt2020:min=bt2020nc:t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0:peak=100,zscale=t=bt709:m=bt709:out_range=full,format=yuv420p`
+}
+
+export function buildDoviP5ToHdr10FilterChain(options?: {
+  availableFilters?: Set<string>
+}): string {
+  if (options?.availableFilters && !options.availableFilters.has('libplacebo')) {
+    throw new Error('libplacebo filter is required for Dolby Vision Profile 5 processing')
+  }
+  return 'libplacebo=tonemapping=auto:colorspace=bt2020nc:color_primaries=bt2020:color_trc=smpte2084:format=yuv420p'
 }
 
 export interface ExtractVideoFramesParams {
@@ -432,6 +481,66 @@ export class TranscodeService {
       }
     }
 
+    const colorTransfer =
+      typeof videoStream.color_transfer === 'string'
+        ? videoStream.color_transfer.toLowerCase()
+        : undefined
+    const colorPrimaries =
+      typeof videoStream.color_primaries === 'string'
+        ? videoStream.color_primaries.toLowerCase()
+        : undefined
+    const colorSpace =
+      typeof videoStream.color_space === 'string'
+        ? videoStream.color_space.toLowerCase()
+        : undefined
+
+    let dvProfile: number | undefined
+    let dvCompatibilityId: number | undefined
+
+    if (Array.isArray(videoStream.side_data_list)) {
+      const dovi = videoStream.side_data_list.find(
+        (sd: unknown): sd is Record<string, unknown> =>
+          typeof (sd as Record<string, unknown>)?.side_data_type === 'string' &&
+          String((sd as Record<string, unknown>).side_data_type)
+            .toLowerCase()
+            .includes('dovi'),
+      )
+      if (dovi) {
+        dvProfile = this.safeParseInt(dovi.dv_profile)
+        dvCompatibilityId = this.safeParseInt(dovi.dv_bl_signal_compatibility_id)
+      }
+    }
+
+    let isHdr: boolean
+    let hdrType: HdrType
+
+    if (dvProfile === 5) {
+      isHdr = true
+      hdrType = 'dovi_p5'
+    } else if (dvProfile !== undefined) {
+      if (colorTransfer === 'smpte2084') {
+        isHdr = true
+        hdrType = 'pq'
+      } else if (colorTransfer === 'arib-std-b67') {
+        isHdr = true
+        hdrType = 'hlg'
+      } else {
+        isHdr = false
+        hdrType = 'sdr'
+      }
+    } else {
+      if (colorTransfer === 'smpte2084') {
+        isHdr = true
+        hdrType = 'pq'
+      } else if (colorTransfer === 'arib-std-b67') {
+        isHdr = true
+        hdrType = 'hlg'
+      } else {
+        isHdr = false
+        hdrType = 'sdr'
+      }
+    }
+
     return {
       originalWidth: videoStream.width,
       originalHeight: videoStream.height,
@@ -450,6 +559,13 @@ export class TranscodeService {
         this.safeParseInt(audioStream?.bits_per_raw_sample) ??
         this.safeParseInt(audioStream?.bits_per_sample),
       mimeType: '',
+      colorTransfer,
+      colorPrimaries,
+      colorSpace,
+      isHdr,
+      hdrType,
+      dvProfile,
+      dvCompatibilityId,
     }
   }
 
@@ -539,6 +655,34 @@ export class TranscodeService {
     }
   }
 
+  private availableFiltersCache: Set<string> | null = null
+
+  clearFiltersCache(): void {
+    this.availableFiltersCache = null
+  }
+
+  async getAvailableFilters(): Promise<Set<string>> {
+    if (this.availableFiltersCache) {
+      return this.availableFiltersCache
+    }
+    try {
+      const { stdout } = await execFileAsync('ffmpeg', ['-filters'])
+      const filters = new Set<string>()
+      const lines = stdout.split('\n')
+      for (const line of lines) {
+        const match = line.match(/^\s*[A-Z.]{2,4}\s+([a-zA-Z0-9_-]+)/)
+        if (match) {
+          filters.add(match[1])
+        }
+      }
+      this.availableFiltersCache = filters
+      return filters
+    } catch (err) {
+      console.warn('Failed to probe ffmpeg filters:', err)
+      return new Set<string>()
+    }
+  }
+
   async selectH264Encoder(
     hardwareAcceleration?: 'off' | 'auto',
     platform: NodeJS.Platform = process.platform,
@@ -559,14 +703,55 @@ export class TranscodeService {
   }
 
   async transcodeVideo(params: TranscodeVideoParams): Promise<void> {
+    const isSourceHdr =
+      params.sourceIsHdr ||
+      params.sourceHdrType === 'pq' ||
+      params.sourceHdrType === 'hlg' ||
+      params.sourceHdrType === 'dovi_p5'
+    const isHdrOutput = Boolean(params.hdr)
+
     let filterComplex: string
     const args: string[] = ['-i', params.inputFile]
+    const baseScale = `scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
 
-    if (params.overlayFile) {
-      args.push('-i', params.overlayFile)
-      filterComplex = `[0:v]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
+    if (isSourceHdr && !isHdrOutput) {
+      const availableFilters = await this.getAvailableFilters()
+      const tonemap = buildSdrToneMapFilterChain({
+        hdrType: params.sourceHdrType,
+        colorTransfer: params.sourceColorTransfer,
+        availableFilters,
+      })
+      if (params.overlayFile) {
+        args.push('-i', params.overlayFile)
+        filterComplex = `[0:v]${baseScale},${tonemap}[vscaled];[vscaled][1:v]overlay=0:0`
+      } else {
+        filterComplex = `[0:v]${baseScale},${tonemap}`
+      }
+    } else if (isSourceHdr && isHdrOutput) {
+      if (params.sourceHdrType === 'dovi_p5') {
+        const availableFilters = await this.getAvailableFilters()
+        const p5ToHdr10 = buildDoviP5ToHdr10FilterChain({ availableFilters })
+        if (params.overlayFile) {
+          args.push('-i', params.overlayFile)
+          filterComplex = `[0:v]${baseScale},${p5ToHdr10}[vscaled];[vscaled][1:v]overlay=0:0`
+        } else {
+          filterComplex = `[0:v]${baseScale},${p5ToHdr10}`
+        }
+      } else {
+        if (params.overlayFile) {
+          args.push('-i', params.overlayFile)
+          filterComplex = `[0:v]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
+        } else {
+          filterComplex = `[0:v]${baseScale}`
+        }
+      }
     } else {
-      filterComplex = `[0:v]scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
+      if (params.overlayFile) {
+        args.push('-i', params.overlayFile)
+        filterComplex = `[0:v]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
+      } else {
+        filterComplex = `[0:v]${baseScale}`
+      }
     }
 
     if (params.frameRate) {
@@ -624,6 +809,15 @@ export class TranscodeService {
     }
 
     args.push('-pix_fmt', 'yuv420p')
+
+    if (isSourceHdr && isHdrOutput) {
+      const isHlg = params.sourceHdrType === 'hlg' || params.sourceColorTransfer === 'arib-std-b67'
+      const trc = isHlg ? 'arib-std-b67' : 'smpte2084'
+      args.push('-color_primaries', 'bt2020', '-color_trc', trc, '-colorspace', 'bt2020nc')
+      if (encoder.name === 'libx264') {
+        args.push('-x264-params', `colorprim=bt2020:transfer=${trc}:colormatrix=bt2020nc`)
+      }
+    }
 
     if (!params.disableAudio) {
       args.push('-c:a', 'aac', '-b:a', '128k')
@@ -749,9 +943,22 @@ export class TranscodeService {
     outputPoster: string,
     duration: number,
     signal?: AbortSignal,
+    hdrOptions?: { isHdr?: boolean; hdrType?: HdrType; colorTransfer?: string },
   ): Promise<void> {
     const spriteFps = 100 / duration
-    const filterComplex = `[0:v]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out];[0:v]scale=-2:300:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
+    let filterComplex: string
+
+    if (hdrOptions?.isHdr) {
+      const availableFilters = await this.getAvailableFilters()
+      const tonemap = buildSdrToneMapFilterChain({
+        hdrType: hdrOptions.hdrType,
+        colorTransfer: hdrOptions.colorTransfer,
+        availableFilters,
+      })
+      filterComplex = `[0:v]${tonemap}[vsdr];[vsdr]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out];[vsdr]scale=-2:300:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
+    } else {
+      filterComplex = `[0:v]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out];[0:v]scale=-2:300:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
+    }
 
     const args = [
       '-i',

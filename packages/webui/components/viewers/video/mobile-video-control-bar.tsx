@@ -199,23 +199,36 @@ export const MobileVideoControlBar: React.FC<ControlBarProps> = ({
                   <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                     {m.quality()}
                   </DropdownMenuLabel>
-                  {resolutions.map((res) => (
-                    <DropdownMenuItem
-                      key={res.resolution}
-                      onClick={() => changeResolution(res)}
-                      className={cn(
-                        'flex w-full items-center justify-between text-xs cursor-pointer',
-                        state.currentResolution === res.resolution
-                          ? 'text-primary font-medium'
-                          : 'text-foreground',
-                      )}
-                    >
-                      <span>{res.resolution === 'Original' ? m.original() : res.resolution}</span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {res.width}x{res.height}
-                      </span>
-                    </DropdownMenuItem>
-                  ))}
+                  {resolutions.map((res) => {
+                    const itemKey = `${res.resolution}-${res.hdr ? 'hdr' : 'sdr'}`
+                    const isSelected =
+                      state.currentResolution === res.resolution &&
+                      Boolean(state.isCurrentHdr) === Boolean(res.hdr)
+                    return (
+                      <DropdownMenuItem
+                        key={itemKey}
+                        onClick={() => changeResolution(res)}
+                        className={cn(
+                          'flex w-full items-center justify-between text-xs cursor-pointer',
+                          isSelected ? 'text-primary font-medium' : 'text-foreground',
+                        )}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>
+                            {res.resolution === 'Original' ? m.original() : res.resolution}
+                          </span>
+                          {res.hdr && (
+                            <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                              {m.hdr()}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">
+                          {res.width}x{res.height}
+                        </span>
+                      </DropdownMenuItem>
+                    )
+                  })}
                   <DropdownMenuSeparator />
                 </>
               )}

@@ -405,6 +405,125 @@ describe('Watermark Activities', () => {
 
       fs.rmSync(outFilePath, { force: true })
     })
+
+    it('mirrors both SDR and HDR videoTranscodes preserving HDR flags and -hdr suffix', async () => {
+      const assetKey = 'files/hdr-wm/video.mp4'
+      const storageKey = await prisma.storageKey.create({ data: { key: assetKey } })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'video.mp4',
+          type: 'file',
+          status: 'processed',
+          storageKeyId: storageKey.id,
+          mediaType: 'video/mp4',
+          media: {
+            duration: 10,
+            filesize: 0,
+            frames: 300,
+            proxyType: 'video',
+            imageTranscodes: [],
+            videoPreview: { width: 1920, height: 1080 },
+            finishedAt: new Date().toISOString(),
+            original: {
+              key: assetKey,
+              filesizeInBytes: 0,
+              codec: '',
+            },
+            metadata: {
+              originalWidth: 1920,
+              originalHeight: 1080,
+              duration: 10,
+              bitRate: 1000,
+              frameRate: 30,
+              totalFrames: 300,
+              startTimecode: '00:00:00:00',
+              hasAudio: true,
+              format: {},
+              isHdr: true,
+              hdrType: 'pq',
+              colorTransfer: 'smpte2084',
+            },
+            videoTranscodes: [
+              {
+                key: 'files/hdr-wm/video-1080p.mp4',
+                resolution: '1080p',
+                width: 1920,
+                height: 1080,
+                hdr: false,
+              },
+              {
+                key: 'files/hdr-wm/video-1080p-hdr.mp4',
+                resolution: '1080p',
+                width: 1920,
+                height: 1080,
+                hdr: true,
+              },
+            ],
+          } as PrismaJson.MediaInfo,
+        },
+      })
+      const config = await seedConfig()
+
+      vi.mocked(transcodeService.getVideoInfo).mockResolvedValue({
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 10,
+        bitRate: 1000,
+        frameRate: 30,
+        totalFrames: 300,
+        startTimecode: '00:00:00:00',
+        hasAudio: true,
+        mimeType: 'video/mp4',
+        isHdr: true,
+        hdrType: 'pq',
+        colorTransfer: 'smpte2084',
+      })
+      vi.mocked(s3Service.putObject).mockResolvedValue(undefined as never)
+
+      const sdrOut = path.join('/tmp', `video-watermark-${config.id}-1080p.mp4`)
+      const hdrOut = path.join('/tmp', `video-watermark-${config.id}-1080p-hdr.mp4`)
+      fs.writeFileSync(sdrOut, Buffer.from('fake sdr'))
+      fs.writeFileSync(hdrOut, Buffer.from('fake hdr'))
+
+      const media = await transcodeWatermarkMediaActivity({
+        assetId: asset.id,
+        watermarkConfigId: config.id,
+      })
+
+      expect(media.videoTranscodes).toHaveLength(2)
+      expect(media.videoTranscodes?.[0]).toEqual(
+        expect.objectContaining({
+          resolution: '1080p',
+          hdr: false,
+          key: expect.stringContaining(`video-watermark-${config.id}-1080p.mp4`),
+        }),
+      )
+      expect(media.videoTranscodes?.[1]).toEqual(
+        expect.objectContaining({
+          resolution: '1080p',
+          hdr: true,
+          key: expect.stringContaining(`video-watermark-${config.id}-1080p-hdr.mp4`),
+        }),
+      )
+
+      expect(transcodeService.transcodeVideo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          outputFile: sdrOut,
+          hdr: false,
+          sourceIsHdr: true,
+        }),
+      )
+      expect(transcodeService.transcodeVideo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          outputFile: hdrOut,
+          hdr: true,
+          sourceIsHdr: true,
+        }),
+      )
+
+      fs.rmSync(sdrOut, { force: true })
+      fs.rmSync(hdrOut, { force: true })
+    })
   })
 
   describe('completeWatermarkFileActivity', () => {

@@ -440,6 +440,7 @@ export function PublicShareManager({
                 key: t.key,
                 width: t.width,
                 height: t.height,
+                hdr: t.hdr,
               })),
             }
           : undefined,

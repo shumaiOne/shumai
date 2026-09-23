@@ -23,6 +23,7 @@ export interface TopNavProjectState {
       key: string
       width: number
       height: number
+      hdr?: boolean
     }>
   }
   versions?: Array<{

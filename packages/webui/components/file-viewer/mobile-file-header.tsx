@@ -46,6 +46,7 @@ export interface MobileFileHeaderProps {
       key: string
       width: number
       height: number
+      hdr?: boolean
     }>
   }
   canEdit?: boolean
@@ -245,13 +246,14 @@ export function MobileFileHeader({
                         else if (longSide >= 960) resolution = '540p'
                         else if (longSide >= 640) resolution = '360p'
                         else if (longSide >= 320) resolution = '180p'
+                        const label = t.hdr ? `${resolution} (HDR)` : resolution
                         return (
                           <DropdownMenuItem
-                            key={resolution}
+                            key={t.key || `${resolution}-${t.hdr ? 'hdr' : 'sdr'}`}
                             onClick={() => handleDownload(t.key)}
                             className="flex items-center justify-between text-xs cursor-pointer"
                           >
-                            <span>{resolution}</span>
+                            <span>{label}</span>
                             <span className="text-[10px] text-muted-foreground">MP4</span>
                           </DropdownMenuItem>
                         )

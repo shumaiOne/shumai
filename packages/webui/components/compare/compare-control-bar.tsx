@@ -19,7 +19,7 @@ interface CompareControlBarProps {
   onVolumeChange: (volume: number) => void
   onToggleMute: () => void
   onChangePlaybackRate: (rate: number) => void
-  onChangeResolution: (resolution: string) => void
+  onChangeResolution: (resolution: string, hdr?: boolean) => void
   onZoomIn: () => void
   onZoomOut: () => void
   onFit: () => void
@@ -65,6 +65,7 @@ export function CompareControlBar({
       isFullScreen,
       showFrames: false,
       currentResolution: v.currentResolution,
+      isCurrentHdr: v.isCurrentHdr,
     }
 
     // The active-side asset carries the metadata used for timecode display and
@@ -88,7 +89,7 @@ export function CompareControlBar({
         toggleMute={onToggleMute}
         handleVolumeChange={onVolumeChange}
         changePlaybackRate={onChangePlaybackRate}
-        changeResolution={(res: DisplayTranscode) => onChangeResolution(res.resolution)}
+        changeResolution={(res: DisplayTranscode) => onChangeResolution(res.resolution, res.hdr)}
         handleDownload={(key?: string) => onDownload(key)}
         toggleFullScreen={onToggleFullScreen}
         onZoomChange={(nz: number) => (nz >= activeState.zoom ? onZoomIn() : onZoomOut())}

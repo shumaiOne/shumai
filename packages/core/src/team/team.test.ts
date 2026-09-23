@@ -365,7 +365,16 @@ describe('TeamService', () => {
     })
 
     const settings = await teamService.getSettings(team.id)
-    expect(settings).toEqual({ semanticSearchEnabled: false, appearance: { hideAgent: false } })
+    expect(settings).toEqual({
+      semanticSearchEnabled: false,
+      transcode: {
+        videoStrategy: 'best_match',
+        hardwareAcceleration: 'off',
+        threads: 0,
+        hdrOutput: 'both',
+      },
+      appearance: { hideAgent: false },
+    })
 
     await teamService.updateSettings(team.id, 'theme', 'dark')
 
@@ -373,18 +382,30 @@ describe('TeamService', () => {
     expect(newSettings).toEqual({
       theme: 'dark',
       semanticSearchEnabled: false,
+      transcode: {
+        videoStrategy: 'best_match',
+        hardwareAcceleration: 'off',
+        threads: 0,
+        hdrOutput: 'both',
+      },
       appearance: { hideAgent: false },
     })
 
     await teamService.updateSettings(team.id, 'transcode.videoStrategy', 'all')
     await teamService.updateSettings(team.id, 'transcode.hardwareAcceleration', 'auto')
     await teamService.updateSettings(team.id, 'transcode.threads', 4)
+    await teamService.updateSettings(team.id, 'transcode.hdrOutput', 'both')
     await teamService.updateSettings(team.id, 'appearance.hideAgent', true)
 
     const finalSettings = await teamService.getSettings(team.id)
     expect(finalSettings).toEqual({
       theme: 'dark',
-      transcode: { videoStrategy: 'all', hardwareAcceleration: 'auto', threads: 4 },
+      transcode: {
+        videoStrategy: 'all',
+        hardwareAcceleration: 'auto',
+        threads: 4,
+        hdrOutput: 'both',
+      },
       appearance: { hideAgent: true },
       semanticSearchEnabled: false,
     })

@@ -80,6 +80,13 @@ export const HardwareAcceleration = {
 } as const
 export type HardwareAcceleration = (typeof HardwareAcceleration)[keyof typeof HardwareAcceleration]
 
+export const HdrOutput = {
+  sdr: 'sdr',
+  hdr: 'hdr',
+  both: 'both',
+} as const
+export type HdrOutput = (typeof HdrOutput)[keyof typeof HdrOutput]
+
 export const updateTeamSettingsRequestSchema = z.union([
   z.object({
     key: z.literal('transcode.videoStrategy'),
@@ -92,6 +99,10 @@ export const updateTeamSettingsRequestSchema = z.union([
   z.object({
     key: z.literal('transcode.threads'),
     value: z.number().int().min(0).max(32),
+  }),
+  z.object({
+    key: z.literal('transcode.hdrOutput'),
+    value: z.nativeEnum(HdrOutput),
   }),
   z.object({
     key: z.literal('appearance.hideAgent'),
@@ -109,6 +120,7 @@ export interface TeamSettingsResponse {
     videoStrategy?: VideoTranscodeStrategy
     hardwareAcceleration?: HardwareAcceleration
     threads?: number
+    hdrOutput?: HdrOutput
   }
   appearance?: TeamAppearanceSettings
   semanticSearchEnabled?: boolean

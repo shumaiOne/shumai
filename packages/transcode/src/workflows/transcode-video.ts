@@ -69,6 +69,9 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
         assetKey: key,
         posterSpec,
         taskId: task.id,
+        isHdr: mediaInfo.metadata?.isHdr,
+        hdrType: mediaInfo.metadata?.hdrType,
+        colorTransfer: mediaInfo.metadata?.colorTransfer,
       })
       mediaInfo.poster = posterResult.poster
       await executeActivity(workerQueue, updateAssetMediaActivity, {
@@ -129,27 +132,93 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
           metadata.originalHeight,
         )
 
-        const videoSpec: PrismaJson.VideoTranscode = {
-          resolution: res,
-          width,
-          height,
+        if (res === '180p') {
+          const videoSpec: PrismaJson.VideoTranscode = {
+            resolution: res,
+            width,
+            height,
+            hdr: false,
+          }
+
+          const videoTranscode = await executeActivity(workerQueue, transcodeVideoActivity, {
+            taskId: task.id,
+            assetKey: key,
+            filePath,
+            videoSpec,
+            duration: metadata.duration,
+            originalFps: metadata.frameRate,
+            hardwareAcceleration: spec.hardwareAcceleration,
+            sourceVideoBitrate: metadata.videoBitRate || metadata.bitRate,
+            threads: spec.threads,
+            sourceIsHdr: metadata.isHdr,
+            sourceHdrType: metadata.hdrType,
+            sourceColorTransfer: metadata.colorTransfer,
+            sourceColorPrimaries: metadata.colorPrimaries,
+            sourceColorSpace: metadata.colorSpace,
+          })
+
+          mediaInfo.videoPreview = videoTranscode
+          continue
         }
 
-        const videoTranscode = await executeActivity(workerQueue, transcodeVideoActivity, {
-          taskId: task.id,
-          assetKey: key,
-          filePath,
-          videoSpec,
-          duration: metadata.duration,
-          originalFps: metadata.frameRate,
-          hardwareAcceleration: spec.hardwareAcceleration,
-          sourceVideoBitrate: metadata.videoBitRate || metadata.bitRate,
-          threads: spec.threads,
-        })
+        const isSourceHdr = Boolean(metadata.isHdr)
+        const hdrOutput = spec.hdrOutput || 'both'
+        const shouldGenSdr = !isSourceHdr || hdrOutput === 'sdr' || hdrOutput === 'both'
+        const shouldGenHdr = isSourceHdr && (hdrOutput === 'hdr' || hdrOutput === 'both')
 
-        if (res === '180p') {
-          mediaInfo.videoPreview = videoTranscode
-        } else {
+        if (shouldGenSdr) {
+          const videoSpec: PrismaJson.VideoTranscode = {
+            resolution: res,
+            width,
+            height,
+            hdr: false,
+          }
+
+          const videoTranscode = await executeActivity(workerQueue, transcodeVideoActivity, {
+            taskId: task.id,
+            assetKey: key,
+            filePath,
+            videoSpec,
+            duration: metadata.duration,
+            originalFps: metadata.frameRate,
+            hardwareAcceleration: spec.hardwareAcceleration,
+            sourceVideoBitrate: metadata.videoBitRate || metadata.bitRate,
+            threads: spec.threads,
+            sourceIsHdr: metadata.isHdr,
+            sourceHdrType: metadata.hdrType,
+            sourceColorTransfer: metadata.colorTransfer,
+            sourceColorPrimaries: metadata.colorPrimaries,
+            sourceColorSpace: metadata.colorSpace,
+          })
+
+          mediaInfo.videoTranscodes.push(videoTranscode)
+        }
+
+        if (shouldGenHdr) {
+          const videoSpec: PrismaJson.VideoTranscode = {
+            resolution: res,
+            width,
+            height,
+            hdr: true,
+          }
+
+          const videoTranscode = await executeActivity(workerQueue, transcodeVideoActivity, {
+            taskId: task.id,
+            assetKey: key,
+            filePath,
+            videoSpec,
+            duration: metadata.duration,
+            originalFps: metadata.frameRate,
+            hardwareAcceleration: spec.hardwareAcceleration,
+            sourceVideoBitrate: metadata.videoBitRate || metadata.bitRate,
+            threads: spec.threads,
+            sourceIsHdr: metadata.isHdr,
+            sourceHdrType: metadata.hdrType,
+            sourceColorTransfer: metadata.colorTransfer,
+            sourceColorPrimaries: metadata.colorPrimaries,
+            sourceColorSpace: metadata.colorSpace,
+          })
+
           mediaInfo.videoTranscodes.push(videoTranscode)
         }
       }

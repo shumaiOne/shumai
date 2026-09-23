@@ -198,6 +198,7 @@ describe('UploadService', () => {
         threads: 0,
         sprite: true,
         poster: true,
+        hdrOutput: 'both',
       },
     })
   })
@@ -249,6 +250,7 @@ describe('UploadService', () => {
         threads: 12,
         sprite: true,
         poster: true,
+        hdrOutput: 'both',
       },
     })
   })

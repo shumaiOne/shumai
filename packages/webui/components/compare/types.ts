@@ -23,6 +23,7 @@ export interface PaneReportedState {
     playbackRate: number
     isLooping: boolean
     currentResolution: string
+    isCurrentHdr?: boolean
     resolutions: DisplayTranscode[]
     buffered: number
   }
@@ -45,7 +46,7 @@ export interface ComparePaneHandle {
   setVolume: (volume: number) => void
   setPlaybackRate: (rate: number) => void
   toggleLoop: () => void
-  changeResolution: (resolution: string) => void
+  changeResolution: (resolution: string, hdr?: boolean) => void
   // Zoom / pan (image + video)
   zoomBy: (factor: number) => void
   fit: () => void

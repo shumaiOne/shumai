@@ -497,4 +497,359 @@ describe('transcodeVideoWorkflow', () => {
       mockActivities.updateAssetMediaActivity.mock.invocationCallOrder[spriteCommitIndex],
     ).toBeLessThan(firstProxyOrder)
   })
+
+  it('should transcode both SDR and HDR proxies when source is HDR and hdrOutput is both', async () => {
+    const task: WorkflowTask = {
+      id: 'task-hdr-both',
+      assetId: 'asset-hdr',
+      type: WorkflowTaskType.transcode_video,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: {
+          videoStrategy: 'best_match',
+          hdrOutput: 'both',
+          poster: true,
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid-hdr-both',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-hdr',
+      storageKey: { key: 'hdr-video.mp4' },
+      mediaType: 'video/mp4',
+    })
+
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      proxyType: 'video',
+      metadata: {
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 10,
+        frameRate: 30,
+        totalFrames: 300,
+        startTimecode: '00:00:00:00',
+        bitRate: 1000,
+        videoBitRate: 850000,
+        hasAudio: false,
+        format: {},
+        isHdr: true,
+        hdrType: 'pq',
+        colorTransfer: 'smpte2084',
+        colorPrimaries: 'bt2020',
+        colorSpace: 'bt2020nc',
+      },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    mockActivities.transcodeVideoActivity.mockImplementation(async (params) => {
+      return {
+        key: `files/asset-hdr/video-${params.videoSpec.resolution}${params.videoSpec.hdr ? '-hdr' : ''}.mp4`,
+        width: params.videoSpec.width,
+        height: params.videoSpec.height,
+        resolution: params.videoSpec.resolution,
+        hdr: params.videoSpec.hdr,
+      }
+    })
+
+    await transcodeVideoWorkflow(task)
+
+    // Poster extraction must use SDR tone mapping
+    expect(mockActivities.extractPosterActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isHdr: true,
+        hdrType: 'pq',
+        colorTransfer: 'smpte2084',
+      }),
+    )
+
+    // 180p preview must be generated as SDR (hdr: false)
+    expect(mockActivities.transcodeVideoActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoSpec: expect.objectContaining({
+          resolution: '180p',
+          hdr: false,
+        }),
+      }),
+    )
+
+    // Main resolution (1080p) must be called twice: once with hdr: false and once with hdr: true
+    expect(mockActivities.transcodeVideoActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoSpec: expect.objectContaining({
+          resolution: '1080p',
+          hdr: false,
+        }),
+      }),
+    )
+    expect(mockActivities.transcodeVideoActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoSpec: expect.objectContaining({
+          resolution: '1080p',
+          hdr: true,
+        }),
+      }),
+    )
+
+    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
+      taskId: 'task-hdr-both',
+      status: WorkflowTaskStatus.completed,
+    })
+  })
+
+  it('should transcode only SDR proxy when source is HDR and hdrOutput is sdr', async () => {
+    const task: WorkflowTask = {
+      id: 'task-hdr-sdr',
+      assetId: 'asset-hdr-sdr',
+      type: WorkflowTaskType.transcode_video,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: {
+          videoStrategy: 'best_match',
+          hdrOutput: 'sdr',
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid-hdr-sdr',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-hdr-sdr',
+      storageKey: { key: 'hdr-video.mp4' },
+      mediaType: 'video/mp4',
+    })
+
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      proxyType: 'video',
+      metadata: {
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 10,
+        frameRate: 30,
+        totalFrames: 300,
+        startTimecode: '00:00:00:00',
+        bitRate: 1000,
+        videoBitRate: 850000,
+        hasAudio: false,
+        format: {},
+        isHdr: true,
+        hdrType: 'pq',
+        colorTransfer: 'smpte2084',
+      },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    mockActivities.transcodeVideoActivity.mockImplementation(async (params) => {
+      return {
+        key: `files/asset-hdr-sdr/video-${params.videoSpec.resolution}.mp4`,
+        width: params.videoSpec.width,
+        height: params.videoSpec.height,
+        resolution: params.videoSpec.resolution,
+        hdr: params.videoSpec.hdr,
+      }
+    })
+
+    await transcodeVideoWorkflow(task)
+
+    // Should only have called transcodeVideoActivity with hdr: false
+    const calls = mockActivities.transcodeVideoActivity.mock.calls
+    const hdrCalls = calls.filter(
+      (c: unknown[]) => (c[0] as { videoSpec: { hdr?: boolean } }).videoSpec.hdr === true,
+    )
+    expect(hdrCalls).toHaveLength(0)
+
+    const sdrCalls = calls.filter(
+      (c: unknown[]) => (c[0] as { videoSpec: { hdr?: boolean } }).videoSpec.hdr === false,
+    )
+    expect(sdrCalls.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('should transcode only HDR proxy when source is HDR and hdrOutput is hdr, with 180p preview still SDR', async () => {
+    const task: WorkflowTask = {
+      id: 'task-hdr-only',
+      assetId: 'asset-hdr-only',
+      type: WorkflowTaskType.transcode_video,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: {
+          videoStrategy: 'best_match',
+          hdrOutput: 'hdr',
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid-hdr-only',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-hdr-only',
+      storageKey: { key: 'hdr-video.mp4' },
+      mediaType: 'video/mp4',
+    })
+
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      proxyType: 'video',
+      metadata: {
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 10,
+        frameRate: 30,
+        totalFrames: 300,
+        startTimecode: '00:00:00:00',
+        bitRate: 1000,
+        videoBitRate: 850000,
+        hasAudio: false,
+        format: {},
+        isHdr: true,
+        hdrType: 'pq',
+        colorTransfer: 'smpte2084',
+      },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    mockActivities.transcodeVideoActivity.mockImplementation(async (params) => {
+      return {
+        key: `files/asset-hdr-only/video-${params.videoSpec.resolution}${params.videoSpec.hdr ? '-hdr' : ''}.mp4`,
+        width: params.videoSpec.width,
+        height: params.videoSpec.height,
+        resolution: params.videoSpec.resolution,
+        hdr: params.videoSpec.hdr,
+      }
+    })
+
+    await transcodeVideoWorkflow(task)
+
+    // 180p preview must still be SDR
+    expect(mockActivities.transcodeVideoActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoSpec: expect.objectContaining({
+          resolution: '180p',
+          hdr: false,
+        }),
+      }),
+    )
+
+    // Main 1080p proxy must be HDR
+    expect(mockActivities.transcodeVideoActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoSpec: expect.objectContaining({
+          resolution: '1080p',
+          hdr: true,
+        }),
+      }),
+    )
+
+    // Main 1080p proxy should NOT be called with hdr: false
+    expect(mockActivities.transcodeVideoActivity).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoSpec: expect.objectContaining({
+          resolution: '1080p',
+          hdr: false,
+        }),
+      }),
+    )
+  })
+
+  it('should transcode only SDR proxy when source is SDR even if hdrOutput is both', async () => {
+    const task: WorkflowTask = {
+      id: 'task-sdr-source',
+      assetId: 'asset-sdr-source',
+      type: WorkflowTaskType.transcode_video,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: {
+          videoStrategy: 'best_match',
+          hdrOutput: 'both',
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid-sdr-source',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-sdr-source',
+      storageKey: { key: 'sdr-video.mp4' },
+      mediaType: 'video/mp4',
+    })
+
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      proxyType: 'video',
+      metadata: {
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 10,
+        frameRate: 30,
+        totalFrames: 300,
+        startTimecode: '00:00:00:00',
+        bitRate: 1000,
+        videoBitRate: 850000,
+        hasAudio: false,
+        format: {},
+        isHdr: false,
+      },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    mockActivities.transcodeVideoActivity.mockImplementation(async (params) => {
+      return {
+        key: `files/asset-sdr-source/video-${params.videoSpec.resolution}.mp4`,
+        width: params.videoSpec.width,
+        height: params.videoSpec.height,
+        resolution: params.videoSpec.resolution,
+        hdr: params.videoSpec.hdr,
+      }
+    })
+
+    await transcodeVideoWorkflow(task)
+
+    const calls = mockActivities.transcodeVideoActivity.mock.calls
+    const hdrCalls = calls.filter(
+      (c: unknown[]) => (c[0] as { videoSpec: { hdr?: boolean } }).videoSpec.hdr === true,
+    )
+    expect(hdrCalls).toHaveLength(0)
+  })
 })

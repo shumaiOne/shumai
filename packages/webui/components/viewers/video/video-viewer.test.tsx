@@ -182,4 +182,126 @@ describe('VideoViewer', () => {
       }),
     )
   })
+
+  it('auto-selects HDR proxy when display supports HDR (dynamic-range: high)', () => {
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(dynamic-range: high)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }))
+
+    const hdrVideo: AssetInfo = {
+      id: 'video-hdr',
+      name: 'video-hdr.mp4',
+      proxyType: 'video',
+      media: {
+        metadata: {
+          originalWidth: 1920,
+          originalHeight: 1080,
+          duration: 10,
+          frameRate: 30,
+          totalFrames: 300,
+        },
+        videoTranscodes: [
+          {
+            resolution: '1080p',
+            url: 'https://cdn.example.com/video-1080p.mp4',
+            width: 1920,
+            height: 1080,
+            hdr: false,
+          },
+          {
+            resolution: '1080p',
+            url: 'https://cdn.example.com/video-1080p-hdr.mp4',
+            width: 1920,
+            height: 1080,
+            hdr: true,
+          },
+        ],
+      },
+    } as unknown as AssetInfo
+
+    render(<VideoViewer file={hdrVideo} />)
+
+    expect(videojsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        sources: [
+          {
+            src: 'https://cdn.example.com/video-1080p-hdr.mp4',
+            type: 'video/mp4',
+          },
+        ],
+      }),
+    )
+
+    window.matchMedia = originalMatchMedia
+  })
+
+  it('auto-selects SDR proxy when display does not support HDR', () => {
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }))
+
+    const hdrVideo: AssetInfo = {
+      id: 'video-sdr-fallback',
+      name: 'video-sdr-fallback.mp4',
+      proxyType: 'video',
+      media: {
+        metadata: {
+          originalWidth: 1920,
+          originalHeight: 1080,
+          duration: 10,
+          frameRate: 30,
+          totalFrames: 300,
+        },
+        videoTranscodes: [
+          {
+            resolution: '1080p',
+            url: 'https://cdn.example.com/video-1080p.mp4',
+            width: 1920,
+            height: 1080,
+            hdr: false,
+          },
+          {
+            resolution: '1080p',
+            url: 'https://cdn.example.com/video-1080p-hdr.mp4',
+            width: 1920,
+            height: 1080,
+            hdr: true,
+          },
+        ],
+      },
+    } as unknown as AssetInfo
+
+    render(<VideoViewer file={hdrVideo} />)
+
+    expect(videojsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        sources: [
+          {
+            src: 'https://cdn.example.com/video-1080p.mp4',
+            type: 'video/mp4',
+          },
+        ],
+      }),
+    )
+
+    window.matchMedia = originalMatchMedia
+  })
 })

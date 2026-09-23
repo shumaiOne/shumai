@@ -54,17 +54,30 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     // We use a container ref to manually append the video element
     const videoContainerRef = useRef<HTMLDivElement>(null)
 
-    // Logic to select best resolution based on screen size
+    // Logic to select best resolution based on screen size and dynamic range
     const getInitialResolution = (): DisplayTranscode | null => {
       if (resolutions.length === 0) return null
 
       if (typeof window === 'undefined') return resolutions[0]
 
+      const prefersHdr =
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(dynamic-range: high)').matches
+      const hasHdr = resolutions.some((r) => r.hdr)
+      const hasSdr = resolutions.some((r) => !r.hdr)
+
+      let candidateResolutions = resolutions
+      if (prefersHdr && hasHdr) {
+        candidateResolutions = resolutions.filter((r) => r.hdr)
+      } else if (!prefersHdr && hasSdr) {
+        candidateResolutions = resolutions.filter((r) => !r.hdr)
+      }
+
       // Use device pixel ratio for high DPI screens
       const screenWidth = window.innerWidth * (window.devicePixelRatio || 1)
 
       // 1. Sort by width ascending
-      const sortedResolutions = [...resolutions].sort((a, b) => {
+      const sortedResolutions = [...candidateResolutions].sort((a, b) => {
         const wA = a.width ?? 0
         const wB = b.width ?? 0
         return wA - wB
@@ -93,6 +106,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       showFrames: false,
       currentResolution: initialRes?.resolution ?? '',
       currentSrc: initialRes?.url ?? '',
+      isCurrentHdr: initialRes?.hdr ?? false,
     })
     const containerRef = useRef<HTMLDivElement>(null)
     const rootRef = useRef<HTMLDivElement>(null)
@@ -140,6 +154,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
         duration: data.media?.metadata?.duration || 0,
         currentResolution: res?.resolution ?? '',
         currentSrc: res?.url ?? '',
+        isCurrentHdr: res?.hdr ?? false,
       }))
       setHasManuallyZoomed(false)
       setIsPlayerReady(false)
@@ -600,6 +615,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
         ...prev,
         currentResolution: res.resolution,
         currentSrc: res.url,
+        isCurrentHdr: res.hdr ?? false,
       }))
 
       player.src({ type: 'video/mp4', src: res.url })

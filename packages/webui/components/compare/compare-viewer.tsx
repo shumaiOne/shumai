@@ -213,7 +213,7 @@ export function CompareViewer({
   )
 
   const handleChangeResolution = useCallback(
-    (resolution: string) => getActive()?.changeResolution(resolution),
+    (resolution: string, hdr?: boolean) => getActive()?.changeResolution(resolution, hdr),
     [getActive],
   )
 

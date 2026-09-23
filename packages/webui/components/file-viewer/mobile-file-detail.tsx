@@ -145,6 +145,7 @@ export function MobileFileDetail({
         key: t.key,
         width: t.width,
         height: t.height,
+        hdr: t.hdr,
       })),
     }
   }, [file.media])

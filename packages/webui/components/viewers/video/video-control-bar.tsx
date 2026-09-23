@@ -43,6 +43,7 @@ export interface PlayerState {
   showFrames: boolean // Toggle between time (02:30) and frames (1234)
   currentResolution: string // 'Original' or '720p', '480p' etc.
   currentSrc?: string
+  isCurrentHdr?: boolean
 }
 
 export type DisplayTranscode = VideoTranscode & { resolution: string }
@@ -317,35 +318,53 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
           {!isAudio && resolutions.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1 rounded border border-border px-2 py-0.5 text-sm font-semibold hover:bg-muted transition-colors">
+                <button className="flex items-center gap-1.5 rounded border border-border px-2 py-0.5 text-sm font-semibold hover:bg-muted transition-colors">
                   <Settings className="h-3.5 w-3.5" />
-                  <span>
-                    {state.currentResolution === 'Original'
-                      ? m.original()
-                      : state.currentResolution}
+                  <span className="flex items-center gap-1">
+                    <span>
+                      {state.currentResolution === 'Original'
+                        ? m.original()
+                        : state.currentResolution}
+                    </span>
+                    {state.isCurrentHdr && (
+                      <span className="px-1 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                        {m.hdr()}
+                      </span>
+                    )}
                   </span>
                 </button>
               </DropdownMenuTrigger>
 
               <DropdownMenuContent>
                 <DropdownMenuLabel>{m.quality()}</DropdownMenuLabel>
-                {resolutions.map((res) => (
-                  <DropdownMenuItem
-                    key={res.resolution}
-                    onClick={() => changeResolution(res)}
-                    className={cn(
-                      'flex w-full items-center justify-between',
-                      state.currentResolution === res.resolution
-                        ? 'text-primary font-medium'
-                        : 'text-foreground',
-                    )}
-                  >
-                    <span>{res.resolution === 'Original' ? m.original() : res.resolution}</span>
-                    <span className="pl-5 text-xs text-muted-foreground">
-                      {res.width}x{res.height}
-                    </span>
-                  </DropdownMenuItem>
-                ))}
+                {resolutions.map((res) => {
+                  const itemKey = `${res.resolution}-${res.hdr ? 'hdr' : 'sdr'}`
+                  const isSelected =
+                    state.currentResolution === res.resolution &&
+                    Boolean(state.isCurrentHdr) === Boolean(res.hdr)
+                  return (
+                    <DropdownMenuItem
+                      key={itemKey}
+                      onClick={() => changeResolution(res)}
+                      className={cn(
+                        'flex w-full items-center justify-between',
+                        isSelected ? 'text-primary font-medium' : 'text-foreground',
+                      )}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>{res.resolution === 'Original' ? m.original() : res.resolution}</span>
+                        {res.hdr && (
+                          <span className="px-1 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                            {m.hdr()}
+                          </span>
+                        )}
+                      </div>
+                      <span className="pl-5 text-xs text-muted-foreground">
+                        {res.width}x{res.height}
+                      </span>
+                    </DropdownMenuItem>
+                  )
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
           )}

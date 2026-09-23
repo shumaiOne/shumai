@@ -75,6 +75,7 @@ vi.mock('@shumai/core/src/transcode/transcode', async (importOriginal) => {
       takeScreenshots: vi.fn(),
       overlayAnnotations: vi.fn(),
       renderPdfPages: vi.fn(),
+      getAvailableFilters: vi.fn().mockResolvedValue(new Set(['zscale', 'tonemap', 'libplacebo'])),
     },
   }
 })
@@ -696,6 +697,37 @@ describe('Transcode Activities', () => {
     )
   })
 
+  it('transcodeVideoActivity appends -hdr.mp4 suffix and forwards HDR metadata', async () => {
+    vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+
+    const result = await transcodeVideoActivity({
+      assetKey: 'files/asset-1/video.mp4',
+      filePath: '/tmp/video.mp4',
+      videoSpec: { resolution: '1080p', width: 1920, height: 1080, hdr: true },
+      duration: 10,
+      originalFps: 30,
+      sourceIsHdr: true,
+      sourceHdrType: 'pq',
+      sourceColorTransfer: 'smpte2084',
+      sourceColorPrimaries: 'bt2020',
+      sourceColorSpace: 'bt2020nc',
+    })
+
+    expect(result.key).toBe('files/asset-1/video-1080p-hdr.mp4')
+    expect(result.hdr).toBe(true)
+    expect(transcodeService.transcodeVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputFile: '/tmp/video.mp4',
+        hdr: true,
+        sourceIsHdr: true,
+        sourceHdrType: 'pq',
+        sourceColorTransfer: 'smpte2084',
+        sourceColorPrimaries: 'bt2020',
+        sourceColorSpace: 'bt2020nc',
+      }),
+    )
+  })
+
   it('should call transcodeService.takeScreenshots', async () => {
     vi.mocked(transcodeService.takeScreenshots).mockResolvedValue([
       { key: 'screenshots/shot1.webp', timestamp: 1.0 },
@@ -871,6 +903,44 @@ describe('Transcode Activities', () => {
           posterSpec: { key: 'poster.webp' },
         }),
       ).rejects.toThrowError(/Sprite\/Poster generation failed/)
+    })
+
+    it('generateSpriteActivity forwards HDR options to transcodeService.generateSprite', async () => {
+      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+      vi.mocked(transcodeService.generateSprite).mockImplementation(
+        async (_in, spriteOut, posterOut) => {
+          fs.writeFileSync(spriteOut, Buffer.from('fake-sprite'))
+          fs.writeFileSync(posterOut, Buffer.from('fake-poster'))
+        },
+      )
+
+      await generateSpriteActivity({
+        assetKey: 'files/asset-1/video.mp4',
+        filePath: '/tmp/video.mp4',
+        mediaInfo: {
+          duration: 10,
+          metadata: {
+            isHdr: true,
+            hdrType: 'pq',
+            colorTransfer: 'smpte2084',
+          },
+        } as unknown as PrismaJson.MediaInfo,
+        spriteSpec: { key: 'files/asset-1/sprite.webp', frames: 100, tileX: 10, tileY: 10 },
+        posterSpec: { key: 'files/asset-1/poster.webp' },
+      })
+
+      expect(transcodeService.generateSprite).toHaveBeenCalledWith(
+        '/tmp/video.mp4',
+        expect.any(String),
+        expect.any(String),
+        10,
+        undefined,
+        {
+          isHdr: true,
+          hdrType: 'pq',
+          colorTransfer: 'smpte2084',
+        },
+      )
     })
 
     it('should throw non-retryable ApplicationFailure when takeScreenshotsActivity fails with error', async () => {
@@ -1098,6 +1168,41 @@ describe('Transcode Activities', () => {
         expect.any(Number),
         'image/webp',
       )
+    })
+
+    it('extractPosterActivity applies tone mapping filter when isHdr is true', async () => {
+      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+      vi.mocked(s3Service.resolveInput).mockResolvedValue('https://mock-r2.com/video.mp4')
+      let ffmpegArgs: string[] = []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(child_process.execFile as any).mockImplementation(
+        (file: string, args: string[], optionsOrCb: unknown, maybeCb?: unknown) => {
+          const cb = typeof optionsOrCb === 'function' ? optionsOrCb : maybeCb
+          if (file === 'ffmpeg') {
+            ffmpegArgs = args
+            const outPath = args[args.length - 1]
+            fs.writeFileSync(outPath, 'fake-poster-bytes')
+          }
+          if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+        },
+      )
+
+      await extractPosterActivity({
+        assetKey: 'video.mp4',
+        posterSpec: { key: 'files/asset-1/poster.webp' },
+        isHdr: true,
+        hdrType: 'pq',
+        colorTransfer: 'smpte2084',
+      })
+
+      const vfIndex = ffmpegArgs.indexOf('-vf')
+      expect(vfIndex).toBeGreaterThan(-1)
+      const vfArg = ffmpegArgs[vfIndex + 1]
+      expect(vfArg).toContain('zscale=tin=smpte2084')
+      expect(vfArg).toContain('tonemap=tonemap=hable')
+      expect(vfArg).toContain('scale=-2:300')
     })
 
     it('should throw non-retryable ApplicationFailure when poster extraction is cancelled with aborted signal', async () => {

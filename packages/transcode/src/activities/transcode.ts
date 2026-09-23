@@ -1,6 +1,10 @@
 import { AssetStatus, prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { transcodeService } from '@shumai/core/src/transcode/transcode'
+import {
+  transcodeService,
+  buildSdrToneMapFilterChain,
+  type HdrType,
+} from '@shumai/core/src/transcode/transcode'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { getDerivedArtifactDirectory, stemFromKey } from '@shumai/core/src/utils/filename'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
@@ -142,6 +146,12 @@ export async function getMediaInfoActivity(params: {
         audioChannels: info.audioChannels,
         audioSampleRate: info.audioSampleRate,
         audioBitDepth: info.audioBitDepth,
+        colorTransfer: info.colorTransfer,
+        colorPrimaries: info.colorPrimaries,
+        colorSpace: info.colorSpace,
+        isHdr: info.isHdr,
+        hdrType: info.hdrType,
+        dvProfile: info.dvProfile,
         format: {},
       }
       metadataUpdates.push(
@@ -151,6 +161,10 @@ export async function getMediaInfoActivity(params: {
         { key: 'bitRate', value: info.bitRate / 1000 },
         { key: 'frame_rate', value: info.frameRate },
       )
+      if (info.isHdr !== undefined)
+        metadataUpdates.push({ key: 'is_hdr', value: info.isHdr ? 1 : 0 })
+      if (info.colorTransfer)
+        metadataUpdates.push({ key: 'color_transfer', value: info.colorTransfer })
       if (info.videoCodec) metadataUpdates.push({ key: 'video_codec', value: info.videoCodec })
       if (info.audioCodec) metadataUpdates.push({ key: 'audio_codec', value: info.audioCodec })
       if (info.audioChannels !== undefined)
@@ -253,6 +267,11 @@ export interface VideoActivityParams {
   hardwareAcceleration?: PrismaJson.HardwareAcceleration
   sourceVideoBitrate?: number
   threads?: number
+  sourceIsHdr?: boolean
+  sourceHdrType?: HdrType
+  sourceColorTransfer?: string
+  sourceColorPrimaries?: string
+  sourceColorSpace?: string
 }
 
 export async function transcodeVideoActivity(
@@ -261,7 +280,8 @@ export async function transcodeVideoActivity(
   const bucket = process.env.S3_BUCKET || 'shumai'
   const stem = stemFromKey(params.assetKey)
   const res = params.videoSpec.resolution || `${params.videoSpec.height}p`
-  const key = path.posix.join(path.posix.dirname(params.assetKey), `${stem}-${res}.mp4`)
+  const suffix = params.videoSpec.hdr ? `${res}-hdr` : res
+  const key = path.posix.join(path.posix.dirname(params.assetKey), `${stem}-${suffix}.mp4`)
 
   const signal = getActivityCancellationSignal(params.taskId)
   if (signal?.aborted) {
@@ -279,7 +299,7 @@ export async function transcodeVideoActivity(
   }
 
   const tmpDir = path.dirname(params.filePath)
-  const outputFile = path.join(tmpDir, `${stem}-${res}.mp4`)
+  const outputFile = path.join(tmpDir, `${stem}-${suffix}.mp4`)
 
   try {
     let targetFps: number | string = params.originalFps || 30
@@ -307,6 +327,12 @@ export async function transcodeVideoActivity(
       sourceVideoBitrate: params.sourceVideoBitrate,
       threads: params.threads,
       signal,
+      hdr: params.videoSpec.hdr,
+      sourceIsHdr: params.sourceIsHdr,
+      sourceHdrType: params.sourceHdrType,
+      sourceColorTransfer: params.sourceColorTransfer,
+      sourceColorPrimaries: params.sourceColorPrimaries,
+      sourceColorSpace: params.sourceColorSpace,
     })
 
     const stat = fs.statSync(outputFile)
@@ -339,7 +365,10 @@ export async function transcodeVideoActivity(
       lowerMsg.includes('ffprobe') ||
       lowerMsg.includes('spawn') ||
       lowerMsg.includes('format') ||
-      lowerMsg.includes('no video stream found')
+      lowerMsg.includes('no video stream found') ||
+      lowerMsg.includes('libplacebo') ||
+      lowerMsg.includes('zscale') ||
+      lowerMsg.includes('tonemap')
     ) {
       throw ApplicationFailure.create({
         message: `Video transcoding failed: ${message}`,
@@ -558,6 +587,11 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
         posterFile,
         params.mediaInfo.duration,
         signal,
+        {
+          isHdr: params.mediaInfo.metadata?.isHdr,
+          hdrType: params.mediaInfo.metadata?.hdrType,
+          colorTransfer: params.mediaInfo.metadata?.colorTransfer,
+        },
       )
     }
 
@@ -604,7 +638,10 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
       lowerMsg.includes('ffmpeg') ||
       lowerMsg.includes('ffprobe') ||
       lowerMsg.includes('spawn') ||
-      lowerMsg.includes('format')
+      lowerMsg.includes('format') ||
+      lowerMsg.includes('libplacebo') ||
+      lowerMsg.includes('zscale') ||
+      lowerMsg.includes('tonemap')
     ) {
       throw ApplicationFailure.create({
         message: `Sprite/Poster generation failed: ${message}`,
@@ -857,6 +894,9 @@ export interface ExtractPosterActivityParams {
   posterSpec: PrismaJson.PosterInfo
   taskId?: string
   signal?: AbortSignal
+  isHdr?: boolean
+  hdrType?: HdrType
+  colorTransfer?: string
 }
 
 export async function extractPosterActivity(
@@ -885,6 +925,17 @@ export async function extractPosterActivity(
     const inputSource = await s3Service.resolveInput(bucket, params.assetKey)
     const isRemote = inputSource.startsWith('http://') || inputSource.startsWith('https://')
 
+    let vf = 'scale=-2:300:force_original_aspect_ratio=decrease'
+    if (params.isHdr) {
+      const availableFilters = await transcodeService.getAvailableFilters()
+      const tonemap = buildSdrToneMapFilterChain({
+        hdrType: params.hdrType,
+        colorTransfer: params.colorTransfer,
+        availableFilters,
+      })
+      vf = `${tonemap},scale=-2:300:force_original_aspect_ratio=decrease`
+    }
+
     const args = [
       ...(isRemote
         ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
@@ -896,7 +947,7 @@ export async function extractPosterActivity(
       '-vframes',
       '1',
       '-vf',
-      'scale=-2:300:force_original_aspect_ratio=decrease',
+      vf,
       '-c:v',
       'libwebp',
       '-q:v',
@@ -938,7 +989,10 @@ export async function extractPosterActivity(
       lowerMsg.includes('enoent') ||
       lowerMsg.includes('nosuchkey') ||
       lowerMsg.includes('ffmpeg') ||
-      lowerMsg.includes('sharp')
+      lowerMsg.includes('sharp') ||
+      lowerMsg.includes('libplacebo') ||
+      lowerMsg.includes('zscale') ||
+      lowerMsg.includes('tonemap')
     ) {
       throw ApplicationFailure.create({
         message: `Poster extraction failed: ${message}`,

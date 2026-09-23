@@ -103,6 +103,7 @@ export const assetInfoSchema = z.object({
             width: z.number(),
             height: z.number(),
             size: z.number(),
+            hdr: z.boolean().optional(),
           }),
         )
         .optional(),
@@ -335,6 +336,7 @@ export interface VideoTranscode {
   width: number
   height: number
   size: number
+  hdr?: boolean
 }
 
 export const postAttachmentRequestSchema = z.object({
