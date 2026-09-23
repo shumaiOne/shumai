@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **share**: Fix an issue where watermarked HDR video proxies were missing their HDR badge on public share links, causing duplicate resolution labels
 - **webui**: Fix an issue where the HDR label was missing from the mobile video player control bar
 - **webui**: Fix an issue where HDR video playback appeared darker than in native players by rendering the native video element directly with hardware EDR acceleration instead of drawing frames to an SDR 2D canvas
 - **transcode**: Fix an issue where videos with orientation or rotation metadata (such as smartphone vertical videos) were incorrectly displayed with stretched aspect ratios in the video player

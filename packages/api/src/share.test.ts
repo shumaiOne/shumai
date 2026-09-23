@@ -418,6 +418,51 @@ describe('Share API', () => {
       expect(body.media.imageTranscodes).toEqual([])
     })
 
+    test('serves watermarked transcodes with hdr flags preserved when watermark enabled and completed', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue(shareLinkWithWatermark)
+      vi.spyOn(watermarkService, 'getCompletedWatermarkMediaMap').mockResolvedValue(
+        new Map([
+          [
+            'file1',
+            watermarkMediaInfo({
+              videoTranscodes: [
+                { key: 'files/watermarked-1080p.mp4', width: 1920, height: 1080, hdr: false },
+                { key: 'files/watermarked-1080p-hdr.mp4', width: 1920, height: 1080, hdr: true },
+              ],
+            }),
+          ],
+        ]),
+      )
+
+      const res = await app.request('/shares/share1/files/file1', {
+        method: 'GET',
+        headers: { 'x-share-password': 'pass' },
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.media.videoTranscodes).toEqual([
+        {
+          id: 'files/watermarked-1080p.mp4',
+          url: 'http://s3/presigned',
+          key: 'files/watermarked-1080p.mp4',
+          width: 1920,
+          height: 1080,
+          size: 0,
+          hdr: false,
+        },
+        {
+          id: 'files/watermarked-1080p-hdr.mp4',
+          url: 'http://s3/presigned',
+          key: 'files/watermarked-1080p-hdr.mp4',
+          width: 1920,
+          height: 1080,
+          size: 0,
+          hdr: true,
+        },
+      ])
+    })
+
     test('serves empty transcode arrays while watermark transcoding is in flight', async () => {
       vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue(shareLinkWithWatermark)
       vi.spyOn(watermarkService, 'getCompletedWatermarkMediaMap').mockResolvedValue(new Map())
