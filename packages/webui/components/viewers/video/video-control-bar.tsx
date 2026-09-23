@@ -389,16 +389,26 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
-                  {resolutions.map((res) => (
-                    <DropdownMenuItem
-                      key={res.resolution}
-                      onClick={() => handleDownload(res.key ?? '')}
-                      className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
-                    >
-                      <span>{res.resolution}</span>
-                      <span className="text-xs text-muted-foreground">MP4</span>
-                    </DropdownMenuItem>
-                  ))}
+                  {resolutions.map((res) => {
+                    const itemKey = res.key || `${res.resolution}-${res.hdr ? 'hdr' : 'sdr'}`
+                    return (
+                      <DropdownMenuItem
+                        key={itemKey}
+                        onClick={() => handleDownload(res.key ?? '')}
+                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground cursor-pointer"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>{res.resolution}</span>
+                          {res.hdr && (
+                            <span className="px-1 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                              {m.hdr()}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">MP4</span>
+                      </DropdownMenuItem>
+                    )
+                  })}
                   {data.media?.original?.key && (
                     <>
                       <DropdownMenuSeparator />
