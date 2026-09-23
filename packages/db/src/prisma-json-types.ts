@@ -134,6 +134,7 @@ declare global {
     export interface Metadata {
       originalHeight: number
       originalWidth: number
+      rotation?: number
       hasAudio: boolean
       duration: number
       bitRate: number

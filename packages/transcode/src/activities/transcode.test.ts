@@ -185,6 +185,7 @@ describe('Transcode Activities', () => {
       audioChannels: 2,
       audioSampleRate: 48000,
       audioBitDepth: 16,
+      rotation: -90,
       mimeType: 'video/mp4',
     })
 
@@ -198,6 +199,7 @@ describe('Transcode Activities', () => {
     expect(transcodeService.getVideoInfo).toHaveBeenCalledWith('/tmp/v.mp4')
     expect(result.duration).toBe(10)
     expect(result.metadata?.originalWidth).toBe(1920)
+    expect(result.metadata?.rotation).toBe(-90)
     expect(result.metadata?.videoBitRate).toBe(850000)
     expect(result.metadata?.videoCodec).toBe('Advanced Video Coding')
     expect(result.metadata?.audioCodec).toBe('MPEG-4 Audio')
@@ -206,7 +208,10 @@ describe('Transcode Activities', () => {
     expect(result.metadata?.audioBitDepth).toBe(16)
     expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
       asset.id,
-      expect.arrayContaining([{ key: 'file_type', value: 'video' }]),
+      expect.arrayContaining([
+        { key: 'file_type', value: 'video' },
+        { key: 'rotation', value: -90 },
+      ]),
       true,
     )
   })

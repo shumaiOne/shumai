@@ -2049,6 +2049,90 @@ describe('TranscodeService', () => {
       expect(info.dvProfile).toBe(8)
     })
 
+    it('getVideoInfo swaps width and height when Display Matrix side data has rotation -90', async () => {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      const mockOutput = JSON.stringify({
+        format: { duration: '10.0', bit_rate: '20000000' },
+        streams: [
+          {
+            codec_type: 'video',
+            codec_name: 'hevc',
+            width: 1920,
+            height: 1080,
+            r_frame_rate: '30/1',
+            side_data_list: [
+              {
+                side_data_type: 'Display Matrix',
+                rotation: -90,
+              },
+            ],
+          },
+        ],
+      })
+      /* eslint-enable @typescript-eslint/naming-convention */
+
+      mockExecFileStdout(mockOutput)
+
+      const info = await transcodeService.getVideoInfo('vertical-display-matrix.mp4')
+      expect(info.originalWidth).toBe(1080)
+      expect(info.originalHeight).toBe(1920)
+      expect(info.rotation).toBe(-90)
+    })
+
+    it('getVideoInfo swaps width and height when tags.rotate is 90 or 270', async () => {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      const mockOutput = JSON.stringify({
+        format: { duration: '10.0', bit_rate: '20000000' },
+        streams: [
+          {
+            codec_type: 'video',
+            codec_name: 'h264',
+            width: 1920,
+            height: 1080,
+            r_frame_rate: '30/1',
+            tags: {
+              rotate: '90',
+            },
+          },
+        ],
+      })
+      /* eslint-enable @typescript-eslint/naming-convention */
+
+      mockExecFileStdout(mockOutput)
+
+      const info = await transcodeService.getVideoInfo('vertical-tag.mp4')
+      expect(info.originalWidth).toBe(1080)
+      expect(info.originalHeight).toBe(1920)
+      expect(info.rotation).toBe(90)
+    })
+
+    it('getVideoInfo preserves width and height when rotation is 180 degrees', async () => {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      const mockOutput = JSON.stringify({
+        format: { duration: '10.0', bit_rate: '20000000' },
+        streams: [
+          {
+            codec_type: 'video',
+            codec_name: 'h264',
+            width: 1920,
+            height: 1080,
+            r_frame_rate: '30/1',
+            tags: {
+              rotate: '180',
+            },
+          },
+        ],
+      })
+      /* eslint-enable @typescript-eslint/naming-convention */
+
+      mockExecFileStdout(mockOutput)
+
+      const info = await transcodeService.getVideoInfo('upside-down.mp4')
+      expect(info.originalWidth).toBe(1920)
+      expect(info.originalHeight).toBe(1080)
+      expect(info.rotation).toBe(180)
+    })
+
     it('transcodeVideo applies tone mapping when sourceIsHdr is true and hdr is false', async () => {
       let executedArgs: string[] = []
       ;(

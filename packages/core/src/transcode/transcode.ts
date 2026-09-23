@@ -119,6 +119,7 @@ export interface MediaMetadata {
   hdrType?: HdrType
   dvProfile?: number
   dvCompatibilityId?: number
+  rotation?: number
 }
 
 export interface TranscodeVideoParams {
@@ -548,9 +549,41 @@ export class TranscodeService {
       }
     }
 
+    let rotation = 0
+
+    if (Array.isArray(videoStream.side_data_list)) {
+      const displayMatrix = videoStream.side_data_list.find(
+        (sd: unknown): sd is Record<string, unknown> =>
+          typeof (sd as Record<string, unknown>)?.side_data_type === 'string' &&
+          String((sd as Record<string, unknown>).side_data_type).toLowerCase() === 'display matrix',
+      )
+      if (displayMatrix && typeof displayMatrix.rotation === 'number') {
+        rotation = displayMatrix.rotation
+      }
+    }
+
+    if (!rotation) {
+      const rotateTag = videoStream.tags?.rotate || info.format?.tags?.rotate
+      if (rotateTag) {
+        const parsed = parseFloat(rotateTag)
+        if (Number.isFinite(parsed)) {
+          rotation = parsed
+        }
+      }
+    }
+
+    const normalizedRotation = ((Math.round(rotation) % 360) + 360) % 360
+    const isRotatedVertical = normalizedRotation === 90 || normalizedRotation === 270
+
+    const rawWidth = typeof videoStream.width === 'number' ? videoStream.width : 0
+    const rawHeight = typeof videoStream.height === 'number' ? videoStream.height : 0
+    const originalWidth = isRotatedVertical ? rawHeight : rawWidth
+    const originalHeight = isRotatedVertical ? rawWidth : rawHeight
+
     return {
-      originalWidth: videoStream.width,
-      originalHeight: videoStream.height,
+      originalWidth,
+      originalHeight,
+      rotation: rotation || undefined,
       duration,
       bitRate: parseFloat(info.format.bit_rate),
       videoBitRate,

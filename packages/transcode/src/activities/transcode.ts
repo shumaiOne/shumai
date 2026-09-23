@@ -152,6 +152,7 @@ export async function getMediaInfoActivity(params: {
         isHdr: info.isHdr,
         hdrType: info.hdrType,
         dvProfile: info.dvProfile,
+        rotation: info.rotation,
         format: {},
       }
       metadataUpdates.push(
@@ -161,6 +162,8 @@ export async function getMediaInfoActivity(params: {
         { key: 'bitRate', value: info.bitRate / 1000 },
         { key: 'frame_rate', value: info.frameRate },
       )
+      if (info.rotation !== undefined)
+        metadataUpdates.push({ key: 'rotation', value: info.rotation })
       if (info.isHdr !== undefined)
         metadataUpdates.push({ key: 'is_hdr', value: info.isHdr ? 1 : 0 })
       if (info.colorTransfer)
