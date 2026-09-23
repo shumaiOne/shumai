@@ -93,4 +93,92 @@ describe('MobileVideoControlBar', () => {
     fireEvent.click(fsBtn)
     expect(toggleFullScreen).toHaveBeenCalledTimes(1)
   })
+
+  it('renders HDR label on settings button when playing HDR video', () => {
+    render(
+      <MobileVideoControlBar
+        state={{
+          ...defaultState,
+          currentResolution: '1080p',
+          isCurrentHdr: true,
+        }}
+        zoom={1}
+        isControlsVisible={true}
+        buffered={50}
+        data={mockData}
+        resolutions={[
+          {
+            key: '1080-hdr.mp4',
+            width: 1920,
+            height: 1080,
+            resolution: '1080p',
+            hdr: true,
+          } as unknown as DisplayTranscode,
+        ]}
+        togglePlay={vi.fn()}
+        toggleLoop={vi.fn()}
+        toggleMute={vi.fn()}
+        handleVolumeChange={vi.fn()}
+        changePlaybackRate={vi.fn()}
+        changeResolution={vi.fn()}
+        handleDownload={vi.fn()}
+        toggleFullScreen={vi.fn()}
+        onZoomChange={vi.fn()}
+        onZoomReset={vi.fn()}
+        frameRate={25}
+        totalFrames={2500}
+        currentFrame={250}
+        seekToFrame={vi.fn()}
+      />,
+    )
+
+    const settingsBtn = screen.getByLabelText(/Settings/i)
+    expect(settingsBtn).toBeDefined()
+    expect(settingsBtn.textContent).toContain('1080p')
+    expect(settingsBtn.textContent).toContain('HDR')
+  })
+
+  it('does not render HDR label on settings button when playing SDR video', () => {
+    render(
+      <MobileVideoControlBar
+        state={{
+          ...defaultState,
+          currentResolution: '1080p',
+          isCurrentHdr: false,
+        }}
+        zoom={1}
+        isControlsVisible={true}
+        buffered={50}
+        data={mockData}
+        resolutions={[
+          {
+            key: '1080.mp4',
+            width: 1920,
+            height: 1080,
+            resolution: '1080p',
+            hdr: false,
+          } as unknown as DisplayTranscode,
+        ]}
+        togglePlay={vi.fn()}
+        toggleLoop={vi.fn()}
+        toggleMute={vi.fn()}
+        handleVolumeChange={vi.fn()}
+        changePlaybackRate={vi.fn()}
+        changeResolution={vi.fn()}
+        handleDownload={vi.fn()}
+        toggleFullScreen={vi.fn()}
+        onZoomChange={vi.fn()}
+        onZoomReset={vi.fn()}
+        frameRate={25}
+        totalFrames={2500}
+        currentFrame={250}
+        seekToFrame={vi.fn()}
+      />,
+    )
+
+    const settingsBtn = screen.getByLabelText(/Settings/i)
+    expect(settingsBtn).toBeDefined()
+    expect(settingsBtn.textContent).toContain('1080p')
+    expect(settingsBtn.textContent).not.toContain('HDR')
+  })
 })

@@ -186,10 +186,19 @@ export const MobileVideoControlBar: React.FC<ControlBarProps> = ({
                 aria-label={m.settings()}
               >
                 <Settings className="h-3.5 w-3.5" />
-                <span className="text-[11px]">
-                  {!isAudio && state.currentResolution
-                    ? state.currentResolution
-                    : `${state.playbackRate}x`}
+                <span className="flex items-center gap-1 text-[11px]">
+                  <span>
+                    {!isAudio && state.currentResolution
+                      ? state.currentResolution === 'Original'
+                        ? m.original()
+                        : state.currentResolution
+                      : `${state.playbackRate}x`}
+                  </span>
+                  {!isAudio && state.isCurrentHdr && (
+                    <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                      {m.hdr()}
+                    </span>
+                  )}
                 </span>
               </button>
             </DropdownMenuTrigger>
