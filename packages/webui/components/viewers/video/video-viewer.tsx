@@ -299,8 +299,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       const videoElement = document.createElement('video-js')
       videoElement.classList.add('vjs-big-play-centered', '!h-full', '!w-full')
 
-      // Hide it, but keep it in DOM
-      videoElement.style.opacity = '0'
+      // Keep it in DOM, enable visible rendering
       videoElement.style.pointerEvents = 'none'
 
       // Append to our container
@@ -774,8 +773,31 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
             data-vjs-player
             data-testid="video-area"
           >
-            {/* Hidden VideoJS container */}
-            <div ref={videoContainerRef} className="absolute inset-0 z-[-1]" />
+            {/* Native Video Layer (Hardware-accelerated, full HDR EDR) */}
+            {!isAudio && (
+              <div
+                className="absolute pointer-events-none"
+                style={{
+                  left: 0,
+                  top: 0,
+                  width: vidW,
+                  height: vidH,
+                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+                  transformOrigin: '0 0',
+                }}
+              >
+                <div
+                  ref={videoContainerRef}
+                  className="w-full h-full [&_.video-js]:!w-full [&_.video-js]:!h-full [&_video]:!w-full [&_video]:!h-full [&_video]:!block [&_video]:!object-contain"
+                />
+              </div>
+            )}
+            {isAudio && (
+              <div
+                ref={videoContainerRef}
+                className="absolute inset-0 pointer-events-none opacity-0"
+              />
+            )}
 
             {isAudio ? (
               <div className="flex flex-col items-center justify-center text-muted-foreground w-full h-full pointer-events-none select-none">
@@ -787,8 +809,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
                 />
               </div>
             ) : (
-              /* Drawing Canvas (Visible) */
-              videoHtmlEl &&
+              /* Drawing Canvas (Transparent Overlay for annotations) */
               containerSize.width > 0 && (
                 <DrawingCanvas
                   width={containerSize.width}
@@ -797,7 +818,6 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
                     width: vidW,
                     height: vidH,
                   }}
-                  videoElement={videoHtmlEl}
                   annotations={displayAnnotations}
                   scale={scale}
                   offset={pan}

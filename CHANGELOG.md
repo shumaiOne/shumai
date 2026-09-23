@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **webui**: Fix an issue where HDR video playback appeared darker than in native players by rendering the native video element directly with hardware EDR acceleration instead of drawing frames to an SDR 2D canvas
 - **transcode**: Fix an issue where videos with orientation or rotation metadata (such as smartphone vertical videos) were incorrectly displayed with stretched aspect ratios in the video player
 - **docker**: Fix an issue where the bundled PostgreSQL container published port 5432 on the host, causing deployment to fail on machines where that port was already in use; the database is now only reachable by Shumai itself
 - **cli**: Only manage and check PID files in daemon mode, preventing stale PID files, crash-loop conflicts, or spurious process checks during normal foreground and Docker execution

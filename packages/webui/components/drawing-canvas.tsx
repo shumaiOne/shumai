@@ -19,7 +19,6 @@ interface DrawingCanvasProps {
   imageUrl?: string
   /** A live canvas to draw instead of an image URL (e.g. a PDF.js page render). */
   canvasElement?: HTMLCanvasElement | null
-  videoElement?: HTMLVideoElement
   annotations: Annotation[]
   scale: number
   offset: { x: number; y: number }
@@ -40,7 +39,6 @@ const DrawingCanvas = ({
   mediaDimensions,
   imageUrl,
   canvasElement,
-  videoElement,
   annotations,
   scale,
   offset,
@@ -53,7 +51,7 @@ const DrawingCanvas = ({
   onAddAnnotation,
 }: DrawingCanvasProps) => {
   const [loadedImage] = useImage(imageUrl || '', 'anonymous')
-  const imageRef = useRef<Konva.Image>(null)
+  const mediaGroupRef = useRef<Konva.Group>(null)
   const isDragging = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
   const startPointRef = useRef<{ x: number; y: number } | null>(null)
@@ -66,26 +64,10 @@ const DrawingCanvas = ({
   // Force a redraw whenever the live canvas source is swapped, so the layer
   // picks up the new page raster (Konva redraws the source each batchDraw).
   useEffect(() => {
-    if (canvasElement && imageRef.current) {
-      imageRef.current.getLayer()?.batchDraw()
+    if (canvasElement && mediaGroupRef.current) {
+      mediaGroupRef.current.getLayer()?.batchDraw()
     }
   }, [canvasElement])
-
-  // Handle Video Redraw
-  useEffect(() => {
-    if (videoElement && imageRef.current) {
-      const layer = imageRef.current.getLayer()
-      if (!layer) return
-
-      const anim = new Konva.Animation(() => {
-        // Force redraw to update video frame
-      }, layer)
-      anim.start()
-      return () => {
-        anim.stop()
-      }
-    }
-  }, [videoElement])
 
   // -- Helpers --
   const getRelativePointerPosition = (
@@ -217,7 +199,7 @@ const DrawingCanvas = ({
     const handleGlobalMove = (e: MouseEvent | TouchEvent) => {
       if (!isDragging.current) return
 
-      const stage = imageRef.current?.getStage()
+      const stage = mediaGroupRef.current?.getStage()
       if (!stage) return
       const container = stage.container()
       const rect = container.getBoundingClientRect()
@@ -255,11 +237,11 @@ const DrawingCanvas = ({
       if (activeDrawing) {
         if (tool === 'select') return
 
-        const pos = getRelativePointerPosition(imageRef.current!, true, stagePos)
+        const pos = getRelativePointerPosition(mediaGroupRef.current!, true, stagePos)
         if (!pos || !startPointRef.current) return
         const start = startPointRef.current
 
-        const layer = imageRef.current?.getLayer()
+        const layer = mediaGroupRef.current?.getLayer()
 
         if (tool === 'freehand' && currentLineRef.current) {
           const newPoints = currentLineRef.current.points().concat([pos.x, pos.y])
@@ -317,8 +299,8 @@ const DrawingCanvas = ({
       const stage = e.target.getStage()
       if (!stage) return
 
-      // Use imageRef to get coordinates relative to the image (handling zoom/pan)
-      const pos = getRelativePointerPosition(imageRef.current!)
+      // Use mediaGroupRef to get coordinates relative to the media (handling zoom/pan)
+      const pos = getRelativePointerPosition(mediaGroupRef.current!)
       if (!pos) return
 
       // Only start drawing if within media bounds
@@ -334,7 +316,7 @@ const DrawingCanvas = ({
       isDragging.current = true
       startPointRef.current = pos
 
-      const layer = imageRef.current?.getLayer()
+      const layer = mediaGroupRef.current?.getLayer()
       if (!layer) return
 
       if (currentTool === 'freehand' && currentLineRef.current) {
@@ -474,32 +456,35 @@ const DrawingCanvas = ({
         onTouchStart={handleMouseDown}
       >
         <Layer>
-          <KonvaImage
-            ref={imageRef}
-            image={videoElement || canvasElement || loadedImage}
-            width={mediaDimensions.width}
-            height={mediaDimensions.height}
-          />
-          {annotations.map(renderAnnotation)}
+          <Group ref={mediaGroupRef} width={mediaDimensions.width} height={mediaDimensions.height}>
+            {(canvasElement || loadedImage) && (
+              <KonvaImage
+                image={canvasElement || loadedImage}
+                width={mediaDimensions.width}
+                height={mediaDimensions.height}
+              />
+            )}
+            {annotations.map(renderAnnotation)}
 
-          {/* Draft Shapes */}
-          <Group listening={false}>
-            <Line
-              ref={currentLineRef}
-              strokeWidth={2.6 / scale}
-              lineCap="round"
-              lineJoin="round"
-              visible={false}
-            />
-            <Rect ref={currentRectRef} strokeWidth={2.6 / scale} visible={false} />
-            <Arrow
-              ref={currentArrowRef}
-              points={[]}
-              strokeWidth={2.6 / scale}
-              pointerLength={10 / scale}
-              pointerWidth={10 / scale}
-              visible={false}
-            />
+            {/* Draft Shapes */}
+            <Group listening={false}>
+              <Line
+                ref={currentLineRef}
+                strokeWidth={2.6 / scale}
+                lineCap="round"
+                lineJoin="round"
+                visible={false}
+              />
+              <Rect ref={currentRectRef} strokeWidth={2.6 / scale} visible={false} />
+              <Arrow
+                ref={currentArrowRef}
+                points={[]}
+                strokeWidth={2.6 / scale}
+                pointerLength={10 / scale}
+                pointerWidth={10 / scale}
+                visible={false}
+              />
+            </Group>
           </Group>
         </Layer>
       </Stage>

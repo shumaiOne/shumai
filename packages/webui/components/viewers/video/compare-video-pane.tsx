@@ -88,7 +88,6 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
     const videoContainerRef = useRef<HTMLDivElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const videoRef = useRef<HTMLVideoElement | null>(null)
-    const [videoHtmlEl, setVideoHtmlEl] = useState<HTMLVideoElement | undefined>(undefined)
 
     const {
       isDrawing,
@@ -171,7 +170,6 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       if (!videoContainerRef.current) return
       const videoElement = document.createElement('video-js')
       videoElement.classList.add('vjs-big-play-centered', '!h-full', '!w-full')
-      videoElement.style.opacity = '0'
       videoElement.style.pointerEvents = 'none'
       videoContainerRef.current.appendChild(videoElement)
 
@@ -185,13 +183,11 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
 
       const htmlVid = videoElement.querySelector('video')
       if (htmlVid) {
-        setVideoHtmlEl(htmlVid)
         videoRef.current = htmlVid
       } else {
         player.ready(() => {
           const techEl = player.tech({ iWillNotUseThisInPlugins: true })?.el() as HTMLVideoElement
           if (techEl) {
-            setVideoHtmlEl(techEl)
             videoRef.current = techEl
           }
         })
@@ -455,7 +451,28 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
         onClick={handleAreaClick}
         data-testid="compare-video-area"
       >
-        <div ref={videoContainerRef} className="absolute inset-0 z-[-1]" />
+        {/* Native Video Layer (Hardware-accelerated, full HDR EDR) */}
+        {!isAudio && (
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              left: 0,
+              top: 0,
+              width: vidW,
+              height: vidH,
+              transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
+              transformOrigin: '0 0',
+            }}
+          >
+            <div
+              ref={videoContainerRef}
+              className="w-full h-full [&_.video-js]:!w-full [&_.video-js]:!h-full [&_video]:!w-full [&_video]:!h-full [&_video]:!block [&_video]:!object-contain"
+            />
+          </div>
+        )}
+        {isAudio && (
+          <div ref={videoContainerRef} className="absolute inset-0 pointer-events-none opacity-0" />
+        )}
 
         {isAudio ? (
           <div className="flex flex-col items-center justify-center text-muted-foreground w-full h-full pointer-events-none select-none">
@@ -467,13 +484,11 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
             />
           </div>
         ) : (
-          videoHtmlEl &&
           containerSize.width > 0 && (
             <DrawingCanvas
               width={containerSize.width}
               height={containerSize.height}
               mediaDimensions={{ width: vidW, height: vidH }}
-              videoElement={videoHtmlEl}
               annotations={displayAnnotations}
               scale={scale}
               offset={{ x: panX, y: panY }}
