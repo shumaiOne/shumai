@@ -1,6 +1,6 @@
 import { client } from '@/ui/api/client'
 import { cn } from '@/ui/lib/utils'
-import { Play, AudioLines } from 'lucide-react'
+import { AudioLines } from 'lucide-react'
 import React, { useCallback, useEffect, useRef, useState, useImperativeHandle } from 'react'
 import videojs from 'video.js'
 import type Player from 'video.js/dist/types/player'
@@ -832,15 +832,6 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
                   onAddAnnotation={addAnnotation}
                 />
               )
-            )}
-
-            {/* Big Play Button Overlay (when paused) */}
-            {!state.isPlaying && !isDrawing && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10">
-                <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/30 animate-pulse">
-                  <Play className="w-10 h-10 text-white ml-1 fill-white" />
-                </div>
-              </div>
             )}
           </div>
         </div>

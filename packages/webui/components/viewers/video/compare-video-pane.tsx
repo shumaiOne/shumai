@@ -4,7 +4,7 @@ import { cn } from '@/ui/lib/utils'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { Annotation } from '@/ui/types'
 import type { AssetInfo } from '@shumai/dtos'
-import { Play, AudioLines } from 'lucide-react'
+import { AudioLines } from 'lucide-react'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import videojs from 'video.js'
 import type Player from 'video.js/dist/types/player'
@@ -500,14 +500,6 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
               onAddAnnotation={isActive ? addAnnotation : undefined}
             />
           )
-        )}
-
-        {!isPlaying && !isDrawing && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/20">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 backdrop-blur-sm">
-              <Play className="ml-1 h-8 w-8 fill-white text-white" />
-            </div>
-          </div>
         )}
       </div>
     )
