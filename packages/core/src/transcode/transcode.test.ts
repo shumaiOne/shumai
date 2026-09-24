@@ -1822,6 +1822,9 @@ describe('TranscodeService', () => {
         hdrType: 'pq',
         availableFilters: available,
       })
+      expect(pqChain).toContain(
+        'setparams=color_primaries=bt2020:color_trc=smpte2084:colorspace=bt2020nc',
+      )
       expect(pqChain).toContain('zscale=tin=smpte2084:pin=bt2020:min=bt2020nc')
       expect(pqChain).toContain('tonemap=tonemap=hable:desat=0:peak=100')
       expect(pqChain).toContain('format=yuv420p')
@@ -1830,6 +1833,9 @@ describe('TranscodeService', () => {
         hdrType: 'hlg',
         availableFilters: available,
       })
+      expect(hlgChain).toContain(
+        'setparams=color_primaries=bt2020:color_trc=arib-std-b67:colorspace=bt2020nc',
+      )
       expect(hlgChain).toContain('zscale=tin=arib-std-b67:pin=bt2020:min=bt2020nc')
       expect(hlgChain).toContain('tonemap=tonemap=hable')
     })
@@ -1855,6 +1861,9 @@ describe('TranscodeService', () => {
         hdrType: 'dovi_p5',
         availableFilters: new Set(['zscale', 'tonemap']),
       })
+      expect(chain).toContain(
+        'setparams=color_primaries=bt2020:color_trc=smpte2084:colorspace=bt2020nc',
+      )
       expect(chain).toContain('tin=smpte2084')
       expect(chain).toContain('tonemap=tonemap=hable')
       expect(chain).toContain('m=bt709')
@@ -2248,6 +2257,9 @@ describe('TranscodeService', () => {
       const filterIdx = executedArgs.indexOf('-filter_complex')
       expect(filterIdx).toBeGreaterThan(-1)
       const filterComplex = executedArgs[filterIdx + 1]
+      expect(filterComplex).toContain(
+        'setparams=color_primaries=bt2020:color_trc=smpte2084:colorspace=bt2020nc',
+      )
       expect(filterComplex).toContain('zscale=tin=smpte2084')
       expect(filterComplex).toContain('tonemap=tonemap=hable')
       expect(filterComplex).not.toContain('libplacebo')

@@ -255,7 +255,7 @@ export function buildSdrToneMapFilterChain(options: {
     options.hdrType === 'hlg' || options.colorTransfer === 'arib-std-b67'
       ? 'arib-std-b67'
       : 'smpte2084'
-  return `zscale=tin=${tin}:pin=bt2020:min=bt2020nc:t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0:peak=100,zscale=t=bt709:m=bt709:out_range=full,format=yuv420p`
+  return `setparams=color_primaries=bt2020:color_trc=${tin}:colorspace=bt2020nc,zscale=tin=${tin}:pin=bt2020:min=bt2020nc:t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0:peak=100,zscale=t=bt709:m=bt709:out_range=full,format=yuv420p`
 }
 
 export interface ExtractVideoFramesParams {
