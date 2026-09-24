@@ -156,11 +156,11 @@ export const H264_ENCODER_CONFIGS: Record<string, EncoderConfig> = {
   },
   h264_videotoolbox: {
     name: 'h264_videotoolbox',
-    presetArgs: ['-q:v', '74'],
+    presetArgs: [],
   },
   libx264: {
     name: 'libx264',
-    presetArgs: ['-preset', 'fast', '-crf', '26'],
+    presetArgs: ['-preset', 'fast', '-crf', '23', '-bf', '0'],
   },
 }
 
@@ -196,12 +196,12 @@ export function getDefaultBitrate(height: number, width?: number): string {
   return `${Math.round(bps / 1000)}k`
 }
 
-export function calculateMaxBitrate(
+export function calculateEffectiveBitrateBps(
   targetHeight: number,
   targetWidth?: number,
   sourceVideoBitrate?: number,
   targetFps?: number | string,
-): { maxrate: string; bufsize: string } {
+): number {
   let configuredMaxBps = getDefaultBitrateBps(targetHeight, targetWidth)
 
   // If frame rate is downsampled (e.g. 180p preview with < 24 fps), scale the bitrate ceiling proportionally
@@ -223,13 +223,27 @@ export function calculateMaxBitrate(
     }
   }
 
-  let effectiveMaxBps =
+  const effectiveMaxBps =
     sourceVideoBitrate && sourceVideoBitrate > 0
       ? Math.min(configuredMaxBps, Math.round(sourceVideoBitrate * 1.2))
       : configuredMaxBps
 
   const minFloor = targetFps ? 50_000 : 100_000
-  effectiveMaxBps = Math.max(minFloor, effectiveMaxBps)
+  return Math.max(minFloor, effectiveMaxBps)
+}
+
+export function calculateMaxBitrate(
+  targetHeight: number,
+  targetWidth?: number,
+  sourceVideoBitrate?: number,
+  targetFps?: number | string,
+): { maxrate: string; bufsize: string } {
+  const effectiveMaxBps = calculateEffectiveBitrateBps(
+    targetHeight,
+    targetWidth,
+    sourceVideoBitrate,
+    targetFps,
+  )
 
   const maxrateKbps = Math.max(50, Math.round(effectiveMaxBps / 1000))
   const bufsizeKbps = maxrateKbps * 2
@@ -780,16 +794,31 @@ export class TranscodeService {
       args.push(...encoder.presetArgs)
     }
 
-    if (params.videoBitrate) {
-      args.push('-b:v', params.videoBitrate)
+    if (encoder.name === 'h264_videotoolbox') {
+      if (params.videoBitrate) {
+        args.push('-b:v', params.videoBitrate)
+      } else {
+        const targetBps = calculateEffectiveBitrateBps(
+          params.height,
+          params.width,
+          params.sourceVideoBitrate,
+          params.frameRate,
+        )
+        const targetKbps = Math.max(50, Math.round(targetBps / 1000))
+        args.push('-b:v', `${targetKbps}k`)
+      }
     } else {
-      const { maxrate, bufsize } = calculateMaxBitrate(
-        params.height,
-        params.width,
-        params.sourceVideoBitrate,
-        params.frameRate,
-      )
-      args.push('-maxrate', maxrate, '-bufsize', bufsize)
+      if (params.videoBitrate) {
+        args.push('-b:v', params.videoBitrate)
+      } else {
+        const { maxrate, bufsize } = calculateMaxBitrate(
+          params.height,
+          params.width,
+          params.sourceVideoBitrate,
+          params.frameRate,
+        )
+        args.push('-maxrate', maxrate, '-bufsize', bufsize)
+      }
     }
 
     args.push('-pix_fmt', 'yuv420p')

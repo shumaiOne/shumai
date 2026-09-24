@@ -1312,7 +1312,7 @@ describe('TranscodeService', () => {
 
       const encoder = await transcodeService.selectH264Encoder('auto', 'darwin')
       expect(encoder.name).toBe('h264_videotoolbox')
-      expect(encoder.presetArgs).toEqual(['-q:v', '74'])
+      expect(encoder.presetArgs).toEqual([])
     })
 
     it('selectH264Encoder should select h264_nvenc on linux when available', async () => {
@@ -1448,10 +1448,10 @@ describe('TranscodeService', () => {
 
       const encoder = await transcodeService.selectH264Encoder('auto', 'linux')
       expect(encoder.name).toBe('libx264')
-      expect(encoder.presetArgs).toEqual(['-preset', 'fast', '-crf', '26'])
+      expect(encoder.presetArgs).toEqual(['-preset', 'fast', '-crf', '23', '-bf', '0'])
     })
 
-    it('transcodeVideo with hardwareAcceleration off should use libx264, preset fast, crf 26, maxrate, and yuv420p', async () => {
+    it('transcodeVideo with hardwareAcceleration off should use libx264, preset fast, crf 23, -bf 0, maxrate, and yuv420p', async () => {
       vi.mocked(execFile).mockImplementation(
         (
           _cmd: unknown,
@@ -1487,7 +1487,9 @@ describe('TranscodeService', () => {
           '-preset',
           'fast',
           '-crf',
-          '26',
+          '23',
+          '-bf',
+          '0',
           '-maxrate',
           '720k',
           '-bufsize',
@@ -1499,7 +1501,7 @@ describe('TranscodeService', () => {
       )
     })
 
-    it('transcodeVideo with hardwareAcceleration auto and videotoolbox should use -q:v 74 and -maxrate', async () => {
+    it('transcodeVideo with hardwareAcceleration auto and videotoolbox should use -b:v and no maxrate', async () => {
       vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
         H264_ENCODER_CONFIGS.h264_videotoolbox,
       )
@@ -1536,17 +1538,16 @@ describe('TranscodeService', () => {
         expect.arrayContaining([
           '-c:v',
           'h264_videotoolbox',
-          '-q:v',
-          '74',
-          '-maxrate',
+          '-b:v',
           '720k',
-          '-bufsize',
-          '1440k',
           '-pix_fmt',
           'yuv420p',
         ]),
         expect.any(Function),
       )
+      const callArgs = vi.mocked(child_process.execFile).mock.calls[0][1] as string[]
+      expect(callArgs).not.toContain('-maxrate')
+      expect(callArgs).not.toContain('-bufsize')
     })
 
     it('transcodeVideo with hardwareAcceleration auto and nvenc should use -preset p4, -rc:v vbr, -cq:v 26, -b:v 0, and -maxrate', async () => {
@@ -1695,7 +1696,9 @@ describe('TranscodeService', () => {
           '-preset',
           'fast',
           '-crf',
-          '26',
+          '23',
+          '-bf',
+          '0',
           '-b:v',
           '1500k',
           '-pix_fmt',
