@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **transcode**: Add HDR output proxy support with team settings (SDR, HDR, or both), high-fidelity SDR tone-mapping for previews and proxies (including Dolby Vision Profile 5 fallback), and automatic HDR player playback on supported displays
+- **transcode**: Add HDR video proxy support: HDR videos automatically generate HDR video proxies and preview videos preserving HDR color characteristics, tone-mapped SDR thumbnails and posters, and automatic HDR player playback on supported displays with hardware EDR acceleration
 - **docs**: Add a Changelog section to the documentation site so users can explore release notes and updates directly in Mintlify
 
 ### Fixed

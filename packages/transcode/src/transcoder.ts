@@ -36,13 +36,6 @@ export class VideoTranscoder {
     return this
   }
 
-  setHdrOutput(hdrOutput?: PrismaJson.HdrOutput): this {
-    if (hdrOutput) {
-      this.spec.hdrOutput = hdrOutput
-    }
-    return this
-  }
-
   withSprite(): this {
     this.spec.sprite = true
     return this

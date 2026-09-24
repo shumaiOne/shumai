@@ -37,7 +37,6 @@ export class TeamService {
               videoStrategy: 'best_match',
               hardwareAcceleration: 'off',
               threads: 0,
-              hdrOutput: 'both',
             },
           },
           sandbox: { create: {} },
@@ -311,10 +310,7 @@ export class TeamService {
         videoStrategy: 'best_match',
         hardwareAcceleration: 'off',
         threads: 0,
-        hdrOutput: 'both',
       }
-    } else if (!settings.transcode.hdrOutput) {
-      settings.transcode.hdrOutput = 'both'
     }
 
     if (!settings.appearance) {
@@ -354,14 +350,6 @@ export class TeamService {
       }
       settings.transcode.threads = Number(value)
       delete settings['transcode.threads']
-    } else if (key === 'transcode.hdrOutput') {
-      if (!settings.transcode) {
-        settings.transcode = {}
-      }
-      settings.transcode.hdrOutput = value as NonNullable<
-        TeamSettingsResponse['transcode']
-      >['hdrOutput']
-      delete settings['transcode.hdrOutput']
     } else if (key === 'appearance.hideAgent') {
       if (!settings.appearance) {
         settings.appearance = {}

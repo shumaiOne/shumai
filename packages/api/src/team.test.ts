@@ -298,30 +298,6 @@ describe('team api', () => {
     expect(resFloat.status).toBe(400)
   })
 
-  it('PATCH /teams/:teamId/settings updates transcode.hdrOutput', async () => {
-    mockUpdateSettings.mockResolvedValue({ transcode: { hdrOutput: 'both' } })
-
-    const res = await app.request('/teams/t1/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'transcode.hdrOutput', value: 'both' }),
-    })
-
-    expect(res.status).toBe(200)
-    const data = await res.json()
-    expect(data.transcode.hdrOutput).toBe('both')
-    expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'transcode.hdrOutput', 'both')
-  })
-
-  it('PATCH /teams/:teamId/settings rejects invalid transcode.hdrOutput', async () => {
-    const resInvalid = await app.request('/teams/t1/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'transcode.hdrOutput', value: 'invalid_value' }),
-    })
-    expect(resInvalid.status).toBe(400)
-  })
-
   it('PATCH /teams/:teamId/settings updates appearance.hideAgent', async () => {
     mockUpdateSettings.mockResolvedValue({ appearance: { hideAgent: true } })
 

@@ -731,33 +731,11 @@ export class TranscodeService {
     const args: string[] = ['-i', params.inputFile]
     const baseScale = `scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
 
-    if (isSourceHdr && !isHdrOutput) {
-      const availableFilters = await this.getAvailableFilters()
-      const tonemap = buildSdrToneMapFilterChain({
-        hdrType: params.sourceHdrType,
-        colorTransfer: params.sourceColorTransfer,
-        availableFilters,
-      })
-      if (params.overlayFile) {
-        args.push('-i', params.overlayFile)
-        filterComplex = `[0:v]${baseScale},${tonemap}[vscaled];[vscaled][1:v]overlay=0:0`
-      } else {
-        filterComplex = `[0:v]${baseScale},${tonemap}`
-      }
-    } else if (isSourceHdr && isHdrOutput) {
-      if (params.overlayFile) {
-        args.push('-i', params.overlayFile)
-        filterComplex = `[0:v]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
-      } else {
-        filterComplex = `[0:v]${baseScale}`
-      }
+    if (params.overlayFile) {
+      args.push('-i', params.overlayFile)
+      filterComplex = `[0:v]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
     } else {
-      if (params.overlayFile) {
-        args.push('-i', params.overlayFile)
-        filterComplex = `[0:v]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
-      } else {
-        filterComplex = `[0:v]${baseScale}`
-      }
+      filterComplex = `[0:v]${baseScale}`
     }
 
     if (params.frameRate) {

@@ -2124,51 +2124,6 @@ describe('TranscodeService', () => {
       expect(info.rotation).toBe(180)
     })
 
-    it('transcodeVideo applies tone mapping when sourceIsHdr is true and hdr is false', async () => {
-      let executedArgs: string[] = []
-      ;(
-        child_process.execFile as unknown as {
-          mockImplementation: (
-            fn: (
-              file: string,
-              args: string[],
-              cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
-            ) => unknown,
-          ) => void
-        }
-      ).mockImplementation((_file, args, cb) => {
-        if (args.includes('-filters')) {
-          cb(null, { stdout: ' ... zscale ... \n ... tonemap ... ', stderr: '' })
-          return {}
-        }
-        if (args.includes('-encoders')) {
-          cb(null, { stdout: ' V..... libx264 ', stderr: '' })
-          return {}
-        }
-        executedArgs = args
-        cb(null, { stdout: '', stderr: '' })
-        return {}
-      })
-
-      const outputFile = path.join(tempDir, 'sdr_tonemapped.mp4')
-      await transcodeService.transcodeVideo({
-        inputFile: 'hdr_input.mp4',
-        outputFile,
-        width: 1920,
-        height: 1080,
-        hdr: false,
-        sourceIsHdr: true,
-        sourceHdrType: 'pq',
-        sourceColorTransfer: 'smpte2084',
-      })
-
-      const filterIdx = executedArgs.indexOf('-filter_complex')
-      expect(filterIdx).toBeGreaterThan(-1)
-      const filterComplex = executedArgs[filterIdx + 1]
-      expect(filterComplex).toContain('zscale=tin=smpte2084')
-      expect(filterComplex).toContain('tonemap=tonemap=hable')
-    })
-
     it('transcodeVideo preserves HDR parameters and tags when hdr is true', async () => {
       let executedArgs: string[] = []
       ;(
@@ -2215,54 +2170,6 @@ describe('TranscodeService', () => {
       expect(executedArgs).toContain('bt2020nc')
       expect(executedArgs).toContain('-x264-params')
       expect(executedArgs).toContain('colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc')
-    })
-
-    it('transcodeVideo tone-maps Dolby Vision Profile 5 to SDR using zscale + tonemap', async () => {
-      let executedArgs: string[] = []
-      ;(
-        child_process.execFile as unknown as {
-          mockImplementation: (
-            fn: (
-              file: string,
-              args: string[],
-              cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
-            ) => unknown,
-          ) => void
-        }
-      ).mockImplementation((_file, args, cb) => {
-        if (args.includes('-filters')) {
-          cb(null, { stdout: ' ... zscale ... \n ... tonemap ... ', stderr: '' })
-          return {}
-        }
-        if (args.includes('-encoders')) {
-          cb(null, { stdout: ' V..... libx264 ', stderr: '' })
-          return {}
-        }
-        executedArgs = args
-        cb(null, { stdout: '', stderr: '' })
-        return {}
-      })
-
-      const outputFile = path.join(tempDir, 'dovi_p5_sdr.mp4')
-      await transcodeService.transcodeVideo({
-        inputFile: 'dovi_p5_input.mp4',
-        outputFile,
-        width: 1920,
-        height: 1080,
-        hdr: false,
-        sourceIsHdr: true,
-        sourceHdrType: 'dovi_p5',
-      })
-
-      const filterIdx = executedArgs.indexOf('-filter_complex')
-      expect(filterIdx).toBeGreaterThan(-1)
-      const filterComplex = executedArgs[filterIdx + 1]
-      expect(filterComplex).toContain(
-        'setparams=color_primaries=bt2020:color_trc=smpte2084:colorspace=bt2020nc',
-      )
-      expect(filterComplex).toContain('zscale=tin=smpte2084')
-      expect(filterComplex).toContain('tonemap=tonemap=hable')
-      expect(filterComplex).not.toContain('libplacebo')
     })
 
     it('transcodeVideo transcodes Dolby Vision Profile 5 to HDR proxy without libplacebo', async () => {

@@ -2,7 +2,6 @@ import { createLazyFileRoute } from '@tanstack/react-router'
 import {
   VideoTranscodeStrategy,
   HardwareAcceleration,
-  HdrOutput,
   UpdateTeamSettingsRequest,
   TeamSettingsResponse,
 } from '@shumai/dtos'
@@ -312,16 +311,6 @@ function TeamSettingsPage() {
     })
   }
 
-  const handleHdrOutputChange = (value: HdrOutput) => {
-    updateSettings({
-      teamId,
-      data: {
-        key: 'transcode.hdrOutput',
-        value: value,
-      },
-    })
-  }
-
   const [localThreads, setLocalThreads] = useState<number | null>(null)
   const serverThreads = (settings as TeamSettingsResponse | undefined)?.transcode?.threads ?? 0
 
@@ -365,10 +354,6 @@ function TeamSettingsPage() {
     (settings as any)?.transcode?.hardwareAcceleration || HardwareAcceleration.off
 
   const currentThreads = localThreads ?? serverThreads
-
-  const currentHdrOutput: HdrOutput =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (settings as any)?.transcode?.hdrOutput || HdrOutput.both
 
   return (
     <div className="h-full bg-background font-sans selection:bg-primary/20 transition-colors duration-300">
@@ -880,62 +865,6 @@ function TeamSettingsPage() {
                             <span>{m.threads_auto()} (0)</span>
                             <span>16</span>
                             <span>32</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* HDR Output */}
-                      <div className="space-y-3 pt-6 border-t border-border">
-                        <div>
-                          <h3 className="text-lg font-medium">{m.hdr_output()}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {m.hdr_output_description()}
-                          </p>
-                        </div>
-                        <div className="space-y-3">
-                          <div
-                            className={cn(
-                              'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
-                              currentHdrOutput === HdrOutput.both
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border',
-                            )}
-                            onClick={() => handleHdrOutputChange(HdrOutput.both)}
-                          >
-                            <div className="font-semibold">{m.hdr_output_both()}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {m.hdr_output_both_description()}
-                            </div>
-                          </div>
-
-                          <div
-                            className={cn(
-                              'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
-                              currentHdrOutput === HdrOutput.sdr
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border',
-                            )}
-                            onClick={() => handleHdrOutputChange(HdrOutput.sdr)}
-                          >
-                            <div className="font-semibold">{m.hdr_output_sdr()}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {m.hdr_output_sdr_description()}
-                            </div>
-                          </div>
-
-                          <div
-                            className={cn(
-                              'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
-                              currentHdrOutput === HdrOutput.hdr
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border',
-                            )}
-                            onClick={() => handleHdrOutputChange(HdrOutput.hdr)}
-                          >
-                            <div className="font-semibold">{m.hdr_output_hdr()}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {m.hdr_output_hdr_description()}
-                            </div>
                           </div>
                         </div>
                       </div>

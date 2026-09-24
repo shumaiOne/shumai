@@ -335,13 +335,11 @@ export class UploadService {
       if (isVideo) {
         const strategy = settings?.transcode?.videoStrategy || 'best_match'
         const hardwareAcceleration = settings?.transcode?.hardwareAcceleration || 'off'
-        const hdrOutput = settings?.transcode?.hdrOutput || 'both'
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await new VideoTranscoder(tx as any, asset.id, team.id, projectId)
           .setStrategy(strategy)
           .setHardwareAcceleration(hardwareAcceleration)
           .setThreads(threads)
-          .setHdrOutput(hdrOutput)
           .withSprite()
           .withPoster()
           .submit()

@@ -371,7 +371,6 @@ describe('TeamService', () => {
         videoStrategy: 'best_match',
         hardwareAcceleration: 'off',
         threads: 0,
-        hdrOutput: 'both',
       },
       appearance: { hideAgent: false },
     })
@@ -386,7 +385,6 @@ describe('TeamService', () => {
         videoStrategy: 'best_match',
         hardwareAcceleration: 'off',
         threads: 0,
-        hdrOutput: 'both',
       },
       appearance: { hideAgent: false },
     })
@@ -394,7 +392,6 @@ describe('TeamService', () => {
     await teamService.updateSettings(team.id, 'transcode.videoStrategy', 'all')
     await teamService.updateSettings(team.id, 'transcode.hardwareAcceleration', 'auto')
     await teamService.updateSettings(team.id, 'transcode.threads', 4)
-    await teamService.updateSettings(team.id, 'transcode.hdrOutput', 'both')
     await teamService.updateSettings(team.id, 'appearance.hideAgent', true)
 
     const finalSettings = await teamService.getSettings(team.id)
@@ -404,7 +401,6 @@ describe('TeamService', () => {
         videoStrategy: 'all',
         hardwareAcceleration: 'auto',
         threads: 4,
-        hdrOutput: 'both',
       },
       appearance: { hideAgent: true },
       semanticSearchEnabled: false,

@@ -50,7 +50,6 @@ declare global {
     // ----------------------------------------------------------------------
     export type VideoTranscodeStrategy = 'best_match' | 'all'
     export type HardwareAcceleration = 'off' | 'auto'
-    export type HdrOutput = 'sdr' | 'hdr' | 'both'
     export type HdrType = 'pq' | 'hlg' | 'dovi_p5' | 'dovi_p8' | 'sdr'
 
     // ----------------------------------------------------------------------
@@ -62,7 +61,6 @@ declare global {
       videoStrategy: VideoTranscodeStrategy
       hardwareAcceleration?: HardwareAcceleration
       threads?: number
-      hdrOutput?: HdrOutput
     }
 
     export interface MediaProviderConfig {
@@ -327,7 +325,6 @@ declare global {
       videoStrategy?: VideoTranscodeStrategy
       hardwareAcceleration?: HardwareAcceleration
       threads?: number
-      hdrOutput?: HdrOutput
       thumbnail?: boolean
       sprite?: boolean
       poster?: boolean
