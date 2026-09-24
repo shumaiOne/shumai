@@ -16,13 +16,6 @@ import { dataFormatNames } from './dataFormatNames'
 
 const execFileAsync = promisify(execFile)
 
-if (process.platform === 'darwin') {
-  const brewIcd = '/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json'
-  if (!process.env.VK_ICD_FILENAMES && !process.env.VK_DRIVER_FILES && fs.existsSync(brewIcd)) {
-    process.env.VK_ICD_FILENAMES = brewIcd
-  }
-}
-
 export interface CjkFontConfig {
   fontPath: string
   fontName?: string
@@ -252,13 +245,6 @@ export function buildSdrToneMapFilterChain(options: {
   availableFilters?: Set<string>
   colorTransfer?: string
 }): string {
-  if (options.hdrType === 'dovi_p5') {
-    if (options.availableFilters && !options.availableFilters.has('libplacebo')) {
-      throw new Error('libplacebo filter is required for Dolby Vision Profile 5 processing')
-    }
-    return 'libplacebo=tonemapping=auto:colorspace=bt709:color_primaries=bt709:color_trc=bt709:format=yuv420p'
-  }
-
   if (options.availableFilters) {
     if (!options.availableFilters.has('zscale') || !options.availableFilters.has('tonemap')) {
       throw new Error('zscale and tonemap filters are required for HDR tone mapping')
@@ -270,15 +256,6 @@ export function buildSdrToneMapFilterChain(options: {
       ? 'arib-std-b67'
       : 'smpte2084'
   return `zscale=tin=${tin}:pin=bt2020:min=bt2020nc:t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0:peak=100,zscale=t=bt709:m=bt709:out_range=full,format=yuv420p`
-}
-
-export function buildDoviP5ToHdr10FilterChain(options?: {
-  availableFilters?: Set<string>
-}): string {
-  if (options?.availableFilters && !options.availableFilters.has('libplacebo')) {
-    throw new Error('libplacebo filter is required for Dolby Vision Profile 5 processing')
-  }
-  return 'libplacebo=tonemapping=auto:colorspace=bt2020nc:color_primaries=bt2020:color_trc=smpte2084:format=yuv420p'
 }
 
 export interface ExtractVideoFramesParams {
@@ -768,22 +745,11 @@ export class TranscodeService {
         filterComplex = `[0:v]${baseScale},${tonemap}`
       }
     } else if (isSourceHdr && isHdrOutput) {
-      if (params.sourceHdrType === 'dovi_p5') {
-        const availableFilters = await this.getAvailableFilters()
-        const p5ToHdr10 = buildDoviP5ToHdr10FilterChain({ availableFilters })
-        if (params.overlayFile) {
-          args.push('-i', params.overlayFile)
-          filterComplex = `[0:v]${baseScale},${p5ToHdr10}[vscaled];[vscaled][1:v]overlay=0:0`
-        } else {
-          filterComplex = `[0:v]${baseScale},${p5ToHdr10}`
-        }
+      if (params.overlayFile) {
+        args.push('-i', params.overlayFile)
+        filterComplex = `[0:v]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
       } else {
-        if (params.overlayFile) {
-          args.push('-i', params.overlayFile)
-          filterComplex = `[0:v]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
-        } else {
-          filterComplex = `[0:v]${baseScale}`
-        }
+        filterComplex = `[0:v]${baseScale}`
       }
     } else {
       if (params.overlayFile) {

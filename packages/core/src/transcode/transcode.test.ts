@@ -8,7 +8,6 @@ import {
   calculateMaxBitrate,
   H264_ENCODER_CONFIGS,
   buildSdrToneMapFilterChain,
-  buildDoviP5ToHdr10FilterChain,
 } from './transcode'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import * as path from 'path'
@@ -1851,40 +1850,23 @@ describe('TranscodeService', () => {
       ).toThrow(/zscale and tonemap filters are required for HDR tone mapping/)
     })
 
-    it('buildSdrToneMapFilterChain constructs libplacebo filter chain for Dolby Vision Profile 5', () => {
+    it('buildSdrToneMapFilterChain constructs zscale + tonemap filter chain for Dolby Vision Profile 5', () => {
       const chain = buildSdrToneMapFilterChain({
         hdrType: 'dovi_p5',
-        availableFilters: new Set(['libplacebo']),
+        availableFilters: new Set(['zscale', 'tonemap']),
       })
-      expect(chain).toContain(
-        'libplacebo=tonemapping=auto:colorspace=bt709:color_primaries=bt709:color_trc=bt709:format=yuv420p',
-      )
+      expect(chain).toContain('tin=smpte2084')
+      expect(chain).toContain('tonemap=tonemap=hable')
+      expect(chain).toContain('m=bt709')
     })
 
-    it('buildSdrToneMapFilterChain throws error if libplacebo is missing for Dolby Vision Profile 5', () => {
+    it('buildSdrToneMapFilterChain throws error if zscale or tonemap is missing for Dolby Vision Profile 5', () => {
       expect(() =>
         buildSdrToneMapFilterChain({
           hdrType: 'dovi_p5',
-          availableFilters: new Set(['zscale', 'tonemap']),
+          availableFilters: new Set(['tonemap']),
         }),
-      ).toThrow(/libplacebo filter is required for Dolby Vision Profile 5 processing/)
-    })
-
-    it('buildDoviP5ToHdr10FilterChain constructs libplacebo HDR10 conversion filter chain', () => {
-      const chain = buildDoviP5ToHdr10FilterChain({
-        availableFilters: new Set(['libplacebo']),
-      })
-      expect(chain).toBe(
-        'libplacebo=tonemapping=auto:colorspace=bt2020nc:color_primaries=bt2020:color_trc=smpte2084:format=yuv420p',
-      )
-    })
-
-    it('buildDoviP5ToHdr10FilterChain throws error if libplacebo is missing', () => {
-      expect(() =>
-        buildDoviP5ToHdr10FilterChain({
-          availableFilters: new Set(),
-        }),
-      ).toThrow(/libplacebo filter is required for Dolby Vision Profile 5 processing/)
+      ).toThrow(/zscale and tonemap filters are required for HDR tone mapping/)
     })
 
     const mockExecFileStdout = (mockOutput: string) => {
@@ -2224,6 +2206,98 @@ describe('TranscodeService', () => {
       expect(executedArgs).toContain('bt2020nc')
       expect(executedArgs).toContain('-x264-params')
       expect(executedArgs).toContain('colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc')
+    })
+
+    it('transcodeVideo tone-maps Dolby Vision Profile 5 to SDR using zscale + tonemap', async () => {
+      let executedArgs: string[] = []
+      ;(
+        child_process.execFile as unknown as {
+          mockImplementation: (
+            fn: (
+              file: string,
+              args: string[],
+              cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+            ) => unknown,
+          ) => void
+        }
+      ).mockImplementation((_file, args, cb) => {
+        if (args.includes('-filters')) {
+          cb(null, { stdout: ' ... zscale ... \n ... tonemap ... ', stderr: '' })
+          return {}
+        }
+        if (args.includes('-encoders')) {
+          cb(null, { stdout: ' V..... libx264 ', stderr: '' })
+          return {}
+        }
+        executedArgs = args
+        cb(null, { stdout: '', stderr: '' })
+        return {}
+      })
+
+      const outputFile = path.join(tempDir, 'dovi_p5_sdr.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'dovi_p5_input.mp4',
+        outputFile,
+        width: 1920,
+        height: 1080,
+        hdr: false,
+        sourceIsHdr: true,
+        sourceHdrType: 'dovi_p5',
+      })
+
+      const filterIdx = executedArgs.indexOf('-filter_complex')
+      expect(filterIdx).toBeGreaterThan(-1)
+      const filterComplex = executedArgs[filterIdx + 1]
+      expect(filterComplex).toContain('zscale=tin=smpte2084')
+      expect(filterComplex).toContain('tonemap=tonemap=hable')
+      expect(filterComplex).not.toContain('libplacebo')
+    })
+
+    it('transcodeVideo transcodes Dolby Vision Profile 5 to HDR proxy without libplacebo', async () => {
+      let executedArgs: string[] = []
+      ;(
+        child_process.execFile as unknown as {
+          mockImplementation: (
+            fn: (
+              file: string,
+              args: string[],
+              cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+            ) => unknown,
+          ) => void
+        }
+      ).mockImplementation((_file, args, cb) => {
+        if (args.includes('-filters')) {
+          cb(null, { stdout: ' ... zscale ... \n ... tonemap ... ', stderr: '' })
+          return {}
+        }
+        if (args.includes('-encoders')) {
+          cb(null, { stdout: ' V..... libx264 ', stderr: '' })
+          return {}
+        }
+        executedArgs = args
+        cb(null, { stdout: '', stderr: '' })
+        return {}
+      })
+
+      const outputFile = path.join(tempDir, 'dovi_p5_hdr.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'dovi_p5_input.mp4',
+        outputFile,
+        width: 1920,
+        height: 1080,
+        hdr: true,
+        sourceIsHdr: true,
+        sourceHdrType: 'dovi_p5',
+      })
+
+      const filterIdx = executedArgs.indexOf('-filter_complex')
+      expect(filterIdx).toBeGreaterThan(-1)
+      const filterComplex = executedArgs[filterIdx + 1]
+      expect(filterComplex).not.toContain('libplacebo')
+      expect(executedArgs).toContain('-color_primaries')
+      expect(executedArgs).toContain('bt2020')
+      expect(executedArgs).toContain('-color_trc')
+      expect(executedArgs).toContain('smpte2084')
     })
 
     it('generateSprite uses split=2 filterComplex for HDR inputs', async () => {

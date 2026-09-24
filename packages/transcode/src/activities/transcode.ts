@@ -369,7 +369,6 @@ export async function transcodeVideoActivity(
       lowerMsg.includes('spawn') ||
       lowerMsg.includes('format') ||
       lowerMsg.includes('no video stream found') ||
-      lowerMsg.includes('libplacebo') ||
       lowerMsg.includes('zscale') ||
       lowerMsg.includes('tonemap')
     ) {
@@ -642,7 +641,6 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
       lowerMsg.includes('ffprobe') ||
       lowerMsg.includes('spawn') ||
       lowerMsg.includes('format') ||
-      lowerMsg.includes('libplacebo') ||
       lowerMsg.includes('zscale') ||
       lowerMsg.includes('tonemap')
     ) {
@@ -993,7 +991,6 @@ export async function extractPosterActivity(
       lowerMsg.includes('nosuchkey') ||
       lowerMsg.includes('ffmpeg') ||
       lowerMsg.includes('sharp') ||
-      lowerMsg.includes('libplacebo') ||
       lowerMsg.includes('zscale') ||
       lowerMsg.includes('tonemap')
     ) {

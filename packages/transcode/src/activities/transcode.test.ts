@@ -75,7 +75,7 @@ vi.mock('@shumai/core/src/transcode/transcode', async (importOriginal) => {
       takeScreenshots: vi.fn(),
       overlayAnnotations: vi.fn(),
       renderPdfPages: vi.fn(),
-      getAvailableFilters: vi.fn().mockResolvedValue(new Set(['zscale', 'tonemap', 'libplacebo'])),
+      getAvailableFilters: vi.fn().mockResolvedValue(new Set(['zscale', 'tonemap'])),
     },
   }
 })
