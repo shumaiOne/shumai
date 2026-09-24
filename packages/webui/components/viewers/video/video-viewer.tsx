@@ -1,6 +1,6 @@
 import { client } from '@/ui/api/client'
 import { cn } from '@/ui/lib/utils'
-import { AudioLines } from 'lucide-react'
+import { Play, AudioLines } from 'lucide-react'
 import React, { useCallback, useEffect, useRef, useState, useImperativeHandle } from 'react'
 import videojs from 'video.js'
 import type Player from 'video.js/dist/types/player'
@@ -108,6 +108,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       currentSrc: initialRes?.url ?? '',
       isCurrentHdr: initialRes?.hdr ?? false,
     })
+    const [hasStartedPlaying, setHasStartedPlaying] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
     const rootRef = useRef<HTMLDivElement>(null)
     const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -124,6 +125,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
         }
       },
       seekTo: (second: number) => {
+        setHasStartedPlaying(true)
         if (localPlayerRef.current) {
           localPlayerRef.current.currentTime(second)
         }
@@ -160,6 +162,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       setIsPlayerReady(false)
       setBuffered(0)
       lastProcessedStartTimeRef.current = null
+      setHasStartedPlaying(false)
     }, [data.id, Boolean(initialRes?.url)])
 
     const vidW = data.media?.metadata?.originalWidth || 1920
@@ -260,6 +263,14 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const isAudio = data.proxyType === 'audio'
     const totalFrames = resolveTotalFrames({ dbTotalFrames, containerDuration, frameRate })
     const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames, isAudio)
+
+    const handleSeekToFrame = useCallback(
+      (frame: number) => {
+        setHasStartedPlaying(true)
+        return seekToFrame(frame)
+      },
+      [seekToFrame],
+    )
 
     const currentTime = currentFrame / frameRate
     const duration = totalFrames / frameRate
@@ -362,6 +373,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
 
       player.on('play', () => {
         setState((p) => ({ ...p, isPlaying: true }))
+        setHasStartedPlaying(true)
         onPlay?.()
       })
       player.on('pause', () => {
@@ -427,6 +439,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
         if (startTime !== lastProcessedStartTimeRef.current) {
           lastProcessedStartTimeRef.current = startTime
           const targetFrame = Math.floor(startTime * frameRate + 0.45)
+          setHasStartedPlaying(true)
           seekToFrame(targetFrame)
         }
       }
@@ -833,6 +846,15 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
                 />
               )
             )}
+
+            {/* Initial Big Play Button Overlay (shown only before playback starts) */}
+            {!hasStartedPlaying && !isDrawing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10 transition-opacity duration-200">
+                <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/30">
+                  <Play className="w-10 h-10 text-white ml-1 fill-white" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -857,7 +879,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
             frameRate={frameRate}
             totalFrames={totalFrames}
             currentFrame={currentFrame}
-            seekToFrame={seekToFrame}
+            seekToFrame={handleSeekToFrame}
             onMouseEnter={handleControlsMouseEnter}
             onMouseLeave={handleControlsMouseLeave}
             allowDownload={allowDownload}
@@ -883,7 +905,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
             frameRate={frameRate}
             totalFrames={totalFrames}
             currentFrame={currentFrame}
-            seekToFrame={seekToFrame}
+            seekToFrame={handleSeekToFrame}
             onMouseEnter={handleControlsMouseEnter}
             onMouseLeave={handleControlsMouseLeave}
             allowDownload={allowDownload}

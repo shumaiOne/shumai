@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- **webui**: Remove the darkened cover overlay and center play button when pausing video, ensuring an unobstructed and color-accurate view of the paused frame during review
+- **webui**: Only show the center play button and darkened tint on initial video open before playback starts; once played, pausing or scrubbing back to start keeps the video canvas clean and unobstructed for review
 - **transcode**: Fix an issue where videos with orientation or rotation metadata (such as smartphone vertical videos) were incorrectly displayed with stretched aspect ratios in the video player
 - **docker**: Fix an issue where the bundled PostgreSQL container published port 5432 on the host, causing deployment to fail on machines where that port was already in use; the database is now only reachable by Shumai itself
 - **cli**: Only manage and check PID files in daemon mode, preventing stale PID files, crash-loop conflicts, or spurious process checks during normal foreground and Docker execution
