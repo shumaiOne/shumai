@@ -1168,6 +1168,10 @@ export class TranscodeService {
       }
 
       // 3. Composite 100 tiles into 10x10 sprite sheet with Sharp
+      if (signal?.aborted) {
+        throw new Error('Sprite generation cancelled')
+      }
+
       const firstMeta = await sharp(frameFiles[0]).metadata()
       const frameW = firstMeta.width || 300
       const frameH = firstMeta.height || 168
@@ -1178,7 +1182,7 @@ export class TranscodeService {
         top: Math.floor(i / tileX) * frameH,
       }))
 
-      await sharp({
+      const toFilePromise = sharp({
         create: {
           width: frameW * tileX,
           height: frameH * tileY,
@@ -1189,6 +1193,29 @@ export class TranscodeService {
         .composite(composites)
         .webp({ quality: 75 })
         .toFile(outputSprite)
+
+      if (signal) {
+        await Promise.race([
+          toFilePromise,
+          new Promise<never>((_, reject) => {
+            if (signal.aborted) {
+              reject(new Error('Sprite generation cancelled'))
+              return
+            }
+            signal.addEventListener(
+              'abort',
+              () => reject(new Error('Sprite generation cancelled')),
+              { once: true },
+            )
+          }),
+        ])
+      } else {
+        await toFilePromise
+      }
+
+      if (signal?.aborted) {
+        throw new Error('Sprite generation cancelled')
+      }
     } finally {
       this.removeDir(tmpDir)
     }

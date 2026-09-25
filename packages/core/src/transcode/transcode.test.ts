@@ -2407,5 +2407,64 @@ describe('TranscodeService', () => {
         transcodeService.generateSprite(inputPath, spritePath, posterPath, 60, controller.signal),
       ).rejects.toThrow('Sprite generation cancelled')
     })
+
+    it('generateSprite rejects with cancellation error if aborted while Sharp toFile is pending', async () => {
+      const dummyWebp = await sharp({
+        create: { width: 300, height: 168, channels: 3, background: { r: 10, g: 20, b: 30 } },
+      })
+        .webp()
+        .toBuffer()
+
+      const controller = new AbortController()
+
+      ;(
+        child_process.execFile as unknown as {
+          mockImplementation: (
+            fn: (
+              file: string,
+              args: string[],
+              optOrCb: unknown,
+              maybeCb?: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+            ) => unknown,
+          ) => void
+        }
+      ).mockImplementation((_file, args, optOrCb, maybeCb) => {
+        const cb = (typeof optOrCb === 'function' ? optOrCb : maybeCb) as (
+          err: Error | null,
+          res: { stdout: string; stderr: string },
+        ) => void
+        const outPath = args[args.length - 1]
+        if (outPath && outPath.endsWith('.webp')) {
+          fs.writeFileSync(outPath, dummyWebp)
+        }
+        cb(null, { stdout: '', stderr: '' })
+        return {}
+      })
+
+      // Hook into Sharp toFile: trigger abort while toFile is pending
+      const mockSharpInstance = vi.mocked(sharp())
+      mockSharpInstance.toFile.mockImplementationOnce(async (filePath: string) => {
+        controller.abort()
+        fs.writeFileSync(filePath, 'fake-webp-data')
+        return {
+          format: 'webp',
+          size: 14,
+          width: 3000,
+          height: 1680,
+          channels: 4,
+          premultiplied: false,
+          hasAlpha: false,
+        }
+      })
+
+      const inputPath = path.join(tempDir, 'cancel_during_sharp.mp4')
+      fs.writeFileSync(inputPath, 'dummy video')
+      const spritePath = path.join(tempDir, 'sprite_cancel.webp')
+      const posterPath = path.join(tempDir, 'poster_cancel.webp')
+
+      await expect(
+        transcodeService.generateSprite(inputPath, spritePath, posterPath, 60, controller.signal),
+      ).rejects.toThrow('Sprite generation cancelled')
+    })
   })
 })
