@@ -2222,8 +2222,8 @@ describe('TranscodeService', () => {
       expect(executedArgs).toContain('smpte2084')
     })
 
-    it('generateSprite uses split=2 filterComplex for small and short HDR inputs (single-pass)', async () => {
-      let executedArgs: string[] = []
+    it('generateSprite extracts smart poster and generates sprite grid for small and short HDR inputs (single-pass)', async () => {
+      const executedCommands: string[][] = []
       ;(
         child_process.execFile as unknown as {
           mockImplementation: (
@@ -2239,7 +2239,7 @@ describe('TranscodeService', () => {
           cb(null, { stdout: ' ... zscale ... \n ... tonemap ... ', stderr: '' })
           return {}
         }
-        executedArgs = args
+        executedCommands.push(args)
         cb(null, { stdout: '', stderr: '' })
         return {}
       })
@@ -2254,16 +2254,29 @@ describe('TranscodeService', () => {
         colorTransfer: 'smpte2084',
       })
 
-      const filterIdx = executedArgs.indexOf('-filter_complex')
+      // Poster command
+      const posterCmd = executedCommands.find((cmd) => cmd[cmd.length - 1] === posterPath)
+      expect(posterCmd).toBeDefined()
+      expect(posterCmd).toContain('-skip_frame')
+      expect(posterCmd).toContain('nointra')
+      const posterVf = posterCmd![posterCmd!.indexOf('-vf') + 1]
+      expect(posterVf).toContain('thumbnail=12')
+      expect(posterVf).toContain('reverse')
+      expect(posterVf).toContain('scale=-2:300')
+
+      // Sprite command
+      const spriteCmd = executedCommands.find((cmd) => cmd[cmd.length - 1] === spritePath)
+      expect(spriteCmd).toBeDefined()
+      const filterIdx = spriteCmd!.indexOf('-filter_complex')
       expect(filterIdx).toBeGreaterThan(-1)
-      const filterStr = executedArgs[filterIdx + 1]
-      expect(filterStr).toContain('split=2[v_sprite][v_thumb]')
-      expect(filterStr).toContain('[v_sprite]fps=')
-      expect(filterStr).toContain('[v_thumb]scale=')
+      const filterStr = spriteCmd![filterIdx + 1]
+      expect(filterStr).toContain('fps=')
+      expect(filterStr).toContain('scale=w=300:h=-2')
+      expect(filterStr).toContain('tile=10x10[sprite_out]')
     })
 
-    it('generateSprite uses split=2 filterComplex for small and short SDR inputs (single-pass)', async () => {
-      let executedArgs: string[] = []
+    it('generateSprite extracts smart poster and generates sprite grid for small and short SDR inputs (single-pass)', async () => {
+      const executedCommands: string[][] = []
       ;(
         child_process.execFile as unknown as {
           mockImplementation: (
@@ -2275,7 +2288,7 @@ describe('TranscodeService', () => {
           ) => void
         }
       ).mockImplementation((_file, args, cb) => {
-        executedArgs = args
+        executedCommands.push(args)
         cb(null, { stdout: '', stderr: '' })
         return {}
       })
@@ -2286,12 +2299,23 @@ describe('TranscodeService', () => {
       const posterPath = path.join(tempDir, 'poster.webp')
       await transcodeService.generateSprite(inputPath, spritePath, posterPath, 20)
 
-      const filterIdx = executedArgs.indexOf('-filter_complex')
+      // Poster command
+      const posterCmd = executedCommands.find((cmd) => cmd[cmd.length - 1] === posterPath)
+      expect(posterCmd).toBeDefined()
+      expect(posterCmd).toContain('-skip_frame')
+      expect(posterCmd).toContain('nointra')
+      const posterVf = posterCmd![posterCmd!.indexOf('-vf') + 1]
+      expect(posterVf).toContain('thumbnail=12')
+      expect(posterVf).toContain('reverse')
+
+      // Sprite command
+      const spriteCmd = executedCommands.find((cmd) => cmd[cmd.length - 1] === spritePath)
+      expect(spriteCmd).toBeDefined()
+      const filterIdx = spriteCmd!.indexOf('-filter_complex')
       expect(filterIdx).toBeGreaterThan(-1)
-      const filterStr = executedArgs[filterIdx + 1]
-      expect(filterStr).toContain('[0:v]split=2[v_sprite][v_thumb]')
-      expect(filterStr).toContain('[v_sprite]fps=')
-      expect(filterStr).toContain('[v_thumb]scale=')
+      const filterStr = spriteCmd![filterIdx + 1]
+      expect(filterStr).toContain('[0:v]fps=')
+      expect(filterStr).toContain('scale=w=300:h=-2,tile=10x10[sprite_out]')
     })
 
     it('generateSprite uses seek-pool for long inputs (>30s) and generates sprite and poster', async () => {
@@ -2337,11 +2361,15 @@ describe('TranscodeService', () => {
         colorTransfer: 'smpte2084',
       })
 
-      // Poster was extracted at t=0
+      // Poster was extracted with smart poster filter
       const posterCmd = executedCommands.find((cmd) => cmd[cmd.length - 1] === posterPath)
       expect(posterCmd).toBeDefined()
-      expect(posterCmd).toContain('-ss')
-      expect(posterCmd).toContain('0')
+      expect(posterCmd).toContain('-skip_frame')
+      expect(posterCmd).toContain('nointra')
+      const posterVf = posterCmd![posterCmd!.indexOf('-vf') + 1]
+      expect(posterVf).toContain('thumbnail=12')
+      expect(posterVf).toContain('reverse')
+      expect(posterVf).toContain('scale=-2:300')
       expect(fs.existsSync(posterPath)).toBe(true)
 
       // 100 seek calls were performed for frames
@@ -2465,6 +2493,158 @@ describe('TranscodeService', () => {
       await expect(
         transcodeService.generateSprite(inputPath, spritePath, posterPath, 60, controller.signal),
       ).rejects.toThrow('Sprite generation cancelled')
+    })
+  })
+
+  describe('generatePoster', () => {
+    it('generates poster with fast intra skipping and intelligent filter graph', async () => {
+      let executedArgs: string[] = []
+      ;(
+        child_process.execFile as unknown as {
+          mockImplementation: (
+            fn: (
+              file: string,
+              args: string[],
+              cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+            ) => unknown,
+          ) => void
+        }
+      ).mockImplementation((_file, args, cb) => {
+        executedArgs = args
+        cb(null, { stdout: '', stderr: '' })
+        return {}
+      })
+
+      const inputPath = path.join(tempDir, 'sample.mp4')
+      const outputPath = path.join(tempDir, 'poster.webp')
+      await transcodeService.generatePoster(inputPath, outputPath)
+
+      expect(executedArgs).toContain('-skip_frame')
+      expect(executedArgs).toContain('nointra')
+      expect(executedArgs).toContain('-frames:v')
+      expect(executedArgs).toContain('1')
+      expect(executedArgs).toContain('-update')
+      expect(executedArgs).toContain('1')
+      expect(executedArgs).toContain('-c:v')
+      expect(executedArgs).toContain('libwebp')
+
+      const vfIndex = executedArgs.indexOf('-vf')
+      expect(vfIndex).toBeGreaterThan(-1)
+      const vf = executedArgs[vfIndex + 1]
+      expect(vf).toContain('fps=12:start_time=0:eof_action=pass:round=down')
+      expect(vf).toContain('thumbnail=12')
+      expect(vf).toContain(
+        'select=gt(scene\\,0.1)-eq(prev_selected_n\\,n)+isnan(prev_selected_n)+gt(n\\,20)',
+      )
+      expect(vf).toContain('trim=end_frame=2')
+      expect(vf).toContain('reverse')
+      expect(vf).toContain('scale=-2:300:force_original_aspect_ratio=decrease')
+    })
+
+    it('omits -skip_frame nointra for MPEG-TS files (.ts / .m2ts / .mts)', async () => {
+      let executedArgs: string[] = []
+      ;(
+        child_process.execFile as unknown as {
+          mockImplementation: (
+            fn: (
+              file: string,
+              args: string[],
+              cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+            ) => unknown,
+          ) => void
+        }
+      ).mockImplementation((_file, args, cb) => {
+        executedArgs = args
+        cb(null, { stdout: '', stderr: '' })
+        return {}
+      })
+
+      const inputPath = path.join(tempDir, 'stream.m2ts')
+      const outputPath = path.join(tempDir, 'poster.webp')
+      await transcodeService.generatePoster(inputPath, outputPath)
+
+      expect(executedArgs).not.toContain('-skip_frame')
+      expect(executedArgs).not.toContain('nointra')
+      expect(executedArgs).toContain('-i')
+      expect(executedArgs).toContain(inputPath)
+    })
+
+    it('adds reconnect options for remote input sources', async () => {
+      let executedArgs: string[] = []
+      ;(
+        child_process.execFile as unknown as {
+          mockImplementation: (
+            fn: (
+              file: string,
+              args: string[],
+              cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+            ) => unknown,
+          ) => void
+        }
+      ).mockImplementation((_file, args, cb) => {
+        executedArgs = args
+        cb(null, { stdout: '', stderr: '' })
+        return {}
+      })
+
+      const inputUrl = 'https://example.com/video.mp4'
+      const outputPath = path.join(tempDir, 'poster.webp')
+      await transcodeService.generatePoster(inputUrl, outputPath)
+
+      expect(executedArgs).toContain('-reconnect')
+      expect(executedArgs).toContain('1')
+      expect(executedArgs).toContain('-reconnect_streamed')
+      expect(executedArgs).toContain('-reconnect_delay_max')
+    })
+
+    it('applies HDR tone mapping filter when isHdr is true', async () => {
+      let executedArgs: string[] = []
+      ;(
+        child_process.execFile as unknown as {
+          mockImplementation: (
+            fn: (
+              file: string,
+              args: string[],
+              cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+            ) => unknown,
+          ) => void
+        }
+      ).mockImplementation((_file, args, cb) => {
+        if (args.includes('-filters')) {
+          cb(null, { stdout: ' ... zscale ... \n ... tonemap ... ', stderr: '' })
+          return {}
+        }
+        executedArgs = args
+        cb(null, { stdout: '', stderr: '' })
+        return {}
+      })
+
+      const inputPath = path.join(tempDir, 'hdr.mp4')
+      const outputPath = path.join(tempDir, 'poster.webp')
+      await transcodeService.generatePoster(inputPath, outputPath, {
+        isHdr: true,
+        hdrType: 'pq',
+        colorTransfer: 'smpte2084',
+      })
+
+      const vfIndex = executedArgs.indexOf('-vf')
+      expect(vfIndex).toBeGreaterThan(-1)
+      const vf = executedArgs[vfIndex + 1]
+      expect(vf).toContain('zscale=tin=smpte2084')
+      expect(vf).toContain('tonemap=tonemap=hable')
+      expect(vf).toContain('scale=-2:300')
+    })
+
+    it('rejects with cancellation error if aborted before or during execution', async () => {
+      const controller = new AbortController()
+      controller.abort()
+
+      const inputPath = path.join(tempDir, 'aborted.mp4')
+      const outputPath = path.join(tempDir, 'poster.webp')
+
+      await expect(
+        transcodeService.generatePoster(inputPath, outputPath, { signal: controller.signal }),
+      ).rejects.toThrow('Poster generation cancelled')
     })
   })
 })

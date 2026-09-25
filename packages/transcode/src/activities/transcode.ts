@@ -1,10 +1,6 @@
 import { AssetStatus, prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import {
-  transcodeService,
-  buildSdrToneMapFilterChain,
-  type HdrType,
-} from '@shumai/core/src/transcode/transcode'
+import { transcodeService, type HdrType } from '@shumai/core/src/transcode/transcode'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { getDerivedArtifactDirectory, stemFromKey } from '@shumai/core/src/utils/filename'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
@@ -924,38 +920,12 @@ export async function extractPosterActivity(
 
   try {
     const inputSource = await s3Service.resolveInput(bucket, params.assetKey)
-    const isRemote = inputSource.startsWith('http://') || inputSource.startsWith('https://')
-
-    let vf = 'scale=-2:300:force_original_aspect_ratio=decrease'
-    if (params.isHdr) {
-      const availableFilters = await transcodeService.getAvailableFilters()
-      const tonemap = buildSdrToneMapFilterChain({
-        hdrType: params.hdrType,
-        colorTransfer: params.colorTransfer,
-        availableFilters,
-      })
-      vf = `${tonemap},scale=-2:300:force_original_aspect_ratio=decrease`
-    }
-
-    const args = [
-      ...(isRemote
-        ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
-        : []),
-      '-ss',
-      '0',
-      '-i',
-      inputSource,
-      '-vframes',
-      '1',
-      '-vf',
-      vf,
-      '-c:v',
-      'libwebp',
-      '-q:v',
-      '75',
-      posterFile,
-    ]
-    await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], { signal })
+    await transcodeService.generatePoster(inputSource, posterFile, {
+      isHdr: params.isHdr,
+      hdrType: params.hdrType,
+      colorTransfer: params.colorTransfer,
+      signal,
+    })
 
     const posterBuffer = fs.readFileSync(posterFile)
     await ensureAssetNotPurging(params.assetKey)

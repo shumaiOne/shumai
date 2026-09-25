@@ -63,6 +63,7 @@ vi.mock('@shumai/core/src/transcode/transcode', async (importOriginal) => {
       transcodeAudio: vi.fn(),
       transcodeImage: vi.fn(),
       generateSprite: vi.fn(),
+      generatePoster: vi.fn(),
       generatePdfSprite: vi.fn().mockResolvedValue({
         pageCount: 10,
         originalWidth: 800,
@@ -1127,22 +1128,12 @@ describe('Transcode Activities', () => {
       expect(child_process.execFile).not.toHaveBeenCalled()
     })
 
-    it('should extract poster upfront at t=0 and upload to S3', async () => {
+    it('should extract poster upfront and upload to S3', async () => {
       vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
       vi.mocked(s3Service.resolveInput).mockResolvedValue('https://mock-r2.com/video.mp4')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(child_process.execFile as any).mockImplementation(
-        (file: string, args: string[], optionsOrCb: unknown, maybeCb?: unknown) => {
-          const cb = typeof optionsOrCb === 'function' ? optionsOrCb : maybeCb
-          if (file === 'ffmpeg') {
-            const outPath = args[args.length - 1]
-            fs.writeFileSync(outPath, 'fake-poster-bytes')
-          }
-          if (typeof cb === 'function') {
-            cb(null, { stdout: '', stderr: '' })
-          }
-        },
-      )
+      vi.mocked(transcodeService.generatePoster).mockImplementation(async (_in, posterOut) => {
+        fs.writeFileSync(posterOut, Buffer.from('fake-poster-bytes'))
+      })
 
       const res = await extractPosterActivity({
         assetKey: 'video.mp4',
@@ -1151,20 +1142,15 @@ describe('Transcode Activities', () => {
 
       expect(res.poster.key).toBe('files/asset-1/poster.webp')
       expect(s3Service.resolveInput).toHaveBeenCalledWith('shumai', 'video.mp4')
-      expect(child_process.execFile).toHaveBeenCalledWith(
-        'ffmpeg',
-        expect.arrayContaining([
-          '-ss',
-          '0',
-          '-i',
-          'https://mock-r2.com/video.mp4',
-          '-vframes',
-          '1',
-          '-c:v',
-          'libwebp',
-        ]),
-        expect.objectContaining({ signal: undefined }),
-        expect.any(Function),
+      expect(transcodeService.generatePoster).toHaveBeenCalledWith(
+        'https://mock-r2.com/video.mp4',
+        expect.stringContaining('poster.webp'),
+        {
+          isHdr: undefined,
+          hdrType: undefined,
+          colorTransfer: undefined,
+          signal: undefined,
+        },
       )
       expect(s3Service.putObject).toHaveBeenCalledWith(
         'shumai',
@@ -1178,21 +1164,9 @@ describe('Transcode Activities', () => {
     it('extractPosterActivity applies tone mapping filter when isHdr is true', async () => {
       vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
       vi.mocked(s3Service.resolveInput).mockResolvedValue('https://mock-r2.com/video.mp4')
-      let ffmpegArgs: string[] = []
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(child_process.execFile as any).mockImplementation(
-        (file: string, args: string[], optionsOrCb: unknown, maybeCb?: unknown) => {
-          const cb = typeof optionsOrCb === 'function' ? optionsOrCb : maybeCb
-          if (file === 'ffmpeg') {
-            ffmpegArgs = args
-            const outPath = args[args.length - 1]
-            fs.writeFileSync(outPath, 'fake-poster-bytes')
-          }
-          if (typeof cb === 'function') {
-            cb(null, { stdout: '', stderr: '' })
-          }
-        },
-      )
+      vi.mocked(transcodeService.generatePoster).mockImplementation(async (_in, posterOut) => {
+        fs.writeFileSync(posterOut, Buffer.from('fake-poster-bytes'))
+      })
 
       await extractPosterActivity({
         assetKey: 'video.mp4',
@@ -1202,12 +1176,16 @@ describe('Transcode Activities', () => {
         colorTransfer: 'smpte2084',
       })
 
-      const vfIndex = ffmpegArgs.indexOf('-vf')
-      expect(vfIndex).toBeGreaterThan(-1)
-      const vfArg = ffmpegArgs[vfIndex + 1]
-      expect(vfArg).toContain('zscale=tin=smpte2084')
-      expect(vfArg).toContain('tonemap=tonemap=hable')
-      expect(vfArg).toContain('scale=-2:300')
+      expect(transcodeService.generatePoster).toHaveBeenCalledWith(
+        'https://mock-r2.com/video.mp4',
+        expect.stringContaining('poster.webp'),
+        {
+          isHdr: true,
+          hdrType: 'pq',
+          colorTransfer: 'smpte2084',
+          signal: undefined,
+        },
+      )
     })
 
     it('should throw non-retryable ApplicationFailure when poster extraction is cancelled with aborted signal', async () => {
@@ -1232,19 +1210,10 @@ describe('Transcode Activities', () => {
       vi.mocked(s3Service.resolveInput).mockResolvedValue('https://mock-r2.com/video.mp4')
       const controller = new AbortController()
 
+      const abortErr = new Error('The operation was aborted')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(child_process.execFile as any).mockImplementation(
-        (_file: string, _args: string[], optionsOrCb: unknown, maybeCb?: unknown) => {
-          const cb = typeof optionsOrCb === 'function' ? optionsOrCb : maybeCb
-          controller.abort()
-          const abortErr = new Error('The operation was aborted')
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ;(abortErr as any).code = 'ABORT_ERR'
-          if (typeof cb === 'function') {
-            cb(abortErr, { stdout: '', stderr: '' })
-          }
-        },
-      )
+      ;(abortErr as any).code = 'ABORT_ERR'
+      vi.mocked(transcodeService.generatePoster).mockRejectedValue(abortErr)
 
       await expect(
         extractPosterActivity({
@@ -1273,19 +1242,9 @@ describe('Transcode Activities', () => {
         },
       })
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(child_process.execFile as any).mockImplementation(
-        (file: string, args: string[], optionsOrCb: unknown, maybeCb?: unknown) => {
-          const cb = typeof optionsOrCb === 'function' ? optionsOrCb : maybeCb
-          if (file === 'ffmpeg') {
-            const outPath = args[args.length - 1]
-            fs.writeFileSync(outPath, 'fake-poster-bytes')
-          }
-          if (typeof cb === 'function') {
-            cb(null, { stdout: '', stderr: '' })
-          }
-        },
-      )
+      vi.mocked(transcodeService.generatePoster).mockImplementation(async (_in, posterOut) => {
+        fs.writeFileSync(posterOut, Buffer.from('fake-poster-bytes'))
+      })
 
       await expect(
         extractPosterActivity({

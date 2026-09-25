@@ -89,6 +89,13 @@ export function parseCsvContent(content: string): string[][] {
 
 export type HdrType = 'pq' | 'hlg' | 'dovi_p5' | 'dovi_p8' | 'sdr'
 
+export interface GeneratePosterOptions {
+  isHdr?: boolean
+  hdrType?: HdrType
+  colorTransfer?: string
+  signal?: AbortSignal
+}
+
 export interface MediaMetadata {
   originalWidth: number
   originalHeight: number
@@ -950,6 +957,70 @@ export class TranscodeService {
     await sharpInstance.webp({ quality }).toFile(outputFile)
   }
 
+  async generatePoster(
+    inputFile: string,
+    outputPoster: string,
+    options: GeneratePosterOptions = {},
+  ): Promise<void> {
+    const { isHdr, hdrType, colorTransfer, signal } = options
+    if (signal?.aborted) {
+      throw new Error('Poster generation cancelled')
+    }
+
+    const lowerInput = inputFile.toLowerCase()
+    const isMpegTs =
+      lowerInput.endsWith('.ts') || lowerInput.endsWith('.m2ts') || lowerInput.endsWith('.mts')
+    const isRemote = inputFile.startsWith('http://') || inputFile.startsWith('https://')
+
+    const filters: string[] = [
+      'fps=12:start_time=0:eof_action=pass:round=down',
+      'thumbnail=12',
+      String.raw`select=gt(scene\,0.1)-eq(prev_selected_n\,n)+isnan(prev_selected_n)+gt(n\,20)`,
+      'trim=end_frame=2',
+      'reverse',
+    ]
+
+    if (isHdr) {
+      const availableFilters = await this.getAvailableFilters()
+      const tonemap = buildSdrToneMapFilterChain({
+        hdrType,
+        colorTransfer,
+        availableFilters,
+      })
+      filters.push(tonemap)
+    }
+
+    filters.push('scale=-2:300:force_original_aspect_ratio=decrease')
+
+    const args = [
+      ...(isRemote
+        ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
+        : []),
+      ...(isMpegTs ? [] : ['-skip_frame', 'nointra']),
+      '-i',
+      inputFile,
+      '-vf',
+      filters.join(','),
+      '-fps_mode',
+      'vfr',
+      '-frames:v',
+      '1',
+      '-update',
+      '1',
+      '-c:v',
+      'libwebp',
+      '-q:v',
+      '75',
+      outputPoster,
+    ]
+
+    if (signal) {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], { signal })
+    } else {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    }
+  }
+
   async generateSprite(
     inputFile: string,
     outputSprite: string,
@@ -958,6 +1029,14 @@ export class TranscodeService {
     signal?: AbortSignal,
     hdrOptions?: { isHdr?: boolean; hdrType?: HdrType; colorTransfer?: string },
   ): Promise<void> {
+    if (signal?.aborted) {
+      throw new Error('Sprite generation cancelled')
+    }
+
+    // 1. Generate poster first (fast, smart frame selection)
+    await this.generatePoster(inputFile, outputPoster, { ...hdrOptions, signal })
+
+    // 2. Generate sprite
     let fileSize = Infinity
     try {
       const stats = await fs.promises.stat(inputFile)
@@ -968,30 +1047,15 @@ export class TranscodeService {
 
     const isSmallAndShort = fileSize <= 50 * 1024 * 1024 && duration <= 30
     if (isSmallAndShort) {
-      await this.generateSpriteSinglePass(
-        inputFile,
-        outputSprite,
-        outputPoster,
-        duration,
-        signal,
-        hdrOptions,
-      )
+      await this.generateSpriteSinglePass(inputFile, outputSprite, duration, signal, hdrOptions)
     } else {
-      await this.generateSpriteSeekPool(
-        inputFile,
-        outputSprite,
-        outputPoster,
-        duration,
-        signal,
-        hdrOptions,
-      )
+      await this.generateSpriteSeekPool(inputFile, outputSprite, duration, signal, hdrOptions)
     }
   }
 
   private async generateSpriteSinglePass(
     inputFile: string,
     outputSprite: string,
-    outputPoster: string,
     duration: number,
     signal?: AbortSignal,
     hdrOptions?: { isHdr?: boolean; hdrType?: HdrType; colorTransfer?: string },
@@ -1006,9 +1070,9 @@ export class TranscodeService {
         colorTransfer: hdrOptions.colorTransfer,
         availableFilters,
       })
-      filterComplex = `[0:v]${tonemap},split=2[v_sprite][v_thumb];[v_sprite]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out];[v_thumb]scale=-2:300:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
+      filterComplex = `[0:v]${tonemap},fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out]`
     } else {
-      filterComplex = `[0:v]split=2[v_sprite][v_thumb];[v_sprite]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out];[v_thumb]scale=-2:300:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
+      filterComplex = `[0:v]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out]`
     }
 
     const args = [
@@ -1025,17 +1089,6 @@ export class TranscodeService {
       '-q:v',
       '75',
       outputSprite,
-      '-map',
-      '[thumb_out]',
-      '-c:v',
-      'libwebp',
-      '-q:v',
-      '75',
-      '-frames:v',
-      '1',
-      '-max_muxing_queue_size',
-      '1024',
-      outputPoster,
     ]
     if (signal) {
       await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], { signal })
@@ -1047,7 +1100,6 @@ export class TranscodeService {
   private async generateSpriteSeekPool(
     inputFile: string,
     outputSprite: string,
-    outputPoster: string,
     duration: number,
     signal?: AbortSignal,
     hdrOptions?: { isHdr?: boolean; hdrType?: HdrType; colorTransfer?: string },
@@ -1056,8 +1108,6 @@ export class TranscodeService {
       throw new Error('Sprite generation cancelled')
     }
 
-    // 1. Generate poster at t=0 matching the existing poster filter dimensions
-    let vfPoster = 'scale=-2:300:force_original_aspect_ratio=decrease'
     let tonemapFilterChain = ''
     if (hdrOptions?.isHdr) {
       const availableFilters = await this.getAvailableFilters()
@@ -1066,31 +1116,9 @@ export class TranscodeService {
         colorTransfer: hdrOptions.colorTransfer,
         availableFilters,
       })
-      vfPoster = `${tonemapFilterChain},scale=-2:300:force_original_aspect_ratio=decrease`
     }
 
-    const posterArgs = [
-      '-ss',
-      '0',
-      '-i',
-      inputFile,
-      '-vframes',
-      '1',
-      '-vf',
-      vfPoster,
-      '-c:v',
-      'libwebp',
-      '-q:v',
-      '75',
-      outputPoster,
-    ]
-    if (signal) {
-      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...posterArgs], { signal })
-    } else {
-      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...posterArgs])
-    }
-
-    // 2. Extract 100 frames across duration using 4-worker concurrency pool
+    // Extract 100 frames across duration using 4-worker concurrency pool
     const tmpDir = this.createTempDir('sprite-pool-')
     try {
       const numFrames = 100
