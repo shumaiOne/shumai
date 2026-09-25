@@ -958,6 +958,44 @@ export class TranscodeService {
     signal?: AbortSignal,
     hdrOptions?: { isHdr?: boolean; hdrType?: HdrType; colorTransfer?: string },
   ): Promise<void> {
+    let fileSize = Infinity
+    try {
+      const stats = await fs.promises.stat(inputFile)
+      fileSize = stats.size
+    } catch {
+      // If stat fails (e.g. mocked in unit tests), fileSize remains Infinity
+    }
+
+    const isSmallAndShort = fileSize <= 50 * 1024 * 1024 && duration <= 30
+    if (isSmallAndShort) {
+      await this.generateSpriteSinglePass(
+        inputFile,
+        outputSprite,
+        outputPoster,
+        duration,
+        signal,
+        hdrOptions,
+      )
+    } else {
+      await this.generateSpriteSeekPool(
+        inputFile,
+        outputSprite,
+        outputPoster,
+        duration,
+        signal,
+        hdrOptions,
+      )
+    }
+  }
+
+  private async generateSpriteSinglePass(
+    inputFile: string,
+    outputSprite: string,
+    outputPoster: string,
+    duration: number,
+    signal?: AbortSignal,
+    hdrOptions?: { isHdr?: boolean; hdrType?: HdrType; colorTransfer?: string },
+  ): Promise<void> {
     const spriteFps = 100 / duration
     let filterComplex: string
 
@@ -1003,6 +1041,156 @@ export class TranscodeService {
       await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], { signal })
     } else {
       await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    }
+  }
+
+  private async generateSpriteSeekPool(
+    inputFile: string,
+    outputSprite: string,
+    outputPoster: string,
+    duration: number,
+    signal?: AbortSignal,
+    hdrOptions?: { isHdr?: boolean; hdrType?: HdrType; colorTransfer?: string },
+  ): Promise<void> {
+    if (signal?.aborted) {
+      throw new Error('Sprite generation cancelled')
+    }
+
+    // 1. Generate poster at t=0 matching the existing poster filter dimensions
+    let vfPoster = 'scale=-2:300:force_original_aspect_ratio=decrease'
+    let tonemapFilterChain = ''
+    if (hdrOptions?.isHdr) {
+      const availableFilters = await this.getAvailableFilters()
+      tonemapFilterChain = buildSdrToneMapFilterChain({
+        hdrType: hdrOptions.hdrType,
+        colorTransfer: hdrOptions.colorTransfer,
+        availableFilters,
+      })
+      vfPoster = `${tonemapFilterChain},scale=-2:300:force_original_aspect_ratio=decrease`
+    }
+
+    const posterArgs = [
+      '-ss',
+      '0',
+      '-i',
+      inputFile,
+      '-vframes',
+      '1',
+      '-vf',
+      vfPoster,
+      '-c:v',
+      'libwebp',
+      '-q:v',
+      '75',
+      outputPoster,
+    ]
+    if (signal) {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...posterArgs], { signal })
+    } else {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...posterArgs])
+    }
+
+    // 2. Extract 100 frames across duration using 4-worker concurrency pool
+    const tmpDir = this.createTempDir('sprite-pool-')
+    try {
+      const numFrames = 100
+      const tileX = 10
+      const tileY = 10
+      const timestamps = Array.from({ length: numFrames }, (_, i) => {
+        const rawTs = (i / (numFrames - 1)) * duration
+        return Math.min(rawTs, Math.max(0, duration - 0.1))
+      })
+
+      // For sprite tiles: scale to width 300 first, then apply HDR tonemapping if needed
+      const vfSprite = tonemapFilterChain ? `scale=300:-2,${tonemapFilterChain}` : 'scale=300:-2'
+
+      const concurrency = 4
+      const frameFiles: string[] = new Array(numFrames).fill('')
+      let nextIdx = 0
+
+      const worker = async () => {
+        while (true) {
+          if (signal?.aborted) {
+            throw new Error('Sprite generation cancelled')
+          }
+          const idx = nextIdx++
+          if (idx >= timestamps.length) break
+
+          const ts = timestamps[idx]
+          const framePath = path.join(tmpDir, `frame_${idx.toString().padStart(3, '0')}.webp`)
+          const args = [
+            '-ss',
+            ts.toFixed(3),
+            '-i',
+            inputFile,
+            '-vframes',
+            '1',
+            '-vf',
+            vfSprite,
+            '-c:v',
+            'libwebp',
+            '-q:v',
+            '75',
+            framePath,
+          ]
+
+          try {
+            if (signal) {
+              await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], { signal })
+            } else {
+              await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+            }
+            if (fs.existsSync(framePath) && fs.statSync(framePath).size > 0) {
+              frameFiles[idx] = framePath
+            }
+          } catch (err) {
+            if (signal?.aborted) throw err
+            // If frame extraction fails, keep empty for resilient fallback
+          }
+        }
+      }
+
+      await Promise.all(Array.from({ length: concurrency }, () => worker()))
+
+      // Resilient fallback: ensure all 100 frames exist by filling any failed frame with adjacent frame
+      let lastValid = frameFiles.find((f) => f && fs.existsSync(f))
+      if (!lastValid) {
+        throw new Error(`Failed to extract any frames from ${inputFile}`)
+      }
+      for (let i = 0; i < numFrames; i++) {
+        if (!frameFiles[i] || !fs.existsSync(frameFiles[i])) {
+          const fallbackFile = path.join(tmpDir, `frame_${i.toString().padStart(3, '0')}.webp`)
+          fs.copyFileSync(lastValid, fallbackFile)
+          frameFiles[i] = fallbackFile
+        } else {
+          lastValid = frameFiles[i]
+        }
+      }
+
+      // 3. Composite 100 tiles into 10x10 sprite sheet with Sharp
+      const firstMeta = await sharp(frameFiles[0]).metadata()
+      const frameW = firstMeta.width || 300
+      const frameH = firstMeta.height || 168
+
+      const composites = frameFiles.map((file, i) => ({
+        input: file,
+        left: (i % tileX) * frameW,
+        top: Math.floor(i / tileX) * frameH,
+      }))
+
+      await sharp({
+        create: {
+          width: frameW * tileX,
+          height: frameH * tileY,
+          channels: 4,
+          background: { r: 0, g: 0, b: 0, alpha: 1 },
+        },
+      })
+        .composite(composites)
+        .webp({ quality: 75 })
+        .toFile(outputSprite)
+    } finally {
+      this.removeDir(tmpDir)
     }
   }
 
