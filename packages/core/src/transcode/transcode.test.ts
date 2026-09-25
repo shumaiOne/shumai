@@ -2569,6 +2569,36 @@ describe('TranscodeService', () => {
       expect(executedArgs).toContain(inputPath)
     })
 
+    it('omits -skip_frame nointra for signed remote MPEG-TS URLs with query parameters', async () => {
+      let executedArgs: string[] = []
+      ;(
+        child_process.execFile as unknown as {
+          mockImplementation: (
+            fn: (
+              file: string,
+              args: string[],
+              cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+            ) => unknown,
+          ) => void
+        }
+      ).mockImplementation((_file, args, cb) => {
+        executedArgs = args
+        cb(null, { stdout: '', stderr: '' })
+        return {}
+      })
+
+      const signedUrl =
+        'https://storage.example.com/videos/stream.ts?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=abcdef123'
+      const outputPath = path.join(tempDir, 'poster.webp')
+      await transcodeService.generatePoster(signedUrl, outputPath)
+
+      expect(executedArgs).not.toContain('-skip_frame')
+      expect(executedArgs).not.toContain('nointra')
+      expect(executedArgs).toContain('-reconnect')
+      expect(executedArgs).toContain('-i')
+      expect(executedArgs).toContain(signedUrl)
+    })
+
     it('adds reconnect options for remote input sources', async () => {
       let executedArgs: string[] = []
       ;(

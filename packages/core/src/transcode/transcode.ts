@@ -967,10 +967,17 @@ export class TranscodeService {
       throw new Error('Poster generation cancelled')
     }
 
-    const lowerInput = inputFile.toLowerCase()
-    const isMpegTs =
-      lowerInput.endsWith('.ts') || lowerInput.endsWith('.m2ts') || lowerInput.endsWith('.mts')
     const isRemote = inputFile.startsWith('http://') || inputFile.startsWith('https://')
+    let pathname = inputFile
+    if (isRemote) {
+      try {
+        pathname = new URL(inputFile).pathname
+      } catch {
+        pathname = inputFile.split('?')[0].split('#')[0]
+      }
+    }
+    const ext = path.extname(pathname).toLowerCase()
+    const isMpegTs = ext === '.ts' || ext === '.m2ts' || ext === '.mts'
 
     const filters: string[] = [
       'fps=12:start_time=0:eof_action=pass:round=down',
