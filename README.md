@@ -86,6 +86,9 @@ Docker Compose is the fastest way to get Shumai running. You do not need to clon
    ```bash
    curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
    ```
+
+   > [!NOTE]
+   > By default, the standard `docker-compose.yaml` uses CPU software transcoding. If your server has a GPU (NVIDIA NVENC, Intel QuickSync, AMD/Intel VA-API, or Rockchip RKMPP) and you want to enable GPU hardware acceleration, check the [Hardware Transcoding Guide](https://docs.shumai.one/configuration/hardware-transcoding).
 3. Configure environment variables (optional):
 
    * `SHUMAI_SERVER_PORT` controls the port the Shumai server listens on. The default is `3000`.

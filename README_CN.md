@@ -101,8 +101,10 @@ https://gh-proxy.com/https://raw.githubusercontent.com/shumaiOne/shumai/main/REA
 2. 下载 `docker-compose.yaml` 配置文件：
    ```bash
    curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose-aliyun.yaml
-
    ```
+
+   > [!NOTE]
+   > 默认的 Docker Compose 配置使用基于 CPU 的软件转码。如果您的服务器配备了支持的显卡（NVIDIA NVENC、Intel QuickSync、AMD/Intel VA-API 或 Rockchip RKMPP）并需要开启 GPU 硬件加速转码，请参考 [硬件加速转码配置文档](https://docs.shumai.one/configuration/hardware-transcoding)。
 
 
 3. 配置环境变量（可选）：

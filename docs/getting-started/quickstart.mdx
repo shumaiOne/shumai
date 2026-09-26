@@ -12,9 +12,14 @@ We support three installation options. For most administrators, **Docker Compose
 Docker Compose automatically configures and spins up all required services (the web application, a database, and local storage).
 
 1.  **Download the Configuration**:
+
     ```bash
     curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
     ```
+
+    > [!TIP]
+    > **Hardware Acceleration:** By default, the standard Compose stack uses CPU-based software transcoding. If your server has a dedicated or integrated GPU (NVIDIA, Intel, AMD, or Rockchip), see the [Hardware Transcoding Guide](/configuration/hardware-transcoding) to enable GPU acceleration via the companion `hwaccel.transcoding.yaml`.
+
 2.  **Start the Services**:
     ```bash
     docker compose up -d

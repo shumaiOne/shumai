@@ -70,7 +70,7 @@
       },
       {
         "group": "Configuration",
-        "pages": ["configuration/env-variables"]
+        "pages": ["configuration/env-variables", "configuration/hardware-transcoding"]
       },
       {
         "group": "Temporal Deployment",
