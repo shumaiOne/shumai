@@ -30,11 +30,7 @@ RUN bun run scripts/extract-runtime-deps.ts
 # Stage 2: Runner
 FROM oven/bun:1.4.2 AS runner
 
-# Install ffmpeg/ffprobe
-COPY --from=mwader/static-ffmpeg:8.1 /ffmpeg /usr/local/bin/
-COPY --from=mwader/static-ffmpeg:8.1 /ffprobe /usr/local/bin/
-
-# Install system dependencies for sandbox runtime, agent, and VA-API hardware acceleration
+# Install system dependencies and Jellyfin-FFmpeg (with VA-API support)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
@@ -56,13 +52,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
     imagemagick \
     fonts-noto-cjk \
-    vainfo \
-    intel-media-va-driver \
-    mesa-va-drivers \
+    && . /etc/os-release \
+    && TARGETARCH=$(dpkg --print-architecture) \
+    && FFMPEG_VERSION="8.1.2-5" \
+    && curl -fsSL -o /tmp/jellyfin-ffmpeg.deb "https://github.com/jellyfin/jellyfin-ffmpeg/releases/download/v${FFMPEG_VERSION}/jellyfin-ffmpeg8_${FFMPEG_VERSION}-${VERSION_CODENAME}_${TARGETARCH}.deb" \
+    && apt-get install -y --no-install-recommends /tmp/jellyfin-ffmpeg.deb \
+    && rm -f /tmp/jellyfin-ffmpeg.deb \
+    && ldconfig /usr/lib/jellyfin-ffmpeg/lib \
+    && ln -sf /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/local/bin/ffmpeg \
+    && ln -sf /usr/lib/jellyfin-ffmpeg/ffprobe /usr/local/bin/ffprobe \
+    && ln -sf /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/bin/ffmpeg \
+    && ln -sf /usr/lib/jellyfin-ffmpeg/ffprobe /usr/bin/ffprobe \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-ENV LIBVA_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
 
 # Set up working directory and make it owned by the bun user, ensure video/render group access
 RUN usermod -a -G video,render bun 2>/dev/null || true \
