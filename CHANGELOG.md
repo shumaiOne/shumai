@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **transcode**: Add VA-API hardware acceleration support for Linux hosts and Docker environments with Intel and AMD GPUs, featuring automatic DRI render node discovery, variable bitrate control, and structured transcoding observability logs
+- **docker**: Add modular hardware-accelerated transcoding presets matching Immich's compose configuration via `hwaccel.transcoding.yaml` with support for NVENC, QuickSync, RKMPP, and VA-API
 
 ### Fixed
 
