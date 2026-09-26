@@ -1,0 +1,219 @@
+---
+title: Hardware Transcoding
+description: Accelerate video transcoding and reduce CPU load with GPU hardware acceleration.
+---
+
+High-resolution camera recordings, phone videos, and animation media files require proxy transcoding to play smoothly in web browsers. Shumai transcodes these assets in the background, generating a universal `180p` proxy for instant scrubbing alongside full-resolution preview streams.
+
+Hardware-accelerated transcoding allows you to offload video encoding to a dedicated or integrated GPU, dramatically speeding up processing and freeing host CPU cores for other services.
+
+Shumai includes a built-in usability probe that tests hardware encoders at runtime. If GPU drivers or device nodes are unavailable, Shumai automatically falls back to software encoding without failing user tasks.
+
+---
+
+## Supported Backends
+
+| Backend         | Hardware Platform                  | Container Driver / Devices                       |
+| :-------------- | :--------------------------------- | :----------------------------------------------- |
+| **`nvenc`**     | NVIDIA GPUs                        | NVIDIA Container Toolkit (`gpu, compute, video`) |
+| **`quicksync`** | Intel Integrated & Arc GPUs        | `/dev/dri` render nodes                          |
+| **`vaapi`**     | AMD & Intel GPUs                   | `/dev/dri` render nodes                          |
+| **`rkmpp`**     | Rockchip ARM SoCs (e.g. RK3588)    | `/dev/rga`, `/dev/dri`, `/dev/mpp_service`       |
+| **`vaapi-wsl`** | Windows Subsystem for Linux (WSL2) | `/dev/dri`, `/dev/dxg`, `/usr/lib/wsl`           |
+
+---
+
+## Limitations
+
+- The instructions on this page focus on **Docker Compose**. Other container orchestrators (such as Kubernetes or Podman) require equivalent device passthrough configurations.
+- **Docker Desktop on macOS** runs inside a Linux virtual machine and does not support Apple Silicon VideoToolbox passthrough. (VideoToolbox hardware acceleration is supported when running Shumai natively via NPM or from source).
+- Hardware transcoding produces slightly different bitrate characteristics compared to software encoding. Shumai uses adaptive variable bitrate (VBR) rate control tailored to web streaming to maintain visual fidelity.
+
+---
+
+## Prerequisites
+
+### NVENC (NVIDIA)
+
+1. Ensure the official NVIDIA graphics driver is installed on the host:
+   ```bash
+   nvidia-smi
+   ```
+2. Install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) on the host and restart Docker:
+   ```bash
+   sudo apt-get install -y nvidia-container-toolkit
+   sudo nvidia-ctk runtime configure --runtime=docker
+   sudo systemctl restart docker
+   ```
+
+### QuickSync & VA-API (Intel / AMD)
+
+1. Verify that the Linux kernel has initialized the Direct Rendering Infrastructure (DRI) render node:
+   ```bash
+   ls -la /dev/dri
+   ```
+   You should see `card0` and `renderD128` (or similar).
+2. Shumai's Docker image automatically adjusts group permissions on container startup so the non-root application user can access host `/dev/dri` devices without permission errors.
+
+### WSL2 (Windows)
+
+- Ensure you are running Windows 11 with WSL2 and have installed the appropriate GPU drivers on the Windows host.
+- Use the `vaapi-wsl` preset which maps `/dev/dxg` and `/usr/lib/wsl` into the container.
+
+---
+
+## Setup with Docker Compose
+
+Shumai uses a modular `hwaccel.transcoding.yaml` companion file to configure hardware devices.
+
+### Step 1: Download Configuration Files
+
+In your Shumai deployment directory, download the companion `hwaccel.transcoding.yaml` alongside `docker-compose.yaml`:
+
+```bash
+# Global / Official
+curl -o hwaccel.transcoding.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/hwaccel.transcoding.yaml
+
+# Accelerated Mirror (Mainland China)
+curl -o hwaccel.transcoding.yaml https://gh-proxy.com/https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/hwaccel.transcoding.yaml
+```
+
+### Step 2: Enable Hardware Acceleration in Docker Compose
+
+Open `docker-compose.yaml` (or `docker-compose-aliyun.yaml`), find the commented `extends` block under the `shumai` service, and uncomment it:
+
+```yaml
+services:
+  shumai:
+    # ...
+    # Hardware Acceleration (NVENC / QuickSync / VA-API / RKMPP)
+    extends:
+      file: hwaccel.transcoding.yaml
+      service: nvenc # set to one of [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl]
+```
+
+Replace `nvenc` with your target backend:
+
+- `nvenc` for NVIDIA GPUs
+- `quicksync` for Intel Quick Sync
+- `vaapi` for AMD or Intel VA-API
+- `rkmpp` for Rockchip SoCs
+- `vaapi-wsl` for WSL2 on Windows
+
+### Step 3: Start the Stack
+
+Restart or recreate the Shumai container:
+
+```bash
+docker compose up -d
+```
+
+---
+
+## Single Compose File Setup (Unraid / Portainer)
+
+If your environment or container manager does not support multi-file `extends`, you can inline the hardware configuration directly into the `shumai` service in `docker-compose.yaml`:
+
+<AccordionGroup>
+  <Accordion title="NVIDIA NVENC">
+    ```yaml
+    services:
+      shumai:
+        # ...
+        deploy:
+          resources:
+            reservations:
+              devices:
+                - driver: nvidia
+                  count: 1
+                  capabilities:
+                    - gpu
+                    - compute
+                    - video
+    ```
+  </Accordion>
+
+<Accordion title="Intel QuickSync / AMD VA-API">
+  ```yaml services: shumai: # ... devices: - /dev/dri:/dev/dri ```
+</Accordion>
+
+<Accordion title="WSL2 (Windows)">
+  ```yaml services: shumai: # ... devices: - /dev/dri:/dev/dri - /dev/dxg:/dev/dxg volumes: -
+  /usr/lib/wsl:/usr/lib/wsl environment: - LIBVA_DRIVER_NAME=d3d12 ```
+</Accordion>
+
+  <Accordion title="Rockchip RKMPP">
+    ```yaml
+    services:
+      shumai:
+        # ...
+        security_opt:
+          - systempaths=unconfined
+          - apparmor=unconfined
+        group_add:
+          - video
+        devices:
+          - /dev/rga:/dev/rga
+          - /dev/dri:/dev/dri
+          - /dev/dma_heap:/dev/dma_heap
+          - /dev/mpp_service:/dev/mpp_service
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Web UI Settings
+
+In the Shumai Web UI, navigate to **Team Settings** > **Transcoding Settings**.
+
+- **Auto (Recommended)**: Shumai automatically probes candidate hardware encoders in optimal order (`h264_nvenc` &rarr; `h264_vaapi` &rarr; `h264_qsv` &rarr; `h264_amf` &rarr; `libx264`). If hardware acceleration is unavailable, it gracefully uses software encoding.
+- **Explicit Encoder**: You can pin the transcode pipeline to a specific encoder (e.g. `NVENC`, `Quick Sync`, `VA-API`).
+- **Off**: Forces CPU software encoding (`libx264`) for all video jobs.
+
+---
+
+## Verification & Monitoring
+
+### Check Transcode Logs
+
+When video transcoding begins on an uploaded asset, Shumai writes a structured log indicating the chosen encoder:
+
+```bash
+docker compose logs -f shumai
+```
+
+Look for the `Starting video transcoding` log entry:
+
+```json
+{
+  "level": 30,
+  "time": 1790414665096,
+  "encoder": "h264_nvenc",
+  "hardwareAcceleration": "auto",
+  "inputFile": "/tmp/transcode-.../video.mp4",
+  "outputFile": "/tmp/transcode-.../video-180p.mp4",
+  "msg": "Starting video transcoding"
+}
+```
+
+If hardware acceleration was successfully initialized, `encoder` will show `h264_nvenc`, `h264_vaapi`, or `h264_qsv`.
+
+### Monitor GPU Utilization
+
+While transcoding a video, you can observe hardware utilization on the host:
+
+- **NVIDIA**:
+  ```bash
+  nvidia-smi
+  # or
+  nvtop
+  ```
+- **Intel**:
+  ```bash
+  sudo intel_gpu_top
+  ```
+- **AMD**:
+  ```bash
+  sudo radeontop
+  ```

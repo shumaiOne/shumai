@@ -13,6 +13,7 @@ import { ulid } from 'ulid'
 import { promisify } from 'util'
 import { mapConcurrent } from '../utils/async'
 import { dataFormatNames } from './dataFormatNames'
+import { logger } from '@shumai/core/src/logger'
 
 const execFileAsync = promisify(execFile)
 
@@ -157,6 +158,10 @@ export const H264_ENCODER_CONFIGS: Record<string, EncoderConfig> = {
     name: 'h264_qsv',
     presetArgs: ['-preset', 'fast', '-global_quality', '26'],
   },
+  h264_vaapi: {
+    name: 'h264_vaapi',
+    presetArgs: ['-compression_level', '4'],
+  },
   h264_amf: {
     name: 'h264_amf',
     presetArgs: ['-quality', 'balanced', '-rc', 'qvbr', '-qvbr_quality_level', '26'],
@@ -181,8 +186,51 @@ export function getPlatformEncoderCandidates(
       return ['h264_nvenc', 'h264_qsv', 'h264_amf']
     case 'linux':
     default:
-      return ['h264_nvenc', 'h264_qsv', 'h264_amf']
+      return ['h264_nvenc', 'h264_vaapi', 'h264_qsv', 'h264_amf']
   }
+}
+
+export function getVaapiDevice(driDir = '/dev/dri'): string | null {
+  const envDevice = process.env.SHUMAI_VAAPI_DEVICE || process.env.VAAPI_DEVICE
+  if (envDevice) {
+    return envDevice
+  }
+
+  try {
+    if (!fs.existsSync(driDir)) {
+      return null
+    }
+    const entries = fs.readdirSync(driDir)
+    const renderNodes = entries
+      .filter((entry) => entry.startsWith('renderD') || entry.startsWith('card'))
+      .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))
+
+    if (renderNodes.length > 0) {
+      return path.join(driDir, renderNodes[0])
+    }
+  } catch {
+    return null
+  }
+
+  return null
+}
+
+export function parseBitrateKbps(bitrate: string | number): number {
+  if (typeof bitrate === 'number') {
+    return Math.round(bitrate / 1000)
+  }
+  const clean = bitrate.trim().toLowerCase()
+  if (clean.endsWith('m') || clean.endsWith('mbps')) {
+    return Math.round(parseFloat(clean) * 1000)
+  }
+  if (clean.endsWith('k') || clean.endsWith('kbps')) {
+    return Math.round(parseFloat(clean))
+  }
+  const num = parseFloat(clean)
+  if (Number.isFinite(num)) {
+    return num > 100_000 ? Math.round(num / 1000) : Math.round(num)
+  }
+  return 2500
 }
 
 export function getDefaultBitrateBps(height: number, width?: number): number {
@@ -666,9 +714,11 @@ export class TranscodeService {
   }
 
   private availableEncodersCache: Set<string> | null = null
+  private usableEncodersCache: Map<string, boolean> = new Map()
 
   clearEncodersCache(): void {
     this.availableEncodersCache = null
+    this.usableEncodersCache.clear()
   }
 
   async getAvailableEncoders(): Promise<Set<string>> {
@@ -721,6 +771,78 @@ export class TranscodeService {
     }
   }
 
+  getVaapiDevice(driDir = '/dev/dri'): string | null {
+    return getVaapiDevice(driDir)
+  }
+
+  async isEncoderUsable(encoder: string): Promise<boolean> {
+    const cached = this.usableEncodersCache.get(encoder)
+    if (cached !== undefined) {
+      return cached
+    }
+
+    if (encoder === 'h264_vaapi') {
+      const vaapiDevice = this.getVaapiDevice()
+      if (!vaapiDevice) {
+        this.usableEncodersCache.set(encoder, false)
+        return false
+      }
+      try {
+        await execFileAsync('ffmpeg', [
+          '-loglevel',
+          'error',
+          '-init_hw_device',
+          `vaapi=accel:${vaapiDevice}`,
+          '-filter_hw_device',
+          'accel',
+          '-f',
+          'lavfi',
+          '-i',
+          'color=c=black:s=256x256:d=0.04',
+          '-vf',
+          'format=nv12,hwupload',
+          '-frames:v',
+          '1',
+          '-c:v',
+          'h264_vaapi',
+          '-f',
+          'null',
+          '-',
+        ])
+        this.usableEncodersCache.set(encoder, true)
+        return true
+      } catch (err) {
+        logger.debug({ encoder, err }, 'Encoder failed usability probe')
+        this.usableEncodersCache.set(encoder, false)
+        return false
+      }
+    }
+
+    try {
+      await execFileAsync('ffmpeg', [
+        '-loglevel',
+        'error',
+        '-f',
+        'lavfi',
+        '-i',
+        'color=c=black:s=256x256:d=0.04',
+        '-frames:v',
+        '1',
+        '-c:v',
+        encoder,
+        '-f',
+        'null',
+        '-',
+      ])
+      this.usableEncodersCache.set(encoder, true)
+      return true
+    } catch (err) {
+      logger.debug({ encoder, err }, 'Encoder failed usability probe')
+      this.usableEncodersCache.set(encoder, false)
+      return false
+    }
+  }
+
   async selectH264Encoder(
     hardwareAcceleration?: 'off' | 'auto',
     platform: NodeJS.Platform = process.platform,
@@ -733,6 +855,10 @@ export class TranscodeService {
     const candidates = getPlatformEncoderCandidates(platform)
     for (const enc of candidates) {
       if (available.has(enc) && H264_ENCODER_CONFIGS[enc]) {
+        const usable = await this.isEncoderUsable(enc)
+        if (!usable) {
+          continue
+        }
         return H264_ENCODER_CONFIGS[enc]
       }
     }
@@ -748,8 +874,29 @@ export class TranscodeService {
       params.sourceHdrType === 'dovi_p5'
     const isHdrOutput = Boolean(params.hdr)
 
+    const encoder = await this.selectH264Encoder(params.hardwareAcceleration)
+    const isVaapi = encoder.name === 'h264_vaapi'
+    const vaapiDevice = isVaapi ? (this.getVaapiDevice() ?? '/dev/dri/renderD128') : undefined
+
+    logger.info(
+      {
+        encoder: encoder.name,
+        hardwareAcceleration: params.hardwareAcceleration ?? 'off',
+        inputFile: params.inputFile,
+        outputFile: params.outputFile,
+        vaapiDevice,
+      },
+      'Starting video transcoding',
+    )
+
     let filterComplex: string
-    const args: string[] = ['-i', params.inputFile]
+    const args: string[] = []
+
+    if (isVaapi && vaapiDevice) {
+      args.push('-init_hw_device', `vaapi=accel:${vaapiDevice}`, '-filter_hw_device', 'accel')
+    }
+
+    args.push('-i', params.inputFile)
     const baseScale = `scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
 
     if (params.overlayFile) {
@@ -761,6 +908,9 @@ export class TranscodeService {
 
     if (params.frameRate) {
       filterComplex += `,fps=${params.frameRate}`
+    }
+    if (isVaapi) {
+      filterComplex += ',format=nv12,hwupload=extra_hw_frames=64'
     }
     filterComplex += '[vout]'
 
@@ -795,7 +945,6 @@ export class TranscodeService {
       args.push('-map', '0:a?')
     }
 
-    const encoder = await this.selectH264Encoder(params.hardwareAcceleration)
     args.push('-c:v', encoder.name)
     if (encoder.presetArgs.length > 0) {
       args.push(...encoder.presetArgs)
@@ -814,6 +963,31 @@ export class TranscodeService {
         const targetKbps = Math.max(50, Math.round(targetBps / 1000))
         args.push('-b:v', `${targetKbps}k`)
       }
+    } else if (isVaapi) {
+      let maxKbps: number
+      if (params.videoBitrate) {
+        maxKbps = parseBitrateKbps(params.videoBitrate)
+      } else {
+        const { maxrate } = calculateMaxBitrate(
+          params.height,
+          params.width,
+          params.sourceVideoBitrate,
+          params.frameRate,
+        )
+        maxKbps = parseInt(maxrate, 10)
+      }
+      const targetKbps = Math.max(25, Math.ceil(maxKbps / 1.45))
+      const minKbps = Math.max(10, Math.round(targetKbps / 2))
+      args.push(
+        '-rc_mode',
+        '3',
+        '-b:v',
+        `${targetKbps}k`,
+        '-maxrate',
+        `${maxKbps}k`,
+        '-minrate',
+        `${minKbps}k`,
+      )
     } else {
       if (params.videoBitrate) {
         args.push('-b:v', params.videoBitrate)
@@ -828,7 +1002,9 @@ export class TranscodeService {
       }
     }
 
-    args.push('-pix_fmt', 'yuv420p')
+    if (!isVaapi) {
+      args.push('-pix_fmt', 'yuv420p')
+    }
 
     if (isSourceHdr && isHdrOutput) {
       const isHlg = params.sourceHdrType === 'hlg' || params.sourceColorTransfer === 'arib-std-b67'

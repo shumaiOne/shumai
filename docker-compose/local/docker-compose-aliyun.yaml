@@ -26,6 +26,11 @@ services:
       - '3000:3000'
     volumes:
       - ./data:/app/data
+    # Hardware Acceleration (NVENC / QuickSync / VA-API / RKMPP)
+    # Uncomment the extends section below for hardware acceleration:
+    # extends:
+    #   file: hwaccel.transcoding.yaml
+    #   service: cpu # set to one of [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl] for accelerated transcoding
     environment:
       # Database Configuration
       DATABASE_URL: postgres://shumai:shumai_password@shumai_postgres:5432/shumai_db?search_path=public&sslmode=disable

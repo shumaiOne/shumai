@@ -34,3 +34,9 @@ Team Owners can select how the transcoding engine handles uploaded files. Shumai
 Transcoding is resource-intensive. Depending on your scaling needs, your administrator can run the transcode engine on the main server (Single-Server mode) or delegate tasks to specialized transcoding worker machines (Temporal Worker mode).
 
 Note: In all modes, the processing machine must have the standard system media utilities (`ffmpeg` and `ffprobe`) installed.
+
+---
+
+## Hardware Acceleration
+
+To offload encoding workloads to GPUs (NVIDIA NVENC, Intel QuickSync, AMD/Intel VA-API, or Rockchip RKMPP), Shumai supports hardware-accelerated transcoding. See the [Hardware Transcoding Guide](/configuration/hardware-transcoding) for Docker Compose configuration, GPU passthrough, and driver prerequisites.
