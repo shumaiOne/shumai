@@ -186,7 +186,7 @@ export function getPlatformEncoderCandidates(
       return ['h264_nvenc', 'h264_qsv', 'h264_amf']
     case 'linux':
     default:
-      return ['h264_nvenc', 'h264_qsv', 'h264_vaapi', 'h264_amf']
+      return ['h264_nvenc', 'h264_vaapi', 'h264_qsv', 'h264_amf']
   }
 }
 

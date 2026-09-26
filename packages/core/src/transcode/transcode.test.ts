@@ -1228,8 +1228,8 @@ describe('TranscodeService', () => {
       expect(getPlatformEncoderCandidates('win32')).toEqual(['h264_nvenc', 'h264_qsv', 'h264_amf'])
       expect(getPlatformEncoderCandidates('linux')).toEqual([
         'h264_nvenc',
-        'h264_qsv',
         'h264_vaapi',
+        'h264_qsv',
         'h264_amf',
       ])
     })
@@ -1436,6 +1436,38 @@ describe('TranscodeService', () => {
       const encoder = await transcodeService.selectH264Encoder('auto', 'linux')
       expect(encoder.name).toBe('h264_qsv')
       expect(encoder.presetArgs).toEqual(['-preset', 'fast', '-global_quality', '26'])
+    })
+
+    it('selectH264Encoder should select h264_vaapi before h264_qsv on linux when both are available', async () => {
+      const mockEncodersOutput = `
+ V....D libx264              libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+ V....D h264_qsv             Intel Quick Sync Video H.264
+ V....D h264_vaapi           H.264/AVC (VAAPI)
+      `
+      vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue('/dev/dri/renderD128')
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          const argsArr = args as string[] | undefined
+          if (argsArr && argsArr[0] === '-encoders') {
+            cb(null, { stdout: mockEncodersOutput, stderr: '' })
+          } else if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const encoder = await transcodeService.selectH264Encoder('auto', 'linux')
+      expect(encoder.name).toBe('h264_vaapi')
+      expect(encoder.presetArgs).toEqual(['-compression_level', '4'])
     })
 
     it('selectH264Encoder should select h264_amf on win32 when available', async () => {

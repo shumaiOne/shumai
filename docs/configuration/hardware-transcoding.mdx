@@ -167,7 +167,7 @@ If your environment or container manager does not support multi-file `extends`, 
 
 In the Shumai Web UI, navigate to **Team Settings** > **Transcoding Settings**.
 
-- **Auto (Recommended)**: Shumai automatically probes candidate hardware encoders in optimal order (`h264_nvenc` &rarr; `h264_qsv` &rarr; `h264_vaapi` &rarr; `h264_amf` &rarr; `libx264`). If hardware acceleration is unavailable, it gracefully uses software encoding.
+- **Auto (Recommended)**: Shumai automatically probes candidate hardware encoders in optimal order (`h264_nvenc` &rarr; `h264_vaapi` &rarr; `h264_qsv` &rarr; `h264_amf` &rarr; `libx264`). If hardware acceleration is unavailable, it gracefully uses software encoding.
 - **Explicit Encoder**: You can pin the transcode pipeline to a specific encoder (e.g. `NVENC`, `Quick Sync`, `VA-API`).
 - **Off**: Forces CPU software encoding (`libx264`) for all video jobs.
 
