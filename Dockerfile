@@ -34,7 +34,7 @@ FROM oven/bun:1.4.2 AS runner
 COPY --from=mwader/static-ffmpeg:8.1 /ffmpeg /usr/local/bin/
 COPY --from=mwader/static-ffmpeg:8.1 /ffprobe /usr/local/bin/
 
-# Install system dependencies for sandbox runtime and agent
+# Install system dependencies for sandbox runtime, agent, and VA-API hardware acceleration
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
@@ -56,11 +56,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
     imagemagick \
     fonts-noto-cjk \
+    vainfo \
+    intel-media-va-driver \
+    mesa-va-drivers \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Set up working directory and make it owned by the bun user
-RUN mkdir -p /app/data && chown -R bun:bun /app
+ENV LIBVA_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
+
+# Set up working directory and make it owned by the bun user, ensure video/render group access
+RUN usermod -a -G video,render bun 2>/dev/null || true \
+    && mkdir -p /app/data \
+    && chown -R bun:bun /app
 
 # Switch to the non-root bun user
 USER bun

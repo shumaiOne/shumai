@@ -2,6 +2,21 @@
 set -e
 
 if [ "$(id -u)" = "0" ]; then
+  # Ensure the bun user has permissions to access mounted GPU devices (/dev/dri)
+  if [ -d "/dev/dri" ]; then
+    for dev in /dev/dri/*; do
+      if [ -e "$dev" ]; then
+        gid=$(stat -c '%g' "$dev" 2>/dev/null || true)
+        if [ -n "$gid" ] && [ "$gid" != "0" ]; then
+          if ! getent group "$gid" >/dev/null 2>&1; then
+            groupadd -g "$gid" "dri_group_$gid" 2>/dev/null || true
+          fi
+          usermod -a -G "$gid" bun 2>/dev/null || true
+        fi
+      fi
+    done
+  fi
+
   # Check if /app/data exists and is not owned by the bun user (UID 1000)
   if [ -d "/app/data" ]; then
     if [ "$(stat -c '%u' /app/data)" != "1000" ]; then

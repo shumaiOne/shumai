@@ -8,7 +8,10 @@ import {
   calculateMaxBitrate,
   H264_ENCODER_CONFIGS,
   buildSdrToneMapFilterChain,
+  getVaapiDevice,
+  parseBitrateKbps,
 } from './transcode'
+import { logger } from '@shumai/core/src/logger'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import * as path from 'path'
 import * as child_process from 'child_process'
@@ -1223,7 +1226,57 @@ describe('TranscodeService', () => {
         'h264_amf',
       ])
       expect(getPlatformEncoderCandidates('win32')).toEqual(['h264_nvenc', 'h264_qsv', 'h264_amf'])
-      expect(getPlatformEncoderCandidates('linux')).toEqual(['h264_nvenc', 'h264_qsv', 'h264_amf'])
+      expect(getPlatformEncoderCandidates('linux')).toEqual([
+        'h264_nvenc',
+        'h264_qsv',
+        'h264_vaapi',
+        'h264_amf',
+      ])
+    })
+
+    it('getVaapiDevice should return device from SHUMAI_VAAPI_DEVICE or VAAPI_DEVICE env var', () => {
+      const origShumai = process.env.SHUMAI_VAAPI_DEVICE
+      const origVaapi = process.env.VAAPI_DEVICE
+      try {
+        process.env.SHUMAI_VAAPI_DEVICE = '/dev/dri/custom1'
+        expect(getVaapiDevice()).toBe('/dev/dri/custom1')
+        delete process.env.SHUMAI_VAAPI_DEVICE
+
+        process.env.VAAPI_DEVICE = '/dev/dri/custom2'
+        expect(getVaapiDevice()).toBe('/dev/dri/custom2')
+      } finally {
+        if (origShumai) process.env.SHUMAI_VAAPI_DEVICE = origShumai
+        else delete process.env.SHUMAI_VAAPI_DEVICE
+        if (origVaapi) process.env.VAAPI_DEVICE = origVaapi
+        else delete process.env.VAAPI_DEVICE
+      }
+    })
+
+    it('getVaapiDevice should pick highest index render node from driDir', () => {
+      const fakeDriDir = path.join(tempDir, 'fake-dri')
+      fs.mkdirSync(fakeDriDir, { recursive: true })
+      fs.writeFileSync(path.join(fakeDriDir, 'card0'), '')
+      fs.writeFileSync(path.join(fakeDriDir, 'renderD128'), '')
+      fs.writeFileSync(path.join(fakeDriDir, 'renderD129'), '')
+
+      expect(getVaapiDevice(fakeDriDir)).toBe(path.join(fakeDriDir, 'renderD129'))
+    })
+
+    it('getVaapiDevice should return null if driDir does not exist or has no render/card devices', () => {
+      expect(getVaapiDevice(path.join(tempDir, 'non-existent'))).toBeNull()
+
+      const emptyDir = path.join(tempDir, 'empty-dri')
+      fs.mkdirSync(emptyDir, { recursive: true })
+      expect(getVaapiDevice(emptyDir)).toBeNull()
+    })
+
+    it('parseBitrateKbps should parse number and various string bitrate units', () => {
+      expect(parseBitrateKbps(2_500_000)).toBe(2500)
+      expect(parseBitrateKbps('4500k')).toBe(4500)
+      expect(parseBitrateKbps('4500kbps')).toBe(4500)
+      expect(parseBitrateKbps('12M')).toBe(12000)
+      expect(parseBitrateKbps('1.5Mbps')).toBe(1500)
+      expect(parseBitrateKbps('invalid')).toBe(2500)
     })
 
     it('should calculate default bitrates by resolution height and width correctly', () => {
@@ -1449,6 +1502,69 @@ describe('TranscodeService', () => {
       const encoder = await transcodeService.selectH264Encoder('auto', 'linux')
       expect(encoder.name).toBe('libx264')
       expect(encoder.presetArgs).toEqual(['-preset', 'fast', '-crf', '23', '-bf', '0'])
+    })
+
+    it('selectH264Encoder should select h264_vaapi on linux when available and dri device exists', async () => {
+      const mockEncodersOutput = `
+ V....D libx264              libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+ V....D h264_vaapi           H.264/AVC (VAAPI)
+ V....D h264_amf             AMD AMF H.264 Encoder
+      `
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          const argsArr = args as string[] | undefined
+          if (argsArr && argsArr[0] === '-encoders') {
+            cb(null, { stdout: mockEncodersOutput, stderr: '' })
+          } else if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+      vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue('/dev/dri/renderD128')
+
+      const encoder = await transcodeService.selectH264Encoder('auto', 'linux')
+      expect(encoder.name).toBe('h264_vaapi')
+      expect(encoder.presetArgs).toEqual(['-compression_level', '4'])
+    })
+
+    it('selectH264Encoder should skip h264_vaapi on linux when vaapi device is not found', async () => {
+      const mockEncodersOutput = `
+ V....D libx264              libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+ V....D h264_vaapi           H.264/AVC (VAAPI)
+ V....D h264_amf             AMD AMF H.264 Encoder
+      `
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          const argsArr = args as string[] | undefined
+          if (argsArr && argsArr[0] === '-encoders') {
+            cb(null, { stdout: mockEncodersOutput, stderr: '' })
+          } else if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+      vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue(null)
+
+      const encoder = await transcodeService.selectH264Encoder('auto', 'linux')
+      expect(encoder.name).toBe('h264_amf')
     })
 
     it('transcodeVideo with hardwareAcceleration off should use libx264, preset fast, crf 23, -bf 0, maxrate, and yuv420p', async () => {
@@ -1711,6 +1827,163 @@ describe('TranscodeService', () => {
         expect.arrayContaining(['-maxrate']),
         expect.any(Function),
       )
+    })
+
+    it('transcodeVideo with hardwareAcceleration auto and vaapi should use init_hw_device, hwupload, rc_mode 3, and omit pix_fmt yuv420p', async () => {
+      vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
+        H264_ENCODER_CONFIGS.h264_vaapi,
+      )
+      vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue('/dev/dri/renderD128')
+      const loggerSpy = vi.spyOn(logger, 'info')
+
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const outputFile = path.join(tempDir, 'out_vaapi.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1280,
+        height: 720,
+        hardwareAcceleration: 'auto',
+        sourceVideoBitrate: 600_000,
+      })
+
+      expect(child_process.execFile).toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining([
+          '-init_hw_device',
+          'vaapi=accel:/dev/dri/renderD128',
+          '-filter_hw_device',
+          'accel',
+          '-c:v',
+          'h264_vaapi',
+          '-compression_level',
+          '4',
+          '-rc_mode',
+          '3',
+          '-b:v',
+          '497k',
+          '-maxrate',
+          '720k',
+          '-minrate',
+          '249k',
+        ]),
+        expect.any(Function),
+      )
+
+      const callArgs = vi.mocked(child_process.execFile).mock.calls[0][1] as string[]
+      expect(callArgs).not.toContain('-pix_fmt')
+      expect(callArgs).not.toContain('yuv420p')
+
+      const filterComplexIdx = callArgs.indexOf('-filter_complex')
+      expect(filterComplexIdx).toBeGreaterThan(-1)
+      expect(callArgs[filterComplexIdx + 1]).toContain('format=nv12,hwupload=extra_hw_frames=64')
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          encoder: 'h264_vaapi',
+          hardwareAcceleration: 'auto',
+          vaapiDevice: '/dev/dri/renderD128',
+        }),
+        'Starting video transcoding',
+      )
+    })
+
+    it('transcodeVideo with explicit videoBitrate and vaapi calculates VBR distribution correctly', async () => {
+      vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
+        H264_ENCODER_CONFIGS.h264_vaapi,
+      )
+      vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue('/dev/dri/renderD128')
+
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const outputFile = path.join(tempDir, 'out_vaapi_custom.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1920,
+        height: 1080,
+        hardwareAcceleration: 'auto',
+        videoBitrate: '4500k',
+      })
+
+      const callArgs = vi.mocked(child_process.execFile).mock.calls[0][1] as string[]
+      expect(callArgs).toContain('-rc_mode')
+      expect(callArgs).toContain('3')
+      expect(callArgs).toContain('-b:v')
+      expect(callArgs).toContain('3104k')
+      expect(callArgs).toContain('-maxrate')
+      expect(callArgs).toContain('4500k')
+      expect(callArgs).toContain('-minrate')
+      expect(callArgs).toContain('1552k')
+    })
+
+    it('transcodeVideo should throw immediately when ffmpeg fails during hardware transcoding', async () => {
+      vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
+        H264_ENCODER_CONFIGS.h264_vaapi,
+      )
+      vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue('/dev/dri/renderD128')
+
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (typeof cb === 'function') {
+            cb(new Error('VAAPI driver error: failed to allocate surface'), {
+              stdout: '',
+              stderr: 'driver error',
+            })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const outputFile = path.join(tempDir, 'out_vaapi_fail.mp4')
+      await expect(
+        transcodeService.transcodeVideo({
+          inputFile: 'input.mp4',
+          outputFile,
+          width: 1280,
+          height: 720,
+          hardwareAcceleration: 'auto',
+        }),
+      ).rejects.toThrow('VAAPI driver error: failed to allocate surface')
     })
 
     it('transcodeVideo with threads > 0 should pass -threads to ffmpeg', async () => {
