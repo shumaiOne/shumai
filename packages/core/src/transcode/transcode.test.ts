@@ -1567,6 +1567,134 @@ describe('TranscodeService', () => {
       expect(encoder.name).toBe('h264_amf')
     })
 
+    it('selectH264Encoder should skip h264_nvenc and fallback to libx264 when nvenc fails usability probe', async () => {
+      const mockEncodersOutput = `
+ V....D libx264              libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+ V....D h264_nvenc           NVIDIA NVENC H.264 encoder
+      `
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = callback as (
+            err: Error | null,
+            result?: { stdout: string; stderr: string },
+          ) => void
+          const argsArr = args as string[] | undefined
+          if (argsArr && argsArr[0] === '-encoders') {
+            cb(null, { stdout: mockEncodersOutput, stderr: '' })
+          } else if (argsArr && argsArr.includes('h264_nvenc')) {
+            cb(new Error('Cannot load libcuda.so.1'))
+          } else if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const encoder = await transcodeService.selectH264Encoder('auto', 'linux')
+      expect(encoder.name).toBe('libx264')
+    })
+
+    it('isEncoderUsable should return true and cache result when probe succeeds', async () => {
+      const execFileMock = vi
+        .mocked(execFile)
+        .mockImplementation(
+          (
+            _cmd: unknown,
+            _args: unknown,
+            callback: unknown,
+          ): ReturnType<typeof child_process.execFile> => {
+            const cb = callback as (
+              err: Error | null,
+              result?: { stdout: string; stderr: string },
+            ) => void
+            if (typeof cb === 'function') {
+              cb(null, { stdout: '', stderr: '' })
+            }
+            return {} as ReturnType<typeof child_process.execFile>
+          },
+        )
+
+      const result1 = await transcodeService.isEncoderUsable('h264_nvenc')
+      expect(result1).toBe(true)
+      expect(execFileMock).toHaveBeenCalledTimes(1)
+
+      // Subsequent call should hit cache and not call execFile again
+      const result2 = await transcodeService.isEncoderUsable('h264_nvenc')
+      expect(result2).toBe(true)
+      expect(execFileMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('isEncoderUsable should return false and cache result when probe fails', async () => {
+      const execFileMock = vi
+        .mocked(execFile)
+        .mockImplementation(
+          (
+            _cmd: unknown,
+            _args: unknown,
+            callback: unknown,
+          ): ReturnType<typeof child_process.execFile> => {
+            const cb = callback as (
+              err: Error | null,
+              result?: { stdout: string; stderr: string },
+            ) => void
+            if (typeof cb === 'function') {
+              cb(new Error('Driver init failed'))
+            }
+            return {} as ReturnType<typeof child_process.execFile>
+          },
+        )
+
+      const result1 = await transcodeService.isEncoderUsable('h264_qsv')
+      expect(result1).toBe(false)
+      expect(execFileMock).toHaveBeenCalledTimes(1)
+
+      // Cached call
+      const result2 = await transcodeService.isEncoderUsable('h264_qsv')
+      expect(result2).toBe(false)
+      expect(execFileMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('isEncoderUsable should return false for h264_vaapi when getVaapiDevice returns null without running ffmpeg', async () => {
+      vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue(null)
+      const execFileMock = vi.mocked(execFile)
+
+      const result = await transcodeService.isEncoderUsable('h264_vaapi')
+      expect(result).toBe(false)
+      expect(execFileMock).not.toHaveBeenCalled()
+    })
+
+    it('isEncoderUsable should probe vaapi with hw device options when vaapi device exists', async () => {
+      vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue('/dev/dri/renderD128')
+      let probeArgs: string[] = []
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          probeArgs = (args as string[]) || []
+          const cb = callback as (
+            err: Error | null,
+            result?: { stdout: string; stderr: string },
+          ) => void
+          if (typeof cb === 'function') {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const result = await transcodeService.isEncoderUsable('h264_vaapi')
+      expect(result).toBe(true)
+      expect(probeArgs).toContain('-init_hw_device')
+      expect(probeArgs).toContain('vaapi=accel:/dev/dri/renderD128')
+      expect(probeArgs).toContain('h264_vaapi')
+    })
+
     it('transcodeVideo with hardwareAcceleration off should use libx264, preset fast, crf 23, -bf 0, maxrate, and yuv420p', async () => {
       vi.mocked(execFile).mockImplementation(
         (

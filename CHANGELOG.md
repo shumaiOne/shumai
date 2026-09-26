@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **transcode**: Probe hardware encoder usability at startup and selection time so uninitialized or missing GPU drivers (such as NVENC without CUDA or VA-API without DRI devices) are safely skipped rather than causing transcode failures in automatic hardware acceleration mode
+
 ### Changed
 
 - **transcode**: Improve video poster selection using intelligent scene detection and color variance filtering to automatically skip black frames, fade-ins, and blank intros in favor of representative video content

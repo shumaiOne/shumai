@@ -714,9 +714,11 @@ export class TranscodeService {
   }
 
   private availableEncodersCache: Set<string> | null = null
+  private usableEncodersCache: Map<string, boolean> = new Map()
 
   clearEncodersCache(): void {
     this.availableEncodersCache = null
+    this.usableEncodersCache.clear()
   }
 
   async getAvailableEncoders(): Promise<Set<string>> {
@@ -773,6 +775,74 @@ export class TranscodeService {
     return getVaapiDevice(driDir)
   }
 
+  async isEncoderUsable(encoder: string): Promise<boolean> {
+    const cached = this.usableEncodersCache.get(encoder)
+    if (cached !== undefined) {
+      return cached
+    }
+
+    if (encoder === 'h264_vaapi') {
+      const vaapiDevice = this.getVaapiDevice()
+      if (!vaapiDevice) {
+        this.usableEncodersCache.set(encoder, false)
+        return false
+      }
+      try {
+        await execFileAsync('ffmpeg', [
+          '-loglevel',
+          'error',
+          '-init_hw_device',
+          `vaapi=accel:${vaapiDevice}`,
+          '-filter_hw_device',
+          'accel',
+          '-f',
+          'lavfi',
+          '-i',
+          'color=c=black:s=64x64:d=0.04',
+          '-vf',
+          'format=nv12,hwupload',
+          '-frames:v',
+          '1',
+          '-c:v',
+          'h264_vaapi',
+          '-f',
+          'null',
+          '-',
+        ])
+        this.usableEncodersCache.set(encoder, true)
+        return true
+      } catch (err) {
+        logger.debug({ encoder, err }, 'Encoder failed usability probe')
+        this.usableEncodersCache.set(encoder, false)
+        return false
+      }
+    }
+
+    try {
+      await execFileAsync('ffmpeg', [
+        '-loglevel',
+        'error',
+        '-f',
+        'lavfi',
+        '-i',
+        'color=c=black:s=64x64:d=0.04',
+        '-frames:v',
+        '1',
+        '-c:v',
+        encoder,
+        '-f',
+        'null',
+        '-',
+      ])
+      this.usableEncodersCache.set(encoder, true)
+      return true
+    } catch (err) {
+      logger.debug({ encoder, err }, 'Encoder failed usability probe')
+      this.usableEncodersCache.set(encoder, false)
+      return false
+    }
+  }
+
   async selectH264Encoder(
     hardwareAcceleration?: 'off' | 'auto',
     platform: NodeJS.Platform = process.platform,
@@ -785,7 +855,8 @@ export class TranscodeService {
     const candidates = getPlatformEncoderCandidates(platform)
     for (const enc of candidates) {
       if (available.has(enc) && H264_ENCODER_CONFIGS[enc]) {
-        if (enc === 'h264_vaapi' && !this.getVaapiDevice()) {
+        const usable = await this.isEncoderUsable(enc)
+        if (!usable) {
           continue
         }
         return H264_ENCODER_CONFIGS[enc]
