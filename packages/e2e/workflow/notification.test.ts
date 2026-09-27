@@ -88,10 +88,28 @@ describe.each(['local', 'temporal'] as const)(
         },
       })
 
+      const agentUser = await prisma.user.create({
+        data: {
+          name: 'E2E Agent',
+          email: `agent-${mode}-${Date.now()}@shumai.ai`,
+          type: 'agent',
+          password: 'pw',
+        },
+      })
+      await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: team.id,
+          type: 'chat',
+          config: { provider: 'openai', model: 'gpt-4' },
+        },
+      })
+
       await prisma.teamMember.createMany({
         data: [
           { teamId: team.id, userId: creator.id, role: TeamMemberRole.owner },
           { teamId: team.id, userId: recipient.id, role: TeamMemberRole.editor },
+          { teamId: team.id, userId: agentUser.id, role: TeamMemberRole.reviewer },
         ],
       })
 
@@ -137,10 +155,15 @@ describe.each(['local', 'temporal'] as const)(
       expect(notif?.type).toBe(NotificationType.comment_created)
       expect(notif?.teamId).toBe(team.id)
 
-      // Verify email was sent to recipient
+      // Verify email was sent to recipient and never to agent
+      expect(sendMailSpy).toHaveBeenCalledTimes(1)
       expect(sendMailSpy).toHaveBeenCalledWith(
         expect.objectContaining({ host: 'smtp.e2e.test' }),
         expect.objectContaining({ to: recipient.email }),
+      )
+      expect(sendMailSpy).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ to: agentUser.email }),
       )
     })
   },

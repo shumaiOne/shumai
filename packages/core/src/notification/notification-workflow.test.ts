@@ -214,6 +214,49 @@ describe('Notification Workflow and Activities', () => {
       expect(result.recipientUserIds).toContain(userAllowed.id)
       expect(result.recipientUserIds).not.toContain(userBlocked.id)
     })
+
+    it('excludes AI agents from recipientUserIds', async () => {
+      const team = await prisma.team.create({ data: { name: 'Agent Test Team' } })
+      const creator = await prisma.user.create({
+        data: { name: 'Creator', email: 'creator@agent-test.com', password: 'pw' },
+      })
+      const humanMember = await prisma.user.create({
+        data: { name: 'Human Member', email: 'human@agent-test.com', password: 'pw' },
+      })
+      const agentUser = await prisma.user.create({
+        data: {
+          name: 'AI Agent',
+          email: 'agent-1788510405562-g1lgz8@shumai.ai',
+          type: 'agent',
+          password: 'pw',
+        },
+      })
+      await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: team.id,
+          type: 'chat',
+          config: { provider: 'openai', model: 'gpt-4' },
+        },
+      })
+
+      await prisma.teamMember.createMany({
+        data: [
+          { teamId: team.id, userId: creator.id, role: TeamMemberRole.owner },
+          { teamId: team.id, userId: humanMember.id, role: TeamMemberRole.editor },
+          { teamId: team.id, userId: agentUser.id, role: TeamMemberRole.reviewer },
+        ],
+      })
+
+      const result = await createInSystemNotificationActivity({
+        type: NotificationType.comment_created,
+        teamId: team.id,
+        creatorId: creator.id,
+      })
+
+      expect(result.recipientUserIds).toContain(humanMember.id)
+      expect(result.recipientUserIds).not.toContain(agentUser.id)
+    })
   })
 
   describe('sendEmailNotificationActivity', () => {
@@ -330,6 +373,65 @@ describe('Notification Workflow and Activities', () => {
           recipientUserIds: [u1.id],
         }),
       ).rejects.toThrow('Fatal SMTP authentication failure')
+    })
+
+    it('never sends notification emails to AI agents even if present in recipientUserIds', async () => {
+      const team = await prisma.team.create({
+        data: {
+          name: 'Agent Email Test Team',
+          settings: {
+            emailNotification: {
+              enabled: true,
+              host: 'smtp.agent-test.test',
+              port: 587,
+              from: 'notify@agent-test.test',
+            },
+          },
+        },
+      })
+
+      const humanUser = await prisma.user.create({
+        data: { name: 'Human User', email: 'human@shumai.test', password: 'pw' },
+      })
+      const agentUser = await prisma.user.create({
+        data: {
+          name: 'AI Agent',
+          email: 'agent-1788510405562-g1lgz8@shumai.ai',
+          type: 'agent',
+          password: 'pw',
+        },
+      })
+      await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: team.id,
+          type: 'chat',
+          config: { provider: 'openai', model: 'gpt-4' },
+        },
+      })
+
+      const sendMailSpy = vi
+        .spyOn(emailService, 'sendMail')
+        .mockResolvedValue({ messageId: '<sent-id@shumai.test>' })
+
+      const result = await sendEmailNotificationActivity({
+        payload: {
+          type: NotificationType.comment_created,
+          teamId: team.id,
+        },
+        recipientUserIds: [humanUser.id, agentUser.id],
+      })
+
+      expect(result.sentCount).toBe(1)
+      expect(sendMailSpy).toHaveBeenCalledTimes(1)
+      expect(sendMailSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ to: 'human@shumai.test' }),
+      )
+      expect(sendMailSpy).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ to: 'agent-1788510405562-g1lgz8@shumai.ai' }),
+      )
     })
   })
 

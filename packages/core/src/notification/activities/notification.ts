@@ -169,6 +169,10 @@ export async function createInSystemNotificationActivity(
     const members = await prisma.teamMember.findMany({
       where: {
         teamId: payload.teamId,
+        user: {
+          type: { not: 'agent' },
+          agent: null,
+        },
         ...(payload.creatorId ? { userId: { not: payload.creatorId } } : {}),
       },
       include: {
@@ -252,6 +256,20 @@ export async function createInSystemNotificationActivity(
   // Remove creator if present
   if (payload.creatorId) {
     recipientIds.delete(payload.creatorId)
+  }
+
+  // Exclude AI agents from email recipients
+  if (recipientIds.size > 0) {
+    const agentUsers = await prisma.user.findMany({
+      where: {
+        id: { in: Array.from(recipientIds) },
+        OR: [{ type: 'agent' }, { agent: { isNot: null } }],
+      },
+      select: { id: true },
+    })
+    for (const agent of agentUsers) {
+      recipientIds.delete(agent.id)
+    }
   }
 
   let debounceSeconds = 0
@@ -384,15 +402,19 @@ export async function sendEmailNotificationActivity(
 
   const { subject, html, text } = emailService.renderNotificationEmail(emailContext)
 
-  // Fetch recipient users and their emails
+  // Fetch recipient users and their emails (excluding AI agents)
   const users = await prisma.user.findMany({
     where: {
       id: { in: recipientUserIds },
+      type: { not: 'agent' },
+      agent: null,
     },
     select: {
       id: true,
       email: true,
       name: true,
+      type: true,
+      agent: { select: { id: true } },
     },
   })
 
@@ -400,6 +422,11 @@ export async function sendEmailNotificationActivity(
 
   for (const user of users) {
     if (!user.email) continue
+    if (user.type === 'agent' || user.agent) continue
+    if (user.email.endsWith('@shumai.ai') || user.email.startsWith('agent-')) {
+      logger.debug({ userId: user.id, email: user.email }, 'Skipping notification email to agent')
+      continue
+    }
     try {
       await emailService.sendMail(emailSettings, {
         to: user.email,

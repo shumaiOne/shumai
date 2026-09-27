@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **notification**: Prevent sending notification emails to AI agents and exclude agent accounts from notification recipient lists
+
 ### Changed
 
 - **transcode**: Improve video poster selection using intelligent scene detection and color variance filtering to automatically skip black frames, fade-ins, and blank intros in favor of representative video content
