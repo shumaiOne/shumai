@@ -6,7 +6,6 @@ import * as wf from '@temporalio/workflow'
  */
 export const TaskQueueAgent = 'agent_queue'
 export const TaskQueueTranscode = 'transcode_queue'
-export const TaskQueueNotification = 'notification_queue'
 
 /**
  * Detects if the current execution is within a Temporal Workflow isolate.

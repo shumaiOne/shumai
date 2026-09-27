@@ -1,4 +1,4 @@
-import { prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
+import { prisma } from '@shumai/db'
 import type { Prisma } from '@shumai/db'
 import { NotificationType } from '@shumai/db'
 import {
@@ -39,7 +39,7 @@ export class NotificationService {
     const promises: Promise<void>[] = []
     for (const recipientId of recipients) {
       promises.push(
-        this.create({
+        this.createAsync({
           type: params.type,
           teamId: params.teamId,
           projectId: params.projectId ?? undefined,
@@ -67,7 +67,7 @@ export class NotificationService {
           }
 
           promises.push(
-            this.create({
+            this.createAsync({
               type: NotificationType.mention,
               teamId: params.teamId,
               projectId: params.projectId ?? undefined,
@@ -84,23 +84,10 @@ export class NotificationService {
   }
 
   async create(req: CreateNotificationRequest) {
-    try {
-      await prisma.workflowTask.create({
-        data: {
-          type: WorkflowTaskType.notification,
-          status: WorkflowTaskStatus.pending,
-          teamId: req.teamId,
-          projectId: req.projectId,
-          assetId: req.assetId ?? '',
-          payload: {
-            projectId: req.projectId || '',
-            notification: req,
-          },
-        },
-      })
-    } catch (err) {
-      console.error('Failed to create notification workflow task:', err)
-    }
+    // Note: Do not await this, we fire and forget similarly to Go
+    this.createAsync(req).catch((err) => {
+      console.error('Failed to create notification asynchronously:', err)
+    })
   }
 
   private async createAsync(req: CreateNotificationRequest) {

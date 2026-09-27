@@ -1,17 +1,12 @@
-import { describe, expect, it, beforeEach } from 'vitest'
-import { prisma, NotificationType, WorkflowTaskType } from '@shumai/db'
+import { describe, expect, it } from 'vitest'
+import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
+import { NotificationType } from '@shumai/db'
 import { notificationService } from './notification'
-import { initNotificationWorkflows } from './index'
-import { workflowService } from '@shumai/workflow-core'
 import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
 
 describe('NotificationService', () => {
   setupTestDbHooks()
-
-  beforeEach(() => {
-    initNotificationWorkflows()
-  })
 
   it('Create basic notification', async () => {
     const tm = await prisma.team.create({ data: { name: 'Team 1' } })
@@ -471,13 +466,6 @@ describe('NotificationService', () => {
       stakeholderIds: [u1.id, u2.id],
       commentMessage: `Hey <@${u3.id}> please check this`,
     })
-
-    const tasks = await prisma.workflowTask.findMany({
-      where: { type: WorkflowTaskType.notification },
-    })
-    for (const t of tasks) {
-      await workflowService.executeWait(t)
-    }
 
     const notifications = await prisma.notification.findMany({
       where: { kanbanTaskId: task.id },

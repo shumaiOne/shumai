@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { workflowService } from './workflow'
-import { TaskQueueAgent, TaskQueueTranscode, TaskQueueNotification } from './workflow-utils'
+import { TaskQueueAgent, TaskQueueTranscode } from './workflow-utils'
 
 const mockCreate = vi.fn().mockResolvedValue({
   run: vi.fn().mockResolvedValue(undefined),
@@ -109,13 +109,5 @@ describe('WorkflowService Temporal Workers Concurrency Control', () => {
 
     const agentSpecificWorkerOptions = mockCreate.mock.calls[1][0]
     expect(agentSpecificWorkerOptions.maxConcurrentActivityTaskExecutions).toBe(5)
-  })
-
-  it('should start a single worker for TaskQueueNotification', async () => {
-    await workflowService.startWorkers(TaskQueueNotification, {
-      workflowsPath: '/path/to/workflows',
-    })
-    expect(mockCreate).toHaveBeenCalledTimes(1)
-    expect(mockCreate.mock.calls[0][0].taskQueue).toBe(TaskQueueNotification)
   })
 })

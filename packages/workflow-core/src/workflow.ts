@@ -5,12 +5,7 @@ import * as taskActivities from './activities/task'
 import { Executor } from './executor'
 import { LocalExecutor } from './local-executor'
 import { TemporalExecutor } from './temporal-executor'
-import {
-  TaskQueueAgent,
-  TaskQueueTranscode,
-  TaskQueueNotification,
-  getConcurrencyLimit,
-} from './workflow-utils'
+import { TaskQueueAgent, TaskQueueTranscode, getConcurrencyLimit } from './workflow-utils'
 
 import type { Worker } from '@temporalio/worker'
 
@@ -101,45 +96,6 @@ export class WorkflowService {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const activities = (globalThis as any).__localActivities
 
-      const { workflowBundle, workflowsPath } = options
-
-      if (queue === TaskQueueNotification) {
-        console.log(`Starting Temporal worker for domain: ${queue}`)
-        let wfPath = workflowsPath
-        if (!workflowBundle && !wfPath) {
-          try {
-            wfPath = require.resolve('@shumai/core/src/notification/workflows/notification')
-          } catch {
-            // In test environments or when resolved dynamically
-          }
-        }
-        const notificationWorker = await Worker.create({
-          connection,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ...(workflowBundle ? { workflowBundle: workflowBundle as any } : {}),
-          ...(wfPath ? { workflowsPath: wfPath } : {}),
-          activities: { ...activities, ...taskActivities },
-          taskQueue: queue,
-          bundlerOptions: {
-            webpackConfigHook: (config) => {
-              config.resolve = config.resolve || {}
-              config.resolve.alias = {
-                ...config.resolve.alias,
-                // Find the exact absolute path to the package directory
-                '@temporalio/workflow': path.dirname(
-                  require.resolve('@temporalio/workflow/package.json'),
-                ),
-                '@shumai/workflow-core': require.resolve('./workflow-utils'),
-              }
-              return config
-            },
-          },
-        })
-        this.activeWorkers.push(notificationWorker)
-        await notificationWorker.run()
-        return
-      }
-
       // For agent_queue and transcode_queue, use worker-specific unique queues
       const workerId = ulid()
       const workerSpecificQueue = `${queue}-${workerId}`
@@ -155,6 +111,8 @@ export class WorkflowService {
       } else if (queue === 'transcode_queue') {
         sharedActivities.getTranscodeWorkerQueueActivity = async () => workerSpecificQueue
       }
+
+      const { workflowBundle, workflowsPath } = options
 
       const sharedWorker = await Worker.create({
         connection,

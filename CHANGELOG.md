@@ -9,17 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **webui**: Add team email notification settings page with SMTP configuration and test email dialog
-- **notification**: Add email notification support via SMTP with team-level configuration and test email capabilities
+- **notification**: Add email notification infrastructure with team-level SMTP configuration, test email delivery, and rich HTML templates
 - **transcode**: Add VA-API hardware acceleration support for Linux hosts and Docker environments with Intel and AMD GPUs, featuring automatic DRI render node discovery, variable bitrate control, and structured transcoding observability logs
 - **docker**: Add modular hardware-accelerated transcoding presets matching Immich's compose configuration via `hwaccel.transcoding.yaml` with support for NVENC, QuickSync, RKMPP, and VA-API
 
-### Fixed
-
-- **notification**: Prevent sending notification emails to AI agents and exclude agent accounts from notification recipient lists
-
 ### Changed
 
-- **notification**: Improve notification emails by displaying the project name, uploader profile avatar, and upload time for asset uploads, and resolving user mentions to member names instead of raw IDs in comment notifications
 - **transcode**: Improve video poster selection using intelligent scene detection and color variance filtering to automatically skip black frames, fade-ins, and blank intros in favor of representative video content
 - **transcode**: Optimize video sprite generation for large and long videos using a concurrent fast-seek pool and image compositing, avoiding full-video decoding while preserving instant single-pass generation for short clips
 

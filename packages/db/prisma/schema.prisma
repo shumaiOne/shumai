@@ -119,7 +119,6 @@ enum WorkflowTaskType {
   query_embedding_for_search
   agent_tool_call // @deprecated: Agent tools now execute directly in-process via Core services
   kanban_agent_run
-  notification
 }
 
 enum WorkflowTaskStatus {
@@ -819,7 +818,7 @@ model WorkflowTask {
   uid           String             @default(uuid()) @db.Uuid
   teamId        String?            @map("team_id")
   projectId     String?            @map("project_id")
-  assetId       String             @default("") @map("asset_id")
+  assetId       String             @map("asset_id")
   type          WorkflowTaskType?
   status        WorkflowTaskStatus?
   /// [WorkflowTaskPayload]

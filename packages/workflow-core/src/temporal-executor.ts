@@ -2,7 +2,7 @@ import { Connection, Client } from '@temporalio/client'
 import { prisma, WorkflowTask, WorkflowTaskType } from '@shumai/db'
 import { logger } from '@shumai/core/src/logger'
 import { Executor } from './executor'
-import { TaskQueueAgent, TaskQueueTranscode, TaskQueueNotification } from './workflow-utils'
+import { TaskQueueAgent, TaskQueueTranscode } from './workflow-utils'
 
 export class TemporalExecutor implements Executor {
   private client: Client | null = null
@@ -65,10 +65,6 @@ export class TemporalExecutor implements Executor {
       case WorkflowTaskType.transcode_watermark:
         workflowName = 'transcodeWatermarkWorkflow'
         taskQueue = TaskQueueTranscode
-        break
-      case WorkflowTaskType.notification:
-        workflowName = 'notificationWorkflow'
-        taskQueue = TaskQueueNotification
         break
       default:
         throw new Error(`Unknown task type: ${task.type}`)

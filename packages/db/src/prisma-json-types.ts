@@ -318,20 +318,8 @@ declare global {
       annotations?: AnnotationList | null
     }
 
-    export interface NotificationTaskPayload {
-      type: import('@shumai/db').NotificationType
-      teamId: string
-      projectId?: string
-      creatorId?: string
-      assetId?: string
-      taskId?: string
-      kanbanTaskId?: string
-      userId?: string
-      commentMessage?: string
-    }
-
     export interface WorkflowTaskPayload {
-      projectId?: string
+      projectId: string
       transcode?: TaskSpec
       agent?: AgentTaskPayload
       queryEmbeddingForSearch?: {
@@ -341,7 +329,6 @@ declare global {
       imageAnnotation?: ImageAnnotationSpec
       pdfPages?: PdfPagesSpec
       watermark?: WatermarkTaskPayload
-      notification?: NotificationTaskPayload
     }
 
     // ----------------------------------------------------------------------
