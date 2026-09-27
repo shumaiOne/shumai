@@ -105,15 +105,17 @@ const route = new Hono<{ Variables: { user: User } }>()
       await uploadService.confirmFileUpload(user.id, taskId, req)
 
       if (!req.errorMessage) {
+        const context = await assetService.getAssetContext(req.fileId)
+
         await notificationService.create({
           type: NotificationType.successful_file_uploaded,
           teamId: teamId,
+          projectId: context.projectId,
           creatorId: user.id,
           assetId: req.fileId,
           taskId: taskId,
         })
 
-        const context = await assetService.getAssetContext(req.fileId)
         await auditLogService.logAction({
           action: AuditAction.file_create,
           teamId: teamId,

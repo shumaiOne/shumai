@@ -14,6 +14,7 @@ export interface SendMailOptions {
 export interface NotificationEmailContext {
   type: NotificationType
   creatorName: string
+  creatorAvatarUrl?: string
   teamName: string
   teamId: string
   projectName?: string
@@ -23,8 +24,10 @@ export interface NotificationEmailContext {
   kanbanTaskTitle?: string
   kanbanTaskId?: string
   commentMessage?: string
+  mentionedUserNames?: Record<string, string>
   fileCount?: number
   fileNames?: string[]
+  uploadTime?: string | Date
 }
 
 export const DEFAULT_EMAIL_SETTINGS: EmailNotificationSettings = {
@@ -294,46 +297,65 @@ Sent from Shumai at ${baseUrl}
     let detail = ''
 
     const actor = ctx.creatorName || 'Someone'
+    const actorInitial = (actor.trim()[0] || 'U').toUpperCase()
+    const formattedUploadTime = formatUploadTime(ctx.uploadTime)
+
+    let commentMessage = ctx.commentMessage
+    if (commentMessage) {
+      commentMessage = commentMessage.replace(/<@([^>]+)>/g, (match, uid) => {
+        const name = ctx.mentionedUserNames?.[uid]
+        return name ? `@${name}` : `@${uid}`
+      })
+    }
 
     switch (ctx.type) {
       case NotificationType.comment_created: {
         const target = ctx.assetName ? `"${ctx.assetName}"` : 'an asset'
         subject = `[Shumai] ${actor} commented on ${target}`
         headline = `${actor} left a comment`
-        detail = ctx.commentMessage ? `"${ctx.commentMessage}"` : `New comment on ${target}`
+        detail = commentMessage ? `"${commentMessage}"` : `New comment on ${target}`
         break
       }
       case NotificationType.reply_created: {
         const target = ctx.assetName ? `"${ctx.assetName}"` : 'an asset'
         subject = `[Shumai] ${actor} replied to your comment on ${target}`
         headline = `${actor} replied to your comment`
-        detail = ctx.commentMessage ? `"${ctx.commentMessage}"` : `Reply on ${target}`
+        detail = commentMessage ? `"${commentMessage}"` : `Reply on ${target}`
         break
       }
       case NotificationType.mention: {
         subject = `[Shumai] ${actor} mentioned you`
         headline = `${actor} mentioned you`
-        detail = ctx.commentMessage ? `"${ctx.commentMessage}"` : 'You were mentioned in a comment'
+        detail = commentMessage ? `"${commentMessage}"` : 'You were mentioned in a comment'
         break
       }
       case NotificationType.successful_file_uploaded: {
+        const target = ctx.assetName ? `"${ctx.assetName}"` : 'a file'
+        const projectInfo = ctx.projectName ? ` to ${ctx.projectName}` : ''
         if (ctx.fileCount && ctx.fileCount > 1) {
-          const projectInfo = ctx.projectName ? ` to ${ctx.projectName}` : ''
           subject = `[Shumai] ${actor} uploaded ${ctx.fileCount} files${projectInfo}`
           headline = `${actor} uploaded ${ctx.fileCount} new files${projectInfo}`
+          let filesSummary: string
           if (ctx.fileNames && ctx.fileNames.length > 0) {
             const previewList = ctx.fileNames.slice(0, 3).join(', ')
             const remaining = ctx.fileNames.length - 3
-            detail = remaining > 0 ? `${previewList}, and ${remaining} more` : previewList
+            filesSummary = remaining > 0 ? `${previewList}, and ${remaining} more` : previewList
           } else {
-            detail = `${ctx.fileCount} new files were uploaded`
+            filesSummary = `${ctx.fileCount} new files were uploaded`
           }
+          const details: string[] = []
+          if (ctx.projectName) details.push(`Project: ${ctx.projectName}`)
+          if (formattedUploadTime) details.push(`Uploaded at: ${formattedUploadTime}`)
+          details.push(`Files: ${filesSummary}`)
+          detail = details.join('\n')
         } else {
-          const target = ctx.assetName ? `"${ctx.assetName}"` : 'a file'
-          const projectInfo = ctx.projectName ? ` to ${ctx.projectName}` : ''
           subject = `[Shumai] ${actor} uploaded ${target}${projectInfo}`
           headline = `${actor} uploaded ${target}${projectInfo}`
-          detail = `New asset uploaded to ${ctx.projectName || ctx.teamName}`
+          const details: string[] = []
+          if (ctx.assetName) details.push(`Asset: ${ctx.assetName}`)
+          if (ctx.projectName) details.push(`Project: ${ctx.projectName}`)
+          if (formattedUploadTime) details.push(`Uploaded at: ${formattedUploadTime}`)
+          detail = details.join('\n')
         }
         break
       }
@@ -361,7 +383,7 @@ Sent from Shumai at ${baseUrl}
         const task = ctx.kanbanTaskTitle ? `"${ctx.kanbanTaskTitle}"` : 'a task'
         subject = `[Shumai] ${actor} created task ${task}`
         headline = `${actor} created task ${task}`
-        detail = ctx.commentMessage || `Task ${task} was created`
+        detail = commentMessage || `Task ${task} was created`
         break
       }
       case NotificationType.kanban_task_assigned: {
@@ -375,14 +397,14 @@ Sent from Shumai at ${baseUrl}
         const task = ctx.kanbanTaskTitle ? `"${ctx.kanbanTaskTitle}"` : 'a task'
         subject = `[Shumai] ${actor} updated status of task ${task}`
         headline = `${actor} updated status of ${task}`
-        detail = ctx.commentMessage || `Status changed for ${task}`
+        detail = commentMessage || `Status changed for ${task}`
         break
       }
       case NotificationType.kanban_task_updated: {
         const task = ctx.kanbanTaskTitle ? `"${ctx.kanbanTaskTitle}"` : 'a task'
         subject = `[Shumai] ${actor} updated task ${task}`
         headline = `${actor} updated task ${task}`
-        detail = ctx.commentMessage || `Task ${task} was updated`
+        detail = commentMessage || `Task ${task} was updated`
         break
       }
       case NotificationType.kanban_task_deleted: {
@@ -396,10 +418,14 @@ Sent from Shumai at ${baseUrl}
         const task = ctx.kanbanTaskTitle ? `"${ctx.kanbanTaskTitle}"` : 'a task'
         subject = `[Shumai] ${actor} commented on task ${task}`
         headline = `${actor} commented on task ${task}`
-        detail = ctx.commentMessage ? `"${ctx.commentMessage}"` : `New comment on ${task}`
+        detail = commentMessage ? `"${commentMessage}"` : `New comment on ${task}`
         break
       }
     }
+
+    const avatarHtml = ctx.creatorAvatarUrl
+      ? `<img src="${escapeHtml(ctx.creatorAvatarUrl)}" alt="${escapeHtml(actor)}" width="36" height="36" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; display: block; border: 1px solid #e5e7eb;" />`
+      : `<table cellpadding="0" cellspacing="0" border="0" style="width: 36px; height: 36px; border-radius: 50%; background-color: #4f46e5; text-align: center;"><tr><td style="color: #ffffff; font-weight: 600; font-size: 14px; text-align: center; vertical-align: middle;">${escapeHtml(actorInitial)}</td></tr></table>`
 
     const html = `
 <!DOCTYPE html>
@@ -412,13 +438,24 @@ Sent from Shumai at ${baseUrl}
     .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; border: 1px solid #e5e7eb; padding: 32px; }
     .header { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: #111827; }
     .content { font-size: 14px; line-height: 1.6; color: #374151; margin-bottom: 24px; }
-    .detail-box { background-color: #f3f4f6; border-left: 4px solid #4f46e5; padding: 12px 16px; border-radius: 4px; margin: 16px 0; font-size: 14px; color: #1f2937; }
+    .detail-box { background-color: #f3f4f6; border-left: 4px solid #4f46e5; padding: 12px 16px; border-radius: 4px; margin: 16px 0; font-size: 14px; color: #1f2937; white-space: pre-wrap; }
     .btn { display: inline-block; background-color: #4f46e5; color: #ffffff !important; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500; margin-top: 12px; }
     .footer { font-size: 12px; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 16px; margin-top: 24px; }
   </style>
 </head>
 <body>
   <div class="container">
+    <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 16px;">
+      <tr>
+        <td style="vertical-align: middle; padding-right: 12px; width: 36px;">
+          ${avatarHtml}
+        </td>
+        <td style="vertical-align: middle;">
+          <div style="font-weight: 600; font-size: 15px; color: #111827; line-height: 1.2;">${escapeHtml(actor)}</div>
+          ${formattedUploadTime ? `<div style="font-size: 12px; color: #6b7280; margin-top: 2px;">Uploaded at ${escapeHtml(formattedUploadTime)}</div>` : ''}
+        </td>
+      </tr>
+    </table>
     <div class="header">${escapeHtml(headline)}</div>
     <div class="content">
       ${detail ? `<div class="detail-box">${escapeHtml(detail)}</div>` : ''}
@@ -436,7 +473,7 @@ Sent from Shumai at ${baseUrl}
 ${subject}
 
 ${headline}
-${detail ? `\n${detail}\n` : ''}
+${formattedUploadTime ? `Uploaded at: ${formattedUploadTime}\n` : ''}${detail ? `\n${detail}\n` : ''}
 ${actionText}: ${actionUrl}
 
 Team: ${ctx.teamName}
@@ -444,6 +481,39 @@ Team: ${ctx.teamName}
 
     return { subject, html, text }
   }
+}
+
+function formatUploadTime(time: string | Date | undefined): string | undefined {
+  if (!time) return undefined
+  if (time instanceof Date) {
+    if (isNaN(time.getTime())) return undefined
+    return (
+      new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'UTC',
+      }).format(time) + ' UTC'
+    )
+  }
+  const parsed = new Date(time)
+  if (!isNaN(parsed.getTime())) {
+    return (
+      new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'UTC',
+      }).format(parsed) + ' UTC'
+    )
+  }
+  return time
 }
 
 function escapeHtml(str: string): string {

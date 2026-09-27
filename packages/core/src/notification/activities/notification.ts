@@ -5,6 +5,7 @@ import type { NotificationSettings } from '@shumai/dtos'
 import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
 import { emailService } from '../email'
 import { logger } from '@shumai/core/src/logger'
+import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 
 const mentionRegex = /<@([^>]+)>/g
 
@@ -333,7 +334,7 @@ export async function sendEmailNotificationActivity(
     payload.creatorId
       ? prisma.user.findUnique({
           where: { id: payload.creatorId },
-          select: { id: true, name: true },
+          select: { id: true, name: true, image: true },
         })
       : null,
     payload.projectId
@@ -345,7 +346,13 @@ export async function sendEmailNotificationActivity(
     payload.assetId
       ? prisma.asset.findUnique({
           where: { id: payload.assetId },
-          select: { id: true, name: true },
+          select: {
+            id: true,
+            name: true,
+            projectId: true,
+            createdAt: true,
+            project: { select: { id: true, name: true } },
+          },
         })
       : null,
     payload.kanbanTaskId
@@ -356,20 +363,48 @@ export async function sendEmailNotificationActivity(
       : null,
   ])
 
+  const resolvedProject = project || asset?.project || null
+  const resolvedProjectId = payload.projectId || asset?.projectId || undefined
+
+  let creatorAvatarUrl: string | undefined
+  if (creator?.image) {
+    try {
+      creatorAvatarUrl = await getAvatarUrl(creator.image)
+    } catch {
+      creatorAvatarUrl = undefined
+    }
+  }
+
+  // Resolve user mentions in commentMessage
+  const mentionedUserNames: Record<string, string> = {}
+  if (payload.commentMessage) {
+    const matches = [...payload.commentMessage.matchAll(mentionRegex)]
+    const userIds = Array.from(new Set(matches.map((m) => m[1]).filter(Boolean)))
+    if (userIds.length > 0) {
+      const users = await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, name: true },
+      })
+      for (const u of users) {
+        if (u.name) mentionedUserNames[u.id] = u.name
+      }
+    }
+  }
+
   let fileCount: number | undefined
   let fileNames: string[] | undefined
 
   // For bulk file uploads, check recent uploads within debounce window
   if (
     payload.type === NotificationType.successful_file_uploaded &&
-    payload.projectId &&
+    resolvedProjectId &&
     emailSettings.uploadDebounceSeconds &&
     emailSettings.uploadDebounceSeconds > 0
   ) {
     const windowStart = new Date(Date.now() - emailSettings.uploadDebounceSeconds * 1000)
     const recentAssets = await prisma.asset.findMany({
       where: {
-        projectId: payload.projectId,
+        projectId: resolvedProjectId,
         ...(payload.creatorId ? { creatorId: payload.creatorId } : {}),
         createdAt: { gte: windowStart },
       },
@@ -387,17 +422,22 @@ export async function sendEmailNotificationActivity(
   const emailContext = {
     type: payload.type,
     creatorName: creator?.name || 'Someone',
+    creatorAvatarUrl,
     teamName: team?.name || 'Team',
     teamId: payload.teamId,
-    projectName: project?.name,
-    projectId: payload.projectId,
+    projectName: resolvedProject?.name,
+    projectId: resolvedProjectId,
     assetName: asset?.name,
     assetId: payload.assetId,
     kanbanTaskTitle: kanbanTask?.title,
     kanbanTaskId: payload.kanbanTaskId,
     commentMessage: payload.commentMessage,
+    mentionedUserNames,
     fileCount,
     fileNames,
+    uploadTime:
+      asset?.createdAt ||
+      (payload.type === NotificationType.successful_file_uploaded ? new Date() : undefined),
   }
 
   const { subject, html, text } = emailService.renderNotificationEmail(emailContext)

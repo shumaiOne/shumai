@@ -433,6 +433,136 @@ describe('Notification Workflow and Activities', () => {
         expect.objectContaining({ to: 'agent-1788510405562-g1lgz8@shumai.ai' }),
       )
     })
+
+    it('resolves mentioned user names in comment email instead of raw ID', async () => {
+      const team = await prisma.team.create({
+        data: {
+          name: 'Mention Resolution Team',
+          settings: {
+            emailNotification: {
+              enabled: true,
+              host: 'smtp.mention.test',
+              port: 587,
+              from: 'notify@mention.test',
+            },
+          },
+        },
+      })
+
+      const commenter = await prisma.user.create({
+        data: { name: 'Bob', email: 'bob@shumai.test', password: 'pw' },
+      })
+      const mentionedUser = await prisma.user.create({
+        data: { name: 'Alice Smith', email: 'alice@shumai.test', password: 'pw' },
+      })
+      const recipient = await prisma.user.create({
+        data: { name: 'Recipient', email: 'recipient@shumai.test', password: 'pw' },
+      })
+
+      const sendMailSpy = vi
+        .spyOn(emailService, 'sendMail')
+        .mockResolvedValue({ messageId: '<sent@shumai.test>' })
+
+      await sendEmailNotificationActivity({
+        payload: {
+          type: NotificationType.comment_created,
+          teamId: team.id,
+          creatorId: commenter.id,
+          commentMessage: `Hello <@${mentionedUser.id}>, nice work!`,
+        },
+        recipientUserIds: [recipient.id],
+      })
+
+      expect(sendMailSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          html: expect.stringContaining('@Alice Smith, nice work!'),
+          text: expect.stringContaining('@Alice Smith, nice work!'),
+        }),
+      )
+      expect(sendMailSpy).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          html: expect.stringContaining(`<@${mentionedUser.id}>`),
+        }),
+      )
+    })
+
+    it('resolves project name, creator profile image, and upload time for file upload email', async () => {
+      const team = await prisma.team.create({
+        data: {
+          name: 'Upload Info Team',
+          settings: {
+            emailNotification: {
+              enabled: true,
+              host: 'smtp.upload.test',
+              port: 587,
+              from: 'notify@upload.test',
+            },
+          },
+        },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'Marketing Campaign', teamId: team.id },
+      })
+
+      const uploader = await prisma.user.create({
+        data: {
+          name: 'Charlie',
+          email: 'charlie@shumai.test',
+          image: 'https://cdn.example.com/charlie.png',
+          password: 'pw',
+        },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: { key: 'test/upload/charlie-asset.mp4' },
+      })
+
+      const uploadDate = new Date('2026-09-27T10:00:00Z')
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'promo.mp4',
+          type: AssetType.file,
+          mediaType: 'video',
+          status: AssetStatus.processed,
+          projectId: project.id,
+          creatorId: uploader.id,
+          storageKeyId: storageKey.id,
+          createdAt: uploadDate,
+        },
+      })
+
+      const recipient = await prisma.user.create({
+        data: { name: 'Viewer', email: 'viewer@shumai.test', password: 'pw' },
+      })
+
+      const sendMailSpy = vi
+        .spyOn(emailService, 'sendMail')
+        .mockResolvedValue({ messageId: '<sent@shumai.test>' })
+
+      // Note payload.projectId is omitted to verify it resolves from asset.projectId
+      await sendEmailNotificationActivity({
+        payload: {
+          type: NotificationType.successful_file_uploaded,
+          teamId: team.id,
+          creatorId: uploader.id,
+          assetId: asset.id,
+        },
+        recipientUserIds: [recipient.id],
+      })
+
+      expect(sendMailSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          subject: expect.stringContaining('Marketing Campaign'),
+          html: expect.stringMatching(
+            /Marketing Campaign.*https:\/\/cdn\.example\.com\/charlie\.png/s,
+          ),
+        }),
+      )
+    })
   })
 
   describe('notificationWorkflow', () => {

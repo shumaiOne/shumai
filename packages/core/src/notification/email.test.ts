@@ -298,6 +298,51 @@ describe('EmailService', () => {
       expect(rendered.html).toContain('Take a look at this')
     })
 
+    it('replaces user mentions with user names instead of user ID in comment emails', () => {
+      const rendered = emailService.renderNotificationEmail({
+        type: NotificationType.comment_created,
+        creatorName: 'Bob',
+        teamName: 'Designers',
+        teamId: 'team-1',
+        projectId: 'proj-1',
+        assetId: 'asset-1',
+        assetName: 'logo.png',
+        commentMessage: '<@kUFrm1W4fKLCaLpw2XQP1OPe0gKACJpy> nice',
+        mentionedUserNames: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          kUFrm1W4fKLCaLpw2XQP1OPe0gKACJpy: 'Alice',
+        },
+      })
+
+      expect(rendered.html).toContain('@Alice nice')
+      expect(rendered.html).not.toContain('<@kUFrm1W4fKLCaLpw2XQP1OPe0gKACJpy>')
+      expect(rendered.text).toContain('@Alice nice')
+      expect(rendered.text).not.toContain('<@kUFrm1W4fKLCaLpw2XQP1OPe0gKACJpy>')
+    })
+
+    it('renders asset upload notification with project name, creator profile image, and upload time', () => {
+      const rendered = emailService.renderNotificationEmail({
+        type: NotificationType.successful_file_uploaded,
+        creatorName: 'Charlie',
+        creatorAvatarUrl: 'https://example.com/avatar.jpg',
+        teamName: 'Media',
+        teamId: 'team-3',
+        projectName: 'Marketing Campaign',
+        projectId: 'proj-3',
+        assetId: 'asset-3',
+        assetName: 'video.mp4',
+        fileCount: 1,
+        uploadTime: new Date('2026-09-27T15:20:00Z'),
+      })
+
+      expect(rendered.subject).toContain('Charlie uploaded "video.mp4" to Marketing Campaign')
+      expect(rendered.html).toContain('Marketing Campaign')
+      expect(rendered.html).toContain('https://example.com/avatar.jpg')
+      expect(rendered.html).toContain('Sep 27, 2026')
+      expect(rendered.text).toContain('Marketing Campaign')
+      expect(rendered.text).toContain('Sep 27, 2026')
+    })
+
     it('renders single file uploaded notification', () => {
       const rendered = emailService.renderNotificationEmail({
         type: NotificationType.successful_file_uploaded,
