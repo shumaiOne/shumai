@@ -417,4 +417,157 @@ describe('EmailService', () => {
       expect(status.html).toContain('Moved to In Progress')
     })
   })
+
+  describe('renderBatchedNotificationEmail', () => {
+    it('renders single notification with specific subject and detailed row', () => {
+      const rendered = emailService.renderBatchedNotificationEmail({
+        teamId: 'team-1',
+        teamName: 'Designers',
+        recipientName: 'Bob',
+        items: [
+          {
+            id: 'n-1',
+            type: NotificationType.successful_file_uploaded,
+            creatorName: 'Alice',
+            creatorAvatarUrl: 'https://example.com/alice.png',
+            teamId: 'team-1',
+            teamName: 'Designers',
+            projectId: 'p-1',
+            projectName: 'Website Redesign',
+            assetId: 'a-1',
+            assetName: 'hero.png',
+            assetThumbnailUrl: 'https://example.com/hero-thumb.png',
+            createdAt: new Date('2026-09-27T10:00:00Z'),
+          },
+        ],
+      })
+
+      expect(rendered.subject).toBe('[Shumai] Alice uploaded "hero.png" to Website Redesign')
+      expect(rendered.html).toContain('Alice')
+      expect(rendered.html).toContain('Uploaded &quot;hero.png&quot; to Website Redesign')
+      expect(rendered.html).toContain('https://example.com/hero-thumb.png')
+      expect(rendered.html).toContain('https://example.com/alice.png')
+      expect(rendered.text).toContain('Alice: Uploaded "hero.png" to Website Redesign')
+    })
+
+    it('renders detailed rows with thumbnail when event count <= 3', () => {
+      const rendered = emailService.renderBatchedNotificationEmail({
+        teamId: 'team-1',
+        teamName: 'Designers',
+        recipientName: 'Bob',
+        items: [
+          {
+            id: 'n-1',
+            type: NotificationType.successful_file_uploaded,
+            creatorName: 'Alice',
+            teamId: 'team-1',
+            teamName: 'Designers',
+            projectId: 'p-1',
+            projectName: 'Website Redesign',
+            assetId: 'a-1',
+            assetName: 'img1.png',
+            assetThumbnailUrl: 'https://example.com/img1.png',
+            createdAt: new Date('2026-09-27T10:00:00Z'),
+          },
+          {
+            id: 'n-2',
+            type: NotificationType.successful_file_uploaded,
+            creatorName: 'Alice',
+            teamId: 'team-1',
+            teamName: 'Designers',
+            projectId: 'p-1',
+            projectName: 'Website Redesign',
+            assetId: 'a-2',
+            assetName: 'img2.png',
+            createdAt: new Date('2026-09-27T10:01:00Z'),
+          },
+        ],
+      })
+
+      expect(rendered.subject).toBe('[Shumai] 2 new notifications in Designers')
+      expect(rendered.html).toContain('img1.png')
+      expect(rendered.html).toContain('img2.png')
+      // img1 has thumbnail, img2 does not
+      expect(rendered.html).toContain('https://example.com/img1.png')
+      expect(rendered.text).toContain('img1.png')
+      expect(rendered.text).toContain('img2.png')
+    })
+
+    it('collapses events into one summary row and omits thumbnails when count > 3', () => {
+      const items = Array.from({ length: 5 }, (_, i) => ({
+        id: `n-${i}`,
+        type: NotificationType.successful_file_uploaded,
+        creatorName: 'Alice',
+        creatorAvatarUrl: 'https://example.com/alice.png',
+        teamId: 'team-1',
+        teamName: 'Designers',
+        projectId: 'p-1',
+        projectName: 'Website Redesign',
+        assetId: `a-${i}`,
+        assetName: `photo_${i}.png`,
+        assetThumbnailUrl: `https://example.com/thumb_${i}.png`,
+        createdAt: new Date(`2026-09-27T10:0${i}:00Z`),
+      }))
+
+      const rendered = emailService.renderBatchedNotificationEmail({
+        teamId: 'team-1',
+        teamName: 'Designers',
+        recipientName: 'Bob',
+        items,
+      })
+
+      expect(rendered.subject).toBe('[Shumai] 5 new notifications in Designers')
+      expect(rendered.html).toContain('Alice uploaded 5 assets to Website Redesign')
+      // Thumbnails must be omitted for collapsed groups (> 3)
+      expect(rendered.html).not.toContain('https://example.com/thumb_')
+      expect(rendered.text).toContain('Alice uploaded 5 assets to Website Redesign')
+    })
+
+    it('batches mixed events in 1 email, collapsing groups > 3 while showing <= 3 in detail', () => {
+      // 4 comments by UserB in Project Alpha (> 3)
+      const commentItems = Array.from({ length: 4 }, (_, i) => ({
+        id: `c-${i}`,
+        type: NotificationType.comment_created,
+        creatorName: 'UserB',
+        teamId: 'team-1',
+        teamName: 'Designers',
+        projectId: 'p-1',
+        projectName: 'Project Alpha',
+        assetId: `a-${i}`,
+        assetName: `asset_${i}`,
+        commentMessage: `Comment number ${i}`,
+        createdAt: new Date(`2026-09-27T11:0${i}:00Z`),
+      }))
+
+      // 1 upload by UserC in Project Alpha (<= 3)
+      const uploadItem = {
+        id: 'u-1',
+        type: NotificationType.successful_file_uploaded,
+        creatorName: 'UserC',
+        teamId: 'team-1',
+        teamName: 'Designers',
+        projectId: 'p-1',
+        projectName: 'Project Alpha',
+        assetId: 'a-upload',
+        assetName: 'diagram.png',
+        assetThumbnailUrl: 'https://example.com/diagram.png',
+        createdAt: new Date('2026-09-27T11:05:00Z'),
+      }
+
+      const rendered = emailService.renderBatchedNotificationEmail({
+        teamId: 'team-1',
+        teamName: 'Designers',
+        recipientName: 'Alice',
+        items: [...commentItems, uploadItem],
+      })
+
+      expect(rendered.subject).toBe('[Shumai] 5 new notifications in Designers')
+      // Collapsed comment group
+      expect(rendered.html).toContain('UserB left 4 comments in Project Alpha')
+      // Detailed upload item with thumbnail
+      expect(rendered.html).toContain('UserC')
+      expect(rendered.html).toContain('diagram.png')
+      expect(rendered.html).toContain('https://example.com/diagram.png')
+    })
+  })
 })

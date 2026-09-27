@@ -87,6 +87,16 @@ export const NotificationType = {
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
 
 
+export const NotificationEmailStatus = {
+  pending: 'pending',
+  processing: 'processing',
+  processed: 'processed',
+  failed: 'failed'
+} as const
+
+export type NotificationEmailStatus = (typeof NotificationEmailStatus)[keyof typeof NotificationEmailStatus]
+
+
 export const ProjectMemberRole = {
   owner: 'owner',
   editor: 'editor',

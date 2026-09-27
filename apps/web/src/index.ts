@@ -16,6 +16,7 @@ import { migrateLegacyAgentAvatars } from '@shumai/core/src/agent/migration'
 import { handleDaemonCommands } from '@shumai/core/src/utils/daemon'
 import { authService } from '@shumai/core/src/auth/auth'
 import { sandboxService } from '@shumai/core'
+import { notificationJobService } from '@shumai/core/src/notification/notification-job'
 
 if (process.argv.includes('--check')) {
   console.log('✅ Web app evaluated successfully!')
@@ -58,6 +59,7 @@ async function run() {
   await metadataService.syncSystemFields().catch(console.error)
   await migrateLegacyAgentAvatars().catch(console.error)
   assetService.startCleanupJob()
+  notificationJobService.start()
   workflowService.start()
   if (process.env.WORKFLOW_EXECUTOR === 'temporal') {
     const args = process.argv.slice(2)

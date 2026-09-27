@@ -30,6 +30,33 @@ export interface NotificationEmailContext {
   uploadTime?: string | Date
 }
 
+export interface BatchedNotificationItem {
+  id: string
+  type: NotificationType
+  creatorName: string
+  creatorAvatarUrl?: string
+  teamId: string
+  teamName: string
+  projectId?: string
+  projectName?: string
+  assetId?: string
+  assetName?: string
+  assetThumbnailUrl?: string
+  kanbanTaskId?: string
+  kanbanTaskTitle?: string
+  commentMessage?: string
+  mentionedUserNames?: Record<string, string>
+  uploadTime?: string | Date
+  createdAt: Date
+}
+
+export interface BatchedEmailContext {
+  teamId: string
+  teamName: string
+  recipientName: string
+  items: BatchedNotificationItem[]
+}
+
 export const DEFAULT_EMAIL_SETTINGS: EmailNotificationSettings = {
   enabled: false,
   host: '',
@@ -476,6 +503,361 @@ Team: ${ctx.teamName}
 
     return { subject, html, text }
   }
+
+  renderBatchedNotificationEmail(ctx: BatchedEmailContext): {
+    subject: string
+    html: string
+    text: string
+  } {
+    const baseUrl = this.getBaseUrl()
+    const teamUrl = `${baseUrl}/teams/${ctx.teamId}`
+
+    if (ctx.items.length === 0) {
+      return {
+        subject: `[Shumai] Notifications in ${ctx.teamName}`,
+        html: `<p>No new notifications.</p>`,
+        text: `No new notifications.`,
+      }
+    }
+
+    // Determine subject
+    let subject = `[Shumai] ${ctx.items.length} new notifications in ${ctx.teamName}`
+    if (ctx.items.length === 1) {
+      const single = ctx.items[0]
+      const actor = single.creatorName || 'Someone'
+      const target = single.assetName ? `"${single.assetName}"` : 'a file'
+      const projectInfo = single.projectName ? ` to ${single.projectName}` : ''
+      switch (single.type) {
+        case NotificationType.successful_file_uploaded:
+          subject = `[Shumai] ${actor} uploaded ${target}${projectInfo}`
+          break
+        case NotificationType.comment_created:
+          subject = `[Shumai] ${actor} commented on ${target}`
+          break
+        case NotificationType.reply_created:
+          subject = `[Shumai] ${actor} replied to your comment on ${target}`
+          break
+        case NotificationType.mention:
+          subject = `[Shumai] ${actor} mentioned you`
+          break
+        case NotificationType.kanban_task_assigned: {
+          const task = single.kanbanTaskTitle ? `"${single.kanbanTaskTitle}"` : 'a task'
+          subject = `[Shumai] ${actor} assigned you to task ${task}`
+          break
+        }
+        case NotificationType.kanban_task_created: {
+          const task = single.kanbanTaskTitle ? `"${single.kanbanTaskTitle}"` : 'a task'
+          subject = `[Shumai] ${actor} created task ${task}`
+          break
+        }
+        default:
+          subject = `[Shumai] 1 new notification in ${ctx.teamName}`
+          break
+      }
+    }
+
+    // Group items: same type + actor + project
+    const groups = new Map<string, BatchedNotificationItem[]>()
+    for (const item of ctx.items) {
+      const key = `${item.type}_${item.creatorName || ''}_${item.projectId || ''}_${item.teamId}`
+      const list = groups.get(key)
+      if (list) {
+        list.push(item)
+      } else {
+        groups.set(key, [item])
+      }
+    }
+
+    const htmlRows: string[] = []
+    const textRows: string[] = []
+
+    for (const [, cluster] of groups) {
+      const first = cluster[0]
+      const actor = first.creatorName || 'Someone'
+      const avatarHtml = renderAvatarHtml(actor, first.creatorAvatarUrl)
+
+      if (cluster.length <= 3) {
+        // Render detailed individual rows
+        for (const item of cluster) {
+          const action = getItemAction(baseUrl, item)
+          const timeStr = formatUploadTime(item.uploadTime || item.createdAt)
+          const detail = getNotificationItemDetail(item)
+
+          const thumbHtml = item.assetThumbnailUrl
+            ? `<div style="margin-top: 8px;"><img src="${escapeHtml(item.assetThumbnailUrl)}" alt="${escapeHtml(item.assetName || 'Thumbnail')}" width="140" style="max-width: 140px; max-height: 90px; border-radius: 6px; border: 1px solid #e5e7eb; object-fit: cover; display: block;" /></div>`
+            : ''
+
+          htmlRows.push(
+            `
+            <div style="padding: 16px 0; border-bottom: 1px solid #f3f4f6;">
+              <table cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+                <tr>
+                  <td style="vertical-align: top; width: 44px; padding-right: 12px;">
+                    ${avatarHtml}
+                  </td>
+                  <td style="vertical-align: top;">
+                    <div style="font-weight: 600; font-size: 14px; color: #111827;">${escapeHtml(actor)}</div>
+                    <div style="font-size: 13px; color: #374151; margin-top: 2px;">${escapeHtml(detail.headline)}</div>
+                    ${timeStr ? `<div style="font-size: 12px; color: #6b7280; margin-top: 2px;">${escapeHtml(timeStr)}</div>` : ''}
+                    ${detail.message ? `<div style="background-color: #f9fafb; border-left: 3px solid #6366f1; padding: 8px 12px; border-radius: 4px; font-size: 13px; color: #4b5563; margin-top: 6px; white-space: pre-wrap;">${escapeHtml(detail.message)}</div>` : ''}
+                    ${thumbHtml}
+                    <div style="margin-top: 8px;">
+                      <a href="${action.url}" style="display: inline-block; font-size: 12px; font-weight: 500; color: #4f46e5; text-decoration: none;">${escapeHtml(action.text)} &rarr;</a>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          `.trim(),
+          )
+
+          textRows.push(
+            `- ${actor}: ${detail.headline}${timeStr ? ` (${timeStr})` : ''}${detail.message ? `\n  "${detail.message}"` : ''}\n  Link: ${action.url}`,
+          )
+        }
+      } else {
+        // Grouped summary row (count > 3, NO thumbnails)
+        const count = cluster.length
+        let summaryHeadline = `${actor} triggered ${count} updates`
+        const projectName = first.projectName
+
+        switch (first.type) {
+          case NotificationType.successful_file_uploaded:
+            summaryHeadline = `${actor} uploaded ${count} assets${projectName ? ` to ${projectName}` : ''}`
+            break
+          case NotificationType.comment_created:
+            summaryHeadline = `${actor} left ${count} comments${projectName ? ` in ${projectName}` : ''}`
+            break
+          case NotificationType.reply_created:
+            summaryHeadline = `${actor} replied ${count} times to your comments`
+            break
+          case NotificationType.mention:
+            summaryHeadline = `${actor} mentioned you ${count} times`
+            break
+          case NotificationType.metadata_field_updated_status:
+            summaryHeadline = `${actor} updated status of ${count} assets`
+            break
+          case NotificationType.kanban_task_created:
+            summaryHeadline = `${actor} created ${count} tasks${projectName ? ` in ${projectName}` : ''}`
+            break
+          case NotificationType.kanban_task_assigned:
+            summaryHeadline = `${actor} assigned you to ${count} tasks`
+            break
+          case NotificationType.kanban_task_status_updated:
+            summaryHeadline = `${actor} updated status of ${count} tasks`
+            break
+          case NotificationType.kanban_task_updated:
+            summaryHeadline = `${actor} updated ${count} tasks`
+            break
+          case NotificationType.kanban_task_comment_created:
+            summaryHeadline = `${actor} commented on ${count} tasks`
+            break
+        }
+
+        const latestTime = cluster.reduce((latest, it) => {
+          const t = new Date(it.uploadTime || it.createdAt).getTime()
+          return t > latest ? t : latest
+        }, 0)
+        const timeStr = latestTime > 0 ? formatUploadTime(new Date(latestTime)) : undefined
+        const targetUrl = first.projectId
+          ? `${baseUrl}/teams/${ctx.teamId}/projects/${first.projectId}`
+          : teamUrl
+
+        htmlRows.push(
+          `
+          <div style="padding: 16px 0; border-bottom: 1px solid #f3f4f6;">
+            <table cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+              <tr>
+                <td style="vertical-align: top; width: 44px; padding-right: 12px;">
+                  ${avatarHtml}
+                </td>
+                <td style="vertical-align: top;">
+                  <div style="font-weight: 600; font-size: 14px; color: #111827;">${escapeHtml(summaryHeadline)}</div>
+                  ${timeStr ? `<div style="font-size: 12px; color: #6b7280; margin-top: 2px;">Latest activity: ${escapeHtml(timeStr)}</div>` : ''}
+                  <div style="margin-top: 8px;">
+                    <a href="${targetUrl}" style="display: inline-block; font-size: 12px; font-weight: 500; color: #4f46e5; text-decoration: none;">View Project &rarr;</a>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </div>
+        `.trim(),
+        )
+
+        textRows.push(
+          `- ${summaryHeadline}${timeStr ? ` (Latest: ${timeStr})` : ''}\n  Link: ${targetUrl}`,
+        )
+      }
+    }
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${escapeHtml(subject)}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 24px; color: #111827; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; border: 1px solid #e5e7eb; padding: 32px; }
+    .header { font-size: 18px; font-weight: 700; color: #111827; }
+    .subtitle { font-size: 14px; color: #6b7280; margin-top: 4px; margin-bottom: 20px; }
+    .btn { display: inline-block; background-color: #4f46e5; color: #ffffff !important; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500; margin-top: 20px; }
+    .footer { font-size: 12px; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 16px; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">Shumai Notifications</div>
+    <div class="subtitle">You have ${ctx.items.length} new update${ctx.items.length > 1 ? 's' : ''} in <strong>${escapeHtml(ctx.teamName)}</strong>:</div>
+    <div>
+      ${htmlRows.join('\n')}
+    </div>
+    <div style="text-align: center; margin-top: 20px;">
+      <a href="${teamUrl}" class="btn">Open ${escapeHtml(ctx.teamName)}</a>
+    </div>
+    <div class="footer">
+      Team: ${escapeHtml(ctx.teamName)} &bull; Sent from <a href="${baseUrl}" style="color: #6366f1; text-decoration: none;">Shumai</a>
+    </div>
+  </div>
+</body>
+</html>
+`.trim()
+
+    const text = `
+Shumai Notifications
+
+You have ${ctx.items.length} new update(s) in ${ctx.teamName}:
+
+${textRows.join('\n\n')}
+
+Open Team: ${teamUrl}
+Sent from Shumai at ${baseUrl}
+`.trim()
+
+    return { subject, html, text }
+  }
+}
+
+function getNotificationItemDetail(item: BatchedNotificationItem): {
+  headline: string
+  message?: string
+} {
+  const actor = item.creatorName || 'Someone'
+  const asset = item.assetName ? `"${item.assetName}"` : 'an asset'
+  const task = item.kanbanTaskTitle ? `"${item.kanbanTaskTitle}"` : 'a task'
+  const project = item.projectName ? ` in ${item.projectName}` : ''
+
+  let commentMessage = item.commentMessage
+  if (commentMessage && item.mentionedUserNames) {
+    commentMessage = commentMessage.replace(/<@([^>]+)>/g, (match, uid) => {
+      const name = item.mentionedUserNames?.[uid]
+      return name ? `@${name}` : `@${uid}`
+    })
+  }
+
+  switch (item.type) {
+    case NotificationType.successful_file_uploaded:
+      return {
+        headline: `Uploaded ${asset}${item.projectName ? ` to ${item.projectName}` : ''}`,
+      }
+    case NotificationType.comment_created:
+      return {
+        headline: `Commented on ${asset}${project}`,
+        message: commentMessage,
+      }
+    case NotificationType.reply_created:
+      return {
+        headline: `Replied to your comment on ${asset}${project}`,
+        message: commentMessage,
+      }
+    case NotificationType.mention:
+      return {
+        headline: `Mentioned you on ${item.kanbanTaskTitle ? `task ${task}` : asset}${project}`,
+        message: commentMessage,
+      }
+    case NotificationType.metadata_field_updated_status:
+      return {
+        headline: `Updated status of ${asset}${project}`,
+      }
+    case NotificationType.kanban_task_created:
+      return {
+        headline: `Created task ${task}${project}`,
+        message: commentMessage,
+      }
+    case NotificationType.kanban_task_assigned:
+      return {
+        headline: `Assigned you to task ${task}${project}`,
+      }
+    case NotificationType.kanban_task_status_updated:
+      return {
+        headline: `Updated status of task ${task}${project}`,
+        message: commentMessage,
+      }
+    case NotificationType.kanban_task_updated:
+      return {
+        headline: `Updated task ${task}${project}`,
+        message: commentMessage,
+      }
+    case NotificationType.kanban_task_deleted:
+      return {
+        headline: `Deleted task ${task}${project}`,
+      }
+    case NotificationType.kanban_task_comment_created:
+      return {
+        headline: `Commented on task ${task}${project}`,
+        message: commentMessage,
+      }
+    case NotificationType.new_user_join_team:
+      return {
+        headline: `Joined the team ${item.teamName}`,
+      }
+    case NotificationType.new_user_join_project:
+      return {
+        headline: `Joined project ${item.projectName || 'a project'}`,
+      }
+    default:
+      return {
+        headline: `New activity from ${actor}`,
+      }
+  }
+}
+
+function getItemAction(
+  baseUrl: string,
+  item: BatchedNotificationItem,
+): { url: string; text: string } {
+  if (item.teamId) {
+    if (item.projectId && item.assetId) {
+      return {
+        url: `${baseUrl}/teams/${item.teamId}/projects/${item.projectId}?assetId=${item.assetId}`,
+        text: 'View Asset',
+      }
+    } else if (item.projectId) {
+      return {
+        url: `${baseUrl}/teams/${item.teamId}/projects/${item.projectId}`,
+        text: 'View Project',
+      }
+    } else if (item.kanbanTaskId) {
+      return {
+        url: `${baseUrl}/teams/${item.teamId}?kanbanTaskId=${item.kanbanTaskId}`,
+        text: 'View Task',
+      }
+    } else {
+      return {
+        url: `${baseUrl}/teams/${item.teamId}`,
+        text: 'Open Team',
+      }
+    }
+  }
+  return { url: baseUrl, text: 'Open Shumai' }
+}
+
+function renderAvatarHtml(actor: string, avatarUrl?: string): string {
+  const actorInitial = (actor.trim()[0] || 'U').toUpperCase()
+  if (avatarUrl) {
+    return `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(actor)}" width="36" height="36" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; display: block; border: 1px solid #e5e7eb;" />`
+  }
+  return `<table cellpadding="0" cellspacing="0" border="0" style="width: 36px; height: 36px; border-radius: 50%; background-color: #4f46e5; text-align: center;"><tr><td style="color: #ffffff; font-weight: 600; font-size: 14px; text-align: center; vertical-align: middle;">${escapeHtml(actorInitial)}</td></tr></table>`
 }
 
 function formatUploadTime(time: string | Date | undefined): string | undefined {

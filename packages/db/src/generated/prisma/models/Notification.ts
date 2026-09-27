@@ -38,6 +38,7 @@ export type NotificationMinAggregateOutputType = {
   taskId: string | null
   kanbanTaskId: string | null
   userId: string | null
+  emailStatus: $Enums.NotificationEmailStatus | null
 }
 
 export type NotificationMaxAggregateOutputType = {
@@ -52,6 +53,7 @@ export type NotificationMaxAggregateOutputType = {
   taskId: string | null
   kanbanTaskId: string | null
   userId: string | null
+  emailStatus: $Enums.NotificationEmailStatus | null
 }
 
 export type NotificationCountAggregateOutputType = {
@@ -66,6 +68,7 @@ export type NotificationCountAggregateOutputType = {
   taskId: number
   kanbanTaskId: number
   userId: number
+  emailStatus: number
   _all: number
 }
 
@@ -82,6 +85,7 @@ export type NotificationMinAggregateInputType = {
   taskId?: true
   kanbanTaskId?: true
   userId?: true
+  emailStatus?: true
 }
 
 export type NotificationMaxAggregateInputType = {
@@ -96,6 +100,7 @@ export type NotificationMaxAggregateInputType = {
   taskId?: true
   kanbanTaskId?: true
   userId?: true
+  emailStatus?: true
 }
 
 export type NotificationCountAggregateInputType = {
@@ -110,6 +115,7 @@ export type NotificationCountAggregateInputType = {
   taskId?: true
   kanbanTaskId?: true
   userId?: true
+  emailStatus?: true
   _all?: true
 }
 
@@ -197,6 +203,7 @@ export type NotificationGroupByOutputType = {
   taskId: string | null
   kanbanTaskId: string | null
   userId: string | null
+  emailStatus: $Enums.NotificationEmailStatus
   _count: NotificationCountAggregateOutputType | null
   _min: NotificationMinAggregateOutputType | null
   _max: NotificationMaxAggregateOutputType | null
@@ -232,6 +239,7 @@ export type NotificationWhereInput = {
   taskId?: Prisma.StringNullableFilter<"Notification"> | string | null
   kanbanTaskId?: Prisma.StringNullableFilter<"Notification"> | string | null
   userId?: Prisma.StringNullableFilter<"Notification"> | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFilter<"Notification"> | $Enums.NotificationEmailStatus
   team?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
   project?: Prisma.XOR<Prisma.ProjectNullableScalarRelationFilter, Prisma.ProjectWhereInput> | null
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -254,6 +262,7 @@ export type NotificationOrderByWithRelationInput = {
   taskId?: Prisma.SortOrderInput | Prisma.SortOrder
   kanbanTaskId?: Prisma.SortOrderInput | Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
+  emailStatus?: Prisma.SortOrder
   team?: Prisma.TeamOrderByWithRelationInput
   project?: Prisma.ProjectOrderByWithRelationInput
   creator?: Prisma.UserOrderByWithRelationInput
@@ -279,6 +288,7 @@ export type NotificationWhereUniqueInput = Prisma.AtLeast<{
   taskId?: Prisma.StringNullableFilter<"Notification"> | string | null
   kanbanTaskId?: Prisma.StringNullableFilter<"Notification"> | string | null
   userId?: Prisma.StringNullableFilter<"Notification"> | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFilter<"Notification"> | $Enums.NotificationEmailStatus
   team?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
   project?: Prisma.XOR<Prisma.ProjectNullableScalarRelationFilter, Prisma.ProjectWhereInput> | null
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -301,6 +311,7 @@ export type NotificationOrderByWithAggregationInput = {
   taskId?: Prisma.SortOrderInput | Prisma.SortOrder
   kanbanTaskId?: Prisma.SortOrderInput | Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
+  emailStatus?: Prisma.SortOrder
   _count?: Prisma.NotificationCountOrderByAggregateInput
   _max?: Prisma.NotificationMaxOrderByAggregateInput
   _min?: Prisma.NotificationMinOrderByAggregateInput
@@ -321,6 +332,7 @@ export type NotificationScalarWhereWithAggregatesInput = {
   taskId?: Prisma.StringNullableWithAggregatesFilter<"Notification"> | string | null
   kanbanTaskId?: Prisma.StringNullableWithAggregatesFilter<"Notification"> | string | null
   userId?: Prisma.StringNullableWithAggregatesFilter<"Notification"> | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusWithAggregatesFilter<"Notification"> | $Enums.NotificationEmailStatus
 }
 
 export type NotificationCreateInput = {
@@ -328,6 +340,7 @@ export type NotificationCreateInput = {
   type?: $Enums.NotificationType | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailStatus?: $Enums.NotificationEmailStatus
   team: Prisma.TeamCreateNestedOneWithoutNotificationsInput
   project?: Prisma.ProjectCreateNestedOneWithoutNotificationsInput
   creator?: Prisma.UserCreateNestedOneWithoutCreatedNotificationsInput
@@ -350,6 +363,7 @@ export type NotificationUncheckedCreateInput = {
   taskId?: string | null
   kanbanTaskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedCreateNestedOneWithoutLastReadNotificationInput
 }
 
@@ -358,6 +372,7 @@ export type NotificationUpdateInput = {
   type?: Prisma.NullableEnumNotificationTypeFieldUpdateOperationsInput | $Enums.NotificationType | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   team?: Prisma.TeamUpdateOneRequiredWithoutNotificationsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutNotificationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCreatedNotificationsNestedInput
@@ -380,6 +395,7 @@ export type NotificationUncheckedUpdateInput = {
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedUpdateOneWithoutLastReadNotificationNestedInput
 }
 
@@ -395,6 +411,7 @@ export type NotificationCreateManyInput = {
   taskId?: string | null
   kanbanTaskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
 }
 
 export type NotificationUpdateManyMutationInput = {
@@ -402,6 +419,7 @@ export type NotificationUpdateManyMutationInput = {
   type?: Prisma.NullableEnumNotificationTypeFieldUpdateOperationsInput | $Enums.NotificationType | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
 }
 
 export type NotificationUncheckedUpdateManyInput = {
@@ -416,6 +434,7 @@ export type NotificationUncheckedUpdateManyInput = {
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
 }
 
 export type NotificationListRelationFilter = {
@@ -445,6 +464,7 @@ export type NotificationCountOrderByAggregateInput = {
   taskId?: Prisma.SortOrder
   kanbanTaskId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  emailStatus?: Prisma.SortOrder
 }
 
 export type NotificationMaxOrderByAggregateInput = {
@@ -459,6 +479,7 @@ export type NotificationMaxOrderByAggregateInput = {
   taskId?: Prisma.SortOrder
   kanbanTaskId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  emailStatus?: Prisma.SortOrder
 }
 
 export type NotificationMinOrderByAggregateInput = {
@@ -473,6 +494,7 @@ export type NotificationMinOrderByAggregateInput = {
   taskId?: Prisma.SortOrder
   kanbanTaskId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  emailStatus?: Prisma.SortOrder
 }
 
 export type NotificationCreateNestedManyWithoutCreatorInput = {
@@ -705,6 +727,10 @@ export type NullableEnumNotificationTypeFieldUpdateOperationsInput = {
   set?: $Enums.NotificationType | null
 }
 
+export type EnumNotificationEmailStatusFieldUpdateOperationsInput = {
+  set?: $Enums.NotificationEmailStatus
+}
+
 export type NotificationCreateNestedManyWithoutTaskInput = {
   create?: Prisma.XOR<Prisma.NotificationCreateWithoutTaskInput, Prisma.NotificationUncheckedCreateWithoutTaskInput> | Prisma.NotificationCreateWithoutTaskInput[] | Prisma.NotificationUncheckedCreateWithoutTaskInput[]
   connectOrCreate?: Prisma.NotificationCreateOrConnectWithoutTaskInput | Prisma.NotificationCreateOrConnectWithoutTaskInput[]
@@ -794,6 +820,7 @@ export type NotificationCreateWithoutCreatorInput = {
   type?: $Enums.NotificationType | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailStatus?: $Enums.NotificationEmailStatus
   team: Prisma.TeamCreateNestedOneWithoutNotificationsInput
   project?: Prisma.ProjectCreateNestedOneWithoutNotificationsInput
   asset?: Prisma.AssetCreateNestedOneWithoutNotificationsInput
@@ -814,6 +841,7 @@ export type NotificationUncheckedCreateWithoutCreatorInput = {
   taskId?: string | null
   kanbanTaskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedCreateNestedOneWithoutLastReadNotificationInput
 }
 
@@ -832,6 +860,7 @@ export type NotificationCreateWithoutUserInput = {
   type?: $Enums.NotificationType | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailStatus?: $Enums.NotificationEmailStatus
   team: Prisma.TeamCreateNestedOneWithoutNotificationsInput
   project?: Prisma.ProjectCreateNestedOneWithoutNotificationsInput
   creator?: Prisma.UserCreateNestedOneWithoutCreatedNotificationsInput
@@ -852,6 +881,7 @@ export type NotificationUncheckedCreateWithoutUserInput = {
   assetId?: string | null
   taskId?: string | null
   kanbanTaskId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedCreateNestedOneWithoutLastReadNotificationInput
 }
 
@@ -896,6 +926,7 @@ export type NotificationScalarWhereInput = {
   taskId?: Prisma.StringNullableFilter<"Notification"> | string | null
   kanbanTaskId?: Prisma.StringNullableFilter<"Notification"> | string | null
   userId?: Prisma.StringNullableFilter<"Notification"> | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFilter<"Notification"> | $Enums.NotificationEmailStatus
 }
 
 export type NotificationUpsertWithWhereUniqueWithoutUserInput = {
@@ -919,6 +950,7 @@ export type NotificationCreateWithoutTeamInput = {
   type?: $Enums.NotificationType | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailStatus?: $Enums.NotificationEmailStatus
   project?: Prisma.ProjectCreateNestedOneWithoutNotificationsInput
   creator?: Prisma.UserCreateNestedOneWithoutCreatedNotificationsInput
   asset?: Prisma.AssetCreateNestedOneWithoutNotificationsInput
@@ -939,6 +971,7 @@ export type NotificationUncheckedCreateWithoutTeamInput = {
   taskId?: string | null
   kanbanTaskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedCreateNestedOneWithoutLastReadNotificationInput
 }
 
@@ -973,6 +1006,7 @@ export type NotificationCreateWithoutReadByMembersInput = {
   type?: $Enums.NotificationType | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailStatus?: $Enums.NotificationEmailStatus
   team: Prisma.TeamCreateNestedOneWithoutNotificationsInput
   project?: Prisma.ProjectCreateNestedOneWithoutNotificationsInput
   creator?: Prisma.UserCreateNestedOneWithoutCreatedNotificationsInput
@@ -994,6 +1028,7 @@ export type NotificationUncheckedCreateWithoutReadByMembersInput = {
   taskId?: string | null
   kanbanTaskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
 }
 
 export type NotificationCreateOrConnectWithoutReadByMembersInput = {
@@ -1017,6 +1052,7 @@ export type NotificationUpdateWithoutReadByMembersInput = {
   type?: Prisma.NullableEnumNotificationTypeFieldUpdateOperationsInput | $Enums.NotificationType | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   team?: Prisma.TeamUpdateOneRequiredWithoutNotificationsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutNotificationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCreatedNotificationsNestedInput
@@ -1038,6 +1074,7 @@ export type NotificationUncheckedUpdateWithoutReadByMembersInput = {
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
 }
 
 export type NotificationCreateWithoutProjectInput = {
@@ -1045,6 +1082,7 @@ export type NotificationCreateWithoutProjectInput = {
   type?: $Enums.NotificationType | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailStatus?: $Enums.NotificationEmailStatus
   team: Prisma.TeamCreateNestedOneWithoutNotificationsInput
   creator?: Prisma.UserCreateNestedOneWithoutCreatedNotificationsInput
   asset?: Prisma.AssetCreateNestedOneWithoutNotificationsInput
@@ -1065,6 +1103,7 @@ export type NotificationUncheckedCreateWithoutProjectInput = {
   taskId?: string | null
   kanbanTaskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedCreateNestedOneWithoutLastReadNotificationInput
 }
 
@@ -1099,6 +1138,7 @@ export type NotificationCreateWithoutAssetInput = {
   type?: $Enums.NotificationType | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailStatus?: $Enums.NotificationEmailStatus
   team: Prisma.TeamCreateNestedOneWithoutNotificationsInput
   project?: Prisma.ProjectCreateNestedOneWithoutNotificationsInput
   creator?: Prisma.UserCreateNestedOneWithoutCreatedNotificationsInput
@@ -1119,6 +1159,7 @@ export type NotificationUncheckedCreateWithoutAssetInput = {
   taskId?: string | null
   kanbanTaskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedCreateNestedOneWithoutLastReadNotificationInput
 }
 
@@ -1153,6 +1194,7 @@ export type NotificationCreateWithoutTaskInput = {
   type?: $Enums.NotificationType | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailStatus?: $Enums.NotificationEmailStatus
   team: Prisma.TeamCreateNestedOneWithoutNotificationsInput
   project?: Prisma.ProjectCreateNestedOneWithoutNotificationsInput
   creator?: Prisma.UserCreateNestedOneWithoutCreatedNotificationsInput
@@ -1173,6 +1215,7 @@ export type NotificationUncheckedCreateWithoutTaskInput = {
   assetId?: string | null
   kanbanTaskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedCreateNestedOneWithoutLastReadNotificationInput
 }
 
@@ -1207,6 +1250,7 @@ export type NotificationCreateWithoutKanbanTaskInput = {
   type?: $Enums.NotificationType | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailStatus?: $Enums.NotificationEmailStatus
   team: Prisma.TeamCreateNestedOneWithoutNotificationsInput
   project?: Prisma.ProjectCreateNestedOneWithoutNotificationsInput
   creator?: Prisma.UserCreateNestedOneWithoutCreatedNotificationsInput
@@ -1227,6 +1271,7 @@ export type NotificationUncheckedCreateWithoutKanbanTaskInput = {
   assetId?: string | null
   taskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedCreateNestedOneWithoutLastReadNotificationInput
 }
 
@@ -1267,6 +1312,7 @@ export type NotificationCreateManyCreatorInput = {
   taskId?: string | null
   kanbanTaskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
 }
 
 export type NotificationCreateManyUserInput = {
@@ -1280,6 +1326,7 @@ export type NotificationCreateManyUserInput = {
   assetId?: string | null
   taskId?: string | null
   kanbanTaskId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
 }
 
 export type NotificationUpdateWithoutCreatorInput = {
@@ -1287,6 +1334,7 @@ export type NotificationUpdateWithoutCreatorInput = {
   type?: Prisma.NullableEnumNotificationTypeFieldUpdateOperationsInput | $Enums.NotificationType | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   team?: Prisma.TeamUpdateOneRequiredWithoutNotificationsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutNotificationsNestedInput
   asset?: Prisma.AssetUpdateOneWithoutNotificationsNestedInput
@@ -1307,6 +1355,7 @@ export type NotificationUncheckedUpdateWithoutCreatorInput = {
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedUpdateOneWithoutLastReadNotificationNestedInput
 }
 
@@ -1321,6 +1370,7 @@ export type NotificationUncheckedUpdateManyWithoutCreatorInput = {
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
 }
 
 export type NotificationUpdateWithoutUserInput = {
@@ -1328,6 +1378,7 @@ export type NotificationUpdateWithoutUserInput = {
   type?: Prisma.NullableEnumNotificationTypeFieldUpdateOperationsInput | $Enums.NotificationType | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   team?: Prisma.TeamUpdateOneRequiredWithoutNotificationsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutNotificationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCreatedNotificationsNestedInput
@@ -1348,6 +1399,7 @@ export type NotificationUncheckedUpdateWithoutUserInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedUpdateOneWithoutLastReadNotificationNestedInput
 }
 
@@ -1362,6 +1414,7 @@ export type NotificationUncheckedUpdateManyWithoutUserInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
 }
 
 export type NotificationCreateManyTeamInput = {
@@ -1375,6 +1428,7 @@ export type NotificationCreateManyTeamInput = {
   taskId?: string | null
   kanbanTaskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
 }
 
 export type NotificationUpdateWithoutTeamInput = {
@@ -1382,6 +1436,7 @@ export type NotificationUpdateWithoutTeamInput = {
   type?: Prisma.NullableEnumNotificationTypeFieldUpdateOperationsInput | $Enums.NotificationType | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   project?: Prisma.ProjectUpdateOneWithoutNotificationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCreatedNotificationsNestedInput
   asset?: Prisma.AssetUpdateOneWithoutNotificationsNestedInput
@@ -1402,6 +1457,7 @@ export type NotificationUncheckedUpdateWithoutTeamInput = {
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedUpdateOneWithoutLastReadNotificationNestedInput
 }
 
@@ -1416,6 +1472,7 @@ export type NotificationUncheckedUpdateManyWithoutTeamInput = {
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
 }
 
 export type NotificationCreateManyProjectInput = {
@@ -1429,6 +1486,7 @@ export type NotificationCreateManyProjectInput = {
   taskId?: string | null
   kanbanTaskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
 }
 
 export type NotificationUpdateWithoutProjectInput = {
@@ -1436,6 +1494,7 @@ export type NotificationUpdateWithoutProjectInput = {
   type?: Prisma.NullableEnumNotificationTypeFieldUpdateOperationsInput | $Enums.NotificationType | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   team?: Prisma.TeamUpdateOneRequiredWithoutNotificationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCreatedNotificationsNestedInput
   asset?: Prisma.AssetUpdateOneWithoutNotificationsNestedInput
@@ -1456,6 +1515,7 @@ export type NotificationUncheckedUpdateWithoutProjectInput = {
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedUpdateOneWithoutLastReadNotificationNestedInput
 }
 
@@ -1470,6 +1530,7 @@ export type NotificationUncheckedUpdateManyWithoutProjectInput = {
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
 }
 
 export type NotificationCreateManyAssetInput = {
@@ -1483,6 +1544,7 @@ export type NotificationCreateManyAssetInput = {
   taskId?: string | null
   kanbanTaskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
 }
 
 export type NotificationUpdateWithoutAssetInput = {
@@ -1490,6 +1552,7 @@ export type NotificationUpdateWithoutAssetInput = {
   type?: Prisma.NullableEnumNotificationTypeFieldUpdateOperationsInput | $Enums.NotificationType | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   team?: Prisma.TeamUpdateOneRequiredWithoutNotificationsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutNotificationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCreatedNotificationsNestedInput
@@ -1510,6 +1573,7 @@ export type NotificationUncheckedUpdateWithoutAssetInput = {
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedUpdateOneWithoutLastReadNotificationNestedInput
 }
 
@@ -1524,6 +1588,7 @@ export type NotificationUncheckedUpdateManyWithoutAssetInput = {
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
 }
 
 export type NotificationCreateManyTaskInput = {
@@ -1537,6 +1602,7 @@ export type NotificationCreateManyTaskInput = {
   assetId?: string | null
   kanbanTaskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
 }
 
 export type NotificationUpdateWithoutTaskInput = {
@@ -1544,6 +1610,7 @@ export type NotificationUpdateWithoutTaskInput = {
   type?: Prisma.NullableEnumNotificationTypeFieldUpdateOperationsInput | $Enums.NotificationType | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   team?: Prisma.TeamUpdateOneRequiredWithoutNotificationsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutNotificationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCreatedNotificationsNestedInput
@@ -1564,6 +1631,7 @@ export type NotificationUncheckedUpdateWithoutTaskInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedUpdateOneWithoutLastReadNotificationNestedInput
 }
 
@@ -1578,6 +1646,7 @@ export type NotificationUncheckedUpdateManyWithoutTaskInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   kanbanTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
 }
 
 export type NotificationCreateManyKanbanTaskInput = {
@@ -1591,6 +1660,7 @@ export type NotificationCreateManyKanbanTaskInput = {
   assetId?: string | null
   taskId?: string | null
   userId?: string | null
+  emailStatus?: $Enums.NotificationEmailStatus
 }
 
 export type NotificationUpdateWithoutKanbanTaskInput = {
@@ -1598,6 +1668,7 @@ export type NotificationUpdateWithoutKanbanTaskInput = {
   type?: Prisma.NullableEnumNotificationTypeFieldUpdateOperationsInput | $Enums.NotificationType | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   team?: Prisma.TeamUpdateOneRequiredWithoutNotificationsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutNotificationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCreatedNotificationsNestedInput
@@ -1618,6 +1689,7 @@ export type NotificationUncheckedUpdateWithoutKanbanTaskInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
   readByMembers?: Prisma.TeamMemberUncheckedUpdateOneWithoutLastReadNotificationNestedInput
 }
 
@@ -1632,6 +1704,7 @@ export type NotificationUncheckedUpdateManyWithoutKanbanTaskInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailStatus?: Prisma.EnumNotificationEmailStatusFieldUpdateOperationsInput | $Enums.NotificationEmailStatus
 }
 
 
@@ -1648,6 +1721,7 @@ export type NotificationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   taskId?: boolean
   kanbanTaskId?: boolean
   userId?: boolean
+  emailStatus?: boolean
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   project?: boolean | Prisma.Notification$projectArgs<ExtArgs>
   creator?: boolean | Prisma.Notification$creatorArgs<ExtArgs>
@@ -1670,6 +1744,7 @@ export type NotificationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   taskId?: boolean
   kanbanTaskId?: boolean
   userId?: boolean
+  emailStatus?: boolean
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   project?: boolean | Prisma.Notification$projectArgs<ExtArgs>
   creator?: boolean | Prisma.Notification$creatorArgs<ExtArgs>
@@ -1691,6 +1766,7 @@ export type NotificationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   taskId?: boolean
   kanbanTaskId?: boolean
   userId?: boolean
+  emailStatus?: boolean
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   project?: boolean | Prisma.Notification$projectArgs<ExtArgs>
   creator?: boolean | Prisma.Notification$creatorArgs<ExtArgs>
@@ -1712,9 +1788,10 @@ export type NotificationSelectScalar = {
   taskId?: boolean
   kanbanTaskId?: boolean
   userId?: boolean
+  emailStatus?: boolean
 }
 
-export type NotificationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "createdAt" | "updatedAt" | "teamId" | "projectId" | "creatorId" | "assetId" | "taskId" | "kanbanTaskId" | "userId", ExtArgs["result"]["notification"]>
+export type NotificationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "createdAt" | "updatedAt" | "teamId" | "projectId" | "creatorId" | "assetId" | "taskId" | "kanbanTaskId" | "userId" | "emailStatus", ExtArgs["result"]["notification"]>
 export type NotificationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   project?: boolean | Prisma.Notification$projectArgs<ExtArgs>
@@ -1768,6 +1845,7 @@ export type $NotificationPayload<ExtArgs extends runtime.Types.Extensions.Intern
     taskId: string | null
     kanbanTaskId: string | null
     userId: string | null
+    emailStatus: $Enums.NotificationEmailStatus
   }, ExtArgs["result"]["notification"]>
   composites: {}
 }
@@ -2210,6 +2288,7 @@ export interface NotificationFieldRefs {
   readonly taskId: Prisma.FieldRef<"Notification", 'String'>
   readonly kanbanTaskId: Prisma.FieldRef<"Notification", 'String'>
   readonly userId: Prisma.FieldRef<"Notification", 'String'>
+  readonly emailStatus: Prisma.FieldRef<"Notification", 'NotificationEmailStatus'>
 }
     
 

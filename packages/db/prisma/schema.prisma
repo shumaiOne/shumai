@@ -76,6 +76,13 @@ enum NotificationType {
   kanban_task_comment_created
 }
 
+enum NotificationEmailStatus {
+  pending
+  processing
+  processed
+  failed
+}
+
 enum ProjectMemberRole {
   owner
   editor
@@ -776,9 +783,12 @@ model Notification {
   userId      String?          @map("user_id")
   user        User?            @relation("UserToNotification", fields: [userId], references: [id])
 
+  emailStatus NotificationEmailStatus @default(pending) @map("email_status")
+
   readByMembers TeamMember?    @relation("TeamMemberToLastReadNotification")
 
   @@index([kanbanTaskId])
+  @@index([emailStatus, createdAt])
   @@map("notifications")
 }
 

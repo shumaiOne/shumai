@@ -490,7 +490,8 @@ export const NotificationScalarFieldEnum = {
   assetId: 'assetId',
   taskId: 'taskId',
   kanbanTaskId: 'kanbanTaskId',
-  userId: 'userId'
+  userId: 'userId',
+  emailStatus: 'emailStatus'
 } as const
 
 export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
