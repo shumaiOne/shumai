@@ -298,7 +298,11 @@ export class TeamService {
       where: { id: teamId },
     })
     if (!team) throw new HTTPException(404, { message: 'team not found' })
-    const settings = (team.settings || {}) as TeamSettingsResponse
+    const rawSettings = { ...(team.settings || {}) } as PrismaJson.Settings & {
+      [key: string]: unknown
+    }
+    delete rawSettings.emailNotification
+    const settings = rawSettings as TeamSettingsResponse
 
     const embeddingAgent = await prisma.agent.findFirst({
       where: { teamId, type: 'embedding', enabled: true },
@@ -360,12 +364,12 @@ export class TeamService {
       settings[key] = value
     }
 
-    const updated = await prisma.team.update({
+    await prisma.team.update({
       where: { id: teamId },
       data: { settings: settings as unknown as PrismaJson.Settings },
     })
 
-    return (updated.settings || {}) as TeamSettingsResponse
+    return this.getSettings(teamId)
   }
 
   async getSandboxSettings(teamId: string): Promise<SandboxSettings> {

@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **transcode**: Add VA-API hardware acceleration support for Linux hosts and Docker environments with Intel and AMD GPUs, featuring automatic DRI render node discovery, variable bitrate control, and structured transcoding observability logs
 - **docker**: Add modular hardware-accelerated transcoding presets matching Immich's compose configuration via `hwaccel.transcoding.yaml` with support for NVENC, QuickSync, RKMPP, and VA-API
 
+### Fixed
+
+- **team**: Prevent email notification configuration and SMTP credentials from being exposed through general team settings
+
 ### Changed
 
 - **transcode**: Improve video poster selection using intelligent scene detection and color variance filtering to automatically skip black frames, fade-ins, and blank intros in favor of representative video content

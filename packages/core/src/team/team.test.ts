@@ -521,4 +521,36 @@ describe('TeamService', () => {
       expect(result).toBe(false)
     })
   })
+
+  it('should not leak emailNotification or credentials in getSettings', async () => {
+    const team = await prisma.team.create({
+      data: {
+        name: 'Team With Credentials',
+        settings: {
+          transcode: {
+            videoStrategy: 'best_match',
+            hardwareAcceleration: 'off',
+            threads: 4,
+          },
+          appearance: {
+            hideAgent: true,
+          },
+          emailNotification: {
+            enabled: true,
+            host: 'smtp.secret.com',
+            port: 587,
+            password: 'super-secret-smtp-password',
+            from: 'noreply@secret.com',
+          },
+        },
+      },
+    })
+
+    const settings = await teamService.getSettings(team.id)
+
+    expect(settings).toBeDefined()
+    expect(settings.transcode?.threads).toBe(4)
+    expect(settings.appearance?.hideAgent).toBe(true)
+    expect((settings as Record<string, unknown>).emailNotification).toBeUndefined()
+  })
 })

@@ -223,6 +223,27 @@ describe('team api', () => {
     expect(mockGetSettings).toHaveBeenCalledWith('t1')
   })
 
+  it('GET /teams/:teamId/settings does not return emailNotification to readers', async () => {
+    mockGetSettings.mockResolvedValue({
+      semanticSearchEnabled: false,
+      transcode: { videoStrategy: 'best_match', hardwareAcceleration: 'off', threads: 0 },
+      appearance: { hideAgent: false },
+    })
+
+    const res = await app.request('/teams/t1/settings')
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.emailNotification).toBeUndefined()
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Team,
+        id: 't1',
+        permission: Permission.Read,
+      }),
+    )
+  })
+
   it('PATCH /teams/:teamId/settings updates settings', async () => {
     mockUpdateSettings.mockResolvedValue({ transcode: { videoStrategy: 'all' } })
 

@@ -112,7 +112,6 @@ export interface TeamSettingsResponse {
   }
   appearance?: TeamAppearanceSettings
   semanticSearchEnabled?: boolean
-  emailNotification?: import('./notification').EmailNotificationSettings
   [key: string]: unknown
 }
 
