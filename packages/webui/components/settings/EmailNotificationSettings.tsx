@@ -2,18 +2,11 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/ui/components/ui/card'
+import { Card, CardContent, CardFooter } from '@/ui/components/ui/card'
 import { Switch } from '@/ui/components/ui/switch'
 import { Input } from '@/ui/components/ui/input'
 import { Button } from '@/ui/components/ui/button'
-import { Loader2, Mail } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { EmailNotificationSettings as Settings } from '@shumai/dtos'
 import { m } from '@/ui/paraglide/messages.js'
@@ -147,15 +140,7 @@ export function EmailNotificationSettings({ teamId }: EmailNotificationSettingsP
       <ScrollArea className="h-full">
         <div className="space-y-6 pr-4 pb-8">
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Mail className="w-5 h-5 text-primary" />
-                <CardTitle>{m.email_notifications()}</CardTitle>
-              </div>
-              <CardDescription>{m.email_notifications_description()}</CardDescription>
-            </CardHeader>
-
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 pt-6">
               {/* Enable Switch */}
               <div className="flex items-center justify-between space-x-4 rounded-lg border border-border p-4">
                 <div className="space-y-1">
