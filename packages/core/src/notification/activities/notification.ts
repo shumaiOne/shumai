@@ -13,7 +13,6 @@ export interface CreateInSystemNotificationResult {
   created: boolean
   notificationId?: string
   recipientUserIds: string[]
-  debounceSeconds?: number
 }
 
 export async function createInSystemNotificationActivity(
@@ -273,19 +272,10 @@ export async function createInSystemNotificationActivity(
     }
   }
 
-  let debounceSeconds = 0
-  if (payload.type === NotificationType.successful_file_uploaded) {
-    const emailSettings = await emailService.getEmailSettings(payload.teamId)
-    if (emailSettings.enabled) {
-      debounceSeconds = emailSettings.uploadDebounceSeconds ?? 0
-    }
-  }
-
   return {
     created: true,
     notificationId: primaryNotification.id,
     recipientUserIds: Array.from(recipientIds),
-    debounceSeconds,
   }
 }
 
@@ -391,34 +381,6 @@ export async function sendEmailNotificationActivity(
     }
   }
 
-  let fileCount: number | undefined
-  let fileNames: string[] | undefined
-
-  // For bulk file uploads, check recent uploads within debounce window
-  if (
-    payload.type === NotificationType.successful_file_uploaded &&
-    resolvedProjectId &&
-    emailSettings.uploadDebounceSeconds &&
-    emailSettings.uploadDebounceSeconds > 0
-  ) {
-    const windowStart = new Date(Date.now() - emailSettings.uploadDebounceSeconds * 1000)
-    const recentAssets = await prisma.asset.findMany({
-      where: {
-        projectId: resolvedProjectId,
-        ...(payload.creatorId ? { creatorId: payload.creatorId } : {}),
-        createdAt: { gte: windowStart },
-      },
-      select: { name: true },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-    })
-
-    if (recentAssets.length > 1) {
-      fileCount = recentAssets.length
-      fileNames = recentAssets.map((a) => a.name)
-    }
-  }
-
   const emailContext = {
     type: payload.type,
     creatorName: creator?.name || 'Someone',
@@ -433,8 +395,6 @@ export async function sendEmailNotificationActivity(
     kanbanTaskId: payload.kanbanTaskId,
     commentMessage: payload.commentMessage,
     mentionedUserNames,
-    fileCount,
-    fileNames,
     uploadTime:
       asset?.createdAt ||
       (payload.type === NotificationType.successful_file_uploaded ? new Date() : undefined),

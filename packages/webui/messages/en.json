@@ -317,8 +317,6 @@
   "sender_from_description": "Sender email address, for example: \"Shumai <noreply@example.com>\". Make sure to use an address you're allowed to send emails from.",
   "sender_reply_to": "Reply-To Address",
   "sender_reply_to_description": "Optional address where replies to notifications should be directed.",
-  "upload_debounce_seconds": "Upload Notification Delay (seconds)",
-  "upload_debounce_seconds_description": "Batch notifications for multiple file uploads together within this time window.",
   "save_and_send_test_email": "Save & Send Test Email",
   "send_test_email": "Send Test Email",
   "send_test_email_dialog_description": "Sender email address, for example: \"Shumai <noreply@example.com>\". Make sure to use an address you're allowed to send emails from.",

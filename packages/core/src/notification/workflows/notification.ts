@@ -1,6 +1,6 @@
 import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@shumai/db'
-import { executeActivity, getActivities, sleep, TaskQueueNotification } from '@shumai/workflow-core'
+import { executeActivity, getActivities, TaskQueueNotification } from '@shumai/workflow-core'
 
 export async function notificationWorkflow(task: WorkflowTask): Promise<void> {
   const {
@@ -30,13 +30,7 @@ export async function notificationWorkflow(task: WorkflowTask): Promise<void> {
     payload.notification,
   )
 
-  // 3. Immich-style Debounce check for burst events (file uploads)
-  const debounceSeconds = inSystemResult?.debounceSeconds ?? 0
-  if (payload.notification.type === 'successful_file_uploaded' && debounceSeconds > 0) {
-    await sleep(debounceSeconds * 1000)
-  }
-
-  // 4. Activity 2: Send email notifications
+  // 3. Activity 2: Send email notifications
   let emailResult = { sentCount: 0 }
   if (inSystemResult?.recipientUserIds && inSystemResult.recipientUserIds.length > 0) {
     emailResult = await executeActivity(TaskQueueNotification, sendEmailNotificationActivity, {

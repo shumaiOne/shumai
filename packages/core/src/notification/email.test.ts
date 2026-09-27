@@ -53,7 +53,6 @@ describe('EmailService', () => {
               ignoreCert: false,
               from: 'beta@shumai.test',
               replyTo: 'reply@shumai.test',
-              uploadDebounceSeconds: 120,
             },
           },
         },
@@ -64,7 +63,6 @@ describe('EmailService', () => {
       expect(settings.host).toBe('smtp.beta.test')
       expect(settings.port).toBe(465)
       expect(settings.password).toBe('secret_password')
-      expect(settings.uploadDebounceSeconds).toBe(120)
     })
 
     it('throws 404 if team does not exist', async () => {
@@ -86,7 +84,6 @@ describe('EmailService', () => {
         ignoreCert: true,
         from: 'gamma@shumai.test',
         replyTo: '',
-        uploadDebounceSeconds: 60,
       })
 
       expect(updated.enabled).toBe(true)
@@ -113,7 +110,6 @@ describe('EmailService', () => {
               ignoreCert: false,
               from: 'delta@shumai.test',
               replyTo: '',
-              uploadDebounceSeconds: 300,
             },
           },
         },
@@ -185,7 +181,6 @@ describe('EmailService', () => {
               ignoreCert: false,
               from: 'sender@test.com',
               replyTo: '',
-              uploadDebounceSeconds: 300,
             },
           },
         },

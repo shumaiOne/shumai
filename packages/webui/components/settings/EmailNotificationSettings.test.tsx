@@ -62,7 +62,6 @@ describe('EmailNotificationSettings', () => {
     ignoreCert: false,
     from: 'Shumai <noreply@example.com>',
     replyTo: 'support@example.com',
-    uploadDebounceSeconds: 300,
   }
 
   beforeEach(() => {

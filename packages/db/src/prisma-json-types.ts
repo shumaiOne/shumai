@@ -95,7 +95,6 @@ declare global {
       ignoreCert?: boolean
       from?: string
       replyTo?: string
-      uploadDebounceSeconds?: number
     }
 
     export interface Settings {

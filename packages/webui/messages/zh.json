@@ -317,8 +317,6 @@
   "sender_from_description": "发件人邮箱地址，例如：“Shumai <noreply@example.com>”。请确保使用您有权使用的邮箱地址进行发送。",
   "sender_reply_to": "回复地址",
   "sender_reply_to_description": "通知邮件回复时指向的可选邮箱地址。",
-  "upload_debounce_seconds": "上传通知延迟（秒）",
-  "upload_debounce_seconds_description": "在此时间窗口内批量合并多次文件上传的通知。",
   "save_and_send_test_email": "保存并发送测试邮件",
   "send_test_email": "发送测试邮件",
   "send_test_email_dialog_description": "发件人邮箱地址，例如：“Shumai <noreply@example.com>”。请确保使用您有权使用的邮箱地址进行发送。",

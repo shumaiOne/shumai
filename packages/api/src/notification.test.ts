@@ -174,7 +174,6 @@ describe('notification api', () => {
       ignoreCert: false,
       from: 'noreply@example.com',
       replyTo: '',
-      uploadDebounceSeconds: 300,
     }
     vi.mocked(emailService.getEmailSettings).mockResolvedValue(mockSettings)
 
@@ -203,7 +202,6 @@ describe('notification api', () => {
       ignoreCert: false,
       from: 'shumai@example.com',
       replyTo: 'support@example.com',
-      uploadDebounceSeconds: 60,
     }
     vi.mocked(emailService.updateEmailSettings).mockResolvedValue(updateInput)
 

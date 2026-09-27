@@ -110,7 +110,6 @@ export const emailNotificationSettingsSchema = z.object({
   ignoreCert: z.boolean().default(false),
   from: z.string().default(''),
   replyTo: z.string().optional(),
-  uploadDebounceSeconds: z.number().int().min(0).max(3600).default(300),
 })
 
 export type EmailNotificationSettings = z.infer<typeof emailNotificationSettingsSchema>
@@ -125,7 +124,6 @@ export const updateEmailNotificationSettingsSchema = z.object({
   ignoreCert: z.boolean().default(false),
   from: z.string().default(''),
   replyTo: z.string().optional(),
-  uploadDebounceSeconds: z.number().int().min(0).max(3600).default(300),
 })
 
 export type UpdateEmailNotificationSettings = z.input<typeof updateEmailNotificationSettingsSchema>

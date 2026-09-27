@@ -29,7 +29,6 @@ export function EmailNotificationSettings({ teamId }: EmailNotificationSettingsP
     ignoreCert: false,
     from: '',
     replyTo: '',
-    uploadDebounceSeconds: 300,
   })
 
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false)
@@ -62,7 +61,6 @@ export function EmailNotificationSettings({ teamId }: EmailNotificationSettingsP
         ignoreCert: settings.ignoreCert ?? false,
         from: settings.from ?? '',
         replyTo: settings.replyTo ?? '',
-        uploadDebounceSeconds: settings.uploadDebounceSeconds ?? 300,
       })
     }
   }, [settings])
@@ -81,7 +79,6 @@ export function EmailNotificationSettings({ teamId }: EmailNotificationSettingsP
           ignoreCert: dataToSave.ignoreCert,
           from: dataToSave.from,
           replyTo: dataToSave.replyTo || '',
-          uploadDebounceSeconds: dataToSave.uploadDebounceSeconds,
         },
       })
       if (!res.ok) {
@@ -307,54 +304,21 @@ export function EmailNotificationSettings({ teamId }: EmailNotificationSettingsP
                   <p className="text-xs text-muted-foreground">{m.sender_from_description()}</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="sender-reply-to-input"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      {m.sender_reply_to()}
-                    </label>
-                    <Input
-                      id="sender-reply-to-input"
-                      value={formData.replyTo || ''}
-                      onChange={(e) => setFormData({ ...formData, replyTo: e.target.value })}
-                      placeholder="noreply@example.com"
-                      disabled={!formData.enabled}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {m.sender_reply_to_description()}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="upload-debounce-input"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      {m.upload_debounce_seconds()}
-                    </label>
-                    <Input
-                      id="upload-debounce-input"
-                      type="number"
-                      min={0}
-                      max={3600}
-                      value={formData.uploadDebounceSeconds}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          uploadDebounceSeconds: Math.max(
-                            0,
-                            Math.min(3600, parseInt(e.target.value, 10) || 0),
-                          ),
-                        })
-                      }
-                      disabled={!formData.enabled}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {m.upload_debounce_seconds_description()}
-                    </p>
-                  </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="sender-reply-to-input"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    {m.sender_reply_to()}
+                  </label>
+                  <Input
+                    id="sender-reply-to-input"
+                    value={formData.replyTo || ''}
+                    onChange={(e) => setFormData({ ...formData, replyTo: e.target.value })}
+                    placeholder="noreply@example.com"
+                    disabled={!formData.enabled}
+                  />
+                  <p className="text-xs text-muted-foreground">{m.sender_reply_to_description()}</p>
                 </div>
               </div>
             </CardContent>

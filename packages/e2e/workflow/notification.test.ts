@@ -62,7 +62,6 @@ describe.each(['local', 'temporal'] as const)(
               host: 'smtp.e2e.test',
               port: 587,
               from: 'noreply@e2e.test',
-              uploadDebounceSeconds: 0,
             },
           },
         },

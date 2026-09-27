@@ -40,7 +40,6 @@ export const DEFAULT_EMAIL_SETTINGS: EmailNotificationSettings = {
   ignoreCert: false,
   from: '',
   replyTo: '',
-  uploadDebounceSeconds: 300,
 }
 
 export class EmailService {
@@ -126,8 +125,6 @@ export class EmailService {
       ignoreCert: saved?.ignoreCert ?? DEFAULT_EMAIL_SETTINGS.ignoreCert,
       from: saved?.from ?? DEFAULT_EMAIL_SETTINGS.from,
       replyTo: saved?.replyTo ?? DEFAULT_EMAIL_SETTINGS.replyTo,
-      uploadDebounceSeconds:
-        saved?.uploadDebounceSeconds ?? DEFAULT_EMAIL_SETTINGS.uploadDebounceSeconds,
     }
   }
 
@@ -162,8 +159,6 @@ export class EmailService {
       ignoreCert: input.ignoreCert,
       from: input.from,
       replyTo: input.replyTo || '',
-      uploadDebounceSeconds:
-        input.uploadDebounceSeconds ?? DEFAULT_EMAIL_SETTINGS.uploadDebounceSeconds,
     }
 
     currentSettings.emailNotification = updatedEmailConfig
