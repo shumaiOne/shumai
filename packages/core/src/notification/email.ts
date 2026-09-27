@@ -4,11 +4,20 @@ import { prisma, NotificationType } from '@shumai/db'
 import type { EmailNotificationSettings, UpdateEmailNotificationSettings } from '@shumai/dtos'
 import { logger } from '@shumai/core/src/logger'
 
+export interface EmailAttachment {
+  filename: string
+  content?: Buffer | string
+  path?: string
+  cid?: string
+  contentType?: string
+}
+
 export interface SendMailOptions {
   to: string
   subject: string
   html: string
   text: string
+  attachments?: EmailAttachment[]
 }
 
 export interface NotificationEmailContext {
@@ -55,6 +64,10 @@ export interface BatchedEmailContext {
   teamName: string
   recipientName: string
   items: BatchedNotificationItem[]
+}
+
+export function getNotificationBatchGroupKey(item: BatchedNotificationItem): string {
+  return `${item.type}_${item.creatorName || ''}_${item.projectId || ''}_${item.teamId}`
 }
 
 export const DEFAULT_EMAIL_SETTINGS: EmailNotificationSettings = {
@@ -124,6 +137,7 @@ export class EmailService {
         subject: options.subject,
         html: options.html,
         text: options.text,
+        attachments: options.attachments,
       })
       logger.info({ messageId: info.messageId, to: options.to }, 'Email sent successfully')
       return { messageId: info.messageId }
@@ -559,7 +573,7 @@ Team: ${ctx.teamName}
     // Group items: same type + actor + project
     const groups = new Map<string, BatchedNotificationItem[]>()
     for (const item of ctx.items) {
-      const key = `${item.type}_${item.creatorName || ''}_${item.projectId || ''}_${item.teamId}`
+      const key = getNotificationBatchGroupKey(item)
       const list = groups.get(key)
       if (list) {
         list.push(item)

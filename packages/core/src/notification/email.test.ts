@@ -163,6 +163,31 @@ describe('EmailService', () => {
       )
       expect(mockClose).toHaveBeenCalled()
     })
+
+    it('sendMail forwards attachments to nodemailer transport', async () => {
+      const config = { ...DEFAULT_EMAIL_SETTINGS, host: 'smtp.test', from: 'shumai@test.com' }
+      const attachments = [
+        {
+          filename: 'avatar.png',
+          content: Buffer.from('image-data'),
+          cid: 'avatar-123@shumai.internal',
+          contentType: 'image/png',
+        },
+      ]
+      await emailService.sendMail(config, {
+        to: 'user@test.com',
+        subject: 'Hello',
+        html: '<img src="cid:avatar-123@shumai.internal" />',
+        text: 'Hello',
+        attachments,
+      })
+
+      expect(mockSendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachments,
+        }),
+      )
+    })
   })
 
   describe('sendTestEmail', () => {

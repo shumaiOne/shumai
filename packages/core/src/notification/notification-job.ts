@@ -1,12 +1,20 @@
 import { prisma, NotificationType, NotificationEmailStatus } from '@shumai/db'
-import { emailService } from '@shumai/core/src/notification/email'
-import type { BatchedNotificationItem } from '@shumai/core/src/notification/email'
+import { emailService, getNotificationBatchGroupKey } from '@shumai/core/src/notification/email'
+import type { BatchedNotificationItem, EmailAttachment } from '@shumai/core/src/notification/email'
 import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import { logger } from '@shumai/core/src/logger'
 import type { NotificationSettings } from '@shumai/dtos'
 import '@shumai/db/src/prisma-json-types'
+
+function getExtensionFromMime(mime?: string): string {
+  if (!mime) return 'jpg'
+  if (mime.includes('png')) return 'png'
+  if (mime.includes('webp')) return 'webp'
+  if (mime.includes('gif')) return 'gif'
+  if (mime.includes('svg')) return 'svg'
+  return 'jpg'
+}
 
 export class NotificationJobService {
   private isRunning = false
@@ -140,22 +148,76 @@ export class NotificationJobService {
           },
         })
 
-        const avatarCache = new Map<string, string | undefined>()
-        const thumbCache = new Map<string, string | undefined>()
+        const avatarCache = new Map<
+          string,
+          { cidUrl: string; attachment: EmailAttachment } | null
+        >()
+        const thumbCache = new Map<string, { cidUrl: string; attachment: EmailAttachment } | null>()
+        const cidAttachmentMap = new Map<string, EmailAttachment>()
 
         const resolveAvatar = async (
           creatorId?: string | null,
           image?: string | null,
         ): Promise<string | undefined> => {
           if (!image) return undefined
-          if (creatorId && avatarCache.has(creatorId)) return avatarCache.get(creatorId)
-          try {
-            const url = await getAvatarUrl(image)
-            if (creatorId) avatarCache.set(creatorId, url)
-            return url
-          } catch {
-            return undefined
+          if (creatorId && avatarCache.has(creatorId)) {
+            const cached = avatarCache.get(creatorId)
+            return cached ? cached.cidUrl : undefined
           }
+
+          const cid = `avatar-${creatorId || Math.random().toString(36).slice(2)}@shumai.internal`
+          const cidUrl = `cid:${cid}`
+
+          try {
+            if (image.startsWith('http://') || image.startsWith('https://')) {
+              const res = await fetch(image, { signal: AbortSignal.timeout(5000) })
+              if (res.ok) {
+                const arrayBuffer = await res.arrayBuffer()
+                const buffer = Buffer.from(arrayBuffer)
+                const contentType = res.headers.get('content-type') || 'image/jpeg'
+                const ext = getExtensionFromMime(contentType)
+                const resolved = {
+                  cidUrl,
+                  attachment: {
+                    filename: `avatar-${creatorId || 'user'}.${ext}`,
+                    content: buffer,
+                    cid,
+                    contentType,
+                  },
+                }
+                if (creatorId) avatarCache.set(creatorId, resolved)
+                cidAttachmentMap.set(cidUrl, resolved.attachment)
+                return cidUrl
+              }
+            } else {
+              const bucket = process.env.S3_BUCKET || 'shumai'
+              const obj = await s3Service.getObject(bucket, image)
+              if (obj && obj.buffer && obj.buffer.length > 0) {
+                const contentType = obj.contentType || 'image/jpeg'
+                const ext = getExtensionFromMime(contentType)
+                const resolved = {
+                  cidUrl,
+                  attachment: {
+                    filename: `avatar-${creatorId || 'user'}.${ext}`,
+                    content: obj.buffer,
+                    cid,
+                    contentType,
+                  },
+                }
+                if (creatorId) avatarCache.set(creatorId, resolved)
+                cidAttachmentMap.set(cidUrl, resolved.attachment)
+                return cidUrl
+              }
+            }
+          } catch (err) {
+            logger.debug(
+              { err: err instanceof Error ? err.message : String(err), image, creatorId },
+              'Failed to resolve avatar image for inline email attachment',
+            )
+          }
+
+          if (creatorId) avatarCache.set(creatorId, null)
+          return undefined
         }
 
         const resolveThumbnail = async (
@@ -163,18 +225,46 @@ export class NotificationJobService {
           media?: unknown,
         ): Promise<string | undefined> => {
           if (!assetId || !media) return undefined
-          if (thumbCache.has(assetId)) return thumbCache.get(assetId)
+          if (thumbCache.has(assetId)) {
+            const cached = thumbCache.get(assetId)
+            return cached ? cached.cidUrl : undefined
+          }
+
           const m = media as PrismaJson.MediaInfo | null
           const key = m?.thumbnail?.key || m?.poster?.key
           if (!key) return undefined
+
+          const cid = `thumb-${assetId}@shumai.internal`
+          const cidUrl = `cid:${cid}`
+
           try {
             const bucket = process.env.S3_BUCKET || 'shumai'
-            const url = await s3Service.presign(bucket, key, 'GET')
-            thumbCache.set(assetId, url)
-            return url
-          } catch {
-            return undefined
+            const obj = await s3Service.getObject(bucket, key)
+            if (obj && obj.buffer && obj.buffer.length > 0) {
+              const contentType = obj.contentType || 'image/jpeg'
+              const ext = getExtensionFromMime(contentType)
+              const resolved = {
+                cidUrl,
+                attachment: {
+                  filename: `thumb-${assetId}.${ext}`,
+                  content: obj.buffer,
+                  cid,
+                  contentType,
+                },
+              }
+              thumbCache.set(assetId, resolved)
+              cidAttachmentMap.set(cidUrl, resolved.attachment)
+              return cidUrl
+            }
+          } catch (err) {
+            logger.debug(
+              { err: err instanceof Error ? err.message : String(err), assetId, key },
+              'Failed to resolve thumbnail image for inline email attachment',
+            )
           }
+
+          thumbCache.set(assetId, null)
+          return undefined
         }
 
         const userItemsMap = new Map<
@@ -313,11 +403,52 @@ export class NotificationJobService {
               recipientName: user.name || 'Member',
               items,
             })
+            // Collect attachments for this email based on rendered items
+            const attachmentsMap = new Map<string, EmailAttachment>()
+
+            // Group items exactly as renderBatchedNotificationEmail does
+            const groups = new Map<string, BatchedNotificationItem[]>()
+            for (const item of items) {
+              const key = getNotificationBatchGroupKey(item)
+              const list = groups.get(key)
+              if (list) {
+                list.push(item)
+              } else {
+                groups.set(key, [item])
+              }
+            }
+
+            for (const [, cluster] of groups) {
+              const first = cluster[0]
+              if (first.creatorAvatarUrl) {
+                const att = cidAttachmentMap.get(first.creatorAvatarUrl)
+                if (att?.cid) attachmentsMap.set(att.cid, att)
+              }
+
+              if (cluster.length <= 3) {
+                // Detailed rows: individual avatars and thumbnails are rendered
+                for (const item of cluster) {
+                  if (item.creatorAvatarUrl) {
+                    const att = cidAttachmentMap.get(item.creatorAvatarUrl)
+                    if (att?.cid) attachmentsMap.set(att.cid, att)
+                  }
+                  if (item.assetThumbnailUrl) {
+                    const att = cidAttachmentMap.get(item.assetThumbnailUrl)
+                    if (att?.cid) attachmentsMap.set(att.cid, att)
+                  }
+                }
+              }
+              // If cluster.length > 3, thumbnails are not rendered, so we do not attach them
+            }
+
+            const attachments = Array.from(attachmentsMap.values())
+
             await emailService.sendMail(emailSettings, {
               to: user.email,
               subject: rendered.subject,
               html: rendered.html,
               text: rendered.text,
+              attachments: attachments.length > 0 ? attachments : undefined,
             })
           } catch (err) {
             logger.error(

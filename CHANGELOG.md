@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **notification**: Embed avatars and asset thumbnails as inline CID attachments in notification digest emails for reliable image display across email providers without external link blocking
 - **team**: Prevent email notification configuration and SMTP credentials from being exposed through general team settings
 
 ### Changed

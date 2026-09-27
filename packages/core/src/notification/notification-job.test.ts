@@ -1,9 +1,11 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { prisma, NotificationType, NotificationEmailStatus } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { emailService } from './email'
+import { emailService, type EmailAttachment } from './email'
 import { notificationJobService } from './notification-job'
 import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
+import { s3Service } from '@shumai/core/src/s3/s3'
+import '@shumai/db/src/prisma-json-types'
 
 describe('NotificationJobService', () => {
   setupTestDbHooks()
@@ -344,6 +346,225 @@ describe('NotificationJobService', () => {
     expect(call[1].html).toContain('UserB uploaded 5 assets to Project Alpha')
     // Comment rendered as individual row
     expect(call[1].html).toContain('Commented on')
+  })
+
+  it('embeds creator avatar and asset thumbnail as inline cid attachments', async () => {
+    const team = await createTeamWithEmail()
+    const sender = await prisma.user.create({
+      data: {
+        name: 'Alice Artist',
+        email: 'alice.artist@test.com',
+        password: 'p',
+        image: 'avatars/alice.png',
+      },
+    })
+    const recipient = await prisma.user.create({
+      data: { name: 'Bob Reviewer', email: 'bob.reviewer@test.com', password: 'p' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: recipient.id, role: 'editor' },
+    })
+
+    const project = await prisma.project.create({
+      data: { name: 'Artwork Project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'poster.png',
+        type: 'file',
+        status: 'uploaded',
+        project: { connect: { id: project.id } },
+        media: {
+          thumbnail: { key: 'thumbnails/poster.jpg' },
+        } as unknown as PrismaJson.MediaInfo,
+      },
+    })
+
+    await prisma.notification.create({
+      data: {
+        type: NotificationType.successful_file_uploaded,
+        teamId: team.id,
+        projectId: project.id,
+        assetId: asset.id,
+        creatorId: sender.id,
+        emailStatus: NotificationEmailStatus.pending,
+      },
+    })
+
+    const getObjectSpy = vi
+      .spyOn(s3Service, 'getObject')
+      .mockImplementation(async (_bucket, key) => {
+        if (key === 'avatars/alice.png') {
+          return { buffer: Buffer.from('alice-avatar-bytes'), contentType: 'image/png' }
+        }
+        if (key === 'thumbnails/poster.jpg') {
+          return { buffer: Buffer.from('poster-thumb-bytes'), contentType: 'image/jpeg' }
+        }
+        throw new Error('Not found')
+      })
+
+    try {
+      const count = await notificationJobService.processPendingNotifications(500)
+      expect(count).toBe(1)
+
+      expect(sendMailSpy).toHaveBeenCalledTimes(1)
+      const call = sendMailSpy.mock.calls[0]
+      const options = call[1]
+      expect(options.to).toBe('bob.reviewer@test.com')
+
+      // Check attachments
+      expect(options.attachments).toHaveLength(2)
+      const avatarAtt = options.attachments.find((a: EmailAttachment) =>
+        a.cid?.startsWith('avatar-'),
+      )
+      const thumbAtt = options.attachments.find((a: EmailAttachment) => a.cid?.startsWith('thumb-'))
+      expect(avatarAtt).toBeDefined()
+      expect(avatarAtt.content).toEqual(Buffer.from('alice-avatar-bytes'))
+      expect(avatarAtt.cid).toBe(`avatar-${sender.id}@shumai.internal`)
+
+      expect(thumbAtt).toBeDefined()
+      expect(thumbAtt.content).toEqual(Buffer.from('poster-thumb-bytes'))
+      expect(thumbAtt.cid).toBe(`thumb-${asset.id}@shumai.internal`)
+
+      // Check HTML references the exact cid
+      expect(options.html).toContain(`src="cid:${avatarAtt.cid}"`)
+      expect(options.html).toContain(`src="cid:${thumbAtt.cid}"`)
+    } finally {
+      getObjectSpy.mockRestore()
+    }
+  })
+
+  it('omits thumbnail attachments when cluster has count > 3', async () => {
+    const team = await createTeamWithEmail()
+    const sender = await prisma.user.create({
+      data: {
+        name: 'Bulk Uploader',
+        email: 'bulk@test.com',
+        password: 'p',
+        image: 'avatars/bulk.png',
+      },
+    })
+    const recipient = await prisma.user.create({
+      data: { name: 'Recipient', email: 'bulk-recip@test.com', password: 'p' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: recipient.id, role: 'editor' },
+    })
+
+    const project = await prisma.project.create({
+      data: { name: 'Bulk Project', teamId: team.id },
+    })
+
+    for (let i = 0; i < 4; i++) {
+      const asset = await prisma.asset.create({
+        data: {
+          name: `bulk_${i}.png`,
+          type: 'file',
+          status: 'uploaded',
+          project: { connect: { id: project.id } },
+          media: {
+            thumbnail: { key: `thumbnails/bulk_${i}.jpg` },
+          } as unknown as PrismaJson.MediaInfo,
+        },
+      })
+      await prisma.notification.create({
+        data: {
+          type: NotificationType.successful_file_uploaded,
+          teamId: team.id,
+          projectId: project.id,
+          assetId: asset.id,
+          creatorId: sender.id,
+          emailStatus: NotificationEmailStatus.pending,
+        },
+      })
+    }
+
+    const getObjectSpy = vi
+      .spyOn(s3Service, 'getObject')
+      .mockImplementation(async (_bucket, key) => {
+        if (key === 'avatars/bulk.png') {
+          return { buffer: Buffer.from('bulk-avatar-bytes'), contentType: 'image/png' }
+        }
+        return { buffer: Buffer.from('thumb-bytes'), contentType: 'image/jpeg' }
+      })
+
+    try {
+      const count = await notificationJobService.processPendingNotifications(500)
+      expect(count).toBe(4)
+
+      expect(sendMailSpy).toHaveBeenCalledTimes(1)
+      const options = sendMailSpy.mock.calls[0][1]
+
+      // Count > 3, so only avatar attachment is included, NO thumbnail attachments!
+      expect(options.attachments).toHaveLength(1)
+      expect(options.attachments[0].cid).toBe(`avatar-${sender.id}@shumai.internal`)
+      expect(options.html).toContain(`src="cid:avatar-${sender.id}@shumai.internal"`)
+      expect(options.html).not.toContain('src="cid:thumb-')
+    } finally {
+      getObjectSpy.mockRestore()
+    }
+  })
+
+  it('gracefully handles missing images or S3 failure with fallback badge', async () => {
+    const team = await createTeamWithEmail()
+    const sender = await prisma.user.create({
+      data: {
+        name: 'Broken Image User',
+        email: 'broken@test.com',
+        password: 'p',
+        image: 'avatars/non-existent.png',
+      },
+    })
+    const recipient = await prisma.user.create({
+      data: { name: 'Recipient', email: 'broken-recip@test.com', password: 'p' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: recipient.id, role: 'editor' },
+    })
+
+    const project = await prisma.project.create({
+      data: { name: 'Project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'broken.png',
+        type: 'file',
+        status: 'uploaded',
+        project: { connect: { id: project.id } },
+        media: {
+          thumbnail: { key: 'thumbnails/missing.jpg' },
+        } as unknown as PrismaJson.MediaInfo,
+      },
+    })
+
+    await prisma.notification.create({
+      data: {
+        type: NotificationType.successful_file_uploaded,
+        teamId: team.id,
+        projectId: project.id,
+        assetId: asset.id,
+        creatorId: sender.id,
+        emailStatus: NotificationEmailStatus.pending,
+      },
+    })
+
+    const getObjectSpy = vi.spyOn(s3Service, 'getObject').mockRejectedValue(new Error('S3 error'))
+
+    try {
+      const count = await notificationJobService.processPendingNotifications(500)
+      expect(count).toBe(1)
+
+      expect(sendMailSpy).toHaveBeenCalledTimes(1)
+      const options = sendMailSpy.mock.calls[0][1]
+
+      // No attachments because both avatar and thumb failed to load
+      expect(options.attachments).toBeUndefined()
+      // HTML falls back to letter badge "B" for "Broken Image User"
+      expect(options.html).toContain('>B</td>')
+      expect(options.html).not.toContain('<img')
+    } finally {
+      getObjectSpy.mockRestore()
+    }
   })
 
   it('starts and stops gracefully', () => {
