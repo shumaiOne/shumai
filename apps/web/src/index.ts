@@ -10,8 +10,9 @@ import { app } from '@shumai/api'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { initTranscodeWorkflows } from '@shumai/transcode'
-import { workflowService } from '@shumai/workflow-core'
+import { workflowService, TaskQueueNotification } from '@shumai/workflow-core'
 import { migrateLegacyAgentAvatars } from '@shumai/core/src/agent/migration'
+import { initNotificationWorkflows } from '@shumai/core'
 
 import { handleDaemonCommands } from '@shumai/core/src/utils/daemon'
 import { authService } from '@shumai/core/src/auth/auth'
@@ -50,6 +51,7 @@ async function run() {
   // Initialize workflows and activities for local executor mode
   initAgentWorkflows()
   initTranscodeWorkflows()
+  initNotificationWorkflows()
   await sandboxService.ensureInitialized().catch((err) => {
     console.error('Failed to eagerly initialize sandbox in web app:', err)
   })
@@ -70,7 +72,7 @@ async function run() {
       }
     }
 
-    const queuesToStart: string[] = []
+    const queuesToStart: string[] = [TaskQueueNotification]
     if (workersOption === 'agent' || workersOption === 'ai') {
       queuesToStart.push('agent_queue')
     } else if (workersOption === 'transcode') {

@@ -1,11 +1,14 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { notificationService } from '@shumai/core/src/notification/notification'
+import { emailService } from '@shumai/core/src/notification/email'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import {
   listNotificationsRequestSchema,
   markNotificationReadRequestSchema,
   notificationSettingsSchema,
+  updateEmailNotificationSettingsSchema,
+  testEmailRequestSchema,
 } from '@shumai/dtos'
 import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
 import type { Prisma } from '@shumai/db'
@@ -107,6 +110,58 @@ const route = new Hono<{ Variables: { user: User } }>()
       await userMetadataService.upsertMetadata(user.id, teamId, 'notification_settings', req)
 
       return c.json({ success: true })
+    },
+  )
+  .get('/teams/:teamId/notifications/email', async (c) => {
+    const teamId = c.req.param('teamId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const settings = await emailService.getEmailSettings(teamId)
+    return c.json(settings)
+  })
+  .put(
+    '/teams/:teamId/notifications/email',
+    zValidator('json', updateEmailNotificationSettingsSchema),
+    async (c) => {
+      const teamId = c.req.param('teamId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
+      })
+
+      const settings = await emailService.updateEmailSettings(teamId, req)
+      return c.json(settings)
+    },
+  )
+  .post(
+    '/teams/:teamId/notifications/email/test',
+    zValidator('json', testEmailRequestSchema),
+    async (c) => {
+      const teamId = c.req.param('teamId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
+      })
+
+      const result = await emailService.sendTestEmail(teamId, user, req)
+      return c.json(result)
     },
   )
 

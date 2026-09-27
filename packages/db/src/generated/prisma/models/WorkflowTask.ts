@@ -396,7 +396,7 @@ export type WorkflowTaskCreateInput = {
   uid?: string
   teamId?: string | null
   projectId?: string | null
-  assetId: string
+  assetId?: string
   type?: $Enums.WorkflowTaskType | null
   status?: $Enums.WorkflowTaskStatus | null
   payload?:PrismaJson.WorkflowTaskPayload | Prisma.NullableJsonNullValueInput
@@ -415,7 +415,7 @@ export type WorkflowTaskUncheckedCreateInput = {
   uid?: string
   teamId?: string | null
   projectId?: string | null
-  assetId: string
+  assetId?: string
   type?: $Enums.WorkflowTaskType | null
   status?: $Enums.WorkflowTaskStatus | null
   payload?:PrismaJson.WorkflowTaskPayload | Prisma.NullableJsonNullValueInput
@@ -472,7 +472,7 @@ export type WorkflowTaskCreateManyInput = {
   uid?: string
   teamId?: string | null
   projectId?: string | null
-  assetId: string
+  assetId?: string
   type?: $Enums.WorkflowTaskType | null
   status?: $Enums.WorkflowTaskStatus | null
   payload?:PrismaJson.WorkflowTaskPayload | Prisma.NullableJsonNullValueInput

@@ -99,3 +99,53 @@ export const notificationSettingsSchema = z.object({
 })
 
 export type NotificationSettings = z.infer<typeof notificationSettingsSchema>
+
+export const emailNotificationSettingsSchema = z.object({
+  enabled: z.boolean(),
+  host: z.string().default(''),
+  port: z.number().int().min(1).max(65535).default(587),
+  username: z.string().optional(),
+  password: z.string().optional(),
+  smtps: z.boolean().default(false),
+  ignoreCert: z.boolean().default(false),
+  from: z.string().default(''),
+  replyTo: z.string().optional(),
+  uploadDebounceSeconds: z.number().int().min(0).max(3600).default(300),
+})
+
+export type EmailNotificationSettings = z.infer<typeof emailNotificationSettingsSchema>
+
+export const updateEmailNotificationSettingsSchema = z.object({
+  enabled: z.boolean(),
+  host: z.string().default(''),
+  port: z.number().int().min(1).max(65535).default(587),
+  username: z.string().optional(),
+  password: z.string().optional(),
+  smtps: z.boolean().default(false),
+  ignoreCert: z.boolean().default(false),
+  from: z.string().default(''),
+  replyTo: z.string().optional(),
+  uploadDebounceSeconds: z.number().int().min(0).max(3600).default(300),
+})
+
+export type UpdateEmailNotificationSettings = z.input<typeof updateEmailNotificationSettingsSchema>
+
+export const testEmailRequestSchema = z.object({
+  host: z.string().optional(),
+  port: z.number().int().min(1).max(65535).optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+  smtps: z.boolean().optional(),
+  ignoreCert: z.boolean().optional(),
+  from: z.string().optional(),
+  replyTo: z.string().optional(),
+})
+
+export type TestEmailRequest = z.infer<typeof testEmailRequestSchema>
+
+export const testEmailResponseSchema = z.object({
+  success: z.boolean(),
+  messageId: z.string(),
+})
+
+export type TestEmailResponse = z.infer<typeof testEmailResponseSchema>

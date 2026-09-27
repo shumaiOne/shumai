@@ -85,10 +85,24 @@ declare global {
       hideAgent?: boolean
     }
 
+    export interface EmailNotificationSettings {
+      enabled: boolean
+      host?: string
+      port?: number
+      username?: string
+      password?: string
+      smtps?: boolean
+      ignoreCert?: boolean
+      from?: string
+      replyTo?: string
+      uploadDebounceSeconds?: number
+    }
+
     export interface Settings {
-      transcode: TranscodeSettings
+      transcode?: TranscodeSettings
       mediaGeneration?: MediaGenerationSettings
       appearance?: AppearanceSettings
+      emailNotification?: EmailNotificationSettings
     }
 
     // ----------------------------------------------------------------------
@@ -305,8 +319,20 @@ declare global {
       annotations?: AnnotationList | null
     }
 
+    export interface NotificationTaskPayload {
+      type: import('@shumai/db').NotificationType
+      teamId: string
+      projectId?: string
+      creatorId?: string
+      assetId?: string
+      taskId?: string
+      kanbanTaskId?: string
+      userId?: string
+      commentMessage?: string
+    }
+
     export interface WorkflowTaskPayload {
-      projectId: string
+      projectId?: string
       transcode?: TaskSpec
       agent?: AgentTaskPayload
       queryEmbeddingForSearch?: {
@@ -316,6 +342,7 @@ declare global {
       imageAnnotation?: ImageAnnotationSpec
       pdfPages?: PdfPagesSpec
       watermark?: WatermarkTaskPayload
+      notification?: NotificationTaskPayload
     }
 
     // ----------------------------------------------------------------------
