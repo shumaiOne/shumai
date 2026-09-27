@@ -15,6 +15,7 @@ import { NotificationSettings } from '@/ui/components/settings/NotificationSetti
 import { DeveloperSettings } from '@/ui/components/settings/DeveloperSettings'
 import { QuotasSettings } from '@/ui/components/settings/QuotasSettings'
 import { AppearanceSettings } from '@/ui/components/settings/AppearanceSettings'
+import { EmailNotificationSettings } from '@/ui/components/settings/EmailNotificationSettings'
 import { ImageVideoGenerationSettings } from '@/ui/components/settings/ImageVideoGenerationSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { Slider } from '@/ui/components/ui/slider'
@@ -25,6 +26,7 @@ import {
   Cpu,
   Film,
   Loader2,
+  Mail,
   Puzzle,
   Server,
   Shield,
@@ -57,6 +59,7 @@ type SettingsTab =
   | 'transcode'
   | 'quotas'
   | 'appearance'
+  | 'email'
   | 'skills'
   | 'mcp'
   | 'providers'
@@ -71,6 +74,7 @@ const VALID_SETTINGS_TABS: readonly SettingsTab[] = [
   'transcode',
   'quotas',
   'appearance',
+  'email',
   'skills',
   'mcp',
   'providers',
@@ -173,6 +177,7 @@ function TeamSettingsPage() {
       'transcode',
       'quotas',
       'appearance',
+      'email',
       'providers',
       'image-video',
       'skills',
@@ -468,6 +473,22 @@ function TeamSettingsPage() {
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
                   )}
                 </button>
+
+                <button
+                  onClick={() => handleTabChange('email')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                    activeTab === 'email'
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                      : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  )}
+                >
+                  <Mail className="w-5 h-5" />
+                  {m.email_notifications()}
+                  {activeTab === 'email' && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+                  )}
+                </button>
               </>
             )}
 
@@ -588,6 +609,7 @@ function TeamSettingsPage() {
                   {activeTab === 'transcode' && m.media_processing()}
                   {activeTab === 'quotas' && m.resource_quotas()}
                   {activeTab === 'appearance' && m.appearance_settings()}
+                  {activeTab === 'email' && m.email_notifications()}
                   {activeTab === 'skills' && m.skills_management()}
                   {activeTab === 'mcp' && m.mcp_servers()}
                   {activeTab === 'providers' && m.ai_providers()}
@@ -602,6 +624,7 @@ function TeamSettingsPage() {
                   {activeTab === 'transcode' && m.transcode_description()}
                   {activeTab === 'quotas' && m.resource_quotas_description()}
                   {activeTab === 'appearance' && m.appearance_settings_description()}
+                  {activeTab === 'email' && m.email_notifications_description()}
                   {activeTab === 'skills' && m.skills_description()}
                   {activeTab === 'mcp' && m.mcp_servers_description()}
                   {activeTab === 'providers' && m.providers_description()}
@@ -908,6 +931,8 @@ function TeamSettingsPage() {
               {activeTab === 'quotas' && <QuotasSettings teamId={teamId} />}
 
               {activeTab === 'appearance' && <AppearanceSettings teamId={teamId} />}
+
+              {activeTab === 'email' && <EmailNotificationSettings teamId={teamId} />}
             </div>
           </div>
         </main>
