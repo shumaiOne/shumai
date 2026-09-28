@@ -2108,11 +2108,81 @@ describe('TranscodeService', () => {
       expect(callArgs).toContain('1552k')
     })
 
-    it('transcodeVideo should throw immediately when ffmpeg fails during hardware transcoding', async () => {
+    it('transcodeVideo should fall back to libx264 software encoding when hardware transcoding fails', async () => {
       vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
         H264_ENCODER_CONFIGS.h264_vaapi,
       )
       vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue('/dev/dri/renderD128')
+      const warnSpy = vi.spyOn(logger, 'warn')
+
+      let callCount = 0
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          callCount++
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (typeof cb === 'function') {
+            if (callCount === 1) {
+              cb(
+                new Error(
+                  'Hardware does not support encoding at size 1088x1920 (constraints: width 128-2560 height 128-1440)',
+                ),
+                {
+                  stdout: '',
+                  stderr: 'VAAPI error',
+                },
+              )
+            } else {
+              cb(null, { stdout: '', stderr: '' })
+            }
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const outputFile = path.join(tempDir, 'out_vaapi_fallback.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1088,
+        height: 1920,
+        hardwareAcceleration: 'auto',
+      })
+
+      expect(callCount).toBe(2)
+      const firstCallArgs = vi.mocked(child_process.execFile).mock.calls[0][1] as string[]
+      const secondCallArgs = vi.mocked(child_process.execFile).mock.calls[1][1] as string[]
+
+      expect(firstCallArgs).toContain('h264_vaapi')
+      expect(secondCallArgs).toContain('libx264')
+      expect(secondCallArgs).toContain('-pix_fmt')
+      expect(secondCallArgs).toContain('yuv420p')
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          encoder: 'h264_vaapi',
+          inputFile: 'input.mp4',
+          outputFile,
+        }),
+        'Hardware video transcoding failed; falling back to software transcode (libx264)',
+      )
+    })
+
+    it('transcodeVideo should clean up partial output file before falling back to software transcode', async () => {
+      vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
+        H264_ENCODER_CONFIGS.h264_vaapi,
+      )
+      vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue('/dev/dri/renderD128')
+
+      const outputFile = path.join(tempDir, 'out_vaapi_partial.mp4')
+      let callCount = 0
+      let existedBeforeFallback = false
 
       vi.mocked(execFile).mockImplementation(
         (
@@ -2120,21 +2190,70 @@ describe('TranscodeService', () => {
           _args: unknown,
           callback: unknown,
         ): ReturnType<typeof child_process.execFile> => {
+          callCount++
           const cb = callback as (
             err: Error | null,
             result: { stdout: string; stderr: string },
           ) => void
           if (typeof cb === 'function') {
-            cb(new Error('VAAPI driver error: failed to allocate surface'), {
-              stdout: '',
-              stderr: 'driver error',
-            })
+            if (callCount === 1) {
+              // Simulate ffmpeg creating a partial output file before failing
+              fs.writeFileSync(outputFile, 'partial video data')
+              cb(new Error('VAAPI encode failed'), { stdout: '', stderr: 'encode failed' })
+            } else {
+              existedBeforeFallback = fs.existsSync(outputFile)
+              cb(null, { stdout: '', stderr: '' })
+            }
           }
           return {} as ReturnType<typeof child_process.execFile>
         },
       )
 
-      const outputFile = path.join(tempDir, 'out_vaapi_fail.mp4')
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1088,
+        height: 1920,
+        hardwareAcceleration: 'auto',
+      })
+
+      expect(callCount).toBe(2)
+      expect(existedBeforeFallback).toBe(false)
+    })
+
+    it('transcodeVideo should rethrow software transcode error if fallback also fails', async () => {
+      vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
+        H264_ENCODER_CONFIGS.h264_vaapi,
+      )
+      vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue('/dev/dri/renderD128')
+
+      let callCount = 0
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          callCount++
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (typeof cb === 'function') {
+            if (callCount === 1) {
+              cb(new Error('VAAPI driver error'), { stdout: '', stderr: 'driver error' })
+            } else {
+              cb(new Error('x264 failed: corrupted frame'), {
+                stdout: '',
+                stderr: 'x264 error',
+              })
+            }
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const outputFile = path.join(tempDir, 'out_vaapi_both_fail.mp4')
       await expect(
         transcodeService.transcodeVideo({
           inputFile: 'input.mp4',
@@ -2143,7 +2262,53 @@ describe('TranscodeService', () => {
           height: 720,
           hardwareAcceleration: 'auto',
         }),
-      ).rejects.toThrow('VAAPI driver error: failed to allocate surface')
+      ).rejects.toThrow('x264 failed: corrupted frame')
+      expect(callCount).toBe(2)
+    })
+
+    it('transcodeVideo should not fall back to software encoding when transcode was aborted', async () => {
+      vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
+        H264_ENCODER_CONFIGS.h264_vaapi,
+      )
+      vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue('/dev/dri/renderD128')
+
+      const abortController = new AbortController()
+      let callCount = 0
+
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          optionsOrCallback: unknown,
+          maybeCallback?: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          callCount++
+          const cb = (
+            typeof optionsOrCallback === 'function' ? optionsOrCallback : maybeCallback
+          ) as (err: Error | null, result: { stdout: string; stderr: string }) => void
+          if (typeof cb === 'function') {
+            abortController.abort()
+            const abortErr = new Error('The operation was aborted')
+            abortErr.name = 'AbortError'
+            cb(abortErr, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      const outputFile = path.join(tempDir, 'out_vaapi_abort.mp4')
+      await expect(
+        transcodeService.transcodeVideo({
+          inputFile: 'input.mp4',
+          outputFile,
+          width: 1280,
+          height: 720,
+          hardwareAcceleration: 'auto',
+          signal: abortController.signal,
+        }),
+      ).rejects.toThrow('The operation was aborted')
+
+      expect(callCount).toBe(1)
     })
 
     it('transcodeVideo with threads > 0 should pass -threads to ffmpeg', async () => {

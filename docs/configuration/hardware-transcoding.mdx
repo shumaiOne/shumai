@@ -7,7 +7,7 @@ High-resolution camera recordings, phone videos, and animation media files requi
 
 Hardware-accelerated transcoding allows you to offload video encoding to a dedicated or integrated GPU, dramatically speeding up processing and freeing host CPU cores for other services.
 
-Shumai includes a built-in usability probe that tests hardware encoders at runtime. If GPU drivers or device nodes are unavailable, Shumai automatically falls back to software encoding without failing user tasks.
+Shumai includes a built-in usability probe that tests hardware encoders at startup, alongside automatic runtime fallback during video processing. If GPU drivers or device nodes are unavailable, or if a hardware encoder encounters hardware limits (such as resolution or dimension constraints on certain GPUs) or runtime driver errors, Shumai seamlessly falls back to software encoding (`libx264`) without failing user tasks.
 
 ---
 

@@ -866,7 +866,61 @@ export class TranscodeService {
     return H264_ENCODER_CONFIGS.libx264
   }
 
+  private isAbortError(err: unknown, signal?: AbortSignal): boolean {
+    if (signal?.aborted) return true
+    if (err && typeof err === 'object') {
+      const r = err as Record<string, unknown>
+      if (r.name === 'AbortError' || r.code === 'ABORT_ERR') return true
+      const msg = typeof r.message === 'string' ? r.message.toLowerCase() : ''
+      if (msg.includes('abort')) return true
+    }
+    return false
+  }
+
   async transcodeVideo(params: TranscodeVideoParams): Promise<void> {
+    const encoder = await this.selectH264Encoder(params.hardwareAcceleration)
+
+    if (encoder.name !== 'libx264') {
+      try {
+        await this.executeFfmpegVideoTranscode(params, encoder)
+        return
+      } catch (err) {
+        if (this.isAbortError(err, params.signal)) {
+          throw err
+        }
+
+        logger.warn(
+          {
+            err,
+            encoder: encoder.name,
+            inputFile: params.inputFile,
+            outputFile: params.outputFile,
+            width: params.width,
+            height: params.height,
+          },
+          'Hardware video transcoding failed; falling back to software transcode (libx264)',
+        )
+
+        if (fs.existsSync(params.outputFile)) {
+          try {
+            fs.unlinkSync(params.outputFile)
+          } catch {
+            // ignore unlink errors
+          }
+        }
+
+        await this.executeFfmpegVideoTranscode(params, H264_ENCODER_CONFIGS.libx264)
+        return
+      }
+    }
+
+    await this.executeFfmpegVideoTranscode(params, encoder)
+  }
+
+  private async executeFfmpegVideoTranscode(
+    params: TranscodeVideoParams,
+    encoder: EncoderConfig,
+  ): Promise<void> {
     const isSourceHdr =
       params.sourceIsHdr ||
       params.sourceHdrType === 'pq' ||
@@ -874,7 +928,6 @@ export class TranscodeService {
       params.sourceHdrType === 'dovi_p5'
     const isHdrOutput = Boolean(params.hdr)
 
-    const encoder = await this.selectH264Encoder(params.hardwareAcceleration)
     const isVaapi = encoder.name === 'h264_vaapi'
     const vaapiDevice = isVaapi ? (this.getVaapiDevice() ?? '/dev/dri/renderD128') : undefined
 
