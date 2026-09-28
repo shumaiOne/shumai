@@ -1,0 +1,127 @@
+---
+title: Email Notifications
+description: Configure team SMTP settings, deliver batched activity digest emails, and send test emails.
+---
+
+Shumai includes a built-in email notification system that delivers updates on team activities—such as comments, mentions, new asset uploads, status changes, and Kanban tasks—directly to team members' inboxes.
+
+To prevent inbox clutter and notification fatigue, Shumai does not send emails for every single action individually. Instead, a background delivery service aggregates pending notifications and sends periodic, batched digest emails with inline thumbnails and deep links.
+
+---
+
+## Configuring SMTP Settings
+
+Email notification settings are managed at the team level by **Team Owners**.
+
+To configure outgoing mail:
+
+1. Click on **Team Settings** in the sidebar.
+2. Select the **Email Notifications** tab.
+3. Turn on the **Enable Email Notifications** switch.
+4. Fill in your SMTP server credentials and sender information.
+5. Click **Save** or **Save and Send Test Email**.
+
+### SMTP Server Settings
+
+| Field                         | Description                                                                                                                                                 | Example / Default                                   |
+| :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------- |
+| **SMTP Host**                 | The hostname or IP address of your outgoing SMTP server.                                                                                                    | `smtp.example.com` or `smtp.sendgrid.net`           |
+| **SMTP Port**                 | The port used to connect to your SMTP server.                                                                                                               | `587` (default, STARTTLS), `465` (SSL/TLS), or `25` |
+| **Username**                  | The username or API key required to authenticate with the SMTP server.                                                                                      | `user@example.com` or `apikey`                      |
+| **Password**                  | The authentication password or API secret.                                                                                                                  | `••••••••`                                          |
+| **SSL / TLS (SMTPS)**         | Connect directly using SSL/TLS encryption. Typically required when connecting over port `465`.                                                              | `Disabled` (default)                                |
+| **Ignore Certificate Errors** | Allows connections with self-signed, invalid, or unverified TLS certificates. Useful for local testing (e.g. Mailpit, MailHog) or private corporate relays. | `Disabled` (default)                                |
+
+> [!TIP]
+> **Password Retention**: When updating existing email settings, you can leave the password input blank to keep the currently stored password. For security, stored passwords are never returned in cleartext to the client.
+
+### Sender Information
+
+| Field        | Description                                                                                                                                         | Example / Default              |
+| :----------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------- |
+| **From**     | The sender name and email address that will appear in the `From` header. Ensure your SMTP provider is authorized to send on behalf of this address. | `Shumai <noreply@example.com>` |
+| **Reply-To** | _(Optional)_ An email address to receive replies if members respond directly to a notification email.                                               | `support@example.com`          |
+
+---
+
+## Testing SMTP Delivery
+
+Before relying on email delivery, you can verify your configuration and credentials directly from the settings page:
+
+1. Click **Save and Send Test Email**.
+2. In the **Send Test Email** modal, verify or adjust the sender `From` address.
+3. Click **Send Test Email**.
+
+Shumai will perform an active handshake verification (`transport.verify()`) against your SMTP server and dispatch a styled test message to the email address of the currently logged-in administrator.
+
+If the handshake or delivery fails (for example, due to an invalid password, blocked outbound port, or rejected sender address), an error toast is displayed with the exact message returned by the SMTP server.
+
+---
+
+## Delivery Architecture & Digest Batching
+
+Shumai uses an asynchronous, batched architecture for email delivery:
+
+```
+[ Team Activity ]
+(Comments, Uploads, Mentions, Kanban)
+        │
+        ▼
+[ Database Queue ] (status: pending)
+        │
+        ▼ (Every 3 minutes)
+[ Notification Background Job ]
+        │
+        ├─ Filter recipients (check user preferences & project scope)
+        ├─ Exclude self-actions and AI agents
+        ├─ Group & collapse items (clusters > 3 summarized)
+        ├─ Fetch avatars & thumbnails as inline CID attachments
+        │
+        ▼
+[ Nodemailer Transport ] ──> SMTP Server ──> [ Member Inboxes ]
+```
+
+### 1. Periodic Background Delivery
+
+Notifications are queued in PostgreSQL with a `pending` status. A background job runs periodically every **3 minutes**, acquiring pending notifications using atomic queue locking (`FOR UPDATE SKIP LOCKED`). This ensures safe delivery without duplicate emails even when multiple server instances run concurrently.
+
+### 2. Digest Bundling
+
+Rather than sending an email immediately for each action, all notifications collected for a recipient during the 3-minute window are combined into a single digest email. This keeps team communication organized and eliminates inbox spam during heavy collaboration sessions.
+
+### 3. Smart Activity Collapsing
+
+When an event cluster contains a high volume of items (for example, when an editor uploads dozens of video clips at once), Shumai automatically groups and collapses the items:
+
+- If **3 or fewer** items are in a group, each item is displayed with its individual thumbnail and details.
+- If **more than 3** items are uploaded together, Shumai summarizes them into a single concise notification (e.g., _"Alice uploaded 12 new files to Project Alpha"_) with a preview of the first three file names.
+
+### 4. Inline CID Attachments
+
+Avatars and video/image asset thumbnails are retrieved from storage and embedded directly into the email as inline MIME attachments (`cid:...`).
+
+Unlike external image links, inline CID attachments:
+
+- Display immediately in desktop and mobile email clients (such as Apple Mail, Gmail, and Outlook) without being blocked by "show remote content" security warnings.
+- Do not require publicly accessible S3 URLs or reverse-proxy authentication to render.
+
+### 5. Deep Linking
+
+Every notification card in the email includes deep-linking action buttons (such as **View Asset**, **View Project**, or **View Task**) that navigate members straight to the corresponding resource in Shumai.
+
+To ensure links point to your public domain instead of `localhost`, configure the `APP_URL` or `BETTER_AUTH_URL` environment variable on your Shumai server:
+
+```bash
+APP_URL=https://shumai.example.com
+```
+
+---
+
+## Member Preferences & Filtering
+
+Email delivery respects team permissions and member choices:
+
+- **Personal Preferences**: Team members can independently choose which types of activities they receive by opening **Team Settings > Notifications**. If a user disables notifications for a category (e.g. general comments or status updates), Shumai will not include those items in their email digests.
+- **Self-Action Suppression**: Members never receive notification emails for their own comments, uploads, or task updates (unless they explicitly enable the **Your Uploads** preference to be notified when their own media transcoding completes).
+- **Project Scope**: Members whose access is restricted to specific projects only receive email digests for activities within those assigned projects, unless they are explicitly `@mentioned`.
+- **AI Agents**: Automated AI agent accounts are automatically excluded from receiving email notifications.

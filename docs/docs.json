@@ -65,6 +65,7 @@
         "pages": [
           "using-shumai/transcode-settings",
           "using-shumai/quotas-settings",
+          "using-shumai/email-notifications",
           "using-shumai/password-reset"
         ]
       },

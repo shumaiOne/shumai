@@ -24,12 +24,13 @@ Shumai is configured via environment variables. You can define these variables i
 
 ---
 
-## Authentication Config
+## Authentication & Application Config
 
-| Variable             | Description                                                            | Example / Default                                                |
-| :------------------- | :--------------------------------------------------------------------- | :--------------------------------------------------------------- |
-| `BETTER_AUTH_SECRET` | A secure, random 32-byte secret used to sign session cookies and JWTs. | Generate with `openssl rand -base64 32`                          |
-| `BETTER_AUTH_URL`    | The public URL of your Hono backend API. Used for redirect flows.      | `http://localhost:3000` (respects `SHUMAI_SERVER_PORT` fallback) |
+| Variable             | Description                                                                                                      | Example / Default                                                |
+| :------------------- | :--------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------- |
+| `BETTER_AUTH_SECRET` | A secure, random 32-byte secret used to sign session cookies and JWTs.                                           | Generate with `openssl rand -base64 32`                          |
+| `BETTER_AUTH_URL`    | The public URL of your Hono backend API. Used for redirect flows and notification email links fallback.          | `http://localhost:3000` (respects `SHUMAI_SERVER_PORT` fallback) |
+| `APP_URL`            | The public URL of the web application. Used for notification email deep links (falls back to `BETTER_AUTH_URL`). | `https://shumai.example.com`                                     |
 
 ---
 

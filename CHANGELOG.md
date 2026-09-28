@@ -8,16 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **notification**: Add periodic background job that batches notifications into single digest emails per user, with smart collapsing for high-volume events, user preference filtering, and presigned thumbnails
-- **webui**: Add team email notification settings page with SMTP configuration and test email dialog
-- **notification**: Add email notification infrastructure with team-level SMTP configuration, test email delivery, and rich HTML templates
+- **notification**: You can now receive notifications via email, with batched digest emails and configurable team-level SMTP settings
 - **transcode**: Add VA-API hardware acceleration support for Linux hosts and Docker environments with Intel and AMD GPUs, featuring automatic DRI render node discovery, variable bitrate control, and structured transcoding observability logs
 - **docker**: Add modular hardware-accelerated transcoding presets matching Immich's compose configuration via `hwaccel.transcoding.yaml` with support for NVENC, QuickSync, RKMPP, and VA-API
 
 ### Fixed
-
-- **notification**: Embed avatars and asset thumbnails as inline CID attachments in notification digest emails for reliable image display across email providers without external link blocking
-- **team**: Prevent email notification configuration and SMTP credentials from being exposed through general team settings
 
 ### Changed
 
