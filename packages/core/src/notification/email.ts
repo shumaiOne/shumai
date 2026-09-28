@@ -312,20 +312,18 @@ Sent from Shumai at ${baseUrl}
     let actionUrl = baseUrl
     let actionText = 'View in Shumai'
 
-    if (ctx.teamId) {
-      if (ctx.projectId && ctx.assetId) {
-        actionUrl = `${baseUrl}/teams/${ctx.teamId}/projects/${ctx.projectId}?assetId=${ctx.assetId}`
-        actionText = 'View Asset'
-      } else if (ctx.projectId) {
-        actionUrl = `${baseUrl}/teams/${ctx.teamId}/projects/${ctx.projectId}`
-        actionText = 'View Project'
-      } else if (ctx.kanbanTaskId) {
-        actionUrl = `${baseUrl}/teams/${ctx.teamId}?kanbanTaskId=${ctx.kanbanTaskId}`
-        actionText = 'View Task'
-      } else {
-        actionUrl = `${baseUrl}/teams/${ctx.teamId}`
-        actionText = 'Open Team'
-      }
+    if (ctx.projectId && ctx.assetId) {
+      actionUrl = `${baseUrl}/projects/${ctx.projectId}/files/${ctx.assetId}`
+      actionText = 'View Asset'
+    } else if (ctx.projectId) {
+      actionUrl = `${baseUrl}/projects/${ctx.projectId}`
+      actionText = 'View Project'
+    } else if (ctx.teamId && ctx.kanbanTaskId) {
+      actionUrl = `${baseUrl}/teams/${ctx.teamId}/kanban?taskId=${ctx.kanbanTaskId}`
+      actionText = 'View Task'
+    } else if (ctx.teamId) {
+      actionUrl = `${baseUrl}/teams/${ctx.teamId}`
+      actionText = 'Open Team'
     }
 
     let subject = '[Shumai] Notification'
@@ -673,9 +671,7 @@ Team: ${ctx.teamName}
           return t > latest ? t : latest
         }, 0)
         const timeStr = latestTime > 0 ? formatUploadTime(new Date(latestTime)) : undefined
-        const targetUrl = first.projectId
-          ? `${baseUrl}/teams/${ctx.teamId}/projects/${first.projectId}`
-          : teamUrl
+        const targetUrl = first.projectId ? `${baseUrl}/projects/${first.projectId}` : teamUrl
 
         htmlRows.push(
           `
@@ -840,27 +836,25 @@ function getItemAction(
   baseUrl: string,
   item: BatchedNotificationItem,
 ): { url: string; text: string } {
-  if (item.teamId) {
-    if (item.projectId && item.assetId) {
-      return {
-        url: `${baseUrl}/teams/${item.teamId}/projects/${item.projectId}?assetId=${item.assetId}`,
-        text: 'View Asset',
-      }
-    } else if (item.projectId) {
-      return {
-        url: `${baseUrl}/teams/${item.teamId}/projects/${item.projectId}`,
-        text: 'View Project',
-      }
-    } else if (item.kanbanTaskId) {
-      return {
-        url: `${baseUrl}/teams/${item.teamId}?kanbanTaskId=${item.kanbanTaskId}`,
-        text: 'View Task',
-      }
-    } else {
-      return {
-        url: `${baseUrl}/teams/${item.teamId}`,
-        text: 'Open Team',
-      }
+  if (item.projectId && item.assetId) {
+    return {
+      url: `${baseUrl}/projects/${item.projectId}/files/${item.assetId}`,
+      text: 'View Asset',
+    }
+  } else if (item.projectId) {
+    return {
+      url: `${baseUrl}/projects/${item.projectId}`,
+      text: 'View Project',
+    }
+  } else if (item.teamId && item.kanbanTaskId) {
+    return {
+      url: `${baseUrl}/teams/${item.teamId}/kanban?taskId=${item.kanbanTaskId}`,
+      text: 'View Task',
+    }
+  } else if (item.teamId) {
+    return {
+      url: `${baseUrl}/teams/${item.teamId}`,
+      text: 'Open Team',
     }
   }
   return { url: baseUrl, text: 'Open Shumai' }

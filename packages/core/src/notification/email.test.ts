@@ -441,6 +441,41 @@ describe('EmailService', () => {
       expect(status.subject).toContain('Grace updated status of task "Refactor auth"')
       expect(status.html).toContain('Moved to In Progress')
     })
+
+    it('generates correct action links without team id for project and asset URLs', () => {
+      const baseUrl = emailService.getBaseUrl()
+
+      // Project link
+      const projectEmail = emailService.renderNotificationEmail({
+        type: NotificationType.new_user_join_project,
+        creatorName: 'Alice',
+        teamName: 'Designers',
+        teamId: '01KY2A7DRK2N0MECBDHTGAVV84',
+        projectName: 'Project Alpha',
+        projectId: '01KY2ANCA1SXGSPR63NVVD07EJ',
+      })
+      expect(projectEmail.html).toContain(`href="${baseUrl}/projects/01KY2ANCA1SXGSPR63NVVD07EJ"`)
+      expect(projectEmail.html).not.toContain(
+        '/teams/01KY2A7DRK2N0MECBDHTGAVV84/projects/01KY2ANCA1SXGSPR63NVVD07EJ',
+      )
+
+      // Asset link
+      const assetEmail = emailService.renderNotificationEmail({
+        type: NotificationType.comment_created,
+        creatorName: 'Alice',
+        teamName: 'Designers',
+        teamId: '01KY2A7DRK2N0MECBDHTGAVV84',
+        projectName: 'Project Alpha',
+        projectId: '01KY2ANCA1SXGSPR63NVVD07EJ',
+        assetId: '01KY2ASSET1234567890ABCDEF',
+        assetName: 'logo.png',
+        commentMessage: 'Looks good',
+      })
+      expect(assetEmail.html).toContain(
+        `href="${baseUrl}/projects/01KY2ANCA1SXGSPR63NVVD07EJ/files/01KY2ASSET1234567890ABCDEF"`,
+      )
+      expect(assetEmail.html).not.toContain('/teams/')
+    })
   })
 
   describe('renderBatchedNotificationEmail', () => {
@@ -593,6 +628,65 @@ describe('EmailService', () => {
       expect(rendered.html).toContain('UserC')
       expect(rendered.html).toContain('diagram.png')
       expect(rendered.html).toContain('https://example.com/diagram.png')
+    })
+
+    it('generates correct project action links in batched notification emails', () => {
+      const baseUrl = emailService.getBaseUrl()
+
+      const rendered = emailService.renderBatchedNotificationEmail({
+        teamId: '01KY2A7DRK2N0MECBDHTGAVV84',
+        teamName: 'Designers',
+        recipientName: 'Bob',
+        items: [
+          {
+            id: 'n-1',
+            type: NotificationType.successful_file_uploaded,
+            creatorName: 'Alice',
+            teamId: '01KY2A7DRK2N0MECBDHTGAVV84',
+            teamName: 'Designers',
+            projectId: '01KY2ANCA1SXGSPR63NVVD07EJ',
+            projectName: 'Project Alpha',
+            assetId: '01KY2ASSET1234567890ABCDEF',
+            assetName: 'hero.png',
+            createdAt: new Date('2026-09-27T10:00:00Z'),
+          },
+        ],
+      })
+
+      expect(rendered.html).toContain(
+        `href="${baseUrl}/projects/01KY2ANCA1SXGSPR63NVVD07EJ/files/01KY2ASSET1234567890ABCDEF"`,
+      )
+      expect(rendered.html).not.toContain(
+        '/teams/01KY2A7DRK2N0MECBDHTGAVV84/projects/01KY2ANCA1SXGSPR63NVVD07EJ',
+      )
+
+      // Test collapsed group (>3 items)
+      const collapsedItems = Array.from({ length: 4 }, (_, i) => ({
+        id: `n-${i}`,
+        type: NotificationType.successful_file_uploaded,
+        creatorName: 'Alice',
+        teamId: '01KY2A7DRK2N0MECBDHTGAVV84',
+        teamName: 'Designers',
+        projectId: '01KY2ANCA1SXGSPR63NVVD07EJ',
+        projectName: 'Project Alpha',
+        assetId: `asset-${i}`,
+        assetName: `file_${i}.png`,
+        createdAt: new Date('2026-09-27T10:00:00Z'),
+      }))
+
+      const renderedCollapsed = emailService.renderBatchedNotificationEmail({
+        teamId: '01KY2A7DRK2N0MECBDHTGAVV84',
+        teamName: 'Designers',
+        recipientName: 'Bob',
+        items: collapsedItems,
+      })
+
+      expect(renderedCollapsed.html).toContain(
+        `href="${baseUrl}/projects/01KY2ANCA1SXGSPR63NVVD07EJ"`,
+      )
+      expect(renderedCollapsed.html).not.toContain(
+        '/teams/01KY2A7DRK2N0MECBDHTGAVV84/projects/01KY2ANCA1SXGSPR63NVVD07EJ',
+      )
     })
   })
 })
