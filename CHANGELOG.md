@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **transcode**: Add basic camera RAW image support for popular camera formats (including Sony ARW, Canon CR2/CR3, Nikon NEF, Adobe DNG, Fujifilm RAF, and Panasonic RW2), extracting high-quality embedded JPEG previews and automatically applying camera orientation for fast thumbnail and proxy generation
+
 ### Fixed
 
 - **trash**: Fix an issue where the "Empty Trash" confirmation dialog would close immediately instead of showing a loading state while files were being permanently deleted

@@ -36,6 +36,8 @@ const commonExternal = [
   'pdfkit',
   'prisma',
   'zod',
+  // Exclude from bundling because it relies on native binaries/dynamic loading
+  'exiftool-vendored',
 ]
 
 // Extract exact dependency versions from workspace package.json files

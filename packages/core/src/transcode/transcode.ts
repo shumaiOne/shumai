@@ -12,7 +12,9 @@ import sharp from 'sharp'
 import { ulid } from 'ulid'
 import { promisify } from 'util'
 import { mapConcurrent } from '../utils/async'
+import { isRawImage } from '../utils/raw'
 import { dataFormatNames } from './dataFormatNames'
+import { extractAndValidateRawPreview, EXIF_ORIENTATION_TO_ROTATION } from './raw-extract'
 import { logger } from '@shumai/core/src/logger'
 
 const execFileAsync = promisify(execFile)
@@ -699,6 +701,48 @@ export class TranscodeService {
       }
     }
 
+    // RAW branch — extract embedded JPEG for metadata
+    if (typeof input === 'string' && isRawImage(input)) {
+      const extracted = await extractAndValidateRawPreview(input)
+      if (extracted) {
+        try {
+          const isSwapped =
+            extracted.orientation !== undefined &&
+            extracted.orientation >= 5 &&
+            extracted.orientation <= 8
+          const originalWidth = isSwapped ? extracted.height : extracted.width
+          const originalHeight = isSwapped ? extracted.width : extracted.height
+
+          return {
+            originalWidth,
+            originalHeight,
+            duration: 0,
+            bitRate: 0,
+            frameRate: 0,
+            totalFrames: 0,
+            startTimecode: undefined,
+            hasAudio: false,
+            mimeType: 'jpeg',
+          }
+        } finally {
+          extracted.cleanup()
+        }
+      }
+      // No extractable preview — return zero dimensions
+      // The workflow will still mark the asset as processed
+      return {
+        originalWidth: 0,
+        originalHeight: 0,
+        duration: 0,
+        bitRate: 0,
+        frameRate: 0,
+        totalFrames: 0,
+        startTimecode: undefined,
+        hasAudio: false,
+        mimeType: '',
+      }
+    }
+
     const metadata = await sharp(input, { limitInputPixels: false }).metadata()
     return {
       originalWidth: metadata.width || 0,
@@ -1117,73 +1161,106 @@ export class TranscodeService {
       input = Buffer.from(await resp.arrayBuffer())
     }
 
-    const WEBP_MAX_DIMENSION = 7680
-    let targetW = width > 0 ? Math.min(width, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
-    let targetH = height && height > 0 ? Math.min(height, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
-
-    const sharpInstance = sharp(input, { limitInputPixels: false })
-
-    if (isPreview) {
-      try {
-        const meta = await sharpInstance.metadata()
-        if (meta.width && meta.height) {
-          // Fallback shim: If legacy 480 caller passed width=480, map targetShort to 300
-          const targetShort = width === 480 ? 300 : width
-          const maxLong = Math.round((targetShort * 16) / 9)
-          const dims = calculatePreviewDimensions(meta.width, meta.height, targetShort, maxLong)
-          targetW = dims.width
-          targetH = dims.height
-        }
-      } catch {
-        // Fallback to targetW/targetH as calculated above
+    // RAW branch — extract embedded JPEG to temporary file + orientation, then treat as normal image
+    let rawOrientation: number | undefined
+    let rawCleanup: (() => void) | null = null
+    if (typeof input === 'string' && isRawImage(input)) {
+      const extracted = await extractAndValidateRawPreview(input)
+      if (!extracted) {
+        throw new Error(`Cannot generate preview for RAW file: no usable embedded JPEG in ${input}`)
       }
+      input = extracted.previewPath
+      rawOrientation = extracted.orientation
+      rawCleanup = extracted.cleanup
     }
 
-    // WEBP_MAX_DIMENSION (7680) safety cap is ALWAYS enforced
-    targetW = Math.min(targetW, WEBP_MAX_DIMENSION)
-    targetH = Math.min(targetH, WEBP_MAX_DIMENSION)
+    try {
+      const WEBP_MAX_DIMENSION = 7680
+      let targetW = width > 0 ? Math.min(width, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
+      let targetH = height && height > 0 ? Math.min(height, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
 
-    if (isPsdInput(input)) {
-      let psdPath: string
-      let tempDirToCleanup: string | null = null
-      if (typeof input === 'string') {
-        psdPath = input
-      } else {
-        tempDirToCleanup = this.createTempDir('psd-transcode-')
-        psdPath = path.join(tempDirToCleanup, 'input.psd')
-        fs.writeFileSync(psdPath, input)
-      }
+      const sharpInstance = sharp(input, { limitInputPixels: false })
 
-      try {
-        const resizeGeometry =
-          targetH < WEBP_MAX_DIMENSION
-            ? `${targetW}x${targetH}>`
-            : `${targetW}x${WEBP_MAX_DIMENSION}>`
-
-        await this.execImageMagick([
-          `${psdPath}[0]`,
-          '-colorspace',
-          'sRGB',
-          '-resize',
-          resizeGeometry,
-          '-quality',
-          quality.toString(),
-          outputFile,
-        ])
-        return
-      } finally {
-        if (tempDirToCleanup) {
-          this.removeDir(tempDirToCleanup)
+      if (isPreview) {
+        try {
+          const meta = await sharpInstance.metadata()
+          if (meta.width && meta.height) {
+            const isSwapped =
+              rawOrientation !== undefined && rawOrientation >= 5 && rawOrientation <= 8
+            const srcW = isSwapped ? meta.height : meta.width
+            const srcH = isSwapped ? meta.width : meta.height
+            // Fallback shim: If legacy 480 caller passed width=480, map targetShort to 300
+            const targetShort = width === 480 ? 300 : width
+            const maxLong = Math.round((targetShort * 16) / 9)
+            const dims = calculatePreviewDimensions(srcW, srcH, targetShort, maxLong)
+            targetW = dims.width
+            targetH = dims.height
+          }
+        } catch {
+          // Fallback to targetW/targetH as calculated above
         }
       }
+
+      // WEBP_MAX_DIMENSION (7680) safety cap is ALWAYS enforced
+      targetW = Math.min(targetW, WEBP_MAX_DIMENSION)
+      targetH = Math.min(targetH, WEBP_MAX_DIMENSION)
+
+      if (isPsdInput(input)) {
+        let psdPath: string
+        let tempDirToCleanup: string | null = null
+        if (typeof input === 'string') {
+          psdPath = input
+        } else {
+          tempDirToCleanup = this.createTempDir('psd-transcode-')
+          psdPath = path.join(tempDirToCleanup, 'input.psd')
+          fs.writeFileSync(psdPath, input)
+        }
+
+        try {
+          const resizeGeometry =
+            targetH < WEBP_MAX_DIMENSION
+              ? `${targetW}x${targetH}>`
+              : `${targetW}x${WEBP_MAX_DIMENSION}>`
+
+          await this.execImageMagick([
+            `${psdPath}[0]`,
+            '-colorspace',
+            'sRGB',
+            '-resize',
+            resizeGeometry,
+            '-quality',
+            quality.toString(),
+            outputFile,
+          ])
+          return
+        } finally {
+          if (tempDirToCleanup) {
+            this.removeDir(tempDirToCleanup)
+          }
+        }
+      }
+
+      // Apply EXIF orientation from the RAW container to the extracted buffer.
+      // The buffer itself often lacks orientation EXIF, so Sharp won't auto-rotate.
+      // For non-RAW images, Sharp auto-rotates from the image's own EXIF.
+      if (rawOrientation && EXIF_ORIENTATION_TO_ROTATION[rawOrientation]) {
+        const { angle, flip, flop } = EXIF_ORIENTATION_TO_ROTATION[rawOrientation]
+        if (angle) sharpInstance.rotate(angle)
+        if (flip) sharpInstance.flip()
+        if (flop) sharpInstance.flop()
+      }
+
+      sharpInstance.toColorspace('srgb').resize(targetW, targetH, {
+        withoutEnlargement: true,
+        fit: 'inside',
+      })
+
+      await sharpInstance.webp({ quality }).toFile(outputFile)
+    } finally {
+      if (rawCleanup) {
+        rawCleanup()
+      }
     }
-
-    sharpInstance.toColorspace('srgb').resize(targetW, targetH, {
-      withoutEnlargement: true,
-      fit: 'inside',
-    })
-
-    await sharpInstance.webp({ quality }).toFile(outputFile)
   }
 
   async generatePoster(

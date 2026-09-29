@@ -20,6 +20,7 @@ import * as fs from 'fs'
 import { WorkflowTask } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import sharp from 'sharp'
+import * as rawExtract from './raw-extract'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
@@ -40,6 +41,9 @@ vi.mock('sharp', () => {
     resize: vi.fn().mockReturnThis(),
     toColorspace: vi.fn().mockReturnThis(),
     webp: vi.fn().mockReturnThis(),
+    rotate: vi.fn().mockReturnThis(),
+    flip: vi.fn().mockReturnThis(),
+    flop: vi.fn().mockReturnThis(),
     composite: vi.fn().mockReturnThis(),
     png: vi.fn().mockReturnThis(),
     toBuffer: vi.fn().mockResolvedValue(Buffer.from('fake-webp-buffer')),
@@ -446,6 +450,103 @@ describe('TranscodeService', () => {
     expect(info.originalWidth).toBe(1920)
     expect(info.originalHeight).toBe(1080)
     expect(info.mimeType).toBe('psd')
+  })
+
+  it('should extract embedded preview for RAW image in getImageInfo', async () => {
+    const rawPath = path.join(tempDir, 'photo.cr2')
+    const cleanupSpy = vi.fn()
+    vi.spyOn(rawExtract, 'extractAndValidateRawPreview').mockResolvedValueOnce({
+      previewPath: '/tmp/preview.jpg',
+      cleanup: cleanupSpy,
+      width: 6000,
+      height: 4000,
+      orientation: 1,
+    })
+
+    const info = await transcodeService.getImageInfo(rawPath)
+    expect(info.originalWidth).toBe(6000)
+    expect(info.originalHeight).toBe(4000)
+    expect(info.mimeType).toBe('jpeg')
+    expect(cleanupSpy).toHaveBeenCalled()
+  })
+
+  it('should swap dimensions in getImageInfo when RAW orientation is portrait (orientation 6)', async () => {
+    const rawPath = path.join(tempDir, 'portrait.dng')
+    const cleanupSpy = vi.fn()
+    vi.spyOn(rawExtract, 'extractAndValidateRawPreview').mockResolvedValueOnce({
+      previewPath: '/tmp/preview.jpg',
+      cleanup: cleanupSpy,
+      width: 6000,
+      height: 4000,
+      orientation: 6,
+    })
+
+    const info = await transcodeService.getImageInfo(rawPath)
+    expect(info.originalWidth).toBe(4000)
+    expect(info.originalHeight).toBe(6000)
+    expect(info.mimeType).toBe('jpeg')
+    expect(cleanupSpy).toHaveBeenCalled()
+  })
+
+  it('should return zero dimensions in getImageInfo when RAW has no usable preview', async () => {
+    const rawPath = path.join(tempDir, 'nopreview.arw')
+    vi.spyOn(rawExtract, 'extractAndValidateRawPreview').mockResolvedValueOnce(null)
+
+    const info = await transcodeService.getImageInfo(rawPath)
+    expect(info.originalWidth).toBe(0)
+    expect(info.originalHeight).toBe(0)
+    expect(info.mimeType).toBe('')
+  })
+
+  it('should transcode RAW image by extracting preview to temp file and feeding to sharp', async () => {
+    const rawPath = path.join(tempDir, 'sample.nef')
+    const outputFile = path.join(tempDir, 'output-raw.webp')
+    const cleanupSpy = vi.fn()
+    vi.spyOn(rawExtract, 'extractAndValidateRawPreview').mockResolvedValueOnce({
+      previewPath: '/tmp/extracted-raw.jpg',
+      cleanup: cleanupSpy,
+      width: 3000,
+      height: 2000,
+      orientation: 1,
+    })
+
+    await transcodeService.transcodeImage(rawPath, outputFile, 1920, 85)
+
+    expect(sharp).toHaveBeenCalledWith('/tmp/extracted-raw.jpg', { limitInputPixels: false })
+    const mockSharp = vi.mocked(sharp).mock.results[vi.mocked(sharp).mock.results.length - 1].value
+    expect(mockSharp.toColorspace).toHaveBeenCalledWith('srgb')
+    expect(mockSharp.webp).toHaveBeenCalledWith({ quality: 85 })
+    expect(mockSharp.toFile).toHaveBeenCalledWith(outputFile)
+    expect(cleanupSpy).toHaveBeenCalled()
+  })
+
+  it('should apply orientation rotation when transcoding RAW image', async () => {
+    const rawPath = path.join(tempDir, 'rotated.cr3')
+    const outputFile = path.join(tempDir, 'output-rotated.webp')
+    const cleanupSpy = vi.fn()
+    vi.spyOn(rawExtract, 'extractAndValidateRawPreview').mockResolvedValueOnce({
+      previewPath: '/tmp/extracted-rotated.jpg',
+      cleanup: cleanupSpy,
+      width: 4000,
+      height: 3000,
+      orientation: 6, // 90° CW
+    })
+
+    await transcodeService.transcodeImage(rawPath, outputFile, 1920, 85)
+
+    const mockSharp = vi.mocked(sharp).mock.results[vi.mocked(sharp).mock.results.length - 1].value
+    expect(mockSharp.rotate).toHaveBeenCalledWith(90)
+    expect(cleanupSpy).toHaveBeenCalled()
+  })
+
+  it('should throw error when transcoding RAW without usable preview', async () => {
+    const rawPath = path.join(tempDir, 'corrupt.raf')
+    const outputFile = path.join(tempDir, 'output-fail.webp')
+    vi.spyOn(rawExtract, 'extractAndValidateRawPreview').mockResolvedValueOnce(null)
+
+    await expect(transcodeService.transcodeImage(rawPath, outputFile, 1920, 85)).rejects.toThrow(
+      'Cannot generate preview for RAW file',
+    )
   })
 
   it('should fetch image if input is a URL', async () => {

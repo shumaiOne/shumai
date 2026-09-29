@@ -214,5 +214,86 @@ describe.each(['local', 'temporal'] as const)(
       expect(mediaInfo.imageTranscodes.length).toBeGreaterThan(0)
       expect(mediaInfo.thumbnail).toBeDefined()
     }, 50000)
+
+    it('should run transcodeMedia workflow for a RAW image asset (.dng) successfully', async () => {
+      // 1. Seed Database
+      const team = await prisma.team.create({
+        data: { name: 'E2E RAW Transcode Team' },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'E2E RAW Transcode Project', teamId: team.id },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: {
+          key: 'projects/e2e/test.dng',
+        },
+      })
+
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'test.dng',
+          type: 'file',
+          status: 'uploaded',
+          mediaType: 'image/x-adobe-dng',
+          projectId: project.id,
+          storageKeyId: storageKey.id,
+        },
+      })
+
+      // 2. Seed S3 Storage from fixture test.dng
+      const dngPath = path.join(fixturesDir, 'test.dng')
+      const dngBuffer = fs.readFileSync(dngPath)
+      await s3Service.putObject(
+        'shumai-e2e-test-bucket-transcode',
+        'projects/e2e/test.dng',
+        dngBuffer,
+        dngBuffer.length,
+        'image/x-adobe-dng',
+      )
+
+      // 3. Create Workflow Task
+      const task = await prisma.workflowTask.create({
+        data: {
+          type: 'transcode_image',
+          status: 'pending',
+          assetId: asset.id,
+          projectId: project.id,
+          teamId: team.id,
+          payload: {
+            projectId: project.id,
+            transcode: {
+              thumbnail: true,
+            },
+          },
+        },
+      })
+
+      // 4. Wait for workflow to complete
+      console.log(
+        `Submitted E2E RAW Image Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
+      )
+      const completedTask = await workflowService.executeWait(task, 45000)
+
+      // 5. Verification
+      expect(completedTask.status).toBe('completed')
+
+      const updatedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(updatedAsset?.status).toBe(AssetStatus.processed)
+
+      const mediaInfo = updatedAsset?.media as unknown as {
+        proxyType: string
+        imageTranscodes: unknown[]
+        thumbnail: unknown
+      }
+      expect(mediaInfo).toBeDefined()
+      expect(mediaInfo.proxyType).toBe('image')
+      expect(mediaInfo.imageTranscodes).toBeDefined()
+      expect(mediaInfo.imageTranscodes.length).toBeGreaterThan(0)
+      expect(mediaInfo.thumbnail).toBeDefined()
+    }, 50000)
   },
 )

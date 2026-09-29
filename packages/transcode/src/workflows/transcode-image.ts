@@ -54,9 +54,10 @@ export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> 
     }
 
     const metadata = mediaInfo.metadata
+    const hasUsablePreview = metadata && metadata.originalWidth > 0 && metadata.originalHeight > 0
 
     const isImage = mediaInfo.proxyType === 'image'
-    if (isImage && metadata) {
+    if (isImage && hasUsablePreview && metadata) {
       const imageSpec: PrismaJson.ImageTranscode = {
         width: metadata.originalWidth,
         height: metadata.originalHeight,
@@ -71,7 +72,7 @@ export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> 
       mediaInfo.imageTranscodes.push(imageTranscode)
     }
 
-    if (spec.thumbnail) {
+    if (spec.thumbnail && hasUsablePreview) {
       const thumbTranscode = await executeActivity(workerQueue, transcodeImageActivity, {
         assetKey: key,
         filePath,

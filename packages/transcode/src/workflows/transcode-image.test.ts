@@ -155,4 +155,73 @@ describe('transcodeImageWorkflow', () => {
       projectId: 'proj-1',
     })
   })
+
+  it('should handle RAW image without usable preview by skipping transcodes and marking processed', async () => {
+    const task: WorkflowTask = {
+      id: 'task-raw-nopreview',
+      assetId: 'asset-raw',
+      type: WorkflowTaskType.transcode_image,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: {
+          thumbnail: true,
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-raw',
+      storageKey: { key: 'photo.cr2' },
+      mediaType: 'image/x-canon-cr2',
+    })
+
+    // RAW file without usable preview returns originalWidth: 0, originalHeight: 0
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      proxyType: 'image',
+      metadata: {
+        originalWidth: 0,
+        originalHeight: 0,
+        duration: 0,
+        frameRate: 0,
+        totalFrames: 0,
+        startTimecode: undefined,
+        bitRate: 0,
+        hasAudio: false,
+        format: {},
+      },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    await transcodeImageWorkflow(task)
+
+    // transcodeImageActivity should NOT be called since hasUsablePreview is false
+    expect(mockActivities.transcodeImageActivity).not.toHaveBeenCalled()
+
+    // Asset media should still be updated
+    expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith({
+      assetId: 'asset-raw',
+      mediaInfo: expect.objectContaining({
+        imageTranscodes: [],
+      }),
+    })
+
+    // Asset should still be marked as processed
+    expect(mockActivities.updateAssetStatusActivity).toHaveBeenCalledWith({
+      assetId: 'asset-raw',
+      status: AssetStatus.processed,
+    })
+  })
 })

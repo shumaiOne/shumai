@@ -1,3 +1,5 @@
+import { isRawImage } from './raw'
+
 export type ProxyType = 'image' | 'video' | 'audio' | 'pdf'
 
 export function isOfficeDocument(mediaType?: string | null, filename?: string | null): boolean {
@@ -73,7 +75,12 @@ export function getProxyType(
   const lowerMediaType = mediaType?.toLowerCase() || ''
   const lowerFilename = filename?.toLowerCase() || ''
 
-  if (lowerMediaType.startsWith('image/') || lowerFilename.endsWith('.psd')) return 'image'
+  if (
+    lowerMediaType.startsWith('image/') ||
+    lowerFilename.endsWith('.psd') ||
+    isRawImage(lowerFilename)
+  )
+    return 'image'
   if (lowerMediaType.startsWith('video/')) return 'video'
   if (lowerMediaType.startsWith('audio/')) return 'audio'
 

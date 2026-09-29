@@ -92,6 +92,20 @@ describe('getProxyType', () => {
     expect(getProxyType(null, 'design.psd')).toBe('image')
   })
 
+  it('should detect image proxyType for RAW camera files', () => {
+    // RAW files typically upload with application/octet-stream or null mediaType
+    expect(getProxyType('application/octet-stream', 'photo.cr2')).toBe('image')
+    expect(getProxyType('application/octet-stream', 'photo.arw')).toBe('image')
+    expect(getProxyType(null, 'photo.dng')).toBe('image')
+    expect(getProxyType(null, 'photo.nef')).toBe('image')
+    expect(getProxyType(null, 'photo.raf')).toBe('image')
+    expect(getProxyType(null, 'photo.cr3')).toBe('image')
+    expect(getProxyType(null, 'photo.rw2')).toBe('image')
+    // Case-insensitive
+    expect(getProxyType(null, 'PHOTO.ARW')).toBe('image')
+    expect(getProxyType(null, 'Photo.DNG')).toBe('image')
+  })
+
   it('should detect video proxyType', () => {
     expect(getProxyType('video/mp4', 'clip.mp4')).toBe('video')
   })
