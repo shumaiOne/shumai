@@ -654,7 +654,10 @@ export function MobileFileBrowser({
           <AlertDialogFooter>
             <AlertDialogCancel>{m.cancel()}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => emptyTrash()}
+              onClick={(e) => {
+                e.preventDefault()
+                emptyTrash()
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={isEmptyingTrash}
             >

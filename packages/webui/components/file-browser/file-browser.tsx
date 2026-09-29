@@ -1258,7 +1258,8 @@ export function FileBrowser({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault()
                 emptyTrash()
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
