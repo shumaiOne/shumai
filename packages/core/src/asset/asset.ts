@@ -3206,7 +3206,7 @@ export class AssetService {
     watermarkConfigId?: string | null
   }): Promise<string> {
     const bucket = process.env.S3_BUCKET || 'shumai'
-    const targetAssetId = await this.resolveTargetAssetId(params.assetId)
+    const targetAssetId = await this.resolveLatestVersionId(params.assetId)
 
     if (params.watermarkConfigId) {
       const wf = await this.prismaClient.watermarkFile.findUnique({
@@ -3250,7 +3250,7 @@ export class AssetService {
       throw new HTTPException(400, { message: 'Invalid resolution format' })
     }
 
-    const targetAssetId = await this.resolveTargetAssetId(params.assetId)
+    const targetAssetId = await this.resolveLatestVersionId(params.assetId)
     let media: PrismaJson.MediaInfo | null
 
     if (params.watermarkConfigId) {

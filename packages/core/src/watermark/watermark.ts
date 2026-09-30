@@ -323,7 +323,7 @@ export class WatermarkService {
           if (isVideo || isImage) {
             mediaAssetIds.push(asset.id)
           }
-        } else if (asset.type === 'folder') {
+        } else if (asset.type === 'folder' || asset.type === 'version_stack') {
           folderIds.push(asset.id)
         } else if (asset.type === 'symlink' && asset.targetId) {
           // Resolve nested symlinks (e.g. folders that contain their own symlinks)

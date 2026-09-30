@@ -213,7 +213,7 @@ const route = app
           // Resolve symlink targets once and reuse for the media lookup, so each
           // item costs a single query instead of two.
           const targetIds = await Promise.all(
-            res.data.map((item) => assetService.resolveTargetAssetId(item.id)),
+            res.data.map((item) => assetService.resolveLatestVersionId(item.id)),
           )
           const wfMap = await watermarkService.getCompletedWatermarkMediaMap(
             targetIds,
@@ -260,7 +260,7 @@ const route = app
         shareLink.watermarkConfigId &&
         (asset.proxyType === 'video' || asset.proxyType === 'image')
       ) {
-        const targetAssetId = await assetService.resolveTargetAssetId(fileId)
+        const targetAssetId = await assetService.resolveLatestVersionId(fileId)
         const wfMap = await watermarkService.getCompletedWatermarkMediaMap(
           [targetAssetId],
           shareLink.watermarkConfigId,
@@ -402,7 +402,7 @@ const route = app
 
     try {
       const shareLink = await shareService.verifyPublicAccess(fileId, password)
-      const targetAssetId = await assetService.resolveTargetAssetId(fileId)
+      const targetAssetId = await assetService.resolveLatestVersionId(fileId)
       let playlist = await assetService.getHlsMasterPlaylist({
         assetId: targetAssetId,
         watermarkConfigId: shareLink.watermarkConfigId,
@@ -425,7 +425,7 @@ const route = app
 
     try {
       const shareLink = await shareService.verifyPublicAccess(fileId, password)
-      const targetAssetId = await assetService.resolveTargetAssetId(fileId)
+      const targetAssetId = await assetService.resolveLatestVersionId(fileId)
       let playlist = await assetService.getHlsMasterPlaylist({
         assetId: targetAssetId,
         watermarkConfigId: shareLink.watermarkConfigId,
@@ -452,7 +452,7 @@ const route = app
 
     try {
       const shareLink = await shareService.verifyPublicAccess(fileId, password)
-      const targetAssetId = await assetService.resolveTargetAssetId(fileId)
+      const targetAssetId = await assetService.resolveLatestVersionId(fileId)
       const playlist = await assetService.getHlsVariantPlaylist({
         assetId: targetAssetId,
         resolution,
@@ -471,7 +471,7 @@ const route = app
 
     try {
       const shareLink = await shareService.verifyPublicAccess(fileId, password)
-      const targetAssetId = await assetService.resolveTargetAssetId(fileId)
+      const targetAssetId = await assetService.resolveLatestVersionId(fileId)
       const playlist = await assetService.getHlsVariantPlaylist({
         assetId: targetAssetId,
         resolution,

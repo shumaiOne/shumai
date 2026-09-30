@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **share**: Fix an issue where public HLS playback and watermarked streams failed to load for shared version stacks and symlinks
 - **trash**: Fix an issue where the "Empty Trash" confirmation dialog would close immediately instead of showing a loading state while files were being permanently deleted
 
 ### Changed

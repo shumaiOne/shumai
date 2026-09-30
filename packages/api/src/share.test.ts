@@ -922,5 +922,25 @@ describe('Share API', () => {
       const body = await res.json()
       expect(body.error).toBe('Unauthorized')
     })
+
+    test('resolves latest version id when fileId is a symlink to a version stack', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        id: 'share1',
+        watermarkConfigId: null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+      vi.spyOn(assetService, 'resolveLatestVersionId').mockResolvedValue('child-version-file-id')
+      vi.spyOn(assetService, 'getHlsMasterPlaylist').mockResolvedValue(
+        '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=4628000\n1080p/index.m3u8\n',
+      )
+
+      const res = await app.request('/shares/share1/files/symlink1/m3u8/master.m3u8')
+      expect(res.status).toBe(200)
+      expect(assetService.resolveLatestVersionId).toHaveBeenCalledWith('symlink1')
+      expect(assetService.getHlsMasterPlaylist).toHaveBeenCalledWith({
+        assetId: 'child-version-file-id',
+        watermarkConfigId: null,
+      })
+    })
   })
 })

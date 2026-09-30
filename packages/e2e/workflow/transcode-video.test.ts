@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import { prisma, AssetStatus } from '@shumai/db'
+import { prisma, AssetStatus, AssetType } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { workflowService, TaskQueueTranscode } from '@shumai/workflow-core'
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { assetService } from '@shumai/core/src/asset/asset'
 import { fileURLToPath } from 'url'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -221,5 +222,154 @@ describe.each(['local', 'temporal'] as const)(
       // Audio proxy key should end with -audio-proxy.mp4
       expect(mediaInfo.videoTranscodes[0].key).toContain('-audio-proxy.mp4')
     }, 50000)
+
+    it('should run transcodeMedia workflow with HLS enabled and serve playlists for version stacks and symlinks', async () => {
+      // 1. Seed Database
+      const team = await prisma.team.create({
+        data: {
+          name: 'E2E HLS Video Transcode Team',
+          settings: {
+            transcode: {
+              videoStrategy: 'best_match',
+              hlsEnabled: true,
+              hlsResolutions: ['480p'],
+            },
+          },
+        },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'E2E HLS Video Transcode Project', teamId: team.id },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: {
+          key: 'projects/e2e/video-hls.mp4',
+        },
+      })
+
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'video-hls.mp4',
+          type: 'file',
+          status: 'uploaded',
+          mediaType: 'video/mp4',
+          projectId: project.id,
+          storageKeyId: storageKey.id,
+        },
+      })
+
+      // 2. Seed S3 Storage from Fixture (small-480p.mp4)
+      const mp4Path = path.join(fixturesDir, 'small-480p.mp4')
+      const mp4Buffer = fs.readFileSync(mp4Path)
+      await s3Service.putObject(
+        'shumai-e2e-test-bucket-transcode',
+        'projects/e2e/video-hls.mp4',
+        mp4Buffer,
+        mp4Buffer.length,
+        'video/mp4',
+      )
+
+      // 3. Create Workflow Task
+      const task = await prisma.workflowTask.create({
+        data: {
+          type: 'transcode_video',
+          status: 'pending',
+          assetId: asset.id,
+          projectId: project.id,
+          teamId: team.id,
+          payload: {
+            projectId: project.id,
+            transcode: {
+              videoStrategy: 'best_match',
+              hlsEnabled: true,
+              hlsResolutions: ['480p'],
+            },
+          },
+        },
+      })
+
+      // 4. Wait for workflow to complete
+      console.log(
+        `Submitted E2E HLS Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
+      )
+      const completedTask = await workflowService.executeWait(task, 45000)
+      expect(completedTask.status).toBe('completed')
+
+      // 5. Verification of HLS generation
+      const updatedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(updatedAsset?.status).toBe(AssetStatus.processed)
+
+      const mediaInfo = updatedAsset?.media as PrismaJson.MediaInfo
+      expect(mediaInfo.isHls).toBe(true)
+      expect(mediaInfo.hls).toBeDefined()
+      expect(mediaInfo.hls?.key).toBe('projects/e2e/hls/master.m3u8')
+      expect(mediaInfo.hls?.resolutions).toBeDefined()
+      expect(mediaInfo.hls?.resolutions?.length).toBeGreaterThan(0)
+      expect(mediaInfo.hls?.resolutions?.[0]?.resolution).toBe('480p')
+
+      // Verify master playlist in S3
+      const masterObj = await s3Service.getObject(
+        'shumai-e2e-test-bucket-transcode',
+        'projects/e2e/hls/master.m3u8',
+      )
+      const masterPlaylist = masterObj.buffer.toString('utf-8')
+      expect(masterPlaylist).toContain('#EXTM3U')
+      expect(masterPlaylist).toContain('480p/index.m3u8')
+
+      // Verify variant playlist in S3
+      const variantObj = await s3Service.getObject(
+        'shumai-e2e-test-bucket-transcode',
+        'projects/e2e/hls/480p/index.m3u8',
+      )
+      expect(variantObj.buffer.toString('utf-8')).toContain('#EXTM3U')
+
+      // 6. Test Version Stack & Symlink Resolution
+      const stack = await prisma.asset.create({
+        data: {
+          name: 'video-hls-stack',
+          type: AssetType.version_stack,
+          status: AssetStatus.processed,
+          projectId: project.id,
+        },
+      })
+
+      await prisma.asset.update({
+        where: { id: asset.id },
+        data: {
+          parentId: stack.id,
+          sortIndex: 'a',
+        },
+      })
+
+      const symlink = await prisma.asset.create({
+        data: {
+          name: 'video-hls-symlink',
+          type: AssetType.symlink,
+          status: AssetStatus.processed,
+          projectId: project.id,
+          targetId: stack.id,
+        },
+      })
+
+      // Calling getHlsMasterPlaylist with stack ID
+      const stackMaster = await assetService.getHlsMasterPlaylist({ assetId: stack.id })
+      expect(stackMaster).toContain('#EXTM3U')
+      expect(stackMaster).toContain('480p/index.m3u8')
+
+      // Calling getHlsMasterPlaylist with symlink ID
+      const symlinkMaster = await assetService.getHlsMasterPlaylist({ assetId: symlink.id })
+      expect(symlinkMaster).toContain('#EXTM3U')
+      expect(symlinkMaster).toContain('480p/index.m3u8')
+
+      // Calling getHlsVariantPlaylist with symlink ID
+      const symlinkVariant = await assetService.getHlsVariantPlaylist({
+        assetId: symlink.id,
+        resolution: '480p',
+      })
+      expect(symlinkVariant).toContain('#EXTM3U')
+    }, 60000)
   },
 )
