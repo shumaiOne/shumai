@@ -24,7 +24,7 @@ import {
 } from '../../ui/dropdown-menu'
 import ProgressBar from './progress-bar'
 import { formatTime, formatTimecode } from './utils'
-import type { ControlBarProps } from './video-control-bar'
+import type { ControlBarProps, DisplayTranscode } from './video-control-bar'
 
 export const MobileVideoControlBar: React.FC<ControlBarProps> = ({
   state,
@@ -189,9 +189,11 @@ export const MobileVideoControlBar: React.FC<ControlBarProps> = ({
                 <span className="flex items-center gap-1 text-[11px]">
                   <span>
                     {!isAudio && state.currentResolution
-                      ? state.currentResolution === 'Original'
-                        ? m.original()
-                        : state.currentResolution
+                      ? state.currentResolution === 'Auto'
+                        ? m.quality_auto()
+                        : state.currentResolution === 'Original'
+                          ? m.original()
+                          : state.currentResolution
                       : `${state.playbackRate}x`}
                   </span>
                   {!isAudio && state.isCurrentHdr && (
@@ -208,6 +210,25 @@ export const MobileVideoControlBar: React.FC<ControlBarProps> = ({
                   <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                     {m.quality()}
                   </DropdownMenuLabel>
+                  {data.media?.isHls && (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        changeResolution({
+                          resolution: 'Auto',
+                          width: data.media?.metadata?.originalWidth ?? 0,
+                          height: data.media?.metadata?.originalHeight ?? 0,
+                        } as DisplayTranscode)
+                      }
+                      className={cn(
+                        'flex w-full items-center justify-between text-xs cursor-pointer',
+                        state.currentResolution === 'Auto'
+                          ? 'text-primary font-medium'
+                          : 'text-foreground',
+                      )}
+                    >
+                      <span>{m.quality_auto()}</span>
+                    </DropdownMenuItem>
+                  )}
                   {resolutions.map((res) => {
                     const itemKey = `${res.resolution}-${res.hdr ? 'hdr' : 'sdr'}`
                     const isSelected =

@@ -57,6 +57,7 @@ import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { uploadService } from '@shumai/core/src/upload/upload'
 import path from 'path'
 import { stemFromKey } from '@shumai/core/src/utils/filename'
+import { rewriteM3u8WithPresignedUrls } from '@shumai/core/src/transcode/transcode'
 
 export const assetInclude = {
   creator: true,
@@ -2386,6 +2387,9 @@ export class AssetService {
           'GET',
         )
       }
+      if (media && media.isHls && media.hls?.key) {
+        media.hls.url = `/api/files/${latestVersion.id}/m3u8/master.m3u8`
+      }
 
       const key = latestVersion.storageKey?.key
       if (key) {
@@ -3195,6 +3199,95 @@ export class AssetService {
       },
       req,
     )
+  }
+
+  async getHlsMasterPlaylist(params: {
+    assetId: string
+    watermarkConfigId?: string | null
+  }): Promise<string> {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const targetAssetId = await this.resolveTargetAssetId(params.assetId)
+
+    if (params.watermarkConfigId) {
+      const wf = await this.prismaClient.watermarkFile.findUnique({
+        where: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          assetId_watermarkConfigId: {
+            assetId: targetAssetId,
+            watermarkConfigId: params.watermarkConfigId,
+          },
+        },
+      })
+      const media = wf?.media as PrismaJson.MediaInfo | null
+      if (!media?.isHls || !media.hls?.key) {
+        throw new HTTPException(404, { message: 'HLS playlist not found' })
+      }
+      const obj = await s3Service.getObject(bucket, media.hls.key)
+      return obj.buffer.toString('utf-8')
+    }
+
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: targetAssetId },
+    })
+    if (!asset) {
+      throw new HTTPException(404, { message: 'Asset not found' })
+    }
+    const media = asset.media as PrismaJson.MediaInfo | null
+    if (!media?.isHls || !media.hls?.key) {
+      throw new HTTPException(404, { message: 'HLS playlist not found' })
+    }
+    const obj = await s3Service.getObject(bucket, media.hls.key)
+    return obj.buffer.toString('utf-8')
+  }
+
+  async getHlsVariantPlaylist(params: {
+    assetId: string
+    resolution: string
+    watermarkConfigId?: string | null
+  }): Promise<string> {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    if (!/^\d+p$/.test(params.resolution)) {
+      throw new HTTPException(400, { message: 'Invalid resolution format' })
+    }
+
+    const targetAssetId = await this.resolveTargetAssetId(params.assetId)
+    let media: PrismaJson.MediaInfo | null
+
+    if (params.watermarkConfigId) {
+      const wf = await this.prismaClient.watermarkFile.findUnique({
+        where: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          assetId_watermarkConfigId: {
+            assetId: targetAssetId,
+            watermarkConfigId: params.watermarkConfigId,
+          },
+        },
+      })
+      media = (wf?.media as PrismaJson.MediaInfo | null) ?? null
+    } else {
+      const asset = await this.prismaClient.asset.findUnique({
+        where: { id: targetAssetId },
+      })
+      if (!asset) {
+        throw new HTTPException(404, { message: 'Asset not found' })
+      }
+      media = (asset.media as PrismaJson.MediaInfo | null) ?? null
+    }
+
+    if (!media?.isHls || !media.hls?.key) {
+      throw new HTTPException(404, { message: 'HLS playlist not found' })
+    }
+
+    const matchedRes = media.hls.resolutions?.find((r) => r.resolution === params.resolution)
+    const variantKey =
+      matchedRes?.key ||
+      path.posix.join(path.posix.dirname(media.hls.key), params.resolution, 'index.m3u8')
+
+    const obj = await s3Service.getObject(bucket, variantKey)
+    const rawM3u8 = obj.buffer.toString('utf-8')
+    const s3Prefix = path.posix.dirname(variantKey)
+
+    return await rewriteM3u8WithPresignedUrls(rawM3u8, s3Prefix, bucket)
   }
 }
 

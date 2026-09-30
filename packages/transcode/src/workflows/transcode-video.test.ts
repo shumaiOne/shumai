@@ -25,6 +25,7 @@ describe('transcodeVideoWorkflow', () => {
     getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
     getMediaInfoActivity: Object.assign(vi.fn(), { _activityName: 'getMediaInfoActivity' }),
     transcodeVideoActivity: Object.assign(vi.fn(), { _activityName: 'transcodeVideoActivity' }),
+    transcodeHlsActivity: Object.assign(vi.fn(), { _activityName: 'transcodeHlsActivity' }),
     transcodeAudioActivity: Object.assign(vi.fn(), { _activityName: 'transcodeAudioActivity' }),
     transcodeImageActivity: Object.assign(vi.fn(), { _activityName: 'transcodeImageActivity' }),
     generateSpriteActivity: Object.assign(vi.fn(), { _activityName: 'generateSpriteActivity' }),
@@ -699,6 +700,99 @@ describe('transcodeVideoWorkflow', () => {
 
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
       taskId: 'task-sdr-source',
+      status: WorkflowTaskStatus.completed,
+    })
+  })
+
+  it('should trigger HLS transcoding when hlsEnabled is true', async () => {
+    const task: WorkflowTask = {
+      id: 'task-hls',
+      assetId: 'asset-hls',
+      type: WorkflowTaskType.transcode_video,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: {
+          videoStrategy: 'best_match',
+          hlsEnabled: true,
+          hlsResolutions: ['480p', '720p', '1080p'],
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid-hls',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-hls',
+      storageKey: { key: 'files/asset-hls/video.mp4' },
+      mediaType: 'video/mp4',
+    })
+
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      proxyType: 'video',
+      metadata: {
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 10,
+        frameRate: 30,
+        totalFrames: 300,
+        startTimecode: '00:00:00:00',
+        bitRate: 1000,
+        videoBitRate: 850000,
+        hasAudio: false,
+        format: {},
+      },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    mockActivities.transcodeVideoActivity.mockResolvedValue({
+      key: 'files/asset-hls/video-1080p.mp4',
+      width: 1920,
+      height: 1080,
+      resolution: '1080p',
+    })
+
+    mockActivities.transcodeHlsActivity.mockResolvedValue({
+      key: 'files/asset-hls/hls/master.m3u8',
+      resolutions: ['1080p', '720p', '480p'],
+    })
+
+    await transcodeVideoWorkflow(task)
+
+    expect(mockActivities.transcodeHlsActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskId: 'task-hls',
+        assetKey: 'files/asset-hls/video.mp4',
+        filePath: '/tmp/video.mp4',
+        ladders: ['1080p', '720p', '480p'],
+        originalWidth: 1920,
+        originalHeight: 1080,
+      }),
+    )
+
+    expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith({
+      assetId: 'asset-hls',
+      mediaInfo: expect.objectContaining({
+        isHls: true,
+        hls: {
+          key: 'files/asset-hls/hls/master.m3u8',
+          resolutions: ['1080p', '720p', '480p'],
+        },
+      }),
+    })
+
+    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
+      taskId: 'task-hls',
       status: WorkflowTaskStatus.completed,
     })
   })

@@ -866,4 +866,61 @@ describe('Share API', () => {
       expect(getDownloadUrlSpy).not.toHaveBeenCalled()
     })
   })
+
+  describe('GET /shares/:shareId/files/:fileId/m3u8 routes', () => {
+    test('returns master playlist with query password preserved in variant URLs', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        id: 'share1',
+        watermarkConfigId: null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+      vi.spyOn(assetService, 'getHlsMasterPlaylist').mockResolvedValue(
+        '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=4628000\n1080p/index.m3u8\n',
+      )
+
+      const res = await app.request('/shares/share1/files/file1/m3u8/master.m3u8?p=secret123')
+      expect(res.status).toBe(200)
+      expect(res.headers.get('content-type')).toContain('application/vnd.apple.mpegurl')
+      const text = await res.text()
+      expect(text).toContain('1080p/index.m3u8?p=secret123')
+      expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('file1', 'secret123')
+      expect(assetService.getHlsMasterPlaylist).toHaveBeenCalledWith({
+        assetId: 'file1',
+        watermarkConfigId: null,
+      })
+    })
+
+    test('returns variant playlist with rewritten segment URLs', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        id: 'share1',
+        watermarkConfigId: 'wm1',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+      vi.spyOn(assetService, 'getHlsVariantPlaylist').mockResolvedValue(
+        '#EXTM3U\n#EXT-X-MAP:URI="http://presigned/init.mp4"\nhttp://presigned/seg0.m4s\n',
+      )
+
+      const res = await app.request('/shares/share1/files/file1/m3u8/1080p/index.m3u8')
+      expect(res.status).toBe(200)
+      expect(res.headers.get('content-type')).toContain('application/vnd.apple.mpegurl')
+      const text = await res.text()
+      expect(text).toContain('http://presigned/init.mp4')
+      expect(assetService.getHlsVariantPlaylist).toHaveBeenCalledWith({
+        assetId: 'file1',
+        resolution: '1080p',
+        watermarkConfigId: 'wm1',
+      })
+    })
+
+    test('returns 401 when password is invalid', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockRejectedValue(
+        new ShareLinkPasswordInvalidError('Invalid password'),
+      )
+
+      const res = await app.request('/shares/share1/files/file1/m3u8/master.m3u8?p=wrong')
+      expect(res.status).toBe(401)
+      const body = await res.json()
+      expect(body.error).toBe('Unauthorized')
+    })
+  })
 })

@@ -480,5 +480,70 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.json({ url })
     },
   )
+  .get('/files/:fileId/m3u8', async (c) => {
+    const fileId = c.req.param('fileId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: fileId,
+    })
+
+    const playlist = await assetService.getHlsMasterPlaylist({ assetId: fileId })
+    c.header('Content-Type', 'application/vnd.apple.mpegurl')
+    return c.body(playlist)
+  })
+  .get('/files/:fileId/m3u8/master.m3u8', async (c) => {
+    const fileId = c.req.param('fileId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: fileId,
+    })
+
+    const playlist = await assetService.getHlsMasterPlaylist({ assetId: fileId })
+    c.header('Content-Type', 'application/vnd.apple.mpegurl')
+    return c.body(playlist)
+  })
+  .get('/files/:fileId/m3u8/:resolution', async (c) => {
+    const fileId = c.req.param('fileId')
+    let resolution = c.req.param('resolution')
+    if (resolution.endsWith('.m3u8')) {
+      resolution = resolution.replace(/\.m3u8$/, '')
+    }
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: fileId,
+    })
+
+    const playlist = await assetService.getHlsVariantPlaylist({ assetId: fileId, resolution })
+    c.header('Content-Type', 'application/vnd.apple.mpegurl')
+    return c.body(playlist)
+  })
+  .get('/files/:fileId/m3u8/:resolution/index.m3u8', async (c) => {
+    const fileId = c.req.param('fileId')
+    const resolution = c.req.param('resolution')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: fileId,
+    })
+
+    const playlist = await assetService.getHlsVariantPlaylist({ assetId: fileId, resolution })
+    c.header('Content-Type', 'application/vnd.apple.mpegurl')
+    return c.body(playlist)
+  })
 
 export default route

@@ -314,6 +314,15 @@ export class TeamService {
         videoStrategy: 'best_match',
         hardwareAcceleration: 'off',
         threads: 0,
+        hlsEnabled: false,
+        hlsResolutions: ['480p', '720p', '1080p'],
+      }
+    } else {
+      if (settings.transcode.hlsEnabled === undefined) {
+        settings.transcode.hlsEnabled = false
+      }
+      if (!settings.transcode.hlsResolutions) {
+        settings.transcode.hlsResolutions = ['480p', '720p', '1080p']
       }
     }
 
@@ -354,6 +363,20 @@ export class TeamService {
       }
       settings.transcode.threads = Number(value)
       delete settings['transcode.threads']
+    } else if (key === 'transcode.hlsEnabled') {
+      if (!settings.transcode) {
+        settings.transcode = {}
+      }
+      settings.transcode.hlsEnabled = Boolean(value)
+      delete settings['transcode.hlsEnabled']
+    } else if (key === 'transcode.hlsResolutions') {
+      if (!settings.transcode) {
+        settings.transcode = {}
+      }
+      settings.transcode.hlsResolutions = value as NonNullable<
+        TeamSettingsResponse['transcode']
+      >['hlsResolutions']
+      delete settings['transcode.hlsResolutions']
     } else if (key === 'appearance.hideAgent') {
       if (!settings.appearance) {
         settings.appearance = {}

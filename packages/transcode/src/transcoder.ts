@@ -46,6 +46,16 @@ export class VideoTranscoder {
     return this
   }
 
+  setHls(enabled?: boolean, resolutions?: PrismaJson.HlsResolutionLadder[]): this {
+    if (enabled !== undefined) {
+      this.spec.hlsEnabled = enabled
+    }
+    if (resolutions) {
+      this.spec.hlsResolutions = resolutions
+    }
+    return this
+  }
+
   async submit(): Promise<string> {
     const task = await this.db.workflowTask.create({
       data: {

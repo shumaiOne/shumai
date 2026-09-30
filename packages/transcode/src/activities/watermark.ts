@@ -1,7 +1,11 @@
 import { prisma, WatermarkFileStatus } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { transcodeService } from '@shumai/core/src/transcode/transcode'
+import {
+  transcodeService,
+  buildHlsMasterPlaylist,
+  calculateEffectiveBitrateBps,
+} from '@shumai/core/src/transcode/transcode'
 import {
   generateWatermarkSvg,
   RenderBlockImageData,
@@ -388,6 +392,117 @@ export async function transcodeWatermarkMediaActivity(
           hdr: isVtHdr,
         })
       }
+
+      if (originalMedia?.isHls && originalMedia?.hls?.resolutions?.length) {
+        const hlsWatermarkDirKey = path.posix.join(
+          path.posix.dirname(assetKey),
+          `hls-watermark-${params.watermarkConfigId}`,
+        )
+        const masterKey = path.posix.join(hlsWatermarkDirKey, 'master.m3u8')
+        const hlsTmpDir = path.join(tmpDir, `hls-watermark-${params.watermarkConfigId}`)
+        fs.mkdirSync(hlsTmpDir, { recursive: true })
+
+        const renditionSpecs: Array<{
+          resolution: string
+          width: number
+          height: number
+          bitrateBps: number
+          isHdr?: boolean
+        }> = []
+        const hlsResolutions: PrismaJson.VideoTranscode[] = []
+
+        for (const vt of originalMedia.hls.resolutions) {
+          const ladder = vt.resolution || `${vt.height}p`
+          const targetWidth = vt.width || originalWidth
+          const targetHeight = vt.height || originalHeight
+          const isVtHdr = Boolean(vt.hdr)
+
+          const svgString = generateWatermarkSvg(config, targetWidth, targetHeight, blockImagesMap)
+          const overlayPngBuffer = await transcodeService.renderSvgToPng(svgString)
+          const overlayPngPath = path.join(tmpDir, `watermarkOverlay-hls-${ladder}.png`)
+          fs.writeFileSync(overlayPngPath, overlayPngBuffer)
+
+          const ladderDir = path.join(hlsTmpDir, ladder)
+          await transcodeService.transcodeHlsRendition({
+            inputFile: rawFilePath,
+            outputDir: ladderDir,
+            width: targetWidth,
+            height: targetHeight,
+            overlayFile: overlayPngPath,
+            frameRate,
+            hardwareAcceleration,
+            sourceVideoBitrate,
+            threads,
+            hdr: isVtHdr,
+            disableAudio: !hasAudio,
+            sourceIsHdr: isHdr ?? originalMedia?.metadata?.isHdr,
+            sourceHdrType: hdrType ?? originalMedia?.metadata?.hdrType,
+            sourceColorTransfer: colorTransfer ?? originalMedia?.metadata?.colorTransfer,
+            sourceColorPrimaries: colorPrimaries ?? originalMedia?.metadata?.colorPrimaries,
+            sourceColorSpace: colorSpace ?? originalMedia?.metadata?.colorSpace,
+          })
+
+          const targetBps = calculateEffectiveBitrateBps(
+            targetHeight,
+            targetWidth,
+            sourceVideoBitrate,
+            frameRate,
+          )
+
+          renditionSpecs.push({
+            resolution: ladder,
+            width: targetWidth,
+            height: targetHeight,
+            bitrateBps: targetBps,
+            isHdr: isVtHdr,
+          })
+
+          const ladderFiles = fs.readdirSync(ladderDir)
+          for (const file of ladderFiles) {
+            const filePath = path.join(ladderDir, file)
+            const stat = fs.statSync(filePath)
+            totalSize += stat.size
+            const contentType = file.endsWith('.m3u8')
+              ? 'application/vnd.apple.mpegurl'
+              : file.endsWith('.m4s')
+                ? 'video/iso.segment'
+                : 'video/mp4'
+            const s3Key = path.posix.join(hlsWatermarkDirKey, ladder, file)
+            await s3Service.putObject(
+              bucket,
+              s3Key,
+              Bun.file(filePath).stream(),
+              stat.size,
+              contentType,
+            )
+          }
+
+          hlsResolutions.push({
+            key: path.posix.join(hlsWatermarkDirKey, ladder, 'index.m3u8'),
+            width: targetWidth,
+            height: targetHeight,
+            resolution: ladder,
+            hdr: isVtHdr,
+          })
+        }
+
+        const masterM3u8Content = buildHlsMasterPlaylist(renditionSpecs)
+        const masterM3u8Buffer = Buffer.from(masterM3u8Content, 'utf-8')
+        await s3Service.putObject(
+          bucket,
+          masterKey,
+          masterM3u8Buffer,
+          masterM3u8Buffer.length,
+          'application/vnd.apple.mpegurl',
+        )
+
+        mediaInfo.isHls = true
+        mediaInfo.hls = {
+          key: masterKey,
+          resolutions: hlsResolutions,
+        }
+      }
+
       mediaInfo.filesize = totalSize
     }
 

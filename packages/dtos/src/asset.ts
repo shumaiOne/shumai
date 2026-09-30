@@ -123,6 +123,25 @@ export const assetInfoSchema = z.object({
         .optional(),
       videoPreview: z.object({ url: z.string(), key: z.string().optional() }).optional(),
       pdfTranscode: z.object({ url: z.string(), key: z.string().optional() }).optional(),
+      isHls: z.boolean().optional(),
+      hls: z
+        .object({
+          key: z.string(),
+          url: z.string().optional(),
+          resolutions: z
+            .array(
+              z.object({
+                width: z.number(),
+                height: z.number(),
+                resolution: z.string().optional(),
+                hdr: z.boolean().optional(),
+                key: z.string().optional(),
+                url: z.string().optional(),
+              }),
+            )
+            .optional(),
+        })
+        .optional(),
       proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
       metadata: mediaMetadataSchema.optional(),
     })

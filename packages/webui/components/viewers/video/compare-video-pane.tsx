@@ -32,15 +32,23 @@ interface CompareVideoPaneProps {
 function computeResolutions(file: AssetInfo): DisplayTranscode[] {
   // Only transcoded proxy versions are ever displayed; the raw original file
   // is never used as a playback source.
-  return (file.media?.videoTranscodes ?? []).map((t) => {
+  const isHls = Boolean(file.media?.isHls && file.media.hls?.url)
+  const baseTranscodes = isHls
+    ? (file.media?.hls?.resolutions ?? [])
+    : (file.media?.videoTranscodes ?? [])
+
+  return baseTranscodes.map((t) => {
     const longSide = Math.max(t.width, t.height)
-    let resolution = `${t.height}p`
-    if (longSide >= 3840) resolution = '2160p'
-    else if (longSide >= 1920) resolution = '1080p'
-    else if (longSide >= 1280) resolution = '720p'
-    else if (longSide >= 960) resolution = '540p'
-    else if (longSide >= 640) resolution = '360p'
-    else if (longSide >= 320) resolution = '180p'
+    const resCandidate = 'resolution' in t && t.resolution ? t.resolution : undefined
+    let resolution = resCandidate || `${t.height}p`
+    if (!resCandidate) {
+      if (longSide >= 3840) resolution = '2160p'
+      else if (longSide >= 1920) resolution = '1080p'
+      else if (longSide >= 1280) resolution = '720p'
+      else if (longSide >= 960) resolution = '540p'
+      else if (longSide >= 640) resolution = '360p'
+      else if (longSide >= 320) resolution = '180p'
+    }
     return { ...t, resolution }
   })
 }
@@ -117,11 +125,14 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
     const containerDuration = metadata?.duration || 0
     const totalFrames = resolveTotalFrames({ dbTotalFrames, containerDuration, frameRate })
 
+    const isHls = Boolean(file.media?.isHls && file.media.hls?.url)
     const resolutions = computeResolutions(file)
-    const initialRes = getInitialResolution(resolutions)
-    const [currentResolution, setCurrentResolution] = useState(initialRes?.resolution ?? '')
+    const initialRes = isHls ? null : getInitialResolution(resolutions)
+    const [currentResolution, setCurrentResolution] = useState(
+      isHls ? 'Auto' : (initialRes?.resolution ?? ''),
+    )
     const [isCurrentHdr, setIsCurrentHdr] = useState(initialRes?.hdr)
-    const currentSrcRef = useRef(initialRes?.url)
+    const currentSrcRef = useRef(isHls ? file.media!.hls!.url : initialRes?.url)
 
     const isAudio = file.proxyType === 'audio'
     const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames, isAudio)
@@ -160,12 +171,12 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
     // if the parent renders this pane without a per-asset `key`. Runs before the
     // video.js init effect below (declaration order) so the ref is fresh.
     useEffect(() => {
-      const res = getInitialResolution(resolutions)
-      setCurrentResolution(res?.resolution ?? '')
+      const res = isHls ? null : getInitialResolution(resolutions)
+      setCurrentResolution(isHls ? 'Auto' : (res?.resolution ?? ''))
       setIsCurrentHdr(res?.hdr)
-      currentSrcRef.current = res?.url
+      currentSrcRef.current = isHls ? file.media!.hls!.url : res?.url
       setHasStartedPlaying(false)
-    }, [file.id])
+    }, [file.id, Boolean(isHls ? file.media?.hls?.url : initialRes?.url)])
 
     // Initialize video.js
     useEffect(() => {
@@ -175,12 +186,15 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       videoElement.style.pointerEvents = 'none'
       videoContainerRef.current.appendChild(videoElement)
 
+      const targetSrc = isHls ? file.media!.hls!.url! : (currentSrcRef.current ?? '')
+      const targetType = isHls ? 'application/x-mpegURL' : 'video/mp4'
+
       const player = (playerRef.current = videojs(videoElement, {
         controls: false,
         autoplay: false,
         preload: 'auto',
         playsinline: true,
-        sources: [{ src: currentSrcRef.current ?? '', type: 'video/mp4' }],
+        sources: [{ src: targetSrc, type: targetType }],
       }))
 
       const htmlVid = videoElement.querySelector('video')
@@ -325,6 +339,30 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       (resolution: string, hdr?: boolean) => {
         const player = playerRef.current
         if (!player) return
+
+        if (isHls) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const ql = (player as any).qualityLevels?.()
+          if (resolution === 'Auto') {
+            if (ql) {
+              for (let i = 0; i < ql.length; i++) {
+                ql[i].enabled = true
+              }
+            }
+            setCurrentResolution('Auto')
+          } else {
+            const target = resolutions.find((r) => r.resolution === resolution)
+            if (target && ql) {
+              for (let i = 0; i < ql.length; i++) {
+                ql[i].enabled = ql[i].height === target.height
+              }
+            }
+            setCurrentResolution(resolution)
+            setIsCurrentHdr(target?.hdr)
+          }
+          return
+        }
+
         const target =
           hdr !== undefined
             ? resolutions.find(
@@ -346,7 +384,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
           }
         })
       },
-      [resolutions],
+      [resolutions, isHls],
     )
 
     useImperativeHandle(

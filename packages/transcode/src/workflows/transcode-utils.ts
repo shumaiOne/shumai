@@ -13,11 +13,40 @@ export function isMimePsd(mimeType: string): boolean {
 
 const RESOLUTION_LONG_SIDES: Record<string, number> = {
   '2160p': 3840,
+  '1440p': 2560,
   '1080p': 1920,
   '720p': 1280,
   '540p': 960,
+  '480p': 854,
   '360p': 640,
   '180p': 320,
+}
+
+export const HLS_LADDER_ORDER: PrismaJson.HlsResolutionLadder[] = [
+  '2160p',
+  '1440p',
+  '1080p',
+  '720p',
+  '480p',
+]
+
+export function getTargetHlsResolutions(
+  configuredLadders: PrismaJson.HlsResolutionLadder[] | undefined,
+  originalWidth: number,
+  originalHeight: number,
+): PrismaJson.HlsResolutionLadder[] {
+  const selectedLadders =
+    configuredLadders && configuredLadders.length > 0
+      ? configuredLadders
+      : (['480p', '720p', '1080p'] as PrismaJson.HlsResolutionLadder[])
+
+  const rawLongSide = Math.max(originalWidth, originalHeight)
+
+  return HLS_LADDER_ORDER.filter((ladder) => {
+    if (!selectedLadders.includes(ladder)) return false
+    const targetLongSide = RESOLUTION_LONG_SIDES[ladder]
+    return targetLongSide <= rawLongSide
+  })
 }
 
 export function resolutionToDimensions(

@@ -774,4 +774,47 @@ describe('file api', () => {
 
     mockGetProjectIds.mockRestore()
   })
+
+  describe('GET /files/:fileId/m3u8 routes', () => {
+    it('returns master playlist with correct content-type', async () => {
+      const mockMaster = vi
+        .spyOn(assetService, 'getHlsMasterPlaylist')
+        .mockResolvedValue('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=4628000\n1080p/index.m3u8\n')
+
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/asset-1/m3u8/master.m3u8')
+
+      expect(res.status).toBe(200)
+      expect(res.headers.get('content-type')).toContain('application/vnd.apple.mpegurl')
+      const text = await res.text()
+      expect(text).toContain('#EXTM3U')
+      expect(text).toContain('1080p/index.m3u8')
+      expect(mockMaster).toHaveBeenCalledWith({ assetId: 'asset-1' })
+      expect(authzService.hasPermission).toHaveBeenCalledWith({
+        user: { id: 'user1', name: 'Test User' },
+        permission: Permission.Read,
+        type: 'asset',
+        id: 'asset-1',
+      })
+      mockMaster.mockRestore()
+    })
+
+    it('returns variant playlist with rewritten URLs', async () => {
+      const mockVariant = vi
+        .spyOn(assetService, 'getHlsVariantPlaylist')
+        .mockResolvedValue(
+          '#EXTM3U\n#EXT-X-MAP:URI="http://presigned/init.mp4"\nhttp://presigned/seg0.m4s\n',
+        )
+
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/asset-1/m3u8/1080p/index.m3u8')
+
+      expect(res.status).toBe(200)
+      expect(res.headers.get('content-type')).toContain('application/vnd.apple.mpegurl')
+      const text = await res.text()
+      expect(text).toContain('http://presigned/init.mp4')
+      expect(mockVariant).toHaveBeenCalledWith({ assetId: 'asset-1', resolution: '1080p' })
+      mockVariant.mockRestore()
+    })
+  })
 })

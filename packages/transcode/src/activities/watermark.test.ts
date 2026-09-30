@@ -45,26 +45,37 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
   },
 }))
 
-vi.mock('@shumai/core/src/transcode/transcode', () => ({
-  transcodeService: {
-    getVideoInfo: vi.fn(),
-    getImageInfo: vi.fn(),
-    createTempDir: vi.fn().mockReturnValue('/tmp'),
-    removeDir: vi.fn(),
-    renderSvgToPng: vi.fn().mockResolvedValue(Buffer.from('fake-overlay-png')),
-    downscaleImageToPng: vi.fn().mockResolvedValue({
-      buffer: Buffer.from('fake-block-png'),
-      width: 32,
-      height: 32,
-    }),
-    compositeOverlayToWebpFile: vi.fn().mockImplementation(async (_in, _overlay, out) => {
-      fs.writeFileSync(out, 'fake-webp')
-    }),
-    transcodeVideo: vi.fn().mockImplementation(async (params) => {
-      fs.writeFileSync(params.outputFile, 'fake-mp4')
-    }),
-  },
-}))
+vi.mock('@shumai/core/src/transcode/transcode', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shumai/core/src/transcode/transcode')>()
+  return {
+    ...actual,
+    transcodeService: {
+      ...actual.transcodeService,
+      getVideoInfo: vi.fn(),
+      getImageInfo: vi.fn(),
+      createTempDir: vi.fn().mockReturnValue('/tmp'),
+      removeDir: vi.fn(),
+      renderSvgToPng: vi.fn().mockResolvedValue(Buffer.from('fake-overlay-png')),
+      downscaleImageToPng: vi.fn().mockResolvedValue({
+        buffer: Buffer.from('fake-block-png'),
+        width: 32,
+        height: 32,
+      }),
+      compositeOverlayToWebpFile: vi.fn().mockImplementation(async (_in, _overlay, out) => {
+        fs.writeFileSync(out, 'fake-webp')
+      }),
+      transcodeVideo: vi.fn().mockImplementation(async (params) => {
+        fs.writeFileSync(params.outputFile, 'fake-mp4')
+      }),
+      transcodeHlsRendition: vi.fn().mockImplementation(async (params) => {
+        fs.mkdirSync(params.outputDir, { recursive: true })
+        fs.writeFileSync(path.join(params.outputDir, 'init.mp4'), 'fake-init')
+        fs.writeFileSync(path.join(params.outputDir, 'segment_000.m4s'), 'fake-segment')
+        fs.writeFileSync(path.join(params.outputDir, 'index.m3u8'), 'fake-index')
+      }),
+    },
+  }
+})
 
 describe('Watermark Activities', () => {
   setupTestDbHooks()
@@ -523,6 +534,89 @@ describe('Watermark Activities', () => {
 
       fs.rmSync(sdrOut, { force: true })
       fs.rmSync(hdrOut, { force: true })
+    })
+
+    it('produces watermarked HLS renditions and updates mediaInfo.hls when original is HLS', async () => {
+      const originalMedia: PrismaJson.MediaInfo = {
+        proxyType: 'video',
+        duration: 10,
+        filesize: 1000,
+        frames: 300,
+        videoTranscodes: [
+          { key: 'files/asset/video-1080p.mp4', width: 1920, height: 1080, resolution: '1080p' },
+        ],
+        imageTranscodes: [],
+        videoPreview: { width: 1920, height: 1080 },
+        metadata: {
+          originalWidth: 1920,
+          originalHeight: 1080,
+          duration: 10,
+          frameRate: 30,
+          totalFrames: 300,
+          startTimecode: '00:00:00:00',
+          hasAudio: false,
+          format: {},
+          bitRate: 1000,
+        },
+        original: { key: 'files/asset/raw.mp4', filesizeInBytes: 1000, codec: 'h264' },
+        finishedAt: new Date().toISOString(),
+        isHls: true,
+        hls: {
+          key: 'files/asset/hls/master.m3u8',
+          resolutions: [{ resolution: '1080p', width: 1920, height: 1080 }],
+        },
+      }
+
+      const storageKey = await prisma.storageKey.create({
+        data: { key: 'files/asset/raw.mp4' },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'wm-hls.mp4',
+          type: 'file',
+          status: 'processed',
+          storageKeyId: storageKey.id,
+          mediaType: 'video/mp4',
+          media: originalMedia,
+        },
+      })
+      const config = await prisma.watermarkConfig.create({
+        data: {
+          hash: 'hls-hash-' + Math.random(),
+          config: {
+            blocks: [
+              {
+                id: 'b1',
+                type: 'text',
+                text: 'HLS Confidential',
+                opacity: 0.5,
+                size: 0.05,
+                color: '#FFFFFF',
+                x: 0.5,
+                y: 0.5,
+                rotation: 0,
+              },
+            ],
+          },
+        },
+      })
+
+      const media = await transcodeWatermarkMediaActivity({
+        assetId: asset.id,
+        watermarkConfigId: config.id,
+      })
+
+      expect(media.isHls).toBe(true)
+      expect(media.hls).toBeDefined()
+      expect(media.hls?.key).toContain(`hls-watermark-${config.id}/master.m3u8`)
+      expect(media.hls?.resolutions).toHaveLength(1)
+      expect(media.hls?.resolutions?.[0]?.resolution).toBe('1080p')
+      expect(transcodeService.transcodeHlsRendition).toHaveBeenCalledWith(
+        expect.objectContaining({
+          width: 1920,
+          height: 1080,
+        }),
+      )
     })
   })
 

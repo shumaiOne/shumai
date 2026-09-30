@@ -38,6 +38,8 @@ import type { AssetInfo } from '@shumai/dtos'
 async function applyWatermarkToAssetMedia(
   asset: AssetInfo,
   watermarkMedia: PrismaJson.MediaInfo | null,
+  shareId?: string,
+  password?: string,
 ): Promise<AssetInfo> {
   if (!asset.media) return asset
   if (asset.proxyType !== 'video' && asset.proxyType !== 'image') return asset
@@ -73,6 +75,19 @@ async function applyWatermarkToAssetMedia(
           })),
         )
       : []
+
+  if (watermarkMedia?.isHls && watermarkMedia.hls?.key && shareId) {
+    const pwQuery = password ? `?p=${encodeURIComponent(password)}` : ''
+    updatedMedia.isHls = true
+    updatedMedia.hls = {
+      key: watermarkMedia.hls.key,
+      url: `/api/shares/${shareId}/files/${asset.id}/m3u8/master.m3u8${pwQuery}`,
+      resolutions: watermarkMedia.hls.resolutions,
+    }
+  } else if (watermarkMedia) {
+    updatedMedia.isHls = false
+    delete updatedMedia.hls
+  }
 
   return {
     ...asset,
@@ -170,7 +185,8 @@ const route = app
     zValidator('query', sharedChildrenRequestSchema),
     async (c) => {
       const folderId = c.req.param('folderId')
-      const password = c.req.header('x-share-password')
+      const password =
+        c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
       const req = c.req.valid('query')
 
       try {
@@ -206,9 +222,21 @@ const route = app
 
           res.data = await Promise.all(
             res.data.map(async (item, index) =>
-              applyWatermarkToAssetMedia(item, wfMap.get(targetIds[index]) ?? null),
+              applyWatermarkToAssetMedia(
+                item,
+                wfMap.get(targetIds[index]) ?? null,
+                shareLink.id,
+                password,
+              ),
             ),
           )
+        } else if (res.data.length > 0) {
+          const pwQuery = password ? `?p=${encodeURIComponent(password)}` : ''
+          for (const item of res.data) {
+            if (item.media?.isHls && item.media.hls?.key) {
+              item.media.hls.url = `/api/shares/${shareLink.id}/files/${item.id}/m3u8/master.m3u8${pwQuery}`
+            }
+          }
         }
 
         return c.json(res)
@@ -219,7 +247,7 @@ const route = app
   )
   .get('/shares/:shareId/files/:fileId', async (c) => {
     const fileId = c.req.param('fileId')
-    const password = c.req.header('x-share-password')
+    const password = c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
 
     try {
       const shareLink = await shareService.verifyPublicAccess(fileId, password)
@@ -237,7 +265,15 @@ const route = app
           [targetAssetId],
           shareLink.watermarkConfigId,
         )
-        asset = await applyWatermarkToAssetMedia(asset, wfMap.get(targetAssetId) ?? null)
+        asset = await applyWatermarkToAssetMedia(
+          asset,
+          wfMap.get(targetAssetId) ?? null,
+          shareLink.id,
+          password,
+        )
+      } else if (asset.media?.isHls && asset.media.hls?.key) {
+        const pwQuery = password ? `?p=${encodeURIComponent(password)}` : ''
+        asset.media.hls.url = `/api/shares/${shareLink.id}/files/${asset.id}/m3u8/master.m3u8${pwQuery}`
       }
 
       return c.json(asset)
@@ -360,5 +396,92 @@ const route = app
       }
     },
   )
+  .get('/shares/:shareId/files/:fileId/m3u8', async (c) => {
+    const fileId = c.req.param('fileId')
+    const password = c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
+
+    try {
+      const shareLink = await shareService.verifyPublicAccess(fileId, password)
+      const targetAssetId = await assetService.resolveTargetAssetId(fileId)
+      let playlist = await assetService.getHlsMasterPlaylist({
+        assetId: targetAssetId,
+        watermarkConfigId: shareLink.watermarkConfigId,
+      })
+      if (password) {
+        playlist = playlist.replace(
+          /([0-9]+p\/index\.m3u8)/g,
+          `$1?p=${encodeURIComponent(password)}`,
+        )
+      }
+      c.header('Content-Type', 'application/vnd.apple.mpegurl')
+      return c.body(playlist)
+    } catch (err) {
+      return handlePublicShareError(c, err)
+    }
+  })
+  .get('/shares/:shareId/files/:fileId/m3u8/master.m3u8', async (c) => {
+    const fileId = c.req.param('fileId')
+    const password = c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
+
+    try {
+      const shareLink = await shareService.verifyPublicAccess(fileId, password)
+      const targetAssetId = await assetService.resolveTargetAssetId(fileId)
+      let playlist = await assetService.getHlsMasterPlaylist({
+        assetId: targetAssetId,
+        watermarkConfigId: shareLink.watermarkConfigId,
+      })
+      if (password) {
+        playlist = playlist.replace(
+          /([0-9]+p\/index\.m3u8)/g,
+          `$1?p=${encodeURIComponent(password)}`,
+        )
+      }
+      c.header('Content-Type', 'application/vnd.apple.mpegurl')
+      return c.body(playlist)
+    } catch (err) {
+      return handlePublicShareError(c, err)
+    }
+  })
+  .get('/shares/:shareId/files/:fileId/m3u8/:resolution', async (c) => {
+    const fileId = c.req.param('fileId')
+    let resolution = c.req.param('resolution')
+    if (resolution.endsWith('.m3u8')) {
+      resolution = resolution.replace(/\.m3u8$/, '')
+    }
+    const password = c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
+
+    try {
+      const shareLink = await shareService.verifyPublicAccess(fileId, password)
+      const targetAssetId = await assetService.resolveTargetAssetId(fileId)
+      const playlist = await assetService.getHlsVariantPlaylist({
+        assetId: targetAssetId,
+        resolution,
+        watermarkConfigId: shareLink.watermarkConfigId,
+      })
+      c.header('Content-Type', 'application/vnd.apple.mpegurl')
+      return c.body(playlist)
+    } catch (err) {
+      return handlePublicShareError(c, err)
+    }
+  })
+  .get('/shares/:shareId/files/:fileId/m3u8/:resolution/index.m3u8', async (c) => {
+    const fileId = c.req.param('fileId')
+    const resolution = c.req.param('resolution')
+    const password = c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
+
+    try {
+      const shareLink = await shareService.verifyPublicAccess(fileId, password)
+      const targetAssetId = await assetService.resolveTargetAssetId(fileId)
+      const playlist = await assetService.getHlsVariantPlaylist({
+        assetId: targetAssetId,
+        resolution,
+        watermarkConfigId: shareLink.watermarkConfigId,
+      })
+      c.header('Content-Type', 'application/vnd.apple.mpegurl')
+      return c.body(playlist)
+    } catch (err) {
+      return handlePublicShareError(c, err)
+    }
+  })
 
 export default route

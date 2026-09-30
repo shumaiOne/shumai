@@ -57,10 +57,14 @@ declare global {
     // ----------------------------------------------------------------------
     export type CollectionFilter = import('@shumai/dtos').CollectionFilter
 
+    export type HlsResolutionLadder = '480p' | '720p' | '1080p' | '1440p' | '2160p'
+
     export interface TranscodeSettings {
       videoStrategy: VideoTranscodeStrategy
       hardwareAcceleration?: HardwareAcceleration
       threads?: number
+      hlsEnabled?: boolean
+      hlsResolutions?: HlsResolutionLadder[]
     }
 
     export interface MediaProviderConfig {
@@ -178,6 +182,12 @@ declare global {
       url?: string
     }
 
+    export interface HlsInfo {
+      key: string
+      url?: string
+      resolutions: VideoTranscode[]
+    }
+
     export interface MediaInfo {
       duration: number
       filesize: number
@@ -193,6 +203,8 @@ declare global {
       finishedAt: string
       metadata: Metadata | null
       original: OriginalInfo | null
+      isHls?: boolean
+      hls?: HlsInfo
     }
 
     // ----------------------------------------------------------------------
@@ -341,6 +353,8 @@ declare global {
       thumbnail?: boolean
       sprite?: boolean
       poster?: boolean
+      hlsEnabled?: boolean
+      hlsResolutions?: HlsResolutionLadder[]
     }
 
     export interface AgentTaskPayload {

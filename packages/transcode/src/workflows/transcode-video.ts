@@ -8,7 +8,11 @@ import {
   failTask,
   cleanupTmpDir,
 } from './common'
-import { getTargetVideoResolutions, resolutionToDimensions } from './transcode-utils'
+import {
+  getTargetVideoResolutions,
+  getTargetHlsResolutions,
+  resolutionToDimensions,
+} from './transcode-utils'
 
 export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> {
   let tmpDir: string | undefined
@@ -21,6 +25,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       updateAssetStatusActivity,
       getMediaInfoActivity,
       transcodeVideoActivity,
+      transcodeHlsActivity,
       transcodeAudioActivity,
       transcodeImageActivity,
       extractPosterActivity,
@@ -188,6 +193,35 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
         })
 
         mediaInfo.videoTranscodes.push(videoTranscode)
+      }
+
+      if (spec.hlsEnabled) {
+        const hlsLadders = getTargetHlsResolutions(
+          spec.hlsResolutions,
+          metadata.originalWidth,
+          metadata.originalHeight,
+        )
+        if (hlsLadders.length > 0) {
+          const hlsResult = await executeActivity(workerQueue, transcodeHlsActivity, {
+            taskId: task.id,
+            assetKey: key,
+            filePath,
+            ladders: hlsLadders,
+            originalWidth: metadata.originalWidth,
+            originalHeight: metadata.originalHeight,
+            originalFps: metadata.frameRate,
+            sourceVideoBitrate: metadata.videoBitRate || metadata.bitRate,
+            hardwareAcceleration: spec.hardwareAcceleration,
+            threads: spec.threads,
+            sourceIsHdr: metadata.isHdr,
+            sourceHdrType: metadata.hdrType,
+            sourceColorTransfer: metadata.colorTransfer,
+            sourceColorPrimaries: metadata.colorPrimaries,
+            sourceColorSpace: metadata.colorSpace,
+          })
+          mediaInfo.isHls = true
+          mediaInfo.hls = hlsResult
+        }
       }
     }
 

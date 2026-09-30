@@ -1,10 +1,17 @@
-import type { VideoTranscode } from '@shumai/dtos'
-
 export type PaneKind = 'image' | 'video' | 'unsupported'
 
 export type CompareSide = 'left' | 'right'
 
-export type DisplayTranscode = VideoTranscode & { resolution: string }
+export interface DisplayTranscode {
+  id?: string
+  url?: string
+  key?: string
+  width: number
+  height: number
+  size?: number
+  hdr?: boolean
+  resolution: string
+}
 
 /**
  * Reactive state a pane reports upward so the shared control bar can render.

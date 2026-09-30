@@ -146,6 +146,28 @@ export interface TranscodeVideoParams {
   sourceColorSpace?: string
 }
 
+export interface TranscodeHlsRenditionParams {
+  inputFile: string
+  outputDir: string
+  width: number
+  height: number
+  frameRate?: number | string
+  disableAudio?: boolean
+  overlayFile?: string
+  hardwareAcceleration?: 'off' | 'auto'
+  videoBitrate?: string
+  sourceVideoBitrate?: number
+  threads?: number
+  signal?: AbortSignal
+  hdr?: boolean
+  sourceIsHdr?: boolean
+  sourceHdrType?: HdrType
+  sourceColorTransfer?: string
+  sourceColorPrimaries?: string
+  sourceColorSpace?: string
+  segmentDuration?: number
+}
+
 export interface EncoderConfig {
   name: string
   presetArgs: string[]
@@ -241,9 +263,11 @@ export function getDefaultBitrateBps(height: number, width?: number): number {
   const effectiveHeight = shortSide > 0 ? shortSide : height
 
   if (effectiveHeight >= 2160 || longSide >= 3840) return 12_000_000
+  if (effectiveHeight >= 1440 || longSide >= 2560) return 8_000_000
   if (effectiveHeight >= 1080 || longSide >= 1920) return 4_500_000
   if (effectiveHeight >= 720 || longSide >= 1280) return 2_500_000
   if (effectiveHeight >= 540 || longSide >= 960) return 1_200_000
+  if (effectiveHeight >= 480 || longSide >= 854) return 1_400_000
   if (effectiveHeight >= 360 || longSide >= 640) return 800_000
   return 100_000
 }
@@ -1121,6 +1145,301 @@ export class TranscodeService {
     }
 
     args.push('-movflags', '+faststart', '-max_muxing_queue_size', '1024', params.outputFile)
+
+    if (params.signal) {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], {
+        signal: params.signal,
+      })
+    } else {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    }
+  }
+
+  async transcodeHlsRendition(params: TranscodeHlsRenditionParams): Promise<void> {
+    const encoder = await this.selectH264Encoder(params.hardwareAcceleration)
+
+    if (encoder.name !== 'libx264') {
+      try {
+        await this.executeFfmpegHlsTranscode(params, encoder)
+        return
+      } catch (err) {
+        if (this.isAbortError(err, params.signal)) {
+          throw err
+        }
+
+        logger.warn(
+          {
+            err,
+            encoder: encoder.name,
+            inputFile: params.inputFile,
+            outputDir: params.outputDir,
+            width: params.width,
+            height: params.height,
+          },
+          'Hardware HLS transcoding failed; falling back to software transcode (libx264)',
+        )
+
+        if (fs.existsSync(params.outputDir)) {
+          try {
+            fs.rmSync(params.outputDir, { recursive: true, force: true })
+          } catch {
+            // ignore unlink errors
+          }
+        }
+
+        await this.executeFfmpegHlsTranscode(params, H264_ENCODER_CONFIGS.libx264)
+        return
+      }
+    }
+
+    await this.executeFfmpegHlsTranscode(params, encoder)
+  }
+
+  private async executeFfmpegHlsTranscode(
+    params: TranscodeHlsRenditionParams,
+    encoder: EncoderConfig,
+  ): Promise<void> {
+    fs.mkdirSync(params.outputDir, { recursive: true })
+
+    const isSourceHdr =
+      params.sourceIsHdr ||
+      params.sourceHdrType === 'pq' ||
+      params.sourceHdrType === 'hlg' ||
+      params.sourceHdrType === 'dovi_p5'
+    const isHdrOutput = Boolean(params.hdr)
+
+    const isVaapi = encoder.name === 'h264_vaapi'
+    const vaapiDevice = isVaapi ? (this.getVaapiDevice() ?? '/dev/dri/renderD128') : undefined
+
+    const segmentDuration = params.segmentDuration || 4
+    let calculatedFps = 30
+    if (params.frameRate) {
+      if (typeof params.frameRate === 'number') {
+        calculatedFps = params.frameRate
+      } else {
+        const parts = params.frameRate.split('/')
+        if (parts.length === 2) {
+          calculatedFps = parseFloat(parts[0]) / parseFloat(parts[1])
+        } else {
+          calculatedFps = parseFloat(params.frameRate)
+        }
+      }
+    }
+    if (!Number.isFinite(calculatedFps) || calculatedFps <= 0) {
+      calculatedFps = 30
+    }
+    const gopSize = Math.max(1, Math.round(calculatedFps * segmentDuration))
+
+    logger.info(
+      {
+        encoder: encoder.name,
+        hardwareAcceleration: params.hardwareAcceleration ?? 'off',
+        inputFile: params.inputFile,
+        outputDir: params.outputDir,
+        width: params.width,
+        height: params.height,
+        segmentDuration,
+        gopSize,
+      },
+      'Starting HLS rendition transcoding',
+    )
+
+    let filterComplex: string
+    const args: string[] = []
+
+    if (isVaapi && vaapiDevice) {
+      args.push('-init_hw_device', `vaapi=accel:${vaapiDevice}`, '-filter_hw_device', 'accel')
+    }
+
+    args.push('-i', params.inputFile)
+    const baseScale = `scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
+
+    if (params.overlayFile) {
+      args.push('-i', params.overlayFile)
+      filterComplex = `[0:v]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
+    } else {
+      filterComplex = `[0:v]${baseScale}`
+    }
+
+    filterComplex += `,fps=${calculatedFps}`
+
+    if (isVaapi) {
+      filterComplex += ',format=nv12,hwupload=extra_hw_frames=64'
+    }
+    filterComplex += '[vout]'
+
+    args.push('-filter_complex', filterComplex, '-map', '[vout]')
+
+    if (!params.disableAudio) {
+      args.push('-map', '0:a?')
+    }
+
+    args.push('-c:v', encoder.name)
+    if (encoder.presetArgs.length > 0) {
+      args.push(...encoder.presetArgs)
+    }
+
+    if (encoder.name === 'h264_videotoolbox') {
+      if (params.videoBitrate) {
+        args.push('-b:v', params.videoBitrate)
+      } else {
+        const targetBps = calculateEffectiveBitrateBps(
+          params.height,
+          params.width,
+          params.sourceVideoBitrate,
+          calculatedFps,
+        )
+        const targetKbps = Math.max(50, Math.round(targetBps / 1000))
+        args.push('-b:v', `${targetKbps}k`)
+      }
+    } else if (isVaapi) {
+      let maxKbps: number
+      if (params.videoBitrate) {
+        maxKbps = parseBitrateKbps(params.videoBitrate)
+      } else {
+        const { maxrate } = calculateMaxBitrate(
+          params.height,
+          params.width,
+          params.sourceVideoBitrate,
+          calculatedFps,
+        )
+        maxKbps = parseInt(maxrate, 10)
+      }
+      const targetKbps = Math.max(25, Math.ceil(maxKbps / 1.45))
+      const minKbps = Math.max(10, Math.round(targetKbps / 2))
+      args.push(
+        '-rc_mode',
+        '3',
+        '-b:v',
+        `${targetKbps}k`,
+        '-minrate',
+        `${minKbps}k`,
+        '-maxrate',
+        `${maxKbps}k`,
+      )
+    } else if (encoder.name === 'h264_qsv') {
+      let maxKbps: number
+      if (params.videoBitrate) {
+        maxKbps = parseBitrateKbps(params.videoBitrate)
+      } else {
+        const { maxrate } = calculateMaxBitrate(
+          params.height,
+          params.width,
+          params.sourceVideoBitrate,
+          calculatedFps,
+        )
+        maxKbps = parseInt(maxrate, 10)
+      }
+      const targetKbps = Math.max(25, Math.ceil(maxKbps / 1.45))
+      args.push('-b:v', `${targetKbps}k`, '-maxrate', `${maxKbps}k`)
+    } else if (encoder.name === 'h264_nvenc') {
+      let maxrateStr: string
+      let bufsizeStr: string
+      if (params.videoBitrate) {
+        const kbps = parseBitrateKbps(params.videoBitrate)
+        maxrateStr = `${kbps}k`
+        bufsizeStr = `${kbps * 2}k`
+      } else {
+        const res = calculateMaxBitrate(
+          params.height,
+          params.width,
+          params.sourceVideoBitrate,
+          calculatedFps,
+        )
+        maxrateStr = res.maxrate
+        bufsizeStr = res.bufsize
+      }
+      args.push(
+        '-rc',
+        'vbr',
+        '-cq',
+        '23',
+        '-maxrate',
+        maxrateStr,
+        '-bufsize',
+        bufsizeStr,
+        '-spatial-aq',
+        '1',
+        '-temporal-aq',
+        '1',
+      )
+    } else {
+      let maxrateStr: string
+      let bufsizeStr: string
+      if (params.videoBitrate) {
+        const kbps = parseBitrateKbps(params.videoBitrate)
+        maxrateStr = `${kbps}k`
+        bufsizeStr = `${kbps * 2}k`
+      } else {
+        const res = calculateMaxBitrate(
+          params.height,
+          params.width,
+          params.sourceVideoBitrate,
+          calculatedFps,
+        )
+        maxrateStr = res.maxrate
+        bufsizeStr = res.bufsize
+      }
+      args.push('-crf', '23', '-maxrate', maxrateStr, '-bufsize', bufsizeStr)
+    }
+
+    if (!isVaapi) {
+      args.push('-pix_fmt', 'yuv420p')
+    }
+
+    if (isSourceHdr && isHdrOutput) {
+      const isHlg = params.sourceHdrType === 'hlg' || params.sourceColorTransfer === 'arib-std-b67'
+      const trc = isHlg ? 'arib-std-b67' : 'smpte2084'
+      args.push('-color_primaries', 'bt2020', '-color_trc', trc, '-colorspace', 'bt2020nc')
+      if (encoder.name === 'libx264') {
+        args.push('-x264-params', `colorprim=bt2020:transfer=${trc}:colormatrix=bt2020nc`)
+      }
+    }
+
+    args.push(
+      '-r',
+      calculatedFps.toString(),
+      '-g',
+      gopSize.toString(),
+      '-keyint_min',
+      gopSize.toString(),
+      '-sc_threshold',
+      '0',
+      '-flags',
+      '+cgop',
+      '-force_key_frames',
+      `expr:gte(t,n_forced*${segmentDuration})`,
+    )
+
+    if (!params.disableAudio) {
+      args.push('-c:a', 'aac', '-b:a', '128k')
+    }
+
+    if (params.threads && params.threads > 0) {
+      args.push('-threads', params.threads.toString())
+    }
+
+    const initFilename = 'init.mp4'
+    const segmentPattern = path.join(params.outputDir, 'segment_%03d.m4s')
+    const playlistFile = path.join(params.outputDir, 'index.m3u8')
+
+    args.push(
+      '-f',
+      'hls',
+      '-hls_time',
+      segmentDuration.toString(),
+      '-hls_playlist_type',
+      'vod',
+      '-hls_segment_type',
+      'fmp4',
+      '-hls_fmp4_init_filename',
+      initFilename,
+      '-hls_segment_filename',
+      segmentPattern,
+      '-max_muxing_queue_size',
+      '1024',
+      playlistFile,
+    )
 
     if (params.signal) {
       await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], {
@@ -2385,3 +2704,60 @@ function renderAnnotationsToSvg(
 }
 
 export const transcodeService = new TranscodeService()
+
+export function buildHlsMasterPlaylist(
+  renditions: Array<{
+    resolution: string
+    width: number
+    height: number
+    bitrateBps: number
+    isHdr?: boolean
+  }>,
+): string {
+  let content = '#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-INDEPENDENT-SEGMENTS\n'
+  for (const r of renditions) {
+    const bandwidth = r.bitrateBps + 128_000
+    const codecs = r.isHdr ? 'avc1.640028,mp4a.40.2' : 'avc1.64001f,mp4a.40.2'
+    content += `#EXT-X-STREAM-INF:BANDWIDTH=${bandwidth},AVERAGE-BANDWIDTH=${bandwidth},RESOLUTION=${r.width}x${r.height},CODECS="${codecs}"\n`
+    content += `${r.resolution}/index.m3u8\n`
+  }
+  return content
+}
+
+export async function rewriteM3u8WithPresignedUrls(
+  m3u8Content: string,
+  s3Prefix: string,
+  bucket: string,
+): Promise<string> {
+  const lines = m3u8Content.split(/\r?\n/)
+  const rewrittenLines: string[] = []
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) {
+      rewrittenLines.push(line)
+      continue
+    }
+
+    const mapMatch = trimmed.match(/^#EXT-X-MAP:URI="([^"]+)"(.*)$/)
+    if (mapMatch) {
+      const initRelPath = mapMatch[1]
+      const extra = mapMatch[2] || ''
+      const initKey = path.posix.join(s3Prefix, initRelPath)
+      const presignedUrl = await s3Service.presign(bucket, initKey, 'GET')
+      rewrittenLines.push(`#EXT-X-MAP:URI="${presignedUrl}"${extra}`)
+      continue
+    }
+
+    if (trimmed.endsWith('.m4s') || trimmed.endsWith('.mp4') || trimmed.endsWith('.ts')) {
+      const segmentKey = path.posix.join(s3Prefix, trimmed)
+      const presignedUrl = await s3Service.presign(bucket, segmentKey, 'GET')
+      rewrittenLines.push(presignedUrl)
+      continue
+    }
+
+    rewrittenLines.push(line)
+  }
+
+  return rewrittenLines.join('\n')
+}

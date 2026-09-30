@@ -4,7 +4,11 @@ import {
   HardwareAcceleration,
   UpdateTeamSettingsRequest,
   TeamSettingsResponse,
+  HlsResolutionLadder,
+  DEFAULT_HLS_RESOLUTIONS,
 } from '@shumai/dtos'
+import { Switch } from '@/ui/components/ui/switch'
+import { Checkbox } from '@/ui/components/ui/checkbox'
 import { client } from '@/ui/api/client'
 import { AgentsSettings } from '@/ui/components/settings/AgentsSettings'
 import { ProvidersSettings } from '@/ui/components/settings/ProvidersSettings'
@@ -333,6 +337,35 @@ function TeamSettingsPage() {
     })
   }
 
+  const handleHlsEnabledChange = (enabled: boolean) => {
+    updateSettings({
+      teamId,
+      data: {
+        key: 'transcode.hlsEnabled',
+        value: enabled,
+      },
+    })
+  }
+
+  const handleHlsLadderToggle = (ladder: HlsResolutionLadder) => {
+    const current =
+      (settings as TeamSettingsResponse | undefined)?.transcode?.hlsResolutions ??
+      DEFAULT_HLS_RESOLUTIONS
+    const updated = current.includes(ladder)
+      ? current.filter((l) => l !== ladder)
+      : [...current, ladder]
+
+    if (updated.length === 0) return
+
+    updateSettings({
+      teamId,
+      data: {
+        key: 'transcode.hlsResolutions',
+        value: updated,
+      },
+    })
+  }
+
   if (isSettingsLoading || isMeLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -359,6 +392,12 @@ function TeamSettingsPage() {
     (settings as any)?.transcode?.hardwareAcceleration || HardwareAcceleration.off
 
   const currentThreads = localThreads ?? serverThreads
+  const currentHlsEnabled =
+    (settings as TeamSettingsResponse | undefined)?.transcode?.hlsEnabled ?? false
+  const currentHlsResolutions: HlsResolutionLadder[] =
+    (settings as TeamSettingsResponse | undefined)?.transcode?.hlsResolutions ??
+    DEFAULT_HLS_RESOLUTIONS
+  const ALL_HLS_LADDERS: HlsResolutionLadder[] = ['480p', '720p', '1080p', '1440p', '2160p']
 
   return (
     <div className="h-full bg-background font-sans selection:bg-primary/20 transition-colors duration-300">
@@ -890,6 +929,50 @@ function TeamSettingsPage() {
                             <span>32</span>
                           </div>
                         </div>
+                      </div>
+
+                      {/* HLS Streaming */}
+                      <div className="space-y-4 pt-6 border-t border-border">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <h3 className="text-lg font-medium">{m.hls_streaming()}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {m.hls_streaming_description()}
+                            </p>
+                          </div>
+                          <Switch
+                            checked={currentHlsEnabled}
+                            onCheckedChange={handleHlsEnabledChange}
+                          />
+                        </div>
+
+                        {currentHlsEnabled && (
+                          <div className="space-y-3 pt-2 pl-1">
+                            <div className="space-y-1">
+                              <h4 className="text-sm font-medium">{m.hls_resolution_ladders()}</h4>
+                              <p className="text-xs text-muted-foreground">
+                                {m.hls_resolution_ladders_description()}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-4 pt-1">
+                              {ALL_HLS_LADDERS.map((ladder) => {
+                                const checked = currentHlsResolutions.includes(ladder)
+                                return (
+                                  <label
+                                    key={ladder}
+                                    className="flex items-center space-x-2 cursor-pointer text-sm"
+                                  >
+                                    <Checkbox
+                                      checked={checked}
+                                      onCheckedChange={() => handleHlsLadderToggle(ladder)}
+                                    />
+                                    <span>{ladder}</span>
+                                  </label>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

@@ -1,10 +1,16 @@
 import { AssetStatus, prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { transcodeService, type HdrType } from '@shumai/core/src/transcode/transcode'
+import {
+  transcodeService,
+  buildHlsMasterPlaylist,
+  calculateEffectiveBitrateBps,
+  type HdrType,
+} from '@shumai/core/src/transcode/transcode'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { getDerivedArtifactDirectory, stemFromKey } from '@shumai/core/src/utils/filename'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { parseCsvContent } from '@shumai/core/src/transcode/transcode'
+import { resolutionToDimensions } from '../workflows/transcode-utils'
 import {
   getProxyType,
   isCsvDocument,
@@ -377,6 +383,187 @@ export async function transcodeVideoActivity(
     throw err
   } finally {
     if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile)
+  }
+}
+
+export interface HlsActivityParams {
+  taskId: string
+  assetKey: string
+  filePath: string
+  ladders: PrismaJson.HlsResolutionLadder[]
+  originalWidth: number
+  originalHeight: number
+  duration: number
+  originalFps: number
+  hardwareAcceleration?: 'off' | 'auto'
+  sourceVideoBitrate?: number
+  threads?: number
+  sourceIsHdr?: boolean
+  sourceHdrType?: HdrType
+  sourceColorTransfer?: string
+  sourceColorPrimaries?: string
+  sourceColorSpace?: string
+}
+
+export async function transcodeHlsActivity(params: HlsActivityParams): Promise<PrismaJson.HlsInfo> {
+  const bucket = process.env.S3_BUCKET || 'shumai'
+  const assetDir = path.posix.dirname(params.assetKey)
+  const hlsDirKey = path.posix.join(assetDir, 'hls')
+  const masterKey = path.posix.join(hlsDirKey, 'master.m3u8')
+
+  const signal = getActivityCancellationSignal(params.taskId)
+  if (signal?.aborted) {
+    throw ApplicationFailure.create({
+      message: 'HLS transcoding cancelled',
+      nonRetryable: true,
+    })
+  }
+
+  const hlsTmpDir = path.join(path.dirname(params.filePath), `hls-${ulid()}`)
+
+  try {
+    const renditionSpecs: Array<{
+      resolution: string
+      width: number
+      height: number
+      bitrateBps: number
+      isHdr?: boolean
+    }> = []
+
+    const mediaResolutions: PrismaJson.VideoTranscode[] = []
+
+    for (const ladder of params.ladders) {
+      if (signal?.aborted) {
+        throw ApplicationFailure.create({
+          message: 'HLS transcoding cancelled',
+          nonRetryable: true,
+        })
+      }
+
+      const [width, height] = resolutionToDimensions(
+        ladder,
+        params.originalWidth,
+        params.originalHeight,
+      )
+      const targetBps = calculateEffectiveBitrateBps(
+        height,
+        width,
+        params.sourceVideoBitrate,
+        params.originalFps,
+      )
+      const ladderDir = path.join(hlsTmpDir, ladder)
+
+      await transcodeService.transcodeHlsRendition({
+        inputFile: params.filePath,
+        outputDir: ladderDir,
+        width,
+        height,
+        frameRate: params.originalFps,
+        hardwareAcceleration: params.hardwareAcceleration,
+        sourceVideoBitrate: params.sourceVideoBitrate,
+        threads: params.threads,
+        signal,
+        hdr: Boolean(params.sourceIsHdr),
+        sourceIsHdr: params.sourceIsHdr,
+        sourceHdrType: params.sourceHdrType,
+        sourceColorTransfer: params.sourceColorTransfer,
+        sourceColorPrimaries: params.sourceColorPrimaries,
+        sourceColorSpace: params.sourceColorSpace,
+      })
+
+      renditionSpecs.push({
+        resolution: ladder,
+        width,
+        height,
+        bitrateBps: targetBps,
+        isHdr: params.sourceIsHdr,
+      })
+
+      mediaResolutions.push({
+        resolution: ladder,
+        width,
+        height,
+        hdr: Boolean(params.sourceIsHdr),
+      })
+
+      await ensureAssetNotPurging(params.assetKey)
+      const files = fs.readdirSync(ladderDir)
+      for (const file of files) {
+        const localFilePath = path.join(ladderDir, file)
+        const stat = fs.statSync(localFilePath)
+        const s3Key = path.posix.join(hlsDirKey, ladder, file)
+        let contentType = 'application/octet-stream'
+        if (file.endsWith('.m3u8')) {
+          contentType = 'application/vnd.apple.mpegurl'
+        } else if (file.endsWith('.mp4')) {
+          contentType = 'video/mp4'
+        } else if (file.endsWith('.m4s')) {
+          contentType = 'video/iso.segment'
+        }
+
+        const stream = Bun.file(localFilePath).stream()
+        await s3Service.putObject(bucket, s3Key, stream, stat.size, contentType)
+      }
+    }
+
+    const masterContent = buildHlsMasterPlaylist(renditionSpecs)
+    const masterBuffer = Buffer.from(masterContent, 'utf-8')
+    await ensureAssetNotPurging(params.assetKey)
+    await s3Service.putObject(
+      bucket,
+      masterKey,
+      masterBuffer,
+      masterBuffer.length,
+      'application/vnd.apple.mpegurl',
+    )
+
+    return {
+      key: masterKey,
+      resolutions: mediaResolutions,
+    }
+  } catch (err) {
+    const { code, message } = getErrorDetails(err)
+    const lowerMsg = message.toLowerCase()
+
+    if (
+      signal?.aborted ||
+      code === 'ABORT_ERR' ||
+      message.includes('aborted') ||
+      lowerMsg.includes('abort')
+    ) {
+      throw ApplicationFailure.create({
+        message: 'HLS transcoding cancelled',
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+
+    if (
+      code === 'ENOENT' ||
+      lowerMsg.includes('enoent') ||
+      lowerMsg.includes('ffmpeg') ||
+      lowerMsg.includes('ffprobe') ||
+      lowerMsg.includes('spawn') ||
+      lowerMsg.includes('format') ||
+      lowerMsg.includes('no video stream found') ||
+      lowerMsg.includes('zscale') ||
+      lowerMsg.includes('tonemap')
+    ) {
+      throw ApplicationFailure.create({
+        message: `HLS transcoding failed: ${message}`,
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+    throw err
+  } finally {
+    if (fs.existsSync(hlsTmpDir)) {
+      try {
+        fs.rmSync(hlsTmpDir, { recursive: true, force: true })
+      } catch {
+        // ignore cleanup error
+      }
+    }
   }
 }
 

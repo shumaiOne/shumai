@@ -1,7 +1,7 @@
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { useUiStore } from '@/ui/stores/ui'
-import type { AssetInfo, VideoTranscode } from '@shumai/dtos'
+import type { AssetInfo } from '@shumai/dtos'
 import {
   Check,
   ChevronDown,
@@ -46,7 +46,16 @@ export interface PlayerState {
   isCurrentHdr?: boolean
 }
 
-export type DisplayTranscode = VideoTranscode & { resolution: string }
+export interface DisplayTranscode {
+  id?: string
+  url?: string
+  key?: string
+  width: number
+  height: number
+  size?: number
+  hdr?: boolean
+  resolution: string
+}
 
 export interface ControlBarProps {
   state: PlayerState
@@ -322,9 +331,11 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
                   <Settings className="h-3.5 w-3.5" />
                   <span className="flex items-center gap-1">
                     <span>
-                      {state.currentResolution === 'Original'
-                        ? m.original()
-                        : state.currentResolution}
+                      {state.currentResolution === 'Auto'
+                        ? m.quality_auto()
+                        : state.currentResolution === 'Original'
+                          ? m.original()
+                          : state.currentResolution}
                     </span>
                     {state.isCurrentHdr && (
                       <span className="px-1 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
@@ -337,6 +348,25 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
 
               <DropdownMenuContent>
                 <DropdownMenuLabel>{m.quality()}</DropdownMenuLabel>
+                {data.media?.isHls && (
+                  <DropdownMenuItem
+                    onClick={() =>
+                      changeResolution({
+                        resolution: 'Auto',
+                        width: data.media?.metadata?.originalWidth ?? 0,
+                        height: data.media?.metadata?.originalHeight ?? 0,
+                      } as DisplayTranscode)
+                    }
+                    className={cn(
+                      'flex w-full items-center justify-between cursor-pointer',
+                      state.currentResolution === 'Auto'
+                        ? 'text-primary font-medium'
+                        : 'text-foreground',
+                    )}
+                  >
+                    <span>{m.quality_auto()}</span>
+                  </DropdownMenuItem>
+                )}
                 {resolutions.map((res) => {
                   const itemKey = `${res.resolution}-${res.hdr ? 'hdr' : 'sdr'}`
                   const isSelected =
@@ -389,8 +419,13 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
-                  {resolutions.map((res) => {
-                    const itemKey = res.key || `${res.resolution}-${res.hdr ? 'hdr' : 'sdr'}`
+                  {(data.media?.videoTranscodes && data.media.videoTranscodes.length > 0
+                    ? data.media.videoTranscodes
+                    : resolutions
+                  ).map((res) => {
+                    const resLabel =
+                      'resolution' in res && res.resolution ? res.resolution : `${res.height}p`
+                    const itemKey = res.key || `${resLabel}-${res.hdr ? 'hdr' : 'sdr'}`
                     return (
                       <DropdownMenuItem
                         key={itemKey}
@@ -398,7 +433,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
                         className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground cursor-pointer"
                       >
                         <div className="flex items-center gap-1.5">
-                          <span>{res.resolution}</span>
+                          <span>{resLabel}</span>
                           {res.hdr && (
                             <span className="px-1 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
                               {m.hdr()}

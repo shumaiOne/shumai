@@ -80,6 +80,17 @@ export const HardwareAcceleration = {
 } as const
 export type HardwareAcceleration = (typeof HardwareAcceleration)[keyof typeof HardwareAcceleration]
 
+export const HlsResolutionLadder = {
+  r480p: '480p',
+  r720p: '720p',
+  r1080p: '1080p',
+  r1440p: '1440p',
+  r2160p: '2160p',
+} as const
+export type HlsResolutionLadder = (typeof HlsResolutionLadder)[keyof typeof HlsResolutionLadder]
+
+export const DEFAULT_HLS_RESOLUTIONS: HlsResolutionLadder[] = ['480p', '720p', '1080p']
+
 export const updateTeamSettingsRequestSchema = z.union([
   z.object({
     key: z.literal('transcode.videoStrategy'),
@@ -92,6 +103,14 @@ export const updateTeamSettingsRequestSchema = z.union([
   z.object({
     key: z.literal('transcode.threads'),
     value: z.number().int().min(0).max(32),
+  }),
+  z.object({
+    key: z.literal('transcode.hlsEnabled'),
+    value: z.boolean(),
+  }),
+  z.object({
+    key: z.literal('transcode.hlsResolutions'),
+    value: z.array(z.nativeEnum(HlsResolutionLadder)),
   }),
   z.object({
     key: z.literal('appearance.hideAgent'),
@@ -109,6 +128,8 @@ export interface TeamSettingsResponse {
     videoStrategy?: VideoTranscodeStrategy
     hardwareAcceleration?: HardwareAcceleration
     threads?: number
+    hlsEnabled?: boolean
+    hlsResolutions?: HlsResolutionLadder[]
   }
   appearance?: TeamAppearanceSettings
   semanticSearchEnabled?: boolean

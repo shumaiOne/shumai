@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **transcode**: Add HLS live streaming support with fMP4/CMAF adaptive bitrate ladders (480p, 720p, 1080p, 1440p, 2160p), configurable in Transcode Settings, with seamless adaptive streaming, auto quality switching, manual resolution selection in the video viewer, and full watermarking support for shared links
 - **transcode**: Add basic camera RAW image support for popular camera formats (including Sony ARW, Canon CR2/CR3, Nikon NEF, Adobe DNG, Fujifilm RAF, and Panasonic RW2), extracting high-quality embedded JPEG previews and automatically applying camera orientation for fast thumbnail and proxy generation
 
 ### Fixed

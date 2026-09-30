@@ -16,6 +16,7 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
     presign: vi.fn().mockResolvedValue('http://mock-s3-url'),
     putObject: vi.fn().mockResolvedValue(undefined),
+    getObject: vi.fn().mockResolvedValue({ buffer: Buffer.from('') }),
     deleteObject: vi.fn().mockResolvedValue(1),
     deletePrefix: vi.fn().mockResolvedValue(1),
     copyObject: vi.fn().mockResolvedValue(undefined),
@@ -5249,6 +5250,113 @@ describe('AssetService — natural sort by name', () => {
       const restored = await prisma.asset.findUnique({ where: { id: file.id } })
       expect(restored?.isDeleted).toBe(false)
       expect(restored?.status).toBe(AssetStatus.processed)
+    })
+  })
+
+  describe('HLS playlists', () => {
+    const setupHlsAssets = async () => {
+      const team = await prisma.team.create({ data: { name: 'hls-team-' + Date.now() } })
+      const project = await prisma.project.create({
+        data: { name: 'hls-proj-' + Date.now(), teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.processed,
+        },
+      })
+      return { team, project, rootFolder }
+    }
+
+    it('getHlsMasterPlaylist throws 404 if asset is not HLS', async () => {
+      const { project, rootFolder } = await setupHlsAssets()
+      const file = await prisma.asset.create({
+        data: {
+          name: 'regular.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          status: AssetStatus.processed,
+          media: {
+            isHls: false,
+          } as PrismaJson.MediaInfo,
+        },
+      })
+
+      await expect(assetService.getHlsMasterPlaylist({ assetId: file.id })).rejects.toThrow(
+        'HLS playlist not found',
+      )
+    })
+
+    it('getHlsMasterPlaylist returns playlist string when asset is HLS', async () => {
+      const { project, rootFolder } = await setupHlsAssets()
+      const file = await prisma.asset.create({
+        data: {
+          name: 'hls-video.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          status: AssetStatus.processed,
+          media: {
+            isHls: true,
+            hls: {
+              key: 'files/asset/hls/master.m3u8',
+              resolutions: [
+                { resolution: '1080p', width: 1920, height: 1080 },
+                { resolution: '720p', width: 1280, height: 720 },
+              ],
+            },
+          } as PrismaJson.MediaInfo,
+        },
+      })
+
+      const masterContent = '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=4628000\n1080p/index.m3u8\n'
+      vi.mocked(s3Service.getObject).mockResolvedValueOnce({
+        buffer: Buffer.from(masterContent),
+      } as unknown as Awaited<ReturnType<typeof s3Service.getObject>>)
+
+      const res = await assetService.getHlsMasterPlaylist({ assetId: file.id })
+      expect(res).toBe(masterContent)
+      expect(s3Service.getObject).toHaveBeenCalledWith(
+        expect.any(String),
+        'files/asset/hls/master.m3u8',
+      )
+    })
+
+    it('getHlsVariantPlaylist fetches and rewrites segment URLs', async () => {
+      const { project, rootFolder } = await setupHlsAssets()
+      const file = await prisma.asset.create({
+        data: {
+          name: 'hls-video.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          status: AssetStatus.processed,
+          media: {
+            isHls: true,
+            hls: {
+              key: 'files/asset/hls/master.m3u8',
+              resolutions: [{ resolution: '1080p', width: 1920, height: 1080 }],
+            },
+          } as PrismaJson.MediaInfo,
+        },
+      })
+
+      const sampleVariant = '#EXTM3U\n#EXT-X-MAP:URI="init.mp4"\nsegment_000.m4s\n'
+      vi.mocked(s3Service.getObject).mockResolvedValueOnce({
+        buffer: Buffer.from(sampleVariant),
+      } as unknown as Awaited<ReturnType<typeof s3Service.getObject>>)
+      vi.mocked(s3Service.presign).mockResolvedValue('http://mock-s3-url')
+
+      const variant = await assetService.getHlsVariantPlaylist({
+        assetId: file.id,
+        resolution: '1080p',
+      })
+      expect(variant).toBeDefined()
+      expect(variant).toContain('#EXT-X-MAP:URI="http://mock-s3-url"')
+      expect(variant).toContain('http://mock-s3-url')
     })
   })
 })

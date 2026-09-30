@@ -33,15 +33,23 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
   ) => {
     const localPlayerRef = useRef<Player | null>(null)
     const playerRef = localPlayerRef
-    const resolutions: DisplayTranscode[] = (data.media?.videoTranscodes ?? []).map((t) => {
+    const isHls = Boolean(data.media?.isHls && data.media.hls?.url)
+    const baseTranscodes = isHls
+      ? (data.media?.hls?.resolutions ?? [])
+      : (data.media?.videoTranscodes ?? [])
+
+    const resolutions: DisplayTranscode[] = baseTranscodes.map((t) => {
       const longSide = Math.max(t.width, t.height)
-      let resolution = `${t.height}p`
-      if (longSide >= 3840) resolution = '2160p'
-      else if (longSide >= 1920) resolution = '1080p'
-      else if (longSide >= 1280) resolution = '720p'
-      else if (longSide >= 960) resolution = '540p'
-      else if (longSide >= 640) resolution = '360p'
-      else if (longSide >= 320) resolution = '180p'
+      const resCandidate = 'resolution' in t && t.resolution ? t.resolution : undefined
+      let resolution = resCandidate || `${t.height}p`
+      if (!resCandidate) {
+        if (longSide >= 3840) resolution = '2160p'
+        else if (longSide >= 1920) resolution = '1080p'
+        else if (longSide >= 1280) resolution = '720p'
+        else if (longSide >= 960) resolution = '540p'
+        else if (longSide >= 640) resolution = '360p'
+        else if (longSide >= 320) resolution = '180p'
+      }
 
       return {
         ...t,
@@ -50,7 +58,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     })
     // Only transcoded proxy versions are ever displayed; the raw original file
     // is never used as a playback source.
-    const hasMedia = resolutions.length > 0 && !!data.media?.metadata
+    const hasMedia = (isHls || resolutions.length > 0) && !!data.media?.metadata
     // We use a container ref to manually append the video element
     const videoContainerRef = useRef<HTMLDivElement>(null)
 
@@ -90,7 +98,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       return bestFit || sortedResolutions[sortedResolutions.length - 1]
     }
 
-    const initialRes = getInitialResolution()
+    const initialRes = isHls ? null : getInitialResolution()
 
     // State
     const [state, setState] = useState<PlayerState>({
@@ -104,8 +112,8 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       playbackRate: 1,
       isFullScreen: false,
       showFrames: false,
-      currentResolution: initialRes?.resolution ?? '',
-      currentSrc: initialRes?.url ?? '',
+      currentResolution: isHls ? 'Auto' : (initialRes?.resolution ?? ''),
+      currentSrc: isHls ? data.media!.hls!.url : (initialRes?.url ?? ''),
       isCurrentHdr: initialRes?.hdr ?? false,
     })
     const [hasStartedPlaying, setHasStartedPlaying] = useState(false)
@@ -147,15 +155,15 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
 
     useEffect(() => {
-      const res = getInitialResolution()
+      const res = isHls ? null : getInitialResolution()
       setState((prev) => ({
         ...prev,
         isPlaying: false,
         progress: 0,
         currentTime: 0,
         duration: data.media?.metadata?.duration || 0,
-        currentResolution: res?.resolution ?? '',
-        currentSrc: res?.url ?? '',
+        currentResolution: isHls ? 'Auto' : (res?.resolution ?? ''),
+        currentSrc: isHls ? (data.media?.hls?.url ?? '') : (res?.url ?? ''),
         isCurrentHdr: res?.hdr ?? false,
       }))
       setHasManuallyZoomed(false)
@@ -163,7 +171,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       setBuffered(0)
       lastProcessedStartTimeRef.current = null
       setHasStartedPlaying(false)
-    }, [data.id, Boolean(initialRes?.url)])
+    }, [data.id, Boolean(isHls ? data.media?.hls?.url : initialRes?.url)])
 
     const vidW = data.media?.metadata?.originalWidth || 1920
     const vidH = data.media?.metadata?.originalHeight || 1080
@@ -294,8 +302,8 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     useEffect(() => {
       if (!videoContainerRef.current) return
 
-      const initialRes = getInitialResolution()
-      const targetSrc = initialRes?.url ?? ''
+      const targetSrc = isHls ? (data.media?.hls?.url ?? '') : (getInitialResolution()?.url ?? '')
+      const targetType = isHls ? 'application/x-mpegURL' : 'video/mp4'
       if (!targetSrc) return
 
       // Clean up previous player if exists
@@ -325,7 +333,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
         sources: [
           {
             src: targetSrc,
-            type: 'video/mp4',
+            type: targetType,
           },
         ],
       }))
@@ -429,7 +437,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
           videoRef.current = null
         }
       }
-    }, [data.id, Boolean(initialRes?.url), autoPlay])
+    }, [data.id, Boolean(isHls ? data.media?.hls?.url : initialRes?.url), autoPlay])
 
     // Handle changes to startTime (e.g., clicking different chunks in search results)
     useEffect(() => {
@@ -619,6 +627,34 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const changeResolution = (res: DisplayTranscode) => {
       const player = playerRef.current
       if (!player) return
+
+      if (isHls) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ql = (player as any).qualityLevels?.()
+        if (res.resolution === 'Auto') {
+          if (ql) {
+            for (let i = 0; i < ql.length; i++) {
+              ql[i].enabled = true
+            }
+          }
+          setState((prev) => ({
+            ...prev,
+            currentResolution: 'Auto',
+          }))
+        } else {
+          if (ql) {
+            for (let i = 0; i < ql.length; i++) {
+              ql[i].enabled = ql[i].height === res.height
+            }
+          }
+          setState((prev) => ({
+            ...prev,
+            currentResolution: res.resolution,
+            isCurrentHdr: res.hdr ?? false,
+          }))
+        }
+        return
+      }
 
       const wasPlaying = !player.paused()
       const currentT = player.currentTime()

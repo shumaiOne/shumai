@@ -10,6 +10,8 @@ import {
   buildSdrToneMapFilterChain,
   getVaapiDevice,
   parseBitrateKbps,
+  buildHlsMasterPlaylist,
+  rewriteM3u8WithPresignedUrls,
 } from './transcode'
 import { logger } from '@shumai/core/src/logger'
 import { s3Service } from '@shumai/core/src/s3/s3'
@@ -27,6 +29,9 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
     downloadToFile: vi.fn(),
     putObject: vi.fn(),
     resolveInput: vi.fn().mockImplementation(async (_bucket, key) => `http://mock-storage/${key}`),
+    presign: vi
+      .fn()
+      .mockImplementation(async (_bucket, key) => `https://presigned.example.com/${key}`),
   },
 }))
 
@@ -3374,6 +3379,108 @@ describe('TranscodeService', () => {
       await expect(
         transcodeService.generatePoster(inputPath, outputPath, { signal: controller.signal }),
       ).rejects.toThrow('Poster generation cancelled')
+    })
+  })
+
+  describe('HLS utilities', () => {
+    it('builds master playlist correctly with bandwidth and codecs', () => {
+      const playlist = buildHlsMasterPlaylist([
+        { resolution: '1080p', width: 1920, height: 1080, bitrateBps: 4_500_000, isHdr: false },
+        { resolution: '720p', width: 1280, height: 720, bitrateBps: 2_500_000, isHdr: false },
+        { resolution: '480p', width: 854, height: 480, bitrateBps: 1_200_000, isHdr: false },
+      ])
+
+      expect(playlist).toContain('#EXTM3U')
+      expect(playlist).toContain('#EXT-X-VERSION:7')
+      expect(playlist).toContain('#EXT-X-INDEPENDENT-SEGMENTS')
+      expect(playlist).toContain('RESOLUTION=1920x1080')
+      expect(playlist).toContain('BANDWIDTH=4628000')
+      expect(playlist).toContain('1080p/index.m3u8')
+      expect(playlist).toContain('RESOLUTION=1280x720')
+      expect(playlist).toContain('720p/index.m3u8')
+      expect(playlist).toContain('RESOLUTION=854x480')
+      expect(playlist).toContain('480p/index.m3u8')
+    })
+
+    it('builds master playlist with HDR codec when isHdr is true', () => {
+      const playlist = buildHlsMasterPlaylist([
+        { resolution: '1080p', width: 1920, height: 1080, bitrateBps: 4_500_000, isHdr: true },
+      ])
+      expect(playlist).toContain('CODECS="avc1.640028,mp4a.40.2"')
+    })
+
+    it('rewrites variant m3u8 playlist with presigned S3 URLs', async () => {
+      const sampleM3u8 = [
+        '#EXTM3U',
+        '#EXT-X-VERSION:7',
+        '#EXT-X-TARGETDURATION:4',
+        '#EXT-X-MEDIA-SEQUENCE:0',
+        '#EXT-X-PLAYLIST-TYPE:VOD',
+        '#EXT-X-MAP:URI="init.mp4"',
+        '#EXTINF:4.000000,',
+        'segment_000.m4s',
+        '#EXTINF:4.000000,',
+        'segment_001.m4s',
+        '#EXT-X-ENDLIST',
+      ].join('\n')
+
+      const rewritten = await rewriteM3u8WithPresignedUrls(
+        sampleM3u8,
+        'files/asset1/hls/1080p',
+        'shumai',
+      )
+
+      expect(rewritten).toContain(
+        '#EXT-X-MAP:URI="https://presigned.example.com/files/asset1/hls/1080p/init.mp4"',
+      )
+      expect(rewritten).toContain(
+        'https://presigned.example.com/files/asset1/hls/1080p/segment_000.m4s',
+      )
+      expect(rewritten).toContain(
+        'https://presigned.example.com/files/asset1/hls/1080p/segment_001.m4s',
+      )
+      expect(rewritten).toContain('#EXTINF:4.000000,')
+      expect(rewritten).toContain('#EXT-X-ENDLIST')
+    })
+
+    it('executes transcodeHlsRendition with correct fMP4 CMAF parameters', async () => {
+      let executedArgs: string[] = []
+      // child_process.execFile mock signature
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(child_process.execFile as any).mockImplementation(
+        (
+          _file: string,
+          args: string[],
+          cb: (err: unknown, result: { stdout: string; stderr: string }) => void,
+        ) => {
+          executedArgs = args
+          cb(null, { stdout: '', stderr: '' })
+        },
+      )
+
+      const outputDir = path.join(tempDir, 'hls_output')
+      fs.mkdirSync(outputDir, { recursive: true })
+
+      await transcodeService.transcodeHlsRendition({
+        inputFile: 'input.mp4',
+        outputDir,
+        width: 1920,
+        height: 1080,
+        frameRate: 30,
+        hardwareAcceleration: 'off',
+        threads: 4,
+      })
+
+      expect(executedArgs).toContain('-f')
+      expect(executedArgs).toContain('hls')
+      expect(executedArgs).toContain('-hls_segment_type')
+      expect(executedArgs).toContain('fmp4')
+      expect(executedArgs).toContain('-hls_fmp4_init_filename')
+      expect(executedArgs).toContain('init.mp4')
+      expect(executedArgs).toContain('-flags')
+      expect(executedArgs).toContain('+cgop')
+      expect(executedArgs).toContain('-threads')
+      expect(executedArgs).toContain('4')
     })
   })
 })
