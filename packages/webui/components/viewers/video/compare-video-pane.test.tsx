@@ -1,0 +1,217 @@
+// @vitest-environment happy-dom
+import { act, cleanup, render } from '@testing-library/react'
+import React, { createRef } from 'react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { CompareVideoPane } from './compare-video-pane'
+import type { ComparePaneHandle, PaneReportedState } from '../../compare/types'
+import type { AssetInfo } from '@shumai/dtos'
+
+const { mockHlsInstance, mockHlsConstructor } = vi.hoisted(() => {
+  const instance = {
+    attachMedia: vi.fn(),
+    loadSource: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
+    once: vi.fn(),
+    destroy: vi.fn(),
+    levels: [
+      { height: 1080, width: 1920, bitrate: 5000000 },
+      { height: 720, width: 1280, bitrate: 2500000 },
+    ],
+    currentLevel: -1,
+    startLoad: vi.fn(),
+    recoverMediaError: vi.fn(),
+  }
+  const constructor = vi.fn(function () {
+    return instance
+  })
+  return { mockHlsInstance: instance, mockHlsConstructor: constructor }
+})
+
+vi.mock('hls.js', () => {
+  const MockHls = mockHlsConstructor
+  // @ts-expect-error adding static mock property
+  MockHls.isSupported = vi.fn(() => true)
+  // @ts-expect-error adding static mock property
+  MockHls.Events = {
+    MANIFEST_PARSED: 'hlsManifestParsed',
+    LEVEL_SWITCHED: 'hlsLevelSwitched',
+    ERROR: 'hlsError',
+  }
+  // @ts-expect-error adding static mock property
+  MockHls.ErrorTypes = {
+    NETWORK_ERROR: 'networkError',
+    MEDIA_ERROR: 'mediaError',
+    OTHER_ERROR: 'otherError',
+  }
+  return {
+    default: MockHls,
+  }
+})
+
+vi.mock('@/ui/components/drawing-canvas', () => ({
+  default: () => <div data-testid="drawing-canvas" />,
+}))
+
+vi.mock('@/ui/paraglide/messages.js', () => ({
+  m: new Proxy({}, { get: () => () => '' }),
+}))
+
+describe('CompareVideoPane', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    mockHlsInstance.currentLevel = -1
+    const Hls = (await import('hls.js')).default as unknown as {
+      isSupported: ReturnType<typeof vi.fn>
+    }
+    Hls.isSupported.mockReturnValue(true)
+  })
+
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('safely handles native HLS fallback without clearing video.src when manual resolution is invoked', async () => {
+    const Hls = (await import('hls.js')).default as unknown as {
+      isSupported: ReturnType<typeof vi.fn>
+    }
+    Hls.isSupported.mockReturnValue(false)
+
+    // Mock HTMLMediaElement.prototype.canPlayType to support native HLS
+    const originalCanPlayType = HTMLMediaElement.prototype.canPlayType
+    HTMLMediaElement.prototype.canPlayType = vi.fn((type: string) =>
+      type === 'application/vnd.apple.mpegurl' ? 'maybe' : '',
+    )
+
+    try {
+      const hlsVideo: AssetInfo = {
+        id: 'hls-compare',
+        name: 'hls-compare.m3u8',
+        proxyType: 'video',
+        media: {
+          isHls: true,
+          hls: {
+            key: 'hls-key',
+            url: 'https://cdn.example.com/master.m3u8',
+            resolutions: [
+              { width: 1920, height: 1080, resolution: '1080p' },
+              { width: 1280, height: 720, resolution: '720p' },
+            ],
+          },
+          metadata: {
+            originalWidth: 1920,
+            originalHeight: 1080,
+            duration: 10,
+            frameRate: 30,
+            totalFrames: 300,
+          },
+        },
+      } as unknown as AssetInfo
+
+      const reportedStates: PaneReportedState[] = []
+      const ref = createRef<ComparePaneHandle>()
+
+      const { container } = render(
+        <CompareVideoPane
+          ref={ref}
+          file={hlsVideo}
+          isActive={true}
+          annotations={[]}
+          onStateChange={(state) => reportedStates.push(state)}
+          onActivate={vi.fn()}
+        />,
+      )
+
+      const video = container.querySelector('video') as HTMLVideoElement
+      expect(video.src).toBe('https://cdn.example.com/master.m3u8')
+
+      // Check reported state: isHlsManualSupported should be false
+      const lastState = reportedStates[reportedStates.length - 1]
+      expect(lastState?.video?.isHlsManualSupported).toBe(false)
+
+      // Invoke changeResolution('1080p')
+      act(() => {
+        ref.current?.changeResolution('1080p')
+      })
+
+      // In native fallback, changeResolution should NO-OP and NOT clear video.src to empty string
+      expect(video.src).toBe('https://cdn.example.com/master.m3u8')
+    } finally {
+      HTMLMediaElement.prototype.canPlayType = originalCanPlayType
+    }
+  })
+
+  it('switches HLS resolution immediately using currentLevel and does not hijack subsequent seeks', async () => {
+    vi.useFakeTimers()
+    try {
+      const hlsVideo: AssetInfo = {
+        id: 'hls-compare-switch',
+        name: 'hls-compare-switch.m3u8',
+        proxyType: 'video',
+        media: {
+          isHls: true,
+          hls: {
+            key: 'hls-key',
+            url: 'https://cdn.example.com/master.m3u8',
+            resolutions: [
+              { width: 1920, height: 1080, resolution: '1080p' },
+              { width: 1280, height: 720, resolution: '720p' },
+            ],
+          },
+          metadata: {
+            originalWidth: 1920,
+            originalHeight: 1080,
+            duration: 10,
+            frameRate: 30,
+            totalFrames: 300,
+          },
+        },
+      } as unknown as AssetInfo
+
+      const reportedStates: PaneReportedState[] = []
+      const ref = createRef<ComparePaneHandle>()
+
+      const { container } = render(
+        <CompareVideoPane
+          ref={ref}
+          file={hlsVideo}
+          isActive={true}
+          annotations={[]}
+          onStateChange={(state) => reportedStates.push(state)}
+          onActivate={vi.fn()}
+        />,
+      )
+
+      const video = container.querySelector('video') as HTMLVideoElement
+      Object.defineProperty(video, 'paused', { value: true, configurable: true })
+      video.currentTime = 0
+
+      // In Hls.js supported mode, isHlsManualSupported should be true
+      const lastState = reportedStates[reportedStates.length - 1]
+      expect(lastState?.video?.isHlsManualSupported).toBe(true)
+
+      // Switch to 720p (index 1)
+      act(() => {
+        ref.current?.changeResolution('720p')
+      })
+      expect(mockHlsInstance.currentLevel).toBe(1)
+
+      // Advance timers past the 1500ms safety timeout without seeked event
+      act(() => {
+        vi.advanceTimersByTime(2000)
+      })
+
+      // Now user performs an unrelated seek to frame 150 (currentTime = 5.0)
+      video.currentTime = 5.0
+      act(() => {
+        video.dispatchEvent(new Event('seeked'))
+      })
+
+      // video.currentTime must remain at frame 150, NOT rewound to frame 0
+      expect(Math.floor(video.currentTime * 30 + 0.001)).toBe(150)
+      expect(video.currentTime).toBeCloseTo(5.0167, 3)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

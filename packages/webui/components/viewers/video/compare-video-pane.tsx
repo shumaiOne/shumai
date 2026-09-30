@@ -130,6 +130,9 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       isHls ? 'Auto' : (initialRes?.resolution ?? ''),
     )
     const [isCurrentHdr, setIsCurrentHdr] = useState(initialRes?.hdr)
+    const [activeAutoResolution, setActiveAutoResolution] = useState<string | undefined>(undefined)
+    const pendingResolutionCorrectionRef = useRef<(() => void) | null>(null)
+    const isHlsManualSupported = !isHls || Boolean(Hls.isSupported())
     const currentSrcRef = useRef(isHls ? file.media!.hls!.url : initialRes?.url)
 
     const isAudio = file.proxyType === 'audio'
@@ -172,6 +175,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       const res = isHls ? null : getInitialResolution(resolutions)
       setCurrentResolution(isHls ? 'Auto' : (res?.resolution ?? ''))
       setIsCurrentHdr(res?.hdr)
+      setActiveAutoResolution(undefined)
       currentSrcRef.current = isHls ? file.media!.hls!.url : res?.url
       setHasStartedPlaying(false)
     }, [file.id, Boolean(isHls ? file.media?.hls?.url : initialRes?.url)])
@@ -209,6 +213,13 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
             setIsPlayerReady(true)
           })
 
+          hls.on(Hls.Events.LEVEL_SWITCHED, (_event, eventData) => {
+            const level = hls?.levels[eventData.level]
+            if (level) {
+              setActiveAutoResolution(`${level.height}p`)
+            }
+          })
+
           hls.on(Hls.Events.ERROR, (_event, eventData) => {
             if (eventData.fatal) {
               switch (eventData.type) {
@@ -232,6 +243,10 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       }
 
       const handlePlay = () => {
+        if (pendingResolutionCorrectionRef.current) {
+          pendingResolutionCorrectionRef.current()
+          pendingResolutionCorrectionRef.current = null
+        }
         setIsPlaying(true)
         setHasStartedPlaying(true)
         onPlay?.()
@@ -286,6 +301,11 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
         video.removeEventListener('volumechange', handleVolumeChange)
         video.removeEventListener('ratechange', handleRateChange)
 
+        if (pendingResolutionCorrectionRef.current) {
+          pendingResolutionCorrectionRef.current()
+          pendingResolutionCorrectionRef.current = null
+        }
+
         if (hlsRef.current) {
           hlsRef.current.destroy()
           hlsRef.current = null
@@ -319,6 +339,8 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
           isCurrentHdr,
           resolutions,
           buffered,
+          activeAutoResolution,
+          isHlsManualSupported,
         },
       }
       onStateChange(state)
@@ -335,6 +357,8 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       currentResolution,
       isCurrentHdr,
       buffered,
+      activeAutoResolution,
+      isHlsManualSupported,
     ])
 
     // Propagate active playhead time
@@ -393,12 +417,24 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
         const video = videoRef.current
         if (!video) return
 
-        if (isHls && hlsRef.current) {
+        if (pendingResolutionCorrectionRef.current) {
+          pendingResolutionCorrectionRef.current()
+          pendingResolutionCorrectionRef.current = null
+        }
+
+        if (isHls) {
+          if (!hlsRef.current) {
+            // Safari native HLS fallback does not support manual rendition switching
+            return
+          }
           const hls = hlsRef.current
           const wasPaused = video.paused
           const targetFrame = currentFrameRef.current
 
           if (resolution === 'Auto') {
+            if (currentResolution === 'Auto' && hls.currentLevel === -1) {
+              return
+            }
             hls.currentLevel = -1
             setCurrentResolution('Auto')
           } else {
@@ -410,6 +446,9 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
                   Math.max(lvl.width, lvl.height) === Math.max(target.width, target.height),
               )
               if (targetIndex !== -1) {
+                if (targetIndex === hls.currentLevel && currentResolution === resolution) {
+                  return
+                }
                 hls.currentLevel = targetIndex
                 setCurrentResolution(resolution)
                 setIsCurrentHdr(target.hdr)
@@ -418,15 +457,34 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
           }
 
           if (wasPaused) {
-            const onSeeked = () => {
+            let timer: ReturnType<typeof setTimeout> | null = null
+
+            const cleanup = () => {
+              if (timer) {
+                clearTimeout(timer)
+                timer = null
+              }
               video.removeEventListener('seeked', onSeeked)
+              hls.off?.(Hls.Events.ERROR, cleanup)
+              if (pendingResolutionCorrectionRef.current === cleanup) {
+                pendingResolutionCorrectionRef.current = null
+              }
+            }
+
+            const onSeeked = () => {
+              cleanup()
               const safeCenterTime = calculateFrameCenterTime(targetFrame, frameRate)
               const frameDuration = 1 / frameRate
               if (Math.abs(video.currentTime - safeCenterTime) > frameDuration / 4) {
                 video.currentTime = safeCenterTime
               }
             }
+
+            // Safety timeout (1.5s): if no seeked event fires from rendition switch, cleanly detach
+            timer = setTimeout(cleanup, 1500)
+            pendingResolutionCorrectionRef.current = cleanup
             video.addEventListener('seeked', onSeeked)
+            hls.once?.(Hls.Events.ERROR, cleanup)
           }
           return
         }
@@ -455,7 +513,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
         }
         video.addEventListener('loadedmetadata', onLoadedMetadata)
       },
-      [resolutions, isHls, frameRate, playbackRate],
+      [resolutions, isHls, frameRate, playbackRate, currentResolution],
     )
 
     useImperativeHandle(
@@ -463,6 +521,10 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       (): ComparePaneHandle => ({
         getKind: () => 'video',
         play: () => {
+          if (pendingResolutionCorrectionRef.current) {
+            pendingResolutionCorrectionRef.current()
+            pendingResolutionCorrectionRef.current = null
+          }
           const p = videoRef.current?.play()
           if (p !== undefined) p.catch(() => {})
         },
@@ -470,6 +532,10 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
         togglePlay: () => {
           const video = videoRef.current
           if (!video) return
+          if (pendingResolutionCorrectionRef.current) {
+            pendingResolutionCorrectionRef.current()
+            pendingResolutionCorrectionRef.current = null
+          }
           if (video.paused || video.ended) {
             const p = video.play()
             if (p !== undefined) p.catch(() => {})
@@ -478,15 +544,27 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
           }
         },
         seekToFrame: (frame) => {
+          if (pendingResolutionCorrectionRef.current) {
+            pendingResolutionCorrectionRef.current()
+            pendingResolutionCorrectionRef.current = null
+          }
           setHasStartedPlaying(true)
           return seekToFrame(clampFrame(frame))
         },
         seekToSecond: (second) => {
+          if (pendingResolutionCorrectionRef.current) {
+            pendingResolutionCorrectionRef.current()
+            pendingResolutionCorrectionRef.current = null
+          }
           setHasStartedPlaying(true)
           const frame = Math.floor(second * frameRate + 0.45)
           seekToFrame(clampFrame(frame))
         },
         stepFrame: (delta) => {
+          if (pendingResolutionCorrectionRef.current) {
+            pendingResolutionCorrectionRef.current()
+            pendingResolutionCorrectionRef.current = null
+          }
           setHasStartedPlaying(true)
           return seekToFrame(clampFrame(currentFrameRef.current + delta))
         },

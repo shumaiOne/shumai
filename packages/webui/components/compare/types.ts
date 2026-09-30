@@ -33,6 +33,8 @@ export interface PaneReportedState {
     isCurrentHdr?: boolean
     resolutions: DisplayTranscode[]
     buffered: number
+    activeAutoResolution?: string
+    isHlsManualSupported?: boolean
   }
 }
 

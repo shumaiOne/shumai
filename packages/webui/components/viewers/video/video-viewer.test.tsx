@@ -10,6 +10,8 @@ const { mockHlsInstance, mockHlsConstructor } = vi.hoisted(() => {
     attachMedia: vi.fn(),
     loadSource: vi.fn(),
     on: vi.fn(),
+    off: vi.fn(),
+    once: vi.fn(),
     destroy: vi.fn(),
     levels: [
       { height: 1080, width: 1920, bitrate: 5000000 },
@@ -427,6 +429,70 @@ describe('VideoViewer', () => {
       })
       // Auto should reset currentLevel to -1
       expect(mockHlsInstance.currentLevel).toBe(-1)
+    }
+  })
+
+  it('does not hijack subsequent seeks if paused HLS switch did not emit seeked', () => {
+    vi.useFakeTimers()
+    try {
+      const hlsVideo: AssetInfo = {
+        id: 'video-hls-stale-seek',
+        name: 'video-hls-stale-seek.m3u8',
+        proxyType: 'video',
+        media: {
+          isHls: true,
+          hls: {
+            key: 'hls-key',
+            url: 'https://cdn.example.com/master.m3u8',
+            resolutions: [
+              { width: 1920, height: 1080, resolution: '1080p' },
+              { width: 1280, height: 720, resolution: '720p' },
+            ],
+          },
+          metadata: {
+            originalWidth: 1920,
+            originalHeight: 1080,
+            duration: 10,
+            frameRate: 30,
+            totalFrames: 300,
+          },
+        },
+      } as unknown as AssetInfo
+
+      const { container } = render(<VideoViewer file={hlsVideo} />)
+      const video = container.querySelector('[data-testid="video-area"] video') as HTMLVideoElement
+
+      // Video is paused at 0s (frame 0)
+      Object.defineProperty(video, 'paused', { value: true, configurable: true })
+      video.currentTime = 0
+
+      // Open settings and click 720p
+      const settingsButton = container.querySelector('button:has(.lucide-settings)')
+      fireEvent.pointerDown(settingsButton!, { pointerType: 'mouse', button: 0 })
+      fireEvent.click(settingsButton!)
+      const item720p = Array.from(document.querySelectorAll('[role="menuitem"]')).find((el) =>
+        el.textContent?.includes('720p'),
+      )
+      act(() => {
+        fireEvent.click(item720p!)
+      })
+
+      // Simulate that no seeked event occurred within the timeout (e.g. 1500ms elapses)
+      act(() => {
+        vi.advanceTimersByTime(2000)
+      })
+
+      // Now user performs an unrelated seek to frame 150 (currentTime = 5.0)
+      video.currentTime = 5.0
+      act(() => {
+        fireEvent(video, new Event('seeked'))
+      })
+
+      // video.currentTime must remain at frame 150, NOT rewound to frame 0
+      expect(Math.floor(video.currentTime * 30 + 0.001)).toBe(150)
+      expect(video.currentTime).toBeCloseTo(5.0167, 3)
+    } finally {
+      vi.useRealTimers()
     }
   })
 })

@@ -119,15 +119,24 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const containerRef = useRef<HTMLDivElement>(null)
     const rootRef = useRef<HTMLDivElement>(null)
     const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const pendingResolutionCorrectionRef = useRef<(() => void) | null>(null)
 
     useImperativeHandle(ref, () => ({
       play: () => {
+        if (pendingResolutionCorrectionRef.current) {
+          pendingResolutionCorrectionRef.current()
+          pendingResolutionCorrectionRef.current = null
+        }
         videoRef.current?.play().catch(() => {})
       },
       pause: () => {
         videoRef.current?.pause()
       },
       seekTo: (second: number) => {
+        if (pendingResolutionCorrectionRef.current) {
+          pendingResolutionCorrectionRef.current()
+          pendingResolutionCorrectionRef.current = null
+        }
         setHasStartedPlaying(true)
         if (videoRef.current) {
           videoRef.current.currentTime = second
@@ -268,6 +277,10 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
 
     const handleSeekToFrame = useCallback(
       (frame: number) => {
+        if (pendingResolutionCorrectionRef.current) {
+          pendingResolutionCorrectionRef.current()
+          pendingResolutionCorrectionRef.current = null
+        }
         setHasStartedPlaying(true)
         return seekToFrame(frame)
       },
@@ -397,6 +410,10 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       }
 
       const handlePlay = () => {
+        if (pendingResolutionCorrectionRef.current) {
+          pendingResolutionCorrectionRef.current()
+          pendingResolutionCorrectionRef.current = null
+        }
         setState((p) => ({ ...p, isPlaying: true }))
         setHasStartedPlaying(true)
         onPlay?.()
@@ -559,6 +576,11 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       // Disable click-to-play if drawing
       if (useAnnotationStore.getState().isDrawing) return
 
+      if (pendingResolutionCorrectionRef.current) {
+        pendingResolutionCorrectionRef.current()
+        pendingResolutionCorrectionRef.current = null
+      }
+
       const video = videoRef.current
       if (!video) return
 
@@ -674,12 +696,20 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       const video = videoRef.current
       if (!video) return
 
+      if (pendingResolutionCorrectionRef.current) {
+        pendingResolutionCorrectionRef.current()
+        pendingResolutionCorrectionRef.current = null
+      }
+
       if (isHls && hlsRef.current) {
         const hls = hlsRef.current
         const wasPaused = video.paused
         const targetFrame = currentFrame
 
         if (res.resolution === 'Auto') {
+          if (state.currentResolution === 'Auto' && hls.currentLevel === -1) {
+            return
+          }
           hls.currentLevel = -1
           setState((prev) => ({
             ...prev,
@@ -692,6 +722,9 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
               Math.max(lvl.width, lvl.height) === Math.max(res.width, res.height),
           )
           if (targetIndex !== -1) {
+            if (targetIndex === hls.currentLevel && state.currentResolution === res.resolution) {
+              return
+            }
             hls.currentLevel = targetIndex
             setState((prev) => ({
               ...prev,
@@ -703,15 +736,34 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
 
         // Guarantee frame accuracy if paused: re-nudge to safe center time once fragment is decoded
         if (wasPaused) {
-          const onSeeked = () => {
+          let timer: ReturnType<typeof setTimeout> | null = null
+
+          const cleanup = () => {
+            if (timer) {
+              clearTimeout(timer)
+              timer = null
+            }
             video.removeEventListener('seeked', onSeeked)
+            hls.off?.(Hls.Events.ERROR, cleanup)
+            if (pendingResolutionCorrectionRef.current === cleanup) {
+              pendingResolutionCorrectionRef.current = null
+            }
+          }
+
+          const onSeeked = () => {
+            cleanup()
             const safeCenterTime = calculateFrameCenterTime(targetFrame, frameRate)
             const frameDuration = 1 / frameRate
             if (Math.abs(video.currentTime - safeCenterTime) > frameDuration / 4) {
               video.currentTime = safeCenterTime
             }
           }
+
+          // Safety timeout (1.5s): if no seeked event fires from rendition switch, cleanly detach
+          timer = setTimeout(cleanup, 1500)
+          pendingResolutionCorrectionRef.current = cleanup
           video.addEventListener('seeked', onSeeked)
+          hls.once?.(Hls.Events.ERROR, cleanup)
         }
         return
       }

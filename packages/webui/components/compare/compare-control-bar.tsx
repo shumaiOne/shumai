@@ -66,6 +66,8 @@ export function CompareControlBar({
       showFrames: false,
       currentResolution: v.currentResolution,
       isCurrentHdr: v.isCurrentHdr,
+      activeAutoResolution: v.activeAutoResolution,
+      isHlsManualSupported: v.isHlsManualSupported,
     }
 
     // The active-side asset carries the metadata used for timecode display and
