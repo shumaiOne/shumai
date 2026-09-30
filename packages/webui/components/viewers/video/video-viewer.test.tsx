@@ -1,28 +1,50 @@
 // @vitest-environment happy-dom
-import { act, cleanup, render } from '@testing-library/react'
+import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import VideoViewer from './video-viewer'
 import type { AssetInfo } from '@shumai/dtos'
 
-const videojsMock = vi.fn((...args: unknown[]) => {
-  void args
-  return {
+const { mockHlsInstance, mockHlsConstructor } = vi.hoisted(() => {
+  const instance = {
+    attachMedia: vi.fn(),
+    loadSource: vi.fn(),
     on: vi.fn(),
-    volume: vi.fn(),
-    duration: vi.fn(() => 10),
-    currentTime: vi.fn(() => 0),
-    bufferedEnd: vi.fn(() => 0),
-    playbackRate: vi.fn(() => 1),
-    ready: vi.fn(),
-    dispose: vi.fn(),
-    isDisposed: vi.fn(() => false),
+    destroy: vi.fn(),
+    levels: [
+      { height: 1080, width: 1920, bitrate: 5000000 },
+      { height: 720, width: 1280, bitrate: 2500000 },
+    ],
+    currentLevel: -1,
+    startLoad: vi.fn(),
+    recoverMediaError: vi.fn(),
   }
+  const constructor = vi.fn(function () {
+    return instance
+  })
+  return { mockHlsInstance: instance, mockHlsConstructor: constructor }
 })
 
-vi.mock('video.js', () => ({
-  default: (...args: unknown[]) => videojsMock(...args),
-}))
+vi.mock('hls.js', () => {
+  const MockHls = mockHlsConstructor
+  // @ts-expect-error adding static mock property
+  MockHls.isSupported = vi.fn(() => true)
+  // @ts-expect-error adding static mock property
+  MockHls.Events = {
+    MANIFEST_PARSED: 'hlsManifestParsed',
+    LEVEL_SWITCHED: 'hlsLevelSwitched',
+    ERROR: 'hlsError',
+  }
+  // @ts-expect-error adding static mock property
+  MockHls.ErrorTypes = {
+    NETWORK_ERROR: 'networkError',
+    MEDIA_ERROR: 'mediaError',
+    OTHER_ERROR: 'otherError',
+  }
+  return {
+    default: MockHls,
+  }
+})
 
 vi.mock('@/ui/components/drawing-canvas', () => ({
   default: () => <div data-testid="drawing-canvas" />,
@@ -34,7 +56,8 @@ vi.mock('@/ui/paraglide/messages.js', () => ({
 
 describe('VideoViewer', () => {
   beforeEach(() => {
-    videojsMock.mockClear()
+    vi.clearAllMocks()
+    mockHlsInstance.currentLevel = -1
   })
 
   afterEach(() => {
@@ -88,39 +111,20 @@ describe('VideoViewer', () => {
       },
     } as unknown as AssetInfo
 
-    const { rerender } = render(<VideoViewer file={videoA} />)
+    const { container, rerender } = render(<VideoViewer file={videoA} />)
+    const video = container.querySelector('[data-testid="video-area"] video') as HTMLVideoElement
 
-    // Initial render should initialize videojs with video A URL
-    expect(videojsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        sources: [
-          {
-            src: 'https://cdn.example.com/videoA-720p.mp4',
-            type: 'video/mp4',
-          },
-        ],
-      }),
-    )
+    // Initial render should set video element src with video A URL
+    expect(video.src).toBe('https://cdn.example.com/videoA-720p.mp4')
 
     // Rerender with video B (simulating selecting another video from the carousel)
     rerender(<VideoViewer file={videoB} />)
 
-    // VideoJS should be re-initialized with video B's URL
-    expect(videojsMock).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        sources: [
-          {
-            src: 'https://cdn.example.com/videoB-1080p.mp4',
-            type: 'video/mp4',
-          },
-        ],
-      }),
-    )
+    // Native video element should now have video B's URL
+    expect(video.src).toBe('https://cdn.example.com/videoB-1080p.mp4')
   })
 
-  it('initializes VideoJS when transcode URL becomes available after initially empty with same ID', () => {
+  it('initializes video when transcode URL becomes available after initially empty with same ID', () => {
     const initialVideo: AssetInfo = {
       id: 'video-pending',
       name: 'pending.mp4',
@@ -136,7 +140,6 @@ describe('VideoViewer', () => {
         videoTranscodes: [
           {
             resolution: '1080p',
-            // URL not yet presigned (e.g. from file list payload)
             url: undefined as unknown as string,
             width: 1920,
             height: 1080,
@@ -160,27 +163,17 @@ describe('VideoViewer', () => {
       },
     } as unknown as AssetInfo
 
-    const { rerender } = render(<VideoViewer file={initialVideo} autoPlay={true} />)
+    const { container, rerender } = render(<VideoViewer file={initialVideo} autoPlay={true} />)
+    const video = container.querySelector('[data-testid="video-area"] video') as HTMLVideoElement
 
-    // Initially targetSrc is empty, videojs should not be initialized
-    expect(videojsMock).not.toHaveBeenCalled()
+    // Initially targetSrc is empty, video.src should be empty
+    expect(video.src).toBe('')
 
     // Rerender with detailedVideo (same id, but signed URL now available)
     rerender(<VideoViewer file={detailedVideo} autoPlay={true} />)
 
-    // VideoJS should now be initialized with the new URL
-    expect(videojsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        autoplay: false,
-        sources: [
-          {
-            src: 'https://cdn.example.com/signed-pending-1080p.mp4',
-            type: 'video/mp4',
-          },
-        ],
-      }),
-    )
+    // Video element should now have the newly available signed URL
+    expect(video.src).toBe('https://cdn.example.com/signed-pending-1080p.mp4')
   })
 
   it('auto-selects HDR proxy when display supports HDR (dynamic-range: high)', () => {
@@ -227,19 +220,10 @@ describe('VideoViewer', () => {
       },
     } as unknown as AssetInfo
 
-    render(<VideoViewer file={hdrVideo} />)
+    const { container } = render(<VideoViewer file={hdrVideo} />)
+    const video = container.querySelector('[data-testid="video-area"] video') as HTMLVideoElement
 
-    expect(videojsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        sources: [
-          {
-            src: 'https://cdn.example.com/video-1080p-hdr.mp4',
-            type: 'video/mp4',
-          },
-        ],
-      }),
-    )
+    expect(video.src).toBe('https://cdn.example.com/video-1080p-hdr.mp4')
 
     window.matchMedia = originalMatchMedia
   })
@@ -288,39 +272,15 @@ describe('VideoViewer', () => {
       },
     } as unknown as AssetInfo
 
-    render(<VideoViewer file={hdrVideo} />)
+    const { container } = render(<VideoViewer file={hdrVideo} />)
+    const video = container.querySelector('[data-testid="video-area"] video') as HTMLVideoElement
 
-    expect(videojsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        sources: [
-          {
-            src: 'https://cdn.example.com/video-1080p.mp4',
-            type: 'video/mp4',
-          },
-        ],
-      }),
-    )
+    expect(video.src).toBe('https://cdn.example.com/video-1080p.mp4')
 
     window.matchMedia = originalMatchMedia
   })
 
   it('shows play button and darkened overlay initially, but never again after playing (even when paused or scrubbed back to start)', () => {
-    const listeners: Record<string, () => void> = {}
-    videojsMock.mockImplementation(() => ({
-      on: vi.fn((event: string, cb: () => void) => {
-        listeners[event] = cb
-      }),
-      volume: vi.fn(),
-      duration: vi.fn(() => 10),
-      currentTime: vi.fn(() => 0),
-      bufferedEnd: vi.fn(() => 0),
-      playbackRate: vi.fn(() => 1),
-      ready: vi.fn(),
-      dispose: vi.fn(),
-      isDisposed: vi.fn(() => false),
-    }))
-
     const testVideo: AssetInfo = {
       id: 'test-video-lifecycle',
       name: 'test.mp4',
@@ -346,27 +306,127 @@ describe('VideoViewer', () => {
 
     const { container } = render(<VideoViewer file={testVideo} />)
     const videoArea = container.querySelector('[data-testid="video-area"]')
+    const video = videoArea?.querySelector('video') as HTMLVideoElement
     expect(videoArea).toBeTruthy()
+    expect(video).toBeTruthy()
 
     // 1. Initially (before playing): play button & 20% black tint are present
     expect(videoArea?.querySelector('.bg-black\\/20')).not.toBeNull()
 
     // 2. Start playback
     act(() => {
-      listeners['play']?.()
+      video.dispatchEvent(new Event('play'))
     })
     expect(videoArea?.querySelector('.bg-black\\/20')).toBeNull()
 
     // 3. Pause video: overlay must NOT show again
     act(() => {
-      listeners['pause']?.()
+      video.dispatchEvent(new Event('pause'))
     })
     expect(videoArea?.querySelector('.bg-black\\/20')).toBeNull()
 
     // 4. Drag seekbar / time back to 0: overlay must STILL NOT show
     act(() => {
-      listeners['timeupdate']?.()
+      video.dispatchEvent(new Event('timeupdate'))
     })
     expect(videoArea?.querySelector('.bg-black\\/20')).toBeNull()
+  })
+
+  it('initializes Hls.js with capLevelToPlayerSize false when video is HLS', () => {
+    const hlsVideo: AssetInfo = {
+      id: 'video-hls',
+      name: 'video-hls.m3u8',
+      proxyType: 'video',
+      media: {
+        isHls: true,
+        hls: {
+          key: 'hls-key',
+          url: 'https://cdn.example.com/master.m3u8',
+          resolutions: [
+            { width: 1920, height: 1080, resolution: '1080p' },
+            { width: 1280, height: 720, resolution: '720p' },
+          ],
+        },
+        metadata: {
+          originalWidth: 1920,
+          originalHeight: 1080,
+          duration: 10,
+          frameRate: 30,
+          totalFrames: 300,
+        },
+      },
+    } as unknown as AssetInfo
+
+    const { container } = render(<VideoViewer file={hlsVideo} />)
+    const video = container.querySelector('[data-testid="video-area"] video') as HTMLVideoElement
+
+    expect(mockHlsConstructor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        autoStartLoad: true,
+        startLevel: -1,
+        capLevelToPlayerSize: false,
+        enableWorker: true,
+      }),
+    )
+    expect(mockHlsInstance.attachMedia).toHaveBeenCalledWith(video)
+    expect(mockHlsInstance.loadSource).toHaveBeenCalledWith('https://cdn.example.com/master.m3u8')
+  })
+
+  it('switches HLS resolution immediately using currentLevel', () => {
+    const hlsVideo: AssetInfo = {
+      id: 'video-hls-switch',
+      name: 'video-hls-switch.m3u8',
+      proxyType: 'video',
+      media: {
+        isHls: true,
+        hls: {
+          key: 'hls-key',
+          url: 'https://cdn.example.com/master.m3u8',
+          resolutions: [
+            { width: 1920, height: 1080, resolution: '1080p' },
+            { width: 1280, height: 720, resolution: '720p' },
+          ],
+        },
+        metadata: {
+          originalWidth: 1920,
+          originalHeight: 1080,
+          duration: 10,
+          frameRate: 30,
+          totalFrames: 300,
+        },
+      },
+    } as unknown as AssetInfo
+
+    const { container } = render(<VideoViewer file={hlsVideo} />)
+
+    // Open settings / quality dropdown
+    const settingsButton = container.querySelector('button:has(.lucide-settings)')
+    expect(settingsButton).toBeTruthy()
+    fireEvent.pointerDown(settingsButton!, { pointerType: 'mouse', button: 0 })
+    fireEvent.click(settingsButton!)
+
+    // Click 720p (index 1 in levels: 1080p is index 0, 720p is index 1)
+    const items = document.querySelectorAll('[role="menuitem"]')
+    const item720p = Array.from(items).find((el) => el.textContent?.includes('720p'))
+    expect(item720p).toBeTruthy()
+
+    act(() => {
+      fireEvent.click(item720p!)
+    })
+
+    // currentLevel should be set immediately to 1 (720p)
+    expect(mockHlsInstance.currentLevel).toBe(1)
+
+    // Click Auto
+    const itemAuto = Array.from(document.querySelectorAll('[role="menuitem"]')).find(
+      (el) => el.textContent?.includes('Auto') || el.textContent === '',
+    )
+    if (itemAuto) {
+      act(() => {
+        fireEvent.click(itemAuto)
+      })
+      // Auto should reset currentLevel to -1
+      expect(mockHlsInstance.currentLevel).toBe(-1)
+    }
   })
 })

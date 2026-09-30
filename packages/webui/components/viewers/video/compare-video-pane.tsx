@@ -6,10 +6,9 @@ import type { Annotation } from '@/ui/types'
 import type { AssetInfo } from '@shumai/dtos'
 import { Play, AudioLines } from 'lucide-react'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import videojs from 'video.js'
-import type Player from 'video.js/dist/types/player'
+import Hls from 'hls.js'
 import { useFramePlayer } from './use-frame-player'
-import { resolveTotalFrames } from './utils'
+import { calculateFrameCenterTime, resolveTotalFrames } from './utils'
 import { clampFrame as clampFrameUtil } from '../../compare/compare-utils'
 import type { ComparePaneHandle, DisplayTranscode, PaneReportedState } from '../../compare/types'
 
@@ -92,8 +91,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
     },
     ref,
   ) {
-    const playerRef = useRef<Player | null>(null)
-    const videoContainerRef = useRef<HTMLDivElement>(null)
+    const hlsRef = useRef<Hls | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const videoRef = useRef<HTMLVideoElement | null>(null)
 
@@ -178,74 +176,129 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       setHasStartedPlaying(false)
     }, [file.id, Boolean(isHls ? file.media?.hls?.url : initialRes?.url)])
 
-    // Initialize video.js
+    // Initialize player (Hls.js or native HTML5 video)
     useEffect(() => {
-      if (!videoContainerRef.current) return
-      const videoElement = document.createElement('video-js')
-      videoElement.classList.add('vjs-big-play-centered', '!h-full', '!w-full')
-      videoElement.style.pointerEvents = 'none'
-      videoContainerRef.current.appendChild(videoElement)
+      const video = videoRef.current
+      if (!video) return
 
       const targetSrc = isHls ? file.media!.hls!.url! : (currentSrcRef.current ?? '')
-      const targetType = isHls ? 'application/x-mpegURL' : 'video/mp4'
+      if (!targetSrc) return
 
-      const player = (playerRef.current = videojs(videoElement, {
-        controls: false,
-        autoplay: false,
-        preload: 'auto',
-        playsinline: true,
-        sources: [{ src: targetSrc, type: targetType }],
-      }))
-
-      const htmlVid = videoElement.querySelector('video')
-      if (htmlVid) {
-        videoRef.current = htmlVid
-      } else {
-        player.ready(() => {
-          const techEl = player.tech({ iWillNotUseThisInPlugins: true })?.el() as HTMLVideoElement
-          if (techEl) {
-            videoRef.current = techEl
-          }
-        })
+      if (hlsRef.current) {
+        hlsRef.current.destroy()
+        hlsRef.current = null
       }
 
-      player.on('play', () => {
+      setIsPlayerReady(false)
+
+      let hls: Hls | null = null
+
+      if (isHls) {
+        if (Hls.isSupported()) {
+          hls = new Hls({
+            autoStartLoad: true,
+            startLevel: -1,
+            capLevelToPlayerSize: false,
+            enableWorker: true,
+          })
+          hlsRef.current = hls
+          hls.attachMedia(video)
+          hls.loadSource(targetSrc)
+
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            setIsPlayerReady(true)
+          })
+
+          hls.on(Hls.Events.ERROR, (_event, eventData) => {
+            if (eventData.fatal) {
+              switch (eventData.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  hls?.startLoad()
+                  break
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  hls?.recoverMediaError()
+                  break
+                default:
+                  hls?.destroy()
+                  break
+              }
+            }
+          })
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = targetSrc
+        }
+      } else {
+        video.src = targetSrc
+      }
+
+      const handlePlay = () => {
         setIsPlaying(true)
         setHasStartedPlaying(true)
         onPlay?.()
-      })
-      player.on('pause', () => setIsPlaying(false))
-      player.on('ended', () => setIsPlaying(false))
+      }
+      const handlePause = () => setIsPlaying(false)
+      const handleEnded = () => setIsPlaying(false)
+      const handleLoadedMetadata = () => setIsPlayerReady(true)
+      const handleLoadStart = () => setIsPlayerReady(false)
+      const handleProgress = () => {
+        const vidDuration = video.duration || containerDuration || 0
+        if (vidDuration > 0 && video.buffered.length > 0) {
+          let bufferedEnd = 0
+          for (let i = 0; i < video.buffered.length; i++) {
+            if (
+              video.buffered.start(i) <= video.currentTime &&
+              video.currentTime <= video.buffered.end(i)
+            ) {
+              bufferedEnd = video.buffered.end(i)
+              break
+            }
+          }
+          if (bufferedEnd === 0) {
+            bufferedEnd = video.buffered.end(video.buffered.length - 1)
+          }
+          setBuffered((bufferedEnd / vidDuration) * 100)
+        }
+      }
+      const handleVolumeChange = () => {
+        setPlayerVolume(video.volume || 0)
+        setPlayerMuted(video.muted || false)
+      }
+      const handleRateChange = () => setPlaybackRate(video.playbackRate || 1)
 
-      player.on('timeupdate', () => {
-        setBuffered(player.bufferedPercent())
-      })
-
-      player.on('loadedmetadata', () => {
-        setIsPlayerReady(true)
-      })
-      player.on('loadstart', () => setIsPlayerReady(false))
-      player.on('volumechange', () => {
-        setPlayerVolume(player.volume() || 0)
-        setPlayerMuted(player.muted() || false)
-      })
-      player.on('ratechange', () => setPlaybackRate(player.playbackRate() || 1))
+      video.addEventListener('play', handlePlay)
+      video.addEventListener('pause', handlePause)
+      video.addEventListener('ended', handleEnded)
+      video.addEventListener('loadedmetadata', handleLoadedMetadata)
+      video.addEventListener('loadstart', handleLoadStart)
+      video.addEventListener('timeupdate', handleProgress)
+      video.addEventListener('progress', handleProgress)
+      video.addEventListener('volumechange', handleVolumeChange)
+      video.addEventListener('ratechange', handleRateChange)
 
       return () => {
-        if (player && !player.isDisposed()) {
-          player.dispose()
-          playerRef.current = null
-          videoRef.current = null
+        video.removeEventListener('play', handlePlay)
+        video.removeEventListener('pause', handlePause)
+        video.removeEventListener('ended', handleEnded)
+        video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        video.removeEventListener('loadstart', handleLoadStart)
+        video.removeEventListener('timeupdate', handleProgress)
+        video.removeEventListener('progress', handleProgress)
+        video.removeEventListener('volumechange', handleVolumeChange)
+        video.removeEventListener('ratechange', handleRateChange)
+
+        if (hlsRef.current) {
+          hlsRef.current.destroy()
+          hlsRef.current = null
         }
       }
     }, [file.id])
 
     // Apply muted / volume (audio routing: only active side unmuted)
     useEffect(() => {
-      const player = playerRef.current
-      if (!player || !isPlayerReady) return
-      player.muted(muted)
-      player.volume(volume)
+      const video = videoRef.current
+      if (!video || !isPlayerReady) return
+      video.muted = muted
+      video.volume = volume
     }, [muted, volume, isPlayerReady])
 
     // Report state upward
@@ -337,28 +390,43 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
 
     const changeResolution = useCallback(
       (resolution: string, hdr?: boolean) => {
-        const player = playerRef.current
-        if (!player) return
+        const video = videoRef.current
+        if (!video) return
 
-        if (isHls) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const ql = (player as any).qualityLevels?.()
+        if (isHls && hlsRef.current) {
+          const hls = hlsRef.current
+          const wasPaused = video.paused
+          const targetFrame = currentFrameRef.current
+
           if (resolution === 'Auto') {
-            if (ql) {
-              for (let i = 0; i < ql.length; i++) {
-                ql[i].enabled = true
-              }
-            }
+            hls.currentLevel = -1
             setCurrentResolution('Auto')
           } else {
             const target = resolutions.find((r) => r.resolution === resolution)
-            if (target && ql) {
-              for (let i = 0; i < ql.length; i++) {
-                ql[i].enabled = ql[i].height === target.height
+            if (target) {
+              const targetIndex = hls.levels.findIndex(
+                (lvl) =>
+                  lvl.height === target.height ||
+                  Math.max(lvl.width, lvl.height) === Math.max(target.width, target.height),
+              )
+              if (targetIndex !== -1) {
+                hls.currentLevel = targetIndex
+                setCurrentResolution(resolution)
+                setIsCurrentHdr(target.hdr)
               }
             }
-            setCurrentResolution(resolution)
-            setIsCurrentHdr(target?.hdr)
+          }
+
+          if (wasPaused) {
+            const onSeeked = () => {
+              video.removeEventListener('seeked', onSeeked)
+              const safeCenterTime = calculateFrameCenterTime(targetFrame, frameRate)
+              const frameDuration = 1 / frameRate
+              if (Math.abs(video.currentTime - safeCenterTime) > frameDuration / 4) {
+                video.currentTime = safeCenterTime
+              }
+            }
+            video.addEventListener('seeked', onSeeked)
           }
           return
         }
@@ -370,21 +438,24 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
               )
             : resolutions.find((r) => r.resolution === resolution)
         if (!target) return
-        const wasPlaying = !player.paused()
-        const currentT = player.currentTime()
+        const wasPlaying = !video.paused
+        const currentT = video.currentTime
         setCurrentResolution(resolution)
         setIsCurrentHdr(target.hdr)
         currentSrcRef.current = target.url
-        player.src({ type: 'video/mp4', src: target.url })
-        player.one('loadedmetadata', () => {
-          player.currentTime(currentT)
+        video.src = target.url || ''
+        const onLoadedMetadata = () => {
+          video.removeEventListener('loadedmetadata', onLoadedMetadata)
+          video.currentTime = currentT
           if (wasPlaying) {
-            const p = player.play()
+            const p = video.play()
             if (p !== undefined) p.catch(() => {})
           }
-        })
+          video.playbackRate = playbackRate
+        }
+        video.addEventListener('loadedmetadata', onLoadedMetadata)
       },
-      [resolutions, isHls],
+      [resolutions, isHls, frameRate, playbackRate],
     )
 
     useImperativeHandle(
@@ -392,18 +463,18 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       (): ComparePaneHandle => ({
         getKind: () => 'video',
         play: () => {
-          const p = playerRef.current?.play()
+          const p = videoRef.current?.play()
           if (p !== undefined) p.catch(() => {})
         },
-        pause: () => playerRef.current?.pause(),
+        pause: () => videoRef.current?.pause(),
         togglePlay: () => {
-          const player = playerRef.current
-          if (!player) return
-          if (player.paused() || player.ended()) {
-            const p = player.play()
+          const video = videoRef.current
+          if (!video) return
+          if (video.paused || video.ended) {
+            const p = video.play()
             if (p !== undefined) p.catch(() => {})
           } else {
-            player.pause()
+            video.pause()
           }
         },
         seekToFrame: (frame) => {
@@ -419,20 +490,24 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
           setHasStartedPlaying(true)
           return seekToFrame(clampFrame(currentFrameRef.current + delta))
         },
-        setMuted: (m) => playerRef.current?.muted(m),
-        setVolume: (v) => {
-          const player = playerRef.current
-          if (!player) return
-          player.volume(v)
-          if (v > 0 && player.muted()) player.muted(false)
-          else if (v === 0 && !player.muted()) player.muted(true)
+        setMuted: (m) => {
+          if (videoRef.current) videoRef.current.muted = m
         },
-        setPlaybackRate: (rate) => playerRef.current?.playbackRate(rate),
+        setVolume: (v) => {
+          const video = videoRef.current
+          if (!video) return
+          video.volume = v
+          if (v > 0 && video.muted) video.muted = false
+          else if (v === 0 && !video.muted) video.muted = true
+        },
+        setPlaybackRate: (rate) => {
+          if (videoRef.current) videoRef.current.playbackRate = rate
+        },
         toggleLoop: () => {
-          const player = playerRef.current
-          if (!player) return
-          const next = !player.loop()
-          player.loop(next)
+          const video = videoRef.current
+          if (!video) return
+          const next = !video.loop
+          video.loop = next
           setIsLooping(next)
         },
         changeResolution,
@@ -512,14 +587,21 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
               transformOrigin: '0 0',
             }}
           >
-            <div
-              ref={videoContainerRef}
-              className="w-full h-full [&_.video-js]:!w-full [&_.video-js]:!h-full [&_video]:!w-full [&_video]:!h-full [&_video]:!block [&_video]:!object-contain"
+            <video
+              ref={videoRef}
+              className="w-full h-full block object-contain pointer-events-none"
+              playsInline
+              preload="auto"
             />
           </div>
         )}
         {isAudio && (
-          <div ref={videoContainerRef} className="absolute inset-0 pointer-events-none opacity-0" />
+          <video
+            ref={videoRef}
+            className="absolute inset-0 pointer-events-none opacity-0"
+            playsInline
+            preload="auto"
+          />
         )}
 
         {isAudio ? (

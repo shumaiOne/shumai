@@ -44,6 +44,8 @@ export interface PlayerState {
   currentResolution: string // 'Original' or '720p', '480p' etc.
   currentSrc?: string
   isCurrentHdr?: boolean
+  activeAutoResolution?: string
+  isHlsManualSupported?: boolean
 }
 
 export interface DisplayTranscode {
@@ -332,7 +334,9 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
                   <span className="flex items-center gap-1">
                     <span>
                       {state.currentResolution === 'Auto'
-                        ? m.quality_auto()
+                        ? state.activeAutoResolution
+                          ? `${m.quality_auto()} (${state.activeAutoResolution})`
+                          : m.quality_auto()
                         : state.currentResolution === 'Original'
                           ? m.original()
                           : state.currentResolution}
@@ -372,13 +376,17 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
                   const isSelected =
                     state.currentResolution === res.resolution &&
                     Boolean(state.isCurrentHdr) === Boolean(res.hdr)
+                  const isManualDisabled =
+                    Boolean(data.media?.isHls) && state.isHlsManualSupported === false
                   return (
                     <DropdownMenuItem
                       key={itemKey}
-                      onClick={() => changeResolution(res)}
+                      disabled={isManualDisabled}
+                      onClick={() => !isManualDisabled && changeResolution(res)}
                       className={cn(
                         'flex w-full items-center justify-between',
                         isSelected ? 'text-primary font-medium' : 'text-foreground',
+                        isManualDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                       )}
                     >
                       <div className="flex items-center gap-1.5">

@@ -19,7 +19,7 @@ Shumai's video player is a decoupled, frame-locked system that coordinates three
                             ▼             │
              ┌────────────────────────────┴──┐
              │   Native HTML5 Video Player   │
-             │   (VideoJS Engine Wrapper)    │
+             │     (Hls.js / Native MSE)     │
              └───────────────────────────────┘
                      ▲                   ▲
                      │                   │
@@ -32,7 +32,7 @@ Shumai's video player is a decoupled, frame-locked system that coordinates three
              └──────────────┘     └──────────────┘
 ```
 
-1. **Native HTML5 Video Player (VideoJS Engine Wrapper):** Manages the underlying browser media stream, buffering, audio clock, and presentation.
+1. **Native HTML5 Video Player (Hls.js / Native MSE):** Manages the underlying browser media stream, buffering, audio clock, and presentation. Direct `<video>` element with zero library wrappers for MP4, and lightweight `hls.js` for adaptive HLS streams.
 2. **Seekbar (Scrubber & Progress Bar):** Visualizes playback progress and maps horizontal screen clicks/drags to playhead percentages.
 3. **Comment Area (Sidebar):** Renders comment list, displays timestamp labels, captures drawings, and triggers seeks to target frames.
 
@@ -204,14 +204,21 @@ When playing, the playhead loop coordinates two mechanisms in parallel to preven
 ---
 
 ### G. Switch Resolution
+
+#### 1. HLS Streams (`hls.js`)
+* **Immediate Rendition Switch (`currentLevel`)**: When the user selects a specific rendition (e.g. `1080p`), the player assigns `hls.currentLevel = targetIndex` rather than `nextLevel`. This causes `hls.js` to immediately flush the MSE buffer around `currentTime` and fetch fragments for the target rendition (matching Frame.io's responsive behavior).
+* **Auto Mode**: When selecting `Auto`, `hls.currentLevel = -1` is set to re-enable adaptive bitrate (ABR). The player listens to `Hls.Events.LEVEL_SWITCHED` to update the control bar label dynamically (e.g., `Auto (1080p)`).
+* **Paused Frame-Center Re-Nudge**: If the user switches quality while paused on a frame (e.g. Frame 120), the player listens for the subsequent `seeked` event once the new fragment renders and re-nudges `video.currentTime` to `calculateFrameCenterTime(currentFrame, frameRate)`. This guarantees zero frame drift across quality switches.
+
+#### 2. Normal MP4 Streams (Native Video)
 1. User selects a different resolution (e.g. `720p` or `Original`).
 2. The player intercepts the click:
-   * Captures `wasPlaying = !player.paused()` and the current playhead time: `currentT = player.currentTime()`.
-   * Updates the source URL: `player.src({ type: 'video/mp4', src: res.url })`.
+   * Captures `wasPlaying = !video.paused` and the current playhead time: `currentT = video.currentTime`.
+   * Updates the source URL: `video.src = res.url`.
 3. The player registers a one-shot `loadedmetadata` event listener on the new source:
-   * Restores playhead time: `player.currentTime(currentT)`.
+   * Restores playhead time: `video.currentTime = currentT`.
    * Restores playback state (`play()` if `wasPlaying` was true) and playback rate.
-4. The seek triggered by `player.currentTime(currentT)` fires a `seeked` event, which automatically calls `handleExternalSeeked`, recalculating the frame index and nudging the playhead to the safe frame center on the new media stream.
+4. The seek triggered by `video.currentTime = currentT` fires a `seeked` event, which automatically calls `handleExternalSeeked`, recalculating the frame index and nudging the playhead to the safe frame center on the new media stream.
 
 ---
 

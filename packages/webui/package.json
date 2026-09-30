@@ -63,6 +63,7 @@
     "cmdk": "1.1.1",
     "date-fns": "4.4.0",
     "embla-carousel-react": "8.6.0",
+    "hls.js": "1.7.3",
     "hono": "4.13.5",
     "input-otp": "1.5.0",
     "konva": "10.3.2",
@@ -86,7 +87,6 @@
     "ulid": "3.0.2",
     "use-image": "1.1.4",
     "vaul": "1.1.2",
-    "video.js": "8.24.0",
     "zod": "4.5.4",
     "zustand": "5.0.15"
   },
