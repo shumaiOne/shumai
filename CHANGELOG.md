@@ -14,9 +14,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **settings**: Prevent deselecting the last resolution ladder in MP4 and HLS transcode settings, and ensure rapid consecutive toggles reliably coalesce and preserve all selections
 - **share**: Fix an issue where videos with HLS enabled could play without watermark on public share links before watermark transcoding completed
 - **webui**: Fix an issue where legacy portrait video transcodes were mislabeled in download menus and the video player (e.g. "1920p" instead of "1080p") by correctly deriving resolution labels from the long side
-- **settings**: Fix an issue where rapid consecutive toggling of transcode resolution checkboxes could submit outdated selections or drop previous toggles
 - **webui**: Fix an issue where the resolution selector in the video seekbar displayed vertical video resolutions by long side (e.g. "Auto (3840p)") instead of standard short side (e.g. "Auto (2160p)")
 - **webui**: Fix an issue where 480p videos were mislabeled as 360p in the navigation bar and mobile file header download menus
 - **share**: Fix an issue where public HLS playback and watermarked streams failed to load for shared version stacks and symlinks

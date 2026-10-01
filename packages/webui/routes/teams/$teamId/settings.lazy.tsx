@@ -91,6 +91,118 @@ const VALID_SETTINGS_TABS: readonly SettingsTab[] = [
   'developer',
 ]
 
+const ALL_VIDEO_LADDERS: VideoResolutionLadder[] = ['480p', '720p', '1080p', '1440p', '2160p']
+const ALL_HLS_LADDERS: HlsResolutionLadder[] = ['480p', '720p', '1080p', '1440p', '2160p']
+
+function useCoalescedLadderSettings<TLadder extends VideoResolutionLadder | HlsResolutionLadder>({
+  teamId,
+  settingKey,
+  field,
+  serverResolutions,
+  defaultResolutions,
+}: {
+  teamId: string
+  settingKey: 'transcode.videoResolutions' | 'transcode.hlsResolutions'
+  field: 'videoResolutions' | 'hlsResolutions'
+  serverResolutions: TLadder[] | undefined
+  defaultResolutions: TLadder[]
+}) {
+  const queryClient = useQueryClient()
+  const pendingResolutionsRef = useRef<TLadder[] | null>(null)
+  const [optimisticResolutions, setOptimisticResolutions] = useState<TLadder[] | null>(null)
+  const queueRef = useRef<Promise<void>>(Promise.resolve())
+  const isUpdatingRef = useRef<boolean>(false)
+
+  useEffect(() => {
+    if (!isUpdatingRef.current) {
+      pendingResolutionsRef.current = null
+      setOptimisticResolutions(null)
+    }
+  }, [serverResolutions])
+
+  const currentResolutions: TLadder[] =
+    optimisticResolutions ?? serverResolutions ?? defaultResolutions
+
+  const handleToggle = (ladder: TLadder) => {
+    const current =
+      pendingResolutionsRef.current ??
+      optimisticResolutions ??
+      serverResolutions ??
+      defaultResolutions
+
+    // If currently checked and it's the last remaining option, do not allow unselecting
+    if (current.includes(ladder) && current.length === 1) {
+      return
+    }
+
+    const updated = current.includes(ladder)
+      ? current.filter((l) => l !== ladder)
+      : [...current, ladder]
+
+    if (updated.length === 0) return
+
+    pendingResolutionsRef.current = updated
+    setOptimisticResolutions(updated)
+
+    queryClient.setQueryData(
+      ['teams', teamId, 'settings'],
+      (old: TeamSettingsResponse | undefined) => {
+        if (!old) return old
+        return {
+          ...old,
+          transcode: {
+            ...old.transcode,
+            [field]: updated,
+          },
+        }
+      },
+    )
+
+    isUpdatingRef.current = true
+
+    queueRef.current = queueRef.current
+      .then(async () => {
+        const target = pendingResolutionsRef.current
+        if (!target) return
+
+        const res = await client.api.teams[':teamId'].settings.$patch({
+          param: { teamId },
+          json: {
+            key: settingKey,
+            value: target,
+          } as UpdateTeamSettingsRequest,
+        })
+        if (!res.ok) throw new Error('Failed to update settings')
+        await res.json()
+
+        if (pendingResolutionsRef.current === target) {
+          pendingResolutionsRef.current = null
+          isUpdatingRef.current = false
+          setOptimisticResolutions(null)
+          await queryClient.invalidateQueries({
+            queryKey: ['teams', teamId, 'settings'],
+          })
+          toast.success(m.settings_updated())
+        }
+      })
+      .catch((err) => {
+        console.error(err)
+        pendingResolutionsRef.current = null
+        isUpdatingRef.current = false
+        setOptimisticResolutions(null)
+        queryClient.invalidateQueries({
+          queryKey: ['teams', teamId, 'settings'],
+        })
+        toast.error(m.failed_update_settings())
+      })
+  }
+
+  return {
+    currentResolutions,
+    handleToggle,
+  }
+}
+
 function getTabFromHash(): SettingsTab {
   if (typeof window === 'undefined') return 'general'
   const hash = window.location.hash.replace(/^#/, '')
@@ -316,101 +428,24 @@ export function TeamSettingsPage() {
     })
   }
 
-  const pendingVideoResolutionsRef = useRef<VideoResolutionLadder[] | null>(null)
-  const [optimisticVideoResolutions, setOptimisticVideoResolutions] = useState<
-    VideoResolutionLadder[] | null
-  >(null)
-  const videoResolutionsQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const isVideoResolutionsUpdatingRef = useRef<boolean>(false)
+  const { currentResolutions: currentVideoResolutions, handleToggle: handleVideoLadderToggle } =
+    useCoalescedLadderSettings({
+      teamId,
+      settingKey: 'transcode.videoResolutions',
+      field: 'videoResolutions',
+      serverResolutions: (settings as TeamSettingsResponse | undefined)?.transcode
+        ?.videoResolutions,
+      defaultResolutions: DEFAULT_VIDEO_RESOLUTIONS,
+    })
 
-  const pendingHlsResolutionsRef = useRef<HlsResolutionLadder[] | null>(null)
-  const [optimisticHlsResolutions, setOptimisticHlsResolutions] = useState<
-    HlsResolutionLadder[] | null
-  >(null)
-  const hlsResolutionsQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const isHlsResolutionsUpdatingRef = useRef<boolean>(false)
-
-  useEffect(() => {
-    if (!isVideoResolutionsUpdatingRef.current) {
-      pendingVideoResolutionsRef.current = null
-      setOptimisticVideoResolutions(null)
-    }
-  }, [settings])
-
-  useEffect(() => {
-    if (!isHlsResolutionsUpdatingRef.current) {
-      pendingHlsResolutionsRef.current = null
-      setOptimisticHlsResolutions(null)
-    }
-  }, [settings])
-
-  const handleVideoLadderToggle = (ladder: VideoResolutionLadder) => {
-    const current =
-      pendingVideoResolutionsRef.current ??
-      optimisticVideoResolutions ??
-      (settings as TeamSettingsResponse | undefined)?.transcode?.videoResolutions ??
-      DEFAULT_VIDEO_RESOLUTIONS
-    const updated = current.includes(ladder)
-      ? current.filter((l) => l !== ladder)
-      : [...current, ladder]
-
-    if (updated.length === 0) return
-
-    pendingVideoResolutionsRef.current = updated
-    setOptimisticVideoResolutions(updated)
-
-    queryClient.setQueryData(
-      ['teams', teamId, 'settings'],
-      (old: TeamSettingsResponse | undefined) => {
-        if (!old) return old
-        return {
-          ...old,
-          transcode: {
-            ...old.transcode,
-            videoResolutions: updated,
-          },
-        }
-      },
-    )
-
-    isVideoResolutionsUpdatingRef.current = true
-
-    videoResolutionsQueueRef.current = videoResolutionsQueueRef.current
-      .then(async () => {
-        const target = pendingVideoResolutionsRef.current
-        if (!target) return
-
-        const res = await client.api.teams[':teamId'].settings.$patch({
-          param: { teamId },
-          json: {
-            key: 'transcode.videoResolutions',
-            value: target,
-          },
-        })
-        if (!res.ok) throw new Error('Failed to update settings')
-        await res.json()
-
-        if (pendingVideoResolutionsRef.current === target) {
-          pendingVideoResolutionsRef.current = null
-          isVideoResolutionsUpdatingRef.current = false
-          setOptimisticVideoResolutions(null)
-          await queryClient.invalidateQueries({
-            queryKey: ['teams', teamId, 'settings'],
-          })
-          toast.success(m.settings_updated())
-        }
-      })
-      .catch((err) => {
-        console.error(err)
-        pendingVideoResolutionsRef.current = null
-        isVideoResolutionsUpdatingRef.current = false
-        setOptimisticVideoResolutions(null)
-        queryClient.invalidateQueries({
-          queryKey: ['teams', teamId, 'settings'],
-        })
-        toast.error(m.failed_update_settings())
-      })
-  }
+  const { currentResolutions: currentHlsResolutions, handleToggle: handleHlsLadderToggle } =
+    useCoalescedLadderSettings({
+      teamId,
+      settingKey: 'transcode.hlsResolutions',
+      field: 'hlsResolutions',
+      serverResolutions: (settings as TeamSettingsResponse | undefined)?.transcode?.hlsResolutions,
+      defaultResolutions: DEFAULT_HLS_RESOLUTIONS,
+    })
 
   const handleHardwareAccelerationChange = (value: HardwareAcceleration) => {
     updateSettings({
@@ -449,74 +484,6 @@ export function TeamSettingsPage() {
     })
   }
 
-  const handleHlsLadderToggle = (ladder: HlsResolutionLadder) => {
-    const current =
-      pendingHlsResolutionsRef.current ??
-      optimisticHlsResolutions ??
-      (settings as TeamSettingsResponse | undefined)?.transcode?.hlsResolutions ??
-      DEFAULT_HLS_RESOLUTIONS
-    const updated = current.includes(ladder)
-      ? current.filter((l) => l !== ladder)
-      : [...current, ladder]
-
-    if (updated.length === 0) return
-
-    pendingHlsResolutionsRef.current = updated
-    setOptimisticHlsResolutions(updated)
-
-    queryClient.setQueryData(
-      ['teams', teamId, 'settings'],
-      (old: TeamSettingsResponse | undefined) => {
-        if (!old) return old
-        return {
-          ...old,
-          transcode: {
-            ...old.transcode,
-            hlsResolutions: updated,
-          },
-        }
-      },
-    )
-
-    isHlsResolutionsUpdatingRef.current = true
-
-    hlsResolutionsQueueRef.current = hlsResolutionsQueueRef.current
-      .then(async () => {
-        const target = pendingHlsResolutionsRef.current
-        if (!target) return
-
-        const res = await client.api.teams[':teamId'].settings.$patch({
-          param: { teamId },
-          json: {
-            key: 'transcode.hlsResolutions',
-            value: target,
-          },
-        })
-        if (!res.ok) throw new Error('Failed to update settings')
-        await res.json()
-
-        if (pendingHlsResolutionsRef.current === target) {
-          pendingHlsResolutionsRef.current = null
-          isHlsResolutionsUpdatingRef.current = false
-          setOptimisticHlsResolutions(null)
-          await queryClient.invalidateQueries({
-            queryKey: ['teams', teamId, 'settings'],
-          })
-          toast.success(m.settings_updated())
-        }
-      })
-      .catch((err) => {
-        console.error(err)
-        pendingHlsResolutionsRef.current = null
-        isHlsResolutionsUpdatingRef.current = false
-        setOptimisticHlsResolutions(null)
-        queryClient.invalidateQueries({
-          queryKey: ['teams', teamId, 'settings'],
-        })
-        toast.error(m.failed_update_settings())
-      })
-  }
-
   if (isSettingsLoading || isMeLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -542,12 +509,6 @@ export function TeamSettingsPage() {
     currentVideoStrategy = VideoTranscodeStrategy.multi
   }
 
-  const currentVideoResolutions: VideoResolutionLadder[] =
-    optimisticVideoResolutions ??
-    (settings as TeamSettingsResponse | undefined)?.transcode?.videoResolutions ??
-    DEFAULT_VIDEO_RESOLUTIONS
-  const ALL_VIDEO_LADDERS: VideoResolutionLadder[] = ['480p', '720p', '1080p', '1440p', '2160p']
-
   const currentHardwareAcceleration =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (settings as any)?.transcode?.hardwareAcceleration || HardwareAcceleration.off
@@ -555,11 +516,6 @@ export function TeamSettingsPage() {
   const currentThreads = localThreads ?? serverThreads
   const currentHlsEnabled =
     (settings as TeamSettingsResponse | undefined)?.transcode?.hlsEnabled ?? false
-  const currentHlsResolutions: HlsResolutionLadder[] =
-    optimisticHlsResolutions ??
-    (settings as TeamSettingsResponse | undefined)?.transcode?.hlsResolutions ??
-    DEFAULT_HLS_RESOLUTIONS
-  const ALL_HLS_LADDERS: HlsResolutionLadder[] = ['480p', '720p', '1080p', '1440p', '2160p']
 
   return (
     <div className="h-full bg-background font-sans selection:bg-primary/20 transition-colors duration-300">
@@ -1029,13 +985,21 @@ export function TeamSettingsPage() {
                               <div className="flex flex-wrap gap-4 pt-1">
                                 {ALL_VIDEO_LADDERS.map((ladder) => {
                                   const checked = currentVideoResolutions.includes(ladder)
+                                  const isLastSelected =
+                                    checked && currentVideoResolutions.length === 1
                                   return (
                                     <label
                                       key={ladder}
-                                      className="flex items-center space-x-2 cursor-pointer text-sm"
+                                      className={cn(
+                                        'flex items-center space-x-2 text-sm',
+                                        isLastSelected
+                                          ? 'cursor-not-allowed opacity-50'
+                                          : 'cursor-pointer',
+                                      )}
                                     >
                                       <Checkbox
                                         checked={checked}
+                                        disabled={isLastSelected}
                                         onCheckedChange={() => handleVideoLadderToggle(ladder)}
                                       />
                                       <span>{ladder}</span>
@@ -1149,13 +1113,20 @@ export function TeamSettingsPage() {
                             <div className="flex flex-wrap gap-4 pt-1">
                               {ALL_HLS_LADDERS.map((ladder) => {
                                 const checked = currentHlsResolutions.includes(ladder)
+                                const isLastSelected = checked && currentHlsResolutions.length === 1
                                 return (
                                   <label
                                     key={ladder}
-                                    className="flex items-center space-x-2 cursor-pointer text-sm"
+                                    className={cn(
+                                      'flex items-center space-x-2 text-sm',
+                                      isLastSelected
+                                        ? 'cursor-not-allowed opacity-50'
+                                        : 'cursor-pointer',
+                                    )}
                                   >
                                     <Checkbox
                                       checked={checked}
+                                      disabled={isLastSelected}
                                       onCheckedChange={() => handleHlsLadderToggle(ladder)}
                                     />
                                     <span>{ladder}</span>
