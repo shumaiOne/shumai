@@ -214,4 +214,55 @@ describe('CompareVideoPane', () => {
       vi.useRealTimers()
     }
   })
+
+  it('reports 2160p instead of 3840p for 4K vertical video when HLS switches level on Auto', () => {
+    mockHlsInstance.levels = [{ height: 3840, width: 2160, bitrate: 10000000 }]
+
+    const hlsVideo: AssetInfo = {
+      id: 'video-hls-compare-vertical-4k',
+      name: 'vertical-4k.m3u8',
+      proxyType: 'video',
+      media: {
+        isHls: true,
+        hls: {
+          key: 'hls-key',
+          url: 'https://cdn.example.com/master.m3u8',
+          resolutions: [{ width: 2160, height: 3840, resolution: '2160p' }],
+        },
+        metadata: {
+          originalWidth: 2160,
+          originalHeight: 3840,
+          duration: 10,
+          frameRate: 30,
+          totalFrames: 300,
+        },
+      },
+    } as unknown as AssetInfo
+
+    const ref = createRef<ComparePaneHandle>()
+    const reportedStates: PaneReportedState[] = []
+
+    render(
+      <CompareVideoPane
+        ref={ref}
+        file={hlsVideo}
+        isActive={true}
+        annotations={[]}
+        onActivate={vi.fn()}
+        onStateChange={(s) => reportedStates.push(s)}
+      />,
+    )
+
+    const levelSwitchedHandler = mockHlsInstance.on.mock.calls.find(
+      ([event]) => event === 'hlsLevelSwitched',
+    )?.[1]
+    expect(levelSwitchedHandler).toBeDefined()
+
+    act(() => {
+      levelSwitchedHandler('hlsLevelSwitched', { level: 0 })
+    })
+
+    const lastState = reportedStates[reportedStates.length - 1]
+    expect(lastState?.video?.activeAutoResolution).toBe('2160p')
+  })
 })

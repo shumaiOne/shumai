@@ -366,8 +366,18 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
           hls.on(Hls.Events.LEVEL_SWITCHED, (_event, eventData) => {
             const level = hls?.levels[eventData.level]
             if (level) {
-              const h = level.height || Math.min(level.width, level.height)
-              setActiveAutoResolution(h ? `${h}p` : undefined)
+              const matched = resolutions.find(
+                (r) => r.width === level.width && r.height === level.height,
+              )
+              if (matched?.resolution) {
+                setActiveAutoResolution(matched.resolution)
+              } else {
+                const shortSide =
+                  level.width && level.height
+                    ? Math.min(level.width, level.height)
+                    : level.height || level.width
+                setActiveAutoResolution(shortSide ? `${shortSide}p` : undefined)
+              }
             }
           })
 

@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **webui**: Fix an issue where the resolution selector in the video seekbar displayed vertical video resolutions by long side (e.g. "Auto (3840p)") instead of standard short side (e.g. "Auto (2160p)")
 - **webui**: Fix an issue where 480p videos were mislabeled as 360p in the navigation bar and mobile file header download menus
 - **share**: Fix an issue where public HLS playback and watermarked streams failed to load for shared version stacks and symlinks
 - **trash**: Fix an issue where the "Empty Trash" confirmation dialog would close immediately instead of showing a loading state while files were being permanently deleted

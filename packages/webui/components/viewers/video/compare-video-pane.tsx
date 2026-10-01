@@ -217,7 +217,18 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
           hls.on(Hls.Events.LEVEL_SWITCHED, (_event, eventData) => {
             const level = hls?.levels[eventData.level]
             if (level) {
-              setActiveAutoResolution(`${level.height}p`)
+              const matched = resolutions.find(
+                (r) => r.width === level.width && r.height === level.height,
+              )
+              if (matched?.resolution) {
+                setActiveAutoResolution(matched.resolution)
+              } else {
+                const shortSide =
+                  level.width && level.height
+                    ? Math.min(level.width, level.height)
+                    : level.height || level.width
+                setActiveAutoResolution(shortSide ? `${shortSide}p` : undefined)
+              }
             }
           })
 
@@ -618,7 +629,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       ],
     )
 
-    const displayAnnotations = [...annotations, ...(isActive ? draftAnnotations : [])]
+    const displayAnnotations = [...(annotations ?? []), ...(isActive ? draftAnnotations : [])]
 
     const scale = zoom
     const defaultPanX = (containerSize.width - vidW * scale) / 2
