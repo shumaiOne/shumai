@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **settings**: Redesign team Video Transcoding settings with dedicated cards for Transcode Policy, Hardware Acceleration, and FFmpeg Threads, clearly explaining MP4 and HLS playback vs download behavior and storage implications
+- **settings**: Rename AI Settings group to Team AI Settings in settings navigation
 - **webui**: Modernize video player architecture to use native HTML5 video and Hls.js, enabling instant rendition switching when changing resolution and eliminating heavy player wrapper overhead while preserving sub-frame accurate playback and annotations
 
 ## [0.4.9] - 2026-09-28

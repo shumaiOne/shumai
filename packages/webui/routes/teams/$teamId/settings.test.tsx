@@ -519,4 +519,33 @@ describe('TeamSettingsPage Transcode Settings', () => {
     const lastPatch = patchCalls[patchCalls.length - 1]
     expect(lastPatch.json.value).toEqual(['1080p', '1440p', '2160p'])
   })
+
+  it('renders individual cards for Transcode Policy, Hardware Acceleration, and FFmpeg Threads with updated labels', async () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TeamSettingsPage />
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: /Video Transcoding/i })).toBeDefined()
+    })
+
+    // Sidebar navigation
+    expect(screen.getByText('Team AI Settings')).toBeDefined()
+    expect(screen.getByRole('button', { name: /Video Transcoding/i })).toBeDefined()
+
+    // Cards
+    expect(screen.getByText('Transcode Policy')).toBeDefined()
+    expect(
+      screen.getByText(
+        'When HLS is disabled, both playback and download use MP4. When HLS is enabled, playback uses HLS streaming while download uses MP4. Note that enabling HLS may significantly increase storage usage.',
+      ),
+    ).toBeDefined()
+    expect(screen.getByText('Hardware Acceleration')).toBeDefined()
+    expect(screen.getByText('FFmpeg Threads')).toBeDefined()
+
+    // Redundant "Transcode Settings" card title should not be rendered
+    expect(screen.queryByRole('heading', { level: 3, name: 'Transcode Settings' })).toBeNull()
+  })
 })

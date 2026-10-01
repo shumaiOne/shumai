@@ -593,7 +593,7 @@ export function TeamSettingsPage() {
                   )}
                 >
                   <Film className="w-5 h-5" />
-                  {m.media_processing()}
+                  {m.video_transcoding()}
                   {activeTab === 'transcode' && (
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
                   )}
@@ -653,7 +653,7 @@ export function TeamSettingsPage() {
             {me?.role === 'owner' && (
               <>
                 <div className="mt-6 mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider pt-4 border-t border-sidebar-border">
-                  {m.ai_settings()}
+                  {m.team_ai_settings()}
                 </div>
 
                 <button
@@ -763,7 +763,7 @@ export function TeamSettingsPage() {
               <div>
                 <h2 className="text-2xl font-bold text-foreground">
                   {activeTab === 'general' && m.general_settings()}
-                  {activeTab === 'transcode' && m.media_processing()}
+                  {activeTab === 'transcode' && m.video_transcoding()}
                   {activeTab === 'quotas' && m.resource_quotas()}
                   {activeTab === 'appearance' && m.appearance_settings()}
                   {activeTab === 'email' && m.email_notifications()}
@@ -778,7 +778,7 @@ export function TeamSettingsPage() {
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   {activeTab === 'general' && m.general_settings_description()}
-                  {activeTab === 'transcode' && m.transcode_description()}
+                  {activeTab === 'transcode' && m.video_transcoding_description()}
                   {activeTab === 'quotas' && m.resource_quotas_description()}
                   {activeTab === 'appearance' && m.appearance_settings_description()}
                   {activeTab === 'email' && m.email_notifications_description()}
@@ -926,14 +926,12 @@ export function TeamSettingsPage() {
               )}
 
               {activeTab === 'transcode' && (
-                <div className="h-full overflow-y-auto pr-1 pb-8">
+                <div className="h-full overflow-y-auto space-y-6 pr-1 pb-8">
+                  {/* Transcode Policy Card */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>{m.transcode_settings()}</CardTitle>
-                      <CardDescription>
-                        <span className="block mb-2">{m.transcode_description()}</span>
-                        <span className="block">{m.transcode_strategy_note()}</span>
-                      </CardDescription>
+                      <CardTitle>{m.transcode_policy()}</CardTitle>
+                      <CardDescription>{m.transcode_policy_description()}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       {/* Video Strategy */}
@@ -1012,81 +1010,6 @@ export function TeamSettingsPage() {
                         </div>
                       </div>
 
-                      {/* Hardware Acceleration */}
-                      <div className="space-y-3 pt-6 border-t border-border">
-                        <h3 className="text-lg font-medium">{m.hardware_acceleration()}</h3>
-                        <div className="space-y-3">
-                          <div
-                            className={cn(
-                              'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
-                              currentHardwareAcceleration === HardwareAcceleration.off
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border',
-                            )}
-                            onClick={() =>
-                              handleHardwareAccelerationChange(HardwareAcceleration.off)
-                            }
-                          >
-                            <div className="font-semibold">{m.hardware_acceleration_off()}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {m.hardware_acceleration_off_description()}
-                            </div>
-                          </div>
-
-                          <div
-                            className={cn(
-                              'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
-                              currentHardwareAcceleration === HardwareAcceleration.auto
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border',
-                            )}
-                            onClick={() =>
-                              handleHardwareAccelerationChange(HardwareAcceleration.auto)
-                            }
-                          >
-                            <div className="font-semibold">{m.hardware_acceleration_auto()}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {m.hardware_acceleration_auto_description()}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* FFmpeg Threads */}
-                      <div className="space-y-4 pt-6 border-t border-border">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-lg font-medium">{m.ffmpeg_threads()}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {m.ffmpeg_threads_description()}
-                            </p>
-                          </div>
-                          <span className="font-mono text-sm font-semibold px-2.5 py-1 rounded bg-muted text-foreground border border-border">
-                            {currentThreads === 0
-                              ? m.threads_auto()
-                              : m.threads_count({ count: currentThreads })}
-                          </span>
-                        </div>
-                        <div className="pt-2 px-1">
-                          <Slider
-                            value={[currentThreads]}
-                            min={0}
-                            max={32}
-                            step={1}
-                            onValueChange={([val]) => setLocalThreads(val)}
-                            onValueCommit={([val]) => {
-                              setLocalThreads(val)
-                              handleThreadsChange(val)
-                            }}
-                          />
-                          <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                            <span>{m.threads_auto()} (0)</span>
-                            <span>16</span>
-                            <span>32</span>
-                          </div>
-                        </div>
-                      </div>
-
                       {/* HLS Streaming */}
                       <div className="space-y-4 pt-6 border-t border-border">
                         <div className="flex items-center justify-between">
@@ -1136,6 +1059,86 @@ export function TeamSettingsPage() {
                             </div>
                           </div>
                         )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Hardware Acceleration Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{m.hardware_acceleration()}</CardTitle>
+                      <CardDescription>
+                        {m.hardware_acceleration_section_description()}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div
+                        className={cn(
+                          'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
+                          currentHardwareAcceleration === HardwareAcceleration.off
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border',
+                        )}
+                        onClick={() => handleHardwareAccelerationChange(HardwareAcceleration.off)}
+                      >
+                        <div className="font-semibold">{m.hardware_acceleration_off()}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {m.hardware_acceleration_off_description()}
+                        </div>
+                      </div>
+
+                      <div
+                        className={cn(
+                          'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
+                          currentHardwareAcceleration === HardwareAcceleration.auto
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border',
+                        )}
+                        onClick={() => handleHardwareAccelerationChange(HardwareAcceleration.auto)}
+                      >
+                        <div className="font-semibold">{m.hardware_acceleration_auto()}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {m.hardware_acceleration_auto_description()}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* FFmpeg Threads Card */}
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle>{m.ffmpeg_threads()}</CardTitle>
+                          <CardDescription className="mt-1.5">
+                            {m.ffmpeg_threads_description()}
+                          </CardDescription>
+                        </div>
+                        <span className="font-mono text-sm font-semibold px-2.5 py-1 rounded bg-muted text-foreground border border-border">
+                          {currentThreads === 0
+                            ? m.threads_auto()
+                            : m.threads_count({ count: currentThreads })}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="pt-2 px-1">
+                        <Slider
+                          value={[currentThreads]}
+                          min={0}
+                          max={32}
+                          step={1}
+                          onValueChange={([val]) => setLocalThreads(val)}
+                          onValueCommit={([val]) => {
+                            setLocalThreads(val)
+                            handleThreadsChange(val)
+                          }}
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                          <span>{m.threads_auto()} (0)</span>
+                          <span>16</span>
+                          <span>32</span>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
