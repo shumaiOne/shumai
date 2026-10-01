@@ -29,6 +29,7 @@ import {
 import { Slider } from '../../ui/slider'
 import ProgressBar from './progress-bar'
 import { formatTime, formatTimecode } from './utils'
+import { getVideoResolutionLabel } from '@/ui/lib/media'
 
 export interface PlayerState {
   isPlaying: boolean
@@ -431,8 +432,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
                     ? data.media.videoTranscodes
                     : resolutions
                   ).map((res) => {
-                    const resLabel =
-                      'resolution' in res && res.resolution ? res.resolution : `${res.height}p`
+                    const resLabel = getVideoResolutionLabel(res)
                     const itemKey = res.key || `${resLabel}-${res.hdr ? 'hdr' : 'sdr'}`
                     return (
                       <DropdownMenuItem

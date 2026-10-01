@@ -48,6 +48,7 @@ import { useState } from 'react'
 import { useDualSidebarStore } from '@/ui/stores/dual-sidebar'
 import { ManageVersionsDialog } from './manage-versions-dialog'
 import { AssetLinkedTasksDialog } from './kanban/asset-linked-tasks-dialog'
+import { getVideoResolutionLabel } from '@/ui/lib/media'
 
 interface BreadcrumbNavProps {
   teamId: string
@@ -288,8 +289,7 @@ export function BreadcrumbNav({
                     <DropdownMenuSubContent className="w-48">
                       <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
                       {downloadInfo?.videoTranscodes?.map((t) => {
-                        const resolution =
-                          'resolution' in t && t.resolution ? t.resolution : `${t.height}p`
+                        const resolution = getVideoResolutionLabel(t)
                         const label = t.hdr ? `${resolution} (HDR)` : resolution
                         return (
                           <DropdownMenuItem

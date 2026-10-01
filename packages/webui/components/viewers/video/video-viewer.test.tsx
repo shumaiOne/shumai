@@ -535,4 +535,35 @@ describe('VideoViewer', () => {
     expect(settingsButton?.textContent).toContain('2160p')
     expect(settingsButton?.textContent).not.toContain('3840p')
   })
+
+  it('derives resolution from long side for legacy portrait MP4 transcode without explicit resolution', () => {
+    const legacyPortraitVideo: AssetInfo = {
+      id: 'legacy-portrait-mp4',
+      name: 'portrait.mp4',
+      proxyType: 'video',
+      media: {
+        videoTranscodes: [
+          {
+            key: 'portrait-1080p.mp4',
+            url: 'https://cdn.example.com/portrait-1080p.mp4',
+            width: 1080,
+            height: 1920,
+            size: 5000000,
+          },
+        ],
+        metadata: {
+          originalWidth: 1080,
+          originalHeight: 1920,
+          duration: 10,
+          frameRate: 30,
+          totalFrames: 300,
+        },
+      },
+    } as unknown as AssetInfo
+
+    const { container } = render(<VideoViewer file={legacyPortraitVideo} />)
+    const settingsButton = container.querySelector('button:has(.lucide-settings)')
+    expect(settingsButton?.textContent).toContain('1080p')
+    expect(settingsButton?.textContent).not.toContain('1920p')
+  })
 })

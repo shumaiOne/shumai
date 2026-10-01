@@ -40,3 +40,43 @@ export function getBestTranscode(
   // If no candidate >= screenWidth, simply return the largest available (first in original sorted)
   return sorted[0]
 }
+
+export function getVideoResolutionLabel(
+  transcode?: {
+    width?: number
+    height?: number
+    resolution?: string
+  } | null,
+): string {
+  if (!transcode) return ''
+
+  if (transcode.resolution) {
+    return transcode.resolution
+  }
+
+  const width = transcode.width ?? 0
+  const height = transcode.height ?? 0
+
+  if (width > 0 && height > 0) {
+    const longSide = Math.max(width, height)
+    if (longSide >= 3840) return '2160p'
+    if (longSide >= 2560) return '1440p'
+    if (longSide >= 1920) return '1080p'
+    if (longSide >= 1280) return '720p'
+    if (longSide >= 854) return '480p'
+    if (longSide >= 640) return '360p'
+    if (longSide >= 320) return '180p'
+
+    const shortSide = Math.min(width, height)
+    return `${shortSide}p`
+  }
+
+  if (height > 0) {
+    return `${height}p`
+  }
+  if (width > 0) {
+    return `${width}p`
+  }
+
+  return ''
+}

@@ -11,6 +11,7 @@ import { useFramePlayer } from './use-frame-player'
 import { calculateFrameCenterTime, resolveTotalFrames } from './utils'
 import { clampFrame as clampFrameUtil } from '../../compare/compare-utils'
 import type { ComparePaneHandle, DisplayTranscode, PaneReportedState } from '../../compare/types'
+import { getVideoResolutionLabel } from '@/ui/lib/media'
 
 interface CompareVideoPaneProps {
   file: AssetInfo
@@ -36,21 +37,10 @@ function computeResolutions(file: AssetInfo): DisplayTranscode[] {
     ? (file.media?.hls?.resolutions ?? [])
     : (file.media?.videoTranscodes ?? [])
 
-  return baseTranscodes.map((t) => {
-    const longSide = Math.max(t.width, t.height)
-    const resCandidate = 'resolution' in t && t.resolution ? t.resolution : undefined
-    let resolution = resCandidate || `${t.height}p`
-    if (!resCandidate && !t.height) {
-      if (longSide >= 3840) resolution = '2160p'
-      else if (longSide >= 2560) resolution = '1440p'
-      else if (longSide >= 1920) resolution = '1080p'
-      else if (longSide >= 1280) resolution = '720p'
-      else if (longSide >= 854) resolution = '480p'
-      else if (longSide >= 640) resolution = '360p'
-      else if (longSide >= 320) resolution = '180p'
-    }
-    return { ...t, resolution }
-  })
+  return baseTranscodes.map((t) => ({
+    ...t,
+    resolution: getVideoResolutionLabel(t),
+  }))
 }
 
 function getInitialResolution(resolutions: DisplayTranscode[]): DisplayTranscode | null {

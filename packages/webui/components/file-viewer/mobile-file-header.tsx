@@ -26,6 +26,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import React from 'react'
+import { getVideoResolutionLabel } from '@/ui/lib/media'
 
 export interface MobileFileHeaderProps {
   fileName: string
@@ -239,8 +240,7 @@ export function MobileFileHeader({
                     <DropdownMenuSubContent className="w-48 z-50">
                       <DropdownMenuLabel className="text-xs">{m.download()}</DropdownMenuLabel>
                       {downloadInfo?.videoTranscodes?.map((t) => {
-                        const resolution =
-                          'resolution' in t && t.resolution ? t.resolution : `${t.height}p`
+                        const resolution = getVideoResolutionLabel(t)
                         const label = t.hdr ? `${resolution} (HDR)` : resolution
                         return (
                           <DropdownMenuItem

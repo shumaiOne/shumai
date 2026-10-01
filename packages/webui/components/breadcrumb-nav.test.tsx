@@ -229,4 +229,38 @@ describe('BreadcrumbNav component', () => {
     expect(items.some((i) => i.textContent?.includes('480p'))).toBe(true)
     expect(items.some((i) => i.textContent?.includes('360p'))).toBe(false)
   })
+
+  it('correctly labels legacy portrait video transcode in download menu using long side fallback', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          fileId="file-portrait"
+          currentAsset={{ id: 'file-portrait', name: 'portrait.mp4', type: 'file', version: 1 }}
+          allowDownload={true}
+          downloadInfo={{
+            originalKey: 'raw.mp4',
+            videoTranscodes: [
+              {
+                key: 'portrait-legacy.mp4',
+                width: 1080,
+                height: 1920,
+                hdr: false,
+              },
+            ],
+          }}
+        />
+      </QueryClientProvider>,
+    )
+
+    const triggerButton = screen.getByRole('button', { name: 'portrait.mp4' })
+    fireEvent.pointerDown(triggerButton, { button: 0, ctrlKey: false })
+
+    const downloadSubTrigger = screen.getByText('Download')
+    fireEvent.click(downloadSubTrigger)
+
+    const items = screen.getAllByRole('menuitem')
+    expect(items.some((i) => i.textContent?.includes('1080p'))).toBe(true)
+    expect(items.some((i) => i.textContent?.includes('1920p'))).toBe(false)
+  })
 })

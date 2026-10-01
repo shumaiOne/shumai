@@ -152,4 +152,36 @@ describe('MobileFileHeader', () => {
     expect(items.some((i) => i.textContent?.includes('480p'))).toBe(true)
     expect(items.some((i) => i.textContent?.includes('360p'))).toBe(false)
   })
+
+  it('correctly labels legacy portrait video transcode in download menu using long side fallback', () => {
+    render(
+      <MobileFileHeader
+        fileName="portrait.mp4"
+        activeFileId="file-portrait"
+        allowDownload={true}
+        onBack={vi.fn()}
+        downloadInfo={{
+          originalKey: 'raw.mp4',
+          videoTranscodes: [
+            {
+              key: 'portrait-legacy.mp4',
+              width: 1080,
+              height: 1920,
+              hdr: false,
+            },
+          ],
+        }}
+      />,
+    )
+
+    const menuBtn = screen.getByLabelText(/More options/i)
+    fireEvent.pointerDown(menuBtn, { button: 0, ctrlKey: false })
+
+    const downloadSubTrigger = screen.getByText('Download')
+    fireEvent.click(downloadSubTrigger)
+
+    const items = screen.getAllByRole('menuitem')
+    expect(items.some((i) => i.textContent?.includes('1080p'))).toBe(true)
+    expect(items.some((i) => i.textContent?.includes('1920p'))).toBe(false)
+  })
 })
