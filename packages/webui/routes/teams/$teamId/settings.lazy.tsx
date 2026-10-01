@@ -299,6 +299,10 @@ function TeamSettingsPage() {
       queryClient.invalidateQueries({
         queryKey: ['teams', teamId, 'settings'],
       })
+      toast.success(m.settings_updated())
+    },
+    onError: () => {
+      toast.error(m.failed_update_settings())
     },
   })
 

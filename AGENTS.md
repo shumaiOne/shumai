@@ -92,6 +92,13 @@ Briefly describe what this PR changes and why.
 - Describe the checks or tests you ran.
 - Include relevant outputs if applicable.
 
+## Manual Verification Plan
+
+- Provide concise instructions for manually verifying this change.
+- Assume familiarity with the project and existing development workflow.
+- Skip boilerplate steps (e.g. starting the app, logging in, opening common pages) unless they are part of the change.
+- Focus on what needs to be verified, including scenarios, edge cases, and expected results.
+
 ## Notes
 
 Add any additional context, caveats, or follow-up work.
