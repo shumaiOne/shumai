@@ -22,7 +22,7 @@ const loginSchema = z.object({
 
 type LoginSchema = z.infer<typeof loginSchema>
 
-export function LoginPage() {
+function LoginPage() {
   const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
   const [error, setError] = useState<string | null>(null)
@@ -113,14 +113,6 @@ export function LoginPage() {
         </h1>
         <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">{m.login_subtitle()}</p>
       </div>
-
-      {isDemoEnv && (
-        <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-400 rounded-xl text-sm leading-relaxed">
-          <p>
-            <strong>{m.demo_access()}</strong> {m.demo_access_instructions()}
-          </p>
-        </div>
-      )}
 
       {error && (
         <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-sm text-center font-medium">
@@ -228,6 +220,12 @@ export function LoginPage() {
               </>
             )}
           </Button>
+
+          <div className="p-3 bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-400 rounded-xl text-xs leading-relaxed text-center">
+            <p>
+              <strong>{m.demo_access()}</strong> {m.demo_access_instructions()}
+            </p>
+          </div>
         </div>
       )}
 
