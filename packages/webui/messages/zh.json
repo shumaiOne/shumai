@@ -257,6 +257,8 @@
   "transcode_description": "管理团队的视频转码配置。",
   "transcode_strategy_note": "策略：我们会从您的列表中选择支持输入质量的最佳分辨率。内容不会被放大。",
   "hardware_acceleration_section_description": "配置硬件加速视频编码以将工作负载分流至 GPU，或使用 CPU 软件编码。",
+  "mp4_transcoding": "MP4 转码",
+  "mp4_transcoding_description": "生成适用于文件下载和标准视频播放的 Web 兼容 MP4 文件。",
   "video_strategy": "视频策略",
   "best_match": "最佳匹配",
   "best_match_description": "生成与源质量匹配的单一最优分辨率。",

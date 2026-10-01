@@ -8,25 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **transcode**: Add configurable target resolution ladders (480p, 720p, 1080p, 1440p, 2160p) for MP4 Multi Resolutions transcoding in team settings, with unified resolution matching and lowest-resolution fallback for both MP4 and HLS
-- **transcode**: Add HLS live streaming support with fMP4/CMAF adaptive bitrate ladders (480p, 720p, 1080p, 1440p, 2160p), configurable in Transcode Settings, with seamless adaptive streaming, auto quality switching, manual resolution selection in the video viewer, and full watermarking support for shared links
-- **transcode**: Add basic camera RAW image support for popular camera formats (including Sony ARW, Canon CR2/CR3, Nikon NEF, Adobe DNG, Fujifilm RAF, and Panasonic RW2), extracting high-quality embedded JPEG previews and automatically applying camera orientation for fast thumbnail and proxy generation
+* **transcode**: Add configurable target resolution ladders (480p, 720p, 1080p, 1440p, 2160p) for MP4 Multi Resolutions transcoding in team settings, with unified resolution matching and lowest-resolution fallback for both MP4 and HLS
+* **transcode**: Add HLS live streaming with fMP4/CMAF adaptive bitrate ladders (480p, 720p, 1080p, 1440p, 2160p), configurable in Transcode Settings, with automatic quality switching, manual resolution selection in the video viewer, seamless rendition switching, and full watermarking support for shared links
+* **transcode**: Add basic camera RAW image support for popular camera formats (including Sony ARW, Canon CR2/CR3, Nikon NEF, Adobe DNG, Fujifilm RAF, and Panasonic RW2), extracting high-quality embedded JPEG previews and automatically applying camera orientation for fast thumbnail and proxy generation
 
 ### Fixed
 
-- **settings**: Prevent deselecting the last resolution ladder in MP4 and HLS transcode settings, and ensure rapid consecutive toggles reliably coalesce and preserve all selections
-- **share**: Fix an issue where videos with HLS enabled could play without watermark on public share links before watermark transcoding completed
-- **webui**: Fix an issue where legacy portrait video transcodes were mislabeled in download menus and the video player (e.g. "1920p" instead of "1080p") by correctly deriving resolution labels from the long side
-- **webui**: Fix an issue where the resolution selector in the video seekbar displayed vertical video resolutions by long side (e.g. "Auto (3840p)") instead of standard short side (e.g. "Auto (2160p)")
-- **webui**: Fix an issue where 480p videos were mislabeled as 360p in the navigation bar and mobile file header download menus
-- **share**: Fix an issue where public HLS playback and watermarked streams failed to load for shared version stacks and symlinks
-- **trash**: Fix an issue where the "Empty Trash" confirmation dialog would close immediately instead of showing a loading state while files were being permanently deleted
+* **webui**: Fix inconsistent video resolution labels across download menus, mobile file headers, and the video player by correctly deriving resolutions from the video's short side, including portrait videos and 480p videos
+
+* **trash**: Fix an issue where the "Empty Trash" confirmation dialog would close immediately instead of showing a loading state while files were being permanently deleted
 
 ### Changed
 
-- **settings**: Redesign team Video Transcoding settings with dedicated cards for Transcode Policy, Hardware Acceleration, and FFmpeg Threads, clearly explaining MP4 and HLS playback vs download behavior and storage implications
-- **settings**: Rename AI Settings group to Team AI Settings in settings navigation
-- **webui**: Modernize video player architecture to use native HTML5 video and Hls.js, enabling instant rendition switching when changing resolution and eliminating heavy player wrapper overhead while preserving sub-frame accurate playback and annotations
+* **settings**: Redesign team Video Transcoding settings with dedicated cards for Transcode Policy, Hardware Acceleration, and FFmpeg Threads, clearly explaining MP4 and HLS playback vs download behavior and storage implications
+* **settings**: Rename AI Settings group to Team AI Settings in settings navigation
 
 ## [0.4.9] - 2026-09-28
 

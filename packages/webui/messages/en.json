@@ -257,6 +257,8 @@
   "transcode_description": "Manage your team's video transcoding configurations.",
   "transcode_strategy_note": "Strategy: We select the best resolution from your list that supports the input quality. Content is never upscaled.",
   "hardware_acceleration_section_description": "Configure hardware-accelerated video encoding to offload workloads to GPUs, or use CPU software encoding.",
+  "mp4_transcoding": "MP4 Transcoding",
+  "mp4_transcoding_description": "Generate web-compatible MP4 files for file downloads and standard video playback.",
   "video_strategy": "Video Strategy",
   "best_match": "Best match",
   "best_match_description": "Generates a single optimal resolution matching the source quality.",

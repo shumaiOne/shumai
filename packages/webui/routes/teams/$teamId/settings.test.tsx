@@ -545,6 +545,14 @@ describe('TeamSettingsPage Transcode Settings', () => {
     expect(screen.getByText('Hardware Acceleration')).toBeDefined()
     expect(screen.getByText('FFmpeg Threads')).toBeDefined()
 
+    // MP4 Transcoding sub-section
+    expect(screen.getByText('MP4 Transcoding')).toBeDefined()
+    expect(
+      screen.getByText(
+        'Generate web-compatible MP4 files for file downloads and standard video playback.',
+      ),
+    ).toBeDefined()
+
     // Redundant "Transcode Settings" card title should not be rendered
     expect(screen.queryByRole('heading', { level: 3, name: 'Transcode Settings' })).toBeNull()
   })

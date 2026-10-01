@@ -934,9 +934,14 @@ export function TeamSettingsPage() {
                       <CardDescription>{m.transcode_policy_description()}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      {/* Video Strategy */}
-                      <div className="space-y-3">
-                        <h3 className="text-lg font-medium">{m.video_strategy()}</h3>
+                      {/* MP4 Transcoding */}
+                      <div className="space-y-4">
+                        <div className="space-y-0.5">
+                          <h3 className="text-lg font-medium">{m.mp4_transcoding()}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {m.mp4_transcoding_description()}
+                          </p>
+                        </div>
                         <div className="space-y-3">
                           <div
                             className={cn(
