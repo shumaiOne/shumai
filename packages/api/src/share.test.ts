@@ -277,6 +277,12 @@ describe('Share API', () => {
                 },
               ],
               imageTranscodes: [],
+              isHls: true,
+              hls: {
+                key: 'files/orig-hls/master.m3u8',
+                url: '/api/files/video-pending/m3u8/master.m3u8',
+                resolutions: [{ resolution: '1080p', width: 1920, height: 1080 }],
+              },
               original: { key: 'files/orig.mp4' },
             },
           },
@@ -331,9 +337,11 @@ describe('Share API', () => {
           size: 0,
         },
       ])
-      // Pending item → original transcodes emptied
+      // Pending item → original transcodes emptied and HLS cleared
       expect(body.data[1].media.videoTranscodes).toEqual([])
       expect(body.data[1].media.imageTranscodes).toEqual([])
+      expect(body.data[1].media.isHls).toBe(false)
+      expect(body.data[1].media.hls).toBeUndefined()
       // Non-media item → untouched
       expect(body.data[2].media.pdfTranscode).toEqual({ url: 'u', key: 'files/doc.pdf' })
     })
@@ -476,6 +484,33 @@ describe('Share API', () => {
       const body = await res.json()
       expect(body.media.videoTranscodes).toEqual([])
       expect(body.media.imageTranscodes).toEqual([])
+    })
+
+    test('clears HLS fields while watermark transcoding is in flight', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue(shareLinkWithWatermark)
+      vi.spyOn(watermarkService, 'getCompletedWatermarkMediaMap').mockResolvedValue(new Map())
+      vi.spyOn(assetService, 'getAsset').mockResolvedValue({
+        ...videoAsset,
+        media: {
+          ...videoAsset.media,
+          isHls: true,
+          hls: {
+            key: 'files/hls/master.m3u8',
+            url: '/api/files/file1/m3u8/master.m3u8',
+            resolutions: [{ resolution: '1080p', width: 1920, height: 1080 }],
+          },
+        },
+      })
+
+      const res = await app.request('/shares/share1/files/file1', {
+        method: 'GET',
+        headers: { 'x-share-password': 'pass' },
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.media.isHls).toBe(false)
+      expect(body.media.hls).toBeUndefined()
     })
 
     test('leaves non-video/image media untouched when watermark enabled', async () => {

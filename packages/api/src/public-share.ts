@@ -84,7 +84,7 @@ async function applyWatermarkToAssetMedia(
       url: `/api/shares/${shareId}/files/${asset.id}/m3u8/master.m3u8${pwQuery}`,
       resolutions: watermarkMedia.hls.resolutions,
     }
-  } else if (watermarkMedia) {
+  } else {
     updatedMedia.isHls = false
     delete updatedMedia.hls
   }
