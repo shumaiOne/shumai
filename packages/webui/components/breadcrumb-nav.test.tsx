@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import React from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BreadcrumbNav } from './breadcrumb-nav'
@@ -159,5 +159,74 @@ describe('BreadcrumbNav component', () => {
 
     const triggerButton = screen.getByRole('button', { name: 'sample.mov' })
     expect(triggerButton).toBeDefined()
+  })
+
+  it('displays 480p instead of 360p for 480p video transcode in download menu', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          fileId="file-1"
+          currentAsset={{ id: 'file-1', name: 'sample.mov', type: 'file', version: 1 }}
+          allowDownload={true}
+          downloadInfo={{
+            originalKey: 'raw.mov',
+            videoTranscodes: [
+              {
+                key: 'sample-480p.mp4',
+                width: 854,
+                height: 480,
+                hdr: false,
+              },
+            ],
+          }}
+        />
+      </QueryClientProvider>,
+    )
+
+    const triggerButton = screen.getByRole('button', { name: 'sample.mov' })
+    fireEvent.pointerDown(triggerButton, { button: 0, ctrlKey: false })
+
+    const downloadSubTrigger = screen.getByText('Download')
+    fireEvent.click(downloadSubTrigger)
+
+    const items = screen.getAllByRole('menuitem')
+    expect(items.some((i) => i.textContent?.includes('480p'))).toBe(true)
+    expect(items.some((i) => i.textContent?.includes('360p'))).toBe(false)
+  })
+
+  it('displays explicit resolution when provided in download menu', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          fileId="file-1"
+          currentAsset={{ id: 'file-1', name: 'sample.mov', type: 'file', version: 1 }}
+          allowDownload={true}
+          downloadInfo={{
+            originalKey: 'raw.mov',
+            videoTranscodes: [
+              {
+                key: 'sample-480p.mp4',
+                width: 854,
+                height: 480,
+                resolution: '480p',
+                hdr: false,
+              },
+            ],
+          }}
+        />
+      </QueryClientProvider>,
+    )
+
+    const triggerButton = screen.getByRole('button', { name: 'sample.mov' })
+    fireEvent.pointerDown(triggerButton, { button: 0, ctrlKey: false })
+
+    const downloadSubTrigger = screen.getByText('Download')
+    fireEvent.click(downloadSubTrigger)
+
+    const items = screen.getAllByRole('menuitem')
+    expect(items.some((i) => i.textContent?.includes('480p'))).toBe(true)
+    expect(items.some((i) => i.textContent?.includes('360p'))).toBe(false)
   })
 })

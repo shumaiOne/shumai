@@ -46,6 +46,7 @@ export interface MobileFileHeaderProps {
       key: string
       width: number
       height: number
+      resolution?: string
       hdr?: boolean
     }>
   }
@@ -238,14 +239,8 @@ export function MobileFileHeader({
                     <DropdownMenuSubContent className="w-48 z-50">
                       <DropdownMenuLabel className="text-xs">{m.download()}</DropdownMenuLabel>
                       {downloadInfo?.videoTranscodes?.map((t) => {
-                        const longSide = Math.max(t.width, t.height)
-                        let resolution = `${t.height}p`
-                        if (longSide >= 3840) resolution = '2160p'
-                        else if (longSide >= 1920) resolution = '1080p'
-                        else if (longSide >= 1280) resolution = '720p'
-                        else if (longSide >= 960) resolution = '540p'
-                        else if (longSide >= 640) resolution = '360p'
-                        else if (longSide >= 320) resolution = '180p'
+                        const resolution =
+                          'resolution' in t && t.resolution ? t.resolution : `${t.height}p`
                         const label = t.hdr ? `${resolution} (HDR)` : resolution
                         return (
                           <DropdownMenuItem

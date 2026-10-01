@@ -43,11 +43,12 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       const longSide = Math.max(t.width, t.height)
       const resCandidate = 'resolution' in t && t.resolution ? t.resolution : undefined
       let resolution = resCandidate || `${t.height}p`
-      if (!resCandidate) {
+      if (!resCandidate && !t.height) {
         if (longSide >= 3840) resolution = '2160p'
+        else if (longSide >= 2560) resolution = '1440p'
         else if (longSide >= 1920) resolution = '1080p'
         else if (longSide >= 1280) resolution = '720p'
-        else if (longSide >= 960) resolution = '540p'
+        else if (longSide >= 854) resolution = '480p'
         else if (longSide >= 640) resolution = '360p'
         else if (longSide >= 320) resolution = '180p'
       }

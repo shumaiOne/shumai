@@ -23,6 +23,7 @@ export interface TopNavProjectState {
       key: string
       width: number
       height: number
+      resolution?: string
       hdr?: boolean
     }>
   }

@@ -105,6 +105,7 @@ export const assetInfoSchema = z.object({
             width: z.number(),
             height: z.number(),
             size: z.number(),
+            resolution: z.string().optional(),
             hdr: z.boolean().optional(),
           }),
         )
@@ -357,6 +358,7 @@ export interface VideoTranscode {
   width: number
   height: number
   size: number
+  resolution?: string
   hdr?: boolean
 }
 

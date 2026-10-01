@@ -119,4 +119,37 @@ describe('MobileFileHeader', () => {
     expect(menuBtn).toBeDefined()
     fireEvent.click(menuBtn)
   })
+
+  it('displays 480p instead of 360p for 480p video transcode in download menu', () => {
+    render(
+      <MobileFileHeader
+        fileName="scene1.mp4"
+        activeFileId="file-1"
+        allowDownload={true}
+        onBack={vi.fn()}
+        downloadInfo={{
+          originalKey: 'raw.mov',
+          videoTranscodes: [
+            {
+              key: 'scene1-480p.mp4',
+              width: 854,
+              height: 480,
+              resolution: '480p',
+              hdr: false,
+            },
+          ],
+        }}
+      />,
+    )
+
+    const menuBtn = screen.getByLabelText(/More options/i)
+    fireEvent.pointerDown(menuBtn, { button: 0, ctrlKey: false })
+
+    const downloadSubTrigger = screen.getByText('Download')
+    fireEvent.click(downloadSubTrigger)
+
+    const items = screen.getAllByRole('menuitem')
+    expect(items.some((i) => i.textContent?.includes('480p'))).toBe(true)
+    expect(items.some((i) => i.textContent?.includes('360p'))).toBe(false)
+  })
 })
