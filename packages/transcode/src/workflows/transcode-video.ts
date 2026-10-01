@@ -129,6 +129,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
         spec.videoStrategy || 'best_match',
         metadata.originalWidth,
         metadata.originalHeight,
+        spec.videoResolutions,
       )
       for (const res of videoResolutions) {
         const [width, height] = resolutionToDimensions(

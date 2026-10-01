@@ -22,6 +22,13 @@ export class VideoTranscoder {
     return this
   }
 
+  setVideoResolutions(resolutions?: PrismaJson.VideoResolutionLadder[]): this {
+    if (resolutions) {
+      this.spec.videoResolutions = resolutions
+    }
+    return this
+  }
+
   setHardwareAcceleration(hardwareAcceleration?: PrismaJson.HardwareAcceleration): this {
     if (hardwareAcceleration) {
       this.spec.hardwareAcceleration = hardwareAcceleration

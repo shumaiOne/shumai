@@ -69,10 +69,29 @@ export const listMembersQuerySchema = z.object({
 export const VideoTranscodeStrategy = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   best_match: 'best_match',
+  multi: 'multi',
   all: 'all',
 } as const
 export type VideoTranscodeStrategy =
   (typeof VideoTranscodeStrategy)[keyof typeof VideoTranscodeStrategy]
+
+export const VideoResolutionLadder = {
+  r480p: '480p',
+  r720p: '720p',
+  r1080p: '1080p',
+  r1440p: '1440p',
+  r2160p: '2160p',
+} as const
+export type VideoResolutionLadder =
+  (typeof VideoResolutionLadder)[keyof typeof VideoResolutionLadder]
+
+export const DEFAULT_VIDEO_RESOLUTIONS: VideoResolutionLadder[] = [
+  '480p',
+  '720p',
+  '1080p',
+  '1440p',
+  '2160p',
+]
 
 export const HardwareAcceleration = {
   off: 'off',
@@ -95,6 +114,10 @@ export const updateTeamSettingsRequestSchema = z.union([
   z.object({
     key: z.literal('transcode.videoStrategy'),
     value: z.nativeEnum(VideoTranscodeStrategy),
+  }),
+  z.object({
+    key: z.literal('transcode.videoResolutions'),
+    value: z.array(z.nativeEnum(VideoResolutionLadder)),
   }),
   z.object({
     key: z.literal('transcode.hardwareAcceleration'),
@@ -126,6 +149,7 @@ export interface TeamAppearanceSettings {
 export interface TeamSettingsResponse {
   transcode?: {
     videoStrategy?: VideoTranscodeStrategy
+    videoResolutions?: VideoResolutionLadder[]
     hardwareAcceleration?: HardwareAcceleration
     threads?: number
     hlsEnabled?: boolean

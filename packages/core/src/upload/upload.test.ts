@@ -203,13 +203,14 @@ describe('UploadService', () => {
     })
   })
 
-  it('should pass custom transcode.threads from team settings to transcode task', async () => {
+  it('should pass custom transcode.threads and videoResolutions from team settings to transcode task', async () => {
     await prisma.team.update({
       where: { id: teamId },
       data: {
         settings: {
           transcode: {
-            videoStrategy: 'all',
+            videoStrategy: 'multi',
+            videoResolutions: ['720p', '1080p'],
             hardwareAcceleration: 'auto',
             threads: 12,
           },
@@ -245,7 +246,8 @@ describe('UploadService', () => {
     expect(workflowTask?.payload).toEqual({
       projectId: projectId,
       transcode: {
-        videoStrategy: 'all',
+        videoStrategy: 'multi',
+        videoResolutions: ['720p', '1080p'],
         hardwareAcceleration: 'auto',
         threads: 12,
         sprite: true,

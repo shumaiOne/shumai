@@ -334,12 +334,14 @@ export class UploadService {
       const threads = settings?.transcode?.threads ?? 0
       if (isVideo) {
         const strategy = settings?.transcode?.videoStrategy || 'best_match'
+        const videoResolutions = settings?.transcode?.videoResolutions
         const hardwareAcceleration = settings?.transcode?.hardwareAcceleration || 'off'
         const hlsEnabled = settings?.transcode?.hlsEnabled ?? false
         const hlsResolutions = settings?.transcode?.hlsResolutions
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await new VideoTranscoder(tx as any, asset.id, team.id, projectId)
           .setStrategy(strategy)
+          .setVideoResolutions(videoResolutions)
           .setHardwareAcceleration(hardwareAcceleration)
           .setThreads(threads)
           .setHls(hlsEnabled, hlsResolutions)

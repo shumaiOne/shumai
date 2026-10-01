@@ -30,6 +30,35 @@ export const HLS_LADDER_ORDER: PrismaJson.HlsResolutionLadder[] = [
   '480p',
 ]
 
+export const VIDEO_LADDER_ORDER: PrismaJson.VideoResolutionLadder[] = [
+  '2160p',
+  '1440p',
+  '1080p',
+  '720p',
+  '480p',
+]
+
+export function matchResolutionsByLongSide<T extends string>(
+  selectedLadders: T[],
+  ladderOrder: T[],
+  rawLongSide: number,
+): T[] {
+  const orderedSelected = ladderOrder.filter((ladder) => selectedLadders.includes(ladder))
+  if (orderedSelected.length === 0) return []
+
+  const matched = orderedSelected.filter((ladder) => {
+    const targetLongSide = RESOLUTION_LONG_SIDES[ladder]
+    return targetLongSide !== undefined && targetLongSide <= rawLongSide
+  })
+
+  if (matched.length === 0) {
+    // Falls back to the lowest resolution selected if nothing matched
+    return [orderedSelected[orderedSelected.length - 1]]
+  }
+
+  return matched
+}
+
 export function getTargetHlsResolutions(
   configuredLadders: PrismaJson.HlsResolutionLadder[] | undefined,
   originalWidth: number,
@@ -42,11 +71,7 @@ export function getTargetHlsResolutions(
 
   const rawLongSide = Math.max(originalWidth, originalHeight)
 
-  return HLS_LADDER_ORDER.filter((ladder) => {
-    if (!selectedLadders.includes(ladder)) return false
-    const targetLongSide = RESOLUTION_LONG_SIDES[ladder]
-    return targetLongSide <= rawLongSide
-  })
+  return matchResolutionsByLongSide(selectedLadders, HLS_LADDER_ORDER, rawLongSide)
 }
 
 export function resolutionToDimensions(
@@ -74,31 +99,11 @@ export function resolutionToDimensions(
   return [width, height]
 }
 
-const TARGET_RESOLUTIONS = [
-  { name: '2160p', longSide: 3840 },
-  { name: '1080p', longSide: 1920 },
-  { name: '720p', longSide: 1280 },
-  { name: '540p', longSide: 960 },
-  { name: '360p', longSide: 640 },
-]
-
-function getBestMatchResolution(
-  originalWidth: number,
-  originalHeight: number,
-): { name: string; longSide: number } {
-  const rawLongSide = Math.max(originalWidth, originalHeight)
-  const lower = TARGET_RESOLUTIONS.filter((r) => r.longSide <= rawLongSide)
-  if (lower.length > 0) {
-    lower.sort((a, b) => b.longSide - a.longSide)
-    return lower[0]
-  }
-  return TARGET_RESOLUTIONS[TARGET_RESOLUTIONS.length - 1]
-}
-
 export function getTargetVideoResolutions(
   strategy: PrismaJson.VideoTranscodeStrategy,
   originalWidth: number,
   originalHeight: number,
+  configuredResolutions?: PrismaJson.VideoResolutionLadder[],
 ): string[] {
   const resolutions = ['180p']
 
@@ -106,21 +111,27 @@ export function getTargetVideoResolutions(
   const stratStr = strategy as string
   if (stratStr === 'single' || stratStr === 'disable') {
     normalizedStrategy = 'best_match'
-  } else if (stratStr === 'full') {
-    normalizedStrategy = 'all'
+  } else if (stratStr === 'full' || stratStr === 'all' || stratStr === 'multi') {
+    normalizedStrategy = 'multi'
   }
 
-  const bestMatch = getBestMatchResolution(originalWidth, originalHeight)
+  const selectedLadders =
+    configuredResolutions && configuredResolutions.length > 0
+      ? configuredResolutions
+      : (['480p', '720p', '1080p', '1440p', '2160p'] as PrismaJson.VideoResolutionLadder[])
+
+  const rawLongSide = Math.max(originalWidth, originalHeight)
 
   if (normalizedStrategy === 'best_match') {
-    resolutions.push(bestMatch.name)
-  } else if (normalizedStrategy === 'all') {
-    const bestMatchIndex = TARGET_RESOLUTIONS.findIndex((r) => r.name === bestMatch.name)
-    if (bestMatchIndex !== -1) {
-      for (let i = bestMatchIndex; i < TARGET_RESOLUTIONS.length; i++) {
-        resolutions.push(TARGET_RESOLUTIONS[i].name)
-      }
-    }
+    const matched = matchResolutionsByLongSide(
+      ['480p', '720p', '1080p', '1440p', '2160p'] as PrismaJson.VideoResolutionLadder[],
+      VIDEO_LADDER_ORDER,
+      rawLongSide,
+    )
+    resolutions.push(matched[0])
+  } else if (normalizedStrategy === 'multi') {
+    const matched = matchResolutionsByLongSide(selectedLadders, VIDEO_LADDER_ORDER, rawLongSide)
+    resolutions.push(...matched)
   }
 
   return resolutions

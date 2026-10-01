@@ -48,7 +48,8 @@ declare global {
     // ----------------------------------------------------------------------
     // Team Settings
     // ----------------------------------------------------------------------
-    export type VideoTranscodeStrategy = 'best_match' | 'all'
+    export type VideoTranscodeStrategy = 'best_match' | 'multi' | 'all'
+    export type VideoResolutionLadder = '480p' | '720p' | '1080p' | '1440p' | '2160p'
     export type HardwareAcceleration = 'off' | 'auto'
     export type HdrType = 'pq' | 'hlg' | 'dovi_p5' | 'dovi_p8' | 'sdr'
 
@@ -61,6 +62,7 @@ declare global {
 
     export interface TranscodeSettings {
       videoStrategy: VideoTranscodeStrategy
+      videoResolutions?: VideoResolutionLadder[]
       hardwareAcceleration?: HardwareAcceleration
       threads?: number
       hlsEnabled?: boolean
@@ -348,6 +350,7 @@ declare global {
     // ----------------------------------------------------------------------
     export interface TaskSpec {
       videoStrategy?: VideoTranscodeStrategy
+      videoResolutions?: VideoResolutionLadder[]
       hardwareAcceleration?: HardwareAcceleration
       threads?: number
       thumbnail?: boolean

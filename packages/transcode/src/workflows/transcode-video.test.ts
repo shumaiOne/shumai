@@ -796,4 +796,82 @@ describe('transcodeVideoWorkflow', () => {
       status: WorkflowTaskStatus.completed,
     })
   })
+
+  it('should transcode selected multi resolutions when videoStrategy is multi', () => {
+    const task: WorkflowTask = {
+      id: 'task-multi',
+      assetId: 'asset-multi',
+      type: WorkflowTaskType.transcode_video,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: {
+          videoStrategy: 'multi',
+          videoResolutions: ['720p', '1080p', '2160p'],
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-multi',
+      storageKey: { key: 'files/asset-multi/video.mp4' },
+      mediaType: 'video/mp4',
+    })
+
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      proxyType: 'video',
+      metadata: {
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 10,
+        frameRate: 30,
+        totalFrames: 300,
+        startTimecode: '00:00:00:00',
+        bitRate: 1000,
+        hasAudio: false,
+        format: {},
+      },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    mockActivities.transcodeVideoActivity.mockImplementation(async (params) => ({
+      key: `files/asset-multi/${params.videoSpec.resolution}.mp4`,
+      width: params.videoSpec.width,
+      height: params.videoSpec.height,
+      resolution: params.videoSpec.resolution,
+    }))
+
+    return transcodeVideoWorkflow(task).then(() => {
+      // 180p preview + 1080p + 720p (2160p is skipped since > 1920)
+      expect(mockActivities.transcodeVideoActivity).toHaveBeenCalledTimes(3)
+
+      expect(mockActivities.transcodeVideoActivity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          videoSpec: expect.objectContaining({ resolution: '180p' }),
+        }),
+      )
+      expect(mockActivities.transcodeVideoActivity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          videoSpec: expect.objectContaining({ resolution: '1080p' }),
+        }),
+      )
+      expect(mockActivities.transcodeVideoActivity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          videoSpec: expect.objectContaining({ resolution: '720p' }),
+        }),
+      )
+    })
+  })
 })

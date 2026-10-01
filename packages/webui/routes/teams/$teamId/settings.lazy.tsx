@@ -1,6 +1,8 @@
 import { createLazyFileRoute } from '@tanstack/react-router'
 import {
   VideoTranscodeStrategy,
+  VideoResolutionLadder,
+  DEFAULT_VIDEO_RESOLUTIONS,
   HardwareAcceleration,
   UpdateTeamSettingsRequest,
   TeamSettingsResponse,
@@ -310,6 +312,25 @@ function TeamSettingsPage() {
     })
   }
 
+  const handleVideoLadderToggle = (ladder: VideoResolutionLadder) => {
+    const current =
+      (settings as TeamSettingsResponse | undefined)?.transcode?.videoResolutions ??
+      DEFAULT_VIDEO_RESOLUTIONS
+    const updated = current.includes(ladder)
+      ? current.filter((l) => l !== ladder)
+      : [...current, ladder]
+
+    if (updated.length === 0) return
+
+    updateSettings({
+      teamId,
+      data: {
+        key: 'transcode.videoResolutions',
+        value: updated,
+      },
+    })
+  }
+
   const handleHardwareAccelerationChange = (value: HardwareAcceleration) => {
     updateSettings({
       teamId,
@@ -383,9 +404,18 @@ function TeamSettingsPage() {
     (settings as any)?.transcode?.videoStrategy || VideoTranscodeStrategy.best_match
   if (currentVideoStrategy === 'single' || currentVideoStrategy === 'disable') {
     currentVideoStrategy = VideoTranscodeStrategy.best_match
-  } else if (currentVideoStrategy === 'full') {
-    currentVideoStrategy = VideoTranscodeStrategy.all
+  } else if (
+    currentVideoStrategy === 'full' ||
+    currentVideoStrategy === 'all' ||
+    currentVideoStrategy === 'multi'
+  ) {
+    currentVideoStrategy = VideoTranscodeStrategy.multi
   }
+
+  const currentVideoResolutions: VideoResolutionLadder[] =
+    (settings as TeamSettingsResponse | undefined)?.transcode?.videoResolutions ??
+    DEFAULT_VIDEO_RESOLUTIONS
+  const ALL_VIDEO_LADDERS: VideoResolutionLadder[] = ['480p', '720p', '1080p', '1440p', '2160p']
 
   const currentHardwareAcceleration =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -842,17 +872,47 @@ function TeamSettingsPage() {
                           <div
                             className={cn(
                               'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
-                              currentVideoStrategy === VideoTranscodeStrategy.all
+                              currentVideoStrategy === VideoTranscodeStrategy.multi
                                 ? 'border-primary bg-primary/5'
                                 : 'border-border',
                             )}
-                            onClick={() => handleVideoStrategyChange(VideoTranscodeStrategy.all)}
+                            onClick={() => handleVideoStrategyChange(VideoTranscodeStrategy.multi)}
                           >
-                            <div className="font-semibold">{m.all_resolutions()}</div>
+                            <div className="font-semibold">{m.multi_resolutions()}</div>
                             <div className="text-sm text-muted-foreground">
-                              {m.all_resolutions_description()}
+                              {m.multi_resolutions_description()}
                             </div>
                           </div>
+
+                          {currentVideoStrategy === VideoTranscodeStrategy.multi && (
+                            <div className="space-y-3 pt-2 pl-1">
+                              <div className="space-y-1">
+                                <h4 className="text-sm font-medium">
+                                  {m.video_resolution_ladders()}
+                                </h4>
+                                <p className="text-xs text-muted-foreground">
+                                  {m.video_resolution_ladders_description()}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap gap-4 pt-1">
+                                {ALL_VIDEO_LADDERS.map((ladder) => {
+                                  const checked = currentVideoResolutions.includes(ladder)
+                                  return (
+                                    <label
+                                      key={ladder}
+                                      className="flex items-center space-x-2 cursor-pointer text-sm"
+                                    >
+                                      <Checkbox
+                                        checked={checked}
+                                        onCheckedChange={() => handleVideoLadderToggle(ladder)}
+                                      />
+                                      <span>{ladder}</span>
+                                    </label>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 

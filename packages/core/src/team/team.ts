@@ -35,6 +35,7 @@ export class TeamService {
           settings: {
             transcode: {
               videoStrategy: 'best_match',
+              videoResolutions: ['480p', '720p', '1080p', '1440p', '2160p'],
               hardwareAcceleration: 'off',
               threads: 0,
             },
@@ -312,12 +313,22 @@ export class TeamService {
     if (!settings.transcode) {
       settings.transcode = {
         videoStrategy: 'best_match',
+        videoResolutions: ['480p', '720p', '1080p', '1440p', '2160p'],
         hardwareAcceleration: 'off',
         threads: 0,
         hlsEnabled: false,
         hlsResolutions: ['480p', '720p', '1080p'],
       }
     } else {
+      const strategyStr = settings.transcode.videoStrategy as string | undefined
+      if (strategyStr === 'single' || strategyStr === 'disable') {
+        settings.transcode.videoStrategy = 'best_match'
+      } else if (strategyStr === 'full' || strategyStr === 'all') {
+        settings.transcode.videoStrategy = 'multi'
+      }
+      if (!settings.transcode.videoResolutions) {
+        settings.transcode.videoResolutions = ['480p', '720p', '1080p', '1440p', '2160p']
+      }
       if (settings.transcode.hlsEnabled === undefined) {
         settings.transcode.hlsEnabled = false
       }
@@ -345,10 +356,25 @@ export class TeamService {
       if (!settings.transcode) {
         settings.transcode = {}
       }
-      settings.transcode.videoStrategy = value as NonNullable<
+      const rawStrategy = value as string
+      let strategy = rawStrategy
+      if (rawStrategy === 'single' || rawStrategy === 'disable') {
+        strategy = 'best_match'
+      } else if (rawStrategy === 'full' || rawStrategy === 'all') {
+        strategy = 'multi'
+      }
+      settings.transcode.videoStrategy = strategy as NonNullable<
         TeamSettingsResponse['transcode']
       >['videoStrategy']
       delete settings['transcode.videoStrategy']
+    } else if (key === 'transcode.videoResolutions') {
+      if (!settings.transcode) {
+        settings.transcode = {}
+      }
+      settings.transcode.videoResolutions = value as NonNullable<
+        TeamSettingsResponse['transcode']
+      >['videoResolutions']
+      delete settings['transcode.videoResolutions']
     } else if (key === 'transcode.hardwareAcceleration') {
       if (!settings.transcode) {
         settings.transcode = {}

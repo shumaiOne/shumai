@@ -245,17 +245,17 @@ describe('team api', () => {
   })
 
   it('PATCH /teams/:teamId/settings updates settings', async () => {
-    mockUpdateSettings.mockResolvedValue({ transcode: { videoStrategy: 'all' } })
+    mockUpdateSettings.mockResolvedValue({ transcode: { videoStrategy: 'multi' } })
 
     const res = await app.request('/teams/t1/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'transcode.videoStrategy', value: 'all' }),
+      body: JSON.stringify({ key: 'transcode.videoStrategy', value: 'multi' }),
     })
 
     expect(res.status).toBe(200)
     const data = await res.json()
-    expect(data.transcode.videoStrategy).toBe('all')
+    expect(data.transcode.videoStrategy).toBe('multi')
     expect(authzService.hasPermission).toHaveBeenCalledWith(
       expect.objectContaining({
         type: ResourceType.Team,
@@ -263,7 +263,30 @@ describe('team api', () => {
         permission: Permission.Admin,
       }),
     )
-    expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'transcode.videoStrategy', 'all')
+    expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'transcode.videoStrategy', 'multi')
+  })
+
+  it('PATCH /teams/:teamId/settings updates transcode.videoResolutions', async () => {
+    mockUpdateSettings.mockResolvedValue({
+      transcode: { videoResolutions: ['720p', '1080p'] },
+    })
+
+    const res = await app.request('/teams/t1/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        key: 'transcode.videoResolutions',
+        value: ['720p', '1080p'],
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.transcode.videoResolutions).toEqual(['720p', '1080p'])
+    expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'transcode.videoResolutions', [
+      '720p',
+      '1080p',
+    ])
   })
 
   it('PATCH /teams/:teamId/settings updates transcode.hardwareAcceleration', async () => {

@@ -369,6 +369,7 @@ describe('TeamService', () => {
       semanticSearchEnabled: false,
       transcode: {
         videoStrategy: 'best_match',
+        videoResolutions: ['480p', '720p', '1080p', '1440p', '2160p'],
         hardwareAcceleration: 'off',
         threads: 0,
         hlsEnabled: false,
@@ -385,6 +386,7 @@ describe('TeamService', () => {
       semanticSearchEnabled: false,
       transcode: {
         videoStrategy: 'best_match',
+        videoResolutions: ['480p', '720p', '1080p', '1440p', '2160p'],
         hardwareAcceleration: 'off',
         threads: 0,
         hlsEnabled: false,
@@ -393,7 +395,8 @@ describe('TeamService', () => {
       appearance: { hideAgent: false },
     })
 
-    await teamService.updateSettings(team.id, 'transcode.videoStrategy', 'all')
+    await teamService.updateSettings(team.id, 'transcode.videoStrategy', 'multi')
+    await teamService.updateSettings(team.id, 'transcode.videoResolutions', ['720p', '1080p'])
     await teamService.updateSettings(team.id, 'transcode.hardwareAcceleration', 'auto')
     await teamService.updateSettings(team.id, 'transcode.threads', 4)
     await teamService.updateSettings(team.id, 'transcode.hlsEnabled', true)
@@ -408,7 +411,8 @@ describe('TeamService', () => {
     expect(finalSettings).toEqual({
       theme: 'dark',
       transcode: {
-        videoStrategy: 'all',
+        videoStrategy: 'multi',
+        videoResolutions: ['720p', '1080p'],
         hardwareAcceleration: 'auto',
         threads: 4,
         hlsEnabled: true,

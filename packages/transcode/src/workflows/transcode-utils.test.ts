@@ -43,10 +43,14 @@ describe('transcode-utils', () => {
       expect(res).toEqual(['1080p', '720p', '480p'])
     })
 
-    it('returns empty array when source is smaller than smallest ladder', () => {
-      // 640x360 source is smaller than 480p (854 long side)
+    it('falls back to lowest selected ladder when source is smaller than smallest ladder', () => {
+      // 640x360 source is smaller than 480p (854 long side) -> falls back to lowest selected (480p)
       const res = getTargetHlsResolutions(undefined, 640, 360)
-      expect(res).toEqual([])
+      expect(res).toEqual(['480p'])
+
+      // When user selected 720p and 1440p, and source is 480p (854 long side) -> falls back to lowest selected (720p)
+      const resCustom = getTargetHlsResolutions(['720p', '1440p'], 854, 480)
+      expect(resCustom).toEqual(['720p'])
     })
 
     it('respects selective subset of configured ladders', () => {
@@ -79,9 +83,82 @@ describe('transcode-utils', () => {
   })
 
   describe('getTargetVideoResolutions', () => {
-    it('returns best match resolution for standard video', () => {
-      const resolutions = getTargetVideoResolutions('best_match', 1920, 1080)
-      expect(resolutions).toEqual(['180p', '1080p'])
+    describe('best_match strategy', () => {
+      it('returns best match resolution for 4K video', () => {
+        const resolutions = getTargetVideoResolutions('best_match', 3840, 2160)
+        expect(resolutions).toEqual(['180p', '2160p'])
+      })
+
+      it('returns best match resolution for 1080p video', () => {
+        const resolutions = getTargetVideoResolutions('best_match', 1920, 1080)
+        expect(resolutions).toEqual(['180p', '1080p'])
+      })
+
+      it('returns best match resolution for 720p video', () => {
+        const resolutions = getTargetVideoResolutions('best_match', 1280, 720)
+        expect(resolutions).toEqual(['180p', '720p'])
+      })
+
+      it('falls back to 480p for smaller videos (460p and 230p)', () => {
+        const res460 = getTargetVideoResolutions('best_match', 818, 460)
+        expect(res460).toEqual(['180p', '480p'])
+
+        const res230 = getTargetVideoResolutions('best_match', 408, 230)
+        expect(res230).toEqual(['180p', '480p'])
+      })
+    })
+
+    describe('multi strategy', () => {
+      it('returns all supported resolutions up to source for 4K video', () => {
+        const resolutions = getTargetVideoResolutions('multi', 3840, 2160)
+        expect(resolutions).toEqual(['180p', '2160p', '1440p', '1080p', '720p', '480p'])
+      })
+
+      it('returns resolutions up to 720p for 1280x720 video', () => {
+        const resolutions = getTargetVideoResolutions('multi', 1280, 720)
+        expect(resolutions).toEqual(['180p', '720p', '480p'])
+      })
+
+      it('returns resolutions up to 1080p for 2276x1280 video', () => {
+        const resolutions = getTargetVideoResolutions('multi', 2276, 1280)
+        expect(resolutions).toEqual(['180p', '1080p', '720p', '480p'])
+      })
+
+      it('falls back to lowest selected resolution (480p) for 460p and 230p videos', () => {
+        const res460 = getTargetVideoResolutions('multi', 818, 460)
+        expect(res460).toEqual(['180p', '480p'])
+
+        const res230 = getTargetVideoResolutions('multi', 408, 230)
+        expect(res230).toEqual(['180p', '480p'])
+      })
+
+      it('respects user-selected ladders and falls back to lowest selected ladder', () => {
+        const customLadders = ['720p', '1440p', '2160p'] as PrismaJson.VideoResolutionLadder[]
+
+        // 4K video: matches 2160p, 1440p, 720p (1080p was not selected)
+        const res4k = getTargetVideoResolutions('multi', 3840, 2160, customLadders)
+        expect(res4k).toEqual(['180p', '2160p', '1440p', '720p'])
+
+        // 230p video: nothing matches <= 408 -> falls back to lowest selected (720p)
+        const res230 = getTargetVideoResolutions('multi', 408, 230, customLadders)
+        expect(res230).toEqual(['180p', '720p'])
+      })
+
+      it('normalizes legacy "all" and "full" strategy values to multi', () => {
+        const resAll = getTargetVideoResolutions(
+          'all' as unknown as PrismaJson.VideoTranscodeStrategy,
+          1280,
+          720,
+        )
+        expect(resAll).toEqual(['180p', '720p', '480p'])
+
+        const resFull = getTargetVideoResolutions(
+          'full' as unknown as PrismaJson.VideoTranscodeStrategy,
+          1280,
+          720,
+        )
+        expect(resFull).toEqual(['180p', '720p', '480p'])
+      })
     })
   })
 
