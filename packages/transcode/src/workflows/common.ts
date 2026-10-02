@@ -38,14 +38,31 @@ export async function completeTask(
   })
 }
 
-export async function failTask(workerQueue: string, taskId: string, err: unknown) {
-  const { updateTaskStatusActivity } = getActivities()
+export async function failTask(
+  workerQueue: string,
+  taskId: string,
+  err: unknown,
+  assetId?: string,
+) {
+  const { updateTaskStatusActivity, updateAssetStatusActivity } = getActivities()
   if (workerQueue) {
+    const errorMsg = err instanceof Error ? err.message : String(err)
     await executeActivity(workerQueue, updateTaskStatusActivity, {
       taskId,
       status: 'failed',
-      output: { error: err instanceof Error ? err.message : String(err) },
+      output: { error: errorMsg },
     })
+    if (assetId) {
+      try {
+        await executeActivity(workerQueue, updateAssetStatusActivity, {
+          assetId,
+          status: 'failed',
+          error: errorMsg,
+        })
+      } catch (assetErr) {
+        console.error('Failed to update asset status to failed:', assetErr)
+      }
+    }
   }
 }
 

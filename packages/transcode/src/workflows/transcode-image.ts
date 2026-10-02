@@ -106,7 +106,7 @@ export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> 
     await completeTask(workerQueue, task.id)
   } catch (err) {
     console.error(`transcodeImageWorkflow failed for task ${task.id}:`, err)
-    await failTask(workerQueue, task.id, err)
+    await failTask(workerQueue, task.id, err, task.assetId)
     throw err
   } finally {
     await cleanupTmpDir(workerQueue, tmpDir)

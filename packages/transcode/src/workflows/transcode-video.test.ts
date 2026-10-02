@@ -874,4 +874,51 @@ describe('transcodeVideoWorkflow', () => {
       )
     })
   })
+
+  it('should mark task and asset as failed when an activity fails', async () => {
+    const task: WorkflowTask = {
+      id: 'task-fail',
+      assetId: 'asset-fail',
+      type: WorkflowTaskType.transcode_video,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: { videoStrategy: 'best_match' },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-fail',
+      name: 'fail.mp4',
+      storageKey: { key: 'files/asset-fail/fail.mp4' },
+      status: AssetStatus.uploading,
+    })
+
+    mockActivities.getMediaInfoActivity.mockRejectedValue(new Error('FFprobe failed to read media'))
+
+    await expect(transcodeVideoWorkflow(task)).rejects.toThrow('FFprobe failed to read media')
+
+    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
+      taskId: 'task-fail',
+      status: 'failed',
+      output: { error: 'FFprobe failed to read media' },
+    })
+
+    expect(mockActivities.updateAssetStatusActivity).toHaveBeenCalledWith({
+      assetId: 'asset-fail',
+      status: 'failed',
+      error: 'FFprobe failed to read media',
+    })
+  })
 })

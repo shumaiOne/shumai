@@ -1,9 +1,10 @@
 import type { AssetInfo, FieldValueInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
+import { m } from '@/ui/paraglide/messages.js'
 import { useQuery } from '@tanstack/react-query'
 
 import { useDraggable } from '@dnd-kit/react'
-import { File, Folder, MoreVertical, AudioLines } from 'lucide-react'
+import { AlertCircle, File, Folder, MoreVertical, AudioLines } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/ui/lib/utils'
 import { formatSize } from '@/ui/lib/format'
@@ -90,15 +91,21 @@ export function FileListItem({
     enabled: shouldPoll,
     refetchInterval: (query: unknown) => {
       const data = (query as { state: { data: { status?: string } } }).state.data
-      return data?.status === 'processed' ? false : 1000
+      return data?.status === 'processed' || data?.status === 'failed' || data?.status === 'error'
+        ? false
+        : 1000
     },
   })
 
   const displayItem = useMemo(() => {
-    if (item.status === 'processed' || item.status === 'error') {
+    if (item.status === 'processed' || item.status === 'error' || item.status === 'failed') {
       return item
     }
-    if (polledItem?.status === 'processed' || polledItem?.status === 'error') {
+    if (
+      polledItem?.status === 'processed' ||
+      polledItem?.status === 'error' ||
+      polledItem?.status === 'failed'
+    ) {
       return polledItem
     }
     return polledItem || item
@@ -215,6 +222,8 @@ export function FileListItem({
           <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-muted rounded overflow-hidden">
             {displayItem.status === 'uploading' ? (
               <ProgressCircle progress={uploadPercent} className="w-7 h-7" />
+            ) : displayItem.status === 'failed' && !displayItem.preview?.thumbnailUrl ? (
+              <AlertCircle className="h-4 w-4 text-destructive" />
             ) : displayItem.preview?.thumbnailUrl ? (
               <img
                 src={displayItem.preview.thumbnailUrl}
@@ -240,7 +249,15 @@ export function FileListItem({
           />
           {displayItem.status === 'error' && (
             <span className="text-xs text-destructive font-semibold shrink-0">
-              (Failed to upload)
+              {m.failed_to_upload_parenthesized()}
+            </span>
+          )}
+          {displayItem.status === 'failed' && (
+            <span
+              data-testid="file-list-item-failed"
+              className="text-xs text-destructive font-semibold shrink-0"
+            >
+              {m.processing_failed_parenthesized()}
             </span>
           )}
 

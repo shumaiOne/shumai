@@ -1,6 +1,7 @@
 import { client } from '@/ui/api/client'
+import { m } from '@/ui/paraglide/messages.js'
 import { cn } from '@/ui/lib/utils'
-import { Play, AudioLines, Loader2 } from 'lucide-react'
+import { Play, AudioLines, Loader2, AlertCircle } from 'lucide-react'
 import React, { useCallback, useEffect, useRef, useState, useImperativeHandle } from 'react'
 import Hls from 'hls.js'
 import { useFramePlayer } from './use-frame-player'
@@ -958,9 +959,34 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const isMobile = useIsMobile()
 
     if (!hasMedia) {
+      if (data.status === 'failed') {
+        const errorMessage = data.media?.error
+        return (
+          <div
+            data-testid="video-viewer-failed-state"
+            className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center"
+          >
+            <AlertCircle className="h-12 w-12 text-destructive/80" />
+            <div className="space-y-1 max-w-md">
+              <h3 className="text-base font-semibold text-foreground">
+                {m.media_processing_failed()}
+              </h3>
+              <p className="text-sm text-muted-foreground">{m.media_processing_failed_desc()}</p>
+              {errorMessage && (
+                <div
+                  title={errorMessage}
+                  className="mt-3 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive text-left line-clamp-3 break-words"
+                >
+                  {errorMessage}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      }
       return (
         <div className="flex h-full w-full items-center justify-center">
-          <p className="text-muted-foreground">Media is not available.</p>
+          <p className="text-muted-foreground">{m.media_not_available()}</p>
         </div>
       )
     }

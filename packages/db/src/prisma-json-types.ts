@@ -209,6 +209,7 @@ declare global {
       original: OriginalInfo | null
       isHls?: boolean
       hls?: HlsInfo
+      error?: string
     }
 
     // ----------------------------------------------------------------------

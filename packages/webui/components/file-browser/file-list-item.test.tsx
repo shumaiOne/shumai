@@ -134,4 +134,17 @@ describe('FileListItem', () => {
 
     expect(onDoubleClick).toHaveBeenCalled()
   })
+
+  it('renders (Processing failed) label when status is failed', () => {
+    const failedItem: AssetInfo = {
+      ...mockItem,
+      status: 'failed',
+    } as AssetInfo
+
+    renderComponent({ item: failedItem })
+
+    const failedLabel = screen.getByTestId('file-list-item-failed')
+    expect(failedLabel).toBeTruthy()
+    expect(failedLabel.textContent).toMatch(/Processing failed|处理失败/i)
+  })
 })

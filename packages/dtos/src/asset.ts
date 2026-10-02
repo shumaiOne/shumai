@@ -145,6 +145,7 @@ export const assetInfoSchema = z.object({
         .optional(),
       proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
       metadata: mediaMetadataSchema.optional(),
+      error: z.string().optional(),
     })
     .optional(),
   ancestorFolders: z.array(ancestorFolderSchema).optional(),

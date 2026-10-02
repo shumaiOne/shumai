@@ -382,4 +382,43 @@ describe('FileCard', () => {
     // The duration badge appears once processing is done.
     expect(screen.getByText('00:10')).toBeTruthy()
   })
+
+  it('renders failed state with alert icon and "Processing failed" when status is failed without a preview', () => {
+    const failedItem: AssetInfo = {
+      ...fileItem,
+      status: 'failed',
+      creator: { id: 'u1', name: 'Alice' },
+    } as AssetInfo
+
+    renderComponent({ item: failedItem })
+
+    expect(screen.queryByTestId('file-card-preparing-circle')).toBeNull()
+    const failedState = screen.getByTestId('file-card-failed-state')
+    expect(failedState).toBeTruthy()
+    expect(screen.getAllByText(/Processing failed|处理失败/i).length).toBe(2)
+    expect(screen.queryByText(/Alice/i)).toBeNull()
+  })
+
+  it('renders thumbnail with failed badge and does not pulse when status is failed with preview', () => {
+    const failedItemWithPreview: AssetInfo = {
+      ...fileItem,
+      status: 'failed',
+      creator: { id: 'u1', name: 'Alice' },
+      preview: {
+        proxyType: 'video',
+        thumbnailUrl: 'https://example.com/poster.webp',
+        duration: 10,
+      },
+    } as AssetInfo
+
+    renderComponent({ item: failedItemWithPreview })
+
+    const media = screen.getByTestId('file-card-preview-media')
+    expect(media.className).not.toContain('animate-pulse')
+    const badge = screen.getByTestId('file-card-failed-badge')
+    expect(badge).toBeTruthy()
+    expect(badge.textContent).toMatch(/Failed|失败/i)
+    expect(screen.getByText(/Processing failed|处理失败/i)).toBeTruthy()
+    expect(screen.queryByText(/Alice/i)).toBeNull()
+  })
 })

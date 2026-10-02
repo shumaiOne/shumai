@@ -1,5 +1,6 @@
 import { client } from '@/ui/api/client'
-import { Download } from 'lucide-react'
+import { m } from '@/ui/paraglide/messages.js'
+import { Download, AlertCircle } from 'lucide-react'
 import React, { useImperativeHandle } from 'react'
 import { FileViewerProps, MediaController } from '../types'
 
@@ -37,12 +38,40 @@ export const DefaultViewer = React.forwardRef<MediaController, FileViewerProps>(
       }
     }
 
+    const isFailed = file.status === 'failed'
+    const errorMessage = file.media?.error
+
     return (
       <div className="flex flex-col flex-1 h-full overflow-hidden bg-gray-100 dark:bg-gray-950 relative">
         <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
           {children}
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-muted-foreground">Preview unavailable</p>
+          <div className="flex-1 flex items-center justify-center p-6 text-center">
+            {isFailed ? (
+              <div
+                data-testid="default-viewer-failed-state"
+                className="flex flex-col items-center justify-center gap-3 max-w-md"
+              >
+                <AlertCircle className="h-12 w-12 text-destructive/80" />
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold text-foreground">
+                    {m.media_processing_failed()}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {m.media_processing_failed_desc()}
+                  </p>
+                  {errorMessage && (
+                    <div
+                      title={errorMessage}
+                      className="mt-3 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive text-left line-clamp-3 break-words"
+                    >
+                      {errorMessage}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Preview unavailable</p>
+            )}
           </div>
         </div>
         <div className="relative px-4 py-3 bg-card border-t border-gray-200 dark:border-gray-700 z-10 flex items-center justify-end gap-2 transition-colors duration-200">

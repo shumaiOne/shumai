@@ -36,6 +36,7 @@ export const AssetStatus = {
   uploaded: 'uploaded',
   processing: 'processing',
   processed: 'processed',
+  failed: 'failed',
   trashed: 'trashed',
   pending_purge: 'pending_purge'
 } as const

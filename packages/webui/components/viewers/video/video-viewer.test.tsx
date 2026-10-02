@@ -791,4 +791,20 @@ describe('VideoViewer', () => {
       vi.useRealTimers()
     }
   })
+
+  it('renders failed state when file has no media and status is failed', () => {
+    const failedVideo = {
+      id: 'failed-video',
+      name: 'failed-video.mp4',
+      proxyType: 'video',
+      status: 'failed',
+      media: {
+        error: 'Transcoding failed due to server error',
+      },
+    } as unknown as AssetInfo
+
+    const { getByTestId, getByText } = render(<VideoViewer file={failedVideo} />)
+    expect(getByTestId('video-viewer-failed-state')).toBeDefined()
+    expect(getByText('Transcoding failed due to server error')).toBeDefined()
+  })
 })

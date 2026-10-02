@@ -40,6 +40,7 @@ enum AssetStatus {
   uploaded
   processing
   processed
+  failed
   trashed
   pending_purge
 }

@@ -48,6 +48,40 @@ describe('Task Activities', () => {
     expect(updated?.status).toBe(AssetStatus.processing)
   })
 
+  it('should update asset status to failed and store truncated error message in media', async () => {
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test-fail.mp4',
+        storageKey: { create: { key: 'test-fail.mp4' } },
+        status: AssetStatus.processing,
+        type: 'file',
+        media: {
+          original: null,
+          videoTranscodes: [],
+          imageTranscodes: [],
+          duration: 10,
+          filesize: 1000,
+          frames: 300,
+          finishedAt: '',
+          metadata: null,
+        },
+      },
+    })
+
+    const longError = 'x'.repeat(600)
+    await updateAssetStatusActivity({
+      assetId: asset.id,
+      status: AssetStatus.failed,
+      error: longError,
+    })
+
+    const updated = await prisma.asset.findUnique({ where: { id: asset.id } })
+    expect(updated?.status).toBe(AssetStatus.failed)
+    const media = updated?.media as PrismaJson.MediaInfo
+    expect(media?.error).toBe('x'.repeat(500))
+    expect(media?.duration).toBe(10)
+  })
+
   it('should NOT overwrite trashed status when asset is soft-deleted (isDeleted: true)', async () => {
     const asset = await prisma.asset.create({
       data: {

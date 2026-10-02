@@ -27,6 +27,7 @@ import { cn } from '@/ui/lib/utils'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
 import {
+  AlertCircle,
   Clock,
   Download,
   Edit,
@@ -131,15 +132,21 @@ export function FileCard({
     enabled: shouldPoll,
     refetchInterval: (query: unknown) => {
       const data = (query as { state: { data: { status?: string } } }).state.data
-      return data?.status === 'processed' ? false : 1000
+      return data?.status === 'processed' || data?.status === 'failed' || data?.status === 'error'
+        ? false
+        : 1000
     },
   })
 
   const displayItem = useMemo(() => {
-    if (item.status === 'processed' || item.status === 'error') {
+    if (item.status === 'processed' || item.status === 'error' || item.status === 'failed') {
       return item
     }
-    if (polledItem?.status === 'processed' || polledItem?.status === 'error') {
+    if (
+      polledItem?.status === 'processed' ||
+      polledItem?.status === 'error' ||
+      polledItem?.status === 'failed'
+    ) {
       return polledItem
     }
     return polledItem || item
@@ -263,16 +270,19 @@ export function FileCard({
   // A preview (poster thumbnail and/or sprite) can be available before transcoding finishes,
   // since the poster/sprite are generated and persisted ahead of the proxy transcodes.
   const hasPreview = Boolean(displayItem.preview?.thumbnailUrl || displayItem.preview?.spriteUrl)
+  const isFailed = displayItem.status === 'failed'
   const isProcessing = displayItem.status === 'processing' || displayItem.status === 'uploaded'
 
-  // While uploading/transcoding, the creator row is replaced by a short status label so the real
+  // While uploading/transcoding/failed, the creator row is replaced by a short status label so the real
   // date/author only appears once the asset is ready.
   const statusText =
     displayItem.status === 'uploading'
       ? m.uploading()
       : displayItem.status === 'uploaded' || displayItem.status === 'processing'
         ? m.preparing()
-        : null
+        : displayItem.status === 'failed'
+          ? m.processing_failed()
+          : null
 
   const previewBadges =
     daysLeft !== null ||
@@ -322,7 +332,7 @@ export function FileCard({
         showDropFeedback && 'border-primary outline-1 outline-primary',
       )}
     >
-      <div className="absolute left-2 top-2 z-10">
+      <div className="absolute left-2 top-2 z-10 flex items-center gap-1.5">
         <Checkbox
           checked={isChecked}
           onCheckedChange={() => {}}
@@ -332,6 +342,15 @@ export function FileCard({
           }}
           className="h-4 w-4 bg-white/20 dark:bg-white/20 border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary border-foreground/15"
         />
+        {isFailed && (
+          <span
+            data-testid="file-card-failed-badge"
+            className="flex items-center gap-1 rounded bg-destructive/90 px-1.5 py-0.5 text-xs font-medium text-destructive-foreground shadow-sm"
+          >
+            <AlertCircle className="h-3 w-3 shrink-0" />
+            <span>{m.status_failed()}</span>
+          </span>
+        )}
       </div>
 
       <div className="absolute right-2 top-2 z-10 flex items-center gap-1.5">
@@ -364,7 +383,7 @@ export function FileCard({
               data-testid="file-card-preview-media"
               className={cn('h-full w-full', isProcessing && 'animate-pulse')}
             >
-              <FilePreview item={displayItem} showDuration={!isProcessing} />
+              <FilePreview item={displayItem} showDuration={!isProcessing && !isFailed} />
             </div>
             {previewBadges}
           </>
@@ -374,7 +393,17 @@ export function FileCard({
               {m.failed_to_upload()}
             </span>
           </div>
-        ) : displayItem.status === 'processing' || displayItem.status === 'uploaded' ? (
+        ) : isFailed ? (
+          <div
+            data-testid="file-card-failed-state"
+            className="flex flex-col h-full w-full items-center justify-center gap-2 p-3 text-center bg-muted/40"
+          >
+            <AlertCircle className="h-10 w-10 text-destructive/80 shrink-0" />
+            <span className="z-10 text-xs font-semibold text-destructive px-2">
+              {m.processing_failed()}
+            </span>
+          </div>
+        ) : isProcessing ? (
           <div className="flex h-full w-full items-center justify-center">
             {/* Same geometry as the upload progress ring, but empty inside and no percentage. */}
             <svg
@@ -431,7 +460,13 @@ export function FileCard({
               }}
             >
               <TooltipTrigger asChild>
-                <p ref={creatorRef} className="text-sm text-muted-foreground line-clamp-2 h-[2lh]">
+                <p
+                  ref={creatorRef}
+                  className={cn(
+                    'text-sm line-clamp-2 h-[2lh]',
+                    isFailed ? 'text-destructive font-medium' : 'text-muted-foreground',
+                  )}
+                >
                   {statusText ?? creatorText}
                 </p>
               </TooltipTrigger>
