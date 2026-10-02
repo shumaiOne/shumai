@@ -785,6 +785,7 @@
   "failed_to_upload_parenthesized": "（上传失败）",
   "processing_failed": "处理失败",
   "processing_failed_parenthesized": "（处理失败）",
+  "transcoding_failed": "转码失败",
   "status_failed": "失败",
   "media_processing_failed": "媒体处理失败",
   "media_processing_failed_desc": "处理此媒体文件时发生错误。您仍可以下载原始文件。",

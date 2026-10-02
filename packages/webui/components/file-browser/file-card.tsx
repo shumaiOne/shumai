@@ -273,16 +273,16 @@ export function FileCard({
   const isFailed = displayItem.status === 'failed'
   const isProcessing = displayItem.status === 'processing' || displayItem.status === 'uploaded'
 
-  // While uploading/transcoding/failed, the creator row is replaced by a short status label so the real
-  // date/author only appears once the asset is ready.
+  // While uploading/transcoding, the creator row is replaced by a short status label so the real
+  // date/author only appears once the asset is ready or failed.
   const statusText =
     displayItem.status === 'uploading'
       ? m.uploading()
       : displayItem.status === 'uploaded' || displayItem.status === 'processing'
         ? m.preparing()
-        : displayItem.status === 'failed'
-          ? m.processing_failed()
-          : null
+        : null
+
+  const failedErrorMessage = displayItem.media?.error || m.processing_failed()
 
   const previewBadges =
     daysLeft !== null ||
@@ -342,15 +342,6 @@ export function FileCard({
           }}
           className="h-4 w-4 bg-white/20 dark:bg-white/20 border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary border-foreground/15"
         />
-        {isFailed && (
-          <span
-            data-testid="file-card-failed-badge"
-            className="flex items-center gap-1 rounded bg-destructive/90 px-1.5 py-0.5 text-xs font-medium text-destructive-foreground shadow-sm"
-          >
-            <AlertCircle className="h-3 w-3 shrink-0" />
-            <span>{m.status_failed()}</span>
-          </span>
-        )}
       </div>
 
       <div className="absolute right-2 top-2 z-10 flex items-center gap-1.5">
@@ -369,6 +360,27 @@ export function FileCard({
             {displayItem.versionStack.versions.find((v) => v.id === displayItem.id)?.version ??
               displayItem.versionStack.versions.length}
           </Badge>
+        )}
+        {isFailed && (
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  data-testid="file-card-failed-badge"
+                  className="select-none rounded bg-destructive/90 px-1.5 py-0.5 text-xs font-medium text-destructive-foreground shadow-sm cursor-help"
+                >
+                  {m.transcoding_failed()}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                data-testid="file-card-failed-tooltip"
+                className="max-w-xs break-words text-xs"
+              >
+                {failedErrorMessage}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
 
@@ -460,13 +472,7 @@ export function FileCard({
               }}
             >
               <TooltipTrigger asChild>
-                <p
-                  ref={creatorRef}
-                  className={cn(
-                    'text-sm line-clamp-2 h-[2lh]',
-                    isFailed ? 'text-destructive font-medium' : 'text-muted-foreground',
-                  )}
-                >
+                <p ref={creatorRef} className="text-sm line-clamp-2 h-[2lh] text-muted-foreground">
                   {statusText ?? creatorText}
                 </p>
               </TooltipTrigger>
