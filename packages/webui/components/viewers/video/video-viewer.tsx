@@ -472,10 +472,6 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
         setIsPlayerReady(false)
       }
       const handleProgress = () => {
-        clearWaitingTimeout()
-        if (!video.paused && !video.ended) {
-          setIsLoading(false)
-        }
         const vidDuration = video.duration || data.media?.metadata?.duration || 0
         if (vidDuration > 0 && video.buffered.length > 0) {
           let bufferedEnd = 0

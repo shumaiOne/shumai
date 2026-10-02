@@ -213,8 +213,6 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
           hls.attachMedia(video)
           hls.loadSource(targetSrc)
 
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {})
-
           hls.on(Hls.Events.LEVEL_SWITCHED, (_event, eventData) => {
             const level = hls?.levels[eventData.level]
             if (level) {
@@ -306,10 +304,6 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
         setIsPlayerReady(false)
       }
       const handleProgress = () => {
-        clearWaitingTimeout()
-        if (!video.paused && !video.ended) {
-          setIsLoading(false)
-        }
         const vidDuration = video.duration || containerDuration || 0
         if (vidDuration > 0 && video.buffered.length > 0) {
           let bufferedEnd = 0
