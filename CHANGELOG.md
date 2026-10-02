@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-* **transcode**: Fix an issue where videos containing attached cover art or picture streams could cause transcoding to fail or select a single static image instead of the video
+* **transcode**: Fix an issue where videos or audio-only files containing attached cover art or picture streams could cause transcoding to fail during poster generation or select a single static image instead of the video
 
 * **webui**: Fix inconsistent video resolution labels across download menus, mobile file headers, and the video player by correctly deriving resolutions from the video's short side, including portrait videos and 480p videos
 

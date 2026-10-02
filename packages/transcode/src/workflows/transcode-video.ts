@@ -64,7 +64,9 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       codec: '',
     }
 
-    if (spec.poster) {
+    const isVideo = mediaInfo.proxyType === 'video'
+
+    if (spec.poster && isVideo) {
       const lastSlashIndex = key.lastIndexOf('/')
       const assetDir = lastSlashIndex === -1 ? '' : key.substring(0, lastSlashIndex)
       const posterSpec: PrismaJson.PosterInfo = {
@@ -88,7 +90,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
 
     // Generate the sprite (and its poster fallback) before the expensive proxy transcodes so the
     // file list can show a poster/sprite preview while the asset is still processing.
-    if (spec.sprite || (spec.poster && !mediaInfo.poster)) {
+    if ((spec.sprite || (spec.poster && !mediaInfo.poster)) && isVideo) {
       const lastSlashIndex = key.lastIndexOf('/')
       const assetDir = lastSlashIndex === -1 ? '' : key.substring(0, lastSlashIndex)
 
@@ -125,7 +127,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
 
     const metadata = mediaInfo.metadata
 
-    if (mediaInfo.proxyType === 'video' && metadata) {
+    if (isVideo && metadata) {
       const videoResolutions = getTargetVideoResolutions(
         spec.videoStrategy || 'best_match',
         metadata.originalWidth,
@@ -245,7 +247,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       mediaInfo.videoTranscodes.push(audioTranscode)
     }
 
-    if (spec.thumbnail) {
+    if (spec.thumbnail && isVideo) {
       const thumbTranscode = await executeActivity(workerQueue, transcodeImageActivity, {
         assetKey: key,
         filePath,
