@@ -35,6 +35,7 @@ export interface PaneReportedState {
     buffered: number
     activeAutoResolution?: string
     isHlsManualSupported?: boolean
+    isLoading?: boolean
   }
 }
 

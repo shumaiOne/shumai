@@ -305,4 +305,111 @@ describe('CompareVideoPane', () => {
     const lastState = reportedStates[reportedStates.length - 1]
     expect(lastState?.video?.resolutions?.[0]?.resolution).toBe('1080p')
   })
+
+  it('sets poster on video element from file.preview.thumbnailUrl', () => {
+    const videoWithThumb: AssetInfo = {
+      id: 'compare-thumb',
+      name: 'thumb.mp4',
+      proxyType: 'video',
+      preview: {
+        thumbnailUrl: 'https://cdn.example.com/compare-poster.jpg',
+      },
+      media: {
+        metadata: {
+          originalWidth: 1920,
+          originalHeight: 1080,
+          duration: 10,
+          frameRate: 30,
+          totalFrames: 300,
+        },
+        videoTranscodes: [
+          {
+            resolution: '1080p',
+            url: 'https://cdn.example.com/compare-1080p.mp4',
+            width: 1920,
+            height: 1080,
+          },
+        ],
+      },
+    } as unknown as AssetInfo
+
+    const { container } = render(
+      <CompareVideoPane
+        file={videoWithThumb}
+        isActive={true}
+        annotations={[]}
+        onActivate={vi.fn()}
+        onStateChange={vi.fn()}
+      />,
+    )
+    const video = container.querySelector(
+      '[data-testid="compare-video-area"] video',
+    ) as HTMLVideoElement
+    expect(video.getAttribute('poster')).toBe('https://cdn.example.com/compare-poster.jpg')
+  })
+
+  it('shows loading spinner initially, transitions on loadeddata, and blocks play while loading', () => {
+    const testVideo: AssetInfo = {
+      id: 'compare-loading-test',
+      name: 'loading.mp4',
+      proxyType: 'video',
+      media: {
+        metadata: {
+          originalWidth: 1920,
+          originalHeight: 1080,
+          duration: 10,
+          frameRate: 30,
+          totalFrames: 300,
+        },
+        videoTranscodes: [
+          {
+            resolution: '1080p',
+            url: 'https://cdn.example.com/compare-1080p.mp4',
+            width: 1920,
+            height: 1080,
+          },
+        ],
+      },
+    } as unknown as AssetInfo
+
+    const onRequestTogglePlay = vi.fn()
+    const { container } = render(
+      <CompareVideoPane
+        file={testVideo}
+        isActive={true}
+        annotations={[]}
+        onActivate={vi.fn()}
+        onStateChange={vi.fn()}
+        onRequestTogglePlay={onRequestTogglePlay}
+      />,
+    )
+
+    const area = container.querySelector('[data-testid="compare-video-area"]') as HTMLDivElement
+    const video = area.querySelector('video') as HTMLVideoElement
+
+    // Initially loading spinner is visible
+    expect(container.querySelector('[data-testid="compare-video-loading-spinner"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="compare-video-play-overlay"]')).toBeNull()
+
+    // Clicking while loading should not trigger play
+    act(() => {
+      area.click()
+    })
+    expect(onRequestTogglePlay).not.toHaveBeenCalled()
+
+    // Dispatch loadeddata
+    act(() => {
+      video.dispatchEvent(new Event('loadeddata'))
+    })
+
+    // Spinner gone, play overlay visible
+    expect(container.querySelector('[data-testid="compare-video-loading-spinner"]')).toBeNull()
+    expect(container.querySelector('[data-testid="compare-video-play-overlay"]')).not.toBeNull()
+
+    // Clicking now triggers toggle play
+    act(() => {
+      area.click()
+    })
+    expect(onRequestTogglePlay).toHaveBeenCalledTimes(1)
+  })
 })

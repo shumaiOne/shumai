@@ -47,6 +47,7 @@ export interface PlayerState {
   isCurrentHdr?: boolean
   activeAutoResolution?: string
   isHlsManualSupported?: boolean
+  isLoading?: boolean
 }
 
 export interface DisplayTranscode {
@@ -93,6 +94,7 @@ export interface ControlBarProps {
   onMouseLeave?: () => void
   /** When false, hides the download affordance. Defaults to true. */
   allowDownload?: boolean
+  isLoading?: boolean
 }
 
 export const VideoControlBar: React.FC<ControlBarProps> = ({
@@ -120,7 +122,9 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
   onMouseEnter,
   onMouseLeave,
   allowDownload = true,
+  isLoading: propIsLoading,
 }) => {
+  const isLoading = propIsLoading ?? state.isLoading ?? false
   const { videoTimeDisplayMode, setVideoTimeDisplayMode } = useUiStore()
 
   if (!data.media?.metadata) {
@@ -156,332 +160,341 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      {/* Progress Bar */}
-      <div className="mb-4 px-1">
-        <ProgressBar
-          totalFrames={totalFrames}
-          currentFrame={currentFrame}
-          fps={frameRate}
-          buffered={buffered}
-          previewUrl={data.media.videoPreview?.url}
-          onSeek={seekToFrame}
-          metadata={{
-            ...data.media.metadata,
-            frameRate: frameRate,
-          }}
-        />
-      </div>
+      <div
+        className={cn(
+          'transition-opacity duration-200',
+          isLoading && 'pointer-events-none opacity-60 select-none',
+        )}
+      >
+        {/* Progress Bar */}
+        <div className="mb-4 px-1">
+          <ProgressBar
+            totalFrames={totalFrames}
+            currentFrame={currentFrame}
+            fps={frameRate}
+            buffered={buffered}
+            previewUrl={data.media.videoPreview?.url}
+            onSeek={seekToFrame}
+            metadata={{
+              ...data.media.metadata,
+              frameRate: frameRate,
+            }}
+          />
+        </div>
 
-      {/* Lower Controls Row */}
-      <div className="flex items-center justify-between text-foreground">
-        {/* Left Side: Play, Vol, Time */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={togglePlay}
-            className="hover:text-primary transition-colors"
-            data-testid="play-toggle"
-            data-playing={state.isPlaying}
-            aria-label={state.isPlaying ? 'Pause' : 'Play'}
-          >
-            {state.isPlaying ? (
-              <Pause className="w-6 h-6 fill-current" />
-            ) : (
-              <Play className="w-6 h-6 fill-current" />
-            )}
-          </button>
-
-          <button
-            onClick={toggleLoop}
-            className={cn(
-              'transition-colors',
-              state.isLooping ? 'text-primary' : 'text-muted-foreground',
-            )}
-            title="Loop"
-          >
-            <Repeat className="w-5 h-5" />
-          </button>
-
-          <div className="flex items-center gap-3 group/vol">
-            <button onClick={toggleMute} className="hover:text-primary">
-              {state.isMuted || state.volume === 0 ? (
-                <VolumeX className="w-6 h-6" />
+        {/* Lower Controls Row */}
+        <div className="flex items-center justify-between text-foreground">
+          {/* Left Side: Play, Vol, Time */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={togglePlay}
+              className="hover:text-primary transition-colors"
+              data-testid="play-toggle"
+              data-playing={state.isPlaying}
+              aria-label={state.isPlaying ? 'Pause' : 'Play'}
+            >
+              {state.isPlaying ? (
+                <Pause className="w-6 h-6 fill-current" />
               ) : (
-                <Volume2 className="w-6 h-6" />
+                <Play className="w-6 h-6 fill-current" />
               )}
             </button>
 
-            <div className="w-0 overflow-hidden group-hover/vol:w-24 transition-all duration-300 ease-in-out">
-              <div className="w-24 px-1">
-                <Slider
-                  value={state.isMuted ? [0] : [state.volume]}
-                  onValueChange={(v: number[]) => handleVolumeChange(v[0])}
-                  max={1}
-                  step={0.05}
-                />
+            <button
+              onClick={toggleLoop}
+              className={cn(
+                'transition-colors',
+                state.isLooping ? 'text-primary' : 'text-muted-foreground',
+              )}
+              title="Loop"
+            >
+              <Repeat className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 group/vol">
+              <button onClick={toggleMute} className="hover:text-primary">
+                {state.isMuted || state.volume === 0 ? (
+                  <VolumeX className="w-6 h-6" />
+                ) : (
+                  <Volume2 className="w-6 h-6" />
+                )}
+              </button>
+
+              <div className="w-0 overflow-hidden group-hover/vol:w-24 transition-all duration-300 ease-in-out">
+                <div className="w-24 px-1">
+                  <Slider
+                    value={state.isMuted ? [0] : [state.volume]}
+                    onValueChange={(v: number[]) => handleVolumeChange(v[0])}
+                    max={1}
+                    step={0.05}
+                  />
+                </div>
               </div>
+            </div>
+
+            <div className="flex items-center gap-1 text-sm font-medium tabular-nums select-none min-w-[100px]">
+              <span className="text-muted-foreground font-mono" data-testid="time-readout">
+                {displayString}
+              </span>
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <button className="h-6 w-6 inline-flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus:outline-none">
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-40 z-30">
+                  <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Format
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => setVideoTimeDisplayMode('standard')}
+                    className="flex items-center justify-between cursor-pointer text-xs"
+                  >
+                    <span>Standard Time</span>
+                    {videoTimeDisplayMode === 'standard' && (
+                      <Check className="h-3.5 w-3.5 text-primary" />
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setVideoTimeDisplayMode('frames')}
+                    className="flex items-center justify-between cursor-pointer text-xs"
+                  >
+                    <span>Frames</span>
+                    {videoTimeDisplayMode === 'frames' && (
+                      <Check className="h-3.5 w-3.5 text-primary" />
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setVideoTimeDisplayMode('timecode')}
+                    className="flex items-center justify-between cursor-pointer text-xs"
+                  >
+                    <span>Timecode</span>
+                    {videoTimeDisplayMode === 'timecode' && (
+                      <Check className="h-3.5 w-3.5 text-primary" />
+                    )}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
-          <div className="flex items-center gap-1 text-sm font-medium tabular-nums select-none min-w-[100px]">
-            <span className="text-muted-foreground font-mono" data-testid="time-readout">
-              {displayString}
-            </span>
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <button className="h-6 w-6 inline-flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus:outline-none">
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-40 z-30">
-                <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                  Format
-                </DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => setVideoTimeDisplayMode('standard')}
-                  className="flex items-center justify-between cursor-pointer text-xs"
-                >
-                  <span>Standard Time</span>
-                  {videoTimeDisplayMode === 'standard' && (
-                    <Check className="h-3.5 w-3.5 text-primary" />
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setVideoTimeDisplayMode('frames')}
-                  className="flex items-center justify-between cursor-pointer text-xs"
-                >
-                  <span>Frames</span>
-                  {videoTimeDisplayMode === 'frames' && (
-                    <Check className="h-3.5 w-3.5 text-primary" />
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setVideoTimeDisplayMode('timecode')}
-                  className="flex items-center justify-between cursor-pointer text-xs"
-                >
-                  <span>Timecode</span>
-                  {videoTimeDisplayMode === 'timecode' && (
-                    <Check className="h-3.5 w-3.5 text-primary" />
-                  )}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* Right Side: Zoom, Speed, Res, Download, Fullscreen */}
-        <div className="relative flex items-center gap-3">
-          {/* Zoom Controls */}
-          {!isAudio && (
-            <div className="flex items-center gap-1">
-              <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+          {/* Right Side: Zoom, Speed, Res, Download, Fullscreen */}
+          <div className="relative flex items-center gap-3">
+            {/* Zoom Controls */}
+            {!isAudio && (
+              <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+                  <button
+                    onClick={() => onZoomChange(zoom * 0.8)}
+                    className="p-1 hover:text-primary rounded"
+                    title={m.zoom_out()}
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="text-xs w-8 text-center tabular-nums">
+                    {Math.round(zoom * 100)}%
+                  </span>
+                  <button
+                    onClick={() => onZoomChange(zoom * 1.2)}
+                    className="p-1 hover:text-primary rounded"
+                    title={m.zoom_in()}
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
                 <button
-                  onClick={() => onZoomChange(zoom * 0.8)}
-                  className="p-1 hover:text-primary rounded"
-                  title={m.zoom_out()}
+                  onClick={onZoomReset}
+                  className="text-xs font-medium px-2 py-1 rounded bg-muted hover:text-primary transition-colors"
                 >
-                  <Minus size={14} />
-                </button>
-                <span className="text-xs w-8 text-center tabular-nums">
-                  {Math.round(zoom * 100)}%
-                </span>
-                <button
-                  onClick={() => onZoomChange(zoom * 1.2)}
-                  className="p-1 hover:text-primary rounded"
-                  title={m.zoom_in()}
-                >
-                  <Plus size={14} />
+                  {m.fit()}
                 </button>
               </div>
-              <button
-                onClick={onZoomReset}
-                className="text-xs font-medium px-2 py-1 rounded bg-muted hover:text-primary transition-colors"
-              >
-                {m.fit()}
-              </button>
-            </div>
-          )}
+            )}
 
-          {/* Playback Rate */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="w-8 text-sm font-bold hover:text-primary">
-                {state.playbackRate}x
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {[0.5, 1, 1.5, 2].map((rate) => (
-                <DropdownMenuItem
-                  key={rate}
-                  onClick={() => changePlaybackRate(rate)}
-                  className={cn(
-                    'rounded py-1 px-2 text-left text-xs',
-                    state.playbackRate === rate
-                      ? 'bg-primary text-primary-foreground focus:bg-primary focus:text-primary-foreground'
-                      : 'text-foreground',
-                  )}
-                >
-                  {rate}x
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Settings / Resolution */}
-          {!isAudio && resolutions.length > 0 && (
+            {/* Playback Rate */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1.5 rounded border border-border px-2 py-0.5 text-sm font-semibold hover:bg-muted transition-colors">
-                  <Settings className="h-3.5 w-3.5" />
-                  <span className="flex items-center gap-1">
-                    <span>
-                      {state.currentResolution === 'Auto'
-                        ? state.activeAutoResolution
-                          ? `${m.quality_auto()} (${state.activeAutoResolution})`
-                          : m.quality_auto()
-                        : state.currentResolution === 'Original'
-                          ? m.original()
-                          : state.currentResolution}
-                    </span>
-                    {state.isCurrentHdr && (
-                      <span className="px-1 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
-                        {m.hdr()}
-                      </span>
-                    )}
-                  </span>
+                <button className="w-8 text-sm font-bold hover:text-primary">
+                  {state.playbackRate}x
                 </button>
               </DropdownMenuTrigger>
-
               <DropdownMenuContent>
-                <DropdownMenuLabel>{m.quality()}</DropdownMenuLabel>
-                {data.media?.isHls && (
+                {[0.5, 1, 1.5, 2].map((rate) => (
                   <DropdownMenuItem
-                    onClick={() =>
-                      changeResolution({
-                        resolution: 'Auto',
-                        width: data.media?.metadata?.originalWidth ?? 0,
-                        height: data.media?.metadata?.originalHeight ?? 0,
-                      } as DisplayTranscode)
-                    }
+                    key={rate}
+                    onClick={() => changePlaybackRate(rate)}
                     className={cn(
-                      'flex w-full items-center justify-between cursor-pointer',
-                      state.currentResolution === 'Auto'
-                        ? 'text-primary font-medium'
+                      'rounded py-1 px-2 text-left text-xs',
+                      state.playbackRate === rate
+                        ? 'bg-primary text-primary-foreground focus:bg-primary focus:text-primary-foreground'
                         : 'text-foreground',
                     )}
                   >
-                    <span>{m.quality_auto()}</span>
+                    {rate}x
                   </DropdownMenuItem>
-                )}
-                {resolutions.map((res) => {
-                  const itemKey = `${res.resolution}-${res.hdr ? 'hdr' : 'sdr'}`
-                  const isSelected =
-                    state.currentResolution === res.resolution &&
-                    Boolean(state.isCurrentHdr) === Boolean(res.hdr)
-                  const isManualDisabled =
-                    Boolean(data.media?.isHls) && state.isHlsManualSupported === false
-                  return (
-                    <DropdownMenuItem
-                      key={itemKey}
-                      disabled={isManualDisabled}
-                      onClick={() => !isManualDisabled && changeResolution(res)}
-                      className={cn(
-                        'flex w-full items-center justify-between',
-                        isSelected ? 'text-primary font-medium' : 'text-foreground',
-                        isManualDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
-                      )}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span>{res.resolution === 'Original' ? m.original() : res.resolution}</span>
-                        {res.hdr && (
-                          <span className="px-1 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
-                            {m.hdr()}
-                          </span>
-                        )}
-                      </div>
-                      <span className="pl-5 text-xs text-muted-foreground">
-                        {res.width}x{res.height}
-                      </span>
-                    </DropdownMenuItem>
-                  )
-                })}
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
 
-          {/* Download */}
-          {allowDownload &&
-            (isAudio ? (
-              <button
-                onClick={() => handleDownload(data.media?.original?.key || '')}
-                className="transition-colors hover:text-primary"
-                title={m.download()}
-                disabled={!data.media?.original?.key}
-              >
-                <Download className="h-5 w-5" />
-              </button>
-            ) : (
+            {/* Settings / Resolution */}
+            {!isAudio && resolutions.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="transition-colors hover:text-primary" title={m.download()}>
-                    <Download className="h-5 w-5" />
+                  <button className="flex items-center gap-1.5 rounded border border-border px-2 py-0.5 text-sm font-semibold hover:bg-muted transition-colors">
+                    <Settings className="h-3.5 w-3.5" />
+                    <span className="flex items-center gap-1">
+                      <span>
+                        {state.currentResolution === 'Auto'
+                          ? state.activeAutoResolution
+                            ? `${m.quality_auto()} (${state.activeAutoResolution})`
+                            : m.quality_auto()
+                          : state.currentResolution === 'Original'
+                            ? m.original()
+                            : state.currentResolution}
+                      </span>
+                      {state.isCurrentHdr && (
+                        <span className="px-1 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                          {m.hdr()}
+                        </span>
+                      )}
+                    </span>
                   </button>
                 </DropdownMenuTrigger>
+
                 <DropdownMenuContent>
-                  <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
-                  {(data.media?.videoTranscodes && data.media.videoTranscodes.length > 0
-                    ? data.media.videoTranscodes
-                    : resolutions
-                  ).map((res) => {
-                    const resLabel = getVideoResolutionLabel(res)
-                    const itemKey = res.key || `${resLabel}-${res.hdr ? 'hdr' : 'sdr'}`
+                  <DropdownMenuLabel>{m.quality()}</DropdownMenuLabel>
+                  {data.media?.isHls && (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        changeResolution({
+                          resolution: 'Auto',
+                          width: data.media?.metadata?.originalWidth ?? 0,
+                          height: data.media?.metadata?.originalHeight ?? 0,
+                        } as DisplayTranscode)
+                      }
+                      className={cn(
+                        'flex w-full items-center justify-between cursor-pointer',
+                        state.currentResolution === 'Auto'
+                          ? 'text-primary font-medium'
+                          : 'text-foreground',
+                      )}
+                    >
+                      <span>{m.quality_auto()}</span>
+                    </DropdownMenuItem>
+                  )}
+                  {resolutions.map((res) => {
+                    const itemKey = `${res.resolution}-${res.hdr ? 'hdr' : 'sdr'}`
+                    const isSelected =
+                      state.currentResolution === res.resolution &&
+                      Boolean(state.isCurrentHdr) === Boolean(res.hdr)
+                    const isManualDisabled =
+                      Boolean(data.media?.isHls) && state.isHlsManualSupported === false
                     return (
                       <DropdownMenuItem
                         key={itemKey}
-                        onClick={() => handleDownload(res.key ?? '')}
-                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground cursor-pointer"
+                        disabled={isManualDisabled}
+                        onClick={() => !isManualDisabled && changeResolution(res)}
+                        className={cn(
+                          'flex w-full items-center justify-between',
+                          isSelected ? 'text-primary font-medium' : 'text-foreground',
+                          isManualDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                        )}
                       >
                         <div className="flex items-center gap-1.5">
-                          <span>{resLabel}</span>
+                          <span>
+                            {res.resolution === 'Original' ? m.original() : res.resolution}
+                          </span>
                           {res.hdr && (
                             <span className="px-1 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
                               {m.hdr()}
                             </span>
                           )}
                         </div>
-                        <span className="text-xs text-muted-foreground">MP4</span>
+                        <span className="pl-5 text-xs text-muted-foreground">
+                          {res.width}x{res.height}
+                        </span>
                       </DropdownMenuItem>
                     )
                   })}
-                  {data.media?.original?.key && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => handleDownload(data.media?.original?.key ?? '')}
-                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
-                      >
-                        <span>{m.original()}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {data.name?.split('.').pop()?.toUpperCase() || 'RAW'}
-                        </span>
-                      </DropdownMenuItem>
-                    </>
-                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
-            ))}
-
-          {/* Fullscreen */}
-          <button
-            onClick={toggleFullScreen}
-            className="transition-colors hover:text-primary"
-            title={m.fullscreen()}
-          >
-            {state.isFullScreen ? (
-              <Minimize className="h-6 w-6" />
-            ) : (
-              <Maximize className="h-6 w-6" />
             )}
-          </button>
+
+            {/* Download */}
+            {allowDownload &&
+              (isAudio ? (
+                <button
+                  onClick={() => handleDownload(data.media?.original?.key || '')}
+                  className="transition-colors hover:text-primary"
+                  title={m.download()}
+                  disabled={!data.media?.original?.key}
+                >
+                  <Download className="h-5 w-5" />
+                </button>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="transition-colors hover:text-primary" title={m.download()}>
+                      <Download className="h-5 w-5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
+                    {(data.media?.videoTranscodes && data.media.videoTranscodes.length > 0
+                      ? data.media.videoTranscodes
+                      : resolutions
+                    ).map((res) => {
+                      const resLabel = getVideoResolutionLabel(res)
+                      const itemKey = res.key || `${resLabel}-${res.hdr ? 'hdr' : 'sdr'}`
+                      return (
+                        <DropdownMenuItem
+                          key={itemKey}
+                          onClick={() => handleDownload(res.key ?? '')}
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground cursor-pointer"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>{resLabel}</span>
+                            {res.hdr && (
+                              <span className="px-1 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                                {m.hdr()}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground">MP4</span>
+                        </DropdownMenuItem>
+                      )
+                    })}
+                    {data.media?.original?.key && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleDownload(data.media?.original?.key ?? '')}
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
+                        >
+                          <span>{m.original()}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {data.name?.split('.').pop()?.toUpperCase() || 'RAW'}
+                          </span>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ))}
+
+            {/* Fullscreen */}
+            <button
+              onClick={toggleFullScreen}
+              className="transition-colors hover:text-primary"
+              title={m.fullscreen()}
+            >
+              {state.isFullScreen ? (
+                <Minimize className="h-6 w-6" />
+              ) : (
+                <Maximize className="h-6 w-6" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

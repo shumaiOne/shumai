@@ -1,6 +1,6 @@
 import { client } from '@/ui/api/client'
 import { cn } from '@/ui/lib/utils'
-import { Play, AudioLines } from 'lucide-react'
+import { Play, AudioLines, Loader2 } from 'lucide-react'
 import React, { useCallback, useEffect, useRef, useState, useImperativeHandle } from 'react'
 import Hls from 'hls.js'
 import { useFramePlayer } from './use-frame-player'
@@ -157,7 +157,12 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       }))
       setActiveAutoResolution(undefined)
       setHasManuallyZoomed(false)
+      if (waitingTimeoutRef.current) {
+        clearTimeout(waitingTimeoutRef.current)
+        waitingTimeoutRef.current = null
+      }
       setIsPlayerReady(false)
+      setIsLoading(true)
       setBuffered(0)
       lastProcessedStartTimeRef.current = null
       setHasStartedPlaying(false)
@@ -250,6 +255,8 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const [buffered, setBuffered] = useState(0)
     const [isControlsVisible, setIsControlsVisible] = useState(true)
     const [isPlayerReady, setIsPlayerReady] = useState(false)
+    const [isLoading, setIsLoading] = useState(true)
+    const waitingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const lastProcessedStartTimeRef = useRef<number | null>(null)
 
     // Frame-accurate hook and derived state
@@ -285,6 +292,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       progress,
       activeAutoResolution,
       isHlsManualSupported,
+      isLoading,
     }
 
     // Trigger time update event reactively
@@ -309,7 +317,12 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
         hlsRef.current = null
       }
 
+      if (waitingTimeoutRef.current) {
+        clearTimeout(waitingTimeoutRef.current)
+        waitingTimeoutRef.current = null
+      }
       setIsPlayerReady(false)
+      setIsLoading(true)
       setActiveAutoResolution(undefined)
 
       const startAutoPlay = () => {
@@ -339,7 +352,6 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
           hls.loadSource(targetSrc)
 
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            setIsPlayerReady(true)
             if (autoPlay) {
               if (video.readyState >= 2) {
                 startAutoPlay()
@@ -406,7 +418,17 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
         }
       }
 
+      const clearWaitingTimeout = () => {
+        if (waitingTimeoutRef.current) {
+          clearTimeout(waitingTimeoutRef.current)
+          waitingTimeoutRef.current = null
+        }
+      }
+
       const handlePlay = () => {
+        clearWaitingTimeout()
+        setIsLoading(false)
+        setIsPlayerReady(true)
         if (pendingResolutionCorrectionRef.current) {
           pendingResolutionCorrectionRef.current()
           pendingResolutionCorrectionRef.current = null
@@ -420,15 +442,40 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
         onPause?.()
       }
       const handleEnded = () => {
+        clearWaitingTimeout()
+        setIsLoading(false)
         setState((p) => ({ ...p, isPlaying: false }))
       }
-      const handleLoadedMetadata = () => {
+      const handleLoadedData = () => {
+        clearWaitingTimeout()
+        setIsLoading(false)
         setIsPlayerReady(true)
       }
+      const handleCanPlay = () => {
+        clearWaitingTimeout()
+        setIsLoading(false)
+        setIsPlayerReady(true)
+      }
+      const handlePlaying = () => {
+        clearWaitingTimeout()
+        setIsLoading(false)
+      }
+      const handleWaiting = () => {
+        clearWaitingTimeout()
+        waitingTimeoutRef.current = setTimeout(() => {
+          setIsLoading(true)
+        }, 200)
+      }
       const handleLoadStart = () => {
+        clearWaitingTimeout()
+        setIsLoading(true)
         setIsPlayerReady(false)
       }
       const handleProgress = () => {
+        clearWaitingTimeout()
+        if (!video.paused && !video.ended) {
+          setIsLoading(false)
+        }
         const vidDuration = video.duration || data.media?.metadata?.duration || 0
         if (vidDuration > 0 && video.buffered.length > 0) {
           let bufferedEnd = 0
@@ -461,13 +508,23 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
         }))
       }
       const handleError = () => {
+        clearWaitingTimeout()
+        setIsLoading(false)
         console.error('Video Error:', video.error)
+      }
+
+      if (video.readyState >= 2) {
+        setIsLoading(false)
+        setIsPlayerReady(true)
       }
 
       video.addEventListener('play', handlePlay)
       video.addEventListener('pause', handlePause)
       video.addEventListener('ended', handleEnded)
-      video.addEventListener('loadedmetadata', handleLoadedMetadata)
+      video.addEventListener('loadeddata', handleLoadedData)
+      video.addEventListener('canplay', handleCanPlay)
+      video.addEventListener('playing', handlePlaying)
+      video.addEventListener('waiting', handleWaiting)
       video.addEventListener('loadstart', handleLoadStart)
       video.addEventListener('timeupdate', handleProgress)
       video.addEventListener('progress', handleProgress)
@@ -480,10 +537,14 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
 
       // Cleanup
       return () => {
+        clearWaitingTimeout()
         video.removeEventListener('play', handlePlay)
         video.removeEventListener('pause', handlePause)
         video.removeEventListener('ended', handleEnded)
-        video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        video.removeEventListener('loadeddata', handleLoadedData)
+        video.removeEventListener('canplay', handleCanPlay)
+        video.removeEventListener('playing', handlePlaying)
+        video.removeEventListener('waiting', handleWaiting)
         video.removeEventListener('loadstart', handleLoadStart)
         video.removeEventListener('timeupdate', handleProgress)
         video.removeEventListener('progress', handleProgress)
@@ -570,6 +631,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     // -- Event Handlers --
 
     const togglePlay = useCallback(() => {
+      if (isLoading) return
       // Disable click-to-play if drawing
       if (useAnnotationStore.getState().isDrawing) return
 
@@ -593,7 +655,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       } else {
         video.pause()
       }
-    }, [])
+    }, [isLoading])
 
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -949,6 +1011,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
                   className="w-full h-full block object-contain pointer-events-none"
                   playsInline
                   preload="auto"
+                  poster={data.preview?.thumbnailUrl || undefined}
                 />
               </div>
             )}
@@ -996,9 +1059,24 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
               )
             )}
 
+            {/* Loading Spinner Overlay */}
+            {isLoading && (
+              <div
+                className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10 transition-opacity duration-200"
+                data-testid="video-loading-spinner"
+              >
+                <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/30">
+                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+                </div>
+              </div>
+            )}
+
             {/* Initial Big Play Button Overlay (shown only before playback starts) */}
-            {!hasStartedPlaying && !isDrawing && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10 transition-opacity duration-200">
+            {!isLoading && !hasStartedPlaying && !isDrawing && (
+              <div
+                className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10 transition-opacity duration-200"
+                data-testid="video-play-overlay"
+              >
                 <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/30">
                   <Play className="w-10 h-10 text-white ml-1 fill-white" />
                 </div>
@@ -1032,6 +1110,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
             onMouseEnter={handleControlsMouseEnter}
             onMouseLeave={handleControlsMouseLeave}
             allowDownload={allowDownload}
+            isLoading={isLoading}
           />
         ) : (
           <VideoControlBar
@@ -1058,6 +1137,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
             onMouseEnter={handleControlsMouseEnter}
             onMouseLeave={handleControlsMouseLeave}
             allowDownload={allowDownload}
+            isLoading={isLoading}
           />
         )}
       </div>

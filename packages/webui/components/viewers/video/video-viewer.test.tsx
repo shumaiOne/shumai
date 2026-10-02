@@ -566,4 +566,155 @@ describe('VideoViewer', () => {
     expect(settingsButton?.textContent).toContain('1080p')
     expect(settingsButton?.textContent).not.toContain('1920p')
   })
+
+  it('sets poster on video element from file.preview.thumbnailUrl', () => {
+    const videoWithThumb: AssetInfo = {
+      id: 'video-thumb',
+      name: 'thumb.mp4',
+      proxyType: 'video',
+      preview: {
+        thumbnailUrl: 'https://cdn.example.com/poster.jpg',
+      },
+      media: {
+        metadata: {
+          originalWidth: 1920,
+          originalHeight: 1080,
+          duration: 10,
+          frameRate: 30,
+          totalFrames: 300,
+        },
+        videoTranscodes: [
+          {
+            resolution: '1080p',
+            url: 'https://cdn.example.com/video-1080p.mp4',
+            width: 1920,
+            height: 1080,
+          },
+        ],
+      },
+    } as unknown as AssetInfo
+
+    const { container } = render(<VideoViewer file={videoWithThumb} />)
+    const video = container.querySelector('[data-testid="video-area"] video') as HTMLVideoElement
+    expect(video.getAttribute('poster')).toBe('https://cdn.example.com/poster.jpg')
+  })
+
+  it('shows loading spinner initially and transitions to play overlay on loadeddata', () => {
+    const testVideo: AssetInfo = {
+      id: 'video-loading-test',
+      name: 'loading.mp4',
+      proxyType: 'video',
+      media: {
+        metadata: {
+          originalWidth: 1920,
+          originalHeight: 1080,
+          duration: 10,
+          frameRate: 30,
+          totalFrames: 300,
+        },
+        videoTranscodes: [
+          {
+            resolution: '1080p',
+            url: 'https://cdn.example.com/video-1080p.mp4',
+            width: 1920,
+            height: 1080,
+          },
+        ],
+      },
+    } as unknown as AssetInfo
+
+    const { container } = render(<VideoViewer file={testVideo} />)
+    const video = container.querySelector('[data-testid="video-area"] video') as HTMLVideoElement
+
+    // 1. Initially loading spinner is visible, play overlay is not
+    expect(container.querySelector('[data-testid="video-loading-spinner"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="video-play-overlay"]')).toBeNull()
+
+    // 2. Control bar inner wrapper is dimmed & non-interactive
+    const controlBarWrapper = container.querySelector('.pointer-events-none.opacity-60')
+    expect(controlBarWrapper).not.toBeNull()
+
+    // 3. Dispatch loadeddata
+    act(() => {
+      video.dispatchEvent(new Event('loadeddata'))
+    })
+
+    // Spinner is gone, play overlay is visible, controls are interactive
+    expect(container.querySelector('[data-testid="video-loading-spinner"]')).toBeNull()
+    expect(container.querySelector('[data-testid="video-play-overlay"]')).not.toBeNull()
+    expect(container.querySelector('.pointer-events-none.opacity-60')).toBeNull()
+  })
+
+  it('debounces waiting stall with 200ms delay and cancels spinner on quick recovery', () => {
+    vi.useFakeTimers()
+    try {
+      const testVideo: AssetInfo = {
+        id: 'video-stall-test',
+        name: 'stall.mp4',
+        proxyType: 'video',
+        media: {
+          metadata: {
+            originalWidth: 1920,
+            originalHeight: 1080,
+            duration: 10,
+            frameRate: 30,
+            totalFrames: 300,
+          },
+          videoTranscodes: [
+            {
+              resolution: '1080p',
+              url: 'https://cdn.example.com/video-1080p.mp4',
+              width: 1920,
+              height: 1080,
+            },
+          ],
+        },
+      } as unknown as AssetInfo
+
+      const { container } = render(<VideoViewer file={testVideo} />)
+      const video = container.querySelector('[data-testid="video-area"] video') as HTMLVideoElement
+
+      // Become ready first
+      act(() => {
+        video.dispatchEvent(new Event('loadeddata'))
+      })
+      expect(container.querySelector('[data-testid="video-loading-spinner"]')).toBeNull()
+
+      // Stalls briefly (<200ms)
+      act(() => {
+        video.dispatchEvent(new Event('waiting'))
+      })
+      // Immediately after waiting, spinner should NOT be shown yet (debounced)
+      expect(container.querySelector('[data-testid="video-loading-spinner"]')).toBeNull()
+
+      // Recovers quickly at 100ms
+      act(() => {
+        vi.advanceTimersByTime(100)
+        video.dispatchEvent(new Event('playing'))
+      })
+      act(() => {
+        vi.advanceTimersByTime(150)
+      })
+      // Spinner still not shown
+      expect(container.querySelector('[data-testid="video-loading-spinner"]')).toBeNull()
+
+      // Now a long stall (>200ms)
+      act(() => {
+        video.dispatchEvent(new Event('waiting'))
+      })
+      act(() => {
+        vi.advanceTimersByTime(250)
+      })
+      // Spinner should now appear!
+      expect(container.querySelector('[data-testid="video-loading-spinner"]')).not.toBeNull()
+
+      // Resume playing
+      act(() => {
+        video.dispatchEvent(new Event('playing'))
+      })
+      expect(container.querySelector('[data-testid="video-loading-spinner"]')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

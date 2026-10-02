@@ -4,7 +4,7 @@ import { cn } from '@/ui/lib/utils'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { Annotation } from '@/ui/types'
 import type { AssetInfo } from '@shumai/dtos'
-import { Play, AudioLines } from 'lucide-react'
+import { Play, AudioLines, Loader2 } from 'lucide-react'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import Hls from 'hls.js'
 import { useFramePlayer } from './use-frame-player'
@@ -107,6 +107,8 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
     const [playerVolume, setPlayerVolume] = useState(volume)
     const [playerMuted, setPlayerMuted] = useState(muted)
     const [isPlayerReady, setIsPlayerReady] = useState(false)
+    const [isLoading, setIsLoading] = useState(true)
+    const waitingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     const metadata = file.media?.metadata
     const frameRate = metadata?.frameRate || 30
@@ -168,6 +170,12 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       setIsCurrentHdr(res?.hdr)
       setActiveAutoResolution(undefined)
       currentSrcRef.current = isHls ? file.media!.hls!.url : res?.url
+      if (waitingTimeoutRef.current) {
+        clearTimeout(waitingTimeoutRef.current)
+        waitingTimeoutRef.current = null
+      }
+      setIsLoading(true)
+      setIsPlayerReady(false)
       setHasStartedPlaying(false)
     }, [file.id, Boolean(isHls ? file.media?.hls?.url : initialRes?.url)])
 
@@ -184,7 +192,12 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
         hlsRef.current = null
       }
 
+      if (waitingTimeoutRef.current) {
+        clearTimeout(waitingTimeoutRef.current)
+        waitingTimeoutRef.current = null
+      }
       setIsPlayerReady(false)
+      setIsLoading(true)
 
       let hls: Hls | null = null
 
@@ -200,9 +213,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
           hls.attachMedia(video)
           hls.loadSource(targetSrc)
 
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            setIsPlayerReady(true)
-          })
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {})
 
           hls.on(Hls.Events.LEVEL_SWITCHED, (_event, eventData) => {
             const level = hls?.levels[eventData.level]
@@ -244,7 +255,17 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
         video.src = targetSrc
       }
 
+      const clearWaitingTimeout = () => {
+        if (waitingTimeoutRef.current) {
+          clearTimeout(waitingTimeoutRef.current)
+          waitingTimeoutRef.current = null
+        }
+      }
+
       const handlePlay = () => {
+        clearWaitingTimeout()
+        setIsLoading(false)
+        setIsPlayerReady(true)
         if (pendingResolutionCorrectionRef.current) {
           pendingResolutionCorrectionRef.current()
           pendingResolutionCorrectionRef.current = null
@@ -254,10 +275,41 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
         onPlay?.()
       }
       const handlePause = () => setIsPlaying(false)
-      const handleEnded = () => setIsPlaying(false)
-      const handleLoadedMetadata = () => setIsPlayerReady(true)
-      const handleLoadStart = () => setIsPlayerReady(false)
+      const handleEnded = () => {
+        clearWaitingTimeout()
+        setIsLoading(false)
+        setIsPlaying(false)
+      }
+      const handleLoadedData = () => {
+        clearWaitingTimeout()
+        setIsLoading(false)
+        setIsPlayerReady(true)
+      }
+      const handleCanPlay = () => {
+        clearWaitingTimeout()
+        setIsLoading(false)
+        setIsPlayerReady(true)
+      }
+      const handlePlaying = () => {
+        clearWaitingTimeout()
+        setIsLoading(false)
+      }
+      const handleWaiting = () => {
+        clearWaitingTimeout()
+        waitingTimeoutRef.current = setTimeout(() => {
+          setIsLoading(true)
+        }, 200)
+      }
+      const handleLoadStart = () => {
+        clearWaitingTimeout()
+        setIsLoading(true)
+        setIsPlayerReady(false)
+      }
       const handleProgress = () => {
+        clearWaitingTimeout()
+        if (!video.paused && !video.ended) {
+          setIsLoading(false)
+        }
         const vidDuration = video.duration || containerDuration || 0
         if (vidDuration > 0 && video.buffered.length > 0) {
           let bufferedEnd = 0
@@ -282,10 +334,18 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       }
       const handleRateChange = () => setPlaybackRate(video.playbackRate || 1)
 
+      if (video.readyState >= 2) {
+        setIsLoading(false)
+        setIsPlayerReady(true)
+      }
+
       video.addEventListener('play', handlePlay)
       video.addEventListener('pause', handlePause)
       video.addEventListener('ended', handleEnded)
-      video.addEventListener('loadedmetadata', handleLoadedMetadata)
+      video.addEventListener('loadeddata', handleLoadedData)
+      video.addEventListener('canplay', handleCanPlay)
+      video.addEventListener('playing', handlePlaying)
+      video.addEventListener('waiting', handleWaiting)
       video.addEventListener('loadstart', handleLoadStart)
       video.addEventListener('timeupdate', handleProgress)
       video.addEventListener('progress', handleProgress)
@@ -293,10 +353,14 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       video.addEventListener('ratechange', handleRateChange)
 
       return () => {
+        clearWaitingTimeout()
         video.removeEventListener('play', handlePlay)
         video.removeEventListener('pause', handlePause)
         video.removeEventListener('ended', handleEnded)
-        video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        video.removeEventListener('loadeddata', handleLoadedData)
+        video.removeEventListener('canplay', handleCanPlay)
+        video.removeEventListener('playing', handlePlaying)
+        video.removeEventListener('waiting', handleWaiting)
         video.removeEventListener('loadstart', handleLoadStart)
         video.removeEventListener('timeupdate', handleProgress)
         video.removeEventListener('progress', handleProgress)
@@ -343,6 +407,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
           buffered,
           activeAutoResolution,
           isHlsManualSupported,
+          isLoading,
         },
       }
       onStateChange(state)
@@ -361,6 +426,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       buffered,
       activeAutoResolution,
       isHlsManualSupported,
+      isLoading,
     ])
 
     // Propagate active playhead time
@@ -634,8 +700,9 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
         onActivate?.()
         return
       }
+      if (isLoading) return
       onRequestTogglePlay?.()
-    }, [isActive, onActivate, onRequestTogglePlay])
+    }, [isActive, isLoading, onActivate, onRequestTogglePlay])
 
     if (!file.media?.metadata || resolutions.length === 0) {
       return (
@@ -672,6 +739,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
               className="w-full h-full block object-contain pointer-events-none"
               playsInline
               preload="auto"
+              poster={file.preview?.thumbnailUrl || undefined}
             />
           </div>
         )}
@@ -712,8 +780,23 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
           )
         )}
 
-        {!hasStartedPlaying && !isDrawing && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/20 transition-opacity duration-200">
+        {/* Loading Spinner Overlay */}
+        {isLoading && (
+          <div
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/20 transition-opacity duration-200"
+            data-testid="compare-video-loading-spinner"
+          >
+            <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 backdrop-blur-sm">
+              <Loader2 className="h-7 w-7 text-white animate-spin" />
+            </div>
+          </div>
+        )}
+
+        {!isLoading && !hasStartedPlaying && !isDrawing && (
+          <div
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/20 transition-opacity duration-200"
+            data-testid="compare-video-play-overlay"
+          >
             <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 backdrop-blur-sm">
               <Play className="ml-1 h-8 w-8 fill-white text-white" />
             </div>
