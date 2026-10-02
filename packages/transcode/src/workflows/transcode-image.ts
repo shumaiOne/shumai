@@ -12,6 +12,7 @@ import {
 export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> {
   let tmpDir: string | undefined
   let workerQueue = ''
+  let mediaProcessed = false
 
   try {
     workerQueue = await getWorkerQueueAndStartTask(task)
@@ -90,6 +91,7 @@ export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> 
       assetId: asset.id,
       status: 'processed',
     })
+    mediaProcessed = true
 
     await executeActivity(workerQueue, createEmbeddingTaskIfEnabledActivity, {
       assetId: asset.id,
@@ -106,7 +108,7 @@ export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> 
     await completeTask(workerQueue, task.id)
   } catch (err) {
     console.error(`transcodeImageWorkflow failed for task ${task.id}:`, err)
-    await failTask(workerQueue, task.id, err, task.assetId)
+    await failTask(workerQueue, task.id, err, mediaProcessed ? undefined : task.assetId)
     throw err
   } finally {
     await cleanupTmpDir(workerQueue, tmpDir)

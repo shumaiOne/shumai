@@ -921,4 +921,82 @@ describe('transcodeVideoWorkflow', () => {
       error: 'FFprobe failed to read media',
     })
   })
+
+  it('should mark task as failed but keep asset as processed when post-transcode activity fails', async () => {
+    const task: WorkflowTask = {
+      id: 'task-post-fail',
+      assetId: 'asset-post-fail',
+      type: WorkflowTaskType.transcode_video,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: { videoStrategy: 'best_match' },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-post-fail',
+      name: 'video.mp4',
+      storageKey: { key: 'files/asset-post-fail/video.mp4' },
+      status: AssetStatus.uploading,
+      mediaType: 'video/mp4',
+    })
+
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      proxyType: 'video',
+      metadata: {
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 10,
+        frameRate: 30,
+        totalFrames: 300,
+        startTimecode: '00:00:00:00',
+        bitRate: 1000,
+        hasAudio: false,
+        format: {},
+      },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    mockActivities.transcodeVideoActivity.mockResolvedValue({
+      key: 'v.mp4',
+      width: 1920,
+      height: 1080,
+    })
+
+    mockActivities.createEmbeddingTaskIfEnabledActivity.mockRejectedValue(
+      new Error('Embedding creation failed'),
+    )
+
+    await expect(transcodeVideoWorkflow(task)).rejects.toThrow('Embedding creation failed')
+
+    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
+      taskId: 'task-post-fail',
+      status: 'failed',
+      output: { error: 'Embedding creation failed' },
+    })
+
+    expect(mockActivities.updateAssetStatusActivity).toHaveBeenCalledWith({
+      assetId: 'asset-post-fail',
+      status: 'processed',
+    })
+
+    expect(mockActivities.updateAssetStatusActivity).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'failed',
+      }),
+    )
+  })
 })

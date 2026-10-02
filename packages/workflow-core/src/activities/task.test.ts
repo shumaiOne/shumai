@@ -82,6 +82,38 @@ describe('Task Activities', () => {
     expect(media?.duration).toBe(10)
   })
 
+  it('should NOT overwrite processed status or inject error when asset is already processed', async () => {
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'already-processed.mp4',
+        storageKey: { create: { key: 'already-processed.mp4' } },
+        status: AssetStatus.processed,
+        type: 'file',
+        media: {
+          original: null,
+          videoTranscodes: [],
+          imageTranscodes: [],
+          duration: 10,
+          filesize: 1000,
+          frames: 300,
+          finishedAt: '2026-01-01T00:00:00Z',
+          metadata: null,
+        },
+      },
+    })
+
+    await updateAssetStatusActivity({
+      assetId: asset.id,
+      status: AssetStatus.failed,
+      error: 'Some post-transcode error',
+    })
+
+    const updated = await prisma.asset.findUnique({ where: { id: asset.id } })
+    expect(updated?.status).toBe(AssetStatus.processed)
+    const media = updated?.media as PrismaJson.MediaInfo
+    expect(media?.error).toBeUndefined()
+  })
+
   it('should NOT overwrite trashed status when asset is soft-deleted (isDeleted: true)', async () => {
     const asset = await prisma.asset.create({
       data: {
