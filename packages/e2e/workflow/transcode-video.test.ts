@@ -8,6 +8,11 @@ import { assetService } from '@shumai/core/src/asset/asset'
 import { fileURLToPath } from 'url'
 import * as path from 'path'
 import * as fs from 'fs'
+import * as os from 'os'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+
+const execFileAsync = promisify(execFile)
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
 const transcodeWorkflowsPath = path.resolve(currentDir, '../../../apps/transcode/src/workflows.ts')
@@ -370,6 +375,117 @@ describe.each(['local', 'temporal'] as const)(
         resolution: '480p',
       })
       expect(symlinkVariant).toContain('#EXTM3U')
+    }, 60000)
+
+    it('should transcode video with attached picture cover art successfully selecting main video stream', async () => {
+      // 1. Seed Database
+      const team = await prisma.team.create({
+        data: { name: 'E2E Cover Art Video Team' },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'E2E Cover Art Video Project', teamId: team.id },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: {
+          key: 'projects/e2e/cover-video.mp4',
+        },
+      })
+
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'cover-video.mp4',
+          type: 'file',
+          status: 'uploaded',
+          mediaType: 'video/mp4',
+          projectId: project.id,
+          storageKeyId: storageKey.id,
+        },
+      })
+
+      // 2. Generate and Seed S3 Storage with an MP4 containing an attached picture
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-cover-'))
+      const coverMp4 = path.join(tmpDir, 'cover-video.mp4')
+      try {
+        await execFileAsync('ffmpeg', [
+          '-y',
+          '-loop',
+          '1',
+          '-i',
+          path.join(fixturesDir, 'small.png'),
+          '-i',
+          path.join(fixturesDir, 'small.mp4'),
+          '-map',
+          '0',
+          '-map',
+          '1:v',
+          '-c:v:0',
+          'mjpeg',
+          '-disposition:v:0',
+          'attached_pic',
+          '-c:v:1',
+          'copy',
+          '-t',
+          '1',
+          coverMp4,
+        ])
+        const mp4Buffer = fs.readFileSync(coverMp4)
+        await s3Service.putObject(
+          'shumai-e2e-test-bucket-transcode',
+          'projects/e2e/cover-video.mp4',
+          mp4Buffer,
+          mp4Buffer.length,
+          'video/mp4',
+        )
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true })
+      }
+
+      // 3. Create Workflow Task
+      const task = await prisma.workflowTask.create({
+        data: {
+          type: 'transcode_video',
+          status: 'pending',
+          assetId: asset.id,
+          projectId: project.id,
+          teamId: team.id,
+          payload: {
+            projectId: project.id,
+            transcode: {
+              videoStrategy: 'best_match',
+              thumbnail: false,
+              poster: true,
+              sprite: true,
+            },
+          },
+        },
+      })
+
+      // 4. Wait for workflow to complete
+      const completedTask = await workflowService.executeWait(task, 45000)
+      expect(completedTask.status).toBe('completed')
+
+      // 5. Verification
+      const updatedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(updatedAsset?.status).toBe(AssetStatus.processed)
+
+      const mediaInfo = updatedAsset?.media as unknown as {
+        proxyType: string
+        duration: number
+        videoTranscodes: { key: string; width: number; height: number }[]
+        metadata: { originalWidth: number; originalHeight: number; videoStreamIndex: number }
+        poster: unknown
+        sprite: unknown
+      }
+      expect(mediaInfo).toBeDefined()
+      expect(mediaInfo.proxyType).toBe('video')
+      // originalWidth must be 64 (the real video stream), NOT 1 (the attached picture)!
+      expect(mediaInfo.metadata.originalWidth).toBe(64)
+      expect(mediaInfo.metadata.originalHeight).toBe(64)
+      expect(mediaInfo.videoTranscodes.length).toBeGreaterThan(0)
     }, 60000)
   },
 )

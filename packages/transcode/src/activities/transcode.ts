@@ -130,54 +130,110 @@ export async function getMediaInfoActivity(params: {
     }
 
     if (isVideo) {
-      const info = await transcodeService.getVideoInfo(params.filePath)
-      mediaInfo.duration = info.duration
-      mediaInfo.frames = info.totalFrames
-      mediaInfo.metadata = {
-        originalWidth: info.originalWidth,
-        originalHeight: info.originalHeight,
-        duration: info.duration,
-        bitRate: info.bitRate,
-        videoBitRate: info.videoBitRate,
-        frameRate: info.frameRate,
-        totalFrames: info.totalFrames,
-        startTimecode: info.startTimecode || '00:00:00:00',
-        hasAudio: info.hasAudio,
-        videoCodec: info.videoCodec,
-        audioCodec: info.audioCodec,
-        audioChannels: info.audioChannels,
-        audioSampleRate: info.audioSampleRate,
-        audioBitDepth: info.audioBitDepth,
-        colorTransfer: info.colorTransfer,
-        colorPrimaries: info.colorPrimaries,
-        colorSpace: info.colorSpace,
-        isHdr: info.isHdr,
-        hdrType: info.hdrType,
-        dvProfile: info.dvProfile,
-        rotation: info.rotation,
-        format: {},
+      let isDowngradedToAudio = false
+      let videoInfo: Awaited<ReturnType<typeof transcodeService.getVideoInfo>> | null = null
+      try {
+        videoInfo = await transcodeService.getVideoInfo(params.filePath)
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('No video stream found')) {
+          try {
+            const audioInfo = await transcodeService.getAudioInfo(params.filePath)
+            isDowngradedToAudio = true
+            mediaInfo.proxyType = 'audio'
+            mediaInfo.duration = audioInfo.duration
+            mediaInfo.metadata = {
+              originalWidth: 0,
+              originalHeight: 0,
+              duration: audioInfo.duration,
+              bitRate: audioInfo.bitRate,
+              frameRate: 0,
+              totalFrames: 0,
+              startTimecode: '00:00:00:00',
+              hasAudio: true,
+              videoCodec: undefined,
+              audioCodec: audioInfo.audioCodec,
+              audioChannels: audioInfo.audioChannels,
+              audioSampleRate: audioInfo.audioSampleRate,
+              audioBitDepth: audioInfo.audioBitDepth,
+              audioStreamIndex: audioInfo.audioStreamIndex,
+              format: {},
+            }
+            const ftIdx = metadataUpdates.findIndex((u) => u.key === 'file_type')
+            if (ftIdx !== -1) metadataUpdates[ftIdx].value = 'audio'
+            const ptIdx = metadataUpdates.findIndex((u) => u.key === 'proxy_type')
+            if (ptIdx !== -1) metadataUpdates[ptIdx].value = 'audio'
+            metadataUpdates.push(
+              { key: 'duration', value: audioInfo.duration },
+              { key: 'bitRate', value: audioInfo.bitRate / 1000 },
+            )
+            if (audioInfo.audioCodec)
+              metadataUpdates.push({ key: 'audio_codec', value: audioInfo.audioCodec })
+            if (audioInfo.audioChannels !== undefined)
+              metadataUpdates.push({ key: 'audio_channels', value: audioInfo.audioChannels })
+            if (audioInfo.audioSampleRate !== undefined)
+              metadataUpdates.push({ key: 'audio_sample_rate', value: audioInfo.audioSampleRate })
+            if (audioInfo.audioBitDepth !== undefined)
+              metadataUpdates.push({ key: 'audio_bit_depth', value: audioInfo.audioBitDepth })
+          } catch {
+            throw err
+          }
+        } else {
+          throw err
+        }
       }
-      metadataUpdates.push(
-        { key: 'resolution_width', value: info.originalWidth },
-        { key: 'resolution_height', value: info.originalHeight },
-        { key: 'duration', value: info.duration },
-        { key: 'bitRate', value: info.bitRate / 1000 },
-        { key: 'frame_rate', value: info.frameRate },
-      )
-      if (info.rotation !== undefined)
-        metadataUpdates.push({ key: 'rotation', value: info.rotation })
-      if (info.isHdr !== undefined)
-        metadataUpdates.push({ key: 'is_hdr', value: info.isHdr ? 1 : 0 })
-      if (info.colorTransfer)
-        metadataUpdates.push({ key: 'color_transfer', value: info.colorTransfer })
-      if (info.videoCodec) metadataUpdates.push({ key: 'video_codec', value: info.videoCodec })
-      if (info.audioCodec) metadataUpdates.push({ key: 'audio_codec', value: info.audioCodec })
-      if (info.audioChannels !== undefined)
-        metadataUpdates.push({ key: 'audio_channels', value: info.audioChannels })
-      if (info.audioSampleRate !== undefined)
-        metadataUpdates.push({ key: 'audio_sample_rate', value: info.audioSampleRate })
-      if (info.audioBitDepth !== undefined)
-        metadataUpdates.push({ key: 'audio_bit_depth', value: info.audioBitDepth })
+
+      if (!isDowngradedToAudio && videoInfo) {
+        const info = videoInfo
+        mediaInfo.duration = info.duration
+        mediaInfo.frames = info.totalFrames
+        mediaInfo.metadata = {
+          originalWidth: info.originalWidth,
+          originalHeight: info.originalHeight,
+          duration: info.duration,
+          bitRate: info.bitRate,
+          videoBitRate: info.videoBitRate,
+          frameRate: info.frameRate,
+          totalFrames: info.totalFrames,
+          startTimecode: info.startTimecode || '00:00:00:00',
+          hasAudio: info.hasAudio,
+          videoCodec: info.videoCodec,
+          audioCodec: info.audioCodec,
+          audioChannels: info.audioChannels,
+          audioSampleRate: info.audioSampleRate,
+          audioBitDepth: info.audioBitDepth,
+          colorTransfer: info.colorTransfer,
+          colorPrimaries: info.colorPrimaries,
+          colorSpace: info.colorSpace,
+          isHdr: info.isHdr,
+          hdrType: info.hdrType,
+          dvProfile: info.dvProfile,
+          rotation: info.rotation,
+          videoStreamIndex: info.videoStreamIndex,
+          audioStreamIndex: info.audioStreamIndex,
+          format: {},
+        }
+        metadataUpdates.push(
+          { key: 'resolution_width', value: info.originalWidth },
+          { key: 'resolution_height', value: info.originalHeight },
+          { key: 'duration', value: info.duration },
+          { key: 'bitRate', value: info.bitRate / 1000 },
+          { key: 'frame_rate', value: info.frameRate },
+        )
+        if (info.rotation !== undefined)
+          metadataUpdates.push({ key: 'rotation', value: info.rotation })
+        if (info.isHdr !== undefined)
+          metadataUpdates.push({ key: 'is_hdr', value: info.isHdr ? 1 : 0 })
+        if (info.colorTransfer)
+          metadataUpdates.push({ key: 'color_transfer', value: info.colorTransfer })
+        if (info.videoCodec) metadataUpdates.push({ key: 'video_codec', value: info.videoCodec })
+        if (info.audioCodec) metadataUpdates.push({ key: 'audio_codec', value: info.audioCodec })
+        if (info.audioChannels !== undefined)
+          metadataUpdates.push({ key: 'audio_channels', value: info.audioChannels })
+        if (info.audioSampleRate !== undefined)
+          metadataUpdates.push({ key: 'audio_sample_rate', value: info.audioSampleRate })
+        if (info.audioBitDepth !== undefined)
+          metadataUpdates.push({ key: 'audio_bit_depth', value: info.audioBitDepth })
+      }
     } else if (isAudio) {
       const info = await transcodeService.getAudioInfo(params.filePath)
       mediaInfo.duration = info.duration
@@ -195,6 +251,7 @@ export async function getMediaInfoActivity(params: {
         audioChannels: info.audioChannels,
         audioSampleRate: info.audioSampleRate,
         audioBitDepth: info.audioBitDepth,
+        audioStreamIndex: info.audioStreamIndex,
         format: {},
       }
       metadataUpdates.push(
@@ -277,6 +334,8 @@ export interface VideoActivityParams {
   sourceColorTransfer?: string
   sourceColorPrimaries?: string
   sourceColorSpace?: string
+  streamIndex?: number
+  audioStreamIndex?: number
 }
 
 export async function transcodeVideoActivity(
@@ -338,6 +397,8 @@ export async function transcodeVideoActivity(
       sourceColorTransfer: params.sourceColorTransfer,
       sourceColorPrimaries: params.sourceColorPrimaries,
       sourceColorSpace: params.sourceColorSpace,
+      streamIndex: params.streamIndex,
+      audioStreamIndex: params.audioStreamIndex,
     })
 
     const stat = fs.statSync(outputFile)
@@ -403,6 +464,8 @@ export interface HlsActivityParams {
   sourceColorTransfer?: string
   sourceColorPrimaries?: string
   sourceColorSpace?: string
+  streamIndex?: number
+  audioStreamIndex?: number
 }
 
 export async function transcodeHlsActivity(params: HlsActivityParams): Promise<PrismaJson.HlsInfo> {
@@ -469,6 +532,8 @@ export async function transcodeHlsActivity(params: HlsActivityParams): Promise<P
         sourceColorTransfer: params.sourceColorTransfer,
         sourceColorPrimaries: params.sourceColorPrimaries,
         sourceColorSpace: params.sourceColorSpace,
+        streamIndex: params.streamIndex,
+        audioStreamIndex: params.audioStreamIndex,
       })
 
       renditionSpecs.push({
@@ -572,6 +637,7 @@ export interface AudioActivityParams {
   assetKey: string
   filePath: string
   threads?: number
+  audioStreamIndex?: number
 }
 
 export async function transcodeAudioActivity(
@@ -606,6 +672,7 @@ export async function transcodeAudioActivity(
       bitrate: '128k',
       threads: params.threads,
       signal,
+      audioStreamIndex: params.audioStreamIndex,
     })
 
     const stat = fs.statSync(outputFile)
@@ -777,6 +844,7 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
           hdrType: params.mediaInfo.metadata?.hdrType,
           colorTransfer: params.mediaInfo.metadata?.colorTransfer,
         },
+        params.mediaInfo.metadata?.videoStreamIndex,
       )
     }
 
@@ -1081,6 +1149,7 @@ export interface ExtractPosterActivityParams {
   isHdr?: boolean
   hdrType?: HdrType
   colorTransfer?: string
+  streamIndex?: number
 }
 
 export async function extractPosterActivity(
@@ -1112,6 +1181,7 @@ export async function extractPosterActivity(
       hdrType: params.hdrType,
       colorTransfer: params.colorTransfer,
       signal,
+      streamIndex: params.streamIndex,
     })
 
     const posterBuffer = fs.readFileSync(posterFile)
@@ -1428,6 +1498,8 @@ export async function transcodeVideoChunkActivity(
       params.startTime.toString(),
       '-i',
       inputSource,
+      '-map',
+      '0:V:0',
       '-t',
       (params.endTime - params.startTime).toString(),
       '-vf',

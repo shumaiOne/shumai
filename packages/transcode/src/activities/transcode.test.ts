@@ -217,6 +217,86 @@ describe('Transcode Activities', () => {
     )
   })
 
+  it('should downgrade proxyType to audio when getVideoInfo throws No video stream found but audio exists', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'audio-with-art.mp4', type: 'file', status: 'uploaded' },
+    })
+
+    vi.mocked(transcodeService.getVideoInfo).mockRejectedValueOnce(
+      new Error('No video stream found'),
+    )
+    vi.mocked(transcodeService.getAudioInfo).mockResolvedValueOnce({
+      originalWidth: 0,
+      originalHeight: 0,
+      duration: 42,
+      bitRate: 192000,
+      frameRate: 0,
+      totalFrames: 0,
+      hasAudio: true,
+      audioCodec: 'aac',
+      audioChannels: 2,
+      audioSampleRate: 44100,
+      audioBitDepth: 16,
+      audioStreamIndex: 0,
+      mimeType: 'audio/mp4',
+    })
+
+    const result = await getMediaInfoActivity({
+      assetId: asset.id,
+      filePath: '/tmp/audio-with-art.mp4',
+      proxyType: 'video',
+      mediaType: 'video/mp4',
+    })
+
+    expect(transcodeService.getVideoInfo).toHaveBeenCalledWith('/tmp/audio-with-art.mp4')
+    expect(transcodeService.getAudioInfo).toHaveBeenCalledWith('/tmp/audio-with-art.mp4')
+    expect(result.proxyType).toBe('audio')
+    expect(result.duration).toBe(42)
+    expect(result.metadata?.hasAudio).toBe(true)
+    expect(result.metadata?.audioStreamIndex).toBe(0)
+    expect(result.metadata?.videoStreamIndex).toBeUndefined()
+    expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
+      asset.id,
+      expect.arrayContaining([
+        { key: 'file_type', value: 'audio' },
+        { key: 'proxy_type', value: 'audio' },
+        { key: 'duration', value: 42 },
+      ]),
+      true,
+    )
+  })
+
+  it('should populate videoStreamIndex and audioStreamIndex in mediaInfo.metadata', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'dual-stream.mp4', type: 'file', status: 'uploaded' },
+    })
+
+    vi.mocked(transcodeService.getVideoInfo).mockResolvedValueOnce({
+      originalWidth: 1920,
+      originalHeight: 1080,
+      duration: 15,
+      bitRate: 2000000,
+      frameRate: 30,
+      totalFrames: 450,
+      hasAudio: true,
+      videoCodec: 'h264',
+      audioCodec: 'aac',
+      videoStreamIndex: 1,
+      audioStreamIndex: 2,
+      mimeType: 'video/mp4',
+    })
+
+    const result = await getMediaInfoActivity({
+      assetId: asset.id,
+      filePath: '/tmp/dual-stream.mp4',
+      proxyType: 'video',
+      mediaType: 'video/mp4',
+    })
+
+    expect(result.metadata?.videoStreamIndex).toBe(1)
+    expect(result.metadata?.audioStreamIndex).toBe(2)
+  })
+
   it('should call getImageInfo and set file_type to image', async () => {
     const asset = await prisma.asset.create({
       data: { name: 'i.png', type: 'file', status: 'uploaded' },
@@ -703,6 +783,28 @@ describe('Transcode Activities', () => {
     )
   })
 
+  it('transcodeVideoActivity forwards streamIndex and audioStreamIndex to transcodeService', async () => {
+    vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+
+    await transcodeVideoActivity({
+      assetKey: 'v.mp4',
+      filePath: '/tmp/v.mp4',
+      videoSpec: { resolution: '720p', width: 1280, height: 720 },
+      duration: 10,
+      originalFps: 30,
+      streamIndex: 2,
+      audioStreamIndex: 1,
+    })
+
+    expect(transcodeService.transcodeVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputFile: '/tmp/v.mp4',
+        streamIndex: 2,
+        audioStreamIndex: 1,
+      }),
+    )
+  })
+
   it('transcodeVideoActivity appends -hdr.mp4 suffix and forwards HDR metadata', async () => {
     vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
 
@@ -946,6 +1048,44 @@ describe('Transcode Activities', () => {
           hdrType: 'pq',
           colorTransfer: 'smpte2084',
         },
+        undefined,
+      )
+    })
+
+    it('generateSpriteActivity forwards videoStreamIndex to transcodeService.generateSprite', async () => {
+      vi.mocked(transcodeService.generateSprite).mockImplementation(
+        async (_in, spriteOut, posterOut) => {
+          const fs = await import('fs')
+          fs.writeFileSync(spriteOut, 'fake-sprite')
+          fs.writeFileSync(posterOut, 'fake-poster')
+        },
+      )
+
+      await generateSpriteActivity({
+        assetKey: 'files/asset-1/video.mp4',
+        filePath: '/tmp/video.mp4',
+        mediaInfo: {
+          duration: 10,
+          metadata: {
+            videoStreamIndex: 1,
+          },
+        } as unknown as PrismaJson.MediaInfo,
+        spriteSpec: { key: 'files/asset-1/sprite.webp', frames: 100, tileX: 10, tileY: 10 },
+        posterSpec: { key: 'files/asset-1/poster.webp' },
+      })
+
+      expect(transcodeService.generateSprite).toHaveBeenCalledWith(
+        '/tmp/video.mp4',
+        expect.any(String),
+        expect.any(String),
+        10,
+        undefined,
+        {
+          isHdr: undefined,
+          hdrType: undefined,
+          colorTransfer: undefined,
+        },
+        1,
       )
     })
 

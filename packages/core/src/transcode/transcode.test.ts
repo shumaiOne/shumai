@@ -12,6 +12,9 @@ import {
   parseBitrateKbps,
   buildHlsMasterPlaylist,
   rewriteM3u8WithPresignedUrls,
+  compareStreams,
+  selectPrimaryVideoStream,
+  selectPrimaryAudioStream,
 } from './transcode'
 import { logger } from '@shumai/core/src/logger'
 import { s3Service } from '@shumai/core/src/s3/s3'
@@ -712,6 +715,8 @@ describe('TranscodeService', () => {
         '-i',
         'input.wav',
         '-vn',
+        '-map',
+        '0:a:0?',
         '-c:a',
         'aac',
         '-b:a',
@@ -746,6 +751,8 @@ describe('TranscodeService', () => {
         '-i',
         'input.wav',
         '-vn',
+        '-map',
+        '0:a:0?',
         '-c:a',
         'aac',
         '-b:a',
@@ -782,6 +789,8 @@ describe('TranscodeService', () => {
         '-i',
         'input.wav',
         '-vn',
+        '-map',
+        '0:a:0?',
         '-c:a',
         'aac',
         '-b:a',
@@ -2831,6 +2840,187 @@ describe('TranscodeService', () => {
       expect(info.rotation).toBe(180)
     })
 
+    it('getVideoInfo ignores attached picture streams and selects the main video stream', async () => {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      const mockOutput = JSON.stringify({
+        format: { duration: '10.0', bit_rate: '20000000' },
+        streams: [
+          {
+            index: 0,
+            codec_type: 'video',
+            codec_name: 'mjpeg',
+            width: 320,
+            height: 240,
+            avg_frame_rate: '0/0',
+            r_frame_rate: '90000/1',
+            disposition: {
+              attached_pic: 1,
+            },
+          },
+          {
+            index: 1,
+            codec_type: 'video',
+            codec_name: 'h264',
+            width: 1920,
+            height: 1080,
+            avg_frame_rate: '24/1',
+            r_frame_rate: '24/1',
+            nb_frames: '240',
+            disposition: {
+              default: 1,
+              attached_pic: 0,
+            },
+          },
+        ],
+      })
+      /* eslint-enable @typescript-eslint/naming-convention */
+
+      mockExecFileStdout(mockOutput)
+
+      const info = await transcodeService.getVideoInfo('cover-art-first.mp4')
+      expect(info.originalWidth).toBe(1920)
+      expect(info.originalHeight).toBe(1080)
+      expect(info.videoStreamIndex).toBe(1)
+    })
+
+    it('getVideoInfo throws error when file only contains audio and attached picture', async () => {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      const mockOutput = JSON.stringify({
+        format: { duration: '10.0', bit_rate: '320000' },
+        streams: [
+          {
+            index: 0,
+            codec_type: 'audio',
+            codec_name: 'aac',
+            channels: 2,
+            sample_rate: '44100',
+          },
+          {
+            index: 1,
+            codec_type: 'video',
+            codec_name: 'mjpeg',
+            width: 320,
+            height: 240,
+            disposition: {
+              attached_pic: 1,
+            },
+          },
+        ],
+      })
+      /* eslint-enable @typescript-eslint/naming-convention */
+
+      mockExecFileStdout(mockOutput)
+
+      await expect(transcodeService.getVideoInfo('audio-with-cover.mp4')).rejects.toThrow(
+        'No video stream found',
+      )
+    })
+
+    it('compareStreams prioritizes default stream then highest bitrate', () => {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      const s1 = { index: 0, bit_rate: '5000000', disposition: { default: 0 } }
+      const s2 = { index: 1, bit_rate: '2000000', disposition: { default: 1 } }
+      const s3 = { index: 2, bit_rate: '8000000', disposition: { default: 0 } }
+      const s4 = { index: 3, disposition: {} }
+      /* eslint-enable @typescript-eslint/naming-convention */
+
+      const sorted = [s1, s2, s3, s4].sort(compareStreams)
+      expect(sorted[0].index).toBe(1) // default: 1
+      expect(sorted[1].index).toBe(2) // 8000000 bps
+      expect(sorted[2].index).toBe(0) // 5000000 bps
+      expect(sorted[3].index).toBe(3) // 0 bps
+    })
+
+    it('selectPrimaryVideoStream filters out attached picture streams', () => {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      const streams = [
+        { index: 0, codec_type: 'video', disposition: { attached_pic: 1 }, bit_rate: '9999999' },
+        { index: 1, codec_type: 'audio', disposition: { default: 1 } },
+        { index: 2, codec_type: 'video', disposition: { default: 0 }, bit_rate: '1500000' },
+        { index: 3, codec_type: 'video', disposition: { default: 1 }, bit_rate: '1000000' },
+      ]
+      /* eslint-enable @typescript-eslint/naming-convention */
+
+      const selected = selectPrimaryVideoStream(streams)
+      expect(selected).toBeDefined()
+      expect(selected?.index).toBe(3) // default: 1 non-attached
+    })
+
+    it('selectPrimaryAudioStream picks default then highest bitrate audio stream', () => {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      const streams = [
+        { index: 0, codec_type: 'video', bit_rate: '2000000' },
+        { index: 1, codec_type: 'audio', disposition: { default: 0 }, bit_rate: '320000' },
+        { index: 2, codec_type: 'audio', disposition: { default: 1 }, bit_rate: '128000' },
+      ]
+      /* eslint-enable @typescript-eslint/naming-convention */
+
+      const selected = selectPrimaryAudioStream(streams)
+      expect(selected).toBeDefined()
+      expect(selected?.index).toBe(2) // default: 1 audio
+    })
+
+    it('transcodeVideo uses explicit streamIndex and audioStreamIndex in mapping', async () => {
+      let executedArgs: string[] = []
+      ;(
+        child_process.execFile as unknown as {
+          mockImplementation: (
+            fn: (
+              file: string,
+              args: string[],
+              callback: (error: Error | null, result: { stdout: string; stderr: string }) => void,
+            ) => void,
+          ) => void
+        }
+      ).mockImplementation((_file, args, callback) => {
+        executedArgs = args
+        callback(null, { stdout: '', stderr: '' })
+      })
+
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile: 'output.mp4',
+        width: 1280,
+        height: 720,
+        hardwareAcceleration: 'off',
+        streamIndex: 2,
+        audioStreamIndex: 1,
+      })
+
+      const filterIdx = executedArgs.indexOf('-filter_complex')
+      expect(filterIdx).toBeGreaterThan(-1)
+      expect(executedArgs[filterIdx + 1]).toContain('[0:2]scale=')
+
+      const mapIndices = executedArgs
+        .map((arg, idx) => (arg === '-map' ? executedArgs[idx + 1] : null))
+        .filter(Boolean)
+      expect(mapIndices).toContain('0:1')
+    })
+
+    it('generatePoster uses explicit streamIndex in mapping', async () => {
+      let executedArgs: string[] = []
+      ;(
+        child_process.execFile as unknown as {
+          mockImplementation: (
+            fn: (
+              file: string,
+              args: string[],
+              callback: (error: Error | null, result: { stdout: string; stderr: string }) => void,
+            ) => void,
+          ) => void
+        }
+      ).mockImplementation((_file, args, callback) => {
+        executedArgs = args
+        callback(null, { stdout: '', stderr: '' })
+      })
+
+      await transcodeService.generatePoster('input.mp4', 'poster.webp', { streamIndex: 3 })
+
+      const mapIdx = executedArgs.indexOf('-map')
+      expect(mapIdx).toBeGreaterThan(-1)
+      expect(executedArgs[mapIdx + 1]).toBe('0:3')
+    })
+
     it('transcodeVideo preserves HDR parameters and tags when hdr is true', async () => {
       let executedArgs: string[] = []
       ;(
@@ -3018,7 +3208,7 @@ describe('TranscodeService', () => {
       const filterIdx = spriteCmd!.indexOf('-filter_complex')
       expect(filterIdx).toBeGreaterThan(-1)
       const filterStr = spriteCmd![filterIdx + 1]
-      expect(filterStr).toContain('[0:v]fps=')
+      expect(filterStr).toContain('[0:V]fps=')
       expect(filterStr).toContain('scale=w=300:h=-2,tile=10x10[sprite_out]')
     })
 

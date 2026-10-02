@@ -97,6 +97,54 @@ export interface GeneratePosterOptions {
   hdrType?: HdrType
   colorTransfer?: string
   signal?: AbortSignal
+  streamIndex?: number
+}
+
+export interface FfprobeStreamLike {
+  index: number
+  codec_type?: string
+  codec_name?: string
+  bit_rate?: string
+  avg_frame_rate?: string
+  r_frame_rate?: string
+  nb_frames?: string
+  width?: number
+  height?: number
+  channels?: number
+  sample_rate?: string | number
+  bits_per_raw_sample?: string | number
+  bits_per_sample?: string | number
+  color_transfer?: string
+  color_primaries?: string
+  color_space?: string
+  disposition?: Record<string, number | undefined>
+  tags?: Record<string, string | undefined>
+  side_data_list?: Array<Record<string, unknown>>
+  mime_codec_string?: string
+  [key: string]: unknown
+}
+
+/**
+ * Immich-compatible stream comparator:
+ * 1. Streams with disposition.default: 1 come first.
+ * 2. Ties are broken by higher bit_rate.
+ */
+export function compareStreams<T extends FfprobeStreamLike>(a: T, b: T): number {
+  const defDiff = (b.disposition?.default ?? 0) - (a.disposition?.default ?? 0)
+  if (defDiff !== 0) return defDiff
+  const aBitrate = parseInt(a.bit_rate || '0', 10) || 0
+  const bBitrate = parseInt(b.bit_rate || '0', 10) || 0
+  return bBitrate - aBitrate
+}
+
+export function selectPrimaryVideoStream<T extends FfprobeStreamLike>(streams: T[]): T | undefined {
+  return streams
+    .filter((s) => s.codec_type === 'video' && !s.disposition?.attached_pic)
+    .sort(compareStreams)[0]
+}
+
+export function selectPrimaryAudioStream<T extends FfprobeStreamLike>(streams: T[]): T | undefined {
+  return streams.filter((s) => s.codec_type === 'audio').sort(compareStreams)[0]
 }
 
 export interface MediaMetadata {
@@ -123,6 +171,8 @@ export interface MediaMetadata {
   dvProfile?: number
   dvCompatibilityId?: number
   rotation?: number
+  videoStreamIndex?: number
+  audioStreamIndex?: number
 }
 
 export interface TranscodeVideoParams {
@@ -144,6 +194,8 @@ export interface TranscodeVideoParams {
   sourceColorTransfer?: string
   sourceColorPrimaries?: string
   sourceColorSpace?: string
+  streamIndex?: number
+  audioStreamIndex?: number
 }
 
 export interface TranscodeHlsRenditionParams {
@@ -166,6 +218,8 @@ export interface TranscodeHlsRenditionParams {
   sourceColorPrimaries?: string
   sourceColorSpace?: string
   segmentDuration?: number
+  streamIndex?: number
+  audioStreamIndex?: number
 }
 
 export interface EncoderConfig {
@@ -475,10 +529,15 @@ export class TranscodeService {
     return stream.codec_name
   }
 
-  private safeParseInt(value: string | number | undefined): number | undefined {
+  private safeParseInt(value: unknown): number | undefined {
     if (value === undefined || value === null) return undefined
-    const parsed = typeof value === 'string' ? parseInt(value, 10) : value
-    return Number.isFinite(parsed) ? (parsed as number) : undefined
+    const parsed =
+      typeof value === 'string'
+        ? parseInt(value, 10)
+        : typeof value === 'number'
+          ? value
+          : undefined
+    return parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined
   }
 
   async getVideoInfo(inputFile: string): Promise<MediaMetadata> {
@@ -492,10 +551,8 @@ export class TranscodeService {
       inputFile,
     ])
     const info = JSON.parse(stdout)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const videoStream = info.streams.find((s: any) => s.codec_type === 'video')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const audioStream = info.streams.find((s: any) => s.codec_type === 'audio')
+    const videoStream = selectPrimaryVideoStream(info.streams || [])
+    const audioStream = selectPrimaryAudioStream(info.streams || [])
 
     if (!videoStream) {
       throw new Error('No video stream found')
@@ -678,6 +735,8 @@ export class TranscodeService {
       hdrType,
       dvProfile,
       dvCompatibilityId,
+      videoStreamIndex: videoStream.index,
+      audioStreamIndex: audioStream ? audioStream.index : undefined,
     }
   }
 
@@ -1020,11 +1079,13 @@ export class TranscodeService {
     args.push('-i', params.inputFile)
     const baseScale = `scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
 
+    const vPad = params.streamIndex !== undefined ? `0:${params.streamIndex}` : '0:V'
+
     if (params.overlayFile) {
       args.push('-i', params.overlayFile)
-      filterComplex = `[0:v]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
+      filterComplex = `[${vPad}]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
     } else {
-      filterComplex = `[0:v]${baseScale}`
+      filterComplex = `[${vPad}]${baseScale}`
     }
 
     if (params.frameRate) {
@@ -1063,7 +1124,8 @@ export class TranscodeService {
     }
 
     if (!params.disableAudio) {
-      args.push('-map', '0:a?')
+      const aMap = params.audioStreamIndex !== undefined ? `0:${params.audioStreamIndex}` : '0:a:0?'
+      args.push('-map', aMap)
     }
 
     args.push('-c:v', encoder.name)
@@ -1254,11 +1316,13 @@ export class TranscodeService {
     args.push('-i', params.inputFile)
     const baseScale = `scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
 
+    const vPad = params.streamIndex !== undefined ? `0:${params.streamIndex}` : '0:V'
+
     if (params.overlayFile) {
       args.push('-i', params.overlayFile)
-      filterComplex = `[0:v]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
+      filterComplex = `[${vPad}]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
     } else {
-      filterComplex = `[0:v]${baseScale}`
+      filterComplex = `[${vPad}]${baseScale}`
     }
 
     filterComplex += `,fps=${calculatedFps}`
@@ -1271,7 +1335,8 @@ export class TranscodeService {
     args.push('-filter_complex', filterComplex, '-map', '[vout]')
 
     if (!params.disableAudio) {
-      args.push('-map', '0:a?')
+      const aMap = params.audioStreamIndex !== undefined ? `0:${params.audioStreamIndex}` : '0:a:0?'
+      args.push('-map', aMap)
     }
 
     args.push('-c:v', encoder.name)
@@ -1624,6 +1689,8 @@ export class TranscodeService {
 
     filters.push('scale=-2:300:force_original_aspect_ratio=decrease')
 
+    const vMap = options.streamIndex !== undefined ? `0:${options.streamIndex}` : '0:V:0'
+
     const args = [
       ...(isRemote
         ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
@@ -1631,6 +1698,8 @@ export class TranscodeService {
       ...(isMpegTs ? [] : ['-skip_frame', 'nointra']),
       '-i',
       inputFile,
+      '-map',
+      vMap,
       '-vf',
       filters.join(','),
       '-fps_mode',
@@ -1660,13 +1729,14 @@ export class TranscodeService {
     duration: number,
     signal?: AbortSignal,
     hdrOptions?: { isHdr?: boolean; hdrType?: HdrType; colorTransfer?: string },
+    streamIndex?: number,
   ): Promise<void> {
     if (signal?.aborted) {
       throw new Error('Sprite generation cancelled')
     }
 
     // 1. Generate poster first (fast, smart frame selection)
-    await this.generatePoster(inputFile, outputPoster, { ...hdrOptions, signal })
+    await this.generatePoster(inputFile, outputPoster, { ...hdrOptions, signal, streamIndex })
 
     // 2. Generate sprite
     let fileSize = Infinity
@@ -1679,9 +1749,23 @@ export class TranscodeService {
 
     const isSmallAndShort = fileSize <= 50 * 1024 * 1024 && duration <= 30
     if (isSmallAndShort) {
-      await this.generateSpriteSinglePass(inputFile, outputSprite, duration, signal, hdrOptions)
+      await this.generateSpriteSinglePass(
+        inputFile,
+        outputSprite,
+        duration,
+        signal,
+        hdrOptions,
+        streamIndex,
+      )
     } else {
-      await this.generateSpriteSeekPool(inputFile, outputSprite, duration, signal, hdrOptions)
+      await this.generateSpriteSeekPool(
+        inputFile,
+        outputSprite,
+        duration,
+        signal,
+        hdrOptions,
+        streamIndex,
+      )
     }
   }
 
@@ -1691,9 +1775,11 @@ export class TranscodeService {
     duration: number,
     signal?: AbortSignal,
     hdrOptions?: { isHdr?: boolean; hdrType?: HdrType; colorTransfer?: string },
+    streamIndex?: number,
   ): Promise<void> {
     const spriteFps = 100 / duration
     let filterComplex: string
+    const vPad = streamIndex !== undefined ? `0:${streamIndex}` : '0:V'
 
     if (hdrOptions?.isHdr) {
       const availableFilters = await this.getAvailableFilters()
@@ -1702,9 +1788,9 @@ export class TranscodeService {
         colorTransfer: hdrOptions.colorTransfer,
         availableFilters,
       })
-      filterComplex = `[0:v]${tonemap},fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out]`
+      filterComplex = `[${vPad}]${tonemap},fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out]`
     } else {
-      filterComplex = `[0:v]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out]`
+      filterComplex = `[${vPad}]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out]`
     }
 
     const args = [
@@ -1735,6 +1821,7 @@ export class TranscodeService {
     duration: number,
     signal?: AbortSignal,
     hdrOptions?: { isHdr?: boolean; hdrType?: HdrType; colorTransfer?: string },
+    streamIndex?: number,
   ): Promise<void> {
     if (signal?.aborted) {
       throw new Error('Sprite generation cancelled')
@@ -1778,11 +1865,14 @@ export class TranscodeService {
 
           const ts = timestamps[idx]
           const framePath = path.join(tmpDir, `frame_${idx.toString().padStart(3, '0')}.webp`)
+          const vMap = streamIndex !== undefined ? `0:${streamIndex}` : '0:V:0'
           const args = [
             '-ss',
             ts.toFixed(3),
             '-i',
             inputFile,
+            '-map',
+            vMap,
             '-vframes',
             '1',
             '-vf',
@@ -2174,8 +2264,7 @@ export class TranscodeService {
       inputFile,
     ])
     const info = JSON.parse(stdout)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const audioStream = info.streams.find((s: any) => s.codec_type === 'audio')
+    const audioStream = selectPrimaryAudioStream(info.streams || [])
 
     if (!audioStream) {
       throw new Error('No audio stream found')
@@ -2199,6 +2288,7 @@ export class TranscodeService {
       audioBitDepth:
         this.safeParseInt(audioStream?.bits_per_raw_sample) ??
         this.safeParseInt(audioStream?.bits_per_sample),
+      audioStreamIndex: audioStream.index,
       mimeType: '',
     }
   }
@@ -2209,9 +2299,23 @@ export class TranscodeService {
     bitrate?: string
     threads?: number
     signal?: AbortSignal
+    audioStreamIndex?: number
   }): Promise<void> {
     const bitrate = params.bitrate || '128k'
-    const args = ['-i', params.inputFile, '-vn', '-c:a', 'aac', '-b:a', bitrate, '-ac', '2']
+    const aMap = params.audioStreamIndex !== undefined ? `0:${params.audioStreamIndex}` : '0:a:0?'
+    const args = [
+      '-i',
+      params.inputFile,
+      '-vn',
+      '-map',
+      aMap,
+      '-c:a',
+      'aac',
+      '-b:a',
+      bitrate,
+      '-ac',
+      '2',
+    ]
     if (params.threads && params.threads > 0) {
       args.push('-threads', params.threads.toString())
     }
@@ -2240,6 +2344,7 @@ export class TranscodeService {
     const numFrames = Math.max(1, params.numFrames)
     const step = duration / numFrames
     const timestamps = Array.from({ length: numFrames }, (_, i) => i * step)
+    const vMap = meta.videoStreamIndex !== undefined ? `0:${meta.videoStreamIndex}` : '0:V:0'
 
     await mapConcurrent(timestamps, 10, async (t, idx) => {
       const outputFile = path.join(params.outputDir, `${idx + 1}.webp`)
@@ -2251,6 +2356,8 @@ export class TranscodeService {
         t.toFixed(4),
         '-i',
         params.inputFile,
+        '-map',
+        vMap,
         '-vframes',
         '1',
         '-vf',
@@ -2375,6 +2482,8 @@ export class TranscodeService {
           t.toFixed(4),
           '-i',
           inputSource,
+          '-map',
+          '0:V:0',
           '-vframes',
           '1',
           '-vf',

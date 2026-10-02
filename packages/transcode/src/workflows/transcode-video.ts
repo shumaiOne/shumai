@@ -77,6 +77,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
         isHdr: mediaInfo.metadata?.isHdr,
         hdrType: mediaInfo.metadata?.hdrType,
         colorTransfer: mediaInfo.metadata?.colorTransfer,
+        streamIndex: mediaInfo.metadata?.videoStreamIndex,
       })
       mediaInfo.poster = posterResult.poster
       await executeActivity(workerQueue, updateAssetMediaActivity, {
@@ -163,6 +164,8 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
             sourceColorTransfer: metadata.colorTransfer,
             sourceColorPrimaries: metadata.colorPrimaries,
             sourceColorSpace: metadata.colorSpace,
+            streamIndex: metadata.videoStreamIndex,
+            audioStreamIndex: metadata.audioStreamIndex,
           })
 
           mediaInfo.videoPreview = videoTranscode
@@ -191,6 +194,8 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
           sourceColorTransfer: metadata.colorTransfer,
           sourceColorPrimaries: metadata.colorPrimaries,
           sourceColorSpace: metadata.colorSpace,
+          streamIndex: metadata.videoStreamIndex,
+          audioStreamIndex: metadata.audioStreamIndex,
         })
 
         mediaInfo.videoTranscodes.push(videoTranscode)
@@ -219,6 +224,8 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
             sourceColorTransfer: metadata.colorTransfer,
             sourceColorPrimaries: metadata.colorPrimaries,
             sourceColorSpace: metadata.colorSpace,
+            streamIndex: metadata.videoStreamIndex,
+            audioStreamIndex: metadata.audioStreamIndex,
           })
           mediaInfo.isHls = true
           mediaInfo.hls = hlsResult
@@ -233,6 +240,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
         assetKey: key,
         filePath,
         threads: spec.threads,
+        audioStreamIndex: metadata.audioStreamIndex,
       })
       mediaInfo.videoTranscodes.push(audioTranscode)
     }

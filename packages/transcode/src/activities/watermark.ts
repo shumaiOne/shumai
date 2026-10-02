@@ -370,6 +370,8 @@ export async function transcodeWatermarkMediaActivity(
           sourceColorTransfer: colorTransfer ?? originalMedia?.metadata?.colorTransfer,
           sourceColorPrimaries: colorPrimaries ?? originalMedia?.metadata?.colorPrimaries,
           sourceColorSpace: colorSpace ?? originalMedia?.metadata?.colorSpace,
+          streamIndex: originalMedia?.metadata?.videoStreamIndex,
+          audioStreamIndex: originalMedia?.metadata?.audioStreamIndex,
         })
 
         const stat = fs.statSync(outFilePath)
@@ -440,6 +442,8 @@ export async function transcodeWatermarkMediaActivity(
             sourceColorTransfer: colorTransfer ?? originalMedia?.metadata?.colorTransfer,
             sourceColorPrimaries: colorPrimaries ?? originalMedia?.metadata?.colorPrimaries,
             sourceColorSpace: colorSpace ?? originalMedia?.metadata?.colorSpace,
+            streamIndex: originalMedia?.metadata?.videoStreamIndex,
+            audioStreamIndex: originalMedia?.metadata?.audioStreamIndex,
           })
 
           const targetBps = calculateEffectiveBitrateBps(

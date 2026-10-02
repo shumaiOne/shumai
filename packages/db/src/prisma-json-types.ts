@@ -170,6 +170,8 @@ declare global {
       isHdr?: boolean
       hdrType?: HdrType
       dvProfile?: number
+      videoStreamIndex?: number
+      audioStreamIndex?: number
       format: unknown
     }
 
