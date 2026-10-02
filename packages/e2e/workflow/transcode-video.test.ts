@@ -1111,5 +1111,71 @@ describe.each(['local', 'temporal'] as const)(
       )
       expect(masterObj.buffer.toString('utf-8')).toContain('480p/index.m3u8')
     }, 60000)
+
+    it('should transition both task and asset to failed status with media.error when transcoding fails', async () => {
+      const team = await prisma.team.create({
+        data: { name: 'E2E Failed Transcode Team' },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'E2E Failed Transcode Project', teamId: team.id },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: { key: 'projects/e2e/corrupt-video.mp4' },
+      })
+
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'corrupt-video.mp4',
+          type: 'file',
+          status: 'uploaded',
+          mediaType: 'video/mp4',
+          projectId: project.id,
+          storageKeyId: storageKey.id,
+        },
+      })
+
+      const corruptBuffer = Buffer.from('not a valid mp4 media stream at all')
+      await s3Service.putObject(
+        'shumai-e2e-test-bucket-transcode',
+        'projects/e2e/corrupt-video.mp4',
+        corruptBuffer,
+        corruptBuffer.length,
+        'video/mp4',
+      )
+
+      const task = await prisma.workflowTask.create({
+        data: {
+          type: 'transcode_video',
+          status: 'pending',
+          assetId: asset.id,
+          projectId: project.id,
+          teamId: team.id,
+          payload: {
+            projectId: project.id,
+            transcode: {
+              videoStrategy: 'best_match',
+            },
+          },
+        },
+      })
+
+      await expect(workflowService.executeWait(task, 45000)).rejects.toThrow()
+
+      const failedTask = await prisma.workflowTask.findUnique({
+        where: { id: task.id },
+      })
+      expect(failedTask?.status).toBe('failed')
+
+      const updatedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(updatedAsset?.status).toBe(AssetStatus.failed)
+
+      const media = updatedAsset?.media as PrismaJson.MediaInfo
+      expect(media?.error).toBeDefined()
+      expect(media?.error?.length).toBeGreaterThan(0)
+    }, 45000)
   },
 )
