@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **transcode**: Add dcraw_emu fallback to generate WebP previews for camera RAW files without embedded JPEG previews
+
 ### Fixed
 
 ### Changed

@@ -784,7 +784,7 @@ export class TranscodeService {
       }
     }
 
-    // RAW branch — extract embedded JPEG for metadata
+    // RAW branch — extract embedded JPEG or decode RAW for metadata
     if (typeof input === 'string' && isRawImage(input)) {
       const extracted = await extractAndValidateRawPreview(input)
       if (extracted) {
@@ -793,8 +793,10 @@ export class TranscodeService {
             extracted.orientation !== undefined &&
             extracted.orientation >= 5 &&
             extracted.orientation <= 8
-          const originalWidth = isSwapped ? extracted.height : extracted.width
-          const originalHeight = isSwapped ? extracted.width : extracted.height
+          const sourceWidth = extracted.rawWidth ?? extracted.width
+          const sourceHeight = extracted.rawHeight ?? extracted.height
+          const originalWidth = isSwapped ? sourceHeight : sourceWidth
+          const originalHeight = isSwapped ? sourceWidth : sourceHeight
 
           return {
             originalWidth,
@@ -1545,13 +1547,15 @@ export class TranscodeService {
       input = Buffer.from(await resp.arrayBuffer())
     }
 
-    // RAW branch — extract embedded JPEG to temporary file + orientation, then treat as normal image
+    // RAW branch — extract embedded preview or decode RAW to temporary file + orientation, then treat as normal image
     let rawOrientation: number | undefined
     let rawCleanup: (() => void) | null = null
     if (typeof input === 'string' && isRawImage(input)) {
       const extracted = await extractAndValidateRawPreview(input)
       if (!extracted) {
-        throw new Error(`Cannot generate preview for RAW file: no usable embedded JPEG in ${input}`)
+        throw new Error(
+          `Cannot generate preview for RAW file: no usable embedded preview or decoded image in ${input}`,
+        )
       }
       input = extracted.previewPath
       rawOrientation = extracted.orientation

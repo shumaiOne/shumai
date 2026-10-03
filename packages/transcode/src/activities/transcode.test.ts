@@ -998,6 +998,24 @@ describe('Transcode Activities', () => {
       ).rejects.toThrowError(/Image transcoding failed/)
     })
 
+    it('should throw non-retryable ApplicationFailure when transcodeImageActivity fails with dcraw error', async () => {
+      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+      vi.mocked(transcodeService.transcodeImage).mockRejectedValue(
+        new Error('dcraw_emu failed to decode RAW file'),
+      )
+
+      await expect(
+        transcodeImageActivity({
+          assetKey: 'photo.cr2',
+          filePath: '/tmp/photo.cr2',
+          imageSpec: { width: 800, height: 600, quality: 90, format: 'webp' },
+        }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining('Image transcoding failed'),
+        nonRetryable: true,
+      })
+    })
+
     it('should throw non-retryable ApplicationFailure when generateSpriteActivity fails with error', async () => {
       vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
       vi.mocked(transcodeService.generateSprite).mockRejectedValue(new Error('FFmpeg failed'))

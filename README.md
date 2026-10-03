@@ -162,23 +162,24 @@ Shumai requires the following system packages on Linux:
 - **`ffmpeg`** – Used for media transcoding and metadata extraction.
 - **`poppler`** (`poppler-utils`) – Used for PDF page image extraction and PDF sprite preview generation (`pdftoppm`).
 - **`imagemagick`** – Used for PSD format transcoding and color profile conversion to sRGB.
+- **`dcraw_emu`** (`libraw` / `libraw-bin`) – Used for camera RAW format image decoding and preview generation.
 - **`bubblewrap`**, **`socat`**, and **`ripgrep`** – Required by the AI agent sandbox (`anthropic-experimental/sandbox-runtime`) for process isolation, networking, and workspace search.
 
 Install all required packages with one command:
 
 > Ubuntu/Debian
 ```bash
-sudo apt install -y ffmpeg poppler-utils imagemagick bubblewrap socat ripgrep
+sudo apt install -y ffmpeg poppler-utils imagemagick bubblewrap socat ripgrep libraw-bin
 ```
 
 > Fedora
 ```bash
-sudo dnf install -y ffmpeg poppler-utils ImageMagick bubblewrap socat ripgrep
+sudo dnf install -y ffmpeg poppler-utils ImageMagick bubblewrap socat ripgrep LibRaw
 ```
 
 > Arch Linux
 ```bash
-sudo pacman -S --noconfirm ffmpeg poppler imagemagick bubblewrap socat ripgrep
+sudo pacman -S --noconfirm ffmpeg poppler imagemagick bubblewrap socat ripgrep libraw
 ```
 
 > [!NOTE]
@@ -201,12 +202,13 @@ Shumai requires:
 - **`ffmpeg`** – Used for media transcoding and metadata extraction.
 - **`poppler`** – Used for PDF page image extraction and PDF sprite preview generation (`pdftoppm`).
 - **`imagemagick`** – Used for PSD format transcoding and color profile conversion to sRGB.
+- **`dcraw_emu`** (`libraw`) – Used for camera RAW format image decoding and preview generation.
 - **`ripgrep`** – Required by the AI agent sandbox (`anthropic-experimental/sandbox-runtime`).
 
 Install the required packages with Homebrew:
 
 ```bash
-brew install ffmpeg poppler imagemagick ripgrep
+brew install ffmpeg poppler imagemagick ripgrep libraw
 ```
 
 ---

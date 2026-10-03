@@ -187,23 +187,24 @@ mkdir shumai && cd shumai
 - **`ffmpeg`** —— 用于媒体转码和元数据提取。
 - **`poppler`** (`poppler-utils`) —— 用于 PDF 页面图像提取和 PDF 雪碧图预览生成 (`pdftoppm`)。
 - **`imagemagick`** —— 用于 PSD 格式图像转码和 sRGB 色彩空间转换。
+- **`dcraw_emu`** (`libraw` / `libraw-bin`) —— 用于相机 RAW 格式图像解码和预览图生成。
 - **`bubblewrap`**、**`socat`** 和 **`ripgrep`** —— AI Agent 沙箱（`anthropic-experimental/sandbox-runtime`）所需，用于进程隔离、网络通信和工作区搜索。
 
 可以使用以下命令一次性安装所有依赖：
 
 > Ubuntu/Debian
 ```bash
-sudo apt install -y ffmpeg poppler-utils imagemagick bubblewrap socat ripgrep
+sudo apt install -y ffmpeg poppler-utils imagemagick bubblewrap socat ripgrep libraw-bin
 ```
 
 > Fedora
 ```bash
-sudo dnf install -y ffmpeg poppler-utils ImageMagick bubblewrap socat ripgrep
+sudo dnf install -y ffmpeg poppler-utils ImageMagick bubblewrap socat ripgrep LibRaw
 ```
 
 > Arch Linux
 ```bash
-sudo pacman -S --noconfirm ffmpeg poppler imagemagick bubblewrap socat ripgrep
+sudo pacman -S --noconfirm ffmpeg poppler imagemagick bubblewrap socat ripgrep libraw
 ```
 
 > [!NOTE]
@@ -215,7 +216,7 @@ sudo pacman -S --noconfirm ffmpeg poppler imagemagick bubblewrap socat ripgrep
 > sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 > ```
 >
-> 或者，配置 AppArmor Profile，为相关可执行文件授予所需的 `userns` 权限。
+> 或者，配置 AppArmor Profile，为相关可执行文件授予所需的 `userns`权限。
 
 ---
 
@@ -226,12 +227,13 @@ sudo pacman -S --noconfirm ffmpeg poppler imagemagick bubblewrap socat ripgrep
 - **`ffmpeg`** —— 用于媒体转码和元数据提取。
 - **`poppler`** —— 用于 PDF 页面图像提取和 PDF 雪碧图预览生成 (`pdftoppm`)。
 - **`imagemagick`** —— 用于 PSD 格式图像转码和 sRGB 色彩空间转换。
+- **`dcraw_emu`** (`libraw`) —— 用于相机 RAW 格式图像解码和预览图生成。
 - **`ripgrep`** —— AI Agent 沙箱（`anthropic-experimental/sandbox-runtime`）所需。
 
 使用 Homebrew 安装所需依赖：
 
 ```bash
-brew install ffmpeg poppler imagemagick ripgrep
+brew install ffmpeg poppler imagemagick ripgrep libraw
 ```
 
 ---

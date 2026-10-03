@@ -3,6 +3,8 @@ import * as fs from 'fs'
 import {
   extractEmbeddedJpeg,
   validateExtractedJpeg,
+  validateExtractedImage,
+  decodeRawWithDcraw,
   extractAndValidateRawPreview,
   EXIF_ORIENTATION_TO_ROTATION,
 } from './raw-extract'
@@ -26,13 +28,20 @@ vi.mock('sharp', () => {
   return { default: mockSharp }
 })
 
+// Mock child_process
+vi.mock('child_process', () => ({
+  execFile: vi.fn(),
+}))
+
 import { exiftool } from 'exiftool-vendored'
 import sharp from 'sharp'
+import { execFile } from 'child_process'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockMetadata = (sharp as any)._mockMetadata as ReturnType<typeof vi.fn>
 const mockExtractBinaryTag = vi.mocked(exiftool.extractBinaryTag)
 const mockRead = vi.mocked(exiftool.read)
+const mockExecFile = vi.mocked(execFile)
 
 describe('extractEmbeddedJpeg', () => {
   beforeEach(() => {
@@ -202,16 +211,231 @@ describe('validateExtractedJpeg', () => {
   })
 })
 
+describe('validateExtractedImage', () => {
+  it('is an alias for validateExtractedJpeg', () => {
+    expect(validateExtractedImage).toBe(validateExtractedJpeg)
+  })
+})
+
+describe('decodeRawWithDcraw', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('decodes RAW using camera white balance, sRGB, and TIFF output without -h when longest dimension <= 8192', async () => {
+    mockRead.mockResolvedValueOnce({
+      ImageWidth: 6000,
+      ImageHeight: 4000,
+      Orientation: 1,
+    } as never)
+
+    let executedArgs: string[] = []
+    mockExecFile.mockImplementationOnce((_bin, args, _opts, cb) => {
+      executedArgs = args as string[]
+      const tiffDest = (args as string[])[(args as string[]).indexOf('-Z') + 1]
+      fs.writeFileSync(tiffDest, 'tiff-data')
+      const callback = typeof _opts === 'function' ? _opts : cb
+      if (callback) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(callback as any)(null, { stdout: '', stderr: '' })
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return {} as any
+    })
+
+    const result = await decodeRawWithDcraw('/path/to/photo.cr2')
+
+    expect(result).not.toBeNull()
+    expect(fs.existsSync(result!.previewPath)).toBe(true)
+    expect(result!.orientation).toBeUndefined()
+    expect(result!.rawWidth).toBe(6000)
+    expect(result!.rawHeight).toBe(4000)
+
+    expect(executedArgs).toContain('-w')
+    expect(executedArgs).toContain('-o')
+    expect(executedArgs).toContain('1')
+    expect(executedArgs).toContain('-T')
+    expect(executedArgs).toContain('-Z')
+    expect(executedArgs).not.toContain('-h')
+    expect(executedArgs[executedArgs.length - 1]).toBe('/path/to/photo.cr2')
+
+    result!.cleanup()
+    expect(fs.existsSync(result!.previewPath)).toBe(false)
+  })
+
+  it('enables half-size (-h) when longest dimension > 8192px and computes upright raw dimensions', async () => {
+    mockRead.mockResolvedValueOnce({
+      ImageWidth: 9504,
+      ImageHeight: 6336,
+      Orientation: 6,
+    } as never)
+
+    let executedArgs: string[] = []
+    mockExecFile.mockImplementationOnce((_bin, args, _opts, cb) => {
+      executedArgs = args as string[]
+      const tiffDest = (args as string[])[(args as string[]).indexOf('-Z') + 1]
+      fs.writeFileSync(tiffDest, 'tiff-data')
+      const callback = typeof _opts === 'function' ? _opts : cb
+      if (callback) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(callback as any)(null, { stdout: '', stderr: '' })
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return {} as any
+    })
+
+    const result = await decodeRawWithDcraw('/path/to/photo.arw')
+
+    expect(result).not.toBeNull()
+    expect(executedArgs).toContain('-h')
+    expect(result!.orientation).toBeUndefined()
+    // For orientation 6 (90 CW), upright raw dimensions are swapped
+    expect(result!.rawWidth).toBe(6336)
+    expect(result!.rawHeight).toBe(9504)
+
+    result!.cleanup()
+  })
+
+  it('omits -h when longest dimension is exactly 8192px', async () => {
+    mockRead.mockResolvedValueOnce({
+      ImageWidth: 8192,
+      ImageHeight: 5464,
+      Orientation: 1,
+    } as never)
+
+    let executedArgs: string[] = []
+    mockExecFile.mockImplementationOnce((_bin, args, _opts, cb) => {
+      executedArgs = args as string[]
+      const tiffDest = (args as string[])[(args as string[]).indexOf('-Z') + 1]
+      fs.writeFileSync(tiffDest, 'tiff-data')
+      const callback = typeof _opts === 'function' ? _opts : cb
+      if (callback) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(callback as any)(null, { stdout: '', stderr: '' })
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return {} as any
+    })
+
+    const result = await decodeRawWithDcraw('/path/to/photo.nef')
+
+    expect(result).not.toBeNull()
+    expect(executedArgs).not.toContain('-h')
+    result!.cleanup()
+  })
+
+  it('defaults to full size without -h when EXIF metadata cannot be read', async () => {
+    mockRead.mockRejectedValueOnce(new Error('Exif read failure'))
+
+    let executedArgs: string[] = []
+    mockExecFile.mockImplementationOnce((_bin, args, _opts, cb) => {
+      executedArgs = args as string[]
+      const tiffDest = (args as string[])[(args as string[]).indexOf('-Z') + 1]
+      fs.writeFileSync(tiffDest, 'tiff-data')
+      const callback = typeof _opts === 'function' ? _opts : cb
+      if (callback) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(callback as any)(null, { stdout: '', stderr: '' })
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return {} as any
+    })
+
+    const result = await decodeRawWithDcraw('/path/to/photo.dng')
+
+    expect(result).not.toBeNull()
+    expect(executedArgs).not.toContain('-h')
+    result!.cleanup()
+  })
+
+  it('returns null and cleans up when dcraw_emu exits with non-zero code', async () => {
+    mockRead.mockResolvedValueOnce({ ImageWidth: 6000, ImageHeight: 4000 } as never)
+    mockExecFile.mockImplementationOnce((_bin, _args, _opts, cb) => {
+      const callback = typeof _opts === 'function' ? _opts : cb
+      const err = new Error('Command failed: dcraw_emu')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(err as any).code = 1
+      if (callback) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(callback as any)(err)
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return {} as any
+    })
+
+    const result = await decodeRawWithDcraw('/path/to/photo.cr2')
+
+    expect(result).toBeNull()
+  })
+
+  it('returns null and cleans up when dcraw_emu times out', async () => {
+    mockRead.mockResolvedValueOnce({ ImageWidth: 6000, ImageHeight: 4000 } as never)
+    mockExecFile.mockImplementationOnce((_bin, _args, _opts, cb) => {
+      const callback = typeof _opts === 'function' ? _opts : cb
+      const err = new Error('Process timed out')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(err as any).code = 'ETIMEDOUT'
+      if (callback) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(callback as any)(err)
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return {} as any
+    })
+
+    const result = await decodeRawWithDcraw('/path/to/photo.cr2')
+
+    expect(result).toBeNull()
+  })
+
+  it('returns null and cleans up when dcraw_emu is not found (ENOENT)', async () => {
+    mockRead.mockResolvedValueOnce({ ImageWidth: 6000, ImageHeight: 4000 } as never)
+    mockExecFile.mockImplementationOnce((_bin, _args, _opts, cb) => {
+      const callback = typeof _opts === 'function' ? _opts : cb
+      const err = new Error('spawn dcraw_emu ENOENT')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(err as any).code = 'ENOENT'
+      if (callback) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(callback as any)(err)
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return {} as any
+    })
+
+    const result = await decodeRawWithDcraw('/path/to/photo.cr2')
+
+    expect(result).toBeNull()
+  })
+
+  it('returns null and cleans up when output TIFF is missing or empty', async () => {
+    mockRead.mockResolvedValueOnce({ ImageWidth: 6000, ImageHeight: 4000 } as never)
+    mockExecFile.mockImplementationOnce((_bin, _args, _opts, cb) => {
+      const callback = typeof _opts === 'function' ? _opts : cb
+      if (callback) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(callback as any)(null, { stdout: '', stderr: '' })
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return {} as any
+    })
+
+    const result = await decodeRawWithDcraw('/path/to/photo.cr2')
+
+    expect(result).toBeNull()
+  })
+})
+
 describe('extractAndValidateRawPreview', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('returns previewPath, dimensions, orientation, and cleanup for valid RAW', async () => {
+  it('returns previewPath, dimensions, orientation, and cleanup for valid RAW using embedded JPEG first', async () => {
     mockExtractBinaryTag.mockImplementationOnce(async (_tag, _src, dest) => {
       fs.writeFileSync(dest, 'jpeg-data')
     })
-    mockRead.mockResolvedValueOnce({ Orientation: 6 } as never)
+    mockRead.mockResolvedValueOnce({ Orientation: 6, ImageWidth: 4000, ImageHeight: 3000 } as never)
     mockMetadata.mockResolvedValueOnce({ width: 4000, height: 3000 })
 
     const result = await extractAndValidateRawPreview('/path/to/photo.cr2')
@@ -221,35 +445,133 @@ describe('extractAndValidateRawPreview', () => {
     expect(result!.width).toBe(4000)
     expect(result!.height).toBe(3000)
     expect(result!.orientation).toBe(6)
+    expect(mockExecFile).not.toHaveBeenCalled()
 
     result!.cleanup()
     expect(fs.existsSync(result!.previewPath)).toBe(false)
   })
 
-  it('returns null when extraction fails', async () => {
+  it('falls back to dcraw_emu when embedded preview extraction fails', async () => {
     mockExtractBinaryTag
       .mockRejectedValueOnce(new Error('fail'))
       .mockRejectedValueOnce(new Error('fail'))
       .mockRejectedValueOnce(new Error('fail'))
+
+    mockRead.mockResolvedValueOnce({
+      ImageWidth: 6000,
+      ImageHeight: 4000,
+      Orientation: 1,
+    } as never)
+
+    mockExecFile.mockImplementationOnce((_bin, args, _opts, cb) => {
+      const tiffDest = (args as string[])[(args as string[]).indexOf('-Z') + 1]
+      fs.writeFileSync(tiffDest, 'tiff-data')
+      const callback = typeof _opts === 'function' ? _opts : cb
+      if (callback) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(callback as any)(null, { stdout: '', stderr: '' })
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return {} as any
+    })
+
+    mockMetadata.mockResolvedValueOnce({ width: 6000, height: 4000 })
+
+    const result = await extractAndValidateRawPreview('/path/to/photo.cr2')
+
+    expect(result).not.toBeNull()
+    expect(mockExecFile).toHaveBeenCalled()
+    expect(result!.width).toBe(6000)
+    expect(result!.height).toBe(4000)
+    expect(result!.rawWidth).toBe(6000)
+    expect(result!.rawHeight).toBe(4000)
+    expect(result!.orientation).toBeUndefined()
+
+    result!.cleanup()
+    expect(fs.existsSync(result!.previewPath)).toBe(false)
+  })
+
+  it('falls back to dcraw_emu when extracted embedded JPEG is corrupt', async () => {
+    let createdJpegPath = ''
+    mockExtractBinaryTag.mockImplementationOnce(async (_tag, _src, dest) => {
+      createdJpegPath = dest
+      fs.writeFileSync(dest, 'corrupt-jpeg')
+    })
+    mockRead.mockResolvedValueOnce({ Orientation: 1 } as never)
+    mockMetadata.mockRejectedValueOnce(new Error('Not a valid image'))
+
+    // Fallback dcraw_emu
+    mockRead.mockResolvedValueOnce({ ImageWidth: 6000, ImageHeight: 4000 } as never)
+    mockExecFile.mockImplementationOnce((_bin, args, _opts, cb) => {
+      const tiffDest = (args as string[])[(args as string[]).indexOf('-Z') + 1]
+      fs.writeFileSync(tiffDest, 'tiff-data')
+      const callback = typeof _opts === 'function' ? _opts : cb
+      if (callback) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(callback as any)(null, { stdout: '', stderr: '' })
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return {} as any
+    })
+    mockMetadata.mockResolvedValueOnce({ width: 6000, height: 4000 })
+
+    const result = await extractAndValidateRawPreview('/path/to/photo.cr2')
+
+    expect(result).not.toBeNull()
+    expect(fs.existsSync(createdJpegPath)).toBe(false) // Embedded jpeg was cleaned up
+    expect(fs.existsSync(result!.previewPath)).toBe(true)
+
+    result!.cleanup()
+    expect(fs.existsSync(result!.previewPath)).toBe(false)
+  })
+
+  it('returns null when both embedded extraction and dcraw_emu fail', async () => {
+    mockExtractBinaryTag
+      .mockRejectedValueOnce(new Error('fail'))
+      .mockRejectedValueOnce(new Error('fail'))
+      .mockRejectedValueOnce(new Error('fail'))
+
+    mockRead.mockRejectedValueOnce(new Error('fail'))
+    mockExecFile.mockImplementationOnce((_bin, _args, _opts, cb) => {
+      const callback = typeof _opts === 'function' ? _opts : cb
+      if (callback) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(callback as any)(new Error('dcraw failed'))
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return {} as any
+    })
 
     const result = await extractAndValidateRawPreview('/path/to/photo.cr2')
 
     expect(result).toBeNull()
   })
 
-  it('returns null and cleans up when validation fails', async () => {
-    let createdPath = ''
-    mockExtractBinaryTag.mockImplementationOnce(async (_tag, _src, dest) => {
-      createdPath = dest
-      fs.writeFileSync(dest, 'bad-jpeg')
+  it('returns null and cleans up when decoded TIFF is corrupt', async () => {
+    mockExtractBinaryTag
+      .mockRejectedValueOnce(new Error('fail'))
+      .mockRejectedValueOnce(new Error('fail'))
+      .mockRejectedValueOnce(new Error('fail'))
+
+    let createdTiff = ''
+    mockRead.mockResolvedValueOnce({ ImageWidth: 6000, ImageHeight: 4000 } as never)
+    mockExecFile.mockImplementationOnce((_bin, args, _opts, cb) => {
+      createdTiff = (args as string[])[(args as string[]).indexOf('-Z') + 1]
+      fs.writeFileSync(createdTiff, 'corrupt-tiff')
+      const callback = typeof _opts === 'function' ? _opts : cb
+      if (callback) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(callback as any)(null, { stdout: '', stderr: '' })
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return {} as any
     })
-    mockRead.mockResolvedValueOnce({ Orientation: 1 } as never)
-    mockMetadata.mockRejectedValueOnce(new Error('Not a valid image'))
+    mockMetadata.mockRejectedValueOnce(new Error('Invalid TIFF'))
 
     const result = await extractAndValidateRawPreview('/path/to/photo.cr2')
 
     expect(result).toBeNull()
-    expect(fs.existsSync(createdPath)).toBe(false)
+    expect(fs.existsSync(createdTiff)).toBe(false)
   })
 })
 

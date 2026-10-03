@@ -772,6 +772,8 @@ export async function transcodeImageActivity(
       lowerMsg.includes('imagemagick') ||
       lowerMsg.includes('magick') ||
       lowerMsg.includes('convert') ||
+      lowerMsg.includes('dcraw') ||
+      lowerMsg.includes('raw') ||
       lowerMsg.includes('spawn') ||
       lowerMsg.includes('format')
     ) {

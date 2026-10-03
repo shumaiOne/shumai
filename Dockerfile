@@ -52,6 +52,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
     imagemagick \
     fonts-noto-cjk \
+    libraw-bin \
     && . /etc/os-release \
     && TARGETARCH=$(dpkg --print-architecture) \
     && FFMPEG_VERSION="8.1.2-5" \

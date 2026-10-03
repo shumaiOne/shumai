@@ -506,6 +506,26 @@ describe('TranscodeService', () => {
     expect(info.mimeType).toBe('')
   })
 
+  it('should prioritize rawWidth and rawHeight in getImageInfo when available', async () => {
+    const rawPath = path.join(tempDir, 'highres.arw')
+    const cleanupSpy = vi.fn()
+    vi.spyOn(rawExtract, 'extractAndValidateRawPreview').mockResolvedValueOnce({
+      previewPath: '/tmp/decoded-half.tiff',
+      cleanup: cleanupSpy,
+      width: 4752,
+      height: 3168,
+      rawWidth: 9504,
+      rawHeight: 6336,
+      orientation: undefined,
+    })
+
+    const info = await transcodeService.getImageInfo(rawPath)
+    expect(info.originalWidth).toBe(9504)
+    expect(info.originalHeight).toBe(6336)
+    expect(info.mimeType).toBe('jpeg')
+    expect(cleanupSpy).toHaveBeenCalled()
+  })
+
   it('should transcode RAW image by extracting preview to temp file and feeding to sharp', async () => {
     const rawPath = path.join(tempDir, 'sample.nef')
     const outputFile = path.join(tempDir, 'output-raw.webp')
@@ -522,6 +542,31 @@ describe('TranscodeService', () => {
 
     expect(sharp).toHaveBeenCalledWith('/tmp/extracted-raw.jpg', { limitInputPixels: false })
     const mockSharp = vi.mocked(sharp).mock.results[vi.mocked(sharp).mock.results.length - 1].value
+    expect(mockSharp.toColorspace).toHaveBeenCalledWith('srgb')
+    expect(mockSharp.webp).toHaveBeenCalledWith({ quality: 85 })
+    expect(mockSharp.toFile).toHaveBeenCalledWith(outputFile)
+    expect(cleanupSpy).toHaveBeenCalled()
+  })
+
+  it('should transcode RAW image from dcraw_emu fallback TIFF without double-rotating', async () => {
+    const rawPath = path.join(tempDir, 'fallback.dng')
+    const outputFile = path.join(tempDir, 'output-fallback.webp')
+    const cleanupSpy = vi.fn()
+    vi.spyOn(rawExtract, 'extractAndValidateRawPreview').mockResolvedValueOnce({
+      previewPath: '/tmp/decoded-dcraw.tiff',
+      cleanup: cleanupSpy,
+      width: 3168,
+      height: 4752,
+      rawWidth: 6336,
+      rawHeight: 9504,
+      orientation: undefined,
+    })
+
+    await transcodeService.transcodeImage(rawPath, outputFile, 1920, 85)
+
+    expect(sharp).toHaveBeenCalledWith('/tmp/decoded-dcraw.tiff', { limitInputPixels: false })
+    const mockSharp = vi.mocked(sharp).mock.results[vi.mocked(sharp).mock.results.length - 1].value
+    expect(mockSharp.rotate).not.toHaveBeenCalled()
     expect(mockSharp.toColorspace).toHaveBeenCalledWith('srgb')
     expect(mockSharp.webp).toHaveBeenCalledWith({ quality: 85 })
     expect(mockSharp.toFile).toHaveBeenCalledWith(outputFile)
