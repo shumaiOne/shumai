@@ -52,6 +52,41 @@ export const EXIF_ORIENTATION_TO_ROTATION: Record<
   8: { angle: 270 }, // Rotate 270° CW
 }
 
+const DEFAULT_EXIFTOOL_TIMEOUT_MS = 15_000
+
+function getExifToolTimeoutMs(): number {
+  const envVal = process.env.EXIFTOOL_TIMEOUT_MS
+  if (envVal) {
+    const parsed = parseInt(envVal, 10)
+    if (!isNaN(parsed) && parsed > 0) {
+      return parsed
+    }
+  }
+  return DEFAULT_EXIFTOOL_TIMEOUT_MS
+}
+
+/**
+ * Wraps a promise with a timeout. If the timeout triggers first,
+ * the returned promise rejects with a timeout error and attaches a no-op handler
+ * to the underlying promise to prevent unhandled rejections.
+ */
+export function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  operationName = 'Operation',
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`${operationName} timed out after ${timeoutMs}ms`))
+    }, timeoutMs)
+  })
+  promise.catch(() => {})
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timer) clearTimeout(timer)
+  })
+}
+
 /**
  * Attempt to extract an embedded JPEG preview from a camera RAW file to a temporary file.
  *
@@ -83,10 +118,16 @@ export async function extractEmbeddedJpeg(
     }
   }
 
+  const exiftoolTimeoutMs = getExifToolTimeoutMs()
+
   for (const tag of tags) {
     const candidatePath = path.join(workDir, `preview-${tag}-${Date.now()}.jpg`)
     try {
-      await exiftool.extractBinaryTag(tag, rawFilePath, candidatePath)
+      await withTimeout(
+        exiftool.extractBinaryTag(tag, rawFilePath, candidatePath),
+        exiftoolTimeoutMs,
+        `exiftool.extractBinaryTag(${tag})`,
+      )
       if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).size > 0) {
         logger.debug({ tag, rawFilePath, candidatePath }, 'Extracted embedded JPEG from RAW')
 
@@ -95,7 +136,11 @@ export async function extractEmbeddedJpeg(
         let rawWidth: number | undefined
         let rawHeight: number | undefined
         try {
-          const exif = await exiftool.read(rawFilePath)
+          const exif = await withTimeout(
+            exiftool.read(rawFilePath),
+            exiftoolTimeoutMs,
+            'exiftool.read',
+          )
           const rawOrientation = exif.Orientation
           if (typeof rawOrientation === 'number' && rawOrientation >= 1 && rawOrientation <= 8) {
             orientation = rawOrientation
@@ -122,14 +167,22 @@ export async function extractEmbeddedJpeg(
 
         return { previewPath: candidatePath, cleanup, orientation, rawWidth, rawHeight }
       }
-    } catch {
-      logger.debug({ tag, rawFilePath }, `Could not extract ${tag} from RAW file`)
+    } catch (err) {
+      const isTimeout = err instanceof Error && err.message.includes('timed out')
+      logger.debug({ tag, rawFilePath, err, isTimeout }, `Could not extract ${tag} from RAW file`)
       try {
         if (fs.existsSync(candidatePath)) {
           fs.rmSync(candidatePath, { force: true })
         }
       } catch {
         // ignore
+      }
+      if (isTimeout) {
+        logger.warn(
+          { rawFilePath, tag, timeoutMs: exiftoolTimeoutMs },
+          'ExifTool extraction timed out; skipping remaining tags to avoid further delays',
+        )
+        break
       }
     }
   }
@@ -181,7 +234,8 @@ export async function decodeRawWithDcraw(
   let rawWidth: number | undefined
   let rawHeight: number | undefined
   try {
-    const exif = await exiftool.read(rawFilePath)
+    const exiftoolTimeoutMs = getExifToolTimeoutMs()
+    const exif = await withTimeout(exiftool.read(rawFilePath), exiftoolTimeoutMs, 'exiftool.read')
     const w =
       typeof exif.ImageWidth === 'number'
         ? exif.ImageWidth

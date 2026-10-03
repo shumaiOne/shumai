@@ -53,6 +53,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     imagemagick \
     fonts-noto-cjk \
     libraw-bin \
+    libimage-exiftool-perl \
     && . /etc/os-release \
     && TARGETARCH=$(dpkg --print-architecture) \
     && FFMPEG_VERSION="8.1.2-5" \

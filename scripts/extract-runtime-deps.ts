@@ -13,6 +13,7 @@ const depsToExtract = [
   '@temporalio/client',
   '@temporalio/worker',
   '@temporalio/workflow',
+  'exiftool-vendored',
   'pdfkit',
   'prisma',
   'sharp',

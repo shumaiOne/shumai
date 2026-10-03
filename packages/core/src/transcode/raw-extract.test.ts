@@ -7,6 +7,7 @@ import {
   decodeRawWithDcraw,
   extractAndValidateRawPreview,
   EXIF_ORIENTATION_TO_ROTATION,
+  withTimeout,
 } from './raw-extract'
 
 // Mock exiftool-vendored
@@ -170,6 +171,29 @@ describe('extractEmbeddedJpeg', () => {
     expect(result).not.toBeNull()
     expect(result!.orientation).toBeUndefined()
     result!.cleanup()
+  })
+
+  it('skips remaining tags and aborts early when extraction times out', async () => {
+    const origEnv = process.env.EXIFTOOL_TIMEOUT_MS
+    try {
+      process.env.EXIFTOOL_TIMEOUT_MS = '20'
+      // Hang on first tag
+      mockExtractBinaryTag.mockImplementationOnce(
+        () => new Promise((resolve) => setTimeout(resolve, 300)),
+      )
+
+      const result = await extractEmbeddedJpeg('/path/to/photo.cr2')
+
+      expect(result).toBeNull()
+      // Crucial: should break immediately after the first timeout instead of trying remaining 2 tags
+      expect(mockExtractBinaryTag).toHaveBeenCalledTimes(1)
+    } finally {
+      if (origEnv !== undefined) {
+        process.env.EXIFTOOL_TIMEOUT_MS = origEnv
+      } else {
+        delete process.env.EXIFTOOL_TIMEOUT_MS
+      }
+    }
   })
 })
 
@@ -346,6 +370,40 @@ describe('decodeRawWithDcraw', () => {
     expect(result).not.toBeNull()
     expect(executedArgs).not.toContain('-h')
     result!.cleanup()
+  })
+
+  it('defaults to full size without -h when EXIF metadata read times out', async () => {
+    const origEnv = process.env.EXIFTOOL_TIMEOUT_MS
+    try {
+      process.env.EXIFTOOL_TIMEOUT_MS = '20'
+      mockRead.mockImplementationOnce(() => new Promise((resolve) => setTimeout(resolve, 300)))
+
+      let executedArgs: string[] = []
+      mockExecFile.mockImplementationOnce((_bin, args, _opts, cb) => {
+        executedArgs = args as string[]
+        const tiffDest = (args as string[])[(args as string[]).indexOf('-Z') + 1]
+        fs.writeFileSync(tiffDest, 'tiff-data')
+        const callback = typeof _opts === 'function' ? _opts : cb
+        if (callback) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ;(callback as any)(null, { stdout: '', stderr: '' })
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return {} as any
+      })
+
+      const result = await decodeRawWithDcraw('/path/to/photo.dng')
+
+      expect(result).not.toBeNull()
+      expect(executedArgs).not.toContain('-h')
+      result!.cleanup()
+    } finally {
+      if (origEnv !== undefined) {
+        process.env.EXIFTOOL_TIMEOUT_MS = origEnv
+      } else {
+        delete process.env.EXIFTOOL_TIMEOUT_MS
+      }
+    }
   })
 
   it('returns null and cleans up when dcraw_emu exits with non-zero code', async () => {
@@ -572,6 +630,80 @@ describe('extractAndValidateRawPreview', () => {
 
     expect(result).toBeNull()
     expect(fs.existsSync(createdTiff)).toBe(false)
+  })
+
+  it('falls back to dcraw_emu when embedded preview extraction times out', async () => {
+    const origEnv = process.env.EXIFTOOL_TIMEOUT_MS
+    try {
+      process.env.EXIFTOOL_TIMEOUT_MS = '20'
+      // Hang on extractBinaryTag
+      mockExtractBinaryTag.mockImplementationOnce(
+        () => new Promise((resolve) => setTimeout(resolve, 300)),
+      )
+
+      mockRead.mockResolvedValueOnce({
+        ImageWidth: 6000,
+        ImageHeight: 4000,
+        Orientation: 1,
+      } as never)
+
+      mockExecFile.mockImplementationOnce((_bin, args, _opts, cb) => {
+        const tiffDest = (args as string[])[(args as string[]).indexOf('-Z') + 1]
+        fs.writeFileSync(tiffDest, 'tiff-data')
+        const callback = typeof _opts === 'function' ? _opts : cb
+        if (callback) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ;(callback as any)(null, { stdout: '', stderr: '' })
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return {} as any
+      })
+      mockMetadata.mockResolvedValueOnce({ width: 6000, height: 4000 })
+
+      const result = await extractAndValidateRawPreview('/path/to/photo.cr2')
+
+      expect(result).not.toBeNull()
+      expect(mockExecFile).toHaveBeenCalled()
+      expect(result!.width).toBe(6000)
+      expect(result!.height).toBe(4000)
+
+      result!.cleanup()
+    } finally {
+      if (origEnv !== undefined) {
+        process.env.EXIFTOOL_TIMEOUT_MS = origEnv
+      } else {
+        delete process.env.EXIFTOOL_TIMEOUT_MS
+      }
+    }
+  })
+})
+
+describe('withTimeout', () => {
+  it('resolves when promise settles before timeout', async () => {
+    const result = await withTimeout(Promise.resolve('ok'), 1000)
+    expect(result).toBe('ok')
+  })
+
+  it('rejects with timeout error when promise exceeds timeout', async () => {
+    const hanging = new Promise((resolve) => setTimeout(resolve, 500))
+    await expect(withTimeout(hanging, 20, 'TestTask')).rejects.toThrow(
+      'TestTask timed out after 20ms',
+    )
+  })
+
+  it('propagates underlying promise rejection before timeout', async () => {
+    const failing = Promise.reject(new Error('fail fast'))
+    await expect(withTimeout(failing, 1000, 'TestTask')).rejects.toThrow('fail fast')
+  })
+
+  it('prevents unhandled rejection if promise rejects after timeout', async () => {
+    const delayedReject = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('late error')), 40),
+    )
+    await expect(withTimeout(delayedReject, 10, 'TestTask')).rejects.toThrow(
+      'TestTask timed out after 10ms',
+    )
+    await new Promise((resolve) => setTimeout(resolve, 60))
   })
 })
 
