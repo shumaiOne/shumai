@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **transcode**: Speed up VA-API hardware transcoding (Intel and AMD GPUs) by also decoding and resizing video on the GPU, making 4K proxies and HLS renditions roughly 3–5× faster on Intel integrated graphics. Videos the GPU cannot decode (such as HEVC on older Intel chips), rotated phone videos, watermarked shares and HDR sources automatically keep using the previous method. Set `SHUMAI_VAAPI_HW_DECODE=false` to turn it off
+
 ## [0.5.0] - 2026-10-02
 
 ### Added

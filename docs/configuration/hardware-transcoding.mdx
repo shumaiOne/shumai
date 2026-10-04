@@ -55,6 +55,18 @@ Shumai includes a built-in usability probe that tests hardware encoders at start
    You should see `card0` and `renderD128` (or similar).
 2. Shumai's Docker image automatically adjusts group permissions on container startup so the non-root application user can access host `/dev/dri` devices without permission errors.
 
+#### VA-API GPU decoding
+
+With VA-API, Shumai decodes and resizes video on the GPU as well as encoding it, so frames never leave GPU memory. This is much faster than decoding on the CPU, especially for 4K sources on integrated graphics.
+
+Some videos automatically use CPU decoding with VA-API encoding instead:
+
+- Codecs your GPU cannot decode, such as HEVC or 10-bit video on older Intel chips. Shumai tries the GPU first and retries on the CPU within a second.
+- Rotated videos, such as portrait phone recordings, so they keep the correct orientation.
+- Watermarked share links and HDR sources.
+
+To always decode on the CPU, set `SHUMAI_VAAPI_HW_DECODE=false` on the `shumai` service.
+
 ### WSL2 (Windows)
 
 - Ensure you are running Windows 11 with WSL2 and have installed the appropriate GPU drivers on the Windows host.

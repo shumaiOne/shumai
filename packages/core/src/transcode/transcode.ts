@@ -254,6 +254,24 @@ export const H264_ENCODER_CONFIGS: Record<string, EncoderConfig> = {
   },
 }
 
+/** Decode on the VAAPI device and keep frames in GPU memory. */
+export const VAAPI_HW_DECODE_ARGS = [
+  '-hwaccel',
+  'vaapi',
+  '-hwaccel_device',
+  'accel',
+  '-hwaccel_output_format',
+  'vaapi',
+]
+
+/**
+ * GPU equivalent of the software scale chain: fit within width x height,
+ * keep aspect ratio, round to even dimensions, output 8-bit NV12 for h264_vaapi.
+ */
+export function vaapiScaleFilter(width: number, height: number): string {
+  return `scale_vaapi=w=${width}:h=${height}:force_original_aspect_ratio=decrease:force_divisible_by=2:format=nv12:mode=hq`
+}
+
 export function getPlatformEncoderCandidates(
   platform: NodeJS.Platform = process.platform,
 ): string[] {
@@ -291,6 +309,16 @@ export function getVaapiDevice(driDir = '/dev/dri'): string | null {
   }
 
   return null
+}
+
+/**
+ * Whether VAAPI transcodes may decode and scale on the GPU (`-hwaccel vaapi` +
+ * `scale_vaapi`) instead of decoding/scaling on the CPU and uploading frames.
+ * Enabled by default; set SHUMAI_VAAPI_HW_DECODE=false to disable.
+ */
+export function isVaapiHwDecodeEnabled(): boolean {
+  const value = process.env.SHUMAI_VAAPI_HW_DECODE?.trim().toLowerCase()
+  return value !== 'false' && value !== '0' && value !== 'off'
 }
 
 export function parseBitrateKbps(bitrate: string | number): number {
@@ -1009,6 +1037,31 @@ export class TranscodeService {
   async transcodeVideo(params: TranscodeVideoParams): Promise<void> {
     const encoder = await this.selectH264Encoder(params.hardwareAcceleration)
 
+    if (await this.canUseVaapiHwDecode(params, encoder)) {
+      try {
+        await this.executeFfmpegVideoTranscode(params, encoder, { hwDecode: true })
+        return
+      } catch (err) {
+        if (this.isAbortError(err, params.signal)) {
+          throw err
+        }
+
+        logger.warn(
+          {
+            err,
+            encoder: encoder.name,
+            inputFile: params.inputFile,
+            outputFile: params.outputFile,
+            width: params.width,
+            height: params.height,
+          },
+          'VAAPI hardware decode failed; retrying with software decode and VAAPI encode',
+        )
+
+        this.removeFileIfExists(params.outputFile)
+      }
+    }
+
     if (encoder.name !== 'libx264') {
       try {
         await this.executeFfmpegVideoTranscode(params, encoder)
@@ -1030,13 +1083,7 @@ export class TranscodeService {
           'Hardware video transcoding failed; falling back to software transcode (libx264)',
         )
 
-        if (fs.existsSync(params.outputFile)) {
-          try {
-            fs.unlinkSync(params.outputFile)
-          } catch {
-            // ignore unlink errors
-          }
-        }
+        this.removeFileIfExists(params.outputFile)
 
         await this.executeFfmpegVideoTranscode(params, H264_ENCODER_CONFIGS.libx264)
         return
@@ -1046,9 +1093,90 @@ export class TranscodeService {
     await this.executeFfmpegVideoTranscode(params, encoder)
   }
 
+  /**
+   * GPU decode + scale is only attempted for plain VAAPI proxies: watermark
+   * overlays, HDR sources and rotated sources keep the software decode path.
+   * (ffmpeg cannot auto-insert its rotation filter on GPU frames, so a rotated
+   * phone clip would otherwise come out sideways rather than fail.) Sources the
+   * GPU cannot decode (e.g. HEVC/10-bit on older Intel iGPUs) fail fast and are
+   * retried with software decode by the caller.
+   */
+  private async canUseVaapiHwDecode(
+    params: Pick<
+      TranscodeVideoParams,
+      'inputFile' | 'streamIndex' | 'overlayFile' | 'sourceIsHdr' | 'sourceHdrType'
+    >,
+    encoder: EncoderConfig,
+  ): Promise<boolean> {
+    if (encoder.name !== 'h264_vaapi' || !isVaapiHwDecodeEnabled()) {
+      return false
+    }
+    if (params.overlayFile) {
+      return false
+    }
+    const isSourceHdr =
+      params.sourceIsHdr ||
+      params.sourceHdrType === 'pq' ||
+      params.sourceHdrType === 'hlg' ||
+      params.sourceHdrType === 'dovi_p5'
+    if (isSourceHdr) {
+      return false
+    }
+    const rotation = await this.getVideoRotation(params.inputFile, params.streamIndex)
+    return rotation === 0
+  }
+
+  /**
+   * Rotation of the source video stream in degrees (0, 90, 180 or 270), from
+   * the display matrix or the legacy `rotate` tag. Returns null if it cannot be
+   * determined.
+   */
+  async getVideoRotation(inputFile: string, streamIndex?: number): Promise<number | null> {
+    try {
+      const { stdout } = await execFileAsync('ffprobe', [
+        '-v',
+        'error',
+        '-select_streams',
+        streamIndex !== undefined ? String(streamIndex) : 'V:0',
+        '-show_entries',
+        'stream_side_data=rotation:stream_tags=rotate',
+        '-of',
+        'json',
+        inputFile,
+      ])
+      const stream = JSON.parse(stdout)?.streams?.[0]
+      if (!stream) {
+        return null
+      }
+      let rotation = 0
+      const sideData = Array.isArray(stream.side_data_list) ? stream.side_data_list : []
+      const matrix = sideData.find((d: { rotation?: unknown }) => typeof d.rotation === 'number')
+      if (matrix) {
+        rotation = matrix.rotation
+      } else if (stream.tags?.rotate !== undefined) {
+        rotation = parseFloat(stream.tags.rotate) || 0
+      }
+      return ((Math.round(rotation) % 360) + 360) % 360
+    } catch (err) {
+      logger.debug({ err, inputFile }, 'Failed to probe video rotation')
+      return null
+    }
+  }
+
+  private removeFileIfExists(filePath: string): void {
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath)
+      } catch {
+        // ignore unlink errors
+      }
+    }
+  }
+
   private async executeFfmpegVideoTranscode(
     params: TranscodeVideoParams,
     encoder: EncoderConfig,
+    options: { hwDecode?: boolean } = {},
   ): Promise<void> {
     const isSourceHdr =
       params.sourceIsHdr ||
@@ -1059,6 +1187,7 @@ export class TranscodeService {
 
     const isVaapi = encoder.name === 'h264_vaapi'
     const vaapiDevice = isVaapi ? (this.getVaapiDevice() ?? '/dev/dri/renderD128') : undefined
+    const hwDecode = Boolean(isVaapi && vaapiDevice && options.hwDecode && !params.overlayFile)
 
     logger.info(
       {
@@ -1067,6 +1196,7 @@ export class TranscodeService {
         inputFile: params.inputFile,
         outputFile: params.outputFile,
         vaapiDevice,
+        hwDecode,
       },
       'Starting video transcoding',
     )
@@ -1076,10 +1206,15 @@ export class TranscodeService {
 
     if (isVaapi && vaapiDevice) {
       args.push('-init_hw_device', `vaapi=accel:${vaapiDevice}`, '-filter_hw_device', 'accel')
+      if (hwDecode) {
+        args.push(...VAAPI_HW_DECODE_ARGS)
+      }
     }
 
     args.push('-i', params.inputFile)
-    const baseScale = `scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
+    const baseScale = hwDecode
+      ? vaapiScaleFilter(params.width, params.height)
+      : `scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
 
     const vPad = params.streamIndex !== undefined ? `0:${params.streamIndex}` : '0:V'
 
@@ -1093,7 +1228,7 @@ export class TranscodeService {
     if (params.frameRate) {
       filterComplex += `,fps=${params.frameRate}`
     }
-    if (isVaapi) {
+    if (isVaapi && !hwDecode) {
       filterComplex += ',format=nv12,hwupload=extra_hw_frames=64'
     }
     filterComplex += '[vout]'
@@ -1222,6 +1357,31 @@ export class TranscodeService {
   async transcodeHlsRendition(params: TranscodeHlsRenditionParams): Promise<void> {
     const encoder = await this.selectH264Encoder(params.hardwareAcceleration)
 
+    if (await this.canUseVaapiHwDecode(params, encoder)) {
+      try {
+        await this.executeFfmpegHlsTranscode(params, encoder, { hwDecode: true })
+        return
+      } catch (err) {
+        if (this.isAbortError(err, params.signal)) {
+          throw err
+        }
+
+        logger.warn(
+          {
+            err,
+            encoder: encoder.name,
+            inputFile: params.inputFile,
+            outputDir: params.outputDir,
+            width: params.width,
+            height: params.height,
+          },
+          'VAAPI hardware decode failed for HLS; retrying with software decode and VAAPI encode',
+        )
+
+        this.removeDirIfExists(params.outputDir)
+      }
+    }
+
     if (encoder.name !== 'libx264') {
       try {
         await this.executeFfmpegHlsTranscode(params, encoder)
@@ -1243,13 +1403,7 @@ export class TranscodeService {
           'Hardware HLS transcoding failed; falling back to software transcode (libx264)',
         )
 
-        if (fs.existsSync(params.outputDir)) {
-          try {
-            fs.rmSync(params.outputDir, { recursive: true, force: true })
-          } catch {
-            // ignore unlink errors
-          }
-        }
+        this.removeDirIfExists(params.outputDir)
 
         await this.executeFfmpegHlsTranscode(params, H264_ENCODER_CONFIGS.libx264)
         return
@@ -1259,9 +1413,20 @@ export class TranscodeService {
     await this.executeFfmpegHlsTranscode(params, encoder)
   }
 
+  private removeDirIfExists(dirPath: string): void {
+    if (fs.existsSync(dirPath)) {
+      try {
+        fs.rmSync(dirPath, { recursive: true, force: true })
+      } catch {
+        // ignore unlink errors
+      }
+    }
+  }
+
   private async executeFfmpegHlsTranscode(
     params: TranscodeHlsRenditionParams,
     encoder: EncoderConfig,
+    options: { hwDecode?: boolean } = {},
   ): Promise<void> {
     fs.mkdirSync(params.outputDir, { recursive: true })
 
@@ -1274,6 +1439,7 @@ export class TranscodeService {
 
     const isVaapi = encoder.name === 'h264_vaapi'
     const vaapiDevice = isVaapi ? (this.getVaapiDevice() ?? '/dev/dri/renderD128') : undefined
+    const hwDecode = Boolean(isVaapi && vaapiDevice && options.hwDecode && !params.overlayFile)
 
     const segmentDuration = params.segmentDuration || 4
     let calculatedFps = 30
@@ -1304,6 +1470,7 @@ export class TranscodeService {
         height: params.height,
         segmentDuration,
         gopSize,
+        hwDecode,
       },
       'Starting HLS rendition transcoding',
     )
@@ -1313,10 +1480,15 @@ export class TranscodeService {
 
     if (isVaapi && vaapiDevice) {
       args.push('-init_hw_device', `vaapi=accel:${vaapiDevice}`, '-filter_hw_device', 'accel')
+      if (hwDecode) {
+        args.push(...VAAPI_HW_DECODE_ARGS)
+      }
     }
 
     args.push('-i', params.inputFile)
-    const baseScale = `scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
+    const baseScale = hwDecode
+      ? vaapiScaleFilter(params.width, params.height)
+      : `scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
 
     const vPad = params.streamIndex !== undefined ? `0:${params.streamIndex}` : '0:V'
 
@@ -1329,7 +1501,7 @@ export class TranscodeService {
 
     filterComplex += `,fps=${calculatedFps}`
 
-    if (isVaapi) {
+    if (isVaapi && !hwDecode) {
       filterComplex += ',format=nv12,hwupload=extra_hw_frames=64'
     }
     filterComplex += '[vout]'

@@ -7,6 +7,8 @@ import {
   getDefaultBitrateBps,
   calculateMaxBitrate,
   H264_ENCODER_CONFIGS,
+  isVaapiHwDecodeEnabled,
+  vaapiScaleFilter,
   buildSdrToneMapFilterChain,
   getVaapiDevice,
   parseBitrateKbps,
@@ -1370,12 +1372,20 @@ describe('TranscodeService', () => {
   })
 
   describe('Hardware Acceleration & Encoder Resolution', () => {
+    let origHwDecode: string | undefined
+
     beforeEach(() => {
       transcodeService.clearEncodersCache()
+      // These tests cover the software-decode VAAPI path; the GPU decode path
+      // (on by default) is covered in 'VAAPI hardware decode' below.
+      origHwDecode = process.env.SHUMAI_VAAPI_HW_DECODE
+      process.env.SHUMAI_VAAPI_HW_DECODE = 'false'
     })
 
     afterEach(() => {
       vi.restoreAllMocks()
+      if (origHwDecode === undefined) delete process.env.SHUMAI_VAAPI_HW_DECODE
+      else process.env.SHUMAI_VAAPI_HW_DECODE = origHwDecode
     })
 
     it('should return platform candidates correctly', () => {
@@ -2573,6 +2583,436 @@ describe('TranscodeService', () => {
         { signal: controller.signal },
         expect.any(Function),
       )
+    })
+  })
+
+  describe('VAAPI hardware decode', () => {
+    let origHwDecode: string | undefined
+
+    const mockFfmpeg = (failOnCalls: number[] = []) => {
+      let callCount = 0
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          optionsOrCallback: unknown,
+          maybeCallback?: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          callCount++
+          const cb = (
+            typeof optionsOrCallback === 'function' ? optionsOrCallback : maybeCallback
+          ) as (err: Error | null, result: { stdout: string; stderr: string }) => void
+          if (typeof cb === 'function') {
+            if (failOnCalls.includes(callCount)) {
+              cb(new Error(`ffmpeg failed on call ${callCount}`), { stdout: '', stderr: '' })
+            } else {
+              cb(null, { stdout: '', stderr: '' })
+            }
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+      return () => vi.mocked(child_process.execFile).mock.calls.map((c) => c[1] as string[])
+    }
+
+    const filterOf = (args: string[]) => args[args.indexOf('-filter_complex') + 1]
+
+    beforeEach(() => {
+      transcodeService.clearEncodersCache()
+      origHwDecode = process.env.SHUMAI_VAAPI_HW_DECODE
+      delete process.env.SHUMAI_VAAPI_HW_DECODE
+      vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
+        H264_ENCODER_CONFIGS.h264_vaapi,
+      )
+      vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue('/dev/dri/renderD128')
+      vi.spyOn(transcodeService, 'getVideoRotation').mockResolvedValue(0)
+    })
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+      if (origHwDecode === undefined) delete process.env.SHUMAI_VAAPI_HW_DECODE
+      else process.env.SHUMAI_VAAPI_HW_DECODE = origHwDecode
+    })
+
+    it('transcodeVideo should keep software decode for rotated sources so autorotate still applies', async () => {
+      vi.spyOn(transcodeService, 'getVideoRotation').mockResolvedValue(90)
+      const calls = mockFfmpeg()
+
+      await transcodeService.transcodeVideo({
+        inputFile: 'portrait.mov',
+        outputFile: path.join(tempDir, 'out_hwdec_rotated.mp4'),
+        width: 1080,
+        height: 1920,
+        hardwareAcceleration: 'auto',
+      })
+
+      expect(calls()).toHaveLength(1)
+      expect(calls()[0]).not.toContain('-hwaccel')
+      expect(filterOf(calls()[0])).toContain('hwupload')
+    })
+
+    it('transcodeHlsRendition should keep software decode when rotation cannot be determined', async () => {
+      vi.spyOn(transcodeService, 'getVideoRotation').mockResolvedValue(null)
+      const calls = mockFfmpeg()
+
+      await transcodeService.transcodeHlsRendition({
+        inputFile: 'input.mp4',
+        outputDir: path.join(tempDir, 'hls_hwdec_unknown_rotation'),
+        width: 1280,
+        height: 720,
+        hardwareAcceleration: 'auto',
+      })
+
+      expect(calls()[0]).not.toContain('-hwaccel')
+    })
+
+    it('getVideoRotation should read the display matrix, the rotate tag, and normalize', async () => {
+      vi.mocked(transcodeService.getVideoRotation).mockRestore()
+      const probe = (json: unknown) =>
+        vi
+          .mocked(execFile)
+          .mockImplementationOnce(
+            (
+              _cmd: unknown,
+              _args: unknown,
+              callback: unknown,
+            ): ReturnType<typeof child_process.execFile> => {
+              const cb = callback as (
+                err: Error | null,
+                result: { stdout: string; stderr: string },
+              ) => void
+              cb(null, { stdout: JSON.stringify(json), stderr: '' })
+              return {} as ReturnType<typeof child_process.execFile>
+            },
+          )
+
+      /* eslint-disable @typescript-eslint/naming-convention */
+      probe({
+        streams: [{ side_data_list: [{ side_data_type: 'Display Matrix', rotation: -90 }] }],
+      })
+      /* eslint-enable @typescript-eslint/naming-convention */
+      expect(await transcodeService.getVideoRotation('a.mov')).toBe(270)
+
+      probe({ streams: [{ tags: { rotate: '180' } }] })
+      expect(await transcodeService.getVideoRotation('b.mp4')).toBe(180)
+
+      probe({ streams: [{}] })
+      expect(await transcodeService.getVideoRotation('c.mp4', 2)).toBe(0)
+      expect(vi.mocked(child_process.execFile).mock.calls.at(-1)?.[1]).toEqual(
+        expect.arrayContaining(['-select_streams', '2']),
+      )
+
+      probe({ streams: [] })
+      expect(await transcodeService.getVideoRotation('d.mp4')).toBeNull()
+    })
+
+    it('isVaapiHwDecodeEnabled should default to true and honor false/0/off', () => {
+      delete process.env.SHUMAI_VAAPI_HW_DECODE
+      expect(isVaapiHwDecodeEnabled()).toBe(true)
+      for (const value of ['false', '0', 'off', ' FALSE ']) {
+        process.env.SHUMAI_VAAPI_HW_DECODE = value
+        expect(isVaapiHwDecodeEnabled()).toBe(false)
+      }
+      process.env.SHUMAI_VAAPI_HW_DECODE = 'true'
+      expect(isVaapiHwDecodeEnabled()).toBe(true)
+    })
+
+    it('vaapiScaleFilter should fit, keep aspect ratio, round to even, and output nv12', () => {
+      expect(vaapiScaleFilter(1920, 1080)).toBe(
+        'scale_vaapi=w=1920:h=1080:force_original_aspect_ratio=decrease:force_divisible_by=2:format=nv12:mode=hq',
+      )
+    })
+
+    it('transcodeVideo should decode and scale on the GPU by default with vaapi', async () => {
+      const calls = mockFfmpeg()
+      const loggerSpy = vi.spyOn(logger, 'info')
+
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile: path.join(tempDir, 'out_hwdec.mp4'),
+        width: 1280,
+        height: 720,
+        frameRate: 24,
+        hardwareAcceleration: 'auto',
+        sourceVideoBitrate: 600_000,
+      })
+
+      expect(calls()).toHaveLength(1)
+      const args = calls()[0]
+      expect(args).toEqual(
+        expect.arrayContaining([
+          '-init_hw_device',
+          'vaapi=accel:/dev/dri/renderD128',
+          '-hwaccel',
+          'vaapi',
+          '-hwaccel_device',
+          'accel',
+          '-hwaccel_output_format',
+          'vaapi',
+          '-c:v',
+          'h264_vaapi',
+          '-rc_mode',
+          '3',
+        ]),
+      )
+      // hwaccel options must precede the input they apply to
+      expect(args.indexOf('-hwaccel')).toBeLessThan(args.indexOf('-i'))
+      expect(filterOf(args)).toBe(`[0:V]${vaapiScaleFilter(1280, 720)},fps=24[vout]`)
+      expect(filterOf(args)).not.toContain('hwupload')
+      expect(args).not.toContain('-pix_fmt')
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ encoder: 'h264_vaapi', hwDecode: true }),
+        'Starting video transcoding',
+      )
+    })
+
+    it('transcodeVideo should retry with software decode + vaapi encode when GPU decode fails', async () => {
+      const outputFile = path.join(tempDir, 'out_hwdec_retry.mp4')
+      const calls = mockFfmpeg([1])
+      const warnSpy = vi.spyOn(logger, 'warn')
+
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1280,
+        height: 720,
+        hardwareAcceleration: 'auto',
+      })
+
+      expect(calls()).toHaveLength(2)
+      expect(calls()[0]).toContain('-hwaccel')
+      expect(calls()[1]).not.toContain('-hwaccel')
+      expect(calls()[1]).toContain('h264_vaapi')
+      expect(filterOf(calls()[1])).toContain('format=nv12,hwupload=extra_hw_frames=64')
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ encoder: 'h264_vaapi', outputFile }),
+        'VAAPI hardware decode failed; retrying with software decode and VAAPI encode',
+      )
+    })
+
+    it('transcodeVideo should fall back to libx264 when GPU decode and vaapi encode both fail', async () => {
+      const outputFile = path.join(tempDir, 'out_hwdec_x264.mp4')
+      let existedBeforeRetry = true
+      let callCount = 0
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          callCount++
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (callCount === 1) {
+            fs.writeFileSync(outputFile, 'partial video data')
+            cb(new Error('hw decode failed'), { stdout: '', stderr: '' })
+          } else if (callCount === 2) {
+            existedBeforeRetry = fs.existsSync(outputFile)
+            cb(new Error('vaapi encode failed'), { stdout: '', stderr: '' })
+          } else {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile,
+        width: 1280,
+        height: 720,
+        hardwareAcceleration: 'auto',
+      })
+
+      const calls = vi.mocked(child_process.execFile).mock.calls.map((c) => c[1] as string[])
+      expect(calls).toHaveLength(3)
+      expect(existedBeforeRetry).toBe(false)
+      expect(calls[0]).toContain('-hwaccel')
+      expect(calls[1]).toContain('h264_vaapi')
+      expect(calls[1]).not.toContain('-hwaccel')
+      expect(calls[2]).toContain('libx264')
+    })
+
+    it('transcodeVideo should not retry when the GPU decode attempt was aborted', async () => {
+      const abortController = new AbortController()
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          optionsOrCallback: unknown,
+          maybeCallback?: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          const cb = (
+            typeof optionsOrCallback === 'function' ? optionsOrCallback : maybeCallback
+          ) as (err: Error | null, result: { stdout: string; stderr: string }) => void
+          abortController.abort()
+          const abortErr = new Error('The operation was aborted')
+          abortErr.name = 'AbortError'
+          cb(abortErr, { stdout: '', stderr: '' })
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      await expect(
+        transcodeService.transcodeVideo({
+          inputFile: 'input.mp4',
+          outputFile: path.join(tempDir, 'out_hwdec_abort.mp4'),
+          width: 1280,
+          height: 720,
+          hardwareAcceleration: 'auto',
+          signal: abortController.signal,
+        }),
+      ).rejects.toThrow('aborted')
+      expect(vi.mocked(child_process.execFile)).toHaveBeenCalledTimes(1)
+    })
+
+    it('transcodeVideo should keep software decode for watermark overlays', async () => {
+      const calls = mockFfmpeg()
+
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile: path.join(tempDir, 'out_hwdec_overlay.mp4'),
+        width: 1280,
+        height: 720,
+        overlayFile: 'overlay.png',
+        hardwareAcceleration: 'auto',
+      })
+
+      expect(calls()).toHaveLength(1)
+      expect(calls()[0]).not.toContain('-hwaccel')
+      expect(filterOf(calls()[0])).toContain('overlay=0:0')
+      expect(filterOf(calls()[0])).toContain('hwupload')
+    })
+
+    it('transcodeVideo should keep software decode for HDR sources', async () => {
+      const calls = mockFfmpeg()
+
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mov',
+        outputFile: path.join(tempDir, 'out_hwdec_hdr.mp4'),
+        width: 1920,
+        height: 1080,
+        sourceHdrType: 'pq',
+        hardwareAcceleration: 'auto',
+      })
+
+      expect(calls()[0]).not.toContain('-hwaccel')
+      expect(filterOf(calls()[0])).toContain('hwupload')
+    })
+
+    it('transcodeVideo should keep software decode when SHUMAI_VAAPI_HW_DECODE=false', async () => {
+      process.env.SHUMAI_VAAPI_HW_DECODE = 'false'
+      const calls = mockFfmpeg()
+
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile: path.join(tempDir, 'out_hwdec_disabled.mp4'),
+        width: 1280,
+        height: 720,
+        hardwareAcceleration: 'auto',
+      })
+
+      expect(calls()[0]).not.toContain('-hwaccel')
+      expect(filterOf(calls()[0])).toContain('hwupload')
+    })
+
+    it('transcodeVideo should not use GPU decode with non-vaapi encoders', async () => {
+      vi.spyOn(transcodeService, 'selectH264Encoder').mockResolvedValue(
+        H264_ENCODER_CONFIGS.libx264,
+      )
+      const calls = mockFfmpeg()
+
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile: path.join(tempDir, 'out_hwdec_x264_only.mp4'),
+        width: 1280,
+        height: 720,
+        hardwareAcceleration: 'off',
+      })
+
+      expect(calls()).toHaveLength(1)
+      expect(calls()[0]).not.toContain('-hwaccel')
+      expect(calls()[0]).toContain('libx264')
+    })
+
+    it('transcodeHlsRendition should decode and scale on the GPU by default with vaapi', async () => {
+      const calls = mockFfmpeg()
+      const loggerSpy = vi.spyOn(logger, 'info')
+
+      await transcodeService.transcodeHlsRendition({
+        inputFile: 'input.mp4',
+        outputDir: path.join(tempDir, 'hls_hwdec'),
+        width: 1920,
+        height: 1080,
+        frameRate: 24,
+        hardwareAcceleration: 'auto',
+      })
+
+      expect(calls()).toHaveLength(1)
+      const args = calls()[0]
+      expect(args).toEqual(
+        expect.arrayContaining([
+          '-hwaccel',
+          'vaapi',
+          '-hwaccel_output_format',
+          'vaapi',
+          '-f',
+          'hls',
+        ]),
+      )
+      expect(args.indexOf('-hwaccel')).toBeLessThan(args.indexOf('-i'))
+      expect(filterOf(args)).toBe(`[0:V]${vaapiScaleFilter(1920, 1080)},fps=24[vout]`)
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ encoder: 'h264_vaapi', hwDecode: true }),
+        'Starting HLS rendition transcoding',
+      )
+    })
+
+    it('transcodeHlsRendition should retry with software decode, then libx264, cleaning the output dir', async () => {
+      const outputDir = path.join(tempDir, 'hls_hwdec_fallback')
+      let dirExistedBeforeRetry = true
+      let callCount = 0
+      vi.mocked(execFile).mockImplementation(
+        (
+          _cmd: unknown,
+          _args: unknown,
+          callback: unknown,
+        ): ReturnType<typeof child_process.execFile> => {
+          callCount++
+          const cb = callback as (
+            err: Error | null,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (callCount === 1) {
+            fs.writeFileSync(path.join(outputDir, 'segment_000.m4s'), 'partial')
+            cb(new Error('hw decode failed'), { stdout: '', stderr: '' })
+          } else if (callCount === 2) {
+            dirExistedBeforeRetry = fs.existsSync(path.join(outputDir, 'segment_000.m4s'))
+            cb(new Error('vaapi encode failed'), { stdout: '', stderr: '' })
+          } else {
+            cb(null, { stdout: '', stderr: '' })
+          }
+          return {} as ReturnType<typeof child_process.execFile>
+        },
+      )
+
+      await transcodeService.transcodeHlsRendition({
+        inputFile: 'input.mp4',
+        outputDir,
+        width: 1280,
+        height: 720,
+        hardwareAcceleration: 'auto',
+      })
+
+      const calls = vi.mocked(child_process.execFile).mock.calls.map((c) => c[1] as string[])
+      expect(calls).toHaveLength(3)
+      expect(dirExistedBeforeRetry).toBe(false)
+      expect(calls[0]).toContain('-hwaccel')
+      expect(calls[1]).not.toContain('-hwaccel')
+      expect(filterOf(calls[1])).toContain('hwupload')
+      expect(calls[2]).toContain('libx264')
     })
   })
 
