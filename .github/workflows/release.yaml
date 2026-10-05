@@ -10,6 +10,10 @@ on:
         description: 'Docker image tag (e.g. feature-vaapi)'
         required: false
         type: string
+      pr:
+        description: 'Pull request number (e.g. 449)'
+        required: false
+        type: string
 
 jobs:
   build-and-push:
@@ -21,6 +25,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.pr && format('refs/pull/{0}/head', inputs.pr) || github.ref }}
 
       # Set up Docker Buildx
       - name: Set up Docker Buildx
