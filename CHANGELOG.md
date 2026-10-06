@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **transcode**: Add hardware decoding and GPU scaling support for NVIDIA NVENC, Intel QuickSync Video (QSV), and Rockchip (RKMPP), significantly speeding up video proxy and HLS rendition generation across supported platforms
 - **transcode**: Add dcraw_emu fallback to generate WebP previews for camera RAW files without embedded JPEG previews
 
 ### Fixed

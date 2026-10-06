@@ -244,6 +244,10 @@ export const H264_ENCODER_CONFIGS: Record<string, EncoderConfig> = {
     name: 'h264_vaapi',
     presetArgs: ['-compression_level', '4'],
   },
+  h264_rkmpp: {
+    name: 'h264_rkmpp',
+    presetArgs: ['-level', '51', '-rc_mode', 'AVBR'],
+  },
   h264_amf: {
     name: 'h264_amf',
     presetArgs: ['-quality', 'balanced', '-rc', 'qvbr', '-qvbr_quality_level', '26'],
@@ -261,19 +265,60 @@ export const H264_ENCODER_CONFIGS: Record<string, EncoderConfig> = {
 /**
  * How an encoder can also decode and scale on its own device, so frames stay in
  * GPU memory instead of being decoded and scaled on the CPU and uploaded.
- * Only backends verified on real hardware are listed; others (e.g. h264_nvenc
- * with `-hwaccel cuda` + `scale_cuda`, h264_qsv, RKMPP) can be added the same way.
+ * Matches Immich's hardware acceleration pipelines for NVENC (CUDA), QSV, VAAPI,
+ * and RKMPP.
  */
 export interface HardwareDecodeConfig {
   /** Input options placed before `-i` (after any `-init_hw_device`). */
   inputArgs: string[]
+  /** Dynamic input options generator taking device info if applicable. */
+  getInputArgs?: (driDevice?: string) => string[]
   /** Output options placed after the filter graph. */
   outputArgs: string[]
   /** GPU filter fitting the frame within width x height with even dimensions. */
   scaleFilter: (width: number, height: number) => string
 }
 
+export function resolveHwDecodeInputArgs(
+  config: HardwareDecodeConfig,
+  driDevice?: string,
+): string[] {
+  return config.getInputArgs ? config.getInputArgs(driDevice) : config.inputArgs
+}
+
 export const HW_DECODE_CONFIGS: Partial<Record<string, HardwareDecodeConfig>> = {
+  h264_nvenc: {
+    inputArgs: ['-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda', '-threads', '1'],
+    outputArgs: ['-noautoscale'],
+    scaleFilter: (width, height) =>
+      `scale_cuda=w=${width}:h=${height}:force_original_aspect_ratio=decrease:force_divisible_by=2:format=nv12`,
+  },
+  h264_qsv: {
+    inputArgs: [
+      '-hwaccel',
+      'qsv',
+      '-hwaccel_output_format',
+      'qsv',
+      '-async_depth',
+      '4',
+      '-threads',
+      '1',
+    ],
+    getInputArgs: (driDevice?: string) => [
+      '-hwaccel',
+      'qsv',
+      '-hwaccel_output_format',
+      'qsv',
+      '-async_depth',
+      '4',
+      '-threads',
+      '1',
+      ...(driDevice ? ['-qsv_device', driDevice] : []),
+    ],
+    outputArgs: ['-noautoscale'],
+    scaleFilter: (width, height) =>
+      `scale_qsv=w=${width}:h=${height}:async_depth=4:mode=hq:format=nv12`,
+  },
   h264_vaapi: {
     inputArgs: ['-hwaccel', 'vaapi', '-hwaccel_device', 'accel', '-hwaccel_output_format', 'vaapi'],
     // If the decoder reinitializes mid-stream with a different coded size
@@ -284,6 +329,12 @@ export const HW_DECODE_CONFIGS: Partial<Record<string, HardwareDecodeConfig>> = 
     // out_range only retags the stream without converting levels.
     scaleFilter: (width, height) =>
       `scale_vaapi=w=${width}:h=${height}:force_original_aspect_ratio=decrease:force_divisible_by=2:format=nv12:mode=hq`,
+  },
+  h264_rkmpp: {
+    inputArgs: ['-hwaccel', 'rkmpp', '-hwaccel_output_format', 'drm_prime', '-afbc', 'rga'],
+    outputArgs: ['-noautoscale'],
+    scaleFilter: (width, height) =>
+      `scale_rkrga=w=${width}:h=${height}:format=nv12:afbc=1:async_depth=4`,
   },
 }
 
@@ -297,12 +348,13 @@ export function getPlatformEncoderCandidates(
       return ['h264_nvenc', 'h264_qsv', 'h264_amf']
     case 'linux':
     default:
-      return ['h264_nvenc', 'h264_vaapi', 'h264_qsv', 'h264_amf']
+      return ['h264_nvenc', 'h264_vaapi', 'h264_qsv', 'h264_rkmpp', 'h264_amf']
   }
 }
 
-export function getVaapiDevice(driDir = '/dev/dri'): string | null {
-  const envDevice = process.env.SHUMAI_VAAPI_DEVICE || process.env.VAAPI_DEVICE
+export function getDriDevice(driDir = '/dev/dri'): string | null {
+  const envDevice =
+    process.env.SHUMAI_HW_DEVICE || process.env.SHUMAI_VAAPI_DEVICE || process.env.VAAPI_DEVICE
   if (envDevice) {
     return envDevice
   }
@@ -324,6 +376,10 @@ export function getVaapiDevice(driDir = '/dev/dri'): string | null {
   }
 
   return null
+}
+
+export function getVaapiDevice(driDir = '/dev/dri'): string | null {
+  return getDriDevice(driDir)
 }
 
 /**
@@ -970,8 +1026,12 @@ export class TranscodeService {
     }
   }
 
+  getDriDevice(driDir = '/dev/dri'): string | null {
+    return this.getVaapiDevice(driDir)
+  }
+
   getVaapiDevice(driDir = '/dev/dri'): string | null {
-    return getVaapiDevice(driDir)
+    return getDriDevice(driDir)
   }
 
   async isEncoderUsable(encoder: string): Promise<boolean> {
@@ -1169,6 +1229,12 @@ export class TranscodeService {
     if (isSourceHdr) {
       return false
     }
+    if (encoder.name === 'h264_vaapi' && !this.getDriDevice()) {
+      return false
+    }
+    if (encoder.name === 'h264_qsv' && process.platform === 'linux' && !this.getDriDevice()) {
+      return false
+    }
     const rotation =
       params.sourceRotation !== undefined
         ? normalizeRotation(params.sourceRotation)
@@ -1235,19 +1301,19 @@ export class TranscodeService {
     >,
     options: {
       isVaapi: boolean
-      vaapiDevice?: string
+      driDevice?: string
       hwDecodeConfig?: HardwareDecodeConfig
       frameRate?: number | string
     },
   ): string[] {
-    const { isVaapi, vaapiDevice, hwDecodeConfig, frameRate } = options
+    const { isVaapi, driDevice, hwDecodeConfig, frameRate } = options
     const args: string[] = []
 
-    if (isVaapi && vaapiDevice) {
-      args.push('-init_hw_device', `vaapi=accel:${vaapiDevice}`, '-filter_hw_device', 'accel')
+    if (isVaapi && driDevice) {
+      args.push('-init_hw_device', `vaapi=accel:${driDevice}`, '-filter_hw_device', 'accel')
     }
     if (hwDecodeConfig) {
-      args.push(...hwDecodeConfig.inputArgs)
+      args.push(...resolveHwDecodeInputArgs(hwDecodeConfig, driDevice))
     }
 
     args.push('-i', params.inputFile)
@@ -1349,11 +1415,14 @@ export class TranscodeService {
     const isHdrOutput = Boolean(params.hdr)
 
     const isVaapi = encoder.name === 'h264_vaapi'
-    const vaapiDevice = isVaapi ? (this.getVaapiDevice() ?? '/dev/dri/renderD128') : undefined
-    const hwDecodeConfig =
-      options.hwDecode && !params.overlayFile && (!isVaapi || vaapiDevice)
-        ? HW_DECODE_CONFIGS[encoder.name]
-        : undefined
+    const isLinux = process.platform === 'linux'
+    const driDevice = this.getDriDevice() ?? (isVaapi ? '/dev/dri/renderD128' : undefined)
+    const canHwDecode =
+      options.hwDecode &&
+      !params.overlayFile &&
+      (!isVaapi || driDevice) &&
+      (encoder.name !== 'h264_qsv' || !isLinux || driDevice)
+    const hwDecodeConfig = canHwDecode ? HW_DECODE_CONFIGS[encoder.name] : undefined
     const hwDecode = Boolean(hwDecodeConfig)
 
     logger.info(
@@ -1362,7 +1431,8 @@ export class TranscodeService {
         hardwareAcceleration: params.hardwareAcceleration ?? 'off',
         inputFile: params.inputFile,
         outputFile: params.outputFile,
-        vaapiDevice,
+        vaapiDevice: isVaapi ? driDevice : undefined,
+        driDevice,
         hwDecode,
       },
       'Starting video transcoding',
@@ -1370,7 +1440,7 @@ export class TranscodeService {
 
     const args = this.buildVideoInputArgs(params, {
       isVaapi,
-      vaapiDevice,
+      driDevice,
       hwDecodeConfig,
       frameRate: params.frameRate,
     })
@@ -1448,6 +1518,18 @@ export class TranscodeService {
         '-minrate',
         `${minKbps}k`,
       )
+    } else if (encoder.name === 'h264_rkmpp') {
+      if (params.videoBitrate) {
+        args.push('-b:v', params.videoBitrate)
+      } else {
+        const { maxrate } = calculateMaxBitrate(
+          params.height,
+          params.width,
+          params.sourceVideoBitrate,
+          params.frameRate,
+        )
+        args.push('-b:v', maxrate)
+      }
     } else {
       if (params.videoBitrate) {
         args.push('-b:v', params.videoBitrate)
@@ -1462,7 +1544,7 @@ export class TranscodeService {
       }
     }
 
-    if (!isVaapi) {
+    if (!hwDecode && !isVaapi) {
       args.push('-pix_fmt', 'yuv420p')
     }
 
@@ -1575,11 +1657,14 @@ export class TranscodeService {
     const isHdrOutput = Boolean(params.hdr)
 
     const isVaapi = encoder.name === 'h264_vaapi'
-    const vaapiDevice = isVaapi ? (this.getVaapiDevice() ?? '/dev/dri/renderD128') : undefined
-    const hwDecodeConfig =
-      options.hwDecode && !params.overlayFile && (!isVaapi || vaapiDevice)
-        ? HW_DECODE_CONFIGS[encoder.name]
-        : undefined
+    const isLinux = process.platform === 'linux'
+    const driDevice = this.getDriDevice() ?? (isVaapi ? '/dev/dri/renderD128' : undefined)
+    const canHwDecode =
+      options.hwDecode &&
+      !params.overlayFile &&
+      (!isVaapi || driDevice) &&
+      (encoder.name !== 'h264_qsv' || !isLinux || driDevice)
+    const hwDecodeConfig = canHwDecode ? HW_DECODE_CONFIGS[encoder.name] : undefined
     const hwDecode = Boolean(hwDecodeConfig)
 
     const segmentDuration = params.segmentDuration || 4
@@ -1618,7 +1703,7 @@ export class TranscodeService {
 
     const args = this.buildVideoInputArgs(params, {
       isVaapi,
-      vaapiDevice,
+      driDevice,
       hwDecodeConfig,
       frameRate: calculatedFps,
     })
@@ -1685,7 +1770,7 @@ export class TranscodeService {
         maxKbps = parseInt(maxrate, 10)
       }
       const targetKbps = Math.max(25, Math.ceil(maxKbps / 1.45))
-      args.push('-b:v', `${targetKbps}k`, '-maxrate', `${maxKbps}k`)
+      args.push('-b:v', `${targetKbps}k`, '-maxrate', `${maxKbps}k`, '-idr_interval', '0')
     } else if (encoder.name === 'h264_nvenc') {
       let maxrateStr: string
       let bufsizeStr: string
@@ -1716,7 +1801,23 @@ export class TranscodeService {
         '1',
         '-temporal-aq',
         '1',
+        '-forced-idr',
+        '1',
       )
+    } else if (encoder.name === 'h264_rkmpp') {
+      let maxKbps: number
+      if (params.videoBitrate) {
+        maxKbps = parseBitrateKbps(params.videoBitrate)
+      } else {
+        const { maxrate } = calculateMaxBitrate(
+          params.height,
+          params.width,
+          params.sourceVideoBitrate,
+          calculatedFps,
+        )
+        maxKbps = parseInt(maxrate, 10)
+      }
+      args.push('-b:v', `${maxKbps}k`)
     } else {
       let maxrateStr: string
       let bufsizeStr: string
@@ -1737,7 +1838,7 @@ export class TranscodeService {
       args.push('-crf', '23', '-maxrate', maxrateStr, '-bufsize', bufsizeStr)
     }
 
-    if (!isVaapi) {
+    if (!hwDecode && !isVaapi) {
       args.push('-pix_fmt', 'yuv420p')
     }
 

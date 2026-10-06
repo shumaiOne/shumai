@@ -11,6 +11,7 @@ import {
   getHwDecodeStallTimeoutMs,
   HW_DECODE_CONFIGS,
   buildSdrToneMapFilterChain,
+  getDriDevice,
   getVaapiDevice,
   parseBitrateKbps,
   buildHlsMasterPlaylist,
@@ -1401,21 +1402,31 @@ describe('TranscodeService', () => {
         'h264_nvenc',
         'h264_vaapi',
         'h264_qsv',
+        'h264_rkmpp',
         'h264_amf',
       ])
     })
 
-    it('getVaapiDevice should return device from SHUMAI_VAAPI_DEVICE or VAAPI_DEVICE env var', () => {
+    it('getDriDevice should return device from SHUMAI_HW_DEVICE, SHUMAI_VAAPI_DEVICE, or VAAPI_DEVICE env var', () => {
+      const origHw = process.env.SHUMAI_HW_DEVICE
       const origShumai = process.env.SHUMAI_VAAPI_DEVICE
       const origVaapi = process.env.VAAPI_DEVICE
       try {
+        process.env.SHUMAI_HW_DEVICE = '/dev/dri/custom0'
+        expect(getDriDevice()).toBe('/dev/dri/custom0')
+        delete process.env.SHUMAI_HW_DEVICE
+
         process.env.SHUMAI_VAAPI_DEVICE = '/dev/dri/custom1'
+        expect(getDriDevice()).toBe('/dev/dri/custom1')
         expect(getVaapiDevice()).toBe('/dev/dri/custom1')
         delete process.env.SHUMAI_VAAPI_DEVICE
 
         process.env.VAAPI_DEVICE = '/dev/dri/custom2'
+        expect(getDriDevice()).toBe('/dev/dri/custom2')
         expect(getVaapiDevice()).toBe('/dev/dri/custom2')
       } finally {
+        if (origHw) process.env.SHUMAI_HW_DEVICE = origHw
+        else delete process.env.SHUMAI_HW_DEVICE
         if (origShumai) process.env.SHUMAI_VAAPI_DEVICE = origShumai
         else delete process.env.SHUMAI_VAAPI_DEVICE
         if (origVaapi) process.env.VAAPI_DEVICE = origVaapi
@@ -2626,6 +2637,9 @@ describe('TranscodeService', () => {
     const calls = () => vi.mocked(child_process.execFile).mock.calls.map((c) => c[1] as string[])
     const filterOf = (args: string[]) => args[args.indexOf('-filter_complex') + 1]
     const vaapiScale = (w: number, h: number) => HW_DECODE_CONFIGS.h264_vaapi!.scaleFilter(w, h)
+    const nvencScale = (w: number, h: number) => HW_DECODE_CONFIGS.h264_nvenc!.scaleFilter(w, h)
+    const qsvScale = (w: number, h: number) => HW_DECODE_CONFIGS.h264_qsv!.scaleFilter(w, h)
+    const rkmppScale = (w: number, h: number) => HW_DECODE_CONFIGS.h264_rkmpp!.scaleFilter(w, h)
 
     beforeEach(() => {
       transcodeService.clearEncodersCache()
@@ -2637,6 +2651,7 @@ describe('TranscodeService', () => {
         H264_ENCODER_CONFIGS.h264_vaapi,
       )
       vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue('/dev/dri/renderD128')
+      vi.spyOn(transcodeService, 'getDriDevice').mockReturnValue('/dev/dri/renderD128')
       vi.spyOn(transcodeService, 'getVideoRotation').mockResolvedValue(0)
     })
 
@@ -2666,11 +2681,45 @@ describe('TranscodeService', () => {
       expect(getHwDecodeStallTimeoutMs()).toBe(120_000)
     })
 
-    it('only h264_vaapi should have a hardware decode config for now', () => {
-      expect(Object.keys(HW_DECODE_CONFIGS)).toEqual(['h264_vaapi'])
+    it('should have hardware decode configs for nvenc, qsv, vaapi, and rkmpp', () => {
+      expect(Object.keys(HW_DECODE_CONFIGS)).toEqual([
+        'h264_nvenc',
+        'h264_qsv',
+        'h264_vaapi',
+        'h264_rkmpp',
+      ])
+      expect(nvencScale(1920, 1080)).toBe(
+        'scale_cuda=w=1920:h=1080:force_original_aspect_ratio=decrease:force_divisible_by=2:format=nv12',
+      )
+      expect(qsvScale(1920, 1080)).toBe('scale_qsv=w=1920:h=1080:async_depth=4:mode=hq:format=nv12')
       expect(vaapiScale(1920, 1080)).toBe(
         'scale_vaapi=w=1920:h=1080:force_original_aspect_ratio=decrease:force_divisible_by=2:format=nv12:mode=hq',
       )
+      expect(rkmppScale(1920, 1080)).toBe(
+        'scale_rkrga=w=1920:h=1080:format=nv12:afbc=1:async_depth=4',
+      )
+      expect(HW_DECODE_CONFIGS.h264_qsv!.getInputArgs!('/dev/dri/renderD128')).toEqual([
+        '-hwaccel',
+        'qsv',
+        '-hwaccel_output_format',
+        'qsv',
+        '-async_depth',
+        '4',
+        '-threads',
+        '1',
+        '-qsv_device',
+        '/dev/dri/renderD128',
+      ])
+      expect(HW_DECODE_CONFIGS.h264_qsv!.getInputArgs!()).toEqual([
+        '-hwaccel',
+        'qsv',
+        '-hwaccel_output_format',
+        'qsv',
+        '-async_depth',
+        '4',
+        '-threads',
+        '1',
+      ])
     })
 
     it('transcodeVideo should decode and scale on the GPU by default with vaapi', async () => {
@@ -2721,6 +2770,167 @@ describe('TranscodeService', () => {
         expect.objectContaining({ encoder: 'h264_vaapi', hwDecode: true }),
         'Starting video transcoding',
       )
+    })
+
+    it('transcodeVideo should decode and scale on the GPU by default with nvenc', async () => {
+      vi.mocked(transcodeService.selectH264Encoder).mockResolvedValue(
+        H264_ENCODER_CONFIGS.h264_nvenc,
+      )
+      mockFfmpeg(failOn())
+      const loggerSpy = vi.spyOn(logger, 'info')
+
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile: path.join(tempDir, 'out_hwdec_nvenc.mp4'),
+        width: 1280,
+        height: 720,
+        frameRate: 24,
+        hardwareAcceleration: 'auto',
+        sourceVideoBitrate: 600_000,
+        sourceRotation: 0,
+      })
+
+      expect(calls()).toHaveLength(1)
+      const args = calls()[0]
+      expect(args).toEqual(
+        expect.arrayContaining([
+          '-hwaccel',
+          'cuda',
+          '-hwaccel_output_format',
+          'cuda',
+          '-threads',
+          '1',
+          '-noautoscale',
+          '-c:v',
+          'h264_nvenc',
+        ]),
+      )
+      expect(args.indexOf('-hwaccel')).toBeLessThan(args.indexOf('-i'))
+      expect(args.indexOf('-noautoscale')).toBeGreaterThan(args.indexOf('-filter_complex'))
+      expect(filterOf(args)).toBe(`[0:V]${nvencScale(1280, 720)},fps=24[vout]`)
+      expect(filterOf(args)).not.toContain('hwupload')
+      expect(args).not.toContain('-pix_fmt')
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ encoder: 'h264_nvenc', hwDecode: true }),
+        'Starting video transcoding',
+      )
+    })
+
+    it('transcodeVideo should decode and scale on the GPU by default with qsv', async () => {
+      vi.mocked(transcodeService.selectH264Encoder).mockResolvedValue(H264_ENCODER_CONFIGS.h264_qsv)
+      mockFfmpeg(failOn())
+      const loggerSpy = vi.spyOn(logger, 'info')
+
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile: path.join(tempDir, 'out_hwdec_qsv.mp4'),
+        width: 1280,
+        height: 720,
+        frameRate: 24,
+        hardwareAcceleration: 'auto',
+        sourceVideoBitrate: 600_000,
+        sourceRotation: 0,
+      })
+
+      expect(calls()).toHaveLength(1)
+      const args = calls()[0]
+      expect(args).toEqual(
+        expect.arrayContaining([
+          '-hwaccel',
+          'qsv',
+          '-hwaccel_output_format',
+          'qsv',
+          '-async_depth',
+          '4',
+          '-threads',
+          '1',
+          '-noautoscale',
+          '-c:v',
+          'h264_qsv',
+        ]),
+      )
+      expect(args).toContain('-qsv_device')
+      expect(args).toContain('/dev/dri/renderD128')
+      expect(args.indexOf('-hwaccel')).toBeLessThan(args.indexOf('-i'))
+      expect(args.indexOf('-noautoscale')).toBeGreaterThan(args.indexOf('-filter_complex'))
+      expect(filterOf(args)).toBe(`[0:V]${qsvScale(1280, 720)},fps=24[vout]`)
+      expect(filterOf(args)).not.toContain('hwupload')
+      expect(args).not.toContain('-pix_fmt')
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ encoder: 'h264_qsv', hwDecode: true }),
+        'Starting video transcoding',
+      )
+    })
+
+    it('transcodeVideo should decode and scale on the GPU by default with rkmpp', async () => {
+      vi.mocked(transcodeService.selectH264Encoder).mockResolvedValue(
+        H264_ENCODER_CONFIGS.h264_rkmpp,
+      )
+      mockFfmpeg(failOn())
+      const loggerSpy = vi.spyOn(logger, 'info')
+
+      await transcodeService.transcodeVideo({
+        inputFile: 'input.mp4',
+        outputFile: path.join(tempDir, 'out_hwdec_rkmpp.mp4'),
+        width: 1280,
+        height: 720,
+        frameRate: 24,
+        hardwareAcceleration: 'auto',
+        sourceVideoBitrate: 600_000,
+        sourceRotation: 0,
+      })
+
+      expect(calls()).toHaveLength(1)
+      const args = calls()[0]
+      expect(args).toEqual(
+        expect.arrayContaining([
+          '-hwaccel',
+          'rkmpp',
+          '-hwaccel_output_format',
+          'drm_prime',
+          '-afbc',
+          'rga',
+          '-noautoscale',
+          '-c:v',
+          'h264_rkmpp',
+        ]),
+      )
+      expect(args.indexOf('-hwaccel')).toBeLessThan(args.indexOf('-i'))
+      expect(args.indexOf('-noautoscale')).toBeGreaterThan(args.indexOf('-filter_complex'))
+      expect(filterOf(args)).toBe(`[0:V]${rkmppScale(1280, 720)},fps=24[vout]`)
+      expect(filterOf(args)).not.toContain('hwupload')
+      expect(args).not.toContain('-pix_fmt')
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ encoder: 'h264_rkmpp', hwDecode: true }),
+        'Starting video transcoding',
+      )
+    })
+
+    it('transcodeVideo should fall back to software decode when qsv has no DRI device on Linux', async () => {
+      const origPlatform = process.platform
+      try {
+        Object.defineProperty(process, 'platform', { value: 'linux', configurable: true })
+        vi.mocked(transcodeService.selectH264Encoder).mockResolvedValue(
+          H264_ENCODER_CONFIGS.h264_qsv,
+        )
+        vi.spyOn(transcodeService, 'getDriDevice').mockReturnValue(null)
+        vi.spyOn(transcodeService, 'getVaapiDevice').mockReturnValue(null)
+        mockFfmpeg(failOn())
+
+        await transcodeService.transcodeVideo({
+          inputFile: 'input.mp4',
+          outputFile: path.join(tempDir, 'out_hwdec_qsv_no_dri.mp4'),
+          width: 1280,
+          height: 720,
+          hardwareAcceleration: 'auto',
+        })
+
+        expect(calls()).toHaveLength(1)
+        expect(calls()[0]).not.toContain('-hwaccel')
+        expect(calls()[0]).toContain('h264_qsv')
+      } finally {
+        Object.defineProperty(process, 'platform', { value: origPlatform, configurable: true })
+      }
     })
 
     it('transcodeVideo should use the provided sourceRotation instead of probing', async () => {
@@ -2926,7 +3136,7 @@ describe('TranscodeService', () => {
     })
 
     it('transcodeVideo should not use GPU decode for encoders without a hardware decode config', async () => {
-      for (const encoder of ['libx264', 'h264_nvenc', 'h264_qsv'] as const) {
+      for (const encoder of ['libx264', 'h264_amf', 'h264_videotoolbox'] as const) {
         vi.mocked(child_process.execFile).mockClear()
         vi.mocked(transcodeService.selectH264Encoder).mockResolvedValue(
           H264_ENCODER_CONFIGS[encoder],
@@ -2981,6 +3191,53 @@ describe('TranscodeService', () => {
         expect.objectContaining({ encoder: 'h264_vaapi', hwDecode: true }),
         'Starting HLS rendition transcoding',
       )
+    })
+
+    it('transcodeHlsRendition should decode and scale on the GPU by default with nvenc and qsv', async () => {
+      // NVENC
+      vi.mocked(transcodeService.selectH264Encoder).mockResolvedValue(
+        H264_ENCODER_CONFIGS.h264_nvenc,
+      )
+      mockFfmpeg(failOn())
+
+      await transcodeService.transcodeHlsRendition({
+        inputFile: 'input.mp4',
+        outputDir: path.join(tempDir, 'hls_hwdec_nvenc'),
+        width: 1920,
+        height: 1080,
+        frameRate: 24,
+        hardwareAcceleration: 'auto',
+        sourceRotation: 0,
+      })
+
+      expect(calls()).toHaveLength(1)
+      expect(calls()[0]).toContain('-hwaccel')
+      expect(calls()[0]).toContain('cuda')
+      expect(calls()[0]).toContain('-forced-idr')
+      expect(calls()[0]).toContain('1')
+      expect(filterOf(calls()[0])).toBe(`[0:V]${nvencScale(1920, 1080)},fps=24[vout]`)
+
+      // QSV
+      vi.mocked(child_process.execFile).mockClear()
+      vi.mocked(transcodeService.selectH264Encoder).mockResolvedValue(H264_ENCODER_CONFIGS.h264_qsv)
+      mockFfmpeg(failOn())
+
+      await transcodeService.transcodeHlsRendition({
+        inputFile: 'input.mp4',
+        outputDir: path.join(tempDir, 'hls_hwdec_qsv'),
+        width: 1920,
+        height: 1080,
+        frameRate: 24,
+        hardwareAcceleration: 'auto',
+        sourceRotation: 0,
+      })
+
+      expect(calls()).toHaveLength(1)
+      expect(calls()[0]).toContain('-hwaccel')
+      expect(calls()[0]).toContain('qsv')
+      expect(calls()[0]).toContain('-idr_interval')
+      expect(calls()[0]).toContain('0')
+      expect(filterOf(calls()[0])).toBe(`[0:V]${qsvScale(1920, 1080)},fps=24[vout]`)
     })
 
     it('transcodeHlsRendition should keep software decode when rotation cannot be determined', async () => {
