@@ -8,14 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **transcode**: Add hardware decoding and GPU scaling support for NVIDIA NVENC, Intel QuickSync Video (QSV), and Rockchip (RKMPP), significantly speeding up video proxy and HLS rendition generation across supported platforms
-- **transcode**: Add dcraw_emu fallback to generate WebP previews for camera RAW files without embedded JPEG previews
+* **transcode**: Add hardware decoding and GPU scaling support for NVIDIA NVENC, Intel QuickSync Video (QSV), Rockchip (RKMPP), and VA-API (Intel and AMD GPUs), significantly speeding up video proxy and HLS rendition generation across supported platforms. Set `SHUMAI_HW_DECODE=false` to turn hardware decoding off
+* **transcode**: Add `dcraw_emu` fallback to generate WebP previews for camera RAW files without embedded JPEG previews
 
 ### Fixed
 
 ### Changed
 
-- **transcode**: Speed up VA-API hardware transcoding (Intel and AMD GPUs) by also decoding and resizing video on the GPU, making 4K proxies and HLS renditions roughly 3–5× faster on Intel integrated graphics. Videos the GPU cannot decode (such as HEVC on older Intel chips), rotated phone videos, watermarked shares and HDR sources automatically keep using the previous method, and a GPU attempt that stalls is stopped and retried. Set `SHUMAI_HW_DECODE=false` to turn it off
 
 ## [0.5.0] - 2026-10-02
 

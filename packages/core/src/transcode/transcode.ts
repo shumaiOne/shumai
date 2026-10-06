@@ -1415,14 +1415,8 @@ export class TranscodeService {
     const isHdrOutput = Boolean(params.hdr)
 
     const isVaapi = encoder.name === 'h264_vaapi'
-    const isLinux = process.platform === 'linux'
     const driDevice = this.getDriDevice() ?? (isVaapi ? '/dev/dri/renderD128' : undefined)
-    const canHwDecode =
-      options.hwDecode &&
-      !params.overlayFile &&
-      (!isVaapi || driDevice) &&
-      (encoder.name !== 'h264_qsv' || !isLinux || driDevice)
-    const hwDecodeConfig = canHwDecode ? HW_DECODE_CONFIGS[encoder.name] : undefined
+    const hwDecodeConfig = options.hwDecode ? HW_DECODE_CONFIGS[encoder.name] : undefined
     const hwDecode = Boolean(hwDecodeConfig)
 
     logger.info(
@@ -1657,14 +1651,8 @@ export class TranscodeService {
     const isHdrOutput = Boolean(params.hdr)
 
     const isVaapi = encoder.name === 'h264_vaapi'
-    const isLinux = process.platform === 'linux'
     const driDevice = this.getDriDevice() ?? (isVaapi ? '/dev/dri/renderD128' : undefined)
-    const canHwDecode =
-      options.hwDecode &&
-      !params.overlayFile &&
-      (!isVaapi || driDevice) &&
-      (encoder.name !== 'h264_qsv' || !isLinux || driDevice)
-    const hwDecodeConfig = canHwDecode ? HW_DECODE_CONFIGS[encoder.name] : undefined
+    const hwDecodeConfig = options.hwDecode ? HW_DECODE_CONFIGS[encoder.name] : undefined
     const hwDecode = Boolean(hwDecodeConfig)
 
     const segmentDuration = params.segmentDuration || 4
