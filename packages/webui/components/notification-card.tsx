@@ -146,8 +146,8 @@ const handleClick = () => {
     }else if(project?.id && asset?.id){
       //TODO: Perhaps it should be marked as read too when redirecting to it.
       navigate({
-        to: '/projects/$projectId/files/$assetId',
-        params: { projectId: project.id, assetId: asset.id }
+        to: '/projects/$projectId/files/$fileId',
+        params: { projectId: project.id, fileId: asset.id },
       })
     }
   }
