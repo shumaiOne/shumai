@@ -59,6 +59,15 @@ vi.mock('@dnd-kit/react', () => ({
   KeyboardSensor: {},
 }))
 
+// Mock TanStack Router Link as a plain anchor
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({ children, to, ...props }: { children: React.ReactNode; to: string }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
+}))
+
 // Mock @dnd-kit/dom
 vi.mock('@dnd-kit/dom', () => ({
   PointerActivationConstraints: {
@@ -689,6 +698,58 @@ describe('Kanban UI Unit & Component Tests', () => {
       expect(removeButtons.length).toBe(2)
       fireEvent.click(removeButtons[0])
       expect(onRemove).toHaveBeenCalledWith('asset-1')
+    })
+
+    it('does not link asset rows by default', () => {
+      render(
+        <TaskRelatedAssets
+          teamId="team-1"
+          assets={mockAssets}
+          onAddAssets={vi.fn()}
+          onRemoveAsset={vi.fn()}
+        />,
+      )
+
+      expect(screen.queryAllByRole('link')).toHaveLength(0)
+    })
+
+    it('links files and folders to their project when linkable', () => {
+      const onRemove = vi.fn()
+      render(
+        <TaskRelatedAssets
+          teamId="team-1"
+          projectId="task-proj"
+          assets={[...mockAssets, { ...mockAssets[0], id: 'asset-3', projectId: null }]}
+          onAddAssets={vi.fn()}
+          onRemoveAsset={onRemove}
+          linkable
+        />,
+      )
+
+      const links = screen.getAllByRole('link')
+      expect(links.map((link) => link.getAttribute('href'))).toEqual([
+        '/projects/proj-1/files/asset-1',
+        '/projects/proj-1/folders/asset-2',
+        // Falls back to the task's project when the asset has none
+        '/projects/task-proj/files/asset-3',
+      ])
+      // The remove button stays outside the link
+      fireEvent.click(screen.getAllByTitle(/Unlink Asset|取消关联资产/i)[1])
+      expect(onRemove).toHaveBeenCalledWith('asset-2')
+    })
+
+    it('does not link assets when no project is known', () => {
+      render(
+        <TaskRelatedAssets
+          teamId="team-1"
+          assets={[{ ...mockAssets[0], projectId: null }]}
+          onAddAssets={vi.fn()}
+          onRemoveAsset={vi.fn()}
+          linkable
+        />,
+      )
+
+      expect(screen.queryAllByRole('link')).toHaveLength(0)
     })
   })
 

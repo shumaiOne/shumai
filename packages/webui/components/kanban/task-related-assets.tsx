@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { Button } from '@/ui/components/ui/button'
 import { Separator } from '@/ui/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
@@ -6,6 +7,7 @@ import { m } from '@/ui/paraglide/messages.js'
 import type { KanbanTaskAssetInfo } from '@shumai/dtos'
 import { AssetPickerDialog } from './asset-picker-dialog'
 import { Plus, X, Folder, File, Files } from 'lucide-react'
+import { cn } from '@/ui/lib/utils'
 
 interface TaskRelatedAssetsProps {
   teamId: string
@@ -14,6 +16,8 @@ interface TaskRelatedAssetsProps {
   onAddAssets: (newAssets: KanbanTaskAssetInfo[]) => void
   onRemoveAsset: (assetId: string) => void
   disabled?: boolean
+  /** Make each row a link to the asset in its project. Off by default so unsaved drafts are not discarded. */
+  linkable?: boolean
 }
 
 export function TaskRelatedAssets({
@@ -23,6 +27,7 @@ export function TaskRelatedAssets({
   onAddAssets,
   onRemoveAsset,
   disabled = false,
+  linkable = false,
 }: TaskRelatedAssetsProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false)
 
@@ -69,39 +74,62 @@ export function TaskRelatedAssets({
         <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
           {assets.map((asset) => {
             const isFolder = asset.type === 'folder'
+            const assetProjectId = asset.projectId || projectId
+            const assetHref =
+              linkable && assetProjectId
+                ? `/projects/${assetProjectId}/${isFolder ? 'folders' : 'files'}/${asset.id}`
+                : null
+            const body = (
+              <>
+                {/* Thumbnail / Icon */}
+                <div className="w-7 h-7 rounded bg-muted border shrink-0 flex items-center justify-center overflow-hidden">
+                  {asset.thumbnailUrl ? (
+                    <img
+                      src={asset.thumbnailUrl}
+                      alt={asset.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : isFolder ? (
+                    <Folder className="w-4 h-4 text-primary fill-primary/20" />
+                  ) : (
+                    <File className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </div>
+
+                {/* Name & Path */}
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={cn(
+                      'font-medium truncate text-foreground leading-snug',
+                      assetHref && 'group-hover:underline group-hover:text-primary',
+                    )}
+                  >
+                    {asset.name}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground truncate leading-none mt-0.5">
+                    {asset.path || '/'}
+                  </p>
+                </div>
+              </>
+            )
 
             return (
               <div
                 key={asset.id}
                 className="flex items-center justify-between gap-2 p-1.5 px-2 rounded-md bg-muted/40 hover:bg-muted/70 transition-colors text-xs border border-border/40"
               >
-                {/* Left: Thumbnail & Names */}
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  {/* Thumbnail / Icon */}
-                  <div className="w-7 h-7 rounded bg-muted border shrink-0 flex items-center justify-center overflow-hidden">
-                    {asset.thumbnailUrl ? (
-                      <img
-                        src={asset.thumbnailUrl}
-                        alt={asset.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : isFolder ? (
-                      <Folder className="w-4 h-4 text-primary fill-primary/20" />
-                    ) : (
-                      <File className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </div>
-
-                  {/* Name & Path */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate text-foreground leading-snug">
-                      {asset.name}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground truncate leading-none mt-0.5">
-                      {asset.path || '/'}
-                    </p>
-                  </div>
-                </div>
+                {/* Left: Thumbnail & Names (links to the asset when linkable) */}
+                {assetHref ? (
+                  <Link
+                    to={assetHref}
+                    title={asset.name}
+                    className="group flex items-center gap-2.5 min-w-0 flex-1 rounded-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {body}
+                  </Link>
+                ) : (
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">{body}</div>
+                )}
 
                 {/* Right: Creator & Remove Button */}
                 <div className="flex items-center gap-2 shrink-0">

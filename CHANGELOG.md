@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+* **kanban**: Related assets on a task are now clickable, taking you directly to that file or folder in its project
+
 ### Fixed
 
 ### Changed

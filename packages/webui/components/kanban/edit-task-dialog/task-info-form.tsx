@@ -445,6 +445,7 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
               onAddAssets={(newAssets) => linkAssets(newAssets)}
               onRemoveAsset={(assetId) => unlinkAsset(assetId)}
               disabled={!canEdit}
+              linkable
             />
           </div>
         </div>
