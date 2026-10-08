@@ -273,7 +273,7 @@ export class TurntableService {
       method: 'POST',
       headers,
       body: Bun.file(filePath),
-      signal: AbortSignal.timeout(300000),
+      signal: AbortSignal.timeout(900000),
     })
 
     if (!response.ok) {
