@@ -27,6 +27,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
     },
     ref,
   ) => {
+    const rootRef = useRef<HTMLDivElement | null>(null)
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const containerRef = useRef<HTMLDivElement | null>(null)
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
@@ -214,8 +215,9 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
 
     // Fullscreen toggle
     const toggleFullScreen = () => {
+      if (!rootRef.current) return
       if (!document.fullscreenElement) {
-        containerRef.current?.requestFullscreen().catch(() => {})
+        rootRef.current.requestFullscreen().catch(() => {})
       } else {
         document.exitFullscreen().catch(() => {})
       }
@@ -255,116 +257,125 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
 
     return (
       <div
-        ref={containerRef}
+        ref={rootRef}
         data-testid="model-viewer-container"
-        className="relative w-full h-full bg-background overflow-hidden select-none flex items-center justify-center"
+        className={cn(
+          'group shadow-2xl font-sans select-none flex flex-col mx-auto relative',
+          isFullScreen ? 'h-full w-full rounded-none bg-black' : 'w-full h-full',
+        )}
       >
-        {/* Interactive Drag Rotation Surface */}
-        <div
-          data-testid="model-viewer-surface"
-          onPointerDown={handleViewerPointerDown}
-          onPointerMove={handleViewerPointerMove}
-          onPointerUp={handleViewerPointerUp}
-          onPointerCancel={handleViewerPointerUp}
-          className={cn(
-            'absolute inset-0 z-0 touch-none',
-            isDrawingMode
-              ? 'cursor-crosshair'
-              : isDraggingRotation
-                ? 'cursor-grabbing'
-                : 'cursor-grab',
-          )}
-        >
-          {/* Centered Scaled Media Wrapper */}
-          <div
-            className="absolute pointer-events-none"
-            style={{
-              left: 0,
-              top: 0,
-              width: mediaWidth,
-              height: mediaHeight,
-              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-              transformOrigin: '0 0',
-            }}
-          >
-            {videoSrc && (
-              <video
-                ref={videoRef}
-                src={videoSrc}
-                poster={posterUrl}
-                playsInline
-                loop
-                muted
-                autoPlay={autoPlay}
-                preload="auto"
-                onLoadedData={() => {
-                  setIsLoading(false)
-                  if (startTime && startTime > 0) {
-                    seekToFrame(Math.floor(startTime * FPS))
-                  }
-                }}
-                onPlay={() => {
-                  setIsPlaying(true)
-                  onPlay?.()
-                }}
-                onPause={() => {
-                  setIsPlaying(false)
-                  onPause?.()
-                }}
-                onTimeUpdate={() => {
-                  if (videoRef.current && !isDraggingRotation) {
-                    setCurrentTime(videoRef.current.currentTime)
-                    onTimeUpdate?.(videoRef.current.currentTime)
-                  }
-                }}
-                onError={() => {
-                  setIsLoading(false)
-                  setError('Failed to load turntable video')
-                }}
-                className="w-full h-full block object-contain pointer-events-none"
-              />
-            )}
-          </div>
+        <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
+          {/* Render Carousel/Sidebar here if not fullscreen */}
+          {!isFullScreen && children}
 
-          {/* Drawing Canvas Overlay */}
-          {containerSize.width > 0 && containerSize.height > 0 && (
-            <DrawingCanvas
-              width={containerSize.width}
-              height={containerSize.height}
-              mediaDimensions={{
+          {/* Interactive Drag Rotation Surface & Model Area */}
+          <div
+            ref={containerRef}
+            data-testid="model-viewer-surface"
+            onPointerDown={handleViewerPointerDown}
+            onPointerMove={handleViewerPointerMove}
+            onPointerUp={handleViewerPointerUp}
+            onPointerCancel={handleViewerPointerUp}
+            className={cn(
+              'flex-1 bg-black relative flex items-center justify-center overflow-hidden min-h-0 touch-none',
+              isDrawingMode
+                ? 'cursor-crosshair'
+                : isDraggingRotation
+                  ? 'cursor-grabbing'
+                  : 'cursor-grab',
+            )}
+          >
+            {/* Centered Scaled Media Wrapper */}
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                left: 0,
+                top: 0,
                 width: mediaWidth,
                 height: mediaHeight,
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: '0 0',
               }}
-              annotations={displayAnnotations}
-              scale={zoom}
-              offset={pan}
-              className="absolute inset-0 pointer-events-none"
-              isDrawing={isDrawing}
-              currentTool={currentTool}
-              currentColor={currentColor}
-              onAddAnnotation={addAnnotation}
-            />
-          )}
+            >
+              {videoSrc && (
+                <video
+                  ref={videoRef}
+                  src={videoSrc}
+                  poster={posterUrl}
+                  playsInline
+                  loop
+                  muted
+                  autoPlay={autoPlay}
+                  preload="auto"
+                  onLoadedData={() => {
+                    setIsLoading(false)
+                    if (startTime && startTime > 0) {
+                      seekToFrame(Math.floor(startTime * FPS))
+                    }
+                  }}
+                  onPlay={() => {
+                    setIsPlaying(true)
+                    onPlay?.()
+                  }}
+                  onPause={() => {
+                    setIsPlaying(false)
+                    onPause?.()
+                  }}
+                  onTimeUpdate={() => {
+                    if (videoRef.current && !isDraggingRotation) {
+                      setCurrentTime(videoRef.current.currentTime)
+                      onTimeUpdate?.(videoRef.current.currentTime)
+                    }
+                  }}
+                  onError={() => {
+                    setIsLoading(false)
+                    setError('Failed to load turntable video')
+                  }}
+                  className="w-full h-full block object-contain pointer-events-none"
+                />
+              )}
+            </div>
+
+            {/* Drawing Canvas Overlay */}
+            {containerSize.width > 0 && containerSize.height > 0 && (
+              <DrawingCanvas
+                width={containerSize.width}
+                height={containerSize.height}
+                mediaDimensions={{
+                  width: mediaWidth,
+                  height: mediaHeight,
+                }}
+                annotations={displayAnnotations}
+                scale={zoom}
+                offset={pan}
+                className="absolute inset-0 pointer-events-none"
+                isDrawing={isDrawing}
+                currentTool={currentTool}
+                currentColor={currentColor}
+                onAddAnnotation={addAnnotation}
+              />
+            )}
+
+            {/* Loading Spinner */}
+            {isLoading && !error && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10">
+                <div className="w-14 h-14 bg-background/80 backdrop-blur-md rounded-full flex items-center justify-center border border-border shadow-lg">
+                  <Loader2 className="w-7 h-7 text-primary animate-spin" />
+                </div>
+              </div>
+            )}
+
+            {/* Error Display */}
+            {error && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-destructive z-10 bg-background/90 p-4 text-center">
+                <AlertCircle className="w-10 h-10" />
+                <p className="text-sm font-medium">{error}</p>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Loading Spinner */}
-        {isLoading && !error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10">
-            <div className="w-14 h-14 bg-background/80 backdrop-blur-md rounded-full flex items-center justify-center border border-border shadow-lg">
-              <Loader2 className="w-7 h-7 text-primary animate-spin" />
-            </div>
-          </div>
-        )}
-
-        {/* Error Display */}
-        {error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-destructive z-10 bg-background/90 p-4 text-center">
-            <AlertCircle className="w-10 h-10" />
-            <p className="text-sm font-medium">{error}</p>
-          </div>
-        )}
-
-        {/* Floating Bottom Control Bar */}
+        {/* Full-width docked bottom control bar */}
         <ModelControlBar
           isPlaying={isPlaying}
           currentDegree={currentDegree}
@@ -380,8 +391,6 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
           onZoomReset={handleZoomReset}
           toggleFullScreen={toggleFullScreen}
         />
-
-        {children}
       </div>
     )
   },

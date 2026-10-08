@@ -160,4 +160,15 @@ describe('ModelViewer', () => {
     fireEvent.click(resetBtn)
     expect(onTimeUpdate).toHaveBeenCalledWith(0)
   })
+
+  it('renders children alongside viewer surface when provided', () => {
+    const { getByTestId } = render(
+      <ModelViewer file={mockAsset}>
+        <div data-testid="test-sidebar">Sidebar</div>
+      </ModelViewer>,
+    )
+
+    expect(getByTestId('test-sidebar')).toBeDefined()
+    expect(getByTestId('model-viewer-surface')).toBeDefined()
+  })
 })
