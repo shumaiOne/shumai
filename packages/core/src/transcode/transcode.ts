@@ -3118,6 +3118,45 @@ export class TranscodeService {
       .webp({ quality: 90 })
       .toFile(outputPath)
   }
+
+  async convertImageToWebp(imageBuffer: Buffer, quality = 85): Promise<Buffer> {
+    return await sharp(imageBuffer, { limitInputPixels: false })
+      .toColorspace('srgb')
+      .webp({ quality })
+      .toBuffer()
+  }
+
+  async generate3dSprite(
+    inputFile: string,
+    outputSprite: string,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    if (signal?.aborted) {
+      throw new Error('Sprite generation cancelled')
+    }
+    const spriteFps = 100 / 4
+    const filterComplex = `[0:v]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out]`
+    const args = [
+      '-i',
+      inputFile,
+      '-filter_complex',
+      filterComplex,
+      '-map',
+      '[sprite_out]',
+      '-frames:v',
+      '1',
+      '-c:v',
+      'libwebp',
+      '-q:v',
+      '75',
+      outputSprite,
+    ]
+    if (signal) {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], { signal })
+    } else {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    }
+  }
 }
 
 function renderAnnotationsToSvg(

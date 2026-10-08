@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+* **3d**: Add support for 3D model files (.glb, .gltf, .obj, .fbx, .stl, .dae, .usd, .usda, .usdc, .usdz) with automated turntable video rendering, hover sprite scrubbing, and an interactive 3D turntable viewer featuring 360° ruler scrubbing and degree-based markup comments
+* **settings**: Add Turntable Renderer settings card with server connection testing and environment variable override support
 * **kanban**: Related assets on a task are now clickable, taking you directly to that file or folder in its project
 
 ### Fixed

@@ -7,6 +7,7 @@ import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import { HTTPException } from 'hono/http-exception'
 import { getAllowedAgentRoles } from '@shumai/core/src/agent/permissions'
 import { sandboxService } from '@shumai/core/src/sandbox/sandbox-service'
+import { turntableService } from '@shumai/core/src/turntable/turntable'
 import {
   ServiceCreateTeamRequest,
   ServiceGetUserTeamsRequest,
@@ -342,6 +343,8 @@ export class TeamService {
     } else if (settings.appearance.hideAgent === undefined) {
       settings.appearance.hideAgent = false
     }
+
+    settings.turntable = await turntableService.getSettings(teamId)
 
     return settings
   }

@@ -92,7 +92,7 @@ export const kanbanTaskAssetInfoSchema = z.object({
   id: z.string(),
   name: z.string(),
   type: z.string(),
-  proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
+  proxyType: z.enum(['image', 'video', 'audio', 'pdf', '3d']).nullable().optional(),
   thumbnailUrl: z.string().nullable().optional(),
   path: z.string(),
   creator: kanbanUserInfoSchema.nullable().optional(),

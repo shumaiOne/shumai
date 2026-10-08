@@ -375,6 +375,12 @@ describe('TeamService', () => {
         hlsEnabled: false,
         hlsResolutions: ['480p', '720p', '1080p'],
       },
+      turntable: {
+        hasPassword: false,
+        isEnvConfigured: false,
+        url: undefined,
+        username: undefined,
+      },
       appearance: { hideAgent: false },
     })
 
@@ -391,6 +397,12 @@ describe('TeamService', () => {
         threads: 0,
         hlsEnabled: false,
         hlsResolutions: ['480p', '720p', '1080p'],
+      },
+      turntable: {
+        hasPassword: false,
+        isEnvConfigured: false,
+        url: undefined,
+        username: undefined,
       },
       appearance: { hideAgent: false },
     })
@@ -417,6 +429,12 @@ describe('TeamService', () => {
         threads: 4,
         hlsEnabled: true,
         hlsResolutions: ['720p', '1080p', '2160p'],
+      },
+      turntable: {
+        hasPassword: false,
+        isEnvConfigured: false,
+        url: undefined,
+        username: undefined,
       },
       appearance: { hideAgent: true },
       semanticSearchEnabled: false,

@@ -103,8 +103,15 @@ declare global {
       replyTo?: string
     }
 
+    export interface TurntableSettings {
+      url?: string
+      username?: string
+      password?: string
+    }
+
     export interface Settings {
       transcode?: TranscodeSettings
+      turntable?: TurntableSettings
       mediaGeneration?: MediaGenerationSettings
       appearance?: AppearanceSettings
       emailNotification?: EmailNotificationSettings
@@ -196,7 +203,7 @@ declare global {
       duration: number
       filesize: number
       frames: number
-      proxyType?: 'image' | 'video' | 'audio' | 'pdf'
+      proxyType?: 'image' | 'video' | 'audio' | 'pdf' | '3d'
       imageTranscodes: ImageTranscode[]
       videoTranscodes: VideoTranscode[]
       videoPreview?: VideoTranscode
@@ -530,7 +537,7 @@ declare global {
       key: string
       sizeByte: number
       contentType?: string | null
-      proxyType?: 'image' | 'video' | 'audio' | 'pdf' | null
+      proxyType?: 'image' | 'video' | 'audio' | 'pdf' | '3d' | null
     }
     export type KanbanCommentAttachmentList = KanbanCommentAttachment[]
   }

@@ -1931,6 +1931,36 @@ describe('AssetService', () => {
       expect(info.preview?.duration).toBeUndefined()
     })
 
+    it('toPreviewInfo handles 3d asset with proxyType 3d and omits duration', async () => {
+      const { project, user } = await setupBasicAssets()
+
+      const model = await prisma.asset.create({
+        data: {
+          name: 'model.glb',
+          type: AssetType.file,
+          projectId: project.id,
+          creatorId: user.id,
+          sizeByte: 8000,
+          mediaType: 'model/gltf-binary',
+          status: 'processed',
+          media: {
+            proxyType: '3d',
+            poster: { key: 'poster-key' },
+            sprite: { key: 'sprite-key', frames: 100, tileX: 10, tileY: 10 },
+            metadata: { originalWidth: 1080, originalHeight: 1080, duration: 4 },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+        },
+      })
+
+      const info = await assetService.getAsset({ assetId: model.id })
+
+      expect(info.preview).toBeDefined()
+      expect(info.preview?.proxyType).toBe('3d')
+      expect(info.preview?.duration).toBeUndefined()
+      expect(info.preview?.spriteUrl).toBeDefined()
+    })
+
     it('converts webp thumbnail to jpeg on demand when hasJpegPreview is false', async () => {
       vi.mocked(ensureJpegInStorage).mockClear()
       const { project, user } = await setupBasicAssets()

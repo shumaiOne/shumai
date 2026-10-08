@@ -150,6 +150,7 @@ export const WorkflowTaskType = {
   transcode_screenshot: 'transcode_screenshot',
   transcode_image_annotation: 'transcode_image_annotation',
   transcode_watermark: 'transcode_watermark',
+  transcode_3d: 'transcode_3d',
   ai_metadata_autofill: 'ai_metadata_autofill',
   chat: 'chat',
   ai_embedding: 'ai_embedding',

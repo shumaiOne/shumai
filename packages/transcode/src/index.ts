@@ -9,6 +9,7 @@ import { renderPdfPagesWorkflow } from './workflows/render-pdf-pages'
 import { takeVideoScreenshotsWorkflow } from './workflows/take-video-screenshots'
 import { overlayImageAnnotationWorkflow } from './workflows/overlay-image-annotation'
 import { transcodeWatermarkWorkflow } from './workflows/transcode-watermark'
+import { transcode3dWorkflow } from './workflows/transcode-3d'
 import { transcodeMedia } from './workflows/transcode'
 
 export function initTranscodeWorkflows() {
@@ -16,6 +17,7 @@ export function initTranscodeWorkflows() {
   registerWorkflow(WorkflowTaskType.transcode_video, transcodeVideoWorkflow)
   registerWorkflow(WorkflowTaskType.transcode_image, transcodeImageWorkflow)
   registerWorkflow(WorkflowTaskType.transcode_pdf, transcodePdfWorkflow)
+  registerWorkflow(WorkflowTaskType.transcode_3d, transcode3dWorkflow)
   registerWorkflow(WorkflowTaskType.transcode_pdf_pages, renderPdfPagesWorkflow)
   registerWorkflow(WorkflowTaskType.transcode_screenshot, takeVideoScreenshotsWorkflow)
   registerWorkflow(WorkflowTaskType.transcode_image_annotation, overlayImageAnnotationWorkflow)
@@ -26,6 +28,7 @@ export function initTranscodeWorkflows() {
 
 export * from './transcoder'
 export * from './workflows/transcode'
+export * from './workflows/transcode-3d'
 export * from './workflows/transcode-watermark'
 export * from './activities/transcode'
 export * from './activities/watermark'

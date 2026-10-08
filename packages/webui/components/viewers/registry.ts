@@ -3,9 +3,15 @@ import { FileTypeDefinition } from './types'
 import { videoTypeDefinition } from './video'
 import { imageTypeDefinition } from './image'
 import { pdfTypeDefinition } from './pdf'
+import { modelTypeDefinition } from './model'
 import { defaultTypeDefinition } from './default'
 
-const registry: FileTypeDefinition[] = [pdfTypeDefinition, videoTypeDefinition, imageTypeDefinition]
+const registry: FileTypeDefinition[] = [
+  modelTypeDefinition,
+  pdfTypeDefinition,
+  videoTypeDefinition,
+  imageTypeDefinition,
+]
 
 export function getViewerForFile(file: AssetInfo | null | undefined): FileTypeDefinition {
   if (!file) return defaultTypeDefinition

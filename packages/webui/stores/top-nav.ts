@@ -12,7 +12,7 @@ export interface TopNavProjectState {
     name?: string
     type: 'file' | 'folder'
     version?: number
-    proxyType?: 'image' | 'video' | 'audio' | 'pdf' | null
+    proxyType?: 'image' | 'video' | 'audio' | 'pdf' | '3d' | null
   }
   isRootFolder: boolean
   customTerminalBreadcrumb?: string

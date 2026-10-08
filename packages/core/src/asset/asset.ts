@@ -2407,7 +2407,13 @@ export class AssetService {
         }
       }
 
-      const proxyType = (media?.proxyType || null) as 'image' | 'video' | 'audio' | 'pdf' | null
+      const proxyType = (media?.proxyType || null) as
+        | 'image'
+        | 'video'
+        | 'audio'
+        | 'pdf'
+        | '3d'
+        | null
 
       result.push({
         id: a.id,
@@ -2773,7 +2779,13 @@ export class AssetService {
   ): Promise<PreviewInfo | null> {
     if (!asset.media) return null
 
-    const proxyType = (asset.media?.proxyType || null) as 'image' | 'video' | 'audio' | 'pdf' | null
+    const proxyType = (asset.media?.proxyType || null) as
+      | 'image'
+      | 'video'
+      | 'audio'
+      | 'pdf'
+      | '3d'
+      | null
 
     let rawThumbKey: string | undefined
     if (proxyType === 'image' && asset.media.thumbnail?.key) {
@@ -2826,7 +2838,7 @@ export class AssetService {
       originalHeight: asset.media.metadata?.originalHeight,
       originalWidth: asset.media.metadata?.originalWidth,
       spriteUrl,
-      duration: asset.media.metadata?.duration,
+      duration: proxyType === '3d' ? undefined : asset.media.metadata?.duration,
       pageCount: asset.media.metadata?.totalFrames,
     }
   }

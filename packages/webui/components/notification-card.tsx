@@ -136,14 +136,14 @@ export const NotificationCard = ({ notification }: NotificationCardProps) => {
 
   const hasPreview = asset?.preview && (asset.proxyType === 'image' || asset.proxyType === 'video')
 
-const handleClick = () => {
+  const handleClick = () => {
     if (kanbanTask?.id && team?.id) {
       navigate({
         to: '/teams/$teamId/kanban',
         params: { teamId: team.id },
         search: { taskId: kanbanTask.id },
       })
-    }else if(project?.id && asset?.id){
+    } else if (project?.id && asset?.id) {
       //TODO: Perhaps it should be marked as read too when redirecting to it.
       navigate({
         to: '/projects/$projectId/files/$fileId',

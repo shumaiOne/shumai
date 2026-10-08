@@ -126,6 +126,24 @@ describe('getProxyType', () => {
     expect(getProxyType(null, 'slides.pptx')).toBe('pdf')
   })
 
+  it('should detect 3d proxyType for supported 3D models', () => {
+    expect(getProxyType('model/gltf-binary', 'model.glb')).toBe('3d')
+    expect(getProxyType('model/gltf+json', 'model.gltf')).toBe('3d')
+    expect(getProxyType(null, 'model.glb')).toBe('3d')
+    expect(getProxyType(null, 'model.gltf')).toBe('3d')
+    expect(getProxyType(null, 'character.fbx')).toBe('3d')
+    expect(getProxyType('model/obj', 'mesh.obj')).toBe('3d')
+    expect(getProxyType(null, 'mesh.obj')).toBe('3d')
+    expect(getProxyType('model/stl', 'part.stl')).toBe('3d')
+    expect(getProxyType(null, 'part.stl')).toBe('3d')
+    expect(getProxyType(null, 'scene.usd')).toBe('3d')
+    expect(getProxyType(null, 'scene.usda')).toBe('3d')
+    expect(getProxyType(null, 'scene.usdc')).toBe('3d')
+    expect(getProxyType('model/vnd.usdz+zip', 'scene.usdz')).toBe('3d')
+    expect(getProxyType('model/vnd.collada+xml', 'model.dae')).toBe('3d')
+    expect(getProxyType(null, 'MODEL.GLB')).toBe('3d')
+  })
+
   it('should return null for unsupported files', () => {
     expect(getProxyType('application/zip', 'archive.zip')).toBeNull()
     expect(getProxyType(null, 'unknown.bin')).toBeNull()

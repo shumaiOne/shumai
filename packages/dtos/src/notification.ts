@@ -18,7 +18,7 @@ export type EntityInfo = z.infer<typeof entityInfoSchema>
 
 export const assetPreviewSchema = z.object({
   id: z.string().optional(),
-  proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
+  proxyType: z.enum(['image', 'video', 'audio', 'pdf', '3d']).nullable().optional(),
   name: z.string().optional(),
   preview: z.string().optional(),
   thumbnailUrl: z.string().optional(),
