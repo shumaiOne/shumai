@@ -260,7 +260,6 @@ export class TurntableService {
       throw new Error('Turntable renderer URL is not configured.')
     }
 
-    const fileBytes = fs.readFileSync(filePath)
     const headers: Record<string, string> = {
       'content-type': 'application/octet-stream',
       'x-filename': encodeURIComponent(filename),
@@ -273,8 +272,8 @@ export class TurntableService {
     const response = await fetch(`${config.url}/v1/files`, {
       method: 'POST',
       headers,
-      body: fileBytes,
-      signal: AbortSignal.timeout(120000),
+      body: Bun.file(filePath),
+      signal: AbortSignal.timeout(300000),
     })
 
     if (!response.ok) {
