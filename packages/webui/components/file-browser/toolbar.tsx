@@ -14,6 +14,7 @@ import { MembersDialog } from '../members-dialog'
 import { FilterPanel } from '../search/filter-panel'
 import { SearchFilterDialog } from '../search/search-filter-dialog'
 import { SortControl } from '../search/sort-control'
+import { FileTypeFilter } from '../search/file-type-filter'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
@@ -272,6 +273,15 @@ export function FileBrowserToolbar({
           fields={fields}
           sort={sort}
           onSortChange={onSortChange}
+          disabled={isRecentlyDeleted || isRecents}
+        />
+
+        <FileTypeFilter
+          teamId={teamId}
+          projectId={projectId}
+          folderId={assetId}
+          conditions={filterConditions}
+          recursively={filterConditions.length > 0 || isCollection}
           disabled={isRecentlyDeleted || isRecents}
         />
 

@@ -1045,3 +1045,164 @@ describe('SearchService — natural sort by name', () => {
     spy.mockRestore()
   })
 })
+
+describe('SearchService — file-type filter', () => {
+  setupTestDbHooks()
+
+  let searchService: SearchService
+  let rootId: string
+  let childId: string
+
+  const names = [
+    'DSCF5056.RAF',
+    'DSCF5056.RAF.xmp',
+    'DSCF5056.JPG',
+    'DSCF5056.JPG.xmp',
+    '_DSC2028.ARW',
+    '_DSC2028.xmp',
+    'DSCF5055.MOV',
+    'notes',
+    'photo.jpeg',
+  ]
+
+  beforeEach(async () => {
+    searchService = new SearchService()
+    const team = await prisma.team.create({ data: { name: 'file-type-team' } })
+    const project = await prisma.project.create({ data: { name: 'p', teamId: team.id } })
+    const root = await prisma.asset.create({
+      data: { name: 'root', type: AssetType.folder, projectId: project.id, status: 'uploaded' },
+    })
+    const child = await prisma.asset.create({
+      data: {
+        name: 'IG_Borders',
+        type: AssetType.folder,
+        projectId: project.id,
+        parentId: root.id,
+        status: 'uploaded',
+      },
+    })
+    rootId = root.id
+    childId = child.id
+    for (const name of names) {
+      await prisma.asset.create({
+        data: {
+          name,
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: root.id,
+          status: 'processed',
+        },
+      })
+    }
+    await prisma.asset.create({
+      data: {
+        name: 'border.RAF',
+        type: AssetType.file,
+        projectId: project.id,
+        parentId: child.id,
+        status: 'processed',
+      },
+    })
+  })
+
+  const list = async (
+    fileTypes: { include?: string[]; exclude?: string[] },
+    recursively = false,
+  ) => {
+    const res = await searchService.search(rootId, {
+      assetType: 'file',
+      recursively,
+      operator: 'AND',
+      conditions: [],
+      isSemantic: false,
+      sort: { field: 'name', order: 'asc' },
+      fileTypes,
+    })
+    return { names: res.data.map((a) => a.name).sort(), total: res.pageInfo.total }
+  }
+
+  it('shows only RAW files for group:raw, case-insensitively', async () => {
+    const r = await list({ include: ['group:raw'] })
+    expect(r.names).toEqual(['DSCF5056.RAF', '_DSC2028.ARW'])
+    expect(r.total).toBe(2)
+  })
+
+  it('shows only JPEGs for group:jpeg, and a single extension on its own', async () => {
+    expect((await list({ include: ['group:jpeg'] })).names).toEqual(['DSCF5056.JPG', 'photo.jpeg'])
+    expect((await list({ include: ['arw'] })).names).toEqual(['_DSC2028.ARW'])
+  })
+
+  it('hides editing files for an exclude of group:editing, keeping files with no extension', async () => {
+    const r = await list({ exclude: ['group:editing'] })
+    expect(r.names).toEqual([
+      'DSCF5055.MOV',
+      'DSCF5056.JPG',
+      'DSCF5056.RAF',
+      '_DSC2028.ARW',
+      'notes',
+      'photo.jpeg',
+    ])
+    expect(r.total).toBe(6)
+  })
+
+  it('combines include and exclude', async () => {
+    const r = await list({ include: ['group:raw', 'xmp'], exclude: ['arw'] })
+    expect(r.names).toEqual([
+      'DSCF5056.JPG.xmp',
+      'DSCF5056.RAF',
+      'DSCF5056.RAF.xmp',
+      '_DSC2028.xmp',
+    ])
+  })
+
+  it('applies to recursive listings and leaves folder listings alone', async () => {
+    expect((await list({ include: ['raf'] }, true)).names).toEqual(['DSCF5056.RAF', 'border.RAF'])
+    const folders = await searchService.search(rootId, {
+      assetType: 'folder',
+      recursively: false,
+      operator: 'AND',
+      conditions: [],
+      isSemantic: false,
+      fileTypes: { include: ['raf'] },
+    })
+    expect(folders.data.map((a) => a.id)).toEqual([childId])
+  })
+
+  it('counts files per extension, most common first', async () => {
+    const counts = await searchService.fileTypeCounts(rootId)
+    expect(counts.slice(0, 1)).toEqual([{ extension: 'xmp', count: 3 }])
+    expect(counts).toEqual(
+      expect.arrayContaining([
+        { extension: 'raf', count: 1 },
+        { extension: 'jpg', count: 1 },
+        { extension: 'jpeg', count: 1 },
+        { extension: '', count: 1 },
+      ]),
+    )
+    const deep = await searchService.fileTypeCounts(rootId, { recursively: true })
+    expect(deep.find((c) => c.extension === 'raf')?.count).toBe(2)
+  })
+
+  it('offers only extensions the filter accepts, and treats a dotfile as extensionless', async () => {
+    const root = await prisma.asset.findUniqueOrThrow({ where: { id: rootId } })
+    for (const name of ['backup.tar-gz', 'x.averyveryverylongextension', '.jpg', 'a.b.TIFF']) {
+      await prisma.asset.create({
+        data: {
+          name,
+          type: AssetType.file,
+          projectId: root.projectId,
+          parentId: rootId,
+          status: 'processed',
+        },
+      })
+    }
+    const counts = await searchService.fileTypeCounts(rootId)
+    const exts = counts.map((c) => c.extension)
+    expect(exts).not.toContain('tar-gz')
+    expect(exts).not.toContain('averyveryverylongextension')
+    expect(counts.find((c) => c.extension === 'tiff')?.count).toBe(1)
+    // "notes" and ".jpg" have no extension; ".jpg" is not a JPEG.
+    expect(counts.find((c) => c.extension === '')?.count).toBe(2)
+    expect(counts.find((c) => c.extension === 'jpg')?.count).toBe(1)
+  })
+})

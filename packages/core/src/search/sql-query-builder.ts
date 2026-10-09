@@ -1,10 +1,18 @@
 import { Prisma } from '@shumai/db'
-import { SearchCondition } from '@shumai/dtos'
+import {
+  SearchCondition,
+  expandFileTypes,
+  FILE_TYPE_EXTENSION_PATTERN,
+  type FileTypeCountsRequest,
+  type FileTypeFilter,
+} from '@shumai/dtos'
+import { generateSearchNgrams } from '@shumai/core/src/utils/ngram'
 
 export class SqlQueryBuilder {
   private selectSql: Prisma.Sql = Prisma.sql`*`
   private fromSql: Prisma.Sql | null = null
   private wheres: Prisma.Sql[] = []
+  private groupSql: Prisma.Sql | null = null
   private orderSql: Prisma.Sql | null = null
   private limitCount: number | null = null
   private offsetCount: number | null = null
@@ -24,6 +32,11 @@ export class SqlQueryBuilder {
     return this
   }
 
+  groupBy(group: Prisma.Sql): this {
+    this.groupSql = group
+    return this
+  }
+
   orderBy(order: Prisma.Sql): this {
     this.orderSql = order
     return this
@@ -36,6 +49,24 @@ export class SqlQueryBuilder {
 
   offset(n: number): this {
     this.offsetCount = n
+    return this
+  }
+
+  /**
+   * Keep files whose last extension is in `filter.include`, and drop those in `filter.exclude`.
+   * Groups ("group:raw") are expanded; matching is case-insensitive. Files with no extension are
+   * kept by an exclude filter and dropped by an include filter.
+   */
+  addFileTypeFilter(filter?: FileTypeFilter): this {
+    const include = expandFileTypes(filter?.include)
+    const exclude = expandFileTypes(filter?.exclude)
+    const ext = FILE_EXTENSION_SQL
+    if (include.length > 0) {
+      this.addWhere(Prisma.sql`${ext} = ANY(${include}::text[])`)
+    }
+    if (exclude.length > 0) {
+      this.addWhere(Prisma.sql`(${ext} IS NULL OR NOT (${ext} = ANY(${exclude}::text[])))`)
+    }
     return this
   }
 
@@ -80,6 +111,11 @@ export class SqlQueryBuilder {
     if (this.wheres.length > 0) {
       queryParts.push(Prisma.sql`WHERE`)
       queryParts.push(Prisma.join(this.wheres, ' AND '))
+    }
+
+    if (this.groupSql) {
+      queryParts.push(Prisma.sql`GROUP BY`)
+      queryParts.push(this.groupSql)
     }
 
     if (this.orderSql) {
@@ -401,4 +437,63 @@ export class SqlQueryBuilder {
         throw new Error(`Unsupported operator for metadata field: ${operator}`)
     }
   }
+}
+
+/**
+ * A file name's last extension, lowercase; NULL when there is none. The stem must be non-empty,
+ * so ".jpg" (a dotfile) has no extension. The backslash is doubled for the template literal.
+ */
+const FILE_EXTENSION_SQL = Prisma.sql`lower(substring(a.name from '^.+\\.([^.]+)$'))`
+
+/** Most distinct extensions a folder's count list returns. */
+export const FILE_TYPE_COUNTS_LIMIT = 500
+
+/**
+ * One grouped COUNT over the files a listing would show: the same folders, symlink handling and
+ * search conditions as `SearchService.search`, but without the file-type filter, so every group
+ * and extension keeps its own number while another one is selected.
+ */
+export function buildFileTypeCountsQuery(
+  folderIds: readonly string[],
+  req: Pick<FileTypeCountsRequest, 'operator' | 'conditions' | 'showSymlink'>,
+): Prisma.Sql {
+  const fileTypes = ['file', 'version_stack']
+  const builder = new SqlQueryBuilder()
+    .select(Prisma.sql`${FILE_EXTENSION_SQL} AS extension, count(*) AS count`)
+    .from(Prisma.sql`assets a`)
+    .addWhere(Prisma.sql`a.is_deleted = false`)
+    .addWhere(Prisma.sql`a.parent_id = ANY(${[...folderIds]})`)
+
+  if (req.showSymlink) {
+    builder.addWhere(Prisma.sql`
+      (a.type = ANY(${fileTypes}::"AssetType"[]) OR (a.type = 'symlink' AND a.target_id IN (SELECT id FROM assets WHERE type = ANY(${fileTypes}::"AssetType"[]))))
+    `)
+  } else {
+    builder.addWhere(Prisma.sql`a.type = ANY(${fileTypes}::"AssetType"[])`)
+  }
+
+  if (req.conditions.length > 0) {
+    builder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
+  }
+
+  // "name contains" is matched the way search matches it: n-grams narrow, ILIKE decides.
+  const nameCond = req.conditions.find((c) => c.field === 'name' && c.operator === 'contains')
+  if (nameCond) {
+    const valStr = String(nameCond.value)
+    const ngrams = generateSearchNgrams(valStr)
+    if (ngrams.length > 0) builder.addWhere(Prisma.sql`a.name_ngram @> ${ngrams}::text[]`)
+    builder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
+  }
+
+  // Only offer extensions the filter can send back (fileTypeTokenSchema), else picking one would
+  // make every search fail. Files with no extension stay in the list as the "(none)" row.
+  builder.addWhere(
+    Prisma.sql`(${FILE_EXTENSION_SQL} IS NULL OR ${FILE_EXTENSION_SQL} ~ ${FILE_TYPE_EXTENSION_PATTERN})`,
+  )
+
+  return builder
+    .groupBy(Prisma.sql`1`)
+    .orderBy(Prisma.sql`2 DESC, 1 ASC`)
+    .limit(FILE_TYPE_COUNTS_LIMIT)
+    .build()
 }

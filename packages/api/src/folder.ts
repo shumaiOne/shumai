@@ -11,7 +11,7 @@ import {
   updateAgentsMdRequestSchema,
 } from '@shumai/dtos'
 import { listChildrenRequestSchema, updateAssetOrderRequestSchema, AuditAction } from '@shumai/dtos'
-import { searchRequestSchema } from '@shumai/dtos'
+import { fileTypeCountsRequestSchema, searchRequestSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
@@ -186,6 +186,25 @@ const route = new Hono<{ Variables: { user: User } }>()
     const result = await searchService.search(folderId, req)
     return c.json(result)
   })
+  .post(
+    '/folders/:folderId/file-types',
+    zValidator('json', fileTypeCountsRequestSchema),
+    async (c) => {
+      const folderId = c.req.param('folderId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Asset,
+        id: folderId,
+      })
+
+      const counts = await searchService.fileTypeCounts(folderId, req)
+      return c.json({ data: counts })
+    },
+  )
   .get('/folders/:folderId/agentsmd', async (c) => {
     const folderId = c.req.param('folderId')
     const user = c.get('user')

@@ -1502,5 +1502,18 @@
   "hide_agent": "Hide Agent",
   "hide_agent_description": "Hide the AGENTS.md button, agent-chat sidebar, and chatbot trigger button across the entire team.",
   "appearance_settings_updated": "Appearance settings updated",
-  "failed_update_appearance_settings": "Failed to update appearance settings"
+  "failed_update_appearance_settings": "Failed to update appearance settings",
+  "file_type_filter": "Type",
+  "file_type_filter_title": "Filter by file type",
+  "file_type_hide_editing": "Hide editing files",
+  "file_type_hide_editing_hint": "XMP and other sidecar or settings files",
+  "file_type_show_only": "Show only",
+  "file_type_group_raw": "All RAW files",
+  "file_type_group_jpeg": "JPEG",
+  "file_type_group_heif": "HEIF / HEIC",
+  "file_type_group_video": "Video",
+  "file_type_group_editing": "Editing files",
+  "file_type_in_this_folder": "In this folder",
+  "file_type_no_extension": "No extension",
+  "file_type_clear": "Clear"
 }

@@ -1,6 +1,52 @@
 import { describe, expect, it } from 'vitest'
-import { SqlQueryBuilder } from './sql-query-builder'
+import { SqlQueryBuilder, buildFileTypeCountsQuery } from './sql-query-builder'
 import { Prisma } from '@shumai/db'
+import { FILE_TYPE_EXTENSION_PATTERN } from '@shumai/dtos'
+
+describe('buildFileTypeCountsQuery', () => {
+  const base = { operator: 'AND' as const, conditions: [], showSymlink: undefined }
+
+  it('is a single grouped COUNT over the folders, ignoring any file-type filter', () => {
+    const q = buildFileTypeCountsQuery(['f1', 'f2'], base)
+    expect(q.text).toContain('count(*) AS count FROM assets a WHERE a.is_deleted = false')
+    expect(q.text).toContain('a.parent_id = ANY($1)')
+    expect(q.text).toMatch(/GROUP BY 1 ORDER BY 2 DESC, 1 ASC LIMIT \$\d+$/)
+    expect(q.text).not.toContain('::text[]')
+    expect(q.values[0]).toEqual(['f1', 'f2'])
+    expect(q.values.at(-1)).toBe(500)
+  })
+
+  it('keeps the regex backslash and needs a stem so ".jpg" has no extension', () => {
+    expect(buildFileTypeCountsQuery(['f1'], base).text).toContain("'^.+\\.([^.]+)$'")
+  })
+
+  it('only offers extensions the file-type filter accepts, plus the no-extension row', () => {
+    const q = buildFileTypeCountsQuery(['f1'], base)
+    expect(q.text).toContain('IS NULL OR')
+    expect(q.text).toContain(' ~ $')
+    expect(q.values).toContain(FILE_TYPE_EXTENSION_PATTERN)
+    // The pattern is the schema's own: "tar-gz" and 11 characters fail it, "jpg" and "3fr" pass.
+    const re = new RegExp(FILE_TYPE_EXTENSION_PATTERN)
+    expect(['jpg', '3fr', 'a1'].every((e) => re.test(e))).toBe(true)
+    expect(['tar-gz', 'abcdefghijk', 'a_b', ''].some((e) => re.test(e))).toBe(false)
+  })
+
+  it('applies the active search conditions like the listing does', () => {
+    const q = buildFileTypeCountsQuery(['f1'], {
+      operator: 'AND',
+      conditions: [{ field: 'name', operator: 'contains', value: 'beach' }],
+    })
+    expect(q.text).toContain('a.name ILIKE')
+    expect(q.values).toContain('%beach%')
+  })
+
+  it('includes symlinks only when asked', () => {
+    expect(buildFileTypeCountsQuery(['f1'], base).text).not.toContain("a.type = 'symlink'")
+    expect(buildFileTypeCountsQuery(['f1'], { ...base, showSymlink: true }).text).toContain(
+      "a.type = 'symlink'",
+    )
+  })
+})
 
 describe('SqlQueryBuilder', () => {
   it('correctly constructs a basic SQL query', () => {

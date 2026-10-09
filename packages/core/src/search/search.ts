@@ -1,13 +1,18 @@
 import { prisma } from '@shumai/db'
 import { Prisma, AssetType, WorkflowTaskType } from '@shumai/db'
 import { AssetService, assetService } from '@shumai/core/src/asset/asset'
-import { AssetInfo } from '@shumai/dtos'
+import {
+  AssetInfo,
+  fileTypeCountsRequestSchema,
+  type FileTypeCount,
+  type FileTypeCountsRequest,
+} from '@shumai/dtos'
 import { SearchRequest } from '@shumai/dtos'
 import { PaginatedData, decodeCursor, encodeCursor, PageInfo } from '@shumai/core/src/pagination'
 import { generateSearchNgrams } from '@shumai/core/src/utils/ngram'
 import { workflowService } from '@shumai/workflow-core'
 import { HTTPException } from 'hono/http-exception'
-import { SqlQueryBuilder } from './sql-query-builder'
+import { SqlQueryBuilder, buildFileTypeCountsQuery } from './sql-query-builder'
 
 export class SearchService {
   constructor(
@@ -90,6 +95,8 @@ export class SearchService {
       if (req.conditions && req.conditions.length > 0) {
         builder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
       }
+
+      if (req.assetType !== 'folder') builder.addFileTypeFilter(req.fileTypes)
 
       const nameCond = req.conditions?.find((c) => c.field === 'name' && c.operator === 'contains')
       if (nameCond) {
@@ -174,6 +181,8 @@ export class SearchService {
         countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
       }
 
+      if (req.assetType !== 'folder') countBuilder.addFileTypeFilter(req.fileTypes)
+
       if (nameCond) {
         const valStr = String(nameCond.value)
         const ngrams = generateSearchNgrams(valStr)
@@ -230,6 +239,8 @@ export class SearchService {
       builder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
     }
 
+    if (req.assetType !== 'folder') builder.addFileTypeFilter(req.fileTypes)
+
     // name contains n-grams / Switching Search Optimization
     let countOverride: number | undefined
     let useNgram = false
@@ -266,6 +277,8 @@ export class SearchService {
         if (req.conditions && req.conditions.length > 0) {
           probeBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
         }
+
+        if (req.assetType !== 'folder') probeBuilder.addFileTypeFilter(req.fileTypes)
 
         probeBuilder.addWhere(Prisma.sql`a.name_ngram @> ${ngrams}::text[]`)
         probeBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
@@ -372,6 +385,8 @@ export class SearchService {
         countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
       }
 
+      if (req.assetType !== 'folder') countBuilder.addFileTypeFilter(req.fileTypes)
+
       if (nameCond) {
         countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
       }
@@ -413,6 +428,8 @@ export class SearchService {
           countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
         }
 
+        if (req.assetType !== 'folder') countBuilder.addFileTypeFilter(req.fileTypes)
+
         if (nameCond) {
           countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
         }
@@ -431,6 +448,25 @@ export class SearchService {
     }
 
     return { data, pageInfo }
+  }
+
+  /**
+   * How many files of each extension a listing holds (lowercase, "" for none), most common
+   * first: one grouped COUNT scoped like the listing (folder, recursion, conditions) but
+   * ignoring the file-type filter itself. Feeds the file-type filter's group and extension counts.
+   */
+  async fileTypeCounts(
+    folderId: string,
+    req: Partial<FileTypeCountsRequest> = {},
+  ): Promise<FileTypeCount[]> {
+    const parsed = fileTypeCountsRequestSchema.parse(req)
+    const folderIds = parsed.recursively
+      ? await this.assetSvc.getDescendantFolderIds(folderId)
+      : [folderId]
+    const rows = await this.prismaClient.$queryRaw<
+      Array<{ extension: string | null; count: bigint }>
+    >(buildFileTypeCountsQuery(folderIds, parsed))
+    return rows.map((r) => ({ extension: r.extension ?? '', count: Number(r.count) }))
   }
 }
 
