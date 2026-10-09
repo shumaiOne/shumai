@@ -7,10 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+* **transcode**: Camera RAW photos (Sony ARW, Fujifilm RAF and other formats that carry an embedded JPEG) now load much faster: the preview is read straight from the file, so thumbnails and sizes appear in milliseconds instead of waiting on ExifTool
 
 * **kanban**: Related assets on a task are now clickable, taking you directly to that file or folder in its project
 
 ### Fixed
+* **transcode**: Fix Sony ARW photos being recorded at the size of the padded raw sensor buffer instead of the size of the image that is shown, and RAW photos opened from a link or from memory failing to generate previews
 
 ### Changed
 

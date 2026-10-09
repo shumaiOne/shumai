@@ -13,6 +13,12 @@ import { ulid } from 'ulid'
 import { promisify } from 'util'
 import { mapConcurrent } from '../utils/async'
 import { isRawImage } from '../utils/raw'
+import {
+  extractRawPreviewFromBuffer,
+  extractRawPreviewFromFile,
+  getRawImageSizeFromBuffer,
+  getRawImageSizeFromFile,
+} from '../utils/raw-preview'
 import { dataFormatNames } from './dataFormatNames'
 import { extractAndValidateRawPreview, EXIF_ORIENTATION_TO_ROTATION } from './raw-extract'
 import { logger } from '@shumai/core/src/logger'
@@ -866,6 +872,80 @@ export class TranscodeService {
     }
   }
 
+  /**
+   * The filename that identifies `input` as a camera RAW, or undefined if it is not one. A URL
+   * is judged by its path (its content has already been downloaded into a Buffer by now). A
+   * nameless Buffer is only recognised when it is a Fujifilm RAF, whose magic is unambiguous;
+   * other RAW containers are TIFF-based and cannot be told apart from a plain TIFF.
+   */
+  private rawNameOf(inputFile: string | Buffer, input: string | Buffer): string | undefined {
+    if (typeof inputFile === 'string') {
+      let name = inputFile
+      if (inputFile.startsWith('http://') || inputFile.startsWith('https://')) {
+        try {
+          name = new URL(inputFile).pathname
+        } catch {
+          return undefined
+        }
+      }
+      return isRawImage(name) ? name : undefined
+    }
+    if (Buffer.isBuffer(input) && input.subarray(0, 15).toString('latin1') === 'FUJIFILMCCD-RAW') {
+      return 'buffer.raf'
+    }
+    return undefined
+  }
+
+  /** Displayed size from the RAW container headers alone, or null to use the slower chain. */
+  private fastRawSize(
+    input: string | Buffer,
+    rawName: string,
+  ): { width: number; height: number } | null {
+    try {
+      return typeof input === 'string'
+        ? getRawImageSizeFromFile(input)
+        : getRawImageSizeFromBuffer(input, rawName)
+    } catch (err) {
+      logger.debug({ rawName, err }, 'Fast RAW size lookup failed, falling back to exiftool')
+      return null
+    }
+  }
+
+  /** Embedded JPEG chosen for a target whose longest edge is `edge`, or null. */
+  private async fastRawPreview(
+    input: string | Buffer,
+    rawName: string,
+    edge: number,
+  ): Promise<{ jpeg: Buffer; orientation: number } | null> {
+    try {
+      const found =
+        typeof input === 'string'
+          ? extractRawPreviewFromFile(input, edge)
+          : extractRawPreviewFromBuffer(input, edge, rawName)
+      if (!found) return null
+      // Make sure the bytes really decode before committing to them.
+      const meta = await sharp(found.jpeg, { limitInputPixels: false }).metadata()
+      if (!meta.width || !meta.height) return null
+      return { jpeg: found.jpeg, orientation: found.orientation }
+    } catch (err) {
+      logger.debug({ rawName, err }, 'Fast RAW preview failed, falling back to exiftool')
+      return null
+    }
+  }
+
+  /** Upstream exiftool -> dcraw_emu chain. A Buffer is spilled to a temp file first. */
+  private async extractRawViaExiftool(input: string | Buffer, rawName: string) {
+    if (typeof input === 'string') return extractAndValidateRawPreview(input)
+    const tempDir = this.createTempDir('raw-')
+    try {
+      const rawPath = path.join(tempDir, `input${path.extname(rawName) || '.raw'}`)
+      fs.writeFileSync(rawPath, input)
+      return await extractAndValidateRawPreview(rawPath)
+    } finally {
+      this.removeDir(tempDir)
+    }
+  }
+
   async getImageInfo(inputFile: string): Promise<MediaMetadata> {
     let input: string | Buffer = inputFile
     let tempDirToCleanup: string | null = null
@@ -910,9 +990,24 @@ export class TranscodeService {
       }
     }
 
-    // RAW branch — extract embedded JPEG or decode RAW for metadata
-    if (typeof input === 'string' && isRawImage(input)) {
-      const extracted = await extractAndValidateRawPreview(input)
+    // RAW branch — read the size from the embedded preview container, else extract or decode
+    const rawName = this.rawNameOf(inputFile, input)
+    if (rawName) {
+      const size = this.fastRawSize(input, rawName)
+      if (size) {
+        return {
+          originalWidth: size.width,
+          originalHeight: size.height,
+          duration: 0,
+          bitRate: 0,
+          frameRate: 0,
+          totalFrames: 0,
+          startTimecode: undefined,
+          hasAudio: false,
+          mimeType: 'jpeg',
+        }
+      }
+      const extracted = await this.extractRawViaExiftool(input, rawName)
       if (extracted) {
         try {
           const isSwapped =
@@ -1910,6 +2005,8 @@ export class TranscodeService {
     if (width === 480 || height === 0) {
       isPreview = true
     }
+    // Same shim: a legacy caller passing width=480 means the 300px short side.
+    const targetShort = width === 480 ? 300 : width
 
     let input: string | Buffer = inputFile
     if (typeof inputFile === 'string' && inputFile.startsWith('http')) {
@@ -1920,19 +2017,33 @@ export class TranscodeService {
       input = Buffer.from(await resp.arrayBuffer())
     }
 
-    // RAW branch — extract embedded preview or decode RAW to temporary file + orientation, then treat as normal image
+    // RAW branch — use the embedded preview (read straight from the container), else extract or
+    // decode RAW to a temporary file + orientation, then treat as normal image
     let rawOrientation: number | undefined
     let rawCleanup: (() => void) | null = null
-    if (typeof input === 'string' && isRawImage(input)) {
-      const extracted = await extractAndValidateRawPreview(input)
-      if (!extracted) {
-        throw new Error(
-          `Cannot generate preview for RAW file: no usable embedded preview or decoded image in ${input}`,
-        )
+    const rawName = this.rawNameOf(inputFile, input)
+    if (rawName) {
+      // Longest edge the output can reach, so the smallest preview that covers it is chosen.
+      const edge = isPreview
+        ? Math.round((targetShort * 16) / 9)
+        : height && height > 0
+          ? Math.max(width, height)
+          : 7680
+      const fast = await this.fastRawPreview(input, rawName, edge)
+      if (fast) {
+        input = fast.jpeg
+        rawOrientation = fast.orientation
+      } else {
+        const extracted = await this.extractRawViaExiftool(input, rawName)
+        if (!extracted) {
+          throw new Error(
+            `Cannot generate preview for RAW file: no usable embedded preview or decoded image in ${rawName}`,
+          )
+        }
+        input = extracted.previewPath
+        rawOrientation = extracted.orientation
+        rawCleanup = extracted.cleanup
       }
-      input = extracted.previewPath
-      rawOrientation = extracted.orientation
-      rawCleanup = extracted.cleanup
     }
 
     try {
@@ -1950,8 +2061,6 @@ export class TranscodeService {
               rawOrientation !== undefined && rawOrientation >= 5 && rawOrientation <= 8
             const srcW = isSwapped ? meta.height : meta.width
             const srcH = isSwapped ? meta.width : meta.height
-            // Fallback shim: If legacy 480 caller passed width=480, map targetShort to 300
-            const targetShort = width === 480 ? 300 : width
             const maxLong = Math.round((targetShort * 16) / 9)
             const dims = calculatePreviewDimensions(srcW, srcH, targetShort, maxLong)
             targetW = dims.width
