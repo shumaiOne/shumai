@@ -14,7 +14,7 @@ import { promisify } from 'util'
 import { mapConcurrent } from '../utils/async'
 import { isRawImage } from '../utils/raw'
 import { dataFormatNames } from './dataFormatNames'
-import { extractAndValidateRawPreview, EXIF_ORIENTATION_TO_ROTATION } from './raw-extract'
+import { extractAndValidateRawPreview, applyRawOrientation } from './raw-extract'
 import { logger } from '@shumai/core/src/logger'
 
 const execFileAsync = promisify(execFile)
@@ -2004,12 +2004,7 @@ export class TranscodeService {
       // Apply EXIF orientation from the RAW container to the extracted buffer.
       // The buffer itself often lacks orientation EXIF, so Sharp won't auto-rotate.
       // For non-RAW images, Sharp auto-rotates from the image's own EXIF.
-      if (rawOrientation && EXIF_ORIENTATION_TO_ROTATION[rawOrientation]) {
-        const { angle, flip, flop } = EXIF_ORIENTATION_TO_ROTATION[rawOrientation]
-        if (angle) sharpInstance.rotate(angle)
-        if (flip) sharpInstance.flip()
-        if (flop) sharpInstance.flop()
-      }
+      applyRawOrientation(sharpInstance, rawOrientation)
 
       sharpInstance.toColorspace('srgb').resize(targetW, targetH, {
         withoutEnlargement: true,

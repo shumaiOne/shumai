@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 * **kanban**: Related assets on a task are now clickable, taking you directly to that file or folder in its project
 
 ### Fixed
+* **transcode**: Fix camera RAW photos stored with a mirrored-and-rotated orientation (EXIF orientations 5 and 7) showing up flipped in previews and thumbnails
 
 ### Changed
 
