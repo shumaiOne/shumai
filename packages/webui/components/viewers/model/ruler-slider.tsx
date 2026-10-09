@@ -126,7 +126,7 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
   return (
     <div
       className={cn(
-        'relative select-none flex items-center gap-2.5 w-full min-w-[160px]',
+        'relative select-none flex items-center gap-1 sm:gap-2.5 w-full min-w-0 sm:min-w-[140px]',
         disabled && 'opacity-50',
         className,
       )}
@@ -139,7 +139,7 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
         title="Decrease 15°"
         aria-label="Decrease 15°"
         data-testid="ruler-step-minus"
-        className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="p-0.5 sm:p-1 rounded text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Minus className="w-3.5 h-3.5" />
       </button>
@@ -218,7 +218,7 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
         title="Increase 15°"
         aria-label="Increase 15°"
         data-testid="ruler-step-plus"
-        className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="p-0.5 sm:p-1 rounded text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Plus className="w-3.5 h-3.5" />
       </button>

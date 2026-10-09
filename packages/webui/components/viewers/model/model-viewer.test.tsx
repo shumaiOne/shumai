@@ -157,18 +157,6 @@ describe('ModelViewer', () => {
     expect(ref.current?.getCurrentTime?.()).toBeDefined()
   })
 
-  it('resets rotation to 0° when reset button is clicked', () => {
-    const onTimeUpdate = vi.fn()
-    const { getByRole } = render(
-      <ModelViewer file={mockAsset} startTime={1} onTimeUpdate={onTimeUpdate} />,
-    )
-
-    // Reset rotation button has aria-label 'Reset rotation to 0°'
-    const resetBtn = getByRole('button', { name: /Reset rotation/i })
-    fireEvent.click(resetBtn)
-    expect(onTimeUpdate).toHaveBeenCalledWith(0)
-  })
-
   it('renders children alongside viewer surface when provided', () => {
     const { getByTestId } = render(
       <ModelViewer file={mockAsset}>

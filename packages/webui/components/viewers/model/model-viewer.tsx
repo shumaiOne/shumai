@@ -386,7 +386,6 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
           fileName={data.name}
           togglePlay={togglePlay}
           onSeekDegree={seekToDegree}
-          onResetRotation={() => seekToDegree(0)}
           onZoomChange={handleZoomChange}
           onZoomReset={handleZoomReset}
           toggleFullScreen={toggleFullScreen}
