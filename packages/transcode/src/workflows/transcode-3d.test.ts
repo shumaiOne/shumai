@@ -24,6 +24,10 @@ describe('transcode3dWorkflow', () => {
     }),
     getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
     render3dModelActivity: Object.assign(vi.fn(), { _activityName: 'render3dModelActivity' }),
+    start3dRenderActivity: Object.assign(vi.fn(), { _activityName: 'start3dRenderActivity' }),
+    waitFor3dVideoRenderActivity: Object.assign(vi.fn(), {
+      _activityName: 'waitFor3dVideoRenderActivity',
+    }),
     generate3dSpriteActivity: Object.assign(vi.fn(), { _activityName: 'generate3dSpriteActivity' }),
     updateAssetMediaActivity: Object.assign(vi.fn(), {
       _activityName: 'updateAssetMediaActivity',
@@ -99,10 +103,16 @@ describe('transcode3dWorkflow', () => {
       sizeByte: BigInt(1024),
     })
 
-    mockActivities.render3dModelActivity.mockResolvedValue({
-      videoFilePath: '/tmp/turntable.mp4',
+    mockActivities.start3dRenderActivity.mockResolvedValue({
+      renderTaskId: 'task_render_1',
       posterFilePath: '/tmp/poster.webp',
+      posterWidth: 1080,
+      posterHeight: 1080,
       modelMetadata: { format: 'glb' },
+    })
+
+    mockActivities.waitFor3dVideoRenderActivity.mockResolvedValue({
+      videoFilePath: '/tmp/turntable.mp4',
     })
 
     mockActivities.generate3dSpriteActivity.mockResolvedValue({
@@ -116,15 +126,44 @@ describe('transcode3dWorkflow', () => {
       status: AssetStatus.processing,
     })
 
-    expect(mockActivities.render3dModelActivity).toHaveBeenCalledWith({
+    expect(mockActivities.start3dRenderActivity).toHaveBeenCalledWith({
       taskId: 'task-3d',
       teamId: 'team-1',
       assetId: 'asset-3d',
       assetKey: 'files/asset-3d/robot.glb',
       filePath: '/tmp/model.glb',
       filename: 'robot.glb',
-      targetVideoKey: 'files/asset-3d/turntable.mp4',
       targetPosterKey: 'files/asset-3d/poster.webp',
+    })
+
+    // Verify initial updateAssetMediaActivity with poster was called before waitFor3dVideoRenderActivity
+    expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetId: 'asset-3d',
+        mediaInfo: expect.objectContaining({
+          proxyType: '3d',
+          poster: { key: 'files/asset-3d/poster.webp' },
+          metadata: expect.objectContaining({
+            format: { format: 'glb' },
+            originalHeight: 1080,
+            originalWidth: 1080,
+          }),
+        }),
+      }),
+    )
+
+    const firstMediaUpdateOrder =
+      mockActivities.updateAssetMediaActivity.mock.invocationCallOrder[0]
+    const waitVideoOrder = mockActivities.waitFor3dVideoRenderActivity.mock.invocationCallOrder[0]
+    expect(firstMediaUpdateOrder).toBeLessThan(waitVideoOrder)
+
+    expect(mockActivities.waitFor3dVideoRenderActivity).toHaveBeenCalledWith({
+      taskId: 'task-3d',
+      teamId: 'team-1',
+      assetKey: 'files/asset-3d/robot.glb',
+      renderTaskId: 'task_render_1',
+      targetVideoKey: 'files/asset-3d/turntable.mp4',
+      tmpDir: '/tmp',
     })
 
     expect(mockActivities.generate3dSpriteActivity).toHaveBeenCalledWith({
@@ -194,7 +233,7 @@ describe('transcode3dWorkflow', () => {
       sizeByte: BigInt(512),
     })
 
-    mockActivities.render3dModelActivity.mockRejectedValue(new Error('Renderer crashed'))
+    mockActivities.start3dRenderActivity.mockRejectedValue(new Error('Renderer crashed'))
 
     await expect(transcode3dWorkflow(task)).rejects.toThrow('Renderer crashed')
 

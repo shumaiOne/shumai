@@ -1570,9 +1570,27 @@ export interface Render3dModelActivityResult {
   modelMetadata?: Record<string, unknown>
 }
 
-export async function render3dModelActivity(
-  params: Render3dModelActivityParams,
-): Promise<Render3dModelActivityResult> {
+export interface Start3dRenderActivityParams {
+  taskId: string
+  teamId: string
+  assetId: string
+  assetKey: string
+  filePath: string
+  filename: string
+  targetPosterKey: string
+}
+
+export interface Start3dRenderActivityResult {
+  renderTaskId: string
+  posterFilePath: string
+  posterWidth?: number
+  posterHeight?: number
+  modelMetadata?: Record<string, unknown>
+}
+
+export async function start3dRenderActivity(
+  params: Start3dRenderActivityParams,
+): Promise<Start3dRenderActivityResult> {
   const signal = getActivityCancellationSignal(params.taskId)
   if (signal?.aborted) {
     throw ApplicationFailure.create({
@@ -1583,9 +1601,9 @@ export async function render3dModelActivity(
 
   const bucket = process.env.S3_BUCKET || 'shumai'
   const tmpDir = path.dirname(params.filePath)
-  const videoFilePath = path.join(tmpDir, 'turntable.mp4')
   const posterFilePath = path.join(tmpDir, 'poster.webp')
 
+  let fileId: string | undefined
   let renderTaskId: string | undefined
 
   try {
@@ -1594,7 +1612,7 @@ export async function render3dModelActivity(
       params.filename,
       params.teamId,
     )
-    const fileId = uploadResult.id
+    fileId = uploadResult.id
 
     if (signal?.aborted) {
       await turntableService.deleteFile(fileId, params.teamId).catch(() => {})
@@ -1607,14 +1625,87 @@ export async function render3dModelActivity(
     const startResult = await turntableService.startRender(fileId, {}, params.teamId)
     renderTaskId = startResult.taskId
 
+    const posterFileId = startResult.poster?.fileId
+    if (!posterFileId) {
+      throw ApplicationFailure.create({
+        message: 'Poster file ID missing from turntable render result',
+        nonRetryable: true,
+      })
+    }
+
+    const posterBuffer = await turntableService.downloadFile(posterFileId, undefined, params.teamId)
+    const posterWebpBuffer = await transcodeService.convertImageToWebp(posterBuffer)
+    fs.writeFileSync(posterFilePath, posterWebpBuffer)
+
+    await ensureAssetNotPurging(params.assetKey)
+
+    await s3Service.putObject(
+      bucket,
+      params.targetPosterKey,
+      posterWebpBuffer,
+      posterWebpBuffer.length,
+      'image/webp',
+    )
+
+    return {
+      renderTaskId,
+      posterFilePath,
+      posterWidth: startResult.poster?.width,
+      posterHeight: startResult.poster?.height,
+      modelMetadata: (startResult.metadata as Record<string, unknown>) || {},
+    }
+  } catch (err) {
+    if (renderTaskId) {
+      await turntableService.deleteTask(renderTaskId, params.teamId).catch(() => {})
+    } else if (fileId) {
+      await turntableService.deleteFile(fileId, params.teamId).catch(() => {})
+    }
+    if (err instanceof ApplicationFailure) {
+      throw err
+    }
+    const errMsg = err instanceof Error ? err.message : String(err)
+    throw ApplicationFailure.create({
+      message: `Failed to start 3D render: ${errMsg}`,
+      nonRetryable: true,
+    })
+  }
+}
+
+export interface WaitFor3dVideoRenderActivityParams {
+  taskId: string
+  teamId: string
+  assetKey: string
+  renderTaskId: string
+  targetVideoKey: string
+  tmpDir: string
+}
+
+export interface WaitFor3dVideoRenderActivityResult {
+  videoFilePath: string
+}
+
+export async function waitFor3dVideoRenderActivity(
+  params: WaitFor3dVideoRenderActivityParams,
+): Promise<WaitFor3dVideoRenderActivityResult> {
+  const signal = getActivityCancellationSignal(params.taskId)
+  if (signal?.aborted) {
+    await turntableService.deleteTask(params.renderTaskId, params.teamId).catch(() => {})
+    throw ApplicationFailure.create({
+      message: 'Render cancelled',
+      nonRetryable: true,
+    })
+  }
+
+  const bucket = process.env.S3_BUCKET || 'shumai'
+  const videoFilePath = path.join(params.tmpDir, 'turntable.mp4')
+
+  try {
     let finishedStatus: 'completed' | 'failed' | null = null
     let taskRecord: Awaited<ReturnType<typeof turntableService.getTaskStatus>> | null = null
 
     for (let i = 0; i < 360; i++) {
       if (signal?.aborted) {
-        if (renderTaskId) {
-          await turntableService.deleteTask(renderTaskId, params.teamId).catch(() => {})
-        }
+        await turntableService.deleteTask(params.renderTaskId, params.teamId).catch(() => {})
         throw ApplicationFailure.create({
           message: 'Render cancelled',
           nonRetryable: true,
@@ -1625,7 +1716,7 @@ export async function render3dModelActivity(
         await new Promise((resolve) => setTimeout(resolve, 5000))
       }
 
-      taskRecord = await turntableService.getTaskStatus(renderTaskId, params.teamId)
+      taskRecord = await turntableService.getTaskStatus(params.renderTaskId, params.teamId)
       if (taskRecord.status === 'completed') {
         finishedStatus = 'completed'
         break
@@ -1655,24 +1746,11 @@ export async function render3dModelActivity(
       })
     }
 
-    const posterFileId = startResult.poster?.fileId
-
-    if (!posterFileId) {
-      throw ApplicationFailure.create({
-        message: 'Poster file ID missing from turntable render result',
-        nonRetryable: true,
-      })
-    }
-
     const videoBuffer = await turntableService.downloadFile(
       videoFileId,
       videoFilePath,
       params.teamId,
     )
-    const posterBuffer = await turntableService.downloadFile(posterFileId, undefined, params.teamId)
-
-    const posterWebpBuffer = await transcodeService.convertImageToWebp(posterBuffer)
-    fs.writeFileSync(posterFilePath, posterWebpBuffer)
 
     await ensureAssetNotPurging(params.assetKey)
 
@@ -1684,36 +1762,59 @@ export async function render3dModelActivity(
       'video/mp4',
     )
 
-    await s3Service.putObject(
-      bucket,
-      params.targetPosterKey,
-      posterWebpBuffer,
-      posterWebpBuffer.length,
-      'image/webp',
-    )
-
-    await turntableService.deleteTask(renderTaskId, params.teamId).catch((err) => {
-      logger.warn({ err, taskId: renderTaskId }, 'Failed to delete turntable task after completion')
+    await turntableService.deleteTask(params.renderTaskId, params.teamId).catch((err) => {
+      logger.warn(
+        { err, taskId: params.renderTaskId },
+        'Failed to delete turntable task after completion',
+      )
     })
-    renderTaskId = undefined
 
     return {
       videoFilePath,
-      posterFilePath,
-      modelMetadata: (startResult.metadata as Record<string, unknown>) || {},
     }
   } catch (err) {
-    if (renderTaskId) {
-      await turntableService.deleteTask(renderTaskId, params.teamId).catch(() => {})
-    }
+    await turntableService.deleteTask(params.renderTaskId, params.teamId).catch(() => {})
     if (err instanceof ApplicationFailure) {
       throw err
     }
     const errMsg = err instanceof Error ? err.message : String(err)
     throw ApplicationFailure.create({
-      message: `Failed to render 3D model: ${errMsg}`,
+      message: `Failed to render 3D model video: ${errMsg}`,
       nonRetryable: true,
     })
+  }
+}
+
+/**
+ * @deprecated Legacy monolithic 3D render activity. Prefer using `start3dRenderActivity` and `waitFor3dVideoRenderActivity`.
+ */
+export async function render3dModelActivity(
+  params: Render3dModelActivityParams,
+): Promise<Render3dModelActivityResult> {
+  const tmpDir = path.dirname(params.filePath)
+  const startResult = await start3dRenderActivity({
+    taskId: params.taskId,
+    teamId: params.teamId,
+    assetId: params.assetId,
+    assetKey: params.assetKey,
+    filePath: params.filePath,
+    filename: params.filename,
+    targetPosterKey: params.targetPosterKey,
+  })
+
+  const videoResult = await waitFor3dVideoRenderActivity({
+    taskId: params.taskId,
+    teamId: params.teamId,
+    assetKey: params.assetKey,
+    renderTaskId: startResult.renderTaskId,
+    targetVideoKey: params.targetVideoKey,
+    tmpDir,
+  })
+
+  return {
+    videoFilePath: videoResult.videoFilePath,
+    posterFilePath: startResult.posterFilePath,
+    modelMetadata: startResult.modelMetadata,
   }
 }
 

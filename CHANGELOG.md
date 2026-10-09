@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **viewer**: Redesign the 3D turntable ruler slider with an enclosed capsule track, encapsulated ±15° step buttons, vertically centered ticks, a center red indicator, and a responsive mobile layout with the bottom bar reset button removed
 - **viewer**: Load 3D turntable videos directly without low-resolution poster images, and rotate model counterclockwise when dragging right
+- **transcode**: Display 3D asset poster previews immediately in file list cards after rendering begins instead of waiting for the entire turntable video and sprite to finish
 
 ## [0.5.1] - 2026-10-06
 

@@ -20,7 +20,8 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
     const {
       updateAssetStatusActivity,
       downloadMediaToTmpActivity,
-      render3dModelActivity,
+      start3dRenderActivity,
+      waitFor3dVideoRenderActivity,
       generate3dSpriteActivity,
       updateAssetMediaActivity,
       createEmbeddingTaskIfEnabledActivity,
@@ -46,23 +47,18 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
     const posterKey = assetDir ? `${assetDir}/poster.webp` : 'poster.webp'
     const spriteKey = assetDir ? `${assetDir}/sprite.webp` : 'sprite.webp'
 
-    const renderResult = await executeActivity(workerQueue, render3dModelActivity, {
+    const renderStart = await executeActivity(workerQueue, start3dRenderActivity, {
       taskId: task.id,
       teamId: task.teamId,
       assetId: asset.id,
       assetKey: key,
       filePath: currentFilePath,
       filename: asset.name || 'model.glb',
-      targetVideoKey: videoKey,
       targetPosterKey: posterKey,
     })
 
-    await executeActivity(workerQueue, generate3dSpriteActivity, {
-      taskId: task.id,
-      assetKey: key,
-      videoFilePath: renderResult.videoFilePath,
-      spriteKey,
-    })
+    const posterWidth = renderStart.posterWidth || 1080
+    const posterHeight = renderStart.posterHeight || 1080
 
     const mediaInfo: PrismaJson.MediaInfo = {
       duration: 4,
@@ -70,40 +66,21 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
       frames: 24,
       proxyType: '3d',
       imageTranscodes: [],
-      videoTranscodes: [
-        {
-          key: videoKey,
-          width: 1080,
-          height: 1080,
-          resolution: '1080p',
-        },
-      ],
-      videoPreview: {
-        key: videoKey,
-        width: 1080,
-        height: 1080,
-        resolution: '1080p',
-      },
+      videoTranscodes: [],
       poster: {
         key: posterKey,
       },
-      sprite: {
-        key: spriteKey,
-        frames: 100,
-        tileX: 10,
-        tileY: 10,
-      },
       finishedAt: new Date().toISOString(),
       metadata: {
-        originalHeight: 1080,
-        originalWidth: 1080,
+        originalHeight: posterHeight,
+        originalWidth: posterWidth,
         hasAudio: false,
         duration: 4,
         bitRate: 0,
         frameRate: 6,
         totalFrames: 24,
         startTimecode: '00:00:00:00',
-        format: renderResult.modelMetadata ?? {},
+        format: renderStart.modelMetadata ?? {},
       },
       original: {
         key,
@@ -111,6 +88,55 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
         codec: '',
       },
     }
+
+    await executeActivity(workerQueue, updateAssetMediaActivity, {
+      assetId: asset.id,
+      mediaInfo,
+    })
+
+    const renderVideo = await executeActivity(workerQueue, waitFor3dVideoRenderActivity, {
+      taskId: task.id,
+      teamId: task.teamId,
+      assetKey: key,
+      renderTaskId: renderStart.renderTaskId,
+      targetVideoKey: videoKey,
+      tmpDir,
+    })
+
+    await executeActivity(workerQueue, generate3dSpriteActivity, {
+      taskId: task.id,
+      assetKey: key,
+      videoFilePath: renderVideo.videoFilePath,
+      spriteKey,
+    })
+
+    mediaInfo.sprite = {
+      key: spriteKey,
+      frames: 100,
+      tileX: 10,
+      tileY: 10,
+    }
+
+    await executeActivity(workerQueue, updateAssetMediaActivity, {
+      assetId: asset.id,
+      mediaInfo,
+    })
+
+    mediaInfo.videoTranscodes = [
+      {
+        key: videoKey,
+        width: 1080,
+        height: 1080,
+        resolution: '1080p',
+      },
+    ]
+    mediaInfo.videoPreview = {
+      key: videoKey,
+      width: 1080,
+      height: 1080,
+      resolution: '1080p',
+    }
+    mediaInfo.finishedAt = new Date().toISOString()
 
     await executeActivity(workerQueue, updateAssetMediaActivity, {
       assetId: asset.id,
