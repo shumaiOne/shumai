@@ -2,8 +2,8 @@ import { FileTypeDefinition } from '../types'
 import ModelViewer from './model-viewer'
 
 export function secondToDegree(second: number): number {
-  const frameIndex = Math.min(Math.max(0, Math.floor(second * 6)), 23)
-  return frameIndex * 15
+  const frameIndex = Math.min(Math.max(0, Math.round(second * 6)), 23)
+  return (frameIndex * 15) % 360
 }
 
 export const modelTypeDefinition: FileTypeDefinition = {

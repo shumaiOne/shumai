@@ -67,6 +67,9 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (!isDragging) return
       setIsDragging(false)
+      if (dragDegree !== null) {
+        onChange(dragDegree)
+      }
       setDragDegree(null)
       try {
         containerRef.current?.releasePointerCapture(e.pointerId)
@@ -74,7 +77,7 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
         // pointer may have already been released
       }
     },
-    [isDragging],
+    [isDragging, dragDegree, onChange],
   )
 
   const handleKeyDown = useCallback(
