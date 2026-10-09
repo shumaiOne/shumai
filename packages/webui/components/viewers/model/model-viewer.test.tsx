@@ -171,4 +171,22 @@ describe('ModelViewer', () => {
     expect(getByTestId('test-sidebar')).toBeDefined()
     expect(getByTestId('model-viewer-surface')).toBeDefined()
   })
+
+  it('steps rotation by 15° forward and backward via plus and minus buttons', () => {
+    const onTimeUpdate = vi.fn()
+    const { getByTestId } = render(
+      <ModelViewer file={mockAsset} startTime={0} onTimeUpdate={onTimeUpdate} />,
+    )
+
+    const plusBtn = getByTestId('ruler-step-plus')
+    const minusBtn = getByTestId('ruler-step-minus')
+
+    // Click plus button at 0° -> seeks to 15° (frame 1, 1/6s)
+    fireEvent.click(plusBtn)
+    expect(onTimeUpdate).toHaveBeenCalledWith(expect.closeTo(1 / 6, 2))
+
+    // Click minus button at 0° (or current) -> wraps backward
+    fireEvent.click(minusBtn)
+    expect(onTimeUpdate).toHaveBeenCalledWith(0)
+  })
 })

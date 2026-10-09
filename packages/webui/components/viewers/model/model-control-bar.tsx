@@ -44,41 +44,41 @@ export const ModelControlBar: React.FC<ModelControlBarProps> = ({
     document.body.removeChild(a)
   }
 
+  const handleStepDegree = (delta: number) => {
+    const next = (((currentDegree + delta) % 360) + 360) % 360
+    onSeekDegree(next)
+  }
+
   return (
     <div
       className={cn(
         'transition-all duration-300 ease-in-out z-20 text-foreground',
         isFullScreen
-          ? 'absolute bottom-0 left-0 right-0 px-4 py-3 bg-card/90 backdrop-blur-md border-t border-border'
-          : 'relative w-full bg-card border-t border-border px-4 py-3 z-10 transition-colors duration-200',
+          ? 'absolute bottom-0 left-0 right-0 px-4 py-2.5 bg-card/90 backdrop-blur-md border-t border-border'
+          : 'relative w-full bg-card border-t border-border px-4 py-2.5 z-10 transition-colors duration-200',
       )}
     >
-      {/* Top: Ruler Slider across full width */}
-      <div className="mb-3 px-1">
-        <RulerSlider currentDegree={currentDegree} onChange={onSeekDegree} />
-      </div>
-
-      {/* Bottom: Lower Controls Row */}
-      <div className="flex items-center justify-between text-foreground">
+      {/* Unified Single Row Controls */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center text-foreground gap-4">
         {/* Left Side: Play/Pause, Degree Readout, Reset Rotation */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 justify-start min-w-0">
           <button
             type="button"
             onClick={togglePlay}
             aria-label={isPlaying ? 'Pause' : 'Play'}
-            className="hover:text-primary transition-colors"
+            className="hover:text-primary transition-colors shrink-0"
             data-testid="play-toggle"
             data-playing={isPlaying}
           >
             {isPlaying ? (
-              <Pause className="w-6 h-6 fill-current" />
+              <Pause className="w-5 h-5 fill-current" />
             ) : (
-              <Play className="w-6 h-6 fill-current" />
+              <Play className="w-5 h-5 fill-current" />
             )}
           </button>
 
           <div
-            className="flex items-center gap-1 text-sm font-medium tabular-nums select-none min-w-[90px]"
+            className="flex items-center text-sm font-medium tabular-nums select-none shrink-0"
             data-testid="degree-readout"
           >
             <span className="text-muted-foreground font-mono">{currentDegree}° / 360°</span>
@@ -89,16 +89,47 @@ export const ModelControlBar: React.FC<ModelControlBarProps> = ({
             onClick={onResetRotation}
             title="Reset to 0°"
             aria-label="Reset rotation to 0°"
-            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
         </div>
 
+        {/* Center: RulerSlider with minus & plus buttons */}
+        <div className="flex items-center gap-1.5 w-full max-w-[320px] justify-center mx-auto min-w-0">
+          <button
+            type="button"
+            onClick={() => handleStepDegree(-15)}
+            title="Decrease 15°"
+            aria-label="Decrease 15°"
+            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            data-testid="ruler-step-minus"
+          >
+            <Minus className="w-3.5 h-3.5" />
+          </button>
+
+          <RulerSlider
+            currentDegree={currentDegree}
+            onChange={onSeekDegree}
+            className="flex-1 min-w-0"
+          />
+
+          <button
+            type="button"
+            onClick={() => handleStepDegree(15)}
+            title="Increase 15°"
+            aria-label="Increase 15°"
+            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            data-testid="ruler-step-plus"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
         {/* Right Side: Zoom controls, Download, Fullscreen */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-end min-w-0">
           {/* Zoom controls */}
-          <div className="flex items-center gap-1 bg-muted/60 rounded-lg p-0.5 border border-border/40">
+          <div className="flex items-center gap-1 bg-muted/60 rounded-lg p-0.5 border border-border/40 shrink-0">
             <button
               type="button"
               onClick={() => onZoomChange(Math.max(0.2, zoom - 0.2))}
@@ -132,7 +163,7 @@ export const ModelControlBar: React.FC<ModelControlBarProps> = ({
               onClick={handleDownload}
               title="Download asset"
               aria-label="Download asset"
-              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
             >
               <Download className="w-4 h-4" />
             </button>
@@ -144,7 +175,7 @@ export const ModelControlBar: React.FC<ModelControlBarProps> = ({
             onClick={toggleFullScreen}
             title={isFullScreen ? 'Exit fullscreen' : 'Fullscreen'}
             aria-label={isFullScreen ? 'Exit fullscreen' : 'Fullscreen'}
-            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
           >
             {isFullScreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </button>
