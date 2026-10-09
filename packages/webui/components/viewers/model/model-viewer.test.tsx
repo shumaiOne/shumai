@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render } from '@testing-library/react'
+import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import React, { createRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ModelViewer } from './model-viewer'
@@ -190,5 +190,85 @@ describe('ModelViewer', () => {
     // Click minus button at 0° (or current) -> wraps backward
     fireEvent.click(minusBtn)
     expect(onTimeUpdate).toHaveBeenCalledWith(0)
+  })
+
+  it('updates playback smoothly on each frame via requestVideoFrameCallback without skipping degrees', () => {
+    let frameCallback: ((now: number, metadata: { mediaTime: number }) => void) | null = null
+    const rvfcMock = vi.fn().mockImplementation((cb) => {
+      frameCallback = cb
+      return 101
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(HTMLVideoElement.prototype as any).requestVideoFrameCallback = rvfcMock
+
+    const onTimeUpdate = vi.fn()
+    const { container, getByTestId } = render(
+      <ModelViewer file={mockAsset} onTimeUpdate={onTimeUpdate} />,
+    )
+
+    const video = container.querySelector('video')
+    expect(video).toBeDefined()
+
+    // Start playing
+    fireEvent.play(video!)
+    expect(rvfcMock).toHaveBeenCalled()
+
+    // Simulate decoded frames arriving sequentially at 6 FPS (every 1/6 second)
+    const degreeReadout = getByTestId('degree-readout')
+
+    // Frame 0: 0.083s -> 0°
+    act(() => {
+      frameCallback!(100, { mediaTime: 0.083 })
+    })
+    expect(degreeReadout.textContent).toContain('0° / 360°')
+
+    // Frame 1: 0.25s -> 15°
+    act(() => {
+      frameCallback!(267, { mediaTime: 0.25 })
+    })
+    expect(degreeReadout.textContent).toContain('15° / 360°')
+
+    // Frame 2: 0.417s -> 30°
+    act(() => {
+      frameCallback!(433, { mediaTime: 0.417 })
+    })
+    expect(degreeReadout.textContent).toContain('30° / 360°')
+
+    // Frame 3: 0.583s -> 45°
+    act(() => {
+      frameCallback!(600, { mediaTime: 0.583 })
+    })
+    expect(degreeReadout.textContent).toContain('45° / 360°')
+
+    // Frame 4: 0.75s -> 60°
+    act(() => {
+      frameCallback!(767, { mediaTime: 0.75 })
+    })
+    expect(degreeReadout.textContent).toContain('60° / 360°')
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (HTMLVideoElement.prototype as any).requestVideoFrameCallback
+  })
+
+  it('cancels frame callback loop when video is paused', () => {
+    const cancelMock = vi.fn()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(HTMLVideoElement.prototype as any).requestVideoFrameCallback = vi.fn().mockReturnValue(123)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(HTMLVideoElement.prototype as any).cancelVideoFrameCallback = cancelMock
+
+    const { container } = render(<ModelViewer file={mockAsset} />)
+    const video = container.querySelector('video')
+
+    fireEvent.play(video!)
+    fireEvent.pause(video!)
+
+    expect(cancelMock).toHaveBeenCalledWith(123)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (HTMLVideoElement.prototype as any).requestVideoFrameCallback
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (HTMLVideoElement.prototype as any).cancelVideoFrameCallback
   })
 })

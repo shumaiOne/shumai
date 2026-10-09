@@ -97,6 +97,67 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
     // Current angle
     const currentDegree = secondToDegree(currentTime)
 
+    const onTimeUpdateRef = useRef(onTimeUpdate)
+    useEffect(() => {
+      onTimeUpdateRef.current = onTimeUpdate
+    }, [onTimeUpdate])
+
+    // Synchronized playback frame loop (via requestVideoFrameCallback / requestAnimationFrame)
+    useEffect(() => {
+      if (!isPlaying) return
+      const video = videoRef.current
+      if (!video) return
+
+      let animationFrameId: number | null = null
+      let rvfcId: number | null = null
+      let isCancelled = false
+
+      type VideoWithRvfc = HTMLVideoElement & {
+        requestVideoFrameCallback?: (
+          callback: (now: DOMHighResTimeStamp, metadata: { mediaTime: number }) => void,
+        ) => number
+        cancelVideoFrameCallback?: (id: number) => void
+      }
+
+      const videoWithRvfc = video as VideoWithRvfc
+      const rvfcSupported = typeof videoWithRvfc.requestVideoFrameCallback === 'function'
+
+      const updateTime = (time: number) => {
+        if (!isDraggingRotation) {
+          setCurrentTime(time)
+          onTimeUpdateRef.current?.(time)
+        }
+      }
+
+      if (rvfcSupported) {
+        const onFrame = (_now: DOMHighResTimeStamp, metadata: { mediaTime: number }) => {
+          if (isCancelled) return
+          updateTime(metadata.mediaTime)
+          rvfcId = videoWithRvfc.requestVideoFrameCallback!(onFrame)
+        }
+        rvfcId = videoWithRvfc.requestVideoFrameCallback!(onFrame)
+      } else {
+        const loop = () => {
+          if (isCancelled) return
+          if (videoRef.current) {
+            updateTime(videoRef.current.currentTime)
+          }
+          animationFrameId = requestAnimationFrame(loop)
+        }
+        animationFrameId = requestAnimationFrame(loop)
+      }
+
+      return () => {
+        isCancelled = true
+        if (rvfcId !== null && typeof videoWithRvfc.cancelVideoFrameCallback === 'function') {
+          videoWithRvfc.cancelVideoFrameCallback(rvfcId)
+        }
+        if (animationFrameId !== null) {
+          cancelAnimationFrame(animationFrameId)
+        }
+      }
+    }, [isPlaying, isDraggingRotation])
+
     // Seek helper
     const seekToFrame = useCallback(
       (frameIndex: number) => {
@@ -322,10 +383,13 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
                     setIsPlaying(false)
                     onPause?.()
                   }}
+                  onEnded={() => {
+                    setIsPlaying(false)
+                  }}
                   onTimeUpdate={() => {
-                    if (videoRef.current && !isDraggingRotation && isPlaying) {
+                    if (videoRef.current && !isDraggingRotation && !isPlaying) {
                       setCurrentTime(videoRef.current.currentTime)
-                      onTimeUpdate?.(videoRef.current.currentTime)
+                      onTimeUpdateRef.current?.(videoRef.current.currentTime)
                     }
                   }}
                   onError={() => {

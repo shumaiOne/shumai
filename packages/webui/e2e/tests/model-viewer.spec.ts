@@ -144,4 +144,40 @@ test.describe('3D Asset Viewer E2E Tests', () => {
 
     await page.mouse.up()
   })
+
+  /**
+   * ISSUE 3 VERIFICATION (Playback Frame Stepping):
+   * Asserts that auto-rotating via play/pause advances through consecutive 15° steps
+   * (e.g. 0° -> 15° -> 30° -> 45°) without skipping intermediate frames like 30°.
+   */
+  test('Issue 3: verifies auto-rotation playback updates at consistent 15 degree increments', async ({
+    page,
+  }) => {
+    const viewer = new ModelViewerPage(page)
+    await viewer.goto()
+
+    // Start playback
+    await viewer.playToggle.click()
+    await page.waitForTimeout(100)
+
+    // Collect observed degree values over 1.5 seconds of playback (~9 frames at 6 FPS)
+    const observedDegrees = new Set<number>()
+    const startTime = Date.now()
+
+    while (Date.now() - startTime < 1500) {
+      const deg = await viewer.getDegree()
+      if (!Number.isNaN(deg)) {
+        observedDegrees.add(deg)
+      }
+      await page.waitForTimeout(30)
+    }
+
+    // Pause playback
+    await viewer.playToggle.click()
+
+    // Verify that consecutive 15° frames including 30° and 60° were captured
+    expect(observedDegrees.has(30)).toBe(true)
+    expect(observedDegrees.has(45)).toBe(true)
+    expect(observedDegrees.has(60)).toBe(true)
+  })
 })
