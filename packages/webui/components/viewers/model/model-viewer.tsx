@@ -48,8 +48,6 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
     const dragStartRef = useRef<{ clientX: number; frame: number }>({ clientX: 0, frame: 0 })
 
     const videoSrc = data.media?.videoPreview?.url || data.media?.videoTranscodes?.[0]?.url || ''
-
-    const posterUrl = data.preview?.thumbnailUrl || undefined
     const downloadUrl = data.media?.original?.key ? videoSrc : undefined
 
     // Drawing Annotation store
@@ -199,8 +197,9 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
       if (!isDraggingRotation) return
       const deltaX = e.clientX - dragStartRef.current.clientX
       // 12px drag movement corresponds to 1 frame (15°)
+      // Dragging right (deltaX > 0) rotates turntable counterclockwise (decreasing frame index)
       const deltaFrames = Math.round(deltaX / 12)
-      seekToFrame(dragStartRef.current.frame + deltaFrames)
+      seekToFrame(dragStartRef.current.frame - deltaFrames)
     }
 
     const handleViewerPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -301,7 +300,6 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
                 <video
                   ref={videoRef}
                   src={videoSrc}
-                  poster={posterUrl}
                   playsInline
                   loop
                   muted

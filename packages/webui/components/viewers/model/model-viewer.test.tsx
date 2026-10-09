@@ -68,13 +68,15 @@ describe('ModelViewer', () => {
   })
 
   it('renders model viewer container, surface, video, and control bar', () => {
-    const { getByTestId, getByText } = render(<ModelViewer file={mockAsset} />)
+    const { container, getByTestId, getByText } = render(<ModelViewer file={mockAsset} />)
 
     expect(getByTestId('model-viewer-container')).toBeDefined()
     expect(getByTestId('model-viewer-surface')).toBeDefined()
     expect(getByTestId('drawing-canvas')).toBeDefined()
     // Control bar shows 0° / 360° initially
     expect(getByText(/0°\s*\/\s*360°/)).toBeDefined()
+    // Video does not use low-res poster
+    expect(container.querySelector('video')?.getAttribute('poster')).toBeNull()
   })
 
   it('toggles play/pause via spacebar hotkey', () => {
@@ -117,7 +119,7 @@ describe('ModelViewer', () => {
     expect(onTimeUpdate).toHaveBeenCalledWith(0)
   })
 
-  it('handles pointer dragging to rotate 3D asset', () => {
+  it('handles pointer dragging to rotate 3D asset (drag right rotates counterclockwise)', () => {
     const onTimeUpdate = vi.fn()
     const { getByTestId } = render(<ModelViewer file={mockAsset} onTimeUpdate={onTimeUpdate} />)
 
@@ -130,12 +132,16 @@ describe('ModelViewer', () => {
     fireEvent.pointerDown(surface, { clientX: 100, button: 0, pointerId: 1 })
     expect(surface.setPointerCapture).toHaveBeenCalledWith(1)
 
-    // Move right by 24px (+2 frames = +30 deg)
+    // Move right by 24px (drag right rotates counterclockwise: frame 0 - 2 = 22 frames = 22/6s)
     fireEvent.pointerMove(surface, { clientX: 124, button: 0, pointerId: 1 })
+    expect(onTimeUpdate).toHaveBeenCalledWith(expect.closeTo(22 / 6, 2))
+
+    // Move left by 24px from origin (frame 0 - (-2) = 2 frames = 2/6s)
+    fireEvent.pointerMove(surface, { clientX: 76, button: 0, pointerId: 1 })
     expect(onTimeUpdate).toHaveBeenCalledWith(expect.closeTo(2 / 6, 2))
 
     // Release drag
-    fireEvent.pointerUp(surface, { clientX: 124, button: 0, pointerId: 1 })
+    fireEvent.pointerUp(surface, { clientX: 76, button: 0, pointerId: 1 })
     expect(surface.releasePointerCapture).toHaveBeenCalledWith(1)
   })
 
