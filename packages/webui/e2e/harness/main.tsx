@@ -2,6 +2,7 @@ import { type ReactElement, useCallback, useRef, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import type { MediaController } from '@/ui/components/viewers/types'
 import VideoPlayer from '@/ui/components/viewers/video/video-viewer'
+import ModelViewer from '@/ui/components/viewers/model/model-viewer'
 import { calculateFrameCenterTime } from '@/ui/components/viewers/video/utils'
 import { useUiStore } from '@/ui/stores/ui'
 import {
@@ -10,6 +11,7 @@ import {
   containerLongerVideoAsset,
   longAudioVideoAsset,
   sampleAudioAsset,
+  sampleTurntableAsset,
 } from './fixture'
 
 /**
@@ -60,6 +62,7 @@ function resolveAsset() {
   if (variant === 'container-longer') return containerLongerVideoAsset
   if (variant === 'long-audio') return longAudioVideoAsset
   if (variant === 'audio') return sampleAudioAsset
+  if (variant === '3d' || variant === 'turntable') return sampleTurntableAsset
   return sampleVideoAsset
 }
 
@@ -132,12 +135,21 @@ function Harness(): ReactElement {
         style={{ width: '800px', height: '600px', display: 'flex', overflow: 'hidden' }}
       >
         <div className="flex flex-col flex-1 h-full overflow-hidden relative">
-          <VideoPlayer
-            key={playerKey}
-            file={harnessAsset}
-            ref={playerRef}
-            onTimeUpdate={handleTimeUpdate}
-          />
+          {harnessAsset.proxyType === '3d' ? (
+            <ModelViewer
+              key={playerKey}
+              file={harnessAsset}
+              ref={playerRef}
+              onTimeUpdate={handleTimeUpdate}
+            />
+          ) : (
+            <VideoPlayer
+              key={playerKey}
+              file={harnessAsset}
+              ref={playerRef}
+              onTimeUpdate={handleTimeUpdate}
+            />
+          )}
         </div>
       </div>
 

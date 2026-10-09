@@ -6,11 +6,13 @@ import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { FileViewerProps, MediaController } from '../types'
 import { centeredPan, fitScale, zoomAtPoint } from '../pan-zoom'
 import { ModelControlBar } from './model-control-bar'
-import { secondToDegree } from './index'
-
-const TOTAL_FRAMES = 24
-const FPS = 6
-const FRAME_DURATION = 1 / FPS
+import {
+  secondToDegree,
+  secondToFrame,
+  calculateFrameCenterTime,
+  TOTAL_FRAMES,
+  FRAME_DURATION,
+} from './utils'
 
 export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
   (
@@ -101,7 +103,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
         const normalizedFrame = ((frameIndex % TOTAL_FRAMES) + TOTAL_FRAMES) % TOTAL_FRAMES
         const targetSec = normalizedFrame * FRAME_DURATION
         if (videoRef.current) {
-          videoRef.current.currentTime = targetSec
+          videoRef.current.currentTime = calculateFrameCenterTime(normalizedFrame)
         }
         setCurrentTime(targetSec)
         onTimeUpdate?.(targetSec)
@@ -111,6 +113,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
 
     const seekToDegree = useCallback(
       (degree: number) => {
+        videoRef.current?.pause()
         const frame = Math.round((((degree % 360) + 360) % 360) / 15) % TOTAL_FRAMES
         seekToFrame(frame)
       },
@@ -139,7 +142,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
           videoRef.current?.pause()
         },
         seekTo: (second: number) => {
-          seekToFrame(Math.floor(second * FPS))
+          seekToFrame(secondToFrame(second))
         },
         getCurrentTime: () => videoRef.current?.currentTime || 0,
         getDuration: () => 4,
@@ -165,11 +168,11 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
           togglePlay()
         } else if (e.key === 'ArrowLeft') {
           e.preventDefault()
-          const currentFrame = Math.round(currentTime * FPS)
+          const currentFrame = secondToFrame(currentTime)
           seekToFrame(currentFrame - 1)
         } else if (e.key === 'ArrowRight') {
           e.preventDefault()
-          const currentFrame = Math.round(currentTime * FPS)
+          const currentFrame = secondToFrame(currentTime)
           seekToFrame(currentFrame + 1)
         }
       }
@@ -185,7 +188,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
       target.setPointerCapture(e.pointerId)
       videoRef.current?.pause()
 
-      const currentFrame = Math.floor(currentTime * FPS)
+      const currentFrame = Math.round(currentDegree / 15) % TOTAL_FRAMES
       dragStartRef.current = {
         clientX: e.clientX,
         frame: currentFrame,
@@ -308,7 +311,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
                   onLoadedData={() => {
                     setIsLoading(false)
                     if (startTime && startTime > 0) {
-                      seekToFrame(Math.floor(startTime * FPS))
+                      seekToFrame(secondToFrame(startTime))
                     }
                   }}
                   onPlay={() => {
@@ -320,7 +323,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
                     onPause?.()
                   }}
                   onTimeUpdate={() => {
-                    if (videoRef.current && !isDraggingRotation) {
+                    if (videoRef.current && !isDraggingRotation && isPlaying) {
                       setCurrentTime(videoRef.current.currentTime)
                       onTimeUpdate?.(videoRef.current.currentTime)
                     }

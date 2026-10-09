@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **viewer**: Fix an issue where certain angles in the 3D asset viewer appeared stuck on the previous frame, and eliminate view jitter when rotating at 345°
+
 ### Changed
 
 - **viewer**: Redesign the 3D turntable ruler slider with an enclosed capsule track, encapsulated ±15° step buttons, vertically centered ticks, a center red indicator, and a responsive mobile layout with the bottom bar reset button removed

@@ -68,7 +68,7 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
       // Dragging left (deltaX < 0) rotates turntable forward (angle increases)
       const nextRawDegree = dragStartRef.current.startDegree - deltaX / PX_PER_DEGREE
       const snapped = (((Math.round(nextRawDegree / STEP) * STEP) % 360) + 360) % 360
-      setDragDegree(snapped)
+      setDragDegree(nextRawDegree)
       onChange(snapped)
     },
     [isDragging, disabled, onChange],
@@ -79,7 +79,8 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
       if (!isDragging) return
       setIsDragging(false)
       if (dragDegree !== null) {
-        onChange(dragDegree)
+        const snapped = (((Math.round(dragDegree / STEP) * STEP) % 360) + 360) % 360
+        onChange(snapped)
       }
       setDragDegree(null)
       try {
