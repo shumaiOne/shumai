@@ -122,7 +122,7 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
       onPointerCancel={handlePointerUp}
       onKeyDown={handleKeyDown}
       className={cn(
-        'relative select-none cursor-ew-resize flex flex-col justify-end h-9 touch-none overflow-hidden group',
+        'relative select-none cursor-ew-resize flex flex-col justify-end h-9 touch-none w-full min-w-[140px] group',
         disabled && 'opacity-50 cursor-not-allowed',
         className,
       )}
@@ -131,7 +131,7 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
       {isDragging && (
         <div
           data-testid="ruler-slider-tooltip"
-          className="absolute -top-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-mono font-medium shadow-md whitespace-nowrap pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-100"
+          className="absolute -top-6 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-mono font-medium shadow-md whitespace-nowrap pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-100"
         >
           {displayedDegree}°
         </div>
@@ -142,8 +142,6 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
         className="relative w-full h-5 flex items-end overflow-hidden"
         style={{
           maskImage:
-            'linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent)',
-          webkitMaskImage:
             'linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent)',
         }}
       >

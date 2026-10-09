@@ -59,9 +59,9 @@ export const ModelControlBar: React.FC<ModelControlBarProps> = ({
       )}
     >
       {/* Unified Single Row Controls */}
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center text-foreground gap-4">
+      <div className="flex items-center justify-between text-foreground gap-4">
         {/* Left Side: Play/Pause, Degree Readout, Reset Rotation */}
-        <div className="flex items-center gap-3 justify-start min-w-0">
+        <div className="flex items-center gap-3 justify-start min-w-0 flex-1">
           <button
             type="button"
             onClick={togglePlay}
@@ -96,7 +96,7 @@ export const ModelControlBar: React.FC<ModelControlBarProps> = ({
         </div>
 
         {/* Center: RulerSlider with minus & plus buttons */}
-        <div className="flex items-center gap-1.5 w-full max-w-[320px] justify-center mx-auto min-w-0">
+        <div className="flex items-center gap-1.5 w-full max-w-[320px] justify-center mx-auto shrink-0">
           <button
             type="button"
             onClick={() => handleStepDegree(-15)}
@@ -111,7 +111,7 @@ export const ModelControlBar: React.FC<ModelControlBarProps> = ({
           <RulerSlider
             currentDegree={currentDegree}
             onChange={onSeekDegree}
-            className="flex-1 min-w-0"
+            className="flex-1 min-w-[140px]"
           />
 
           <button
@@ -127,7 +127,7 @@ export const ModelControlBar: React.FC<ModelControlBarProps> = ({
         </div>
 
         {/* Right Side: Zoom controls, Download, Fullscreen */}
-        <div className="flex items-center gap-2 justify-end min-w-0">
+        <div className="flex items-center gap-2 justify-end min-w-0 flex-1">
           {/* Zoom controls */}
           <div className="flex items-center gap-1 bg-muted/60 rounded-lg p-0.5 border border-border/40 shrink-0">
             <button
