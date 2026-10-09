@@ -1,6 +1,41 @@
 import { isRawImage } from './raw'
 
-export type ProxyType = 'image' | 'video' | 'audio' | 'pdf'
+export type ProxyType = 'image' | 'video' | 'audio' | 'pdf' | '3d'
+
+export function is3dModel(mediaType?: string | null, filename?: string | null): boolean {
+  const lowerMediaType = mediaType?.toLowerCase() || ''
+  const lowerFilename = filename?.toLowerCase() || ''
+
+  const modelExtensions = [
+    '.glb',
+    '.gltf',
+    '.usd',
+    '.usda',
+    '.usdc',
+    '.usdz',
+    '.fbx',
+    '.obj',
+    '.stl',
+    '.dae',
+  ]
+  if (modelExtensions.some((ext) => lowerFilename.endsWith(ext))) {
+    return true
+  }
+
+  if (
+    lowerMediaType.startsWith('model/') ||
+    lowerMediaType === 'model/gltf-binary' ||
+    lowerMediaType === 'model/gltf+json' ||
+    lowerMediaType === 'model/obj' ||
+    lowerMediaType === 'model/stl' ||
+    lowerMediaType === 'model/vnd.usdz+zip' ||
+    lowerMediaType === 'model/vnd.collada+xml'
+  ) {
+    return true
+  }
+
+  return false
+}
 
 export function isOfficeDocument(mediaType?: string | null, filename?: string | null): boolean {
   const lowerMediaType = mediaType?.toLowerCase() || ''
@@ -95,6 +130,10 @@ export function getProxyType(
     isOfficeDocument(mediaType, filename)
   ) {
     return 'pdf'
+  }
+
+  if (is3dModel(mediaType, filename)) {
+    return '3d'
   }
 
   return null

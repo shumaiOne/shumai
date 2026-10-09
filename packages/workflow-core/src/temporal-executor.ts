@@ -66,6 +66,10 @@ export class TemporalExecutor implements Executor {
         workflowName = 'transcodeWatermarkWorkflow'
         taskQueue = TaskQueueTranscode
         break
+      case WorkflowTaskType.transcode_3d:
+        workflowName = 'transcode3dWorkflow'
+        taskQueue = TaskQueueTranscode
+        break
       default:
         throw new Error(`Unknown task type: ${task.type}`)
     }

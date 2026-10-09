@@ -14,10 +14,11 @@ import {
   S3SignResponse,
   TaskInfo,
 } from '@shumai/dtos'
-import { ImageTranscoder, PdfTranscoder, VideoTranscoder } from '@shumai/transcode'
+import { ImageTranscoder, ModelTranscoder, PdfTranscoder, VideoTranscoder } from '@shumai/transcode'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { ulid } from 'ulid'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
+import { turntableService } from '@shumai/core/src/turntable/turntable'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
 import { getProxyType, isHtmlDocument, isOfficeDocument } from '@shumai/core/src/utils/mime'
 import { logger } from '@shumai/core/src/logger'
@@ -323,6 +324,7 @@ export class UploadService {
     const isImage = proxyType === 'image'
     const isAudio = proxyType === 'audio'
     const isPdf = proxyType === 'pdf'
+    const is3D = proxyType === '3d'
 
     if (!proxyType) {
       await tx.asset.update({
@@ -373,6 +375,21 @@ export class UploadService {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await new PdfTranscoder(tx as any, asset.id, team.id, projectId)
+          .withSprite()
+          .withPoster()
+          .submit()
+      } else if (is3D) {
+        const turntableAvailable = await turntableService.isAvailable(team.id)
+        if (!turntableAvailable) {
+          await tx.asset.update({
+            where: { id: asset.id },
+            data: { status: AssetStatus.processed },
+          })
+          return
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await new ModelTranscoder(tx as any, asset.id, team.id, projectId)
           .withSprite()
           .withPoster()
           .submit()

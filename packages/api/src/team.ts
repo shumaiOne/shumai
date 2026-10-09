@@ -10,6 +10,7 @@ import {
   updateTeamSettingsRequestSchema,
   listMembersQuerySchema,
   updateSandboxSettingsRequestSchema,
+  updateTurntableSettingsRequestSchema,
   updateMeRequestSchema,
   updateTeamMemberRoleRequestSchema,
   createApiTokenRequestSchema,
@@ -23,6 +24,7 @@ import {
 import { apiTokenService } from '@shumai/core/src/user/api-token'
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { turntableService } from '@shumai/core/src/turntable/turntable'
 import { NotificationType } from '@shumai/db'
 import type { Prisma } from '@shumai/db'
 
@@ -263,6 +265,63 @@ const route = new Hono<{ Variables: { user: User } }>()
 
       const sandbox = await teamService.updateSandboxSettings(teamId, req)
       return c.json(sandbox)
+    },
+  )
+  .get('/teams/:teamId/turntable-settings', async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const settings = await turntableService.getSettings(teamId)
+    return c.json(settings)
+  })
+  .put(
+    '/teams/:teamId/turntable-settings',
+    zValidator('json', updateTurntableSettingsRequestSchema),
+    async (c) => {
+      const user = c.get('user')
+      const teamId = c.req.param('teamId')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
+      })
+
+      try {
+        const settings = await turntableService.updateSettings(teamId, req)
+        return c.json(settings)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        return c.json({ message }, 400)
+      }
+    },
+  )
+  .post(
+    '/teams/:teamId/turntable-settings/test',
+    zValidator('json', updateTurntableSettingsRequestSchema.partial()),
+    async (c) => {
+      const user = c.get('user')
+      const teamId = c.req.param('teamId')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
+      })
+
+      const res = await turntableService.testConnection(req, teamId)
+      return c.json(res)
     },
   )
   .get('/teams/:teamId/user-metadata', async (c) => {

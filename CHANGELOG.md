@@ -8,11 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+* **3d**: Add support for 3D model files (.glb, .gltf, .obj, .fbx, .stl, .dae, .usd, .usda, .usdc, .usdz) with automated turntable video rendering, hover sprite scrubbing, and an interactive 3D turntable viewer featuring 360° ruler scrubbing and degree-based markup comments
+* **settings**: Add Turntable Renderer settings card with server connection testing and environment variable override support
 * **kanban**: Related assets on a task are now clickable, taking you directly to that file or folder in its project
 
 ### Fixed
 
+- **viewer**: Fix an issue where certain angles in the 3D asset viewer appeared stuck on the previous frame, and eliminate view jitter when rotating at 345°
+- **viewer**: Fix an issue where 3D asset auto-rotation during playback skipped 15° increments in the degree indicator
+
 ### Changed
+
+- **viewer**: Redesign the 3D turntable ruler slider with an enclosed capsule track, encapsulated ±15° step buttons, vertically centered ticks, a center red indicator, and a responsive mobile layout with the bottom bar reset button removed
+- **viewer**: Load 3D turntable videos directly without low-resolution poster images, and rotate model counterclockwise when dragging right
+- **transcode**: Display 3D asset poster previews immediately in file list cards after rendering begins instead of waiting for the entire turntable video and sprite to finish
 
 ## [0.5.1] - 2026-10-06
 

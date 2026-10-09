@@ -121,6 +121,7 @@ enum WorkflowTaskType {
   transcode_screenshot
   transcode_image_annotation
   transcode_watermark
+  transcode_3d
   ai_metadata_autofill
   chat
   ai_embedding

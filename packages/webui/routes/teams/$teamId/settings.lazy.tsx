@@ -23,6 +23,7 @@ import { QuotasSettings } from '@/ui/components/settings/QuotasSettings'
 import { AppearanceSettings } from '@/ui/components/settings/AppearanceSettings'
 import { EmailNotificationSettings } from '@/ui/components/settings/EmailNotificationSettings'
 import { ImageVideoGenerationSettings } from '@/ui/components/settings/ImageVideoGenerationSettings'
+import { TurntableSettingsCard } from '@/ui/components/settings/TurntableSettingsCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { Slider } from '@/ui/components/ui/slider'
 import { cn } from '@/ui/lib/utils'
@@ -1147,6 +1148,9 @@ export function TeamSettingsPage() {
                       </div>
                     </CardContent>
                   </Card>
+
+                  {/* 3D Turntable Renderer Card */}
+                  <TurntableSettingsCard teamId={teamId} />
                 </div>
               )}
 

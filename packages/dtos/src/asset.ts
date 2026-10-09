@@ -14,7 +14,7 @@ export const assetInfoPaginatedListSchema = z.object({
 export type AssetInfoPaginatedList = z.infer<typeof assetInfoPaginatedListSchema>
 
 export const previewInfoSchema = z.object({
-  proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
+  proxyType: z.enum(['image', 'video', 'audio', 'pdf', '3d']).nullable().optional(),
   thumbnailUrl: z.string().optional(),
   originalHeight: z.number().optional(),
   originalWidth: z.number().optional(),
@@ -76,7 +76,7 @@ export const assetInfoSchema = z.object({
   type: z.string(),
   targetType: z.string().optional().nullable(),
   status: z.string(),
-  proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
+  proxyType: z.enum(['image', 'video', 'audio', 'pdf', '3d']).nullable().optional(),
   latestChildren: z.array(childPreviewSchema).optional(),
   preview: previewInfoSchema.nullable().optional(),
   createdAt: z.string(),
@@ -143,7 +143,7 @@ export const assetInfoSchema = z.object({
             .optional(),
         })
         .optional(),
-      proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
+      proxyType: z.enum(['image', 'video', 'audio', 'pdf', '3d']).nullable().optional(),
       metadata: mediaMetadataSchema.optional(),
       error: z.string().optional(),
     })
@@ -233,7 +233,7 @@ export const attachmentInfoSchema = z.object({
   id: z.string(),
   assetId: z.string(),
   url: z.string(),
-  proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
+  proxyType: z.enum(['image', 'video', 'audio', 'pdf', '3d']).nullable().optional(),
 })
 export type AttachmentInfo = z.infer<typeof attachmentInfoSchema>
 

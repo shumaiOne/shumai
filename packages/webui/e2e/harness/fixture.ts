@@ -192,3 +192,38 @@ export const sampleAudioAsset: AssetInfo = {
     },
   },
 }
+
+export const TURNTABLE_VIDEO_URL = '/turntable.mp4'
+export const TURNTABLE_FRAME_RATE = 6
+export const TURNTABLE_TOTAL_FRAMES = 24
+export const TURNTABLE_DURATION = 4.0
+export const TURNTABLE_WIDTH = 1080
+export const TURNTABLE_HEIGHT = 1080
+
+export const sampleTurntableAsset: AssetInfo = {
+  id: 'e2e-turntable-asset',
+  name: 'turntable.glb',
+  proxyType: '3d',
+  type: 'file',
+  status: 'ready',
+  sizeByte: 314488,
+  fileCount: 1,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+  media: {
+    proxyType: '3d',
+    videoPreview: {
+      url: TURNTABLE_VIDEO_URL,
+    },
+    original: {
+      key: 'turntable.glb',
+    },
+    metadata: {
+      duration: TURNTABLE_DURATION,
+      originalWidth: TURNTABLE_WIDTH,
+      originalHeight: TURNTABLE_HEIGHT,
+      frameRate: TURNTABLE_FRAME_RATE,
+      totalFrames: TURNTABLE_TOTAL_FRAMES,
+    },
+  },
+}

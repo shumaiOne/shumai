@@ -34,6 +34,10 @@ const server = Bun.serve({
       new Response(Bun.file(join(fixturesDir, 'sample-audio.mp4')), {
         headers: { 'Content-Type': 'video/mp4' },
       }),
+    '/turntable.mp4': () =>
+      new Response(Bun.file(join(fixturesDir, 'turntable.mp4')), {
+        headers: { 'Content-Type': 'video/mp4' },
+      }),
     '/': index,
     '/*': index,
   },

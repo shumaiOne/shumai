@@ -142,6 +142,21 @@ export const updateTeamSettingsRequestSchema = z.union([
 ])
 export type UpdateTeamSettingsRequest = z.infer<typeof updateTeamSettingsRequestSchema>
 
+export const turntableSettingsResponseSchema = z.object({
+  url: z.string().optional(),
+  username: z.string().optional(),
+  hasPassword: z.boolean(),
+  isEnvConfigured: z.boolean(),
+})
+export type TurntableSettingsResponse = z.infer<typeof turntableSettingsResponseSchema>
+
+export const updateTurntableSettingsRequestSchema = z.object({
+  url: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+})
+export type UpdateTurntableSettingsRequest = z.infer<typeof updateTurntableSettingsRequestSchema>
+
 export interface TeamAppearanceSettings {
   hideAgent?: boolean
 }
@@ -155,6 +170,7 @@ export interface TeamSettingsResponse {
     hlsEnabled?: boolean
     hlsResolutions?: HlsResolutionLadder[]
   }
+  turntable?: TurntableSettingsResponse
   appearance?: TeamAppearanceSettings
   semanticSearchEnabled?: boolean
   [key: string]: unknown

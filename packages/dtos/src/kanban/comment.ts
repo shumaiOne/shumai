@@ -7,7 +7,7 @@ export const kanbanAttachmentPayloadSchema = z.object({
   key: z.string(),
   sizeByte: z.number(),
   contentType: z.string().nullable().optional(),
-  proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
+  proxyType: z.enum(['image', 'video', 'audio', 'pdf', '3d']).nullable().optional(),
 })
 export type KanbanAttachmentPayload = z.infer<typeof kanbanAttachmentPayloadSchema>
 
@@ -17,7 +17,7 @@ export const kanbanAttachmentInfoSchema = z.object({
   sizeByte: z.number(),
   contentType: z.string().nullable().optional(),
   url: z.string(),
-  proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
+  proxyType: z.enum(['image', 'video', 'audio', 'pdf', '3d']).nullable().optional(),
 })
 export type KanbanAttachmentInfo = z.infer<typeof kanbanAttachmentInfoSchema>
 
@@ -28,7 +28,7 @@ export const postKanbanAttachmentResponseSchema = z.object({
   sizeByte: z.number(),
   contentType: z.string().nullable().optional(),
   uploadUrl: z.string(),
-  proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
+  proxyType: z.enum(['image', 'video', 'audio', 'pdf', '3d']).nullable().optional(),
 })
 export type PostKanbanAttachmentResponse = z.infer<typeof postKanbanAttachmentResponseSchema>
 
