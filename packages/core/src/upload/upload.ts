@@ -21,6 +21,10 @@ import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
 import { getProxyType, isHtmlDocument, isOfficeDocument } from '@shumai/core/src/utils/mime'
 import { logger } from '@shumai/core/src/logger'
+import { HTTPException } from 'hono/http-exception'
+import { staleSweepIntervalMs, staleUploadHours } from './upload-env'
+
+export { staleSweepIntervalMs, staleUploadHours } from './upload-env'
 
 export class UploadService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
@@ -45,6 +49,7 @@ export class UploadService {
       }
     }
     countTotalFiles(req.files)
+    this.rejectFilesOverBodyLimit(req.files)
 
     const task = await this.prismaClient.task.create({
       data: {
@@ -52,7 +57,9 @@ export class UploadService {
         type: 'upload',
         name: taskName,
         total,
-        status: TaskStatus.pending,
+        // Nothing to upload (only folders or dot-files): there is no file to confirm, so the task is
+        // already done rather than pending forever.
+        status: total === 0 ? TaskStatus.completed : TaskStatus.pending,
       },
     })
 
@@ -408,6 +415,7 @@ export class UploadService {
       total: t.total || 0,
       uploaded: t.uploaded,
       createdAt: t.createdAt.toISOString(),
+      status: t.status,
     }))
 
     return { data: infos, pageInfo }
@@ -455,13 +463,18 @@ export class UploadService {
       if (asset.uploadId && asset.uploadId !== req.uploadId) {
         throw new Error('Upload ID does not match asset upload ID')
       }
-      if (!asset.uploadId) {
-        await this.prismaClient.asset.update({
-          where: { id: asset.id },
-          data: { uploadId: req.uploadId },
-        })
-      }
     }
+
+    // Every signing request is a sign of life from a multipart upload: each part and the final
+    // complete need a fresh URL. Bumping updatedAt keeps the stale sweep away from an upload that
+    // is still moving parts, however long it takes.
+    await this.prismaClient.asset.update({
+      where: { id: asset.id },
+      data: {
+        updatedAt: new Date(),
+        ...(req.uploadId && !asset.uploadId ? { uploadId: req.uploadId } : {}),
+      },
+    })
 
     const result = await s3Service.presignMultipart(bucket, key, req)
     return { url: result.url }
@@ -473,7 +486,6 @@ export class UploadService {
     taskId: string,
     req: AbortUploadRequest,
   ): Promise<AbortUploadResponse> {
-    const bucket = process.env.S3_BUCKET || 'shumai'
     const asset = await this.prismaClient.asset.findUnique({
       where: { id: req.fileId },
       include: {
@@ -503,10 +515,67 @@ export class UploadService {
       throw new Error('Provided key does not match asset storage key')
     }
 
-    const uploadId = asset.uploadId || req.uploadId
     if (asset.uploadId && req.uploadId && asset.uploadId !== req.uploadId) {
       throw new Error('Provided uploadId does not match asset uploadId')
     }
+
+    await this.discardUpload(asset, req.uploadId)
+
+    if (taskId) {
+      const remaining = await this.prismaClient.asset.count({
+        where: { taskId, status: AssetStatus.uploading },
+      })
+      if (remaining === 0) {
+        await this.prismaClient.task
+          .update({
+            where: { id: taskId },
+            data: { status: TaskStatus.failed },
+          })
+          .catch(() => {})
+      }
+    }
+
+    return { success: true }
+  }
+
+  /**
+   * With local storage every file arrives as one request, so a file over MAX_REQUEST_BODY_SIZE can
+   * never get through: the server answers 413 and closes the connection while the client is still
+   * sending, which the client only sees as a reset. Refuse it here, before any placeholder is made.
+   */
+  private rejectFilesOverBodyLimit(files: FileNode[]) {
+    if (getStorageBackend() !== 'local') return
+    const limit = maxRequestBodySize()
+    const tooBig: FileNode[] = []
+    const walk = (nodes: FileNode[]) => {
+      for (const node of nodes) {
+        if (node.type === 'file' && node.size > limit) tooBig.push(node)
+        else if (node.children) walk(node.children)
+      }
+    }
+    walk(files)
+    if (tooBig.length === 0) return
+    const gib = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(1)} GiB`
+    throw new HTTPException(413, {
+      message: `Too large to upload (limit ${gib(limit)}, set by MAX_REQUEST_BODY_SIZE): ${tooBig
+        .map((f) => `${f.name} (${gib(f.size)})`)
+        .join(', ')}`,
+    })
+  }
+
+  /** Removes an unfinished upload: its partial data in storage, its placeholder asset and its key. */
+  private async discardUpload(
+    asset: {
+      id: string
+      uploadId: string | null
+      storageKeyId: string | null
+      storageKey: { key: string } | null
+    },
+    requestUploadId?: string,
+  ): Promise<void> {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const key = asset.storageKey?.key
+    const uploadId = asset.uploadId || requestUploadId
 
     if (uploadId && key) {
       try {
@@ -530,23 +599,94 @@ export class UploadService {
         .delete({ where: { id: asset.storageKeyId } })
         .catch(() => {})
     }
+  }
 
-    if (taskId) {
-      const remaining = await this.prismaClient.asset.count({
-        where: { taskId, status: AssetStatus.uploading },
-      })
-      if (remaining === 0) {
-        await this.prismaClient.task
-          .update({
-            where: { id: taskId },
-            data: { status: TaskStatus.failed },
-          })
-          .catch(() => {})
-      }
+  /**
+   * Gives up on uploads nobody is finishing. A client that crashes, goes offline or is turned away by
+   * the server (for example a body over MAX_REQUEST_BODY_SIZE) never confirms or aborts its files, so
+   * their placeholders and the task would otherwise show "Uploading" forever. A file counts as
+   * abandoned once neither it nor its task has changed for `olderThanHours`; it is discarded the same
+   * way an abort would, and a task left with nothing uploading is marked failed.
+   */
+  async abandonStaleUploads(
+    olderThanHours = staleUploadHours(),
+    now = new Date(),
+  ): Promise<{ files: number; tasks: number }> {
+    const cutoff = new Date(now.getTime() - olderThanHours * 60 * 60 * 1000)
+
+    const stale = await this.prismaClient.asset.findMany({
+      where: {
+        status: AssetStatus.uploading,
+        updatedAt: { lt: cutoff },
+        OR: [{ taskId: null }, { task: { updatedAt: { lt: cutoff } } }],
+      },
+      select: {
+        id: true,
+        uploadId: true,
+        storageKeyId: true,
+        storageKey: { select: { key: true } },
+      },
+      take: STALE_UPLOAD_BATCH,
+    })
+    for (const asset of stale) {
+      await this.discardUpload(asset)
     }
 
-    return { success: true }
+    const failed = await this.prismaClient.task.updateMany({
+      where: {
+        type: 'upload',
+        status: { in: [TaskStatus.pending, TaskStatus.uploading] },
+        // A task with no files (total 0) has nothing to abandon.
+        total: { gt: 0 },
+        updatedAt: { lt: cutoff },
+        assets: { none: { status: AssetStatus.uploading } },
+      },
+      data: { status: TaskStatus.failed },
+    })
+
+    if (stale.length > 0 || failed.count > 0) {
+      logger.info(
+        { files: stale.length, tasks: failed.count, olderThanHours },
+        'Abandoned stale uploads',
+      )
+    }
+    return { files: stale.length, tasks: failed.count }
+  }
+
+  private staleUploadTimer: ReturnType<typeof setTimeout> | null = null
+
+  /**
+   * Start the periodic sweep. The interval (UPLOAD_STALE_SWEEP_INTERVAL_MINUTES) and the stale age
+   * (UPLOAD_STALE_AFTER_HOURS) are read once here, so a bad value warns once at startup.
+   */
+  startStaleUploadSweep(intervalMs = staleSweepIntervalMs(), olderThanHours = staleUploadHours()) {
+    if (this.staleUploadTimer) return
+    logger.info({ intervalMs, olderThanHours }, 'Stale upload sweep enabled')
+    const run = async () => {
+      try {
+        await this.abandonStaleUploads(olderThanHours)
+      } catch (err) {
+        logger.error({ err }, 'Stale upload sweep failed')
+      }
+      if (this.staleUploadTimer) this.staleUploadTimer = setTimeout(run, intervalMs)
+    }
+    this.staleUploadTimer = setTimeout(run, 0)
+  }
+
+  stopStaleUploadSweep() {
+    if (this.staleUploadTimer) clearTimeout(this.staleUploadTimer)
+    this.staleUploadTimer = null
   }
 }
+
+const DEFAULT_MAX_REQUEST_BODY_SIZE = 20 * 1024 * 1024 * 1024
+
+/** Largest request body the server accepts, in bytes (MAX_REQUEST_BODY_SIZE, default 20 GiB). */
+export function maxRequestBodySize(): number {
+  const bytes = parseInt(process.env.MAX_REQUEST_BODY_SIZE || '', 10)
+  return Number.isFinite(bytes) && bytes > 0 ? bytes : DEFAULT_MAX_REQUEST_BODY_SIZE
+}
+
+const STALE_UPLOAD_BATCH = 500
 
 export const uploadService = new UploadService()

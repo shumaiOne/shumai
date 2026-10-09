@@ -3,7 +3,7 @@ import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { uploadService } from './upload'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
-import { s3Service } from '@shumai/core/src/s3/s3'
+import { getStorageBackend, s3Service } from '@shumai/core/src/s3/s3'
 import { AssetStatus, AssetType, TaskStatus, WorkflowTaskType } from '@shumai/db'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
@@ -96,6 +96,19 @@ describe('UploadService', () => {
 
     const hidden = await prisma.asset.findFirst({ where: { name: '.hidden' } })
     expect(hidden).toBeNull()
+  })
+
+  it('completes a task that has no files to upload instead of leaving it pending', async () => {
+    const resp = await uploadService.createUploadTask(userId, {
+      parentId,
+      files: [
+        { name: 'empty-folder', id: '1', size: 0, type: 'folder', children: [] },
+        { name: '.DS_Store', id: '2', size: 10, type: 'file', children: [] },
+      ],
+    })
+    const task = await prisma.task.findUnique({ where: { id: resp.taskId } })
+    expect(task?.total).toBe(0)
+    expect(task?.status).toBe(TaskStatus.completed)
   })
 
   it('should correctly increment fileCount for parent folders when uploading folders', async () => {
@@ -643,6 +656,22 @@ describe('UploadService', () => {
     expect(result.data[0].name).toBe('test-upload-task')
   })
 
+  it('reports a task the stale sweep gave up on as failed', async () => {
+    await prisma.task.create({
+      data: {
+        creatorId: userId,
+        total: 2,
+        uploaded: 0,
+        type: 'upload',
+        name: 'stale-upload-task',
+        status: TaskStatus.failed,
+      },
+    })
+
+    const result = await uploadService.listUploadTasks(userId, { first: 10 })
+    expect(result.data[0].status).toBe('failed')
+  })
+
   it('should correct the mediaType for .wma files that browser incorrectly reports as video', async () => {
     const req = {
       parentId: parentId,
@@ -917,6 +946,164 @@ describe('UploadService', () => {
         where: { id: asset.id },
       })
       expect(deletedAsset).toBeNull()
+    })
+  })
+
+  describe('files over the request body limit', () => {
+    const GIB = 1024 ** 3
+    const file = (name: string, size: number) => ({
+      name,
+      id: name,
+      size,
+      type: 'file' as const,
+      mediaType: 'video/quicktime',
+      children: [],
+    })
+
+    it('refuses the whole upload with local storage, naming the files, before creating anything', async () => {
+      vi.mocked(getStorageBackend).mockReturnValue('local')
+      try {
+        await expect(
+          uploadService.createUploadTask(userId, {
+            parentId,
+            files: [
+              file('small.mov', GIB),
+              {
+                ...file('trip', 0),
+                type: 'folder' as const,
+                children: [file('DSCF1253.MOV', 26_762_885_120)],
+              },
+            ],
+          }),
+        ).rejects.toMatchObject({
+          status: 413,
+          message: expect.stringContaining('DSCF1253.MOV (24.9 GiB)'),
+        })
+        expect(await prisma.task.count()).toBe(0)
+        expect(await prisma.asset.count({ where: { name: 'small.mov' } })).toBe(0)
+      } finally {
+        vi.mocked(getStorageBackend).mockReturnValue('s3')
+      }
+    })
+
+    it('lets the same file through to S3, which uploads it in parts', async () => {
+      const res = await uploadService.createUploadTask(userId, {
+        parentId,
+        files: [file('DSCF1253.MOV', 26_762_885_120)],
+      })
+      expect(res.createdAssets).toHaveLength(1)
+    })
+  })
+
+  describe('abandonStaleUploads', () => {
+    const HOUR = 60 * 60 * 1000
+    const daysAgo = (days: number) => new Date(Date.now() - days * 24 * HOUR)
+
+    const uploadTask = (name: string, status: TaskStatus = TaskStatus.pending) =>
+      prisma.task.create({ data: { creatorId: userId, type: 'upload', name, total: 2, status } })
+
+    const placeholder = async (
+      name: string,
+      taskId: string,
+      status: AssetStatus = AssetStatus.uploading,
+    ) => {
+      const storageKey = await prisma.storageKey.create({ data: { key: `files/stale/${name}` } })
+      return prisma.asset.create({
+        data: {
+          name,
+          type: AssetType.file,
+          projectId,
+          parentId,
+          storageKeyId: storageKey.id,
+          taskId,
+          status,
+        },
+      })
+    }
+
+    const age = async (table: 'assets' | 'tasks', id: string, when: Date) => {
+      if (table === 'assets') {
+        await prisma.$executeRaw`UPDATE assets SET updated_at = ${when} WHERE id = ${id}`
+      } else {
+        await prisma.$executeRaw`UPDATE tasks SET updated_at = ${when} WHERE id = ${id}`
+      }
+    }
+
+    it('discards files of an upload that stopped a day ago and fails its task', async () => {
+      const task = await uploadTask('stopped')
+      const done = await placeholder('done.jpg', task.id, AssetStatus.uploaded)
+      const stuck = await placeholder('huge.mov', task.id)
+      for (const id of [done.id, stuck.id]) await age('assets', id, daysAgo(2))
+      await age('tasks', task.id, daysAgo(2))
+
+      expect(await uploadService.abandonStaleUploads(24)).toEqual({ files: 1, tasks: 1 })
+
+      expect(await prisma.asset.findUnique({ where: { id: stuck.id } })).toBeNull()
+      expect(await prisma.asset.findUnique({ where: { id: done.id } })).not.toBeNull()
+      expect(s3Service.deleteObject).toHaveBeenCalledWith(expect.anything(), 'files/stale/huge.mov')
+      const after = await prisma.task.findUnique({ where: { id: task.id } })
+      expect(after?.status).toBe(TaskStatus.failed)
+    })
+
+    it('leaves an old file alone while its task is still making progress', async () => {
+      const task = await uploadTask('busy', TaskStatus.uploading)
+      const waiting = await placeholder('queued.raf', task.id)
+      await age('assets', waiting.id, daysAgo(2))
+
+      expect(await uploadService.abandonStaleUploads(24)).toEqual({ files: 0, tasks: 0 })
+      expect(await prisma.asset.findUnique({ where: { id: waiting.id } })).not.toBeNull()
+    })
+
+    it('spares a multipart upload that keeps asking for part URLs', async () => {
+      const task = await uploadTask('big-multipart', TaskStatus.uploading)
+      const part = await placeholder('big.mov', task.id)
+      await age('assets', part.id, daysAgo(2))
+      await age('tasks', task.id, daysAgo(2))
+
+      await uploadService.signS3Upload(teamId, userId, {
+        key: 'files/stale/big.mov',
+        method: 'PUT',
+        uploadId: 'up-1',
+        partNumber: 7,
+        fileId: part.id,
+      })
+
+      expect(await uploadService.abandonStaleUploads(24)).toEqual({ files: 0, tasks: 0 })
+      const after = await prisma.asset.findUnique({ where: { id: part.id } })
+      expect(after).not.toBeNull()
+      expect(after!.updatedAt.getTime()).toBeGreaterThan(Date.now() - HOUR)
+    })
+
+    it('never fails a task that has no files (total 0)', async () => {
+      const task = await prisma.task.create({
+        data: {
+          creatorId: userId,
+          type: 'upload',
+          name: 'folders only',
+          total: 0,
+          status: TaskStatus.pending,
+        },
+      })
+      await age('tasks', task.id, daysAgo(3))
+
+      expect(await uploadService.abandonStaleUploads(24)).toEqual({ files: 0, tasks: 0 })
+      expect((await prisma.task.findUnique({ where: { id: task.id } }))?.status).toBe(
+        TaskStatus.pending,
+      )
+    })
+
+    it('fails an idle task that never got any files', async () => {
+      const empty = await uploadTask('empty')
+      const fresh = await uploadTask('fresh')
+      await age('tasks', empty.id, daysAgo(3))
+
+      expect(await uploadService.abandonStaleUploads(24)).toEqual({ files: 0, tasks: 1 })
+      expect((await prisma.task.findUnique({ where: { id: empty.id } }))?.status).toBe(
+        TaskStatus.failed,
+      )
+      expect((await prisma.task.findUnique({ where: { id: fresh.id } }))?.status).toBe(
+        TaskStatus.pending,
+      )
     })
   })
 

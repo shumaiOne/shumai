@@ -9,6 +9,7 @@ import { formatSize } from '@/ui/lib/format'
 import { useFieldStore } from '@/ui/stores/fields'
 import { useUploadStore } from '@/ui/stores/upload'
 import { uploadFilesWithUppy } from '@/ui/lib/uploader'
+import { responseErrorMessage } from '@/ui/lib/response-error'
 import type {
   AssetInfo,
   CollectionInfo,
@@ -539,8 +540,13 @@ export function FileBrowser({
   >({
     mutationFn: async (request) => {
       const res = await $createUploadTask(request)
-      if (!res.ok) throw new Error('Failed to create upload task')
+      if (!res.ok) {
+        throw new Error(await responseErrorMessage(res, 'Failed to create upload task'))
+      }
       return (await res.json()) as InferResponseType<typeof $createUploadTask>
+    },
+    onError: (err) => {
+      toast.error(err.message)
     },
     onMutate: () => {
       return { files: [...filesToUpload] }
@@ -630,6 +636,7 @@ export function FileBrowser({
         storageBackend: (data.storageBackend as 's3' | 'local') || 'local',
         createdAssets: data.createdAssets,
         presignedUrls: data.presignedUrls,
+        parentId: variables.json.parentId,
         onFileFinished: async (fileId) => {
           await queryClient.invalidateQueries({
             queryKey: ['search', teamId, assetId],

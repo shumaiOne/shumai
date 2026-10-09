@@ -87,6 +87,8 @@ export const taskInfoSchema = z.object({
   total: z.number(),
   uploaded: z.number(),
   createdAt: z.string(),
+  /** Server-side state; "failed" also covers uploads the stale sweep gave up on. */
+  status: z.enum(['pending', 'uploading', 'completed', 'failed']).optional(),
 })
 export type TaskInfo = z.infer<typeof taskInfoSchema>
 

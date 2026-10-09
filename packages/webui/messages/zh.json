@@ -1502,5 +1502,10 @@
   "hide_agent": "隐藏 Agent",
   "hide_agent_description": "在整个团队中隐藏 AGENTS.md 按钮、Agent 聊天侧边栏和触发按钮。",
   "appearance_settings_updated": "外观设置已更新",
-  "failed_update_appearance_settings": "更新外观设置失败"
+  "failed_update_appearance_settings": "更新外观设置失败",
+  "upload_retry": "重试",
+  "upload_dismiss": "关闭",
+  "upload_failed_files": "{total} 个文件中有 {failed} 个上传失败。",
+  "upload_failed_no_retry": "此上传未完成，已被取消。请重新添加文件以重试。",
+  "upload_retry_failed": "无法重新开始上传，请重试。"
 }

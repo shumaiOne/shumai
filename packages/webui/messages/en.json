@@ -1502,5 +1502,10 @@
   "hide_agent": "Hide Agent",
   "hide_agent_description": "Hide the AGENTS.md button, agent-chat sidebar, and chatbot trigger button across the entire team.",
   "appearance_settings_updated": "Appearance settings updated",
-  "failed_update_appearance_settings": "Failed to update appearance settings"
+  "failed_update_appearance_settings": "Failed to update appearance settings",
+  "upload_retry": "Retry",
+  "upload_dismiss": "Dismiss",
+  "upload_failed_files": "{failed} of {total} files failed to upload.",
+  "upload_failed_no_retry": "This upload did not finish and was cancelled. Add the files again to retry.",
+  "upload_retry_failed": "Could not restart the upload. Please try again."
 }

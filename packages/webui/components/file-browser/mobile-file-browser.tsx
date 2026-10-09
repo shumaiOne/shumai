@@ -5,6 +5,7 @@ import { usePermissions } from '@/ui/hooks/use-permissions'
 import { m } from '@/ui/paraglide/messages.js'
 import { useUploadStore } from '@/ui/stores/upload'
 import { uploadFilesWithUppy } from '@/ui/lib/uploader'
+import { responseErrorMessage } from '@/ui/lib/response-error'
 import type { AssetInfo, CreateUploadTaskRequest } from '@shumai/dtos'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
@@ -209,13 +210,18 @@ export function MobileFileBrowser({
   >({
     mutationFn: async (request) => {
       const res = await $createUploadTask(request)
-      if (!res.ok) throw new Error('Failed to create upload task')
+      if (!res.ok) {
+        throw new Error(await responseErrorMessage(res, 'Failed to create upload task'))
+      }
       return (await res.json()) as InferResponseType<typeof $createUploadTask>
+    },
+    onError: (err) => {
+      toast.error(err.message)
     },
     onMutate: () => {
       return { files: [...pendingFilesToUpload] }
     },
-    onSuccess: async (data, _variables, context) => {
+    onSuccess: async (data, variables, context) => {
       const currentFiles = context?.files || []
       const filesProgressInfo = currentFiles
         .map((f) => {
@@ -247,6 +253,7 @@ export function MobileFileBrowser({
         storageBackend: (data.storageBackend as 's3' | 'local') || 'local',
         createdAssets: data.createdAssets,
         presignedUrls: data.presignedUrls,
+        parentId: variables.json.parentId,
         onFileFinished: async () => {
           await queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })
         },

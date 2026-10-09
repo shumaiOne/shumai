@@ -1,13 +1,21 @@
 import { client } from '@/ui/api/client'
 import type { TaskInfo } from '@shumai/dtos'
 import { useTeamId } from '@/ui/hooks/use-team-id'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { useUploadStore } from '@/ui/stores/upload'
-import { Loader2, CheckCircle2, Clock, UploadCloud } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { AlertCircle, Loader2, CheckCircle2, Clock, RotateCw, UploadCloud, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { useInView } from 'react-intersection-observer'
 import { format, parseISO, isToday, isYesterday } from 'date-fns'
+import { Button } from '@/ui/components/ui/button'
 import { Progress } from '@/ui/components/ui/progress'
+import {
+  dismissUploadTask,
+  retryFailedUploads,
+  retryableFileIds,
+  taskDisplayState,
+} from '@/ui/lib/upload-retry'
 import { formatTimeAgo } from '@/ui/lib/time'
 import { m } from '@/ui/paraglide/messages.js'
 
@@ -36,9 +44,32 @@ function formatBytes(bytes: number): string {
 function UploadTaskItem({ task }: { task: TaskInfo }) {
   const clientProgress = useUploadStore((state) => state.tasks[task.id])
 
-  const isCompleted = clientProgress
-    ? clientProgress.loaded === clientProgress.total && task.uploaded === task.total
-    : task.uploaded === task.total
+  const teamId = useTeamId()
+  const queryClient = useQueryClient()
+  const [isRetrying, setIsRetrying] = useState(false)
+
+  const displayState = taskDisplayState(task, clientProgress)
+  const isCompleted = displayState === 'done'
+  const isFailed = displayState === 'failed'
+  const failedFileCount = clientProgress
+    ? Object.values(clientProgress.files).filter((f) => f.status === 'failed').length
+    : 0
+  const canRetry = !!teamId && retryableFileIds(clientProgress).length > 0
+
+  const handleRetry = async () => {
+    if (!teamId) return
+    setIsRetrying(true)
+    try {
+      await retryFailedUploads(teamId, task.id, async () => {
+        await queryClient.invalidateQueries({ queryKey: ['search', teamId] })
+      })
+    } catch {
+      toast.error(m.upload_retry_failed())
+    } finally {
+      setIsRetrying(false)
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'upload', 'tasks'] })
+    }
+  }
 
   const percent = clientProgress
     ? clientProgress.total > 0
@@ -68,7 +99,12 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
           </span>
         </div>
         <div className="flex-shrink-0">
-          {isCompleted ? (
+          {isFailed ? (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">
+              <AlertCircle className="w-3.5 h-3.5" />
+              {m.status_failed()}
+            </span>
+          ) : isCompleted ? (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full transition-colors">
               <CheckCircle2 className="w-3.5 h-3.5" />
               {m.done()}
@@ -96,12 +132,43 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
               ? `${formatBytes(clientProgress.loaded)} / ${formatBytes(clientProgress.total)} (${m.files_progress({ uploaded: task.uploaded, total: task.total })})`
               : m.files_progress({ uploaded: task.uploaded, total: task.total })}
           </span>
-          {!isCompleted && (
+          {!isCompleted && !isFailed && (
             <span className="text-sidebar-primary font-mono font-bold">{Math.round(percent)}%</span>
           )}
         </div>
         <Progress value={percent} className="h-1.5 w-full bg-muted" />
       </div>
+
+      {isFailed && (
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-muted-foreground" role="status">
+            {canRetry
+              ? m.upload_failed_files({ failed: failedFileCount, total: task.total })
+              : m.upload_failed_no_retry()}
+          </p>
+          <div className="flex items-center gap-2">
+            {canRetry && (
+              <Button size="sm" variant="secondary" disabled={isRetrying} onClick={handleRetry}>
+                {isRetrying ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RotateCw className="w-3.5 h-3.5" />
+                )}
+                {m.upload_retry()}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={isRetrying}
+              onClick={() => dismissUploadTask(task.id)}
+            >
+              <X className="w-3.5 h-3.5" />
+              {m.upload_dismiss()}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -115,6 +182,7 @@ export function UploadTasks() {
   const teamId = useTeamId()
   const uploading = useUploadStore((state) => state.uploading)
   const clientActiveTasks = useUploadStore((state) => state.tasks)
+  const dismissedTaskIds = useUploadStore((state) => state.dismissedTaskIds)
   const {
     data: tasksData,
     fetchNextPage,
@@ -155,7 +223,7 @@ export function UploadTasks() {
       .filter((ct) => !serverTaskIds.has(ct.taskId))
       .map((ct) => {
         const completedCount = Object.values(ct.files).filter(
-          (f) => f.status === 'completed' || f.status === 'failed',
+          (f) => f.status === 'completed',
         ).length
 
         return {
@@ -167,8 +235,10 @@ export function UploadTasks() {
         }
       })
 
-    return [...clientOnlyTasks, ...tasks].sort((a, b) => b.id.localeCompare(a.id))
-  }, [tasks, clientActiveTasks])
+    return [...clientOnlyTasks, ...tasks]
+      .filter((t) => !dismissedTaskIds[t.id])
+      .sort((a, b) => b.id.localeCompare(a.id))
+  }, [tasks, clientActiveTasks, dismissedTaskIds])
 
   if (isLoading) {
     return (
