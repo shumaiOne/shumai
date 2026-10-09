@@ -41,6 +41,8 @@ import {
 import { HTTPException } from 'hono/http-exception'
 import { logger } from '@shumai/core/src/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@shumai/core/src/pagination'
+import { isXmpSidecarName } from '@shumai/core/src/metadata/xmp-sidecar'
+import { syncXmpSidecarsAfterCommit } from '@shumai/core/src/metadata/xmp-sidecar-sync'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import {
   ensureJpegInStorage,
@@ -973,6 +975,9 @@ export class AssetService {
       )
     })
 
+    // A new sidecar updates the photo next to it, after the commit (storage and ExifTool I/O).
+    if (isXmpSidecarName(name)) syncXmpSidecarsAfterCommit(newFileId)
+
     return this.getAsset({ assetId: newFileId })
   }
 
@@ -1060,6 +1065,9 @@ export class AssetService {
         targetAsset.projectId!,
       )
     })
+
+    // A new sidecar updates the photo next to it, after the commit (storage and ExifTool I/O).
+    if (isXmpSidecarName(name)) syncXmpSidecarsAfterCommit(newFileId)
 
     return this.getAsset({ assetId: newFileId })
   }
@@ -1301,7 +1309,7 @@ export class AssetService {
 
   async deleteAssets(ids: string[]): Promise<void> {
     for (const id of ids) {
-      await this.prismaClient.$transaction(async (tx) => {
+      const syncXmpAfterCommit = await this.prismaClient.$transaction(async (tx) => {
         const a = await tx.asset.findUnique({
           where: { id },
           include: { project: { include: { team: true } } },
@@ -1375,7 +1383,12 @@ export class AssetService {
         })
 
         await this.updateAncestorsSize(tx, a.parentId, -Number(a.sizeByte))
+
+        // The photo next to a trashed sidecar loses its rating, label and keywords (synced after
+        // the commit, not inside the transaction).
+        return a.type === AssetType.file && isXmpSidecarName(a.name)
       })
+      if (syncXmpAfterCommit) syncXmpSidecarsAfterCommit(id)
     }
   }
 
@@ -1601,7 +1614,7 @@ export class AssetService {
 
   async restoreAssets(ids: string[]): Promise<void> {
     for (const id of ids) {
-      await this.prismaClient.$transaction(async (tx) => {
+      const syncXmpAfterCommit = await this.prismaClient.$transaction(async (tx) => {
         const a = await tx.asset.findUnique({
           where: { id },
           include: { project: { include: { team: true } } },
@@ -1694,7 +1707,12 @@ export class AssetService {
         })
 
         await this.updateAncestorsSize(tx, a.parentId, Number(a.sizeByte))
+
+        // A restored sidecar gives its rating, label and keywords back to the photo next to it
+        // (synced after the commit, not inside the transaction).
+        return a.type === AssetType.file && isXmpSidecarName(a.name)
       })
+      if (syncXmpAfterCommit) syncXmpSidecarsAfterCommit(id)
     }
   }
 
@@ -2852,11 +2870,7 @@ export class AssetService {
             'GET',
           )
           const attachmentProxyType = (a.asset.media?.proxyType || null) as
-            | 'image'
-            | 'video'
-            | 'audio'
-            | 'pdf'
-            | null
+            'image' | 'video' | 'audio' | 'pdf' | null
           attachments.push({
             id: a.id,
             assetId: a.asset.id,

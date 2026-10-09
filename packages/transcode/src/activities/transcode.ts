@@ -7,6 +7,7 @@ import {
   type HdrType,
 } from '@shumai/core/src/transcode/transcode'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
+import { trySyncXmpSidecars } from '@shumai/core/src/metadata/xmp-sidecar-sync'
 import { getDerivedArtifactDirectory, stemFromKey } from '@shumai/core/src/utils/filename'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { parseCsvContent } from '@shumai/core/src/transcode/transcode'
@@ -304,6 +305,9 @@ export async function getMediaInfoActivity(params: {
     }
 
     await metadataService.updateAssetMetadata(params.assetId, metadataUpdates, true)
+
+    // Pick up the rating, label and keywords from an XMP sidecar next to the file, if any.
+    await trySyncXmpSidecars(params.assetId)
 
     return mediaInfo
   } catch (err) {

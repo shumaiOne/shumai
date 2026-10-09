@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+* **metadata**: Ratings, color labels and keywords saved by darktable, Lightroom and similar apps in an XMP sidecar file (`photo.RAF.xmp` or `photo.xmp`) next to a photo now show up on that photo as read-only XMP Rating, XMP Rejected, XMP Color Label and XMP Keywords fields. They update when the sidecar is uploaded again and clear when it is deleted, and never replace the rating or keywords you set in Shumai
 * **kanban**: Related assets on a task are now clickable, taking you directly to that file or folder in its project
 
 ### Fixed

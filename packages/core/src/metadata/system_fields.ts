@@ -189,6 +189,38 @@ export const systemFields: Prisma.MetadataFieldCreateInput[] = [
       text: {},
     },
   },
+  // Culling and tagging read from an XMP sidecar by `syncXmpSidecars()` (metadata/xmp-sidecar.ts).
+  // They are separate from the editable `rating` and `keywords` fields so a sidecar never
+  // overwrites what a person entered.
+  {
+    key: 'xmp_rating',
+    scope: 'SYSTEM',
+    readOnly: true,
+    config: {
+      name: 'XMP Rating',
+      type: 'rating',
+      rating: { maxValue: 5 },
+    },
+  },
+  {
+    key: 'xmp_rejected',
+    scope: 'SYSTEM',
+    readOnly: true,
+    config: { name: 'XMP Rejected', type: 'toggle', toggle: {} },
+  },
+  {
+    key: 'xmp_label',
+    scope: 'SYSTEM',
+    readOnly: true,
+    config: { name: 'XMP Color Label', type: 'text', text: {} },
+  },
+  // Keywords are comma-joined into one text value, so a keyword that holds a comma reads as two.
+  {
+    key: 'xmp_keywords',
+    scope: 'SYSTEM',
+    readOnly: true,
+    config: { name: 'XMP Keywords', type: 'text', text: {} },
+  },
   {
     key: 'status',
     scope: 'SYSTEM',

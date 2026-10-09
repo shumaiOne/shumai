@@ -21,6 +21,8 @@ import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
 import { getProxyType, isHtmlDocument, isOfficeDocument } from '@shumai/core/src/utils/mime'
 import { logger } from '@shumai/core/src/logger'
+import { isXmpSidecarName } from '@shumai/core/src/metadata/xmp-sidecar'
+import { syncXmpSidecarsAfterCommit } from '@shumai/core/src/metadata/xmp-sidecar-sync'
 
 export class UploadService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
@@ -297,6 +299,10 @@ export class UploadService {
 
       await this.triggerPostUploadWorkflows(tx, asset.id, team.id, asset.projectId)
     })
+
+    // A sidecar carries the rating, label and keywords of the photo next to it. Read it after the
+    // commit: it needs storage and ExifTool, which must not run inside the transaction.
+    if (isXmpSidecarName(asset.name)) syncXmpSidecarsAfterCommit(asset.id)
   }
 
   async triggerPostUploadWorkflows(
