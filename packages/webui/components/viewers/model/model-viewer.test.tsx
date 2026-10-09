@@ -104,6 +104,14 @@ describe('ModelViewer', () => {
     fireEvent.keyDown(window, { key: 'ArrowRight' })
     expect(onTimeUpdate).toHaveBeenCalledWith(expect.closeTo(1 / 6, 2))
 
+    // Press ArrowRight second time -> advance to frame 2 (30 deg = 2/6 sec)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(onTimeUpdate).toHaveBeenCalledWith(expect.closeTo(2 / 6, 2))
+
+    // Press ArrowLeft -> back 1 frame (frame 1 = 1/6 sec)
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(onTimeUpdate).toHaveBeenCalledWith(expect.closeTo(1 / 6, 2))
+
     // Press ArrowLeft -> back 1 frame (frame 0 = 0 sec)
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
     expect(onTimeUpdate).toHaveBeenCalledWith(0)

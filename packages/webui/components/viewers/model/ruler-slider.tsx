@@ -85,15 +85,19 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
       if (disabled) return
       if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
         e.preventDefault()
+        e.stopPropagation()
         onChange((((normalizedDegree - STEP) % 360) + 360) % 360)
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
         e.preventDefault()
+        e.stopPropagation()
         onChange((normalizedDegree + STEP) % 360)
       } else if (e.key === 'Home') {
         e.preventDefault()
+        e.stopPropagation()
         onChange(0)
       } else if (e.key === 'End') {
         e.preventDefault()
+        e.stopPropagation()
         onChange(345)
       }
     },

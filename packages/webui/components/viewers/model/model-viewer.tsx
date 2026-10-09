@@ -167,11 +167,11 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
           togglePlay()
         } else if (e.key === 'ArrowLeft') {
           e.preventDefault()
-          const currentFrame = Math.floor(currentTime * FPS)
+          const currentFrame = Math.round(currentTime * FPS)
           seekToFrame(currentFrame - 1)
         } else if (e.key === 'ArrowRight') {
           e.preventDefault()
-          const currentFrame = Math.floor(currentTime * FPS)
+          const currentFrame = Math.round(currentTime * FPS)
           seekToFrame(currentFrame + 1)
         }
       }
