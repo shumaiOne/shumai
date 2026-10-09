@@ -17,6 +17,7 @@ import { handleDaemonCommands } from '@shumai/core/src/utils/daemon'
 import { authService } from '@shumai/core/src/auth/auth'
 import { sandboxService } from '@shumai/core'
 import { notificationJobService } from '@shumai/core/src/notification/notification-job'
+import { LocalStorageService, s3Service } from '@shumai/core/src/s3/s3'
 
 if (process.argv.includes('--check')) {
   console.log('✅ Web app evaluated successfully!')
@@ -61,6 +62,9 @@ async function run() {
   assetService.startCleanupJob()
   notificationJobService.start()
   workflowService.start()
+  // Orphaned local multipart staging dirs (clients that never completed or aborted) are swept hourly.
+  const stopMultipartSweep =
+    s3Service instanceof LocalStorageService ? s3Service.startMultipartSweep() : undefined
   if (process.env.WORKFLOW_EXECUTOR === 'temporal') {
     const args = process.argv.slice(2)
     let workersOption = ''
@@ -184,6 +188,7 @@ async function run() {
     console.log('\nShutting down gracefully...')
     assetService.stopCleanupJob()
     server.stop(true)
+    stopMultipartSweep?.()
     process.exit(0)
   }
 

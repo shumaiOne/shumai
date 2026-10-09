@@ -820,6 +820,7 @@ describe('UploadService', () => {
         'files/test/abort.mp4',
         'upload-abc',
       )
+      expect(s3Service.deleteObject).toHaveBeenCalledWith(expect.anything(), 'files/test/abort.mp4')
 
       const deletedAsset = await prisma.asset.findUnique({
         where: { id: asset.id },
@@ -957,6 +958,8 @@ describe('UploadService', () => {
         'files/test/fail.mp4',
         'upload-fail-id',
       )
+      // Aborting only discards staged parts, so the completed object is deleted explicitly too.
+      expect(s3Service.deleteObject).toHaveBeenCalledWith(expect.anything(), 'files/test/fail.mp4')
 
       const deletedAsset = await prisma.asset.findUnique({
         where: { id: asset.id },
