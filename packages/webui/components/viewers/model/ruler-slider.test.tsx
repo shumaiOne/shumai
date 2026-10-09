@@ -138,4 +138,27 @@ describe('RulerSlider', () => {
     fireEvent.pointerUp(slider, { clientX: 124, button: 0, pointerId: 1 })
     expect(slider.releasePointerCapture).toHaveBeenCalledWith(1)
   })
+
+  it('steps degree forward and backward via encapsulated plus and minus buttons', () => {
+    const onChange = vi.fn()
+    const { getByTestId, rerender } = render(<RulerSlider currentDegree={0} onChange={onChange} />)
+
+    const plusBtn = getByTestId('ruler-step-plus')
+    const minusBtn = getByTestId('ruler-step-minus')
+
+    // 0 + 15 = 15
+    fireEvent.click(plusBtn)
+    expect(onChange).toHaveBeenCalledWith(15)
+
+    // 0 - 15 wraps to 345
+    fireEvent.click(minusBtn)
+    expect(onChange).toHaveBeenCalledWith(345)
+
+    // When disabled, clicking should not trigger onChange
+    onChange.mockClear()
+    rerender(<RulerSlider currentDegree={0} onChange={onChange} disabled />)
+    fireEvent.click(plusBtn)
+    fireEvent.click(minusBtn)
+    expect(onChange).not.toHaveBeenCalled()
+  })
 })

@@ -44,11 +44,6 @@ export const ModelControlBar: React.FC<ModelControlBarProps> = ({
     document.body.removeChild(a)
   }
 
-  const handleStepDegree = (delta: number) => {
-    const next = (((currentDegree + delta) % 360) + 360) % 360
-    onSeekDegree(next)
-  }
-
   return (
     <div
       className={cn(
@@ -95,35 +90,9 @@ export const ModelControlBar: React.FC<ModelControlBarProps> = ({
           </button>
         </div>
 
-        {/* Center: RulerSlider with minus & plus buttons */}
-        <div className="flex items-center gap-1.5 w-full max-w-[320px] justify-center mx-auto shrink-0">
-          <button
-            type="button"
-            onClick={() => handleStepDegree(-15)}
-            title="Decrease 15°"
-            aria-label="Decrease 15°"
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
-            data-testid="ruler-step-minus"
-          >
-            <Minus className="w-3.5 h-3.5" />
-          </button>
-
-          <RulerSlider
-            currentDegree={currentDegree}
-            onChange={onSeekDegree}
-            className="flex-1 min-w-[140px]"
-          />
-
-          <button
-            type="button"
-            onClick={() => handleStepDegree(15)}
-            title="Increase 15°"
-            aria-label="Increase 15°"
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
-            data-testid="ruler-step-plus"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
+        {/* Center: RulerSlider with encapsulated minus & plus buttons */}
+        <div className="flex items-center w-full max-w-[340px] justify-center mx-auto shrink-0">
+          <RulerSlider currentDegree={currentDegree} onChange={onSeekDegree} className="w-full" />
         </div>
 
         {/* Right Side: Zoom controls, Download, Fullscreen */}

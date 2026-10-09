@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **viewer**: Refine the 3D turntable viewer bottom bar into a unified single row with a centered cyclic ruler slider, fixed center indicator, degree tooltip on drag, and ±15° step buttons
+- **viewer**: Redesign the 3D turntable ruler slider with an enclosed capsule track, encapsulated ±15° step buttons, vertically centered ticks, and a full-height center red indicator
 
 ## [0.5.1] - 2026-10-06
 

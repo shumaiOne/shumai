@@ -1,15 +1,17 @@
-import React, { useCallback, useRef, useState } from 'react'
 import { cn } from '@/ui/lib/utils'
+import { Minus, Plus } from 'lucide-react'
+import React, { useCallback, useRef, useState } from 'react'
 
-interface RulerSliderProps {
+export interface RulerSliderProps {
   currentDegree: number // 0 to 360 (or normalized modulo 360)
   onChange: (degree: number) => void
   className?: string
   disabled?: boolean
 }
 
-const PX_PER_DEGREE = 1.6 // 24px per 15° step
 const STEP = 15
+const PX_PER_STEP = 20 // 20px per 15° step
+const PX_PER_DEGREE = PX_PER_STEP / STEP // ~1.333px per degree
 const BUFFER_DEGREE = 240 // Render buffer on each side of the active degree
 
 export const RulerSlider: React.FC<RulerSliderProps> = ({
@@ -18,7 +20,7 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
   className,
   disabled = false,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null)
+  const trackRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [dragDegree, setDragDegree] = useState<number | null>(null)
   const dragStartRef = useRef<{ clientX: number; startDegree: number }>({
@@ -30,13 +32,22 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
   const activeDegree = isDragging && dragDegree !== null ? dragDegree : normalizedDegree
   const displayedDegree = (((Math.round(activeDegree / STEP) * STEP) % 360) + 360) % 360
 
+  const handleStep = useCallback(
+    (delta: number) => {
+      if (disabled) return
+      const next = (((normalizedDegree + delta) % 360) + 360) % 360
+      onChange(next)
+    },
+    [disabled, normalizedDegree, onChange],
+  )
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (disabled || e.button !== 0) return
       e.preventDefault()
       e.stopPropagation()
 
-      const target = containerRef.current
+      const target = trackRef.current
       if (!target) return
       target.setPointerCapture(e.pointerId)
 
@@ -72,7 +83,7 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
       }
       setDragDegree(null)
       try {
-        containerRef.current?.releasePointerCapture(e.pointerId)
+        trackRef.current?.releasePointerCapture(e.pointerId)
       } catch {
         // pointer may have already been released
       }
@@ -86,11 +97,11 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
       if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
         e.preventDefault()
         e.stopPropagation()
-        onChange((((normalizedDegree - STEP) % 360) + 360) % 360)
+        handleStep(-STEP)
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
         e.preventDefault()
         e.stopPropagation()
-        onChange((normalizedDegree + STEP) % 360)
+        handleStep(STEP)
       } else if (e.key === 'Home') {
         e.preventDefault()
         e.stopPropagation()
@@ -101,7 +112,7 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
         onChange(345)
       }
     },
-    [disabled, normalizedDegree, onChange],
+    [disabled, handleStep, onChange],
   )
 
   // Compute visible ticks dynamically around activeDegree for seamless cyclic looping
@@ -114,76 +125,103 @@ export const RulerSlider: React.FC<RulerSliderProps> = ({
 
   return (
     <div
-      ref={containerRef}
-      role="slider"
-      aria-label="Turntable angle"
-      aria-valuemin={0}
-      aria-valuemax={360}
-      aria-valuenow={displayedDegree}
-      aria-valuetext={`${displayedDegree}°`}
-      tabIndex={disabled ? -1 : 0}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onKeyDown={handleKeyDown}
       className={cn(
-        'relative select-none cursor-ew-resize flex flex-col justify-end h-9 touch-none w-full min-w-[140px] group',
-        disabled && 'opacity-50 cursor-not-allowed',
+        'relative select-none flex items-center gap-2.5 w-full min-w-[160px]',
+        disabled && 'opacity-50',
         className,
       )}
     >
-      {/* Tooltip above center indicator (visible only when dragging) */}
-      {isDragging && (
+      {/* Minus button on left */}
+      <button
+        type="button"
+        onClick={() => handleStep(-STEP)}
+        disabled={disabled}
+        title="Decrease 15°"
+        aria-label="Decrease 15°"
+        data-testid="ruler-step-minus"
+        className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      >
+        <Minus className="w-3.5 h-3.5" />
+      </button>
+
+      {/* Center Capsule Slider Track Container */}
+      <div className="relative flex-1 min-w-0">
+        {/* Tooltip above center indicator (visible only when dragging) */}
+        {isDragging && (
+          <div
+            data-testid="ruler-slider-tooltip"
+            className="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-mono font-medium shadow-md whitespace-nowrap pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-100"
+          >
+            {displayedDegree}°
+          </div>
+        )}
+
+        {/* Capsule track with rounded pill shape, clipping scrolling ticks */}
         <div
-          data-testid="ruler-slider-tooltip"
-          className="absolute -top-6 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-mono font-medium shadow-md whitespace-nowrap pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-100"
+          ref={trackRef}
+          role="slider"
+          aria-label="Turntable angle"
+          aria-valuemin={0}
+          aria-valuemax={360}
+          aria-valuenow={displayedDegree}
+          aria-valuetext={`${displayedDegree}°`}
+          tabIndex={disabled ? -1 : 0}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onKeyDown={handleKeyDown}
+          className={cn(
+            'relative w-full h-7 rounded-full bg-muted border border-border overflow-hidden cursor-ew-resize touch-none select-none group focus:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+            disabled && 'cursor-not-allowed',
+          )}
         >
-          {displayedDegree}°
+          {/* Cyclic Ticks - vertically centered */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            {ticks.map((tickAngle) => {
+              const offsetPx = (tickAngle - activeDegree) * PX_PER_DEGREE
+              const deg = ((tickAngle % 360) + 360) % 360
+              const isMajor = deg % 60 === 0
+
+              return (
+                <div
+                  key={`tick-${tickAngle}`}
+                  data-testid={`tick-${deg}`}
+                  data-major={isMajor}
+                  className={cn(
+                    'absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-colors pointer-events-none rounded-[0.5px]',
+                    isMajor
+                      ? 'w-0.5 h-2.5 bg-foreground/75'
+                      : 'w-px h-1.5 bg-muted-foreground/45 group-hover:bg-muted-foreground/65',
+                  )}
+                  style={{ left: `calc(50% + ${offsetPx}px)` }}
+                />
+              )
+            })}
+          </div>
+
+          {/* Fixed Center Red Indicator (Pinned at 50% horizontally, spans full height) */}
+          <div
+            data-testid="ruler-center-indicator"
+            className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 flex items-center justify-center pointer-events-none z-20"
+          >
+            <div className="w-full h-full bg-[#ea3349] rounded-full" />
+          </div>
         </div>
-      )}
-
-      {/* Moving Track & Ticks with Edge Mask */}
-      <div
-        className="relative w-full h-5 flex items-end overflow-hidden"
-        style={{
-          maskImage:
-            'linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent)',
-        }}
-      >
-        {/* Baseline bar */}
-        <div className="absolute inset-x-0 bottom-0 h-0.5 bg-muted-foreground/20 rounded-full" />
-
-        {/* Cyclic Ticks */}
-        {ticks.map((tickAngle) => {
-          const offsetPx = (tickAngle - activeDegree) * PX_PER_DEGREE
-          const deg = ((tickAngle % 360) + 360) % 360
-          const isMajor = deg % 60 === 0
-
-          return (
-            <div
-              key={`tick-${tickAngle}`}
-              data-testid={`tick-${deg}`}
-              data-major={isMajor}
-              className={cn(
-                'absolute bottom-0 -translate-x-1/2 transition-colors pointer-events-none',
-                isMajor
-                  ? 'w-0.5 h-4 bg-foreground/75'
-                  : 'w-px h-2 bg-muted-foreground/40 group-hover:bg-muted-foreground/60',
-              )}
-              style={{ left: `calc(50% + ${offsetPx}px)` }}
-            />
-          )
-        })}
       </div>
 
-      {/* Fixed Center Indicator (Pinned at 50% horizontally) */}
-      <div
-        data-testid="ruler-center-indicator"
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-20"
+      {/* Plus button on right */}
+      <button
+        type="button"
+        onClick={() => handleStep(STEP)}
+        disabled={disabled}
+        title="Increase 15°"
+        aria-label="Increase 15°"
+        data-testid="ruler-step-plus"
+        className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
-        <div className="w-0.5 h-5 bg-primary rounded-full shadow-xs ring-1 ring-background/50" />
-      </div>
+        <Plus className="w-3.5 h-3.5" />
+      </button>
     </div>
   )
 }
