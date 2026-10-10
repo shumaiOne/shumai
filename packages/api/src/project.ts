@@ -3,6 +3,7 @@ import { zValidator } from '@hono/zod-validator'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { projectService } from '@shumai/core/src/project/project'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { duplicateService } from '@shumai/core/src/asset/duplicates'
 import { reparentAssetsRequestSchema, copyAssetsRequestSchema } from '@shumai/dtos'
 import {
   createProjectRequestSchema,
@@ -14,6 +15,8 @@ import {
   addProjectMemberRequestSchema,
   listRecentsRequestSchema,
   recordRecentViewRequestSchema,
+  listDuplicatesRequestSchema,
+  resolveDuplicatesRequestSchema,
 } from '@shumai/dtos'
 import { listMembersQuerySchema, AuditAction } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
@@ -157,6 +160,71 @@ const route = new Hono<{ Variables: { user: User } }>()
 
       await assetService.recordRecentView(user.id, projectId, req.assetId)
       return c.json({ success: true })
+    },
+  )
+  .get(
+    '/projects/:projectId/duplicates',
+    zValidator('query', listDuplicatesRequestSchema),
+    async (c) => {
+      const projectId = c.req.param('projectId')
+      const user = c.get('user')
+      const req = c.req.valid('query')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Project,
+        id: projectId,
+      })
+
+      return c.json(await duplicateService.listGroups(projectId, req.limit))
+    },
+  )
+  .post(
+    '/projects/:projectId/duplicates/resolve',
+    zValidator('json', resolveDuplicatesRequestSchema),
+    async (c) => {
+      const projectId = c.req.param('projectId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Project,
+        id: projectId,
+      })
+      // The keeper only has to be readable; every copy that goes to trash needs edit rights.
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Asset,
+        id: req.keepId,
+      })
+      for (const id of req.deleteIds) {
+        await authzService.hasPermission({
+          user,
+          permission: Permission.Edit,
+          type: ResourceType.Asset,
+          id,
+        })
+      }
+
+      // Validates server side that every id is a live copy of the keeper before deleting anything.
+      const result = await duplicateService.resolveGroup(projectId, req.keepId, req.deleteIds)
+
+      const teamId = await projectService.getProjectTeam(projectId)
+      for (const id of result.deletedIds) {
+        await auditLogService.logAction({
+          action: AuditAction.file_delete,
+          teamId,
+          userId: user.id,
+          projectId,
+          itemId: id,
+        })
+      }
+
+      return c.json(result)
     },
   )
   .post('/projects/:projectId/empty-trash', async (c) => {

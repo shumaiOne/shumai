@@ -160,4 +160,54 @@ describe('transcodePdfWorkflow', () => {
       projectId: 'proj-1',
     })
   })
+
+  it('records the content hash from the downloaded original, not the generated PDF proxy', async () => {
+    const task = {
+      id: 'task-docx',
+      assetId: 'asset-docx',
+      type: WorkflowTaskType.transcode_pdf,
+      status: WorkflowTaskStatus.pending,
+      payload: { projectId: 'proj-1', transcode: {} },
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid-docx',
+    } as unknown as WorkflowTask
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-docx',
+      name: 'report.docx',
+      storageKey: { key: 'files/report.docx' },
+      mediaType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    })
+    // The original and the PDF generated from it live at different paths.
+    mockActivities.downloadMediaToTmpActivity.mockResolvedValue({
+      filePath: '/tmp/original/report.docx',
+      tmpDir: '/tmp/original',
+    })
+    mockActivities.generatePdfProxyActivity.mockResolvedValue({
+      pdfProxyKey: 'files/report.pdf',
+      pdfFilePath: '/tmp/original/report.pdf',
+    })
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      proxyType: 'pdf',
+      metadata: { originalWidth: 800, originalHeight: 1000 },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    await transcodePdfWorkflow(task)
+
+    // The hash is recorded where the original is downloaded, so the asset id travels with the download.
+    expect(mockActivities.downloadMediaToTmpActivity).toHaveBeenCalledWith({
+      assetKey: 'files/report.docx',
+      assetId: 'asset-docx',
+    })
+    // Media info reads the generated PDF and must not be what the hash is taken from.
+    expect(mockActivities.getMediaInfoActivity).toHaveBeenCalledWith({
+      filePath: '/tmp/original/report.pdf',
+      assetId: 'asset-docx',
+      proxyType: 'pdf',
+      mediaType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    })
+  })
 })

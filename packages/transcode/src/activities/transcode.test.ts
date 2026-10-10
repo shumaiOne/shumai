@@ -4,6 +4,7 @@ import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
+import { sha256OfFile } from '@shumai/core/src/utils/hash'
 import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import * as child_process from 'child_process'
 import * as fs from 'fs'
@@ -80,6 +81,10 @@ vi.mock('@shumai/core/src/transcode/transcode', async (importOriginal) => {
     },
   }
 })
+
+vi.mock('@shumai/core/src/utils/hash', () => ({
+  sha256OfFile: vi.fn().mockResolvedValue('c'.repeat(64)),
+}))
 
 vi.mock('@shumai/core/src/metadata/metadata', () => ({
   metadataService: {
@@ -903,6 +908,46 @@ describe('Transcode Activities', () => {
       annotations: [],
     })
     expect(result).toEqual([{ key: 'pdf_pages/doc-page-1.webp', page: 1 }])
+  })
+
+  describe('content hash', () => {
+    it('hashes the downloaded original and stores the hash on the asset', async () => {
+      const asset = await prisma.asset.create({
+        data: { name: 'report.docx', type: 'file', status: 'uploaded' },
+      })
+      vi.mocked(s3Service.downloadToFile).mockResolvedValue(undefined)
+
+      const { filePath } = await downloadMediaToTmpActivity({
+        assetKey: 'files/report.docx',
+        assetId: asset.id,
+      })
+
+      expect(filePath.endsWith('report.docx')).toBe(true)
+      expect(sha256OfFile).toHaveBeenCalledWith(filePath)
+      const updated = await prisma.asset.findUniqueOrThrow({ where: { id: asset.id } })
+      expect(updated.contentHash).toBe('c'.repeat(64))
+    })
+
+    it('does not hash when no asset id is given', async () => {
+      vi.mocked(s3Service.downloadToFile).mockResolvedValue(undefined)
+      await downloadMediaToTmpActivity({ assetKey: 'files/other.mp4' })
+      expect(sha256OfFile).not.toHaveBeenCalled()
+    })
+
+    it('never hashes the file getMediaInfoActivity reads (it may be a generated proxy)', async () => {
+      const asset = await prisma.asset.create({
+        data: { name: 'report.docx', type: 'file', status: 'uploaded' },
+      })
+      await getMediaInfoActivity({
+        filePath: '/tmp/report.pdf',
+        assetId: asset.id,
+        proxyType: 'pdf',
+        mediaType: 'application/pdf',
+      })
+      expect(sha256OfFile).not.toHaveBeenCalled()
+      const updated = await prisma.asset.findUniqueOrThrow({ where: { id: asset.id } })
+      expect(updated.contentHash).toBeNull()
+    })
   })
 
   describe('Non-retryable Error Handling', () => {

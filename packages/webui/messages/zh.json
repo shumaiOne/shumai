@@ -1502,5 +1502,22 @@
   "hide_agent": "隐藏 Agent",
   "hide_agent_description": "在整个团队中隐藏 AGENTS.md 按钮、Agent 聊天侧边栏和触发按钮。",
   "appearance_settings_updated": "外观设置已更新",
-  "failed_update_appearance_settings": "更新外观设置失败"
+  "failed_update_appearance_settings": "更新外观设置失败",
+  "duplicates": "重复文件",
+  "duplicates_description": "此项目中内容完全相同的文件。选择要移除的副本;确认之前不会删除任何内容。",
+  "duplicates_none": "未发现重复文件。",
+  "duplicates_not_hashed_hint": "仅比较在此功能上线后完成处理的视频、音频、图片和 PDF 文件。",
+  "duplicates_summary": "{groups} 组,可释放 {size}",
+  "duplicates_copies": "{count} 个副本,每个 {size}",
+  "duplicates_select_extra": "选择多余副本",
+  "duplicates_clear_selection": "清除选择",
+  "duplicates_delete_selected": "删除所选 {count} 个",
+  "duplicates_keep_one": "每组至少保留一个副本。",
+  "duplicates_confirm_title": "删除重复文件?",
+  "duplicates_confirm_description": "{count} 个文件({size})将移至最近删除。",
+  "duplicates_deleted": "已删除 {count} 个重复文件",
+  "duplicates_failed_load": "加载重复文件失败",
+  "duplicates_truncated": "仅显示浪费空间最多的分组。",
+  "duplicates_root_path": "项目根目录",
+  "duplicates_group_changed": "自加载列表以来这些重复文件已发生变化。该组未删除任何内容;请重新打开列表后重试。"
 }

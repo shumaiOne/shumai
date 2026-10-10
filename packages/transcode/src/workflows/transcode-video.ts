@@ -46,6 +46,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
 
     const download = await executeActivity(workerQueue, downloadMediaToTmpActivity, {
       assetKey: key,
+      assetId: asset.id,
     })
     const { filePath } = download
     tmpDir = download.tmpDir

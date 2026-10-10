@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/ui/components/ui/dropdown-menu'
+import { DuplicatesDialog } from '@/ui/components/duplicates-dialog'
 import { Input } from '@/ui/components/ui/input'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { usePermissions } from '@/ui/hooks/use-permissions'
@@ -47,6 +48,7 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   Clapperboard,
+  Copy,
   Download,
   Edit,
   Folder,
@@ -105,6 +107,7 @@ export function FolderTree({
     shouldThrow: false,
   })
 
+  const [isDuplicatesOpen, setIsDuplicatesOpen] = useState(false)
   const [isAssetsExpanded, setIsAssetsExpanded] = useState(true)
   const [isCollectionsExpanded, setIsCollectionsExpanded] = useState(true)
   const [isSharesExpanded, setIsSharesExpanded] = useState(true)
@@ -564,6 +567,19 @@ export function FolderTree({
                 </span>
               </div>
             )}
+
+            {canEdit && !hideRecentlyDeleted && (
+              <div
+                data-testid="open-duplicates"
+                className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                onClick={() => setIsDuplicatesOpen(true)}
+              >
+                <div className="flex h-4 w-4 items-center justify-center">
+                  <Copy className="h-4 w-4 text-sidebar-primary" />
+                </div>
+                <span className="flex-1 truncate text-sidebar-foreground">{m.duplicates()}</span>
+              </div>
+            )}
           </div>
         </ScrollArea>
       </div>
@@ -846,6 +862,12 @@ export function FolderTree({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DuplicatesDialog
+        projectId={projectId}
+        open={isDuplicatesOpen}
+        onOpenChange={setIsDuplicatesOpen}
+      />
 
       {/* Delete Confirmation Alert Dialog */}
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>

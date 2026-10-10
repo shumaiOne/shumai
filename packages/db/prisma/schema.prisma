@@ -530,6 +530,8 @@ model Asset {
   mediaType         String?      @map("media_type")
   fileCount         Int          @default(0) @map("file_count")
   sizeByte          BigInt       @default(0) @map("size_byte")
+  /// SHA-256 (lowercase hex) of the original file. Null until it has been computed, and for folders and symlinks.
+  contentHash       String?      @map("content_hash")
   status            AssetStatus
   transcodeTaskId   String?      @map("transcode_task_id")
   uploadId          String?      @map("upload_id")
@@ -592,6 +594,7 @@ model Asset {
   @@index([isDeleted])
   @@index([deletedAt])
   @@index([agentId])
+  @@index([projectId, contentHash])
   @@index([name], name: "assets_name_idx")
   @@index([nameNgram], type: Gin)
   @@unique([parentId, targetId], name: "parentIdTargetId")

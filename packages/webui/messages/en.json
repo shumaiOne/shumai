@@ -1502,5 +1502,22 @@
   "hide_agent": "Hide Agent",
   "hide_agent_description": "Hide the AGENTS.md button, agent-chat sidebar, and chatbot trigger button across the entire team.",
   "appearance_settings_updated": "Appearance settings updated",
-  "failed_update_appearance_settings": "Failed to update appearance settings"
+  "failed_update_appearance_settings": "Failed to update appearance settings",
+  "duplicates": "Duplicates",
+  "duplicates_description": "Files in this project with identical content. Pick the copies you want to remove; nothing is deleted until you confirm.",
+  "duplicates_none": "No duplicate files found.",
+  "duplicates_not_hashed_hint": "Only video, audio, image and PDF files that finished processing after this feature was added are compared.",
+  "duplicates_summary": "{groups} groups, {size} could be freed",
+  "duplicates_copies": "{count} copies of {size}",
+  "duplicates_select_extra": "Select extra copies",
+  "duplicates_clear_selection": "Clear selection",
+  "duplicates_delete_selected": "Delete {count} selected",
+  "duplicates_keep_one": "Keep at least one copy in every group.",
+  "duplicates_confirm_title": "Delete duplicate files?",
+  "duplicates_confirm_description": "{count} files ({size}) will be moved to Recently deleted.",
+  "duplicates_deleted": "{count} duplicate files deleted",
+  "duplicates_failed_load": "Failed to load duplicates",
+  "duplicates_truncated": "Showing the groups that waste the most space.",
+  "duplicates_root_path": "Project root",
+  "duplicates_group_changed": "These duplicates changed since the list was loaded. Nothing was deleted for that group; reopen the list and try again."
 }

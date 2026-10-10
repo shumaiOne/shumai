@@ -4,6 +4,8 @@ import projectRoute from './project'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { projectService } from '@shumai/core/src/project/project'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { duplicateService } from '@shumai/core/src/asset/duplicates'
+import { HTTPException } from 'hono/http-exception'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import type { ProjectInfo } from '@shumai/dtos'
 
@@ -35,6 +37,9 @@ vi.mock('@shumai/core/src/project/project', () => ({
   },
 }))
 vi.mock('@shumai/core/src/asset/asset')
+vi.mock('@shumai/core/src/asset/duplicates', () => ({
+  duplicateService: { listGroups: vi.fn(), resolveGroup: vi.fn() },
+}))
 
 vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
   auditLogService: {
@@ -490,5 +495,86 @@ describe('project api', () => {
       id: 'p1',
     })
     expect(assetService.recordRecentView).toHaveBeenCalledWith('user1', 'p1', 'file1')
+  })
+
+  describe('POST /projects/:projectId/duplicates/resolve', () => {
+    beforeEach(() => {
+      vi.mocked(duplicateService.resolveGroup).mockReset()
+      vi.mocked(authzService.hasPermission).mockClear()
+      vi.mocked(auditLogService.logAction).mockClear()
+    })
+
+    const post = (body: unknown) =>
+      app.request('/projects/p1/duplicates/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+
+    it('checks permissions, lets the service validate and delete, and audits each deletion', async () => {
+      vi.mocked(duplicateService.resolveGroup).mockResolvedValue({ deletedIds: ['b', 'c'] })
+
+      const res = await post({ keepId: 'a', deleteIds: ['b', 'c'] })
+
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ deletedIds: ['b', 'c'] })
+      expect(duplicateService.resolveGroup).toHaveBeenCalledWith('p1', 'a', ['b', 'c'])
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          permission: Permission.Read,
+          type: ResourceType.Project,
+          id: 'p1',
+        }),
+      )
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({ permission: Permission.Read, type: ResourceType.Asset, id: 'a' }),
+      )
+      for (const id of ['b', 'c']) {
+        expect(authzService.hasPermission).toHaveBeenCalledWith(
+          expect.objectContaining({ permission: Permission.Edit, type: ResourceType.Asset, id }),
+        )
+      }
+      expect(auditLogService.logAction).toHaveBeenCalledTimes(2)
+    })
+
+    it('deletes nothing when the user cannot edit one of the copies', async () => {
+      vi.mocked(authzService.hasPermission).mockImplementation(async ({ permission, id }) => {
+        if (permission === Permission.Edit && id === 'c') {
+          throw new HTTPException(403, { message: 'Forbidden' })
+        }
+      })
+
+      const res = await post({ keepId: 'a', deleteIds: ['b', 'c'] })
+
+      expect(res.status).toBe(403)
+      expect(duplicateService.resolveGroup).not.toHaveBeenCalled()
+    })
+
+    it('returns the service rejection (409) and audits nothing when the group does not match', async () => {
+      vi.mocked(duplicateService.resolveGroup).mockRejectedValue(
+        new HTTPException(409, { message: 'Not an exact copy of the file to keep: b' }),
+      )
+
+      const res = await post({ keepId: 'a', deleteIds: ['b'] })
+
+      expect(res.status).toBe(409)
+      expect(auditLogService.logAction).not.toHaveBeenCalled()
+    })
+
+    it('rejects malformed requests before touching the service', async () => {
+      expect((await post({ keepId: 'a', deleteIds: [] })).status).toBe(400)
+      expect((await post({ keepId: 'a', deleteIds: ['a'] })).status).toBe(400)
+      expect((await post({ deleteIds: ['b'] })).status).toBe(400)
+      expect(duplicateService.resolveGroup).not.toHaveBeenCalled()
+    })
+
+    it('no longer exposes the unused upload-time check endpoint', async () => {
+      const res = await app.request('/projects/p1/duplicates/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: [] }),
+      })
+      expect(res.status).toBe(404)
+    })
   })
 })

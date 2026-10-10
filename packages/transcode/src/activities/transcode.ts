@@ -19,6 +19,7 @@ import {
   isOfficeDocument,
 } from '@shumai/core/src/utils/mime'
 import { logger } from '@shumai/core/src/logger'
+import { sha256OfFile } from '@shumai/core/src/utils/hash'
 import { ApplicationFailure, Context } from '@temporalio/activity'
 import { getLocalTaskAbortSignal } from '@shumai/workflow-core'
 
@@ -78,6 +79,25 @@ async function ensureAssetNotPurging(assetKey: string): Promise<void> {
       message: 'Asset or storage key has been purged or is pending purge',
       nonRetryable: true,
     })
+  }
+}
+
+/**
+ * Streams the downloaded ORIGINAL once and stores its SHA-256 on the asset so exact duplicates can
+ * be found later. Only ever called with the file fetched from storage, never with a derived file
+ * (for example the PDF generated from an Office document or HTML page), because two different
+ * originals can produce byte-identical derived files. Never fails processing: a missing hash only
+ * means the asset is skipped by duplicate detection until it is reprocessed.
+ */
+async function recordContentHash(assetId: string, filePath: string): Promise<void> {
+  try {
+    const contentHash = await sha256OfFile(filePath)
+    await prisma.asset.updateMany({
+      where: { id: assetId, status: { not: AssetStatus.pending_purge } },
+      data: { contentHash },
+    })
+  } catch (err) {
+    logger.warn({ err, assetId }, '[downloadMediaToTmpActivity] Failed to record content hash')
   }
 }
 
@@ -1023,6 +1043,8 @@ export async function generatePdfProxyActivity(
 
 export async function downloadMediaToTmpActivity(params: {
   assetKey: string
+  /** When given, the SHA-256 of the downloaded original is recorded on this asset. */
+  assetId?: string
 }): Promise<{ filePath: string; tmpDir: string }> {
   const bucket = process.env.S3_BUCKET || 'shumai'
   const tmpDir = transcodeService.createTempDir('transcode-')
@@ -1046,6 +1068,8 @@ export async function downloadMediaToTmpActivity(params: {
     }
     throw err
   }
+
+  if (params.assetId) await recordContentHash(params.assetId, filePath)
 
   return { filePath, tmpDir }
 }

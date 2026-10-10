@@ -37,6 +37,7 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
 
     const download = await executeActivity(workerQueue, downloadMediaToTmpActivity, {
       assetKey: key,
+      assetId: asset.id,
     })
     let currentFilePath = download.filePath
     tmpDir = download.tmpDir

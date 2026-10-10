@@ -45,6 +45,7 @@ export type AssetMinAggregateOutputType = {
   mediaType: string | null
   fileCount: number | null
   sizeByte: bigint | null
+  contentHash: string | null
   status: $Enums.AssetStatus | null
   transcodeTaskId: string | null
   uploadId: string | null
@@ -70,6 +71,7 @@ export type AssetMaxAggregateOutputType = {
   mediaType: string | null
   fileCount: number | null
   sizeByte: bigint | null
+  contentHash: string | null
   status: $Enums.AssetStatus | null
   transcodeTaskId: string | null
   uploadId: string | null
@@ -96,6 +98,7 @@ export type AssetCountAggregateOutputType = {
   mediaType: number
   fileCount: number
   sizeByte: number
+  contentHash: number
   status: number
   transcodeTaskId: number
   uploadId: number
@@ -134,6 +137,7 @@ export type AssetMinAggregateInputType = {
   mediaType?: true
   fileCount?: true
   sizeByte?: true
+  contentHash?: true
   status?: true
   transcodeTaskId?: true
   uploadId?: true
@@ -159,6 +163,7 @@ export type AssetMaxAggregateInputType = {
   mediaType?: true
   fileCount?: true
   sizeByte?: true
+  contentHash?: true
   status?: true
   transcodeTaskId?: true
   uploadId?: true
@@ -185,6 +190,7 @@ export type AssetCountAggregateInputType = {
   mediaType?: true
   fileCount?: true
   sizeByte?: true
+  contentHash?: true
   status?: true
   transcodeTaskId?: true
   uploadId?: true
@@ -299,6 +305,7 @@ export type AssetGroupByOutputType = {
   mediaType: string | null
   fileCount: number
   sizeByte: bigint
+  contentHash: string | null
   status: $Enums.AssetStatus
   transcodeTaskId: string | null
   uploadId: string | null
@@ -349,6 +356,7 @@ export type AssetWhereInput = {
   mediaType?: Prisma.StringNullableFilter<"Asset"> | string | null
   fileCount?: Prisma.IntFilter<"Asset"> | number
   sizeByte?: Prisma.BigIntFilter<"Asset"> | bigint | number
+  contentHash?: Prisma.StringNullableFilter<"Asset"> | string | null
   status?: Prisma.EnumAssetStatusFilter<"Asset"> | $Enums.AssetStatus
   transcodeTaskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   uploadId?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -400,6 +408,7 @@ export type AssetOrderByWithRelationInput = {
   mediaType?: Prisma.SortOrderInput | Prisma.SortOrder
   fileCount?: Prisma.SortOrder
   sizeByte?: Prisma.SortOrder
+  contentHash?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   transcodeTaskId?: Prisma.SortOrderInput | Prisma.SortOrder
   uploadId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -455,6 +464,7 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<{
   mediaType?: Prisma.StringNullableFilter<"Asset"> | string | null
   fileCount?: Prisma.IntFilter<"Asset"> | number
   sizeByte?: Prisma.BigIntFilter<"Asset"> | bigint | number
+  contentHash?: Prisma.StringNullableFilter<"Asset"> | string | null
   status?: Prisma.EnumAssetStatusFilter<"Asset"> | $Enums.AssetStatus
   transcodeTaskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   uploadId?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -506,6 +516,7 @@ export type AssetOrderByWithAggregationInput = {
   mediaType?: Prisma.SortOrderInput | Prisma.SortOrder
   fileCount?: Prisma.SortOrder
   sizeByte?: Prisma.SortOrder
+  contentHash?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   transcodeTaskId?: Prisma.SortOrderInput | Prisma.SortOrder
   uploadId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -541,6 +552,7 @@ export type AssetScalarWhereWithAggregatesInput = {
   mediaType?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   fileCount?: Prisma.IntWithAggregatesFilter<"Asset"> | number
   sizeByte?: Prisma.BigIntWithAggregatesFilter<"Asset"> | bigint | number
+  contentHash?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   status?: Prisma.EnumAssetStatusWithAggregatesFilter<"Asset"> | $Enums.AssetStatus
   transcodeTaskId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   uploadId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
@@ -568,6 +580,7 @@ export type AssetCreateInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -612,6 +625,7 @@ export type AssetUncheckedCreateInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -656,6 +670,7 @@ export type AssetUpdateInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -700,6 +715,7 @@ export type AssetUncheckedUpdateInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -744,6 +760,7 @@ export type AssetCreateManyInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -771,6 +788,7 @@ export type AssetUpdateManyMutationInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -791,6 +809,7 @@ export type AssetUncheckedUpdateManyInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -843,6 +862,7 @@ export type AssetCountOrderByAggregateInput = {
   mediaType?: Prisma.SortOrder
   fileCount?: Prisma.SortOrder
   sizeByte?: Prisma.SortOrder
+  contentHash?: Prisma.SortOrder
   status?: Prisma.SortOrder
   transcodeTaskId?: Prisma.SortOrder
   uploadId?: Prisma.SortOrder
@@ -874,6 +894,7 @@ export type AssetMaxOrderByAggregateInput = {
   mediaType?: Prisma.SortOrder
   fileCount?: Prisma.SortOrder
   sizeByte?: Prisma.SortOrder
+  contentHash?: Prisma.SortOrder
   status?: Prisma.SortOrder
   transcodeTaskId?: Prisma.SortOrder
   uploadId?: Prisma.SortOrder
@@ -899,6 +920,7 @@ export type AssetMinOrderByAggregateInput = {
   mediaType?: Prisma.SortOrder
   fileCount?: Prisma.SortOrder
   sizeByte?: Prisma.SortOrder
+  contentHash?: Prisma.SortOrder
   status?: Prisma.SortOrder
   transcodeTaskId?: Prisma.SortOrder
   uploadId?: Prisma.SortOrder
@@ -1511,6 +1533,7 @@ export type AssetCreateWithoutCreatorInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -1554,6 +1577,7 @@ export type AssetUncheckedCreateWithoutCreatorInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -1626,6 +1650,7 @@ export type AssetScalarWhereInput = {
   mediaType?: Prisma.StringNullableFilter<"Asset"> | string | null
   fileCount?: Prisma.IntFilter<"Asset"> | number
   sizeByte?: Prisma.BigIntFilter<"Asset"> | bigint | number
+  contentHash?: Prisma.StringNullableFilter<"Asset"> | string | null
   status?: Prisma.EnumAssetStatusFilter<"Asset"> | $Enums.AssetStatus
   transcodeTaskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   uploadId?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -1653,6 +1678,7 @@ export type AssetCreateWithoutTeamRootFolderInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -1696,6 +1722,7 @@ export type AssetUncheckedCreateWithoutTeamRootFolderInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -1755,6 +1782,7 @@ export type AssetUpdateWithoutTeamRootFolderInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1798,6 +1826,7 @@ export type AssetUncheckedUpdateWithoutTeamRootFolderInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1841,6 +1870,7 @@ export type AssetCreateWithoutProjectRootFolderInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -1884,6 +1914,7 @@ export type AssetUncheckedCreateWithoutProjectRootFolderInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -1932,6 +1963,7 @@ export type AssetCreateWithoutProjectShareRootInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -1975,6 +2007,7 @@ export type AssetUncheckedCreateWithoutProjectShareRootInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -2023,6 +2056,7 @@ export type AssetCreateWithoutProjectInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -2066,6 +2100,7 @@ export type AssetUncheckedCreateWithoutProjectInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -2130,6 +2165,7 @@ export type AssetUpdateWithoutProjectRootFolderInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2173,6 +2209,7 @@ export type AssetUncheckedUpdateWithoutProjectRootFolderInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2227,6 +2264,7 @@ export type AssetUpdateWithoutProjectShareRootInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2270,6 +2308,7 @@ export type AssetUncheckedUpdateWithoutProjectShareRootInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2329,6 +2368,7 @@ export type AssetCreateWithoutShareLinkRootFolderInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -2372,6 +2412,7 @@ export type AssetUncheckedCreateWithoutShareLinkRootFolderInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -2431,6 +2472,7 @@ export type AssetUpdateWithoutShareLinkRootFolderInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2474,6 +2516,7 @@ export type AssetUncheckedUpdateWithoutShareLinkRootFolderInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2517,6 +2560,7 @@ export type AssetCreateWithoutWatermarkFilesInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -2560,6 +2604,7 @@ export type AssetUncheckedCreateWithoutWatermarkFilesInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -2619,6 +2664,7 @@ export type AssetUpdateWithoutWatermarkFilesInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2662,6 +2708,7 @@ export type AssetUncheckedUpdateWithoutWatermarkFilesInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2705,6 +2752,7 @@ export type AssetCreateWithoutChildrenInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -2748,6 +2796,7 @@ export type AssetUncheckedCreateWithoutChildrenInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -2796,6 +2845,7 @@ export type AssetCreateWithoutParentInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -2839,6 +2889,7 @@ export type AssetUncheckedCreateWithoutParentInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -2892,6 +2943,7 @@ export type AssetCreateWithoutSymlinksInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -2935,6 +2987,7 @@ export type AssetUncheckedCreateWithoutSymlinksInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -2983,6 +3036,7 @@ export type AssetCreateWithoutTargetInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -3026,6 +3080,7 @@ export type AssetUncheckedCreateWithoutTargetInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -3090,6 +3145,7 @@ export type AssetUpdateWithoutChildrenInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3133,6 +3189,7 @@ export type AssetUncheckedUpdateWithoutChildrenInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3203,6 +3260,7 @@ export type AssetUpdateWithoutSymlinksInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3246,6 +3304,7 @@ export type AssetUncheckedUpdateWithoutSymlinksInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3305,6 +3364,7 @@ export type AssetCreateWithoutStorageKeyInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -3348,6 +3408,7 @@ export type AssetUncheckedCreateWithoutStorageKeyInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -3417,6 +3478,7 @@ export type AssetCreateWithoutMetadataValuesInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -3460,6 +3522,7 @@ export type AssetUncheckedCreateWithoutMetadataValuesInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -3519,6 +3582,7 @@ export type AssetUpdateWithoutMetadataValuesInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3562,6 +3626,7 @@ export type AssetUncheckedUpdateWithoutMetadataValuesInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3605,6 +3670,7 @@ export type AssetCreateWithoutAgentMdInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -3648,6 +3714,7 @@ export type AssetUncheckedCreateWithoutAgentMdInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -3707,6 +3774,7 @@ export type AssetUpdateWithoutAgentMdInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3750,6 +3818,7 @@ export type AssetUncheckedUpdateWithoutAgentMdInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3793,6 +3862,7 @@ export type AssetCreateWithoutCommentsInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -3836,6 +3906,7 @@ export type AssetUncheckedCreateWithoutCommentsInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -3895,6 +3966,7 @@ export type AssetUpdateWithoutCommentsInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3938,6 +4010,7 @@ export type AssetUncheckedUpdateWithoutCommentsInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3981,6 +4054,7 @@ export type AssetCreateWithoutCommentAttachmentsInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -4024,6 +4098,7 @@ export type AssetUncheckedCreateWithoutCommentAttachmentsInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -4083,6 +4158,7 @@ export type AssetUpdateWithoutCommentAttachmentsInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4126,6 +4202,7 @@ export type AssetUncheckedUpdateWithoutCommentAttachmentsInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4169,6 +4246,7 @@ export type AssetCreateWithoutEmbeddingsInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -4212,6 +4290,7 @@ export type AssetUncheckedCreateWithoutEmbeddingsInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -4271,6 +4350,7 @@ export type AssetUpdateWithoutEmbeddingsInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4314,6 +4394,7 @@ export type AssetUncheckedUpdateWithoutEmbeddingsInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4357,6 +4438,7 @@ export type AssetCreateWithoutNotificationsInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -4400,6 +4482,7 @@ export type AssetUncheckedCreateWithoutNotificationsInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -4459,6 +4542,7 @@ export type AssetUpdateWithoutNotificationsInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4502,6 +4586,7 @@ export type AssetUncheckedUpdateWithoutNotificationsInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4545,6 +4630,7 @@ export type AssetCreateWithoutTaskInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -4588,6 +4674,7 @@ export type AssetUncheckedCreateWithoutTaskInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -4657,6 +4744,7 @@ export type AssetCreateWithoutAgentInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -4700,6 +4788,7 @@ export type AssetUncheckedCreateWithoutAgentInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -4769,6 +4858,7 @@ export type AssetCreateWithoutAgentSessionsInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -4812,6 +4902,7 @@ export type AssetUncheckedCreateWithoutAgentSessionsInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -4871,6 +4962,7 @@ export type AssetUpdateWithoutAgentSessionsInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4914,6 +5006,7 @@ export type AssetUncheckedUpdateWithoutAgentSessionsInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4957,6 +5050,7 @@ export type AssetCreateWithoutKanbanTargetTasksInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -5000,6 +5094,7 @@ export type AssetUncheckedCreateWithoutKanbanTargetTasksInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -5059,6 +5154,7 @@ export type AssetUpdateWithoutKanbanTargetTasksInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5102,6 +5198,7 @@ export type AssetUncheckedUpdateWithoutKanbanTargetTasksInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5145,6 +5242,7 @@ export type AssetCreateWithoutKanbanTasksInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -5188,6 +5286,7 @@ export type AssetUncheckedCreateWithoutKanbanTasksInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -5247,6 +5346,7 @@ export type AssetUpdateWithoutKanbanTasksInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5290,6 +5390,7 @@ export type AssetUncheckedUpdateWithoutKanbanTasksInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5333,6 +5434,7 @@ export type AssetCreateWithoutRecentFilesInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -5376,6 +5478,7 @@ export type AssetUncheckedCreateWithoutRecentFilesInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -5435,6 +5538,7 @@ export type AssetUpdateWithoutRecentFilesInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5478,6 +5582,7 @@ export type AssetUncheckedUpdateWithoutRecentFilesInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5521,6 +5626,7 @@ export type AssetCreateManyCreatorInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -5547,6 +5653,7 @@ export type AssetUpdateWithoutCreatorInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5590,6 +5697,7 @@ export type AssetUncheckedUpdateWithoutCreatorInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5633,6 +5741,7 @@ export type AssetUncheckedUpdateManyWithoutCreatorInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5659,6 +5768,7 @@ export type AssetCreateManyProjectInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -5685,6 +5795,7 @@ export type AssetUpdateWithoutProjectInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5728,6 +5839,7 @@ export type AssetUncheckedUpdateWithoutProjectInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5771,6 +5883,7 @@ export type AssetUncheckedUpdateManyWithoutProjectInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5797,6 +5910,7 @@ export type AssetCreateManyParentInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -5823,6 +5937,7 @@ export type AssetCreateManyTargetInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -5849,6 +5964,7 @@ export type AssetUpdateWithoutParentInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5892,6 +6008,7 @@ export type AssetUncheckedUpdateWithoutParentInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5935,6 +6052,7 @@ export type AssetUncheckedUpdateManyWithoutParentInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5961,6 +6079,7 @@ export type AssetUpdateWithoutTargetInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6004,6 +6123,7 @@ export type AssetUncheckedUpdateWithoutTargetInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6047,6 +6167,7 @@ export type AssetUncheckedUpdateManyWithoutTargetInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6073,6 +6194,7 @@ export type AssetCreateManyStorageKeyInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -6099,6 +6221,7 @@ export type AssetUpdateWithoutStorageKeyInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6142,6 +6265,7 @@ export type AssetUncheckedUpdateWithoutStorageKeyInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6185,6 +6309,7 @@ export type AssetUncheckedUpdateManyWithoutStorageKeyInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6211,6 +6336,7 @@ export type AssetCreateManyTaskInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -6237,6 +6363,7 @@ export type AssetUpdateWithoutTaskInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6280,6 +6407,7 @@ export type AssetUncheckedUpdateWithoutTaskInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6323,6 +6451,7 @@ export type AssetUncheckedUpdateManyWithoutTaskInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6349,6 +6478,7 @@ export type AssetCreateManyAgentInput = {
   mediaType?: string | null
   fileCount?: number
   sizeByte?: bigint | number
+  contentHash?: string | null
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   uploadId?: string | null
@@ -6375,6 +6505,7 @@ export type AssetUpdateWithoutAgentInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6418,6 +6549,7 @@ export type AssetUncheckedUpdateWithoutAgentInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6461,6 +6593,7 @@ export type AssetUncheckedUpdateManyWithoutAgentInput = {
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
   sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6617,6 +6750,7 @@ export type AssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   mediaType?: boolean
   fileCount?: boolean
   sizeByte?: boolean
+  contentHash?: boolean
   status?: boolean
   transcodeTaskId?: boolean
   uploadId?: boolean
@@ -6669,6 +6803,7 @@ export type AssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   mediaType?: boolean
   fileCount?: boolean
   sizeByte?: boolean
+  contentHash?: boolean
   status?: boolean
   transcodeTaskId?: boolean
   uploadId?: boolean
@@ -6703,6 +6838,7 @@ export type AssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   mediaType?: boolean
   fileCount?: boolean
   sizeByte?: boolean
+  contentHash?: boolean
   status?: boolean
   transcodeTaskId?: boolean
   uploadId?: boolean
@@ -6737,6 +6873,7 @@ export type AssetSelectScalar = {
   mediaType?: boolean
   fileCount?: boolean
   sizeByte?: boolean
+  contentHash?: boolean
   status?: boolean
   transcodeTaskId?: boolean
   uploadId?: boolean
@@ -6756,7 +6893,7 @@ export type AssetSelectScalar = {
   projectId?: boolean
 }
 
-export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameNgram" | "type" | "mediaType" | "fileCount" | "sizeByte" | "status" | "transcodeTaskId" | "uploadId" | "media" | "hasJpegPreview" | "isDeleted" | "deletedAt" | "sortIndex" | "createdAt" | "updatedAt" | "parentId" | "targetId" | "storageKeyId" | "creatorId" | "agentId" | "taskId" | "projectId", ExtArgs["result"]["asset"]>
+export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameNgram" | "type" | "mediaType" | "fileCount" | "sizeByte" | "contentHash" | "status" | "transcodeTaskId" | "uploadId" | "media" | "hasJpegPreview" | "isDeleted" | "deletedAt" | "sortIndex" | "createdAt" | "updatedAt" | "parentId" | "targetId" | "storageKeyId" | "creatorId" | "agentId" | "taskId" | "projectId", ExtArgs["result"]["asset"]>
 export type AssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   parent?: boolean | Prisma.Asset$parentArgs<ExtArgs>
   children?: boolean | Prisma.Asset$childrenArgs<ExtArgs>
@@ -6839,6 +6976,10 @@ export type $AssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     mediaType: string | null
     fileCount: number
     sizeByte: bigint
+    /**
+     * SHA-256 (lowercase hex) of the original file. Null until it has been computed, and for folders and symlinks.
+     */
+    contentHash: string | null
     status: $Enums.AssetStatus
     transcodeTaskId: string | null
     uploadId: string | null
@@ -7313,6 +7454,7 @@ export interface AssetFieldRefs {
   readonly mediaType: Prisma.FieldRef<"Asset", 'String'>
   readonly fileCount: Prisma.FieldRef<"Asset", 'Int'>
   readonly sizeByte: Prisma.FieldRef<"Asset", 'BigInt'>
+  readonly contentHash: Prisma.FieldRef<"Asset", 'String'>
   readonly status: Prisma.FieldRef<"Asset", 'AssetStatus'>
   readonly transcodeTaskId: Prisma.FieldRef<"Asset", 'String'>
   readonly uploadId: Prisma.FieldRef<"Asset", 'String'>

@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 * **kanban**: Related assets on a task are now clickable, taking you directly to that file or folder in its project
+* **duplicates**: New Duplicates view in the project sidebar lists files with identical content so you can review them and delete the extra copies yourself. Only files processed after this update are compared; older files are included once they are reprocessed
 
 ### Fixed
 
