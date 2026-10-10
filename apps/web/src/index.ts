@@ -8,7 +8,9 @@ import index from '@shumai/webui/index.html'
 import { initAgentWorkflows } from '@shumai/agent'
 import { app } from '@shumai/api'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { storageCatalogService } from '@shumai/core/src/catalog/catalog'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
+import { contentHashQueue } from '@shumai/core/src/upload/upload'
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { workflowService } from '@shumai/workflow-core'
 import { migrateLegacyAgentAvatars } from '@shumai/core/src/agent/migration'
@@ -17,6 +19,9 @@ import { handleDaemonCommands } from '@shumai/core/src/utils/daemon'
 import { authService } from '@shumai/core/src/auth/auth'
 import { sandboxService } from '@shumai/core'
 import { notificationJobService } from '@shumai/core/src/notification/notification-job'
+
+/** How long shutdown waits for content hashes that are already being computed. */
+const CONTENT_HASH_SHUTDOWN_TIMEOUT_MS = 15_000
 
 if (process.argv.includes('--check')) {
   console.log('✅ Web app evaluated successfully!')
@@ -47,6 +52,68 @@ if (resetCmdIndex !== -1) {
   }
 }
 
+if (cliArgs[0] === 'restore-catalog') {
+  const option = (name: string) => {
+    const i = cliArgs.indexOf(name)
+    return i !== -1 && cliArgs[i + 1] && !cliArgs[i + 1].startsWith('-')
+      ? cliArgs[i + 1]
+      : undefined
+  }
+  try {
+    const { restoreFromCatalog } = await import('@shumai/core/src/catalog/restore')
+    const report = await restoreFromCatalog({
+      teamId: option('--team'),
+      creatorId: option('--creator'),
+      dryRun: cliArgs.includes('--dry-run'),
+      log: (line) => console.log(line),
+    })
+    console.log(JSON.stringify(report, null, 2))
+    process.exit(0)
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error(`Error: ${message}`)
+    console.error(
+      'Usage: shumai restore-catalog [--team <teamId>] [--creator <userId>] [--dry-run]',
+    )
+    process.exit(1)
+  }
+}
+
+if (cliArgs[0] === 'verify-catalog') {
+  const option = (name: string) => {
+    const i = cliArgs.indexOf(name)
+    return i !== -1 && cliArgs[i + 1] && !cliArgs[i + 1].startsWith('-')
+      ? cliArgs[i + 1]
+      : undefined
+  }
+  const asJson = cliArgs.includes('--json')
+  try {
+    const concurrency = option('--concurrency')
+    if (concurrency !== undefined && !(Number.isInteger(+concurrency) && +concurrency >= 1)) {
+      throw new Error('--concurrency must be a whole number of at least 1')
+    }
+    const { verifyCatalog, summarizeReport } = await import('@shumai/core/src/catalog/verify')
+    const deep = cliArgs.includes('--deep')
+    const report = await verifyCatalog({
+      deep,
+      backfillHashes: cliArgs.includes('--backfill-hashes'),
+      concurrency: concurrency ? +concurrency : undefined,
+      // Progress goes to stderr so --json leaves a clean report on stdout.
+      log: (line) => console.error(line),
+    })
+    if (asJson) console.log(JSON.stringify(report, null, 2))
+    else for (const line of summarizeReport(report)) console.log(line)
+    process.exit(report.ok ? 0 : 1)
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error(`Error: ${message}`)
+    console.error(
+      'Usage: shumai verify-catalog [--deep] [--json] [--concurrency <n>] [--backfill-hashes]',
+    )
+    process.exit(2)
+  }
+}
+
 async function run() {
   // Initialize workflows and activities for local executor mode
   initAgentWorkflows()
@@ -60,6 +127,7 @@ async function run() {
   await migrateLegacyAgentAvatars().catch(console.error)
   assetService.startCleanupJob()
   notificationJobService.start()
+  storageCatalogService.startCatalogSync()
   workflowService.start()
   if (process.env.WORKFLOW_EXECUTOR === 'temporal') {
     const args = process.argv.slice(2)
@@ -180,10 +248,22 @@ async function run() {
 
   console.log(`🚀 Server running at ${server.url}`)
 
-  const shutdown = () => {
+  let shuttingDown = false
+  const shutdown = async () => {
+    if (shuttingDown) return
+    shuttingDown = true
     console.log('\nShutting down gracefully...')
     assetService.stopCleanupJob()
+    storageCatalogService.stopCatalogSync()
     server.stop(true)
+    // Let content hashes that are already being computed finish (bounded); queued ones are dropped and stay
+    // empty until `verify-catalog --deep --backfill-hashes`.
+    const { dropped, timedOut } = await contentHashQueue.shutdown(CONTENT_HASH_SHUTDOWN_TIMEOUT_MS)
+    if (dropped > 0 || timedOut) {
+      console.log(
+        `Content hashing stopped early: ${dropped} queued hashes dropped${timedOut ? ', in-flight hashes timed out' : ''}`,
+      )
+    }
     process.exit(0)
   }
 

@@ -530,6 +530,8 @@ model Asset {
   mediaType         String?      @map("media_type")
   fileCount         Int          @default(0) @map("file_count")
   sizeByte          BigInt       @default(0) @map("size_byte")
+  /// SHA-256 (lowercase hex) of the original file. Null until it has been computed, and for folders and symlinks.
+  contentHash       String?      @map("content_hash")
   status            AssetStatus
   transcodeTaskId   String?      @map("transcode_task_id")
   uploadId          String?      @map("upload_id")
@@ -592,6 +594,7 @@ model Asset {
   @@index([isDeleted])
   @@index([deletedAt])
   @@index([agentId])
+  @@index([projectId, contentHash])
   @@index([name], name: "assets_name_idx")
   @@index([nameNgram], type: Gin)
   @@unique([parentId, targetId], name: "parentIdTargetId")
@@ -606,6 +609,32 @@ model StorageKey {
   assets    Asset[]
 
   @@map("storage_keys")
+}
+
+/// Library changes waiting to be appended to the storage catalog by StorageCatalogService.
+/// Filled by database triggers on assets, asset_metadata_values, projects and metadata_fields
+/// (see migration add_storage_catalog). id is an asset id, 'project:<id>' or 'field:<key>'.
+model StorageCatalogQueue {
+  id       String   @id
+  queuedAt DateTime @default(now()) @map("queued_at")
+
+  @@index([queuedAt])
+  @@map("storage_catalog_queue")
+}
+
+/// Single row (id = 1) describing the storage catalog: the latest snapshot and the log written since.
+/// Absent until the first snapshot; removed while the catalog is switched off so it is rebuilt when
+/// switched on again.
+model StorageCatalogState {
+  id            Int      @id @default(1)
+  lastSeq       BigInt   @default(0) @map("last_seq")
+  snapshotSeq   BigInt   @default(0) @map("snapshot_seq")
+  snapshotBytes BigInt   @default(0) @map("snapshot_bytes")
+  logSegments   Int      @default(0) @map("log_segments")
+  logBytes      BigInt   @default(0) @map("log_bytes")
+  updatedAt     DateTime @default(now()) @map("updated_at")
+
+  @@map("storage_catalog_state")
 }
 
 model AssetMetadataValue {

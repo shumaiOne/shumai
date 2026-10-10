@@ -60,6 +60,32 @@ For example, if you deploy Shumai on a remote server at `http://123.456.7.8` and
 - Set `SHUMAI_SERVER_PORT` to `3000`.
 - Set `AWS_ENDPOINT_URL_S3` to `http://123.456.7.8:12345`.
 
+### Storage Catalog
+
+| Variable                  | Description                                                                                                                                              | Example / Default |
+| :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------- |
+| `STORAGE_CATALOG_ENABLED` | Keep a record of every project, folder, file, metadata field and metadata value in storage under `catalog/`, updated within a few seconds of any change. | `false` (default) |
+
+Your files are stored under their original names, but which project and folder each file belongs to, its metadata and its trash state live only in the database. With the catalog turned on, that information is also kept in storage next to the files, so the library can be rebuilt if the database is lost.
+
+The catalog is compact: each few seconds' worth of changes is written as one small compressed file in `catalog/log/`, and from time to time the whole library is written as one compressed snapshot in `catalog/snapshot/`, replacing the log files before it. Tagging thousands of files at once writes a handful of small files, not thousands. To restore:
+
+1. Start Shumai with a new, empty database and create a team (and your user) as usual.
+2. Check what would be restored: `shumai restore-catalog --team <teamId> --dry-run`
+3. Restore: `shumai restore-catalog --team <teamId> --creator <userId>`
+
+The restore recreates projects, folders, files, metadata fields and values, and trash state, reusing the files and previews already in storage. It skips anything that already exists, so it is safe to run again. Comments, members, share links and settings are not part of the catalog; keep regular database backups for those. The catalog only helps if storage survives when the database does not, so keep them on separate disks or services.
+
+### Checking the catalog and your files
+
+Each file's SHA-256 fingerprint is computed in the background shortly after its upload is confirmed (files uploaded before this was added have none yet, and neither do files still waiting in the hashing queue when the server stops) and is kept in the catalog. Hashing reads the stored file once, two files at a time; set `CONTENT_HASH_CONCURRENCY` to change that number. `shumai verify-catalog` compares the catalog with what is actually in storage, without changing anything:
+
+- `shumai verify-catalog` checks that every file the catalog lists exists in storage and has the recorded size.
+- `shumai verify-catalog --deep` also reads every file and compares its fingerprint, which catches silent corruption. It reads your whole library, so run it off-peak.
+- `--json` prints a machine-readable report instead of the summary, `--concurrency <n>` sets how many files are checked at once (default 2, to keep the server responsive), and `--deep --backfill-hashes` records the fingerprint of files that do not have one yet.
+
+The command exits with 0 when everything matches, 1 when it finds a problem (a missing file, a different size or fingerprint, or an unreadable catalog object), and 2 when it could not run. It only needs storage, so it works even if the database is gone.
+
 ---
 
 ## Workflow Config

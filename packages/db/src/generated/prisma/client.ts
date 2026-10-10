@@ -127,6 +127,20 @@ export type Asset = Prisma.AssetModel
  */
 export type StorageKey = Prisma.StorageKeyModel
 /**
+ * Model StorageCatalogQueue
+ * Library changes waiting to be appended to the storage catalog by StorageCatalogService.
+ * Filled by database triggers on assets, asset_metadata_values, projects and metadata_fields
+ * (see migration add_storage_catalog). id is an asset id, 'project:<id>' or 'field:<key>'.
+ */
+export type StorageCatalogQueue = Prisma.StorageCatalogQueueModel
+/**
+ * Model StorageCatalogState
+ * Single row (id = 1) describing the storage catalog: the latest snapshot and the log written since.
+ * Absent until the first snapshot; removed while the catalog is switched off so it is rebuilt when
+ * switched on again.
+ */
+export type StorageCatalogState = Prisma.StorageCatalogStateModel
+/**
  * Model AssetMetadataValue
  * 
  */

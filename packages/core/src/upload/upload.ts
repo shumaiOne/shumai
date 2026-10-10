@@ -21,6 +21,19 @@ import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
 import { getProxyType, isHtmlDocument, isOfficeDocument } from '@shumai/core/src/utils/mime'
 import { logger } from '@shumai/core/src/logger'
+import { JobQueue } from '@shumai/core/src/utils/job-queue'
+
+/**
+ * Uploaded originals are hashed in the background, a couple at a time, so confirming an upload never waits
+ * on a read of the whole object and a burst of uploads cannot start a burst of full-object reads.
+ * `CONTENT_HASH_CONCURRENCY` overrides the default of 2.
+ */
+const HASH_CONCURRENCY = Number.parseInt(process.env.CONTENT_HASH_CONCURRENCY ?? '', 10) || 2
+
+export const contentHashQueue = new JobQueue({
+  concurrency: HASH_CONCURRENCY,
+  onError: (err, assetId) => logger.warn({ err, assetId }, 'Could not record the content hash'),
+})
 
 export class UploadService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
@@ -297,6 +310,20 @@ export class UploadService {
 
       await this.triggerPostUploadWorkflows(tx, asset.id, team.id, asset.projectId)
     })
+
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    contentHashQueue.enqueue(asset.id, () => this.recordContentHash(asset.id, bucket, key))
+  }
+
+  /**
+   * Stores the SHA-256 of an uploaded original so the storage catalog (and `verify-catalog --deep`) can detect
+   * silent corruption. Files go to storage directly from the browser, so this is one extra streamed read of the
+   * object, always run in the background through `contentHashQueue`. A failure is logged by the queue and
+   * leaves the hash empty (it never fails the upload); `verify-catalog --deep --backfill-hashes` fills it in.
+   */
+  async recordContentHash(assetId: string, bucket: string, key: string): Promise<void> {
+    const contentHash = await s3Service.hashObject(bucket, key)
+    await this.prismaClient.asset.updateMany({ where: { id: assetId }, data: { contentHash } })
   }
 
   async triggerPostUploadWorkflows(

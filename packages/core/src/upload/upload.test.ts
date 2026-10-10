@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { uploadService } from './upload'
+import { contentHashQueue, uploadService } from './upload'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { AssetStatus, AssetType, TaskStatus, WorkflowTaskType } from '@shumai/db'
@@ -11,6 +11,7 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
     presign: vi.fn().mockResolvedValue('http://presigned-url.com'),
     getObjectSize: vi.fn().mockResolvedValue(100),
+    hashObject: vi.fn().mockResolvedValue('b'.repeat(64)),
     presignMultipart: vi.fn().mockResolvedValue({ url: 'http://signed-multipart-url.com' }),
     abortMultipartUpload: vi.fn().mockResolvedValue(undefined),
     deleteObject: vi.fn().mockResolvedValue(1),
@@ -180,11 +181,25 @@ describe('UploadService', () => {
       },
     })
 
+    // Capture the queued job instead of letting it run, so the test is not racing the background hash.
+    let queuedJob: (() => Promise<void>) | undefined
+    const enqueue = vi.spyOn(contentHashQueue, 'enqueue').mockImplementationOnce((_name, job) => {
+      queuedJob = job
+      return true
+    })
+
     await uploadService.confirmFileUpload(userId, task.id, { fileId: asset.id })
 
     const updatedAsset = await prisma.asset.findUnique({ where: { id: asset.id } })
     // For video/image, status remains 'uploaded' while transcoding is pending
     expect(updatedAsset?.status).toBe(AssetStatus.uploaded)
+    // Confirming never waits on the hash: it is only queued.
+    expect(updatedAsset?.contentHash).toBeNull()
+    expect(enqueue).toHaveBeenCalledWith(asset.id, expect.any(Function))
+    await queuedJob!()
+    expect(s3Service.hashObject).toHaveBeenCalledWith(expect.any(String), 'test-key')
+    const hashed = await prisma.asset.findUnique({ where: { id: asset.id } })
+    expect(hashed?.contentHash).toBe('b'.repeat(64))
 
     const workflowTask = await prisma.workflowTask.findFirst({
       where: { assetId: asset.id, type: WorkflowTaskType.transcode_video },

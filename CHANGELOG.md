@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 * **kanban**: Related assets on a task are now clickable, taking you directly to that file or folder in its project
+* **storage**: Add an optional storage catalog (`STORAGE_CATALOG_ENABLED`): Shumai keeps a small record of every project, folder, file and its metadata next to your files, updated within seconds of any change, and the new `shumai restore-catalog` command rebuilds your library from it if the database is ever lost
+* **storage**: Shumai now records a SHA-256 fingerprint of every newly uploaded file in the background and keeps it in the storage catalog, and the new `shumai verify-catalog` command checks that every file the catalog lists is still in storage at the right size (add `--deep` to also re-read each file and compare its fingerprint, `--json` for a machine-readable report); it never changes or deletes files, and only writes to the database when `--backfill-hashes` is given to fill in missing fingerprints
 
 ### Fixed
 

@@ -414,6 +414,8 @@ export const ModelName = {
   WatermarkFile: 'WatermarkFile',
   Asset: 'Asset',
   StorageKey: 'StorageKey',
+  StorageCatalogQueue: 'StorageCatalogQueue',
+  StorageCatalogState: 'StorageCatalogState',
   AssetMetadataValue: 'AssetMetadataValue',
   AssetAgentMd: 'AssetAgentMd',
   AssetComment: 'AssetComment',
@@ -464,7 +466,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetCommentReaction" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord" | "kanbanGoal" | "kanbanTask" | "kanbanTaskLink" | "kanbanTaskAsset" | "kanbanTaskComment" | "kanbanTaskEvent" | "recentFileItem"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "storageCatalogQueue" | "storageCatalogState" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetCommentReaction" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord" | "kanbanGoal" | "kanbanTask" | "kanbanTaskLink" | "kanbanTaskAsset" | "kanbanTaskComment" | "kanbanTaskEvent" | "recentFileItem"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1723,6 +1725,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.StorageKeyCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.StorageKeyCountAggregateOutputType> | number
+        }
+      }
+    }
+    StorageCatalogQueue: {
+      payload: Prisma.$StorageCatalogQueuePayload<ExtArgs>
+      fields: Prisma.StorageCatalogQueueFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.StorageCatalogQueueFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogQueuePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.StorageCatalogQueueFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogQueuePayload>
+        }
+        findFirst: {
+          args: Prisma.StorageCatalogQueueFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogQueuePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.StorageCatalogQueueFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogQueuePayload>
+        }
+        findMany: {
+          args: Prisma.StorageCatalogQueueFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogQueuePayload>[]
+        }
+        create: {
+          args: Prisma.StorageCatalogQueueCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogQueuePayload>
+        }
+        createMany: {
+          args: Prisma.StorageCatalogQueueCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.StorageCatalogQueueCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogQueuePayload>[]
+        }
+        delete: {
+          args: Prisma.StorageCatalogQueueDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogQueuePayload>
+        }
+        update: {
+          args: Prisma.StorageCatalogQueueUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogQueuePayload>
+        }
+        deleteMany: {
+          args: Prisma.StorageCatalogQueueDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.StorageCatalogQueueUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.StorageCatalogQueueUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogQueuePayload>[]
+        }
+        upsert: {
+          args: Prisma.StorageCatalogQueueUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogQueuePayload>
+        }
+        aggregate: {
+          args: Prisma.StorageCatalogQueueAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateStorageCatalogQueue>
+        }
+        groupBy: {
+          args: Prisma.StorageCatalogQueueGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StorageCatalogQueueGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.StorageCatalogQueueCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StorageCatalogQueueCountAggregateOutputType> | number
+        }
+      }
+    }
+    StorageCatalogState: {
+      payload: Prisma.$StorageCatalogStatePayload<ExtArgs>
+      fields: Prisma.StorageCatalogStateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.StorageCatalogStateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogStatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.StorageCatalogStateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogStatePayload>
+        }
+        findFirst: {
+          args: Prisma.StorageCatalogStateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogStatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.StorageCatalogStateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogStatePayload>
+        }
+        findMany: {
+          args: Prisma.StorageCatalogStateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogStatePayload>[]
+        }
+        create: {
+          args: Prisma.StorageCatalogStateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogStatePayload>
+        }
+        createMany: {
+          args: Prisma.StorageCatalogStateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.StorageCatalogStateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogStatePayload>[]
+        }
+        delete: {
+          args: Prisma.StorageCatalogStateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogStatePayload>
+        }
+        update: {
+          args: Prisma.StorageCatalogStateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogStatePayload>
+        }
+        deleteMany: {
+          args: Prisma.StorageCatalogStateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.StorageCatalogStateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.StorageCatalogStateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogStatePayload>[]
+        }
+        upsert: {
+          args: Prisma.StorageCatalogStateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageCatalogStatePayload>
+        }
+        aggregate: {
+          args: Prisma.StorageCatalogStateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateStorageCatalogState>
+        }
+        groupBy: {
+          args: Prisma.StorageCatalogStateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StorageCatalogStateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.StorageCatalogStateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StorageCatalogStateCountAggregateOutputType> | number
         }
       }
     }
@@ -4575,6 +4725,7 @@ export const AssetScalarFieldEnum = {
   mediaType: 'mediaType',
   fileCount: 'fileCount',
   sizeByte: 'sizeByte',
+  contentHash: 'contentHash',
   status: 'status',
   transcodeTaskId: 'transcodeTaskId',
   uploadId: 'uploadId',
@@ -4606,6 +4757,27 @@ export const StorageKeyScalarFieldEnum = {
 } as const
 
 export type StorageKeyScalarFieldEnum = (typeof StorageKeyScalarFieldEnum)[keyof typeof StorageKeyScalarFieldEnum]
+
+
+export const StorageCatalogQueueScalarFieldEnum = {
+  id: 'id',
+  queuedAt: 'queuedAt'
+} as const
+
+export type StorageCatalogQueueScalarFieldEnum = (typeof StorageCatalogQueueScalarFieldEnum)[keyof typeof StorageCatalogQueueScalarFieldEnum]
+
+
+export const StorageCatalogStateScalarFieldEnum = {
+  id: 'id',
+  lastSeq: 'lastSeq',
+  snapshotSeq: 'snapshotSeq',
+  snapshotBytes: 'snapshotBytes',
+  logSegments: 'logSegments',
+  logBytes: 'logBytes',
+  updatedAt: 'updatedAt'
+} as const
+
+export type StorageCatalogStateScalarFieldEnum = (typeof StorageCatalogStateScalarFieldEnum)[keyof typeof StorageCatalogStateScalarFieldEnum]
 
 
 export const AssetMetadataValueScalarFieldEnum = {
@@ -5785,6 +5957,8 @@ export type GlobalOmitConfig = {
   watermarkFile?: Prisma.WatermarkFileOmit
   asset?: Prisma.AssetOmit
   storageKey?: Prisma.StorageKeyOmit
+  storageCatalogQueue?: Prisma.StorageCatalogQueueOmit
+  storageCatalogState?: Prisma.StorageCatalogStateOmit
   assetMetadataValue?: Prisma.AssetMetadataValueOmit
   assetAgentMd?: Prisma.AssetAgentMdOmit
   assetComment?: Prisma.AssetCommentOmit
