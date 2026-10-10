@@ -13,6 +13,7 @@ import { ManageFieldsDialog } from '../manage-fields-dialog'
 import { MembersDialog } from '../members-dialog'
 import { FilterPanel } from '../search/filter-panel'
 import { SearchFilterDialog } from '../search/search-filter-dialog'
+import { PhotoFilter } from '../search/photo-filter'
 import { SortControl } from '../search/sort-control'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Button } from '../ui/button'
@@ -272,6 +273,14 @@ export function FileBrowserToolbar({
           fields={fields}
           sort={sort}
           onSortChange={onSortChange}
+          disabled={isRecentlyDeleted || isRecents}
+        />
+
+        <PhotoFilter
+          teamId={teamId}
+          projectId={projectId}
+          folderId={assetId}
+          conditions={filterConditions}
           disabled={isRecentlyDeleted || isRecents}
         />
 

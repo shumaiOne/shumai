@@ -12,6 +12,7 @@ import sharp, { type Metadata as SharpMetadata } from 'sharp'
 import { ulid } from 'ulid'
 import { promisify } from 'util'
 import { mapConcurrent } from '../utils/async'
+import { videoCaptureTime } from '../utils/capture-time'
 import { isRawImage } from '../utils/raw'
 import { dataFormatNames } from './dataFormatNames'
 import { extractAndValidateRawPreview, EXIF_ORIENTATION_TO_ROTATION } from './raw-extract'
@@ -156,6 +157,11 @@ export interface MediaMetadata {
   frameRate: number
   totalFrames: number
   startTimecode?: string
+  /**
+   * Date taken as an ISO string in the `capture_date` convention (camera wall clock as if UTC):
+   * from `com.apple.quicktime.creationdate` when present, else the UTC `creation_time`.
+   */
+  creationTime?: string
   hasAudio: boolean
   videoCodec?: string
   audioCodec?: string
@@ -739,6 +745,13 @@ export class TranscodeService {
       totalFrames = Math.round(duration * fps)
     }
     const startTimecode = videoStream.tags?.timecode || info.format?.tags?.timecode
+    // The camera's wall clock when the container has a local-time tag, else the UTC creation_time.
+    const creationTime = videoCaptureTime({
+      localCreationDate:
+        info.format?.tags?.['com.apple.quicktime.creationdate'] ||
+        videoStream.tags?.['com.apple.quicktime.creationdate'],
+      creationTime: info.format?.tags?.creation_time || videoStream.tags?.creation_time,
+    })
 
     let videoBitRate: number | undefined
     if (videoStream.bit_rate && parseInt(videoStream.bit_rate, 10) > 0) {
@@ -867,6 +880,7 @@ export class TranscodeService {
       frameRate: fps || 30,
       totalFrames: totalFrames || 0,
       startTimecode,
+      creationTime,
       hasAudio: !!audioStream,
       videoCodec: this.resolveCodecName(videoStream),
       audioCodec: audioStream ? this.resolveCodecName(audioStream) : undefined,

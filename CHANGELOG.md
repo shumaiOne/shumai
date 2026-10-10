@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 * **kanban**: Related assets on a task are now clickable, taking you directly to that file or folder in its project
+* **transcode**: Photos and videos now record when they were taken, and photos the camera and lens they were shot with, read from the file's own metadata; the time is the camera's own clock time (shown as recorded, whatever time zone you view it from), and they show as read-only "Date Taken", "Camera" and "Lens" fields. Files uploaded before this update get them when they are processed again
+* **file-browser**: Sort files by "Date Taken", with a heading for each day the photo was taken
+* **file-browser**: Add a "Camera" filter next to Sort that narrows a folder, collection or search to chosen cameras or lenses, with how many files each has; it also lists matching photos from subfolders
 
 ### Fixed
 

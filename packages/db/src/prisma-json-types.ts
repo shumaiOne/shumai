@@ -282,6 +282,8 @@ declare global {
       displayTimezone: boolean
       includeTime: boolean
       timeFormat: string // 'twelve_hour' | 'twenty_four_hour'
+      /** Wall-clock time stored as UTC: render with timeZone UTC, no shifting. */
+      wallClock?: boolean
     }
 
     export type UserConfig = Record<string, never>

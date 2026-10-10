@@ -1502,5 +1502,14 @@
   "hide_agent": "Hide Agent",
   "hide_agent_description": "Hide the AGENTS.md button, agent-chat sidebar, and chatbot trigger button across the entire team.",
   "appearance_settings_updated": "Appearance settings updated",
-  "failed_update_appearance_settings": "Failed to update appearance settings"
+  "failed_update_appearance_settings": "Failed to update appearance settings",
+  "sort_date_taken": "Date Taken",
+  "date_group_undated": "No date taken",
+  "photo_filter": "Camera",
+  "photo_filter_title": "Filter by camera or lens",
+  "photo_filter_camera": "Camera",
+  "photo_filter_lens": "Lens",
+  "photo_filter_empty": "No camera details here or in any subfolder yet.",
+  "photo_filter_scope": "Counts include subfolders. Picking one shows matching photos from subfolders too.",
+  "photo_filter_clear": "Clear"
 }

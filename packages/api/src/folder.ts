@@ -11,7 +11,7 @@ import {
   updateAgentsMdRequestSchema,
 } from '@shumai/dtos'
 import { listChildrenRequestSchema, updateAssetOrderRequestSchema, AuditAction } from '@shumai/dtos'
-import { searchRequestSchema } from '@shumai/dtos'
+import { photoFacetsRequestSchema, searchRequestSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
@@ -186,6 +186,26 @@ const route = new Hono<{ Variables: { user: User } }>()
     const result = await searchService.search(folderId, req)
     return c.json(result)
   })
+  // The camera filter's choices, counted over the files a search or collection shows.
+  .post(
+    '/folders/:folderId/photo-facets',
+    zValidator('json', photoFacetsRequestSchema),
+    async (c) => {
+      const folderId = c.req.param('folderId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Asset,
+        id: folderId,
+      })
+
+      const facets = await searchService.photoFacets(folderId, req)
+      return c.json({ data: facets })
+    },
+  )
   .get('/folders/:folderId/agentsmd', async (c) => {
     const folderId = c.req.param('folderId')
     const user = c.get('user')

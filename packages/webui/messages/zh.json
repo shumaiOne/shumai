@@ -1502,5 +1502,14 @@
   "hide_agent": "隐藏 Agent",
   "hide_agent_description": "在整个团队中隐藏 AGENTS.md 按钮、Agent 聊天侧边栏和触发按钮。",
   "appearance_settings_updated": "外观设置已更新",
-  "failed_update_appearance_settings": "更新外观设置失败"
+  "failed_update_appearance_settings": "更新外观设置失败",
+  "sort_date_taken": "拍摄日期",
+  "date_group_undated": "无拍摄日期",
+  "photo_filter": "相机",
+  "photo_filter_title": "按相机或镜头筛选",
+  "photo_filter_camera": "相机",
+  "photo_filter_lens": "镜头",
+  "photo_filter_empty": "此处及子文件夹中还没有相机信息。",
+  "photo_filter_scope": "计数包含子文件夹。选择后也会显示子文件夹中的匹配照片。",
+  "photo_filter_clear": "清除"
 }

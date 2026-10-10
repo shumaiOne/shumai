@@ -10,6 +10,7 @@ import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { getDerivedArtifactDirectory, stemFromKey } from '@shumai/core/src/utils/filename'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { parseCsvContent } from '@shumai/core/src/transcode/transcode'
+import { photoExifMetadata, readPhotoExifFromFile } from '@shumai/core/src/utils/photo-exif'
 import { resolutionToDimensions } from '../workflows/transcode-utils'
 import {
   getProxyType,
@@ -219,6 +220,8 @@ export async function getMediaInfoActivity(params: {
           { key: 'bitRate', value: info.bitRate / 1000 },
           { key: 'frame_rate', value: info.frameRate },
         )
+        if (info.creationTime)
+          metadataUpdates.push({ key: 'capture_date', value: info.creationTime })
         if (info.rotation !== undefined)
           metadataUpdates.push({ key: 'rotation', value: info.rotation })
         if (info.isHdr !== undefined)
@@ -281,6 +284,7 @@ export async function getMediaInfoActivity(params: {
       metadataUpdates.push(
         { key: 'resolution_width', value: info.originalWidth },
         { key: 'resolution_height', value: info.originalHeight },
+        ...photoExifMetadata(await readPhotoExifFromFile(params.filePath)),
       )
     } else if (isPdf) {
       const info = await transcodeService.getPdfInfo(params.filePath)
