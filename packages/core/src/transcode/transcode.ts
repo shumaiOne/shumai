@@ -8,7 +8,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import PDFDocument from 'pdfkit'
-import sharp from 'sharp'
+import sharp, { type Metadata as SharpMetadata } from 'sharp'
 import { ulid } from 'ulid'
 import { promisify } from 'util'
 import { mapConcurrent } from '../utils/async'
@@ -417,6 +417,28 @@ function getPathSize(target: string): number {
 
 function normalizeRotation(rotation: number): number {
   return ((Math.round(rotation) % 360) + 360) % 360
+}
+
+interface OrientationOptions {
+  /** True when a RAW container orientation is applied by hand, so sharp must not also auto-orient. */
+  rawOrientationApplied?: boolean
+}
+
+/**
+ * Sharp input options. The webp output drops the EXIF orientation tag, so camera portraits would
+ * come out sideways unless sharp applies it; skip that when the RAW orientation is already applied,
+ * otherwise the image would rotate twice.
+ */
+function orientedSharpOptions({ rawOrientationApplied = false }: OrientationOptions = {}) {
+  return { limitInputPixels: false, autoOrient: !rawOrientationApplied } as const
+}
+
+/** Width and height as displayed: sharp reports the EXIF-oriented size under `autoOrient`. */
+function displayedDimensions(
+  metadata: SharpMetadata,
+  { rawOrientationApplied = false }: OrientationOptions = {},
+): Pick<SharpMetadata, 'width' | 'height'> {
+  return rawOrientationApplied ? metadata : (metadata.autoOrient ?? metadata)
 }
 
 export function parseBitrateKbps(bitrate: string | number): number {
@@ -955,9 +977,11 @@ export class TranscodeService {
     }
 
     const metadata = await sharp(input, { limitInputPixels: false }).metadata()
+    // Cameras store portraits sideways plus an EXIF orientation; report the size as displayed.
+    const shown = displayedDimensions(metadata)
     return {
-      originalWidth: metadata.width || 0,
-      originalHeight: metadata.height || 0,
+      originalWidth: shown.width || 0,
+      originalHeight: shown.height || 0,
       duration: 0,
       bitRate: 0,
       frameRate: 0,
@@ -1922,6 +1946,7 @@ export class TranscodeService {
 
     // RAW branch — extract embedded preview or decode RAW to temporary file + orientation, then treat as normal image
     let rawOrientation: number | undefined
+    let rawOutputUpright = false
     let rawCleanup: (() => void) | null = null
     if (typeof input === 'string' && isRawImage(input)) {
       const extracted = await extractAndValidateRawPreview(input)
@@ -1932,6 +1957,7 @@ export class TranscodeService {
       }
       input = extracted.previewPath
       rawOrientation = extracted.orientation
+      rawOutputUpright = extracted.orientationApplied === true
       rawCleanup = extracted.cleanup
     }
 
@@ -1940,11 +1966,17 @@ export class TranscodeService {
       let targetW = width > 0 ? Math.min(width, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
       let targetH = height && height > 0 ? Math.min(height, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
 
-      const sharpInstance = sharp(input, { limitInputPixels: false })
+      // RAW previews are oriented from the container EXIF below, so only auto-orient other
+      // inputs: the webp output drops the tag, which would leave camera portraits sideways.
+      // dcraw_emu output is already upright, so it is never auto-oriented (no double rotation).
+      const rawOrientationApplied = rawOrientation !== undefined || rawOutputUpright
+      const sharpInstance = sharp(input, orientedSharpOptions({ rawOrientationApplied }))
 
       if (isPreview) {
         try {
-          const meta = await sharpInstance.metadata()
+          const meta = displayedDimensions(await sharpInstance.metadata(), {
+            rawOrientationApplied,
+          })
           if (meta.width && meta.height) {
             const isSwapped =
               rawOrientation !== undefined && rawOrientation >= 5 && rawOrientation <= 8
@@ -2003,7 +2035,7 @@ export class TranscodeService {
 
       // Apply EXIF orientation from the RAW container to the extracted buffer.
       // The buffer itself often lacks orientation EXIF, so Sharp won't auto-rotate.
-      // For non-RAW images, Sharp auto-rotates from the image's own EXIF.
+      // For non-RAW images, autoOrient above applies the image's own EXIF.
       if (rawOrientation && EXIF_ORIENTATION_TO_ROTATION[rawOrientation]) {
         const { angle, flip, flop } = EXIF_ORIENTATION_TO_ROTATION[rawOrientation]
         if (angle) sharpInstance.rotate(angle)
@@ -3019,12 +3051,15 @@ export class TranscodeService {
       return imageBuffer
     }
 
-    const meta = await sharp(imageBuffer, { limitInputPixels: false }).metadata()
+    // Annotations are drawn in the displayed (EXIF-oriented) coordinate space.
+    const meta = displayedDimensions(
+      await sharp(imageBuffer, { limitInputPixels: false }).metadata(),
+    )
     const width = meta.width || 1920
     const height = meta.height || 1080
 
     const svgStr = renderAnnotationsToSvg(width, height, annotations)
-    return await sharp(imageBuffer, { limitInputPixels: false })
+    return await sharp(imageBuffer, orientedSharpOptions())
       .composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
       .toColorspace('srgb')
       .resize(16383, 16383, { fit: 'inside', withoutEnlargement: true })
@@ -3111,7 +3146,7 @@ export class TranscodeService {
     width: number,
     height: number,
   ): Promise<void> {
-    await sharp(inputPath, { limitInputPixels: false })
+    await sharp(inputPath, orientedSharpOptions())
       .toColorspace('srgb')
       .resize(width, height, { fit: 'inside' })
       .composite([{ input: overlayPngBuffer }])

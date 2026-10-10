@@ -295,5 +295,85 @@ describe.each(['local', 'temporal'] as const)(
       expect(mediaInfo.imageTranscodes.length).toBeGreaterThan(0)
       expect(mediaInfo.thumbnail).toBeDefined()
     }, 50000)
+
+    it('should transcode a rotated camera photo upright', async () => {
+      // 1. Seed Database
+      const team = await prisma.team.create({
+        data: { name: 'E2E Rotated Transcode Team' },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'E2E Rotated Transcode Project', teamId: team.id },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: {
+          key: 'projects/e2e/portrait-rotated.jpg',
+        },
+      })
+
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'portrait-rotated.jpg',
+          type: 'file',
+          status: 'uploaded',
+          mediaType: 'image/jpeg',
+          projectId: project.id,
+          storageKeyId: storageKey.id,
+        },
+      })
+
+      // 2. Seed S3 Storage from fixture portrait-rotated.jpg: stored 600x400 with EXIF
+      // orientation 6, the way cameras save portrait shots, so it is displayed 400x600.
+      const jpgPath = path.join(fixturesDir, 'portrait-rotated.jpg')
+      const jpgBuffer = fs.readFileSync(jpgPath)
+      await s3Service.putObject(
+        'shumai-e2e-test-bucket-transcode',
+        'projects/e2e/portrait-rotated.jpg',
+        jpgBuffer,
+        jpgBuffer.length,
+        'image/jpeg',
+      )
+
+      // 3. Create Workflow Task
+      const task = await prisma.workflowTask.create({
+        data: {
+          type: 'transcode_image',
+          status: 'pending',
+          assetId: asset.id,
+          projectId: project.id,
+          teamId: team.id,
+          payload: {
+            projectId: project.id,
+            transcode: {
+              thumbnail: true,
+            },
+          },
+        },
+      })
+
+      // 4. Wait for workflow to complete
+      console.log(
+        `Submitted E2E Rotated Image Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
+      )
+      const completedTask = await workflowService.executeWait(task, 45000)
+
+      // 5. Verification: the asset and its transcode are portrait, not the stored landscape.
+      expect(completedTask.status).toBe('completed')
+
+      const updatedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(updatedAsset?.status).toBe(AssetStatus.processed)
+
+      const mediaInfo = updatedAsset?.media as unknown as {
+        imageTranscodes: Array<{ width: number; height: number }>
+        metadata: { originalWidth: number; originalHeight: number }
+      }
+      expect(mediaInfo.metadata.originalWidth).toBe(400)
+      expect(mediaInfo.metadata.originalHeight).toBe(600)
+      expect(mediaInfo.imageTranscodes[0].width).toBe(400)
+      expect(mediaInfo.imageTranscodes[0].height).toBe(600)
+    }, 50000)
   },
 )
