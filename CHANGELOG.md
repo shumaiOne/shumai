@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 * **kanban**: Related assets on a task are now clickable, taking you directly to that file or folder in its project
+* **transcode**: Add optional `TRANSCODE_THREADS` and `TRANSCODE_NICE` settings to limit how many CPU threads each preview job uses and to run the conversion tools at a lower priority on Linux, so a large import no longer has to take over every core. Nothing changes unless they are set
 
 ### Fixed
 

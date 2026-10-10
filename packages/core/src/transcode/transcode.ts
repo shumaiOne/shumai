@@ -2,7 +2,6 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { getDerivedArtifactDirectory, stemFromKey } from '@shumai/core/src/utils/filename'
 import { prisma, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
-import { execFile } from 'child_process'
 import { parse } from 'csv-parse/sync'
 import * as fs from 'fs'
 import * as os from 'os'
@@ -10,14 +9,15 @@ import * as path from 'path'
 import PDFDocument from 'pdfkit'
 import sharp, { type Metadata as SharpMetadata } from 'sharp'
 import { ulid } from 'ulid'
-import { promisify } from 'util'
 import { mapConcurrent } from '../utils/async'
 import { isRawImage } from '../utils/raw'
 import { dataFormatNames } from './dataFormatNames'
+import { applySharpThreads, createExecFileAsync, resolveFfmpegThreads } from './resource-limits'
 import { extractAndValidateRawPreview, EXIF_ORIENTATION_TO_ROTATION } from './raw-extract'
 import { logger } from '@shumai/core/src/logger'
 
-const execFileAsync = promisify(execFile)
+const execFileAsync = createExecFileAsync()
+applySharpThreads(sharp)
 
 export interface CjkFontConfig {
   fontPath: string
@@ -1579,8 +1579,9 @@ export class TranscodeService {
       args.push('-c:a', 'aac', '-b:a', '128k')
     }
 
-    if (params.threads && params.threads > 0) {
-      args.push('-threads', params.threads.toString())
+    const ffmpegThreads = resolveFfmpegThreads(params.threads)
+    if (ffmpegThreads) {
+      args.push('-threads', ffmpegThreads.toString())
     }
 
     args.push('-movflags', '+faststart', '-max_muxing_queue_size', '1024', params.outputFile)
@@ -1882,8 +1883,9 @@ export class TranscodeService {
       args.push('-c:a', 'aac', '-b:a', '128k')
     }
 
-    if (params.threads && params.threads > 0) {
-      args.push('-threads', params.threads.toString())
+    const ffmpegThreads = resolveFfmpegThreads(params.threads)
+    if (ffmpegThreads) {
+      args.push('-threads', ffmpegThreads.toString())
     }
 
     const initFilename = 'init.mp4'
@@ -2725,8 +2727,9 @@ export class TranscodeService {
       '-ac',
       '2',
     ]
-    if (params.threads && params.threads > 0) {
-      args.push('-threads', params.threads.toString())
+    const ffmpegThreads = resolveFfmpegThreads(params.threads)
+    if (ffmpegThreads) {
+      args.push('-threads', ffmpegThreads.toString())
     }
     args.push(params.outputFile)
     if (params.signal) {

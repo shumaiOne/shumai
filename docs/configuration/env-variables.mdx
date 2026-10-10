@@ -73,6 +73,27 @@ Configures whether background transcoding and AI agents are executed locally or 
 | `EMBEDDING_CHUNK_DURATION` | The duration in seconds for each video chunk when generating video embeddings.                     | `60.0` (default)                |
 | `EMBEDDING_CHUNK_OVERLAP`  | The duration in seconds to overlap video chunks when generating video embeddings.                  | `5.0` (default)                 |
 
+## Transcode Config
+
+Limits for the CPU-heavy tools used to build previews and proxies (sharp/libvips, ffmpeg, `dcraw_emu`, ImageMagick, `pdftoppm`). Useful on shared servers where a large import should not use every core. Everything is optional, and nothing changes when these are unset.
+
+| Variable                | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Example / Default               |
+| :---------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------ |
+| `CONCURRENCY_TRANSCODE` | Maximum number of transcode activities a worker runs at the same time. Non-numbers, `0` and negative values fall back to the default.                                                                                                                                                                                                                                                                                                                                                                   | `1` (default)                   |
+| `CONCURRENCY_AGENT`     | Maximum number of agent activities a worker runs at the same time. Same validation as above.                                                                                                                                                                                                                                                                                                                                                                                                            | `5` (default)                   |
+| `TRANSCODE_THREADS`     | Threads used by each transcode job. Sets the sharp/libvips thread pool, the ffmpeg `-threads` value when the team setting `transcode.threads` is `0`, and `OMP_NUM_THREADS` / `MAGICK_THREAD_LIMIT` for `dcraw_emu` and ImageMagick. The libvips pool is process-wide, so it applies to everything in the worker that uses sharp, not only the current job. Must be a positive whole number, otherwise it is ignored with a warning.                                                                    | unset (each tool picks its own) |
+| `TRANSCODE_NICE`        | Linux only. Runs the ffmpeg, ffprobe, ImageMagick, `pdftoppm`, `pdfinfo` and `dcraw_emu` processes started by the transcode code under `nice -n <value>` so the web server stays responsive during heavy imports. Not covered: the ffprobe/ffmpeg calls in the agent AI activities and the ExifTool process. If `nice` is not installed, a warning is logged once and tools run at normal priority. Accepts `1` to `19` (higher values are clamped to `19`). Ignored with a warning on other platforms. | unset (normal priority)         |
+
+For example, to keep a 16-core server usable during a large photo import:
+
+```bash
+CONCURRENCY_TRANSCODE=2
+TRANSCODE_THREADS=4
+TRANSCODE_NICE=10
+```
+
+---
+
 ## Sandbox Config
 
 | Variable                       | Description                                                                                            | Example / Default |

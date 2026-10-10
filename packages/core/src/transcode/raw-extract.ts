@@ -1,13 +1,12 @@
-import { execFile } from 'child_process'
 import { exiftool } from 'exiftool-vendored'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import sharp from 'sharp'
-import { promisify } from 'util'
 import { logger } from '@shumai/core/src/logger'
+import { createExecFileAsync, getThreadLimitEnv } from './resource-limits'
 
-const execFileAsync = promisify(execFile)
+const execFileAsync = createExecFileAsync()
 
 export interface RawExtractResult {
   previewPath: string
@@ -286,9 +285,11 @@ export async function decodeRawWithDcraw(
 
   try {
     logger.debug({ dcrawBin, args, rawFilePath }, 'Executing dcraw_emu fallback')
+    const threadEnv = getThreadLimitEnv()
     await execFileAsync(dcrawBin, args, {
       timeout: timeoutMs,
       signal: options?.signal,
+      ...(threadEnv ? { env: { ...process.env, ...threadEnv } } : {}),
     })
 
     if (!fs.existsSync(tempTiffPath) || fs.statSync(tempTiffPath).size === 0) {

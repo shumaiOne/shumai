@@ -19,6 +19,7 @@ import {
   isOfficeDocument,
 } from '@shumai/core/src/utils/mime'
 import { logger } from '@shumai/core/src/logger'
+import { createExecFileAsync } from '@shumai/core/src/transcode/resource-limits'
 import { ApplicationFailure, Context } from '@temporalio/activity'
 import { getLocalTaskAbortSignal } from '@shumai/workflow-core'
 
@@ -32,11 +33,9 @@ function getActivityCancellationSignal(taskId?: string): AbortSignal | undefined
 import * as path from 'path'
 import * as fs from 'fs'
 import * as os from 'os'
-import { execFile } from 'child_process'
-import { promisify } from 'util'
 import { ulid } from 'ulid'
 
-const execFileAsync = promisify(execFile)
+const execFileAsync = createExecFileAsync()
 
 export interface GetMediaInfoActivityParams {
   assetId: string
