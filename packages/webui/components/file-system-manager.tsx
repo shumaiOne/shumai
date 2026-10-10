@@ -18,6 +18,7 @@ import { useMemberStore } from '@/ui/stores/members'
 import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useUiStore } from '@/ui/stores/ui'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
+import { stackMetadataKey } from './search/stack-toggle'
 import { Feedback, PointerActivationConstraints } from '@dnd-kit/dom'
 import { DragDropProvider, DragOverlay, PointerSensor } from '@dnd-kit/react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -128,6 +129,9 @@ export default function FileSystemManager({
       setUserMetadata(teamId, sortKey, newSort)
     }
   }
+
+  // Stacking shows one card per RAW + JPEG shot; recents and trash list files individually.
+  const stack = metadata[stackMetadataKey(projectId)] === true
 
   const isCollection = !!collection
   const isFiltering = filterConditions.length > 0 || isCollection
@@ -260,7 +264,7 @@ export default function FileSystemManager({
       ? ['projects', projectId, 'recently-deleted', 'file']
       : isRecents
         ? ['projects', projectId, 'recents', 'file']
-        : ['search', teamId, assetId, 'file', filterConditions, sort, isCollection],
+        : ['search', teamId, assetId, 'file', filterConditions, sort, isCollection, stack],
     queryFn: async ({ pageParam }) => {
       if (isRecentlyDeleted) {
         const res = await client.api.projects[':projectId']['recently-deleted'].$get({
@@ -294,6 +298,7 @@ export default function FileSystemManager({
           recursively: isFiltering || isCollection,
           conditions: filterConditions,
           sort,
+          stack: stack || undefined,
         },
       })
       if (!res.ok) throw new Error('failed to search files')

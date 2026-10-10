@@ -57,6 +57,20 @@ export const ancestorFolderSchema = z.object({
 })
 export type AncestorFolder = z.infer<typeof ancestorFolderSchema>
 
+export const stackMemberSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+})
+export type StackMember = z.infer<typeof stackMemberSchema>
+
+/** A RAW + JPEG shot shown as one card: its files in display order (JPEG/HEIF first, then RAW). */
+export const assetStackSchema = z.object({
+  /** Files in the stack, the shown one included. */
+  count: z.number(),
+  members: z.array(stackMemberSchema),
+})
+export type AssetStack = z.infer<typeof assetStackSchema>
+
 export const mediaMetadataSchema = z.object({
   duration: z.number().optional(),
   originalWidth: z.number().optional(),
@@ -92,6 +106,8 @@ export const assetInfoSchema = z.object({
   endTime: z.number().optional().nullable(),
   hasAgentsMd: z.boolean().optional(),
   commentsCount: z.number().optional(),
+  /** Set by a stacked search when RAW and JPEG files of one shot share this card. */
+  stack: assetStackSchema.optional(),
 
   media: z
     .object({

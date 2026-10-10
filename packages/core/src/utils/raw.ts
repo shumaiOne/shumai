@@ -28,6 +28,9 @@ const RAW_EXTENSIONS: ReadonlySet<string> = new Set([
   '.x3f',
 ])
 
+/** The recognized RAW extensions, lowercase and without the leading dot (for SQL and file pairing). */
+export const RAW_EXTENSION_NAMES: readonly string[] = [...RAW_EXTENSIONS].map((ext) => ext.slice(1))
+
 /** Check whether a filename has a recognized camera RAW extension. */
 export function isRawImage(filename: string): boolean {
   const dotIndex = filename.lastIndexOf('.')

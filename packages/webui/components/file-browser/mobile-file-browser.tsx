@@ -1,6 +1,7 @@
 'use client'
 
 import { client } from '@/ui/api/client'
+import { DeleteAssetsDialog } from './delete-assets-dialog'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { m } from '@/ui/paraglide/messages.js'
 import { useUploadStore } from '@/ui/stores/upload'
@@ -160,6 +161,9 @@ export function MobileFileBrowser({
     onRenameSubmit,
     isDeleteDialogOpen,
     setIsDeleteDialogOpen,
+    itemsToDelete,
+    stackDeleteSelection,
+    setStackDeleteSelection,
     confirmDelete,
     isDownloadDialogOpen,
     setIsDownloadDialogOpen,
@@ -626,23 +630,14 @@ export function MobileFileBrowser({
       </Dialog>
 
       {/* Delete Confirmation Alert Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{m.delete_asset_title()}</AlertDialogTitle>
-            <AlertDialogDescription>{m.delete_asset_description()}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{m.cancel()}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => confirmDelete()}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {m.delete()}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteAssetsDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        items={itemsToDelete}
+        stackSelection={stackDeleteSelection}
+        onStackSelectionChange={setStackDeleteSelection}
+        onConfirm={confirmDelete}
+      />
 
       {/* Empty Trash Confirmation Alert Dialog */}
       <AlertDialog open={isEmptyTrashDialogOpen} onOpenChange={setIsEmptyTrashDialogOpen}>

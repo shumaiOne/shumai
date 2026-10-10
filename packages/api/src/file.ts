@@ -3,6 +3,7 @@ import { assetService } from '@shumai/core/src/asset/asset'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { notificationService } from '@shumai/core/src/notification/notification'
+import { searchService } from '@shumai/core/src/search/search'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
@@ -46,6 +47,20 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     const asset = await assetService.getAsset({ assetId: fileId })
     return c.json(asset)
+  })
+  .get('/files/:fileId/stack', async (c) => {
+    const fileId = c.req.param('fileId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: fileId,
+    })
+
+    const members = await searchService.stackMembersOf(fileId)
+    return c.json({ data: members })
   })
   .patch('/files/:fileId/order', zValidator('json', updateAssetOrderRequestSchema), async (c) => {
     const fileId = c.req.param('fileId')

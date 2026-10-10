@@ -1502,5 +1502,13 @@
   "hide_agent": "Hide Agent",
   "hide_agent_description": "Hide the AGENTS.md button, agent-chat sidebar, and chatbot trigger button across the entire team.",
   "appearance_settings_updated": "Appearance settings updated",
-  "failed_update_appearance_settings": "Failed to update appearance settings"
+  "failed_update_appearance_settings": "Failed to update appearance settings",
+  "stack_toggle": "Stack",
+  "stack_toggle_on_hint": "RAW and JPEG files of one shot show as one card. Click to show every file.",
+  "stack_toggle_off_hint": "Show the RAW and JPEG files of one shot as one card",
+  "stack_files": "{count} files",
+  "stack_files_label": "Files in this shot",
+  "stack_delete_title": "Delete stacked files?",
+  "stack_delete_warning": "These cards are stacks: each one stands for several files ({count} in all, listed below). Tick every file you want to delete; nothing is ticked to start.",
+  "stack_delete_confirm": "Delete {count} files"
 }

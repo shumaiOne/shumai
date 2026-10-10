@@ -1,5 +1,7 @@
 'use client'
 import { client } from '@/ui/api/client'
+import { expandStackIds } from '@/ui/lib/stack-utils'
+import { DeleteAssetsDialog } from './delete-assets-dialog'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { m } from '@/ui/paraglide/messages.js'
 
@@ -341,7 +343,7 @@ export function FileBrowser({
   })
 
   const handleMoveCopyConfirm = async (targetFolderId: string, withComments: boolean) => {
-    const assetIds = itemsToMoveCopy.map((i) => i.id!)
+    const assetIds = expandStackIds(itemsToMoveCopy)
     if (moveCopyMode === 'move') {
       reparentAssets(
         {
@@ -491,6 +493,9 @@ export function FileBrowser({
     onRenameSubmit,
     isDeleteDialogOpen,
     setIsDeleteDialogOpen,
+    itemsToDelete,
+    stackDeleteSelection,
+    setStackDeleteSelection,
     confirmDelete,
     isDownloadDialogOpen,
     setIsDownloadDialogOpen,
@@ -1224,27 +1229,14 @@ export function FileBrowser({
         />
       )}
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Asset?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Deleted items can be recovered for 30 days before being permanently deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                confirmDelete()
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteAssetsDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        items={itemsToDelete}
+        stackSelection={stackDeleteSelection}
+        onStackSelectionChange={setStackDeleteSelection}
+        onConfirm={confirmDelete}
+      />
 
       <AlertDialog open={isEmptyTrashDialogOpen} onOpenChange={setIsEmptyTrashDialogOpen}>
         <AlertDialogContent>

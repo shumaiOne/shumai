@@ -1502,5 +1502,13 @@
   "hide_agent": "隐藏 Agent",
   "hide_agent_description": "在整个团队中隐藏 AGENTS.md 按钮、Agent 聊天侧边栏和触发按钮。",
   "appearance_settings_updated": "外观设置已更新",
-  "failed_update_appearance_settings": "更新外观设置失败"
+  "failed_update_appearance_settings": "更新外观设置失败",
+  "stack_toggle": "堆叠",
+  "stack_toggle_on_hint": "同一张照片的 RAW 和 JPEG 文件显示为一张卡片。点击可显示所有文件。",
+  "stack_toggle_off_hint": "将同一张照片的 RAW 和 JPEG 文件显示为一张卡片",
+  "stack_files": "{count} 个文件",
+  "stack_files_label": "此照片的文件",
+  "stack_delete_title": "删除堆叠的文件？",
+  "stack_delete_warning": "这些卡片是堆叠：每张代表多个文件（下面共列出 {count} 个）。勾选要删除的每个文件；默认不勾选任何文件。",
+  "stack_delete_confirm": "删除 {count} 个文件"
 }

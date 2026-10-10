@@ -58,6 +58,8 @@ export const searchFilterSchema = z.object({
   query: z.string().optional(),
   isSemantic: z.boolean().optional().default(false),
   previewFormat: previewFormatSchema.optional(),
+  /** Show each RAW + JPEG shot (same folder and base name) as one item, with its files in `stack`. */
+  stack: z.boolean().optional(),
 })
 export type SearchFilter = z.infer<typeof searchFilterSchema>
 
