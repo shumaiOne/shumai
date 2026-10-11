@@ -14,6 +14,38 @@ vi.mock('@/ui/paraglide/messages.js', () => ({
   m: new Proxy({}, { get: () => () => '' }),
 }))
 
+const mockFileDownloadPost = vi.fn().mockResolvedValue({
+  ok: true,
+  json: async () => ({ url: 'https://example.com/download-model.glb' }),
+})
+const mockShareDownloadPost = vi.fn().mockResolvedValue({
+  ok: true,
+  json: async () => ({ url: 'https://example.com/share-download-model.glb' }),
+})
+
+vi.mock('@/ui/api/client', () => ({
+  client: {
+    api: {
+      files: {
+        'download-url': {
+          $post: (...args: unknown[]) => mockFileDownloadPost(...args),
+        },
+      },
+      shares: {
+        ':shareId': {
+          files: {
+            ':fileId': {
+              'download-url': {
+                $post: (...args: unknown[]) => mockShareDownloadPost(...args),
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+}))
+
 class MockResizeObserver {
   observe = vi.fn(() => {
     // Immediate callback with mock size
@@ -390,5 +422,58 @@ describe('ModelViewer', () => {
     expect(video.currentTime).toBeCloseTo(3.875, 3)
     expect(video.currentTime).toBeLessThan(4.0)
     expect(degreeReadout.textContent).toContain('345° / 360°')
+  })
+
+  it('downloads the original model via files download-url endpoint when Download asset is clicked', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const { getByTitle } = render(<ModelViewer file={mockAsset} />)
+    const downloadBtn = getByTitle('Download asset')
+    expect(downloadBtn).toBeDefined()
+
+    await act(async () => {
+      fireEvent.click(downloadBtn)
+    })
+
+    expect(mockFileDownloadPost).toHaveBeenCalledWith({
+      json: { key: 'files/robot.glb', assetId: 'asset-3d-1' },
+    })
+    expect(clickSpy).toHaveBeenCalled()
+    clickSpy.mockRestore()
+  })
+
+  it('downloads the model via shares download-url endpoint when shareId is provided', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const { getByTitle } = render(<ModelViewer file={mockAsset} shareId="share-test-123" />)
+    const downloadBtn = getByTitle('Download asset')
+    expect(downloadBtn).toBeDefined()
+
+    await act(async () => {
+      fireEvent.click(downloadBtn)
+    })
+
+    expect(mockShareDownloadPost).toHaveBeenCalledWith({
+      param: { shareId: 'share-test-123', fileId: 'asset-3d-1' },
+      json: { key: 'files/robot.glb' },
+    })
+    expect(clickSpy).toHaveBeenCalled()
+    clickSpy.mockRestore()
+  })
+
+  it('hides the download button when allowDownload is false', () => {
+    const { queryByTitle } = render(<ModelViewer file={mockAsset} allowDownload={false} />)
+    expect(queryByTitle('Download asset')).toBeNull()
+  })
+
+  it('hides the download button when original key is missing', () => {
+    const assetWithoutOriginal = {
+      ...mockAsset,
+      media: {
+        ...mockAsset.media,
+        original: undefined,
+      },
+    } as unknown as AssetInfo
+
+    const { queryByTitle } = render(<ModelViewer file={assetWithoutOriginal} />)
+    expect(queryByTitle('Download asset')).toBeNull()
   })
 })

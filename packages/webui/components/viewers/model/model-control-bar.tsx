@@ -9,8 +9,7 @@ export interface ModelControlBarProps {
   zoom: number
   isFullScreen: boolean
   allowDownload?: boolean
-  downloadUrl?: string
-  fileName?: string
+  onDownload?: () => void
   togglePlay: () => void
   onSeekDegree: (degree: number) => void
   onZoomChange: (zoom: number) => void
@@ -24,24 +23,13 @@ export const ModelControlBar: React.FC<ModelControlBarProps> = ({
   zoom,
   isFullScreen,
   allowDownload = true,
-  downloadUrl,
-  fileName,
+  onDownload,
   togglePlay,
   onSeekDegree,
   onZoomChange,
   onZoomReset,
   toggleFullScreen,
 }) => {
-  const handleDownload = () => {
-    if (!downloadUrl) return
-    const a = document.createElement('a')
-    a.href = downloadUrl
-    a.download = fileName || 'model.glb'
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-  }
-
   return (
     <div
       className={cn(
@@ -114,10 +102,10 @@ export const ModelControlBar: React.FC<ModelControlBarProps> = ({
           </div>
 
           {/* Download */}
-          {allowDownload && downloadUrl && (
+          {allowDownload && onDownload && (
             <button
               type="button"
-              onClick={handleDownload}
+              onClick={onDownload}
               title="Download asset"
               aria-label="Download asset"
               className="p-1 sm:p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"

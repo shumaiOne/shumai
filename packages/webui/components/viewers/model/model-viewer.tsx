@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { cn } from '@/ui/lib/utils'
+import { client } from '@/ui/api/client'
 import DrawingCanvas from '@/ui/components/drawing-canvas'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { FileViewerProps, MediaController } from '../types'
@@ -24,6 +25,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
       onTimeUpdate,
       annotations,
       startTime,
+      shareId,
       children,
       allowDownload = true,
       autoPlay = false,
@@ -55,7 +57,31 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
     const dragStartRef = useRef<{ clientX: number; frame: number }>({ clientX: 0, frame: 0 })
 
     const videoSrc = data.media?.videoTranscodes?.[0]?.url || data.media?.videoPreview?.url || ''
-    const downloadUrl = data.media?.original?.key ? videoSrc : undefined
+
+    const handleDownload = async () => {
+      const key = data.media?.original?.key
+      if (!key || !data.id) return
+      try {
+        const res = shareId
+          ? await client.api.shares[':shareId'].files[':fileId']['download-url'].$post({
+              param: { shareId, fileId: data.id },
+              json: { key },
+            })
+          : await client.api.files['download-url'].$post({
+              json: { key, assetId: data.id },
+            })
+        if (!res.ok) return
+        const { url } = await res.json()
+        const link = document.createElement('a')
+        link.href = url
+        link.download = data.name || 'model.glb'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      } catch {
+        // fail silently
+      }
+    }
 
     // Drawing Annotation store
     const {
@@ -472,8 +498,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
           zoom={zoom}
           isFullScreen={isFullScreen}
           allowDownload={allowDownload}
-          downloadUrl={downloadUrl}
-          fileName={data.name}
+          onDownload={data.media?.original?.key ? handleDownload : undefined}
           togglePlay={togglePlay}
           onSeekDegree={seekToDegree}
           onZoomChange={handleZoomChange}
