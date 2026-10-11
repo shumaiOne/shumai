@@ -1,6 +1,7 @@
 'use client'
 
 import { client } from '@/ui/api/client'
+import { expandStackIds } from '@/ui/lib/stack-utils'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import type { AssetInfo, AssetInfoPaginatedList, SearchSort } from '@shumai/dtos'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -309,7 +310,9 @@ export function useFileSystemDnd({
           {
             param: { projectId: projectId },
             json: {
-              assetIds: Array.from(dragState.draggedIds),
+              assetIds: expandStackIds(
+                [...folders, ...files].filter((item) => dragState.draggedIds.has(item.id!)),
+              ),
               newParentId: targetId,
             },
           },

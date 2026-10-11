@@ -354,6 +354,17 @@ export function FileCard({
             AI
           </span>
         )}
+        {item.stack && item.stack.count > 1 && (
+          <span
+            className="flex select-none items-center gap-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white"
+            title={item.stack.members.map((member) => member.name).join('\n')}
+            aria-label={m.stack_files({ count: item.stack.count })}
+            data-testid="file-card-stack-badge"
+          >
+            <Layers className="h-3.5 w-3.5" />
+            {item.stack.count}
+          </span>
+        )}
         {displayItem.versionStack && (
           <Badge>
             v

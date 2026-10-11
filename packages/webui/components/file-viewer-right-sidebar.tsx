@@ -13,6 +13,7 @@ import { MessageCard } from './chat/message-card'
 import { ChatInput } from './chat/message-input'
 import FieldRenderer from './field-renderer'
 import { GuestIdentityPopup } from './guest-identity-popup'
+import { StackFiles } from './stack-files'
 import { ScrollArea } from './ui/scroll-area'
 import { Button } from './ui/button'
 import {
@@ -355,6 +356,7 @@ export function FileViewerRightSidebar({
 
   return (
     <div className="bg-background h-full flex flex-col overflow-hidden">
+      <StackFiles projectId={projectId} file={file} isPublic={isPublic} />
       <Tabs defaultValue="comments" className="p-1 flex-1 flex flex-col px-2 min-h-0">
         <TabsList className="w-full shrink-0">
           <TabsTrigger value="comments" className="flex-1">

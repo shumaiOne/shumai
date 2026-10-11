@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 * **3d asset**: Add support for 3D model files (.glb, .gltf, .obj, .fbx, .stl, .dae, .usd, .usda, .usdc, .usdz) with automated turntable video rendering, hover sprite scrubbing, and an interactive 3D turntable viewer featuring 360° ruler scrubbing and degree-based markup comments
 * **kanban**: Related assets on a task are now clickable, taking you directly to that file or folder in its project
+* **file-browser**: Add a "Stack" button that shows a camera RAW file and its JPEG or HEIF twin (for example DSCF1234.RAF and DSCF1234.JPG in the same folder) as a single card with a file count, using the JPEG as the cover. Deleting a stacked card lists every file with its own checkbox so you confirm each one, and moving, copying or downloading it covers the whole shot. The file view lists the shot's files so you can switch between them
 
 ### Fixed
 

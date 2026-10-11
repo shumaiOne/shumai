@@ -4,7 +4,7 @@ import { m } from '@/ui/paraglide/messages.js'
 import { useQuery } from '@tanstack/react-query'
 
 import { useDraggable } from '@dnd-kit/react'
-import { AlertCircle, File, Folder, MoreVertical, AudioLines } from 'lucide-react'
+import { AlertCircle, File, Folder, Layers, MoreVertical, AudioLines } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/ui/lib/utils'
 import { formatSize } from '@/ui/lib/format'
@@ -268,6 +268,18 @@ export function FileListItem({
               data-testid="agent-badge"
             >
               AI
+            </span>
+          )}
+
+          {item.stack && item.stack.count > 1 && (
+            <span
+              className="flex shrink-0 items-center gap-1 text-xs tabular-nums text-muted-foreground"
+              title={item.stack.members.map((member) => member.name).join('\n')}
+              aria-label={m.stack_files({ count: item.stack.count })}
+              data-testid="file-list-item-stack-badge"
+            >
+              <Layers className="h-3.5 w-3.5" />
+              {item.stack.count}
             </span>
           )}
 

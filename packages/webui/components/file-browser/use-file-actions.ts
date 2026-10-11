@@ -1,6 +1,7 @@
 'use client'
 
 import { client } from '@/ui/api/client'
+import { expandStackIds, stackDeleteIds } from '@/ui/lib/stack-utils'
 import type { AssetInfo } from '@shumai/dtos'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
@@ -33,6 +34,8 @@ export function useFileActions({
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [itemsToDelete, setItemsToDelete] = useState<AssetInfo[]>([])
+  // Files of stacked cards ticked in the delete dialog; each stacked file is confirmed one by one.
+  const [stackDeleteSelection, setStackDeleteSelection] = useState<Set<string>>(new Set())
   const [isDownloadDialogOpen, setIsDownloadDialogOpen] = useState(false)
   const [isLoadingLinks, setIsLoadingLinks] = useState(false)
   const [resolvedFiles, setResolvedFiles] = useState<
@@ -141,9 +144,10 @@ export function useFileActions({
   }
 
   const confirmDelete = () => {
-    const fileIds = itemsToDelete
-      .filter((i) => i.type === 'file' || i.type === 'version_stack')
-      .map((i) => i.id!)
+    const fileIds = stackDeleteIds(
+      itemsToDelete.filter((i) => i.type === 'file' || i.type === 'version_stack'),
+      stackDeleteSelection,
+    )
     const folderIds = itemsToDelete.filter((i) => i.type === 'folder').map((i) => i.id!)
 
     if (fileIds.length > 0) {
@@ -177,10 +181,14 @@ export function useFileActions({
 
     setIsDeleteDialogOpen(false)
     setItemsToDelete([])
+    setStackDeleteSelection(new Set())
   }
 
   const handleDelete = (items: AssetInfo[]) => {
     setItemsToDelete(items)
+    // A stacked card stands for several files, so none start ticked: the dialog lists them and the
+    // user ticks each file to delete (the confirm button stays disabled at zero).
+    setStackDeleteSelection(new Set())
     setIsDeleteDialogOpen(true)
   }
 
@@ -248,7 +256,7 @@ export function useFileActions({
         setResolvedFiles(links)
       } else {
         const res = await getDownloadLinks({
-          json: { ids: items.map((i) => i.id!) },
+          json: { ids: expandStackIds(items) },
         })
         setResolvedFiles(res.files)
       }
@@ -265,7 +273,7 @@ export function useFileActions({
     if (items.length === 0) return
     try {
       const res = await getDownloadLinks({
-        json: { ids: items.map((i) => i.id!) },
+        json: { ids: expandStackIds(items) },
       })
       const files = res.files
       if (files.length === 0) return
@@ -428,6 +436,8 @@ export function useFileActions({
     isDeleteDialogOpen,
     setIsDeleteDialogOpen,
     itemsToDelete,
+    stackDeleteSelection,
+    setStackDeleteSelection,
     confirmDelete,
     isDownloadDialogOpen,
     setIsDownloadDialogOpen,

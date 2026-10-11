@@ -1045,3 +1045,210 @@ describe('SearchService — natural sort by name', () => {
     spy.mockRestore()
   })
 })
+
+describe('SearchService — RAW + JPEG stacks', () => {
+  setupTestDbHooks()
+
+  let searchService: SearchService
+
+  beforeEach(() => {
+    searchService = new SearchService()
+  })
+
+  const setupStackAssets = async (files: Record<string, { name: string; size: number }[]>) => {
+    const user = await prisma.user.create({
+      data: { name: 'stack-user', email: `stack-${Date.now()}@example.com`, type: 'human' },
+    })
+    const team = await prisma.team.create({ data: { name: 'stack-team' } })
+    const project = await prisma.project.create({ data: { name: 'stack-proj', teamId: team.id } })
+    const root = await prisma.asset.create({
+      data: {
+        name: 'root',
+        type: AssetType.folder,
+        projectId: project.id,
+        creatorId: user.id,
+        status: 'uploaded',
+      },
+    })
+    const ids = new Map<string, string>()
+    for (const [folderName, list] of Object.entries(files)) {
+      const folder = await prisma.asset.create({
+        data: {
+          name: folderName,
+          type: AssetType.folder,
+          projectId: project.id,
+          parentId: root.id,
+          creatorId: user.id,
+          status: 'uploaded',
+        },
+      })
+      for (const file of list) {
+        const created = await prisma.asset.create({
+          data: {
+            name: file.name,
+            type: AssetType.file,
+            projectId: project.id,
+            parentId: folder.id,
+            creatorId: user.id,
+            status: 'uploaded',
+            sizeByte: file.size,
+          },
+        })
+        ids.set(`${folderName}/${file.name}`, created.id)
+      }
+    }
+    return { root, ids }
+  }
+
+  const searchFiles = (rootId: string, stack: boolean | undefined) =>
+    searchService.search(rootId, {
+      recursively: true,
+      assetType: 'file',
+      operator: 'AND',
+      conditions: [],
+      isSemantic: false,
+      sort: { field: 'name', order: 'asc' },
+      stack,
+    })
+
+  it('lists every file when stacking is off', async () => {
+    const { root } = await setupStackAssets({
+      a: [
+        { name: 'DSCF1.RAF', size: 30 },
+        { name: 'DSCF1.JPG', size: 10 },
+      ],
+    })
+    const result = await searchFiles(root.id, undefined)
+    expect(result.data).toHaveLength(2)
+    expect(result.data.every((item) => item.stack === undefined)).toBe(true)
+  })
+
+  it('shows a RAW + JPEG pair as one item with the JPEG as cover', async () => {
+    const { root, ids } = await setupStackAssets({
+      a: [
+        { name: 'DSCF1.RAF', size: 30 },
+        { name: 'DSCF1.JPG', size: 10 },
+      ],
+    })
+    const result = await searchFiles(root.id, true)
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0]!.name).toBe('DSCF1.JPG')
+    expect(result.data[0]!.stack?.count).toBe(2)
+    expect(result.data[0]!.stack?.members.map((member) => member.id)).toEqual([
+      ids.get('a/DSCF1.JPG'),
+      ids.get('a/DSCF1.RAF'),
+    ])
+    expect(result.pageInfo.total).toBe(1)
+    expect(result.pageInfo.totalSize).toBe(40)
+  })
+
+  it('pairs case-insensitively and keeps JPEG variants in one stack', async () => {
+    const { root } = await setupStackAssets({
+      a: [
+        { name: 'img_1.cr3', size: 30 },
+        { name: 'IMG_1.JPG', size: 10 },
+        { name: 'IMG_1.heic', size: 5 },
+      ],
+    })
+    const result = await searchFiles(root.id, true)
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0]!.name).toBe('IMG_1.JPG')
+    expect(result.data[0]!.stack?.count).toBe(3)
+  })
+
+  it('leaves orphan RAW, orphan JPEG and other file types as single items', async () => {
+    const { root } = await setupStackAssets({
+      a: [
+        { name: 'ONLY.RAF', size: 30 },
+        { name: 'SOLO.JPG', size: 10 },
+        { name: 'CLIP.MOV', size: 50 },
+        { name: 'CLIP.JPG', size: 5 },
+        { name: 'DUO.JPG', size: 5 },
+        { name: 'DUO.HEIC', size: 5 },
+      ],
+    })
+    const result = await searchFiles(root.id, true)
+    expect(result.data).toHaveLength(6)
+    expect(result.data.every((item) => item.stack === undefined)).toBe(true)
+  })
+
+  it('does not pair files in different folders', async () => {
+    const { root } = await setupStackAssets({
+      a: [{ name: 'DSCF1.RAF', size: 30 }],
+      b: [{ name: 'DSCF1.JPG', size: 10 }],
+    })
+    const result = await searchFiles(root.id, true)
+    expect(result.data).toHaveLength(2)
+    expect(result.pageInfo.total).toBe(2)
+  })
+
+  it('lists only the files the search matched as stack members', async () => {
+    const { root, ids } = await setupStackAssets({
+      a: [
+        { name: 'DSCF1.RAF', size: 30 },
+        { name: 'DSCF1.JPG', size: 10 },
+        { name: 'DSCF1.HEIC', size: 5 },
+      ],
+    })
+    const result = await searchService.search(root.id, {
+      recursively: true,
+      assetType: 'file',
+      operator: 'AND',
+      conditions: [{ field: 'name', operator: 'notContains', value: 'HEIC' }],
+      isSemantic: false,
+      sort: { field: 'name', order: 'asc' },
+      stack: true,
+    })
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0]!.stack?.members.map((member) => member.id)).toEqual([
+      ids.get('a/DSCF1.JPG'),
+      ids.get('a/DSCF1.RAF'),
+    ])
+    expect(result.data[0]!.stack?.count).toBe(2)
+  })
+
+  it('never stacks a symlink with the real file', async () => {
+    const { root, ids } = await setupStackAssets({
+      a: [
+        { name: 'DSCF1.RAF', size: 30 },
+        { name: 'DSCF9.JPG', size: 10 },
+      ],
+    })
+    const raf = await prisma.asset.findUniqueOrThrow({ where: { id: ids.get('a/DSCF1.RAF')! } })
+    await prisma.asset.create({
+      data: {
+        name: 'DSCF1.JPG',
+        type: AssetType.symlink,
+        projectId: raf.projectId,
+        parentId: raf.parentId,
+        targetId: ids.get('a/DSCF9.JPG')!,
+        status: 'uploaded',
+      },
+    })
+    const result = await searchService.search(root.id, {
+      recursively: true,
+      assetType: 'file',
+      operator: 'AND',
+      conditions: [],
+      showSymlink: true,
+      isSemantic: false,
+      sort: { field: 'name', order: 'asc' },
+      stack: true,
+    })
+    expect(result.data).toHaveLength(3)
+    expect(result.data.every((item) => item.stack === undefined)).toBe(true)
+  })
+
+  it('lists the files of a shot for the file viewer', async () => {
+    const { ids } = await setupStackAssets({
+      a: [
+        { name: 'DSCF1.RAF', size: 30 },
+        { name: 'DSCF1.JPG', size: 10 },
+        { name: 'DSCF2.JPG', size: 10 },
+      ],
+    })
+    const members = await searchService.stackMembersOf(ids.get('a/DSCF1.RAF')!)
+    expect(members.map((member) => member.name)).toEqual(['DSCF1.JPG', 'DSCF1.RAF'])
+    expect(await searchService.stackMembersOf(ids.get('a/DSCF2.JPG')!)).toEqual([])
+  })
+})

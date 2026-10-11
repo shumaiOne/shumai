@@ -14,6 +14,7 @@ import { MembersDialog } from '../members-dialog'
 import { FilterPanel } from '../search/filter-panel'
 import { SearchFilterDialog } from '../search/search-filter-dialog'
 import { SortControl } from '../search/sort-control'
+import { StackToggle } from '../search/stack-toggle'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
@@ -272,6 +273,12 @@ export function FileBrowserToolbar({
           fields={fields}
           sort={sort}
           onSortChange={onSortChange}
+          disabled={isRecentlyDeleted || isRecents}
+        />
+
+        <StackToggle
+          teamId={teamId}
+          projectId={projectId}
           disabled={isRecentlyDeleted || isRecents}
         />
 
