@@ -5,6 +5,7 @@ import DrawingCanvas from '@/ui/components/drawing-canvas'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { FileViewerProps, MediaController } from '../types'
 import { centeredPan, fitScale, zoomAtPoint } from '../pan-zoom'
+import { usePanZoomGestures } from '../use-pan-zoom'
 import { ModelControlBar } from './model-control-bar'
 import {
   secondToDegree,
@@ -45,6 +46,10 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
     const [pan, setPan] = useState({ x: 0, y: 0 })
     const [hasManuallyZoomed, setHasManuallyZoomed] = useState(false)
 
+    useEffect(() => {
+      setHasManuallyZoomed(false)
+    }, [data.id])
+
     // Drag-to-rotate state
     const [isDraggingRotation, setIsDraggingRotation] = useState(false)
     const dragStartRef = useRef<{ clientX: number; frame: number }>({ clientX: 0, frame: 0 })
@@ -66,6 +71,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
 
     const mediaWidth = data.media?.metadata?.originalWidth || 1080
     const mediaHeight = data.media?.metadata?.originalHeight || 1080
+    const baseScale = fitScale(containerSize.width, containerSize.height, mediaWidth, mediaHeight)
 
     // Resize observer
     useEffect(() => {
@@ -86,13 +92,31 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
     // Initial scale and center
     useEffect(() => {
       if (containerSize.width > 0 && containerSize.height > 0 && !hasManuallyZoomed) {
-        const scale = fitScale(containerSize.width, containerSize.height, mediaWidth, mediaHeight)
-        setZoom(scale)
+        setZoom(baseScale)
         setPan(
-          centeredPan(containerSize.width, containerSize.height, mediaWidth, mediaHeight, scale),
+          centeredPan(
+            containerSize.width,
+            containerSize.height,
+            mediaWidth,
+            mediaHeight,
+            baseScale,
+          ),
         )
       }
-    }, [containerSize, mediaWidth, mediaHeight, hasManuallyZoomed])
+    }, [containerSize, mediaWidth, mediaHeight, baseScale, hasManuallyZoomed])
+
+    usePanZoomGestures({
+      containerRef,
+      zoom,
+      pan,
+      baseScale,
+      onZoomChange: (next) => {
+        setHasManuallyZoomed(true)
+        setZoom(next.zoom)
+        setPan(next.pan)
+      },
+      onPanChange: setPan,
+    })
 
     // Current angle
     const currentDegree = secondToDegree(currentTime)
@@ -310,10 +334,15 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
     const handleZoomReset = () => {
       setHasManuallyZoomed(false)
       if (containerSize.width > 0 && containerSize.height > 0) {
-        const scale = fitScale(containerSize.width, containerSize.height, mediaWidth, mediaHeight)
-        setZoom(scale)
+        setZoom(baseScale)
         setPan(
-          centeredPan(containerSize.width, containerSize.height, mediaWidth, mediaHeight, scale),
+          centeredPan(
+            containerSize.width,
+            containerSize.height,
+            mediaWidth,
+            mediaHeight,
+            baseScale,
+          ),
         )
       }
     }

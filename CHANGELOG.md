@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **viewer**: Fix an issue where zooming with a touchpad in the 3D asset viewer zoomed the entire browser page instead of zooming the model viewer area
 - **viewer**: Fix an issue where certain angles in the 3D asset viewer appeared stuck on the previous frame, and eliminate view jitter when rotating at 345°
 - **viewer**: Fix an issue where 3D asset auto-rotation during playback skipped 15° increments in the degree indicator
 

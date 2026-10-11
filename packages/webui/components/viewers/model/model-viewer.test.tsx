@@ -271,4 +271,73 @@ describe('ModelViewer', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (HTMLVideoElement.prototype as any).cancelVideoFrameCallback
   })
+
+  it('zooms viewer and prevents browser default on touchpad pinch (ctrl+wheel)', () => {
+    const { getByTestId, getByRole } = render(<ModelViewer file={mockAsset} />)
+    const surface = getByTestId('model-viewer-surface')
+    const resetZoomBtn = getByRole('button', { name: 'Reset zoom' })
+
+    const initialZoomText = resetZoomBtn.textContent
+
+    surface.getBoundingClientRect = () =>
+      ({
+        left: 0,
+        top: 0,
+        width: 800,
+        height: 600,
+        right: 800,
+        bottom: 600,
+        x: 0,
+        y: 0,
+        toJSON: () => {},
+      }) as DOMRect
+
+    const wheelEvent = new WheelEvent('wheel', {
+      deltaY: -100,
+      deltaMode: 0,
+      bubbles: true,
+      cancelable: true,
+    })
+    Object.defineProperty(wheelEvent, 'ctrlKey', { value: true })
+    Object.defineProperty(wheelEvent, 'clientX', { value: 400 })
+    Object.defineProperty(wheelEvent, 'clientY', { value: 300 })
+
+    let notPrevented = true
+    act(() => {
+      notPrevented = surface.dispatchEvent(wheelEvent)
+    })
+
+    expect(notPrevented).toBe(false)
+    expect(resetZoomBtn.textContent).not.toBe(initialZoomText)
+  })
+
+  it('pans viewer content and prevents scroll on two-finger wheel when zoomed in', () => {
+    const { getByTestId, getByRole } = render(<ModelViewer file={mockAsset} />)
+    const surface = getByTestId('model-viewer-surface')
+    const zoomInBtn = getByRole('button', { name: 'Zoom in' })
+
+    // Zoom in multiple times so zoom exceeds baseScale significantly
+    fireEvent.click(zoomInBtn)
+    fireEvent.click(zoomInBtn)
+    fireEvent.click(zoomInBtn)
+
+    const mediaWrapper = surface.querySelector('div.absolute.pointer-events-none') as HTMLElement
+    const initialTransform = mediaWrapper.style.transform
+
+    const scrollEvent = new WheelEvent('wheel', {
+      deltaX: 20,
+      deltaY: 30,
+      bubbles: true,
+      cancelable: true,
+    })
+    Object.defineProperty(scrollEvent, 'ctrlKey', { value: false })
+
+    let notPrevented = true
+    act(() => {
+      notPrevented = surface.dispatchEvent(scrollEvent)
+    })
+
+    expect(notPrevented).toBe(false)
+    expect(mediaWrapper.style.transform).not.toBe(initialTransform)
+  })
 })
