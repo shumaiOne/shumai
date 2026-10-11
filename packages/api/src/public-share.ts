@@ -59,6 +59,7 @@ async function applyWatermarkToAssetMedia(
             height: vt.height ?? 0,
             size: 0,
             hdr: vt.hdr,
+            resolution: vt.resolution,
           })),
         )
       : []

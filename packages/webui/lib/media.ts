@@ -59,15 +59,16 @@ export function getVideoResolutionLabel(
 
   if (width > 0 && height > 0) {
     const longSide = Math.max(width, height)
-    if (longSide >= 3840) return '2160p'
-    if (longSide >= 2560) return '1440p'
-    if (longSide >= 1920) return '1080p'
-    if (longSide >= 1280) return '720p'
-    if (longSide >= 854) return '480p'
-    if (longSide >= 640) return '360p'
-    if (longSide >= 320) return '180p'
-
     const shortSide = Math.min(width, height)
+
+    if (longSide >= 3840 || shortSide >= 2160) return '2160p'
+    if (longSide >= 2560 || shortSide >= 1440) return '1440p'
+    if (longSide >= 1920 || shortSide >= 1080) return '1080p'
+    if (longSide >= 1280 || shortSide >= 720) return '720p'
+    if (longSide >= 854 || shortSide >= 480) return '480p'
+    if (longSide >= 640 || shortSide >= 360) return '360p'
+    if (longSide >= 320 || shortSide >= 180) return '180p'
+
     return `${shortSide}p`
   }
 

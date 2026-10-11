@@ -550,7 +550,12 @@ describe('Share API', () => {
             watermarkMediaInfo({
               proxyType: '3d',
               videoTranscodes: [
-                { key: 'files/watermarked-turntable.mp4', width: 1080, height: 1080 },
+                {
+                  key: 'files/watermarked-turntable.mp4',
+                  width: 1080,
+                  height: 1080,
+                  resolution: '1080p',
+                },
               ],
               videoPreview: { key: 'files/watermarked-turntable.mp4', width: 1080, height: 1080 },
             }),
@@ -573,6 +578,7 @@ describe('Share API', () => {
           width: 1080,
           height: 1080,
           size: 0,
+          resolution: '1080p',
         },
       ])
       expect(body.media.videoPreview?.url).toBe('http://s3/presigned')

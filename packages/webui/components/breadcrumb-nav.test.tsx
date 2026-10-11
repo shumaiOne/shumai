@@ -263,4 +263,45 @@ describe('BreadcrumbNav component', () => {
     expect(items.some((i) => i.textContent?.includes('1080p'))).toBe(true)
     expect(items.some((i) => i.textContent?.includes('1920p'))).toBe(false)
   })
+
+  it('correctly labels 1080p square / 3D turntable transcode in download menu', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          fileId="file-3d"
+          currentAsset={{
+            id: 'file-3d',
+            name: 'model.glb',
+            type: 'file',
+            version: 1,
+            proxyType: '3d',
+          }}
+          allowDownload={true}
+          downloadInfo={{
+            originalKey: 'model.glb',
+            videoTranscodes: [
+              {
+                key: 'turntable-1080p.mp4',
+                width: 1080,
+                height: 1080,
+                resolution: '1080p',
+                hdr: false,
+              },
+            ],
+          }}
+        />
+      </QueryClientProvider>,
+    )
+
+    const triggerButton = screen.getByRole('button', { name: 'model.glb' })
+    fireEvent.pointerDown(triggerButton, { button: 0, ctrlKey: false })
+
+    const downloadSubTrigger = screen.getByText('Download')
+    fireEvent.click(downloadSubTrigger)
+
+    const items = screen.getAllByRole('menuitem')
+    expect(items.some((i) => i.textContent?.includes('1080p'))).toBe(true)
+    expect(items.some((i) => i.textContent?.includes('480p'))).toBe(false)
+  })
 })

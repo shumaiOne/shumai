@@ -86,6 +86,19 @@ describe('getVideoResolutionLabel', () => {
     expect(getVideoResolutionLabel({ width: 320, height: 180 })).toBe('180p')
   })
 
+  it('derives resolution correctly for square and non-16:9 transcodes without explicit resolution', () => {
+    // 1080p square (e.g. 1080x1080 3D turntable or square video)
+    expect(getVideoResolutionLabel({ width: 1080, height: 1080 })).toBe('1080p')
+    // 720p square
+    expect(getVideoResolutionLabel({ width: 720, height: 720 })).toBe('720p')
+    // 480p square
+    expect(getVideoResolutionLabel({ width: 480, height: 480 })).toBe('480p')
+    // 1080p 4:3
+    expect(getVideoResolutionLabel({ width: 1440, height: 1080 })).toBe('1080p')
+    // 720p 4:3
+    expect(getVideoResolutionLabel({ width: 960, height: 720 })).toBe('720p')
+  })
+
   it('falls back to short side or single dimension for non-standard sizes', () => {
     expect(getVideoResolutionLabel({ width: 200, height: 100 })).toBe('100p')
     expect(getVideoResolutionLabel({ height: 720 })).toBe('720p')
