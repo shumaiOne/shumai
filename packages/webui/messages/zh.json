@@ -1502,5 +1502,18 @@
   "hide_agent": "隐藏 Agent",
   "hide_agent_description": "在整个团队中隐藏 AGENTS.md 按钮、Agent 聊天侧边栏和触发按钮。",
   "appearance_settings_updated": "外观设置已更新",
-  "failed_update_appearance_settings": "更新外观设置失败"
+  "failed_update_appearance_settings": "更新外观设置失败",
+  "file_type_filter": "类型",
+  "file_type_filter_title": "按文件类型筛选",
+  "file_type_hide_editing": "隐藏编辑文件",
+  "file_type_hide_editing_hint": "XMP 及其他附属文件或设置文件",
+  "file_type_show_only": "仅显示",
+  "file_type_group_raw": "所有 RAW 文件",
+  "file_type_group_jpeg": "JPEG",
+  "file_type_group_heif": "HEIF / HEIC",
+  "file_type_group_video": "视频",
+  "file_type_group_editing": "编辑文件",
+  "file_type_in_this_folder": "此文件夹中",
+  "file_type_no_extension": "无扩展名",
+  "file_type_clear": "清除"
 }

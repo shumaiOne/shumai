@@ -1,32 +1,16 @@
+// Deep import on purpose: this file is reachable from the Temporal workflow bundle (via utils/mime),
+// and the dtos index pulls in modules that import @shumai/db, which webpack cannot resolve there.
+import { RAW_EXTENSIONS as RAW_EXTENSION_NAMES } from '@shumai/dtos/src/file-types'
+
 /**
- * Centralized set of recognized camera RAW file extensions.
+ * Centralized set of recognized camera RAW file extensions, with the leading dot. The list itself
+ * lives in `@shumai/dtos` (`RAW_EXTENSIONS`) so the file browser's RAW filter shares it.
  * Used only for routing files into the ExifTool extraction path.
  */
-const RAW_EXTENSIONS: ReadonlySet<string> = new Set([
-  '.3fr',
-  '.arw',
-  '.cr2',
-  '.cr3',
-  '.crw',
-  '.dcr',
-  '.dng',
-  '.erf',
-  '.fff',
-  '.iiq',
-  '.kdc',
-  '.nef',
-  '.nrw',
-  '.orf',
-  '.pef',
-  '.raf',
-  '.raw',
-  '.rw2',
-  '.rwl',
-  '.sr2',
-  '.srf',
-  '.srw',
-  '.x3f',
-])
+const RAW_EXTENSIONS: ReadonlySet<string> = new Set(RAW_EXTENSION_NAMES.map((ext) => `.${ext}`))
+
+/** The same list without dots, as the file-type filter uses it. */
+export { RAW_EXTENSION_NAMES }
 
 /** Check whether a filename has a recognized camera RAW extension. */
 export function isRawImage(filename: string): boolean {
