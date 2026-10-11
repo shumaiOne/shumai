@@ -25,6 +25,11 @@ export interface RawPreviewResult {
   width: number
   height: number
   orientation?: number
+  /**
+   * True when the file is already upright (dcraw_emu output), so downstream sharp must not
+   * auto-orient it even though `orientation` is undefined.
+   */
+  orientationApplied?: boolean
   rawWidth?: number
   rawHeight?: number
 }
@@ -382,6 +387,7 @@ export async function extractAndValidateRawPreview(
     previewPath: decoded.previewPath,
     cleanup: decoded.cleanup,
     orientation: decoded.orientation,
+    orientationApplied: true,
     rawWidth: decoded.rawWidth,
     rawHeight: decoded.rawHeight,
     ...dims,
