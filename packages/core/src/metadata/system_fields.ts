@@ -189,6 +189,36 @@ export const systemFields: Prisma.MetadataFieldCreateInput[] = [
       text: {},
     },
   },
+  // Photo EXIF, written by getMediaInfoActivity from `photoExifMetadata()` (utils/photo-exif.ts).
+  {
+    key: 'capture_date',
+    scope: 'SYSTEM',
+    readOnly: true,
+    config: {
+      name: 'Date Taken',
+      type: 'date',
+      date: {
+        displayFormat: 'friendly',
+        displayTimezone: false,
+        includeTime: true,
+        timeFormat: 'twelve_hour',
+        // The camera's wall clock stored as UTC (utils/capture-time.ts), shown as stored.
+        wallClock: true,
+      },
+    },
+  },
+  {
+    key: 'camera',
+    scope: 'SYSTEM',
+    readOnly: true,
+    config: { name: 'Camera', type: 'text', text: {} },
+  },
+  {
+    key: 'lens',
+    scope: 'SYSTEM',
+    readOnly: true,
+    config: { name: 'Lens', type: 'text', text: {} },
+  },
   {
     key: 'status',
     scope: 'SYSTEM',

@@ -28,11 +28,15 @@ export function SortControl({ fields, sort, onSortChange, disabled }: SortContro
       { id: 'createdAt', label: m.sort_date_created() },
       { id: 'updatedAt', label: m.sort_date_modified() },
       { id: 'sizeByte', label: m.sort_size() },
+      { id: 'captureDate', label: m.sort_date_taken() },
     ]
-    const custom = fields.map((f) => ({
-      id: f.id!,
-      label: f.config?.name || f.description || m.unknown(),
-    }))
+    // The "Date Taken" field is offered once, as the captureDate sort above.
+    const custom = fields
+      .filter((f) => f.id !== 'capture_date')
+      .map((f) => ({
+        id: f.id!,
+        label: f.config?.name || f.description || m.unknown(),
+      }))
     return [...sys, ...custom]
   }, [fields])
 
@@ -46,7 +50,7 @@ export function SortControl({ fields, sort, onSortChange, disabled }: SortContro
     if (fieldId === 'name') {
       return { asc: m.sort_a_to_z(), desc: m.sort_z_to_a() }
     }
-    if (['createdAt', 'updatedAt'].includes(fieldId)) {
+    if (['createdAt', 'updatedAt', 'captureDate'].includes(fieldId)) {
       return { asc: m.sort_oldest_to_newest(), desc: m.sort_newest_to_oldest() }
     }
     if (fieldId === 'sizeByte') {

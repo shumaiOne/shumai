@@ -14,6 +14,7 @@ import {
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
 import type { FieldProps } from './field-types'
+import { utcAsLocal } from './wall-clock'
 
 const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOnly }) => {
   const dateConfig = config?.date
@@ -73,7 +74,8 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
       }
     }
 
-    let display = format(date, formatStr)
+    // A wall-clock field (Date Taken) is shown as stored, not shifted into the viewer's zone.
+    let display = format(dateConfig?.wallClock ? utcAsLocal(date) : date, formatStr)
     if (dateConfig?.displayTimezone) {
       display += ` (${Intl.DateTimeFormat().resolvedOptions().timeZone})`
     }

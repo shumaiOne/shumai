@@ -9,6 +9,8 @@ import type {
   SearchSort,
 } from '@shumai/dtos'
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
+import { isPhotoFilterActive, type PhotoFilter as PhotoFilterValue } from '@shumai/dtos'
+import { photoFilterMetadataKey } from './search/photo-filter'
 import { useMutation } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
 
@@ -129,8 +131,13 @@ export default function FileSystemManager({
     }
   }
 
+  const photoFilter = metadata[photoFilterMetadataKey(projectId)] as PhotoFilterValue | undefined
+  const activePhotoFilter = isPhotoFilterActive(photoFilter) ? photoFilter : undefined
+
   const isCollection = !!collection
-  const isFiltering = filterConditions.length > 0 || isCollection
+  // A camera filter searches subfolders too, like a search: at a project root that holds only
+  // folders, picking a camera lists that camera's photos from all of them.
+  const isFiltering = filterConditions.length > 0 || isCollection || !!activePhotoFilter
 
   const {
     fileListLeftSidebarCollapsed: isLeftSidebarCollapsed,
@@ -260,7 +267,16 @@ export default function FileSystemManager({
       ? ['projects', projectId, 'recently-deleted', 'file']
       : isRecents
         ? ['projects', projectId, 'recents', 'file']
-        : ['search', teamId, assetId, 'file', filterConditions, sort, isCollection],
+        : [
+            'search',
+            teamId,
+            assetId,
+            'file',
+            filterConditions,
+            sort,
+            isCollection,
+            activePhotoFilter,
+          ],
     queryFn: async ({ pageParam }) => {
       if (isRecentlyDeleted) {
         const res = await client.api.projects[':projectId']['recently-deleted'].$get({
@@ -294,6 +310,7 @@ export default function FileSystemManager({
           recursively: isFiltering || isCollection,
           conditions: filterConditions,
           sort,
+          photo: activePhotoFilter,
         },
       })
       if (!res.ok) throw new Error('failed to search files')

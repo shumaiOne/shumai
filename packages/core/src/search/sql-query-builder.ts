@@ -1,5 +1,8 @@
 import { Prisma } from '@shumai/db'
-import { SearchCondition } from '@shumai/dtos'
+import { PHOTO_FACETS, SearchCondition, type PhotoFacet, type PhotoFilter } from '@shumai/dtos'
+
+/** "Date taken": the capture_date metadata value, null when the file has none. */
+export const CAPTURE_DATE_SQL = Prisma.sql`(SELECT v.date_value FROM asset_metadata_values v WHERE v.asset_id = a.id AND v.field_key = 'capture_date')`
 
 export class SqlQueryBuilder {
   private selectSql: Prisma.Sql = Prisma.sql`*`
@@ -36,6 +39,18 @@ export class SqlQueryBuilder {
 
   offset(n: number): this {
     this.offsetCount = n
+    return this
+  }
+
+  /** Keep files whose camera EXIF matches every non-empty facet of `filter` (values are ORed). */
+  addPhotoFilter(filter?: PhotoFilter): this {
+    for (const facet of Object.keys(PHOTO_FACETS) as PhotoFacet[]) {
+      const values = filter?.[facet]
+      if (!values || values.length === 0) continue
+      this.addWhere(
+        Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${PHOTO_FACETS[facet]} AND string_value = ANY(${values}::text[]))`,
+      )
+    }
     return this
   }
 

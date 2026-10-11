@@ -1,13 +1,23 @@
 import { prisma } from '@shumai/db'
 import { Prisma, AssetType, WorkflowTaskType } from '@shumai/db'
 import { AssetService, assetService } from '@shumai/core/src/asset/asset'
-import { AssetInfo } from '@shumai/dtos'
-import { SearchRequest } from '@shumai/dtos'
+import {
+  AssetInfo,
+  PHOTO_FACETS,
+  SearchCondition,
+  SearchRequest,
+  type PhotoFacet,
+  type PhotoFacets,
+  CAPTURE_DATE_SORT_FIELD,
+} from '@shumai/dtos'
 import { PaginatedData, decodeCursor, encodeCursor, PageInfo } from '@shumai/core/src/pagination'
 import { generateSearchNgrams } from '@shumai/core/src/utils/ngram'
 import { workflowService } from '@shumai/workflow-core'
 import { HTTPException } from 'hono/http-exception'
-import { SqlQueryBuilder } from './sql-query-builder'
+import { CAPTURE_DATE_SQL, SqlQueryBuilder } from './sql-query-builder'
+
+/** Most values returned per facet (camera, lens), each limited on its own. */
+const PHOTO_FACET_LIMIT = 300
 
 export class SearchService {
   constructor(
@@ -90,6 +100,8 @@ export class SearchService {
       if (req.conditions && req.conditions.length > 0) {
         builder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
       }
+
+      if (req.assetType !== 'folder') builder.addPhotoFilter(req.photo)
 
       const nameCond = req.conditions?.find((c) => c.field === 'name' && c.operator === 'contains')
       if (nameCond) {
@@ -174,6 +186,8 @@ export class SearchService {
         countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
       }
 
+      if (req.assetType !== 'folder') countBuilder.addPhotoFilter(req.photo)
+
       if (nameCond) {
         const valStr = String(nameCond.value)
         const ngrams = generateSearchNgrams(valStr)
@@ -230,6 +244,8 @@ export class SearchService {
       builder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
     }
 
+    if (req.assetType !== 'folder') builder.addPhotoFilter(req.photo)
+
     // name contains n-grams / Switching Search Optimization
     let countOverride: number | undefined
     let useNgram = false
@@ -266,6 +282,8 @@ export class SearchService {
         if (req.conditions && req.conditions.length > 0) {
           probeBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
         }
+
+        if (req.assetType !== 'folder') probeBuilder.addPhotoFilter(req.photo)
 
         probeBuilder.addWhere(Prisma.sql`a.name_ngram @> ${ngrams}::text[]`)
         probeBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
@@ -306,6 +324,9 @@ export class SearchService {
         orderSql = Prisma.sql`a.created_at ${direction}`
       } else if (req.sort.field === 'size_byte' || req.sort.field === 'sizeByte') {
         orderSql = Prisma.sql`a.size_byte ${direction}`
+      } else if (req.sort.field === CAPTURE_DATE_SORT_FIELD) {
+        // Files without a date taken go last; ties keep a stable order for offset pagination.
+        orderSql = Prisma.sql`${CAPTURE_DATE_SQL} ${direction} NULLS LAST, a.name ${direction}, a.id ASC`
       } else {
         orderSql = Prisma.sql`a.id DESC`
       }
@@ -372,6 +393,8 @@ export class SearchService {
         countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
       }
 
+      if (req.assetType !== 'folder') countBuilder.addPhotoFilter(req.photo)
+
       if (nameCond) {
         countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
       }
@@ -413,6 +436,8 @@ export class SearchService {
           countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
         }
 
+        if (req.assetType !== 'folder') countBuilder.addPhotoFilter(req.photo)
+
         if (nameCond) {
           countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
         }
@@ -431,6 +456,62 @@ export class SearchService {
     }
 
     return { data, pageInfo }
+  }
+
+  /**
+   * The camera and lens values among a folder's files, with how many files carry each, most
+   * common first. Feeds the camera filter's choices. With `recursively` it counts subfolders too,
+   * and `conditions` narrows the files the same way a search or collection does, so the choices
+   * match what picking one would list.
+   */
+  async photoFacets(
+    folderId: string,
+    options: {
+      recursively?: boolean
+      operator?: 'AND' | 'OR'
+      conditions?: SearchCondition[]
+      showSymlink?: boolean
+    } = {},
+  ): Promise<PhotoFacets> {
+    const folderIds = options.recursively
+      ? await this.assetSvc.getDescendantFolderIds(folderId)
+      : [folderId]
+    const types = [AssetType.file, AssetType.version_stack]
+    const files = new SqlQueryBuilder()
+      .select(Prisma.sql`a.id`)
+      .from(Prisma.sql`assets a`)
+      .addWhere(Prisma.sql`a.is_deleted = false`)
+      .addWhere(Prisma.sql`a.parent_id = ANY(${folderIds})`)
+      .addSearchConditions(options.operator ?? 'AND', options.conditions ?? [])
+    // The same set the listing shows: with showSymlink, symlinks to such files count too.
+    if (options.showSymlink) {
+      files.addWhere(Prisma.sql`
+        (a.type = ANY(${types}::"AssetType"[]) OR (a.type = 'symlink' AND a.target_id IN (SELECT id FROM assets WHERE type = ANY(${types}::"AssetType"[]))))
+      `)
+    } else {
+      files.addWhere(Prisma.sql`a.type = ANY(${types}::"AssetType"[])`)
+    }
+    // One query per facet so a long camera list cannot crowd out the lenses.
+    const filesSql = files.build()
+    const facets: PhotoFacets = { camera: [], lens: [] }
+    await Promise.all(
+      (Object.entries(PHOTO_FACETS) as [PhotoFacet, string][]).map(async ([facet, key]) => {
+        const rows = await this.prismaClient.$queryRaw<Array<{ value: string; count: bigint }>>(
+          Prisma.sql`
+            SELECT v.string_value AS value, count(*) AS count
+            FROM asset_metadata_values v
+            WHERE v.asset_id IN (${filesSql})
+              AND v.field_key = ${key}
+              AND v.string_value IS NOT NULL
+            GROUP BY 1
+            ORDER BY 2 DESC, 1 ASC
+            LIMIT ${PHOTO_FACET_LIMIT}
+          `,
+        )
+        facets[facet] = rows.map((r) => ({ value: r.value, count: Number(r.count) }))
+      }),
+    )
+    return facets
   }
 }
 

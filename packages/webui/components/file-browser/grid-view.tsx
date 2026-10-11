@@ -6,7 +6,22 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '../../lib/utils'
+import { m } from '@/ui/paraglide/messages.js'
 import type { DragState } from '../dnd-types'
+import { groupFilesByDay } from './date-groups'
+
+type GridRow =
+  | { type: 'header'; kind: 'folder' | 'file' }
+  | { type: 'day'; key: string; label: string; count: number }
+  | {
+      type: 'row'
+      kind: 'folder' | 'file'
+      rowIndex: number
+      /** Index in `files`/`folders` of the row's first cell (for loading the next page). */
+      start: number
+      /** Date-grouped rows carry their cells; `undefined` is a not-yet-loaded placeholder. */
+      cells?: (AssetInfo | undefined)[]
+    }
 
 interface ReorderIndicatorProps {
   id: string
@@ -133,11 +148,14 @@ export function FileBrowserGridView({
     return () => observer.disconnect()
   }, [])
 
+  // Sorting by date taken splits the loaded files into one titled section per day.
+  const dayGroups = useMemo(
+    () => (sort?.field === 'captureDate' ? groupFilesByDay(files, m.date_group_undated()) : null),
+    [sort?.field, files],
+  )
+
   const rows = useMemo(() => {
-    const list: (
-      | { type: 'header'; kind: 'folder' | 'file' }
-      | { type: 'row'; kind: 'folder' | 'file'; rowIndex: number }
-    )[] = []
+    const list: GridRow[] = []
 
     // Folders
     const foldersCount = totalFolders ?? folders.length
@@ -146,7 +164,7 @@ export function FileBrowserGridView({
       if (foldersExpanded) {
         const rowCount = Math.ceil(foldersCount / cols)
         for (let i = 0; i < rowCount; i++) {
-          list.push({ type: 'row', kind: 'folder', rowIndex: i })
+          list.push({ type: 'row', kind: 'folder', rowIndex: i, start: i * cols })
         }
       }
     }
@@ -155,27 +173,65 @@ export function FileBrowserGridView({
     const filesCount = totalFiles ?? files.length
     if (filesCount > 0) {
       list.push({ type: 'header', kind: 'file' })
-      if (filesExpanded) {
+      if (filesExpanded && dayGroups) {
+        let rowIndex = 0
+        let start = 0
+        for (const group of dayGroups) {
+          list.push({ type: 'day', key: group.key, label: group.label, count: group.items.length })
+          for (let i = 0; i < group.items.length; i += cols) {
+            list.push({
+              type: 'row',
+              kind: 'file',
+              rowIndex: rowIndex++,
+              start: start + i,
+              cells: group.items.slice(i, i + cols),
+            })
+          }
+          start += group.items.length
+        }
+        // Placeholders for the files not loaded yet; loading them fills in more days.
+        for (let i = files.length; i < filesCount; i += cols) {
+          list.push({
+            type: 'row',
+            kind: 'file',
+            rowIndex: rowIndex++,
+            start: i,
+            cells: Array.from({ length: Math.min(cols, filesCount - i) }, () => undefined),
+          })
+        }
+      } else if (filesExpanded) {
         const rowCount = Math.ceil(filesCount / cols)
         for (let i = 0; i < rowCount; i++) {
-          list.push({ type: 'row', kind: 'file', rowIndex: i })
+          list.push({ type: 'row', kind: 'file', rowIndex: i, start: i * cols })
         }
       }
     }
 
     return list
-  }, [foldersExpanded, filesExpanded, folders.length, files.length, totalFolders, totalFiles, cols])
+  }, [
+    foldersExpanded,
+    filesExpanded,
+    folders.length,
+    files.length,
+    totalFolders,
+    totalFiles,
+    cols,
+    dayGroups,
+  ])
 
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollContainerRef.current,
-    estimateSize: (index) => (rows[index]?.type === 'header' ? 40 : 350),
+    estimateSize: (index) => (rows[index]?.type === 'row' ? 350 : 40),
     getItemKey: React.useCallback(
       (index: number) => {
         const row = rows[index]
         if (!row) return index
         if (row.type === 'header') {
           return `header-${row.kind}`
+        }
+        if (row.type === 'day') {
+          return `day-${row.key}`
         }
         return `row-${row.kind}-${row.rowIndex}`
       },
@@ -194,7 +250,7 @@ export function FileBrowserGridView({
       if (row?.type === 'row') {
         const isFolder = row.kind === 'folder'
         const dataList = isFolder ? folders : files
-        const startIndex = row.rowIndex * cols
+        const startIndex = row.start
         const isSkeleton = !dataList[startIndex] // Check if the first item in row is loaded
         const isNearEnd = startIndex >= dataList.length - cols * 3
 
@@ -235,6 +291,26 @@ export function FileBrowserGridView({
       >
         {virtualItems.map((virtualRow) => {
           const row = rows[virtualRow.index]
+
+          if (row.type === 'day') {
+            return (
+              <div
+                key={`day-${row.key}`}
+                ref={rowVirtualizer.measureElement}
+                data-index={virtualRow.index}
+                data-testid="grid-day-header"
+                className="absolute top-0 left-0 w-full bg-background pb-2 pt-1"
+                style={{ transform: `translateY(${virtualRow.start}px)` }}
+              >
+                <div className="flex items-baseline gap-2 text-sm font-medium text-foreground">
+                  <span>{row.label}</span>
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {formatCount(row.count, true)}
+                  </span>
+                </div>
+              </div>
+            )
+          }
 
           if (row.type === 'header') {
             const isFolder = row.kind === 'folder'
@@ -277,10 +353,12 @@ export function FileBrowserGridView({
 
           const isFolder = row.kind === 'folder'
           const dataList = isFolder ? folders : files
-          const startIndex = row.rowIndex * cols
-          const rowItems = []
+          const startIndex = row.start
+          const rowItems: (AssetInfo | undefined | null)[] = []
           for (let i = 0; i < cols; i++) {
-            rowItems.push(dataList[startIndex + i])
+            if (!row.cells) rowItems.push(dataList[startIndex + i])
+            // In a date-grouped row, cells past the end of the day stay empty.
+            else rowItems.push(i < row.cells.length ? row.cells[i] : null)
           }
 
           return (
@@ -300,7 +378,7 @@ export function FileBrowserGridView({
                   const totalCount = isFolder
                     ? (totalFolders ?? folders.length)
                     : (totalFiles ?? files.length)
-                  if (itemIndex < totalCount) {
+                  if (item === undefined && itemIndex < totalCount) {
                     return (
                       <div
                         key={`skeleton-${itemIndex}`}

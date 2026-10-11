@@ -5,6 +5,7 @@ import { setupTestDbHooks } from '@shumai/db/test'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { transcodeService } from '@shumai/core/src/transcode/transcode'
+import { readPhotoExifFromFile } from '@shumai/core/src/utils/photo-exif'
 import * as child_process from 'child_process'
 import * as fs from 'fs'
 
@@ -40,6 +41,11 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
     resolveInput: vi.fn().mockImplementation(async (_bucket, key) => `https://mock-url/${key}`),
   },
 }))
+
+vi.mock('@shumai/core/src/utils/photo-exif', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shumai/core/src/utils/photo-exif')>()
+  return { ...actual, readPhotoExifFromFile: vi.fn().mockResolvedValue(null) }
+})
 
 vi.mock('@shumai/core/src/transcode/transcode', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@shumai/core/src/transcode/transcode')>()
@@ -325,6 +331,76 @@ describe('Transcode Activities', () => {
     expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
       asset.id,
       expect.arrayContaining([{ key: 'file_type', value: 'image' }]),
+      true,
+    )
+  })
+
+  it('should record the date taken, camera and lens of a photo', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'DSCF1.JPG', type: 'file', status: 'uploaded' },
+    })
+    vi.mocked(transcodeService.getImageInfo).mockResolvedValue({
+      originalWidth: 800,
+      originalHeight: 600,
+      duration: 0,
+      bitRate: 0,
+      frameRate: 0,
+      totalFrames: 0,
+      hasAudio: false,
+      mimeType: 'image/jpeg',
+    })
+    vi.mocked(readPhotoExifFromFile).mockResolvedValueOnce({
+      make: 'FUJIFILM',
+      model: 'X100VI',
+      lensModel: 'FUJINON 23mm',
+      capturedAt: '2026-09-06T15:32:57.000Z',
+    })
+
+    await getMediaInfoActivity({
+      assetId: asset.id,
+      filePath: '/tmp/DSCF1.JPG',
+      proxyType: 'image',
+      mediaType: 'image/jpeg',
+    })
+
+    expect(readPhotoExifFromFile).toHaveBeenCalledWith('/tmp/DSCF1.JPG')
+    expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
+      asset.id,
+      expect.arrayContaining([
+        { key: 'capture_date', value: '2026-09-06T15:32:57.000Z' },
+        { key: 'camera', value: 'FUJIFILM X100VI' },
+        { key: 'lens', value: 'FUJINON 23mm' },
+      ]),
+      true,
+    )
+  })
+
+  it('should record a video creation time as its date taken', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'DSCF2.MOV', type: 'file', status: 'uploaded' },
+    })
+    vi.mocked(transcodeService.getVideoInfo).mockResolvedValueOnce({
+      originalWidth: 1920,
+      originalHeight: 1080,
+      duration: 10,
+      bitRate: 1000,
+      frameRate: 30,
+      totalFrames: 300,
+      hasAudio: false,
+      creationTime: '2026-09-06T16:29:29.000Z',
+      mimeType: 'video/quicktime',
+    })
+
+    await getMediaInfoActivity({
+      assetId: asset.id,
+      filePath: '/tmp/DSCF2.MOV',
+      proxyType: 'video',
+      mediaType: 'video/quicktime',
+    })
+
+    expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
+      asset.id,
+      expect.arrayContaining([{ key: 'capture_date', value: '2026-09-06T16:29:29.000Z' }]),
       true,
     )
   })
