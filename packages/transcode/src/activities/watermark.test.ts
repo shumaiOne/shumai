@@ -618,6 +618,125 @@ describe('Watermark Activities', () => {
         }),
       )
     })
+
+    it('produces a watermarked mp4 proxy from the turntable video for a 3d asset', async () => {
+      const storageKey = await prisma.storageKey.create({
+        data: { key: 'files/asset-3d/robot.glb' },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'robot.glb',
+          type: 'file',
+          mediaType: 'model/gltf-binary',
+          status: 'processed',
+          storageKeyId: storageKey.id,
+          media: {
+            duration: 4,
+            filesize: 100,
+            frames: 24,
+            proxyType: '3d',
+            videoTranscodes: [
+              {
+                key: 'files/asset-3d/turntable.mp4',
+                width: 1080,
+                height: 1080,
+                resolution: '1080p',
+              },
+            ],
+            videoPreview: {
+              key: 'files/asset-3d/turntable.mp4',
+              width: 1080,
+              height: 1080,
+              resolution: '1080p',
+            },
+            poster: { key: 'files/asset-3d/poster.webp' },
+            sprite: { key: 'files/asset-3d/sprite.webp', frames: 100, tileX: 10, tileY: 10 },
+            finishedAt: new Date().toISOString(),
+            metadata: {
+              originalWidth: 1080,
+              originalHeight: 1080,
+              duration: 4,
+              bitRate: 0,
+              frameRate: 6,
+              totalFrames: 24,
+              startTimecode: '00:00:00:00',
+              hasAudio: false,
+              format: {},
+            },
+            original: {
+              key: 'files/asset-3d/robot.glb',
+              filesizeInBytes: 100,
+              codec: '',
+            },
+          } as PrismaJson.MediaInfo,
+        },
+      })
+      const config = await seedConfig()
+
+      vi.mocked(transcodeService.getVideoInfo).mockResolvedValue({
+        originalWidth: 1080,
+        originalHeight: 1080,
+        duration: 4,
+        bitRate: 2000,
+        frameRate: 6,
+        totalFrames: 24,
+        startTimecode: '00:00:00:00',
+        hasAudio: false,
+        mimeType: 'video/mp4',
+      })
+      vi.mocked(s3Service.putObject).mockResolvedValue(undefined as never)
+
+      const stem = 'robot'
+      const configId = config.id
+      const outFilePath = path.join('/tmp', `${stem}-watermark-${configId}-1080p.mp4`)
+      fs.writeFileSync(outFilePath, Buffer.from('fake 3d watermarked turntable mp4'))
+
+      const media = await transcodeWatermarkMediaActivity({
+        assetId: asset.id,
+        watermarkConfigId: config.id,
+      })
+
+      expect(media.proxyType).toBe('3d')
+      expect(media.videoTranscodes?.length).toBeGreaterThan(0)
+      expect(media.videoTranscodes?.[0].key).toContain('watermark-')
+      expect(media.videoPreview?.key).toBe(media.videoTranscodes?.[0].key)
+      expect(media.poster?.key).toBe('files/asset-3d/poster.webp')
+      expect(media.sprite?.key).toBe('files/asset-3d/sprite.webp')
+      expect(s3Service.downloadToFile).toHaveBeenCalledWith(
+        bucket,
+        'files/asset-3d/turntable.mp4',
+        expect.any(String),
+      )
+
+      fs.rmSync(outFilePath, { force: true })
+    })
+
+    it('throws non-retryable ApplicationFailure when 3d asset has no turntable video transcode', async () => {
+      const storageKey = await prisma.storageKey.create({
+        data: { key: 'files/asset-3d/robot.glb' },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'robot.glb',
+          type: 'file',
+          mediaType: 'model/gltf-binary',
+          status: 'processing',
+          storageKeyId: storageKey.id,
+          media: {
+            proxyType: '3d',
+            videoTranscodes: [],
+          } as unknown as PrismaJson.MediaInfo,
+        },
+      })
+      const config = await seedConfig()
+
+      await expect(
+        transcodeWatermarkMediaActivity({
+          assetId: asset.id,
+          watermarkConfigId: config.id,
+        }),
+      ).rejects.toThrow('Turntable video transcode not found for 3D asset')
+    })
   })
 
   describe('completeWatermarkFileActivity', () => {

@@ -312,6 +312,128 @@ describe.each(['local', 'temporal'] as const)(
       expect(mediaInfo?.videoTranscodes?.[0].resolution).toBe('360p')
     })
 
+    it('should generate watermark proxy for a 3d asset from turntable video and update sharelink status to ready', async () => {
+      // 1. Seed Database
+      const team = await prisma.team.create({
+        data: { name: 'E2E Watermark 3D Team' },
+      })
+      const projectFolder = await prisma.asset.create({
+        data: { name: 'root', type: 'root', status: 'processed' },
+      })
+      const project = await prisma.project.create({
+        data: {
+          name: 'E2E Watermark 3D Project',
+          teamId: team.id,
+          rootFolderId: projectFolder.id,
+        },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: { key: 'files/e2e-watermark-3d/model.glb' },
+      })
+
+      const turntableKey = 'files/e2e-watermark-3d/turntable.mp4'
+      const videoPath = path.join(fixturesDir, 'small.mp4')
+      const videoBuffer = fs.readFileSync(videoPath)
+      await s3Service.putObject(
+        'shumai-e2e-test-bucket-watermark',
+        turntableKey,
+        videoBuffer,
+        videoBuffer.length,
+        'video/mp4',
+      )
+
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'model.glb',
+          type: 'file',
+          mediaType: 'model/gltf-binary',
+          status: 'processed',
+          projectId: project.id,
+          storageKeyId: storageKey.id,
+          media: {
+            duration: 1,
+            filesize: videoBuffer.length,
+            frames: 30,
+            proxyType: '3d',
+            imageTranscodes: [],
+            videoTranscodes: [{ key: turntableKey, width: 640, height: 360, resolution: '360p' }],
+            videoPreview: { key: turntableKey, width: 640, height: 360, resolution: '360p' },
+            poster: { key: 'files/e2e-watermark-3d/poster.webp' },
+            finishedAt: new Date().toISOString(),
+            metadata: {
+              originalWidth: 640,
+              originalHeight: 360,
+              duration: 1,
+              bitRate: 0,
+              frameRate: 30,
+              totalFrames: 30,
+              startTimecode: '00:00:00:00',
+              hasAudio: false,
+              format: {},
+            },
+            original: {
+              key: storageKey.key,
+              filesizeInBytes: 100,
+              codec: '',
+            },
+          },
+        },
+      })
+
+      const shareLink = await shareService.createShareLink(project.id, {
+        name: 'Public Watermarked 3D Share',
+      })
+      await shareService.addAssetToShare(shareLink.id, { assetIds: [asset.id] })
+
+      const watermarkConfig: WatermarkConfigSpec = {
+        blocks: [
+          {
+            id: 'b1',
+            type: 'text',
+            x: 0.5,
+            y: 0.5,
+            opacity: 0.5,
+            rotation: 0,
+            text: 'CONFIDENTIAL 3D',
+            size: 0.2,
+            color: '#FF0000',
+          },
+        ],
+      }
+
+      const updatedShare = await watermarkService.updateShareLinkWatermark(
+        shareLink.id,
+        true,
+        watermarkConfig,
+      )
+      expect(updatedShare.watermarkStatus).toBe('processing')
+
+      let share = await shareService.getShareLink(shareLink.id)
+      const startTime = Date.now()
+      while (share.watermarkStatus === 'processing' && Date.now() - startTime < 60000) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        share = await shareService.getShareLink(shareLink.id)
+      }
+      expect(share.watermarkStatus).toBe('ready')
+
+      const wf = await prisma.watermarkFile.findUnique({
+        where: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          assetId_watermarkConfigId: {
+            assetId: asset.id,
+            watermarkConfigId: updatedShare.watermarkConfigId!,
+          },
+        },
+      })
+      expect(wf).toBeDefined()
+      expect(wf?.status).toBe(WatermarkFileStatus.completed)
+      const media = wf?.media as PrismaJson.MediaInfo
+      expect(media.proxyType).toBe('3d')
+      expect(media.videoTranscodes?.length).toBeGreaterThan(0)
+      expect(media.videoPreview?.key).toBe(media.videoTranscodes?.[0]?.key)
+    })
+
     it('should watermark a newly added asset after the sharelink is already ready', async () => {
       // 1. Seed Database
       const team = await prisma.team.create({

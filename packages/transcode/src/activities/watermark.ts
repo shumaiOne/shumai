@@ -163,17 +163,39 @@ export async function transcodeWatermarkMediaActivity(
   const stem = stemFromKey(assetKey)
 
   const tmpDir = transcodeService.createTempDir('watermark-')
-  const rawFilePath = path.join(tmpDir, path.basename(assetKey))
 
   try {
-    await s3Service.downloadToFile(bucket, assetKey, rawFilePath)
-
+    const is3d = (asset.media as PrismaJson.MediaInfo | null)?.proxyType === '3d'
     const isVideo =
-      asset.mediaType?.startsWith('video/') ||
-      (asset.media as PrismaJson.MediaInfo | null)?.proxyType === 'video'
+      !is3d &&
+      (asset.mediaType?.startsWith('video/') ||
+        (asset.media as PrismaJson.MediaInfo | null)?.proxyType === 'video')
     const isImage =
-      asset.mediaType?.startsWith('image/') ||
-      (asset.media as PrismaJson.MediaInfo | null)?.proxyType === 'image'
+      !is3d &&
+      (asset.mediaType?.startsWith('image/') ||
+        (asset.media as PrismaJson.MediaInfo | null)?.proxyType === 'image')
+
+    if (!isVideo && !isImage && !is3d) {
+      throw ApplicationFailure.create({
+        message: `Asset ${params.assetId} is neither video nor image`,
+        nonRetryable: true,
+      })
+    }
+
+    const inputKey = is3d
+      ? (asset.media as PrismaJson.MediaInfo | null)?.videoTranscodes?.[0]?.key ||
+        (asset.media as PrismaJson.MediaInfo | null)?.videoPreview?.key
+      : assetKey
+
+    if (is3d && !inputKey) {
+      throw ApplicationFailure.create({
+        message: `Turntable video transcode not found for 3D asset ${params.assetId}`,
+        nonRetryable: true,
+      })
+    }
+
+    const rawFilePath = path.join(tmpDir, path.basename(inputKey!))
+    await s3Service.downloadToFile(bucket, inputKey!, rawFilePath)
 
     let originalWidth = 1920
     let originalHeight = 1080
@@ -192,7 +214,7 @@ export async function transcodeWatermarkMediaActivity(
     let hdrType: PrismaJson.HdrType | undefined
     let dvProfile: number | undefined
 
-    if (isVideo) {
+    if (isVideo || is3d) {
       const info = await transcodeService.getVideoInfo(rawFilePath)
       originalWidth = info.originalWidth
       originalHeight = info.originalHeight
@@ -214,11 +236,6 @@ export async function transcodeWatermarkMediaActivity(
       const info = await transcodeService.getImageInfo(rawFilePath)
       originalWidth = info.originalWidth
       originalHeight = info.originalHeight
-    } else {
-      throw ApplicationFailure.create({
-        message: `Asset ${params.assetId} is neither video nor image`,
-        nonRetryable: true,
-      })
     }
 
     // Process image blocks if any
@@ -260,9 +277,11 @@ export async function transcodeWatermarkMediaActivity(
       duration,
       filesize: 0,
       frames: totalFrames,
-      proxyType: isVideo ? 'video' : 'image',
+      proxyType: is3d ? '3d' : isVideo ? 'video' : 'image',
       imageTranscodes: [],
       videoTranscodes: [],
+      poster: originalMedia?.poster,
+      sprite: originalMedia?.sprite,
       finishedAt: new Date().toISOString(),
       metadata: {
         originalWidth,
@@ -280,7 +299,7 @@ export async function transcodeWatermarkMediaActivity(
         isHdr: isHdr ?? originalMedia?.metadata?.isHdr,
         hdrType: hdrType ?? originalMedia?.metadata?.hdrType,
         dvProfile: dvProfile ?? originalMedia?.metadata?.dvProfile,
-        format: {},
+        format: originalMedia?.metadata?.format ?? {},
       },
       original: {
         key: assetKey,
@@ -333,7 +352,7 @@ export async function transcodeWatermarkMediaActivity(
         })
       }
       mediaInfo.filesize = totalSize
-    } else if (isVideo) {
+    } else if (isVideo || is3d) {
       const originalTranscodes = originalMedia?.videoTranscodes || []
       let totalSize = 0
 
@@ -393,6 +412,15 @@ export async function transcodeWatermarkMediaActivity(
           resolution,
           hdr: isVtHdr,
         })
+      }
+
+      if (is3d && mediaInfo.videoTranscodes.length > 0) {
+        mediaInfo.videoPreview = {
+          key: mediaInfo.videoTranscodes[0].key,
+          width: mediaInfo.videoTranscodes[0].width,
+          height: mediaInfo.videoTranscodes[0].height,
+          resolution: mediaInfo.videoTranscodes[0].resolution,
+        }
       }
 
       if (originalMedia?.isHls && originalMedia?.hls?.resolutions?.length) {

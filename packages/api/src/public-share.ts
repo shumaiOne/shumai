@@ -42,7 +42,8 @@ async function applyWatermarkToAssetMedia(
   password?: string,
 ): Promise<AssetInfo> {
   if (!asset.media) return asset
-  if (asset.proxyType !== 'video' && asset.proxyType !== 'image') return asset
+  if (asset.proxyType !== 'video' && asset.proxyType !== 'image' && asset.proxyType !== '3d')
+    return asset
 
   const updatedMedia = { ...asset.media }
   const bucket = process.env.S3_BUCKET || 'shumai'
@@ -61,6 +62,22 @@ async function applyWatermarkToAssetMedia(
           })),
         )
       : []
+
+  if (watermarkMedia?.videoTranscodes && watermarkMedia.videoTranscodes.length > 0) {
+    if (updatedMedia.videoPreview) {
+      const watermarkedKey =
+        watermarkMedia.videoPreview?.key || watermarkMedia.videoTranscodes[0]?.key
+      if (watermarkedKey) {
+        updatedMedia.videoPreview = {
+          ...updatedMedia.videoPreview,
+          key: watermarkedKey,
+          url: await s3Service.presign(bucket, watermarkedKey, 'GET'),
+        }
+      }
+    }
+  } else {
+    delete updatedMedia.videoPreview
+  }
 
   updatedMedia.imageTranscodes =
     watermarkMedia?.imageTranscodes && watermarkMedia.imageTranscodes.length > 0
@@ -254,11 +271,11 @@ const route = app
 
       let asset = await assetService.getAsset({ assetId: fileId })
 
-      // Only video/image assets are subject to watermark protection; skip the
+      // Only video/image/3d assets are subject to watermark protection; skip the
       // watermark lookup entirely for other media types (pdf, audio, ...).
       if (
         shareLink.watermarkConfigId &&
-        (asset.proxyType === 'video' || asset.proxyType === 'image')
+        (asset.proxyType === 'video' || asset.proxyType === 'image' || asset.proxyType === '3d')
       ) {
         const targetAssetId = await assetService.resolveLatestVersionId(fileId)
         const wfMap = await watermarkService.getCompletedWatermarkMediaMap(

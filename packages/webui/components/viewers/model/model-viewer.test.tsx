@@ -79,6 +79,21 @@ describe('ModelViewer', () => {
     expect(container.querySelector('video')?.getAttribute('poster')).toBeNull()
   })
 
+  it('prioritizes videoTranscodes URL over videoPreview URL for watermarked share compatibility', () => {
+    const fileWithBoth = {
+      ...mockAsset,
+      media: {
+        ...mockAsset.media,
+        videoPreview: { url: 'https://example.com/unwatermarked-turntable.mp4' },
+        videoTranscodes: [{ url: 'https://example.com/watermarked-turntable.mp4' }],
+      },
+    } as unknown as AssetInfo
+
+    const { container } = render(<ModelViewer file={fileWithBoth} />)
+    const video = container.querySelector('video')
+    expect(video?.getAttribute('src')).toBe('https://example.com/watermarked-turntable.mp4')
+  })
+
   it('toggles play/pause via spacebar hotkey', () => {
     const onPlay = vi.fn()
     const onPause = vi.fn()

@@ -258,6 +258,57 @@ describe('WatermarkService', () => {
     expect(mediaIds).toContain(mediaFile.id)
   })
 
+  it('should include 3D assets with turntable video in getMediaAssetIdsInShareLink', async () => {
+    const user = await prisma.user.create({
+      data: { name: '3D User', email: '3d-wm@example.com' },
+    })
+    const team = await teamService.createTeam(user, { name: '3D Team' })
+
+    const projectFolder = await prisma.asset.create({
+      data: { name: 'root', type: 'root', status: 'processed' },
+    })
+    const project = await prisma.project.create({
+      data: { name: '3D Project', teamId: team.id, rootFolderId: projectFolder.id },
+    })
+
+    const shareLink = await shareService.createShareLink(project.id, { name: '3D Share' }, user.id)
+
+    const modelAsset = await prisma.asset.create({
+      data: {
+        name: 'robot.glb',
+        type: 'file',
+        mediaType: 'model/gltf-binary',
+        status: 'processed',
+        projectId: project.id,
+        media: {
+          duration: 4,
+          filesize: 100,
+          frames: 24,
+          proxyType: '3d',
+          videoTranscodes: [
+            { key: 'files/asset-3d/turntable.mp4', width: 1080, height: 1080, resolution: '1080p' },
+          ],
+          finishedAt: new Date().toISOString(),
+          original: { key: 'files/asset-3d/robot.glb', filesizeInBytes: 100, codec: '' },
+        } as PrismaJson.MediaInfo,
+      },
+    })
+
+    await prisma.asset.create({
+      data: {
+        name: 'robot.glb',
+        type: 'symlink',
+        status: 'processed',
+        projectId: project.id,
+        parentId: shareLink.rootFolderId,
+        targetId: modelAsset.id,
+      },
+    })
+
+    const mediaIds = await watermarkService.getMediaAssetIdsInShareLink(shareLink.rootFolderId)
+    expect(mediaIds).toContain(modelAsset.id)
+  })
+
   describe('purgeOrphanWatermarkConfigs', () => {
     const bucket = 'shumai-gc-test-bucket'
 

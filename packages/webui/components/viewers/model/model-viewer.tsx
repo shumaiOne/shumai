@@ -54,7 +54,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
     const [isDraggingRotation, setIsDraggingRotation] = useState(false)
     const dragStartRef = useRef<{ clientX: number; frame: number }>({ clientX: 0, frame: 0 })
 
-    const videoSrc = data.media?.videoPreview?.url || data.media?.videoTranscodes?.[0]?.url || ''
+    const videoSrc = data.media?.videoTranscodes?.[0]?.url || data.media?.videoPreview?.url || ''
     const downloadUrl = data.media?.original?.key ? videoSrc : undefined
 
     // Drawing Annotation store

@@ -513,6 +513,115 @@ describe('Share API', () => {
       expect(body.media.hls).toBeUndefined()
     })
 
+    test('serves watermarked turntable video for a 3d asset when watermark enabled and completed', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue(shareLinkWithWatermark)
+      const asset3d = {
+        id: 'file1',
+        name: 'model.glb',
+        sizeByte: 1024,
+        fileCount: 0,
+        type: 'file',
+        status: 'processed',
+        proxyType: '3d',
+        media: {
+          proxyType: '3d',
+          videoPreview: {
+            url: 'http://s3/unwatermarked-turntable.mp4',
+            key: 'files/turntable.mp4',
+          },
+          videoTranscodes: [
+            {
+              id: 'orig-turntable',
+              url: 'http://s3/unwatermarked-turntable.mp4',
+              key: 'files/turntable.mp4',
+              width: 1080,
+              height: 1080,
+            },
+          ],
+          original: { key: 'files/model.glb' },
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any
+      vi.spyOn(assetService, 'getAsset').mockResolvedValue(asset3d)
+      vi.spyOn(watermarkService, 'getCompletedWatermarkMediaMap').mockResolvedValue(
+        new Map([
+          [
+            'file1',
+            watermarkMediaInfo({
+              proxyType: '3d',
+              videoTranscodes: [
+                { key: 'files/watermarked-turntable.mp4', width: 1080, height: 1080 },
+              ],
+              videoPreview: { key: 'files/watermarked-turntable.mp4', width: 1080, height: 1080 },
+            }),
+          ],
+        ]),
+      )
+
+      const res = await app.request('/shares/share1/files/file1', {
+        method: 'GET',
+        headers: { 'x-share-password': 'pass' },
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.media.videoTranscodes).toEqual([
+        {
+          id: 'files/watermarked-turntable.mp4',
+          url: 'http://s3/presigned',
+          key: 'files/watermarked-turntable.mp4',
+          width: 1080,
+          height: 1080,
+          size: 0,
+        },
+      ])
+      expect(body.media.videoPreview?.url).toBe('http://s3/presigned')
+      expect(body.media.videoPreview?.key).toBe('files/watermarked-turntable.mp4')
+    })
+
+    test('strips videoPreview url and serves empty videoTranscodes for a 3d asset while watermark is in flight', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue(shareLinkWithWatermark)
+      const asset3d = {
+        id: 'file1',
+        name: 'model.glb',
+        sizeByte: 1024,
+        fileCount: 0,
+        type: 'file',
+        status: 'processed',
+        proxyType: '3d',
+        media: {
+          proxyType: '3d',
+          videoPreview: {
+            url: 'http://s3/unwatermarked-turntable.mp4',
+            key: 'files/turntable.mp4',
+          },
+          videoTranscodes: [
+            {
+              id: 'orig-turntable',
+              url: 'http://s3/unwatermarked-turntable.mp4',
+              key: 'files/turntable.mp4',
+              width: 1080,
+              height: 1080,
+            },
+          ],
+          original: { key: 'files/model.glb' },
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any
+      vi.spyOn(assetService, 'getAsset').mockResolvedValue(asset3d)
+      vi.spyOn(watermarkService, 'getCompletedWatermarkMediaMap').mockResolvedValue(new Map())
+
+      const res = await app.request('/shares/share1/files/file1', {
+        method: 'GET',
+        headers: { 'x-share-password': 'pass' },
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.media.videoTranscodes).toEqual([])
+      expect(body.media.videoPreview?.url).toBeUndefined()
+    })
+
     test('leaves non-video/image media untouched when watermark enabled', async () => {
       vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue(shareLinkWithWatermark)
       vi.spyOn(assetService, 'getAsset').mockResolvedValue({

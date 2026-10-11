@@ -23,6 +23,7 @@ import {
 } from '@shumai/core/src/share/errors'
 import { shareService } from '@shumai/core/src/share/share'
 import { logger } from '@shumai/core/src/logger'
+import { is3dModel } from '@shumai/core/src/utils/mime'
 
 // Union of the global client and interactive-transaction client, which share the
 // same delegate shapes for the models used by this service.
@@ -319,8 +320,9 @@ export class WatermarkService {
           const proxyType = mediaInfo?.proxyType
           const isVideo = proxyType === 'video' || asset.mediaType?.startsWith('video/')
           const isImage = proxyType === 'image' || asset.mediaType?.startsWith('image/')
+          const is3d = proxyType === '3d' || is3dModel(asset.mediaType)
 
-          if (isVideo || isImage) {
+          if (isVideo || isImage || is3d) {
             mediaAssetIds.push(asset.id)
           }
         } else if (asset.type === 'folder' || asset.type === 'version_stack') {
