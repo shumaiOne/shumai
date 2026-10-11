@@ -187,8 +187,9 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
       (frameIndex: number) => {
         const normalizedFrame = ((frameIndex % TOTAL_FRAMES) + TOTAL_FRAMES) % TOTAL_FRAMES
         const targetSec = normalizedFrame * FRAME_DURATION
+        const centerSec = calculateFrameCenterTime(normalizedFrame)
         if (videoRef.current) {
-          videoRef.current.currentTime = calculateFrameCenterTime(normalizedFrame)
+          videoRef.current.currentTime = centerSec
         }
         setCurrentTime(targetSec)
         onTimeUpdate?.(targetSec)
@@ -287,7 +288,8 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
       // 12px drag movement corresponds to 1 frame (15°)
       // Dragging right (deltaX > 0) rotates turntable counterclockwise (decreasing frame index)
       const deltaFrames = Math.round(deltaX / 12)
-      seekToFrame(dragStartRef.current.frame - deltaFrames)
+      const targetFrame = dragStartRef.current.frame - deltaFrames
+      seekToFrame(targetFrame)
     }
 
     const handleViewerPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -394,7 +396,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
                   ref={videoRef}
                   src={videoSrc}
                   playsInline
-                  loop
+                  loop={isPlaying}
                   muted
                   autoPlay={autoPlay}
                   preload="auto"
@@ -414,12 +416,6 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
                   }}
                   onEnded={() => {
                     setIsPlaying(false)
-                  }}
-                  onTimeUpdate={() => {
-                    if (videoRef.current && !isDraggingRotation && !isPlaying) {
-                      setCurrentTime(videoRef.current.currentTime)
-                      onTimeUpdateRef.current?.(videoRef.current.currentTime)
-                    }
                   }}
                   onError={() => {
                     setIsLoading(false)

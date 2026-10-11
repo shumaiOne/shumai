@@ -340,4 +340,40 @@ describe('ModelViewer', () => {
     expect(notPrevented).toBe(false)
     expect(mediaWrapper.style.transform).not.toBe(initialTransform)
   })
+
+  it('keeps video loop attribute disabled when paused to prevent browser EOF reset, and enables loop when playing', () => {
+    const { container } = render(<ModelViewer file={mockAsset} />)
+    const video = container.querySelector('video') as HTMLVideoElement
+    expect(video).toBeDefined()
+
+    // Paused initially: loop should be false so seeking to final frame does not trigger browser loop-reset
+    expect(video.loop).toBe(false)
+
+    // Play: loop should become true
+    fireEvent.play(video)
+    expect(video.loop).toBe(true)
+
+    // Pause: loop should become false again
+    fireEvent.pause(video)
+    expect(video.loop).toBe(false)
+  })
+
+  it('seeks safely to 345° without touching 4.0s EOF boundary', () => {
+    const onTimeUpdate = vi.fn()
+    const { container, getByTestId } = render(
+      <ModelViewer file={mockAsset} onTimeUpdate={onTimeUpdate} />,
+    )
+    const video = container.querySelector('video') as HTMLVideoElement
+    const degreeReadout = getByTestId('degree-readout')
+
+    // At 0°, press ArrowLeft to rotate counterclockwise to 345° (Frame 23)
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    // Target time should be 23 / 6s = 3.8333s
+    expect(onTimeUpdate).toHaveBeenCalledWith(expect.closeTo(23 / 6, 2))
+    // Video currentTime should be safely offset from 4.0s EOF (3.875s)
+    expect(video.currentTime).toBeCloseTo(3.875, 3)
+    expect(video.currentTime).toBeLessThan(4.0)
+    expect(degreeReadout.textContent).toContain('345° / 360°')
+  })
 })

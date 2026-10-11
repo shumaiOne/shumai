@@ -14,11 +14,15 @@ describe('model viewer utils', () => {
       expect(calculateFrameCenterTime(0)).toBeCloseTo(0.5 / FPS)
     })
 
-    it('calculates the center time for all frames 0 to 23', () => {
-      for (let i = 0; i < TOTAL_FRAMES; i++) {
+    it('calculates presentation times safely within frame boundaries for all frames 0 to 23', () => {
+      for (let i = 0; i < TOTAL_FRAMES - 1; i++) {
         const center = calculateFrameCenterTime(i)
         expect(center).toBeCloseTo((i + 0.5) * FRAME_DURATION)
       }
+      // For the final frame (frame 23, 345°), ensure it is safely offset away from EOF (4.0s)
+      const lastCenter = calculateFrameCenterTime(TOTAL_FRAMES - 1)
+      expect(lastCenter).toBeCloseTo((TOTAL_FRAMES - 1) * FRAME_DURATION + FRAME_DURATION * 0.25)
+      expect(lastCenter).toBeLessThan(TOTAL_FRAMES * FRAME_DURATION)
     })
 
     it('handles negative and wrapping frames properly', () => {
