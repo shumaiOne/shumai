@@ -4,6 +4,7 @@ import { setupTestDbHooks } from '@shumai/db/test'
 import { resolveAnnotationsById } from './annotation-resolver'
 import { DatabaseSessionStorage } from '../database-session-storage'
 import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
+import { degreeToSecond } from '@shumai/core/src/utils/model3d'
 
 describe('resolveAnnotationsById', () => {
   setupTestDbHooks()
@@ -206,6 +207,89 @@ describe('resolveAnnotationsById', () => {
         y: 200,
         width: 50,
         height: 50,
+      },
+    ])
+  })
+
+  it('resolves annotations and degree position timestamp from 1-on-1 chat AgentSessionEntry for 3D assets', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'User 3D', email: 'user3d@test.com', password: 'pw' },
+    })
+    const team = await prisma.team.create({
+      data: { name: 'Team 3D' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'Project 3D', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'robot.glb',
+        type: 'file',
+        projectId: project.id,
+        status: 'uploaded',
+      },
+    })
+    const agentUser = await prisma.user.create({
+      data: { name: 'Agent 3D', email: 'agent3d@example.com', type: 'agent' },
+    })
+    const agent = await prisma.agent.create({
+      data: {
+        id: agentUser.id,
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'test-provider', model: 'test-model' },
+      },
+    })
+
+    const storage = await DatabaseSessionStorage.create({
+      agentId: agent.id,
+      userId: user.id,
+      assetId: asset.id,
+    })
+
+    storage.currentMessageContext = {
+      currentAsset: {
+        id: asset.id,
+        name: asset.name,
+        type: 'file',
+        path: asset.name,
+      },
+      position: { type: 'degree', degree: 45 },
+      annotation: true,
+      annotations: [
+        {
+          type: 'rectangle',
+          x: 10,
+          y: 20,
+          width: 30,
+          height: 40,
+        },
+      ],
+    }
+
+    const userEntry: SessionTreeEntry = {
+      type: 'message',
+      id: '01JTEST3DENTRY123456789',
+      parentId: null,
+      timestamp: new Date().toISOString(),
+      message: {
+        role: 'user',
+        content: 'Check markup at 45 degrees',
+        timestamp: Date.now(),
+      },
+    }
+
+    await storage.appendEntry(userEntry)
+
+    const result = await resolveAnnotationsById(asset.id, '01JTEST3DENTRY123456789')
+    expect(result.timestamp).toBeCloseTo(degreeToSecond(45))
+    expect(result.annotations).toEqual([
+      {
+        type: 'rectangle',
+        x: 10,
+        y: 20,
+        width: 30,
+        height: 40,
       },
     ])
   })

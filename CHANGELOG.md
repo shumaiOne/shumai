@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+* **agent**: Fix an issue where 3D visual markup annotations in 1-on-1 chat sessions were inspected at 0° instead of the user's annotated degree angle
 * **transcode**: Fix an issue where portrait photos from cameras and phones appeared sideways in thumbnails, previews, watermarked share links and annotated snapshots, and were listed with their width and height swapped
 
 ### Changed

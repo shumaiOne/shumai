@@ -11,6 +11,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
 import { authzService } from '@shumai/core/src/authz/authz'
 import * as annotationResolver from './annotation-resolver'
+import { degreeToSecond } from '@shumai/core/src/utils/model3d'
 
 vi.mock('@shumai/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@shumai/db')>()
@@ -525,6 +526,92 @@ describe('readAssetTool', () => {
       const textItem = result.content[0] as { type: 'text'; text: string }
       expect(textItem.text).toContain('view at 45° with visual markups overlaid:')
       expect(result.details.key).toBe('proxy/shot-annotated.webp')
+    })
+
+    it('should extract turntable frame at resolved degree angle for 3D session annotations', async () => {
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'model-1',
+        name: 'robot.glb',
+        mediaType: 'model/gltf-binary',
+        projectId: 'proj-1',
+        media: {
+          proxyType: '3d',
+          videoTranscodes: [{ key: 'proxy/turntable.mp4' }],
+        },
+      } as unknown as Asset)
+
+      const expectedTime = degreeToSecond(90)
+      vi.spyOn(annotationResolver, 'resolveAnnotationsById').mockResolvedValue({
+        annotations: [
+          {
+            type: 'box',
+            color: '#00ff00',
+            points: [
+              [10, 20],
+              [40, 60],
+            ],
+          },
+        ],
+        timestamp: expectedTime,
+      })
+
+      vi.mocked(prisma.workflowTask.create).mockResolvedValue({
+        id: 'task-shot-3d-session',
+      } as unknown as WorkflowTask)
+
+      vi.mocked(workflowService.executeWait).mockResolvedValue({
+        id: 'task-shot-3d-session',
+        status: WorkflowTaskStatus.completed,
+        output: {
+          screenshots: [{ key: 'proxy/shot-annotated-90.webp', timestamp: expectedTime }],
+        },
+      } as unknown as WorkflowTask)
+
+      vi.mocked(s3Service.getObject).mockResolvedValue({
+        buffer: Buffer.from('fake-shot-90-bytes'),
+        contentType: 'image/webp',
+      } as unknown as { buffer: Buffer; contentType: string })
+
+      const tool = createReadAssetTool('user-1')
+      const result = await tool.execute('call-3d-session-ann', {
+        assetId: 'model-1',
+        annotationId: 'session-entry-1',
+        config3d: null,
+        imageConfig: null,
+        videoConfig: null,
+        docConfig: null,
+      })
+
+      expect(prisma.workflowTask.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          type: WorkflowTaskType.transcode_screenshot,
+          assetId: 'model-1',
+          payload: {
+            projectId: 'proj-1',
+            screenshot: {
+              start: expectedTime,
+              end: expectedTime,
+              count: 1,
+              commentTimestamp: expectedTime,
+              annotations: [
+                {
+                  type: 'box',
+                  color: '#00ff00',
+                  points: [
+                    [10, 20],
+                    [40, 60],
+                  ],
+                },
+              ],
+            },
+          },
+        }),
+      })
+
+      const textItem = result.content[0] as { type: 'text'; text: string }
+      expect(textItem.text).toContain('view at 90° with visual markups overlaid:')
+      expect(result.details.key).toBe('proxy/shot-annotated-90.webp')
     })
 
     it('should throw error if config3d.degree conflicts with annotation angle', async () => {

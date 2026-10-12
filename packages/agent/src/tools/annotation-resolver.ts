@@ -1,5 +1,6 @@
 import { prisma } from '@shumai/db'
 import type { ShumaiMessageContext } from '@shumai/dtos'
+import { degreeToSecond } from '@shumai/core/src/utils/model3d'
 
 export async function resolveAnnotationsById(
   assetId: string,
@@ -44,7 +45,14 @@ export async function resolveAnnotationsById(
     const list = details?.annotations
     const annotations =
       Array.isArray(list) && list.length > 0 ? (list as unknown as PrismaJson.AnnotationList) : null
-    const timestamp = details?.position?.type === 'time' ? details.position.seconds : null
+    let timestamp: number | null = null
+    if (details?.position?.type === 'time') {
+      timestamp = details.position.seconds
+    } else if (details?.position?.type === 'degree') {
+      timestamp = degreeToSecond(details.position.degree)
+    } else if (details?.position?.type === 'page') {
+      timestamp = details.position.page
+    }
     return { annotations, timestamp }
   }
 
