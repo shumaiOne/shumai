@@ -3192,6 +3192,37 @@ export class TranscodeService {
       await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
     }
   }
+
+  async generate3dViews(
+    inputFile: string,
+    outputViews: string,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    if (signal?.aborted) {
+      throw new Error('3D views generation cancelled')
+    }
+    const filterComplex = `[0:v]select='eq(n\\,0)+eq(n\\,6)+eq(n\\,12)+eq(n\\,18)',scale=1440:1440,tile=2x2[views_out]`
+    const args = [
+      '-i',
+      inputFile,
+      '-filter_complex',
+      filterComplex,
+      '-map',
+      '[views_out]',
+      '-frames:v',
+      '1',
+      '-c:v',
+      'libwebp',
+      '-q:v',
+      '85',
+      outputViews,
+    ]
+    if (signal) {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args], { signal })
+    } else {
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+    }
+  }
 }
 
 function renderAnnotationsToSvg(

@@ -7,6 +7,7 @@ import { workflowService } from '@shumai/workflow-core'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { resolveAnnotationsById } from './annotation-resolver'
 import { getFileMimeType } from '@shumai/core/src/utils/file-mime'
+import { is3dModel } from '@shumai/core/src/utils/mime'
 
 export const readAssetSchema = Type.Object(
   {
@@ -242,6 +243,82 @@ export function createReadAssetTool(
       const mediaType = asset.mediaType?.toLowerCase() || ''
       const filename = asset.name?.toLowerCase() || ''
       const bucket = process.env.S3_BUCKET || 'shumai'
+
+      // ----------------------------------------------------------------------
+      // Branch 0: 3D Assets (Orthogonal 4-View Composite Image)
+      // ----------------------------------------------------------------------
+      const is3d = proxyType === '3d' || is3dModel(mediaType, filename)
+      if (is3d) {
+        if (videoConfig) {
+          throw new Error(
+            `Asset ${asset.id} is a 3D model. 3D assets provide an orthogonal 4-view composite image (Front/Right/Back/Left); do not pass videoConfig.`,
+          )
+        }
+
+        if (!mediaInfo?.imageTranscodes || mediaInfo.imageTranscodes.length === 0) {
+          throw new Error(
+            `Asset ${asset.id} is a 3D model, but its 4-views image (views.webp) is missing.`,
+          )
+        }
+
+        const mediaKey = mediaInfo.imageTranscodes[0].key
+        if (!mediaKey) {
+          throw new Error(`Asset ${asset.id} is a 3D model, but its 4-views image key is missing.`)
+        }
+
+        const keyToUse = mediaKey
+        const mimeType = 'image/webp'
+
+        const downloadUrl = await s3Service.presign(
+          bucket,
+          keyToUse,
+          'GET',
+          true,
+          asset.name || undefined,
+        )
+
+        const content: Array<TextContent | ImageContent> = []
+        const textDescription = [
+          `3D asset "${asset.name}" (ID: ${asset.id}, MIME: ${mimeType}, S3 Key: "${keyToUse}"):`,
+          'Orthogonal 4-view composite image (2x2 grid across 360° rotation):',
+          '- Top-Left quadrant: Front view (0°)',
+          '- Top-Right quadrant: Right side view (90°)',
+          '- Bottom-Left quadrant: Back view (180°)',
+          '- Bottom-Right quadrant: Left side view (270°)',
+        ].join('\n')
+
+        if (s3KeyOnly) {
+          content.push({
+            type: 'text',
+            text: textDescription,
+          })
+        } else {
+          const { buffer, contentType } = await s3Service.getObject(bucket, keyToUse)
+          const actualMimeType =
+            contentType && contentType !== 'application/octet-stream' ? contentType : mimeType
+          content.push({
+            type: 'text',
+            text: textDescription,
+          })
+          content.push({
+            type: 'image',
+            data: buffer.toString('base64'),
+            mimeType: actualMimeType,
+          })
+        }
+
+        return {
+          content,
+          details: {
+            assetId: asset.id,
+            name: asset.name,
+            mediaType: asset.mediaType,
+            key: keyToUse,
+            downloadUrl,
+            sourceKeys: [keyToUse],
+          },
+        }
+      }
 
       // ----------------------------------------------------------------------
       // Branch 1: Image Assets

@@ -211,6 +211,68 @@ describe('Agent Embedding Workflow', () => {
     })
   })
 
+  it('should run agent embedding workflow successfully for 3D asset using 4-views image', async () => {
+    mockActivities.getEmbeddingContextActivity.mockResolvedValue({
+      agent: { id: 'b1' },
+      asset: {
+        id: 'model-1',
+        mediaType: 'model/gltf-binary',
+        storageKey: { key: 'raw/model.glb' },
+        media: {
+          proxyType: '3d',
+          imageTranscodes: [{ key: 'files/views.webp', format: 'webp' }],
+        },
+      },
+      chunkDuration: 60.0,
+      chunkOverlap: 5.0,
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_embedding',
+        status: 'pending',
+        assetId: 'model-1',
+        teamId: 't1',
+      },
+    })
+
+    await agentEmbeddingMedia(task)
+
+    expect(mockActivities.generateImageEmbeddingActivity).toHaveBeenCalledWith({
+      teamId: 't1',
+      assetKey: 'files/views.webp',
+      mediaType: 'image/webp',
+    })
+  })
+
+  it('should reject 3D asset for embeddings if imageTranscodes is missing', async () => {
+    mockActivities.getEmbeddingContextActivity.mockResolvedValue({
+      agent: { id: 'b1' },
+      asset: {
+        id: 'model-1',
+        mediaType: 'model/gltf-binary',
+        storageKey: { key: 'raw/model.glb' },
+        media: {
+          proxyType: '3d',
+          imageTranscodes: [],
+        },
+      },
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_embedding',
+        status: 'pending',
+        assetId: 'model-1',
+        teamId: 't1',
+      },
+    })
+
+    await expect(agentEmbeddingMedia(task)).rejects.toThrow(
+      'unsupported media type for embeddings: model/gltf-binary',
+    )
+  })
+
   it('should run agent embedding workflow successfully for video in chunks', async () => {
     mockActivities.getEmbeddingContextActivity.mockResolvedValue({
       agent: { id: 'b1' },

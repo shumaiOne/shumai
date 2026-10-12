@@ -564,6 +564,7 @@ export async function autofillAiActivity(params: AutofillAiParams) {
   const proxyType = getProxyType(params.mediaType, params.assetName)
   const isVideoOrAudio = proxyType === 'video' || proxyType === 'audio'
   const isPdf = proxyType === 'pdf'
+  const is3d = proxyType === '3d'
 
   if (params.duration !== undefined && params.duration > 0 && (!proxyType || isVideoOrAudio)) {
     promptLines.push(
@@ -575,11 +576,16 @@ export async function autofillAiActivity(params: AutofillAiParams) {
       `- Document pages: ${params.pageCount}. Recommended inspection: call read_asset with docConfig: { mode: "pages", startPage: 1, endPage: ${Math.min(params.pageCount, 20)} } or mode: "text".`,
     )
   }
+  if (is3d) {
+    promptLines.push(
+      '- 3D Model: This asset has an orthogonal 4-view composite image (2x2 grid showing Front view at top-left, Right side view at top-right, Back view at bottom-left, Left side view at bottom-right). Call read_asset to inspect the 4 views.',
+    )
+  }
 
   promptLines.push(
     '',
     'Instructions:',
-    `1. Call the "read_asset" tool with assetId: "${params.assetId || ''}" to inspect the asset content (use imageConfig, videoConfig, or docConfig according to the media type).`,
+    `1. Call the "read_asset" tool with assetId: "${params.assetId || ''}" to inspect the asset content (use imageConfig, videoConfig, or docConfig according to the media type; for 3D assets, call read_asset directly to inspect the 4-view composite image).`,
     '2. After analyzing the retrieved content, call the "autofill_metadata" tool to provide the extracted metadata values.',
     '3. If "read_asset" fails or returns an error, do not autofill any metadata and report to the user directly. Do not try anything fancy, for example downloading the file or using python/ffmpeg to extract content.',
   )

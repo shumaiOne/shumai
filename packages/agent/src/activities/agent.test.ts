@@ -662,6 +662,23 @@ describe('Agent Activities', () => {
     const pdfPrompt = mockHarness.prompt.mock.calls[1]?.[0] ?? ''
     expect(pdfPrompt).toContain('Document pages: 50')
     expect(pdfPrompt).not.toContain('Video duration')
+
+    // For a 3D asset, should produce 3D Model recommendation
+    await autofillAiActivity({
+      teamId: 't1',
+      assetId: 'model-3',
+      assetName: 'robot.glb',
+      mediaType: 'model/gltf-binary',
+      images: [],
+      fields: [{ id: 'f1', config: { name: 'F1', type: 'text' } }],
+      context,
+    })
+
+    const modelPrompt = mockHarness.prompt.mock.calls[2]?.[0] ?? ''
+    expect(modelPrompt).toContain('3D Model: This asset has an orthogonal 4-view composite image')
+    expect(modelPrompt).toContain(
+      'Front view at top-left, Right side view at top-right, Back view at bottom-left, Left side view at bottom-right',
+    )
   })
 })
 

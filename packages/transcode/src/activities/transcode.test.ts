@@ -27,6 +27,7 @@ import {
   transcodeVideoChunkActivity,
   deleteS3ObjectActivity,
   createAutofillTaskIfEnabledActivity,
+  createEmbeddingTaskIfEnabledActivity,
 } from './transcode'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
@@ -1715,6 +1716,117 @@ describe('Transcode Activities', () => {
       expect(task?.status).toBe('pending')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((task?.payload as any)?.agent?.agentId).toBe(autofillAgent.id)
+    })
+  })
+
+  describe('createEmbeddingTaskIfEnabledActivity', () => {
+    it('should create ai_embedding task for 3D asset with imageTranscodes', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'Test User Embedding', email: 'test-embedding-agent@test.com' },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'Test Team Embedding' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'owner' },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project Embedding', teamId: team.id },
+      })
+      const embeddingAgent = await prisma.agent.create({
+        data: {
+          id: user.id,
+          type: 'embedding',
+          enabled: true,
+          teamId: team.id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          config: { provider: 'test', model: 'test' } as any,
+        },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'robot.glb',
+          mediaType: 'model/gltf-binary',
+          type: 'file',
+          status: 'processed',
+          projectId: project.id,
+          media: {
+            proxyType: '3d',
+            imageTranscodes: [
+              {
+                key: 'files/asset-1/views.webp',
+                width: 2880,
+                height: 2880,
+                quality: 85,
+                format: 'webp',
+              },
+            ],
+          } as unknown as PrismaJson.MediaInfo,
+        },
+      })
+
+      await createEmbeddingTaskIfEnabledActivity({
+        assetId: asset.id,
+        teamId: team.id,
+        projectId: project.id,
+      })
+
+      const task = await prisma.workflowTask.findFirst({
+        where: { assetId: asset.id, type: 'ai_embedding' },
+      })
+      expect(task).toBeDefined()
+      expect(task?.status).toBe('pending')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((task?.payload as any)?.agent?.agentId).toBe(embeddingAgent.id)
+    })
+
+    it('should NOT create ai_embedding task for 3D asset without imageTranscodes', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'Test User Embedding 2', email: 'test-embedding-agent-2@test.com' },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'Test Team Embedding 2' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'owner' },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project Embedding 2', teamId: team.id },
+      })
+      await prisma.agent.create({
+        data: {
+          id: user.id,
+          type: 'embedding',
+          enabled: true,
+          teamId: team.id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          config: { provider: 'test', model: 'test' } as any,
+        },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'robot.glb',
+          mediaType: 'model/gltf-binary',
+          type: 'file',
+          status: 'processed',
+          projectId: project.id,
+          media: {
+            proxyType: '3d',
+            imageTranscodes: [],
+          } as unknown as PrismaJson.MediaInfo,
+        },
+      })
+
+      await createEmbeddingTaskIfEnabledActivity({
+        assetId: asset.id,
+        teamId: team.id,
+        projectId: project.id,
+      })
+
+      const task = await prisma.workflowTask.findFirst({
+        where: { assetId: asset.id, type: 'ai_embedding' },
+      })
+      expect(task).toBeNull()
     })
   })
 })

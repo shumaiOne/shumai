@@ -23,6 +23,7 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
       start3dRenderActivity,
       waitFor3dVideoRenderActivity,
       generate3dSpriteActivity,
+      generate3dViewsActivity,
       updateAssetMediaActivity,
       createEmbeddingTaskIfEnabledActivity,
       createAutofillTaskIfEnabledActivity,
@@ -46,6 +47,7 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
     const videoKey = assetDir ? `${assetDir}/turntable.mp4` : 'turntable.mp4'
     const posterKey = assetDir ? `${assetDir}/poster.webp` : 'poster.webp'
     const spriteKey = assetDir ? `${assetDir}/sprite.webp` : 'sprite.webp'
+    const viewsKey = assetDir ? `${assetDir}/views.webp` : 'views.webp'
 
     const renderStart = await executeActivity(workerQueue, start3dRenderActivity, {
       taskId: task.id,
@@ -116,6 +118,23 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
       tileX: 10,
       tileY: 10,
     }
+
+    await executeActivity(workerQueue, generate3dViewsActivity, {
+      taskId: task.id,
+      assetKey: key,
+      videoFilePath: renderVideo.videoFilePath,
+      viewsKey,
+    })
+
+    mediaInfo.imageTranscodes = [
+      {
+        key: viewsKey,
+        width: 2880,
+        height: 2880,
+        quality: 85,
+        format: 'webp',
+      },
+    ]
 
     await executeActivity(workerQueue, updateAssetMediaActivity, {
       assetId: asset.id,

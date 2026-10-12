@@ -211,6 +211,135 @@ describe('readAssetTool', () => {
     })
   })
 
+  describe('3D Assets', () => {
+    it('should read 3D asset 4-views image and return image with quadrant layout description', async () => {
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'model-1',
+        name: 'robot.glb',
+        mediaType: 'model/gltf-binary',
+        storageKey: { key: 'raw/robot.glb' },
+        media: {
+          proxyType: '3d',
+          imageTranscodes: [{ key: 'proxy/views.webp' }],
+        },
+      } as unknown as Asset)
+
+      vi.mocked(s3Service.getObject).mockResolvedValue({
+        buffer: Buffer.from('fake-views-bytes'),
+        contentType: 'image/webp',
+      } as unknown as { buffer: Buffer; contentType: string })
+
+      const tool = createReadAssetTool('user-1')
+      const result = await tool.execute('call-3d', {
+        assetId: 'model-1',
+        annotationId: null,
+        imageConfig: null,
+        videoConfig: null,
+        docConfig: null,
+      })
+
+      expect(authzService.hasPermission).toHaveBeenCalledWith({
+        user: { id: 'user-1' },
+        permission: 'Read',
+        type: 'asset',
+        id: 'model-1',
+      })
+      expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'proxy/views.webp')
+
+      const textItem = result.content[0] as { type: 'text'; text: string }
+      const imageItem = result.content[1] as { type: 'image'; data: string; mimeType: string }
+
+      expect(textItem.text).toContain('Orthogonal 4-view composite image')
+      expect(textItem.text).toContain('Top-Left quadrant: Front view (0°)')
+      expect(textItem.text).toContain('Top-Right quadrant: Right side view (90°)')
+      expect(textItem.text).toContain('Bottom-Left quadrant: Back view (180°)')
+      expect(textItem.text).toContain('Bottom-Right quadrant: Left side view (270°)')
+      expect(imageItem.type).toBe('image')
+      expect(imageItem.data).toBe(Buffer.from('fake-views-bytes').toString('base64'))
+      expect(result.details.key).toBe('proxy/views.webp')
+    })
+
+    it('should support s3KeyOnly mode for 3D assets', async () => {
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'model-1',
+        name: 'robot.glb',
+        mediaType: 'model/gltf-binary',
+        media: {
+          proxyType: '3d',
+          imageTranscodes: [{ key: 'proxy/views.webp' }],
+        },
+      } as unknown as Asset)
+
+      const tool = createReadAssetTool('user-1')
+      const result = await tool.execute('call-3d-s3', {
+        assetId: 'model-1',
+        annotationId: null,
+        s3KeyOnly: true,
+        imageConfig: null,
+        videoConfig: null,
+        docConfig: null,
+      })
+
+      expect(result.content).toHaveLength(1)
+      const textItem = result.content[0] as { type: 'text'; text: string }
+      expect(textItem.text).toContain('proxy/views.webp')
+      expect(textItem.text).toContain('Front view (0°)')
+      expect(result.details.key).toBe('proxy/views.webp')
+    })
+
+    it('should throw error if videoConfig is passed for 3D assets', async () => {
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'model-1',
+        name: 'robot.glb',
+        mediaType: 'model/gltf-binary',
+        media: {
+          proxyType: '3d',
+          imageTranscodes: [{ key: 'proxy/views.webp' }],
+        },
+      } as unknown as Asset)
+
+      const tool = createReadAssetTool('user-1')
+      await expect(
+        tool.execute('call-3d-err', {
+          assetId: 'model-1',
+          annotationId: null,
+          imageConfig: null,
+          videoConfig: { start: 0, end: 4, count: 4 },
+          docConfig: null,
+        }),
+      ).rejects.toThrow(
+        '3D assets provide an orthogonal 4-view composite image (Front/Right/Back/Left); do not pass videoConfig',
+      )
+    })
+
+    it('should throw error if 3D asset imageTranscodes is missing', async () => {
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'model-1',
+        name: 'robot.glb',
+        mediaType: 'model/gltf-binary',
+        media: {
+          proxyType: '3d',
+          imageTranscodes: [],
+        },
+      } as unknown as Asset)
+
+      const tool = createReadAssetTool('user-1')
+      await expect(
+        tool.execute('call-3d-err2', {
+          assetId: 'model-1',
+          annotationId: null,
+          imageConfig: null,
+          videoConfig: null,
+          docConfig: null,
+        }),
+      ).rejects.toThrow('4-views image (views.webp) is missing')
+    })
+  })
+
   describe('Video Assets', () => {
     it('should throw error if videoConfig is missing for video assets', async () => {
       vi.mocked(authzService.hasPermission).mockResolvedValue()

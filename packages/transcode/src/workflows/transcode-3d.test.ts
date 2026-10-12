@@ -29,6 +29,7 @@ describe('transcode3dWorkflow', () => {
       _activityName: 'waitFor3dVideoRenderActivity',
     }),
     generate3dSpriteActivity: Object.assign(vi.fn(), { _activityName: 'generate3dSpriteActivity' }),
+    generate3dViewsActivity: Object.assign(vi.fn(), { _activityName: 'generate3dViewsActivity' }),
     updateAssetMediaActivity: Object.assign(vi.fn(), {
       _activityName: 'updateAssetMediaActivity',
     }),
@@ -173,6 +174,13 @@ describe('transcode3dWorkflow', () => {
       spriteKey: 'files/asset-3d/sprite.webp',
     })
 
+    expect(mockActivities.generate3dViewsActivity).toHaveBeenCalledWith({
+      taskId: 'task-3d',
+      assetKey: 'files/asset-3d/robot.glb',
+      videoFilePath: '/tmp/turntable.mp4',
+      viewsKey: 'files/asset-3d/views.webp',
+    })
+
     expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith(
       expect.objectContaining({
         assetId: 'asset-3d',
@@ -182,6 +190,15 @@ describe('transcode3dWorkflow', () => {
           frames: 24,
           poster: { key: 'files/asset-3d/poster.webp' },
           sprite: expect.objectContaining({ key: 'files/asset-3d/sprite.webp' }),
+          imageTranscodes: [
+            {
+              key: 'files/asset-3d/views.webp',
+              width: 2880,
+              height: 2880,
+              quality: 85,
+              format: 'webp',
+            },
+          ],
         }),
       }),
     )

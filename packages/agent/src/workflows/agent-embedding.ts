@@ -70,7 +70,10 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { asset, chunkDuration, chunkOverlap } = context as any
 
-    const isImage = asset.mediaType?.startsWith('image/')
+    const mediaInfo = asset.media as PrismaJson.MediaInfo | null
+    const is3dWithViews =
+      mediaInfo?.proxyType === '3d' && (mediaInfo.imageTranscodes?.length ?? 0) > 0
+    const isImage = asset.mediaType?.startsWith('image/') || is3dWithViews
     const isVideo = asset.mediaType?.startsWith('video/')
 
     if (!isImage && !isVideo) {

@@ -4,6 +4,7 @@ import {
   start3dRenderActivity,
   waitFor3dVideoRenderActivity,
   generate3dSpriteActivity,
+  generate3dViewsActivity,
 } from './transcode'
 import { turntableService } from '@shumai/core/src/turntable/turntable'
 import { s3Service } from '@shumai/core/src/s3/s3'
@@ -31,6 +32,7 @@ vi.mock('@shumai/core/src/transcode/transcode', () => ({
   transcodeService: {
     convertImageToWebp: vi.fn(),
     generate3dSprite: vi.fn(),
+    generate3dViews: vi.fn(),
   },
 }))
 
@@ -55,6 +57,7 @@ describe('3D Transcode Activities', () => {
     vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('mock-bytes'))
     vi.mocked(transcodeService.convertImageToWebp).mockResolvedValue(Buffer.from('webp-bytes'))
     vi.mocked(transcodeService.generate3dSprite).mockResolvedValue()
+    vi.mocked(transcodeService.generate3dViews).mockResolvedValue()
     vi.mocked(s3Service.putObject).mockResolvedValue({} as never)
     vi.mocked(turntableService.deleteTask).mockResolvedValue(true)
   })
@@ -322,6 +325,31 @@ describe('3D Transcode Activities', () => {
         'image/webp',
       )
       expect(res.spriteKey).toBe('files/asset-1/sprite.webp')
+    })
+  })
+
+  describe('generate3dViewsActivity', () => {
+    it('generates 3d 4-views composite image and uploads to S3', async () => {
+      const res = await generate3dViewsActivity({
+        taskId: 'wf-task-4',
+        assetKey: 'files/asset-1/model.glb',
+        videoFilePath: '/tmp/turntable.mp4',
+        viewsKey: 'files/asset-1/views.webp',
+      })
+
+      expect(transcodeService.generate3dViews).toHaveBeenCalledWith(
+        '/tmp/turntable.mp4',
+        '/tmp/views.webp',
+        undefined,
+      )
+      expect(s3Service.putObject).toHaveBeenCalledWith(
+        'shumai',
+        'files/asset-1/views.webp',
+        expect.any(Buffer),
+        expect.any(Number),
+        'image/webp',
+      )
+      expect(res.viewsKey).toBe('files/asset-1/views.webp')
     })
   })
 })

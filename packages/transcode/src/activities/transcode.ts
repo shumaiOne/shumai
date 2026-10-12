@@ -1360,8 +1360,11 @@ export async function createEmbeddingTaskIfEnabledActivity(
     return
   }
 
+  const mediaInfo = asset.media as PrismaJson.MediaInfo | null
   const isVideo = asset.mediaType?.startsWith('video/')
-  const isImage = asset.mediaType?.startsWith('image/')
+  const isImage =
+    asset.mediaType?.startsWith('image/') ||
+    (mediaInfo?.proxyType === '3d' && (mediaInfo.imageTranscodes?.length ?? 0) > 0)
   if (!isVideo && !isImage) {
     return
   }
@@ -1882,6 +1885,54 @@ export async function generate3dSpriteActivity(
     const errMsg = err instanceof Error ? err.message : String(err)
     throw ApplicationFailure.create({
       message: `Failed to generate 3D sprite: ${errMsg}`,
+      nonRetryable: true,
+    })
+  }
+}
+
+export interface Generate3dViewsActivityParams {
+  taskId: string
+  assetKey: string
+  videoFilePath: string
+  viewsKey: string
+}
+
+export async function generate3dViewsActivity(
+  params: Generate3dViewsActivityParams,
+): Promise<{ viewsKey: string }> {
+  const signal = getActivityCancellationSignal(params.taskId)
+  if (signal?.aborted) {
+    throw ApplicationFailure.create({
+      message: '3D views generation cancelled',
+      nonRetryable: true,
+    })
+  }
+
+  const bucket = process.env.S3_BUCKET || 'shumai'
+  const tmpDir = path.dirname(params.videoFilePath)
+  const viewsFilePath = path.join(tmpDir, 'views.webp')
+
+  try {
+    await transcodeService.generate3dViews(params.videoFilePath, viewsFilePath, signal)
+    const viewsBuffer = fs.readFileSync(viewsFilePath)
+
+    await ensureAssetNotPurging(params.assetKey)
+    await s3Service.putObject(
+      bucket,
+      params.viewsKey,
+      viewsBuffer,
+      viewsBuffer.length,
+      'image/webp',
+    )
+
+    return { viewsKey: params.viewsKey }
+  } catch (err) {
+    if (err instanceof ApplicationFailure) {
+      throw err
+    }
+    const errMsg = err instanceof Error ? err.message : String(err)
+    throw ApplicationFailure.create({
+      message: `Failed to generate 3D views: ${errMsg}`,
       nonRetryable: true,
     })
   }

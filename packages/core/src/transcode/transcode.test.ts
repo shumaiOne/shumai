@@ -4432,6 +4432,89 @@ describe('TranscodeService', () => {
     })
   })
 
+  describe('generate3dViews', () => {
+    it('executes ffmpeg with 2x2 grid filter, libwebp encoder, and q=85', async () => {
+      let executedArgs: string[] = []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(child_process.execFile as any).mockImplementation(
+        (
+          _cmd: string,
+          args: string[],
+          cb: (err: unknown, result: { stdout: string; stderr: string }) => void,
+        ) => {
+          executedArgs = args
+          cb(null, { stdout: '', stderr: '' })
+        },
+      )
+
+      const inputPath = path.join(tempDir, 'turntable.mp4')
+      const outputPath = path.join(tempDir, 'views.webp')
+
+      await transcodeService.generate3dViews(inputPath, outputPath)
+
+      expect(child_process.execFile).toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.any(Array),
+        expect.any(Function),
+      )
+      expect(executedArgs).toEqual([
+        '-y',
+        '-loglevel',
+        'warning',
+        '-i',
+        inputPath,
+        '-filter_complex',
+        "[0:v]select='eq(n\\,0)+eq(n\\,6)+eq(n\\,12)+eq(n\\,18)',scale=1440:1440,tile=2x2[views_out]",
+        '-map',
+        '[views_out]',
+        '-frames:v',
+        '1',
+        '-c:v',
+        'libwebp',
+        '-q:v',
+        '85',
+        outputPath,
+      ])
+    })
+
+    it('passes abort signal to execFile when provided', async () => {
+      const controller = new AbortController()
+      let optionsPassed: unknown = null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(child_process.execFile as any).mockImplementation(
+        (_cmd: string, _args: string[], optionsOrCb: unknown, maybeCb?: unknown) => {
+          const cb = (typeof optionsOrCb === 'function' ? optionsOrCb : maybeCb) as (
+            err: unknown,
+            result: { stdout: string; stderr: string },
+          ) => void
+          if (typeof optionsOrCb !== 'function') {
+            optionsPassed = optionsOrCb
+          }
+          cb(null, { stdout: '', stderr: '' })
+        },
+      )
+
+      const inputPath = path.join(tempDir, 'turntable.mp4')
+      const outputPath = path.join(tempDir, 'views.webp')
+
+      await transcodeService.generate3dViews(inputPath, outputPath, controller.signal)
+
+      expect(optionsPassed).toMatchObject({ signal: controller.signal })
+    })
+
+    it('rejects with cancellation error if aborted before execution', async () => {
+      const controller = new AbortController()
+      controller.abort()
+
+      const inputPath = path.join(tempDir, 'aborted.mp4')
+      const outputPath = path.join(tempDir, 'views.webp')
+
+      await expect(
+        transcodeService.generate3dViews(inputPath, outputPath, controller.signal),
+      ).rejects.toThrow('3D views generation cancelled')
+    })
+  })
+
   describe('HLS utilities', () => {
     it('builds master playlist correctly with bandwidth and codecs', () => {
       const playlist = buildHlsMasterPlaylist([
