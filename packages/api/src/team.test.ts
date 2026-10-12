@@ -60,6 +60,14 @@ vi.mock('@shumai/core/src/turntable/turntable', () => ({
   },
 }))
 
+vi.mock('@shumai/core/src/gotenberg/gotenberg', () => ({
+  gotenbergService: {
+    getSettings: vi.fn(),
+    updateSettings: vi.fn(),
+    testConnection: vi.fn(),
+  },
+}))
+
 describe('team api', () => {
   const app = new Hono().use('*', authMiddleware).route('/', teamRoute)
   let mockCreateTeam: any // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -747,6 +755,107 @@ describe('team api', () => {
       const data = await res.json()
       expect(data.ok).toBe(true)
       expect(data.blender).toBe('5.2.0')
+    })
+
+    it('GET /teams/:teamId/gotenberg-settings returns gotenberg settings', async () => {
+      const { gotenbergService } = await import('@shumai/core/src/gotenberg/gotenberg')
+      vi.mocked(gotenbergService.getSettings).mockResolvedValue({
+        url: 'http://localhost:3000',
+        username: 'user',
+        hasPassword: true,
+        isEnvConfigured: false,
+      })
+
+      const res = await app.request('/teams/t1/gotenberg-settings')
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data).toEqual({
+        url: 'http://localhost:3000',
+        username: 'user',
+        hasPassword: true,
+        isEnvConfigured: false,
+      })
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          permission: Permission.Read,
+          type: ResourceType.Team,
+          id: 't1',
+        }),
+      )
+    })
+
+    it('PUT /teams/:teamId/gotenberg-settings updates settings when not env configured', async () => {
+      const { gotenbergService } = await import('@shumai/core/src/gotenberg/gotenberg')
+      vi.mocked(gotenbergService.updateSettings).mockResolvedValue({
+        url: 'http://custom:3000',
+        username: 'newuser',
+        hasPassword: true,
+        isEnvConfigured: false,
+      })
+
+      const res = await app.request('/teams/t1/gotenberg-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: 'http://custom:3000',
+          username: 'newuser',
+          password: 'secretpassword',
+        }),
+      })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.url).toBe('http://custom:3000')
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          permission: Permission.Admin,
+          type: ResourceType.Team,
+          id: 't1',
+        }),
+      )
+    })
+
+    it('PUT /teams/:teamId/gotenberg-settings returns 400 when env configured', async () => {
+      const { gotenbergService } = await import('@shumai/core/src/gotenberg/gotenberg')
+      vi.mocked(gotenbergService.updateSettings).mockRejectedValue(
+        new Error(
+          'Gotenberg settings are configured via environment variables and cannot be edited',
+        ),
+      )
+
+      const res = await app.request('/teams/t1/gotenberg-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: 'http://custom:3000',
+        }),
+      })
+
+      expect(res.status).toBe(400)
+      const data = await res.json()
+      expect(data.message).toContain('configured via environment variables')
+    })
+
+    it('POST /teams/:teamId/gotenberg-settings/test tests connection', async () => {
+      const { gotenbergService } = await import('@shumai/core/src/gotenberg/gotenberg')
+      vi.mocked(gotenbergService.testConnection).mockResolvedValue({
+        ok: true,
+        version: '8.3.0',
+      })
+
+      const res = await app.request('/teams/t1/gotenberg-settings/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: 'http://custom:3000',
+        }),
+      })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.ok).toBe(true)
+      expect(data.version).toBe('8.3.0')
     })
   })
 })

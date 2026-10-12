@@ -1,7 +1,23 @@
 import * as fs from 'fs'
-import { prisma } from '@shumai/db'
 import type { TurntableSettingsResponse, UpdateTurntableSettingsRequest } from '@shumai/dtos'
-import { logger } from '../logger'
+import {
+  IntegrationDefinition,
+  resolveIntegrationConfig,
+  getIntegrationSettings,
+  updateIntegrationSettings,
+  resolveTestConnectionConfig,
+  getIntegrationBasicAuthHeader,
+} from '@shumai/core/src/integrations/helper'
+
+export const TURNTABLE_INTEGRATION_DEF: IntegrationDefinition<'turntable'> = {
+  name: 'Turntable',
+  settingsKey: 'turntable',
+  envKeys: {
+    url: ['TURNTABLE_RENDERER_URL'],
+    username: ['TURNTABLE_RENDERER_BASIC_AUTH_USERNAME', 'TURNTABLE_RENDERER_USERNAME'],
+    password: ['TURNTABLE_RENDERER_BASIC_AUTH_PASSWORD', 'TURNTABLE_RENDERER_PASSWORD'],
+  },
+}
 
 export interface TurntableConfig {
   url?: string
@@ -67,55 +83,11 @@ export interface TurntableTaskResponse {
 
 export class TurntableService {
   async resolveConfig(teamId?: string): Promise<TurntableConfig> {
-    const envUrl = process.env.TURNTABLE_RENDERER_URL?.trim()
-    const envUsername =
-      process.env.TURNTABLE_RENDERER_BASIC_AUTH_USERNAME?.trim() ||
-      process.env.TURNTABLE_RENDERER_USERNAME?.trim()
-    const envPassword =
-      process.env.TURNTABLE_RENDERER_BASIC_AUTH_PASSWORD?.trim() ||
-      process.env.TURNTABLE_RENDERER_PASSWORD?.trim()
-
-    if (envUrl) {
-      return {
-        url: envUrl.replace(/\/+$/, ''),
-        username: envUsername || undefined,
-        password: envPassword || undefined,
-        isEnv: true,
-      }
-    }
-
-    if (teamId) {
-      try {
-        const team = await prisma.team.findUnique({
-          where: { id: teamId },
-          select: { settings: true },
-        })
-        const teamSettings = team?.settings as PrismaJson.Settings | null
-        const turntable = teamSettings?.turntable
-        if (turntable?.url?.trim()) {
-          return {
-            url: turntable.url.trim().replace(/\/+$/, ''),
-            username: turntable.username?.trim() || undefined,
-            password: turntable.password?.trim() || undefined,
-            isEnv: false,
-          }
-        }
-      } catch (err) {
-        logger.error({ err, teamId }, 'Failed to load team turntable settings')
-      }
-    }
-
-    return {
-      isEnv: false,
-    }
+    return resolveIntegrationConfig(TURNTABLE_INTEGRATION_DEF, teamId)
   }
 
   private getAuthHeader(config: TurntableConfig): string | undefined {
-    if (config.username && config.password) {
-      const credentials = Buffer.from(`${config.username}:${config.password}`).toString('base64')
-      return `Basic ${credentials}`
-    }
-    return undefined
+    return getIntegrationBasicAuthHeader(config)
   }
 
   async isAvailable(teamId?: string): Promise<boolean> {
@@ -144,45 +116,14 @@ export class TurntableService {
   }
 
   async getSettings(teamId: string): Promise<TurntableSettingsResponse> {
-    const config = await this.resolveConfig(teamId)
-    return {
-      url: config.url,
-      username: config.username,
-      hasPassword: Boolean(config.password),
-      isEnvConfigured: config.isEnv,
-    }
+    return getIntegrationSettings(TURNTABLE_INTEGRATION_DEF, teamId)
   }
 
   async updateSettings(
     teamId: string,
     req: UpdateTurntableSettingsRequest,
   ): Promise<TurntableSettingsResponse> {
-    const currentConfig = await this.resolveConfig(teamId)
-    if (currentConfig.isEnv) {
-      throw new Error(
-        'Turntable settings are configured via environment variables and cannot be edited',
-      )
-    }
-
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-      select: { settings: true },
-    })
-    const settings = (team?.settings || {}) as PrismaJson.Settings
-    const prevTurntable = settings.turntable || {}
-
-    settings.turntable = {
-      url: req.url !== undefined ? req.url : prevTurntable.url,
-      username: req.username !== undefined ? req.username : prevTurntable.username,
-      password: req.password !== undefined ? req.password : prevTurntable.password,
-    }
-
-    await prisma.team.update({
-      where: { id: teamId },
-      data: { settings },
-    })
-
-    return this.getSettings(teamId)
+    return updateIntegrationSettings(TURNTABLE_INTEGRATION_DEF, teamId, req)
   }
 
   async testConnection(
@@ -193,35 +134,21 @@ export class TurntableService {
     },
     teamId?: string,
   ): Promise<{ ok: boolean; version?: string; blender?: string; error?: string }> {
-    let resolvedUrl = config?.url?.trim()
-    let resolvedUsername = config?.username?.trim()
-    let resolvedPassword = config?.password
+    const target = await resolveTestConnectionConfig(TURNTABLE_INTEGRATION_DEF, config, teamId)
 
-    if (teamId && (!resolvedUrl || resolvedPassword === undefined)) {
-      const savedConfig = await this.resolveConfig(teamId)
-      if (!resolvedUrl) {
-        resolvedUrl = savedConfig.url
-      }
-      if (!resolvedUsername && savedConfig.username) {
-        resolvedUsername = savedConfig.username
-      }
-      if (resolvedPassword === undefined) {
-        resolvedPassword = savedConfig.password
-      }
-    }
-
-    if (!resolvedUrl) {
+    if (!target.resolvedUrl) {
       return { ok: false, error: 'URL is required' }
     }
-    const cleanUrl = resolvedUrl.replace(/\/+$/, '')
+    const cleanUrl = target.resolvedUrl.replace(/\/+$/, '')
 
     try {
       const headers: Record<string, string> = {}
-      if (resolvedUsername && resolvedPassword) {
-        const credentials = Buffer.from(`${resolvedUsername}:${resolvedPassword}`).toString(
-          'base64',
-        )
-        headers['Authorization'] = `Basic ${credentials}`
+      const authHeader = getIntegrationBasicAuthHeader({
+        username: target.resolvedUsername,
+        password: target.resolvedPassword,
+      })
+      if (authHeader) {
+        headers['Authorization'] = authHeader
       }
 
       const response = await fetch(`${cleanUrl}/version`, {

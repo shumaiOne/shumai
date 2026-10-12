@@ -109,9 +109,16 @@ declare global {
       password?: string
     }
 
+    export interface GotenbergSettings {
+      url?: string
+      username?: string
+      password?: string
+    }
+
     export interface Settings {
       transcode?: TranscodeSettings
       turntable?: TurntableSettings
+      gotenberg?: GotenbergSettings
       mediaGeneration?: MediaGenerationSettings
       appearance?: AppearanceSettings
       emailNotification?: EmailNotificationSettings

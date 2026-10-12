@@ -157,6 +157,21 @@ export const updateTurntableSettingsRequestSchema = z.object({
 })
 export type UpdateTurntableSettingsRequest = z.infer<typeof updateTurntableSettingsRequestSchema>
 
+export const gotenbergSettingsResponseSchema = z.object({
+  url: z.string().optional(),
+  username: z.string().optional(),
+  hasPassword: z.boolean(),
+  isEnvConfigured: z.boolean(),
+})
+export type GotenbergSettingsResponse = z.infer<typeof gotenbergSettingsResponseSchema>
+
+export const updateGotenbergSettingsRequestSchema = z.object({
+  url: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+})
+export type UpdateGotenbergSettingsRequest = z.infer<typeof updateGotenbergSettingsRequestSchema>
+
 export interface TeamAppearanceSettings {
   hideAgent?: boolean
 }
@@ -171,6 +186,7 @@ export interface TeamSettingsResponse {
     hlsResolutions?: HlsResolutionLadder[]
   }
   turntable?: TurntableSettingsResponse
+  gotenberg?: GotenbergSettingsResponse
   appearance?: TeamAppearanceSettings
   semanticSearchEnabled?: boolean
   [key: string]: unknown

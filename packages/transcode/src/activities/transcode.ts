@@ -8,7 +8,10 @@ import {
 } from '@shumai/core/src/transcode/transcode'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { getDerivedArtifactDirectory, stemFromKey } from '@shumai/core/src/utils/filename'
-import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
+import {
+  gotenbergService,
+  type GotenbergConvertOptions,
+} from '@shumai/core/src/gotenberg/gotenberg'
 import { turntableService } from '@shumai/core/src/turntable/turntable'
 import { parseCsvContent } from '@shumai/core/src/transcode/transcode'
 import { resolutionToDimensions } from '../workflows/transcode-utils'
@@ -916,6 +919,7 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
 }
 
 export interface GeneratePdfProxyActivityParams {
+  teamId?: string | null
   assetId: string
   assetKey: string
   filePath: string
@@ -942,8 +946,12 @@ export async function generatePdfProxyActivity(
   const tmpDir = path.dirname(params.filePath)
   const pdfFilePath = path.join(tmpDir, 'proxy.pdf')
 
+  const targetTeamId = params.teamId || undefined
+
   try {
-    const gotenbergAvailable = await gotenbergService.isAvailable()
+    const gotenbergAvailable = await (targetTeamId
+      ? gotenbergService.isAvailable(targetTeamId)
+      : gotenbergService.isAvailable())
 
     if (isOffice) {
       if (!gotenbergAvailable) {
@@ -951,10 +959,14 @@ export async function generatePdfProxyActivity(
           'Gotenberg service is required for Office document conversion but is unavailable.',
         )
       }
-      const pdfBuffer = await gotenbergService.convertDocumentToPdf(
-        params.filePath,
-        params.filename,
-      )
+      const pdfBuffer = await (targetTeamId
+        ? gotenbergService.convertDocumentToPdf(
+            params.filePath,
+            params.filename,
+            { teamId: targetTeamId },
+            targetTeamId,
+          )
+        : gotenbergService.convertDocumentToPdf(params.filePath, params.filename))
       fs.writeFileSync(pdfFilePath, pdfBuffer)
     } else if (isHtml) {
       if (!gotenbergAvailable) {
@@ -962,7 +974,9 @@ export async function generatePdfProxyActivity(
           'Gotenberg service is required for HTML document conversion but is unavailable.',
         )
       }
-      const pdfBuffer = await gotenbergService.convertHtmlToPdf(params.filePath, params.filename)
+      const pdfBuffer = await (targetTeamId
+        ? gotenbergService.convertHtmlToPdf(params.filePath, params.filename, targetTeamId)
+        : gotenbergService.convertHtmlToPdf(params.filePath, params.filename))
       fs.writeFileSync(pdfFilePath, pdfBuffer)
     } else if (isCsv) {
       if (gotenbergAvailable) {
@@ -975,10 +989,14 @@ export async function generatePdfProxyActivity(
         } catch {
           // Fallback landscape calculation
         }
+        const options: GotenbergConvertOptions = {
+          landscape: isLandscape,
+          ...(targetTeamId ? { teamId: targetTeamId } : {}),
+        }
         const pdfBuffer = await gotenbergService.convertDocumentToPdf(
           params.filePath,
           params.filename,
-          { landscape: isLandscape },
+          options,
         )
         fs.writeFileSync(pdfFilePath, pdfBuffer)
       } else {
@@ -986,20 +1004,23 @@ export async function generatePdfProxyActivity(
       }
     } else if (isMd) {
       if (gotenbergAvailable) {
-        const pdfBuffer = await gotenbergService.convertMarkdownToPdf(
-          params.filePath,
-          params.filename,
-        )
+        const pdfBuffer = await (targetTeamId
+          ? gotenbergService.convertMarkdownToPdf(params.filePath, params.filename, targetTeamId)
+          : gotenbergService.convertMarkdownToPdf(params.filePath, params.filename))
         fs.writeFileSync(pdfFilePath, pdfBuffer)
       } else {
         await transcodeService.generatePdfFromText(params.filePath, pdfFilePath)
       }
     } else if (isTxt) {
       if (gotenbergAvailable) {
-        const pdfBuffer = await gotenbergService.convertDocumentToPdf(
-          params.filePath,
-          params.filename,
-        )
+        const pdfBuffer = await (targetTeamId
+          ? gotenbergService.convertDocumentToPdf(
+              params.filePath,
+              params.filename,
+              { teamId: targetTeamId },
+              targetTeamId,
+            )
+          : gotenbergService.convertDocumentToPdf(params.filePath, params.filename))
         fs.writeFileSync(pdfFilePath, pdfBuffer)
       } else {
         await transcodeService.generatePdfFromText(params.filePath, pdfFilePath)

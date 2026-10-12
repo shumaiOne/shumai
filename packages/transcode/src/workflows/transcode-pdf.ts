@@ -42,6 +42,7 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
     tmpDir = download.tmpDir
 
     const pdfProxy = await executeActivity(workerQueue, generatePdfProxyActivity, {
+      teamId: task.teamId,
       assetId: asset.id,
       assetKey: key,
       filePath: currentFilePath,

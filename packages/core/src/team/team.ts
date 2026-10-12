@@ -8,6 +8,7 @@ import { HTTPException } from 'hono/http-exception'
 import { getAllowedAgentRoles } from '@shumai/core/src/agent/permissions'
 import { sandboxService } from '@shumai/core/src/sandbox/sandbox-service'
 import { turntableService } from '@shumai/core/src/turntable/turntable'
+import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import {
   ServiceCreateTeamRequest,
   ServiceGetUserTeamsRequest,
@@ -345,6 +346,7 @@ export class TeamService {
     }
 
     settings.turntable = await turntableService.getSettings(teamId)
+    settings.gotenberg = await gotenbergService.getSettings(teamId)
 
     return settings
   }

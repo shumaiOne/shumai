@@ -2,9 +2,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import { GotenbergService } from './gotenberg'
 
 describe('GotenbergService', () => {
+  setupTestDbHooks()
   const originalEnv = process.env
   let tmpDir: string
   let testFilePath: string
@@ -214,6 +217,150 @@ describe('GotenbergService', () => {
       const indexBlob = (capturedFormData as unknown as FormData).get('files') as File
       const indexHtmlText = await indexBlob.text()
       expect(indexHtmlText).toContain('{{ toHTML "file.md" }}')
+    })
+  })
+
+  describe('team settings & fallback', () => {
+    it('resolves config from team settings when env is not set', async () => {
+      delete process.env.GOTENBERG_URL
+      const team = await prisma.team.create({
+        data: {
+          name: 'Gotenberg Team',
+          settings: {
+            gotenberg: {
+              url: 'http://custom-gotenberg:4000',
+              username: 'team-user',
+              password: 'team-password',
+            },
+          },
+        },
+      })
+
+      const service = new GotenbergService()
+      const config = await service.resolveConfig(team.id)
+
+      expect(config).toEqual({
+        url: 'http://custom-gotenberg:4000',
+        username: 'team-user',
+        password: 'team-password',
+        isEnv: false,
+      })
+    })
+
+    it('prioritizes environment variables over team settings', async () => {
+      process.env.GOTENBERG_URL = 'http://env-gotenberg:3000'
+      const team = await prisma.team.create({
+        data: {
+          name: 'Gotenberg Team',
+          settings: {
+            gotenberg: {
+              url: 'http://custom-gotenberg:4000',
+            },
+          },
+        },
+      })
+
+      const service = new GotenbergService()
+      const config = await service.resolveConfig(team.id)
+
+      expect(config.url).toBe('http://env-gotenberg:3000')
+      expect(config.isEnv).toBe(true)
+    })
+
+    it('getSettings returns masked settings response', async () => {
+      delete process.env.GOTENBERG_URL
+      const team = await prisma.team.create({
+        data: {
+          name: 'Gotenberg Team',
+          settings: {
+            gotenberg: {
+              url: 'http://custom-gotenberg:4000',
+              username: 'team-user',
+              password: 'team-password',
+            },
+          },
+        },
+      })
+
+      const service = new GotenbergService()
+      const settings = await service.getSettings(team.id)
+
+      expect(settings).toEqual({
+        url: 'http://custom-gotenberg:4000',
+        username: 'team-user',
+        hasPassword: true,
+        isEnvConfigured: false,
+      })
+    })
+
+    it('updateSettings updates team settings and rejects edits when env is set', async () => {
+      delete process.env.GOTENBERG_URL
+      const team = await prisma.team.create({
+        data: { name: 'Gotenberg Team' },
+      })
+
+      const service = new GotenbergService()
+      const updated = await service.updateSettings(team.id, {
+        url: 'http://new-gotenberg:3000',
+        username: 'admin',
+        password: 'secret-password',
+      })
+
+      expect(updated.url).toBe('http://new-gotenberg:3000')
+      expect(updated.username).toBe('admin')
+      expect(updated.hasPassword).toBe(true)
+
+      // When env is set, reject update
+      process.env.GOTENBERG_URL = 'http://env-gotenberg:3000'
+      await expect(service.updateSettings(team.id, { url: 'http://another:3000' })).rejects.toThrow(
+        'Gotenberg settings are configured via environment variables and cannot be edited',
+      )
+    })
+  })
+
+  describe('testConnection', () => {
+    it('returns error when url is empty and no team settings exist', async () => {
+      delete process.env.GOTENBERG_URL
+      const service = new GotenbergService()
+      const result = await service.testConnection({})
+      expect(result.ok).toBe(false)
+      expect(result.error).toBe('URL is required')
+    })
+
+    it('successfully connects to /health and enriches with /version', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+        const urlStr = String(url)
+        if (urlStr.endsWith('/health')) {
+          return { ok: true, status: 200 } as Response
+        }
+        if (urlStr.endsWith('/version')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ version: '8.3.0' }),
+          } as Response
+        }
+        return { ok: false, status: 404 } as Response
+      })
+
+      const service = new GotenbergService()
+      const result = await service.testConnection({
+        url: 'http://gotenberg.local:3000',
+        username: 'test-user',
+        password: 'test-pass',
+      })
+
+      expect(result.ok).toBe(true)
+      expect(result.version).toBe('8.3.0')
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'http://gotenberg.local:3000/health',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            Authorization: expect.stringMatching(/^Basic /),
+          }),
+        }),
+      )
     })
   })
 })

@@ -60,8 +60,8 @@ export const TurntableSettingsCard: React.FC<TurntableSettingsCardProps> = ({ te
       const res = await client.api.teams[':teamId']['turntable-settings'].$put({
         param: { teamId },
         json: {
-          url: url || undefined,
-          username: username || undefined,
+          url: url.trim(),
+          username: username.trim() || undefined,
           password: password || undefined,
         },
       })

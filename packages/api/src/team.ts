@@ -11,6 +11,7 @@ import {
   listMembersQuerySchema,
   updateSandboxSettingsRequestSchema,
   updateTurntableSettingsRequestSchema,
+  updateGotenbergSettingsRequestSchema,
   updateMeRequestSchema,
   updateTeamMemberRoleRequestSchema,
   createApiTokenRequestSchema,
@@ -25,6 +26,7 @@ import { apiTokenService } from '@shumai/core/src/user/api-token'
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { turntableService } from '@shumai/core/src/turntable/turntable'
+import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { NotificationType } from '@shumai/db'
 import type { Prisma } from '@shumai/db'
 
@@ -321,6 +323,63 @@ const route = new Hono<{ Variables: { user: User } }>()
       })
 
       const res = await turntableService.testConnection(req, teamId)
+      return c.json(res)
+    },
+  )
+  .get('/teams/:teamId/gotenberg-settings', async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const settings = await gotenbergService.getSettings(teamId)
+    return c.json(settings)
+  })
+  .put(
+    '/teams/:teamId/gotenberg-settings',
+    zValidator('json', updateGotenbergSettingsRequestSchema),
+    async (c) => {
+      const user = c.get('user')
+      const teamId = c.req.param('teamId')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
+      })
+
+      try {
+        const settings = await gotenbergService.updateSettings(teamId, req)
+        return c.json(settings)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        return c.json({ message }, 400)
+      }
+    },
+  )
+  .post(
+    '/teams/:teamId/gotenberg-settings/test',
+    zValidator('json', updateGotenbergSettingsRequestSchema.partial()),
+    async (c) => {
+      const user = c.get('user')
+      const teamId = c.req.param('teamId')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
+      })
+
+      const res = await gotenbergService.testConnection(req, teamId)
       return c.json(res)
     },
   )

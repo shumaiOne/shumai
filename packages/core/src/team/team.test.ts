@@ -381,6 +381,12 @@ describe('TeamService', () => {
         url: undefined,
         username: undefined,
       },
+      gotenberg: {
+        hasPassword: false,
+        isEnvConfigured: false,
+        url: undefined,
+        username: undefined,
+      },
       appearance: { hideAgent: false },
     })
 
@@ -399,6 +405,12 @@ describe('TeamService', () => {
         hlsResolutions: ['480p', '720p', '1080p'],
       },
       turntable: {
+        hasPassword: false,
+        isEnvConfigured: false,
+        url: undefined,
+        username: undefined,
+      },
+      gotenberg: {
         hasPassword: false,
         isEnvConfigured: false,
         url: undefined,
@@ -431,6 +443,12 @@ describe('TeamService', () => {
         hlsResolutions: ['720p', '1080p', '2160p'],
       },
       turntable: {
+        hasPassword: false,
+        isEnvConfigured: false,
+        url: undefined,
+        username: undefined,
+      },
+      gotenberg: {
         hasPassword: false,
         isEnvConfigured: false,
         url: undefined,

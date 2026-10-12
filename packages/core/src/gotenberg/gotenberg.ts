@@ -1,40 +1,135 @@
 import * as fs from 'fs'
+import type { GotenbergSettingsResponse, UpdateGotenbergSettingsRequest } from '@shumai/dtos'
+import {
+  IntegrationDefinition,
+  resolveIntegrationConfig,
+  getIntegrationSettings,
+  updateIntegrationSettings,
+  resolveTestConnectionConfig,
+  getIntegrationBasicAuthHeader,
+  ResolvedIntegrationConfig,
+} from '@shumai/core/src/integrations/helper'
+
+export const GOTENBERG_INTEGRATION_DEF: IntegrationDefinition<'gotenberg'> = {
+  name: 'Gotenberg',
+  settingsKey: 'gotenberg',
+  envKeys: {
+    url: ['GOTENBERG_URL'],
+    username: ['GOTENBERG_BASIC_AUTH_USERNAME'],
+    password: ['GOTENBERG_BASIC_AUTH_PASSWORD'],
+  },
+}
 
 export interface GotenbergConvertOptions {
   landscape?: boolean
+  teamId?: string
 }
 
 export class GotenbergService {
-  private getUrl(): string | undefined {
-    const url = process.env.GOTENBERG_URL?.trim()
-    return url ? url.replace(/\/+$/, '') : undefined
+  async resolveConfig(teamId?: string): Promise<ResolvedIntegrationConfig> {
+    return resolveIntegrationConfig(GOTENBERG_INTEGRATION_DEF, teamId)
   }
 
-  private getAuthHeader(): string | undefined {
-    const username = process.env.GOTENBERG_BASIC_AUTH_USERNAME
-    const password = process.env.GOTENBERG_BASIC_AUTH_PASSWORD
+  private getAuthHeader(config: { username?: string; password?: string }): string | undefined {
+    return getIntegrationBasicAuthHeader(config)
+  }
 
-    if (username && password) {
-      const credentials = Buffer.from(`${username}:${password}`).toString('base64')
-      return `Basic ${credentials}`
+  async getSettings(teamId: string): Promise<GotenbergSettingsResponse> {
+    return getIntegrationSettings(GOTENBERG_INTEGRATION_DEF, teamId)
+  }
+
+  async updateSettings(
+    teamId: string,
+    req: UpdateGotenbergSettingsRequest,
+  ): Promise<GotenbergSettingsResponse> {
+    return updateIntegrationSettings(GOTENBERG_INTEGRATION_DEF, teamId, req)
+  }
+
+  async testConnection(
+    config?: UpdateGotenbergSettingsRequest,
+    teamId?: string,
+  ): Promise<{ ok: boolean; version?: string; error?: string }> {
+    const target = await resolveTestConnectionConfig(GOTENBERG_INTEGRATION_DEF, config, teamId)
+
+    if (!target.resolvedUrl) {
+      return { ok: false, error: 'URL is required' }
     }
-    return undefined
+    const cleanUrl = target.resolvedUrl.replace(/\/+$/, '')
+
+    try {
+      const headers: Record<string, string> = {}
+      const authHeader = this.getAuthHeader({
+        username: target.resolvedUsername,
+        password: target.resolvedPassword,
+      })
+      if (authHeader) {
+        headers['Authorization'] = authHeader
+      }
+
+      const response = await fetch(`${cleanUrl}/health`, {
+        method: 'GET',
+        headers,
+        signal: AbortSignal.timeout(5000),
+      })
+
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '')
+        return {
+          ok: false,
+          error: `Health check returned status ${response.status}: ${errText || response.statusText}`,
+        }
+      }
+
+      // Optionally try /version to obtain version string
+      let version: string | undefined
+      try {
+        const versionRes = await fetch(`${cleanUrl}/version`, {
+          method: 'GET',
+          headers,
+          signal: AbortSignal.timeout(2000),
+        })
+        if (versionRes.ok) {
+          const vData = (await versionRes.json().catch(() => null)) as
+            | { version?: string }
+            | string
+            | null
+          if (vData && typeof vData === 'object' && 'version' in vData) {
+            version = String(vData.version)
+          } else if (typeof vData === 'string') {
+            version = vData
+          }
+        }
+      } catch {
+        // Version endpoint is optional in some Gotenberg versions
+      }
+
+      return {
+        ok: true,
+        version,
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return {
+        ok: false,
+        error: msg,
+      }
+    }
   }
 
-  async isAvailable(): Promise<boolean> {
-    const baseUrl = this.getUrl()
-    if (!baseUrl) {
+  async isAvailable(teamId?: string): Promise<boolean> {
+    const config = await this.resolveConfig(teamId)
+    if (!config.url) {
       return false
     }
 
     try {
       const headers: Record<string, string> = {}
-      const authHeader = this.getAuthHeader()
+      const authHeader = this.getAuthHeader(config)
       if (authHeader) {
         headers['Authorization'] = authHeader
       }
 
-      const response = await fetch(`${baseUrl}/health`, {
+      const response = await fetch(`${config.url}/health`, {
         method: 'GET',
         headers,
         signal: AbortSignal.timeout(3000),
@@ -50,9 +145,11 @@ export class GotenbergService {
     filePath: string,
     filename: string,
     options: GotenbergConvertOptions = {},
+    teamId?: string,
   ): Promise<Buffer> {
-    const baseUrl = this.getUrl()
-    if (!baseUrl) {
+    const effectiveTeamId = teamId ?? options.teamId
+    const config = await this.resolveConfig(effectiveTeamId)
+    if (!config.url) {
       throw new Error('Gotenberg URL is not configured.')
     }
 
@@ -65,12 +162,12 @@ export class GotenbergService {
     }
 
     const headers: Record<string, string> = {}
-    const authHeader = this.getAuthHeader()
+    const authHeader = this.getAuthHeader(config)
     if (authHeader) {
       headers['Authorization'] = authHeader
     }
 
-    const response = await fetch(`${baseUrl}/forms/libreoffice/convert`, {
+    const response = await fetch(`${config.url}/forms/libreoffice/convert`, {
       method: 'POST',
       headers,
       body: formData,
@@ -88,9 +185,9 @@ export class GotenbergService {
     return Buffer.from(arrayBuffer)
   }
 
-  async convertHtmlToPdf(filePath: string, filename: string): Promise<Buffer> {
-    const baseUrl = this.getUrl()
-    if (!baseUrl) {
+  async convertHtmlToPdf(filePath: string, filename: string, teamId?: string): Promise<Buffer> {
+    const config = await this.resolveConfig(teamId)
+    if (!config.url) {
       throw new Error('Gotenberg URL is not configured.')
     }
 
@@ -103,12 +200,12 @@ export class GotenbergService {
     formData.append('files', new Blob([fileBytes]), targetFilename)
 
     const headers: Record<string, string> = {}
-    const authHeader = this.getAuthHeader()
+    const authHeader = this.getAuthHeader(config)
     if (authHeader) {
       headers['Authorization'] = authHeader
     }
 
-    const response = await fetch(`${baseUrl}/forms/chromium/convert/html`, {
+    const response = await fetch(`${config.url}/forms/chromium/convert/html`, {
       method: 'POST',
       headers,
       body: formData,
@@ -126,9 +223,9 @@ export class GotenbergService {
     return Buffer.from(arrayBuffer)
   }
 
-  async convertMarkdownToPdf(filePath: string, filename: string): Promise<Buffer> {
-    const baseUrl = this.getUrl()
-    if (!baseUrl) {
+  async convertMarkdownToPdf(filePath: string, filename: string, teamId?: string): Promise<Buffer> {
+    const config = await this.resolveConfig(teamId)
+    if (!config.url) {
       throw new Error('Gotenberg URL is not configured.')
     }
 
@@ -151,12 +248,12 @@ export class GotenbergService {
     formData.append('files', new Blob([fileBytes]), mdFilename)
 
     const headers: Record<string, string> = {}
-    const authHeader = this.getAuthHeader()
+    const authHeader = this.getAuthHeader(config)
     if (authHeader) {
       headers['Authorization'] = authHeader
     }
 
-    const response = await fetch(`${baseUrl}/forms/chromium/convert/markdown`, {
+    const response = await fetch(`${config.url}/forms/chromium/convert/markdown`, {
       method: 'POST',
       headers,
       body: formData,
