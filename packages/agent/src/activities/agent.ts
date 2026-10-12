@@ -21,6 +21,7 @@ import {
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
 import { quotaService, QuotaExceededError } from '@shumai/core/src/quota/quota-service'
 import { getProxyType } from '@shumai/core/src/utils/mime'
+import { secondToDegree } from '@shumai/core/src/utils/model3d'
 import {
   UpdateAssetMetadataRequest,
   type ShumaiMessageContext,
@@ -178,6 +179,8 @@ User messages may contain a <context> block detailing the user, active asset loc
   if (isCommentMode) {
     systemPrompt += `\n\n# Comment Threads\nWhen operating in comment mode, previous top-level messages in the conversation history may contain a <thread id="..." reply_count="..." /> tag indicating an earlier discussion thread with replies. If a user's question refers to or depends on earlier comments or discussions, you can use the 'read_thread' tool with the thread ID to inspect all replies in that thread.`
   }
+
+  systemPrompt += `\n\n# 3D Model Inspection\nWhen interacting with 3D model assets (media_type="3d"), you can visually inspect the asset using 'read_asset'. Calling 'read_asset' with config3d: null (or config3d: {}) returns an orthogonal 4-view composite image (Front at top-left, Right side at top-right, Back at bottom-left, Left side at bottom-right). If a <position type="degree" degree="..." /> tag is present or a specific angle is discussed, pass 'config3d: { degree: ... }' (integer 0, 15, 30, ..., 345) to inspect that view angle. If an <annotation id="..." /> tag is present on a 3D asset, pass 'annotationId' to inspect the angle with the user's visual markup drawings overlaid.`
 
   if (agent.type === 'autofill') {
     systemPrompt += `\n\n# Autofill Instructions\nWhen performing metadata autofill, inspect the asset content using the 'read_asset' tool. If 'read_asset' fails or returns an error, do not autofill any metadata and report to the user directly. Do not try anything fancy, for example downloading the file or using python/ffmpeg to extract content.`
@@ -840,7 +843,9 @@ export async function initializeAgentSessionActivity(params: {
 
     let position: ShumaiMediaPosition | undefined = undefined
     if (c.second !== null && c.second !== undefined) {
-      if (proxyType === 'pdf') {
+      if (proxyType === '3d') {
+        position = { type: 'degree', degree: secondToDegree(c.second) }
+      } else if (proxyType === 'pdf') {
         position = { type: 'page', page: Math.round(c.second) }
       } else {
         position = { type: 'time', seconds: c.second }
@@ -858,7 +863,14 @@ export async function initializeAgentSessionActivity(params: {
             id: att.asset.id,
             name: att.asset.name,
             type: att.asset.type,
-            mediaType: attProxyType as 'image' | 'video' | 'pdf' | 'audio' | 'other' | undefined,
+            mediaType: attProxyType as
+              | 'image'
+              | 'video'
+              | 'pdf'
+              | 'audio'
+              | '3d'
+              | 'other'
+              | undefined,
             mimeType: att.asset.mediaType || undefined,
           })
         }

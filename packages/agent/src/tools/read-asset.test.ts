@@ -311,11 +311,11 @@ describe('readAssetTool', () => {
           docConfig: null,
         }),
       ).rejects.toThrow(
-        '3D assets provide an orthogonal 4-view composite image (Front/Right/Back/Left); do not pass videoConfig',
+        "To inspect specific angles pass 'config3d: { degree: ... }'; do not pass videoConfig",
       )
     })
 
-    it('should throw error if 3D asset imageTranscodes is missing', async () => {
+    it('should throw error if 3D asset imageTranscodes is missing when overview is requested', async () => {
       vi.mocked(authzService.hasPermission).mockResolvedValue()
       vi.mocked(prisma.asset.findUnique).mockResolvedValue({
         id: 'model-1',
@@ -337,6 +337,261 @@ describe('readAssetTool', () => {
           docConfig: null,
         }),
       ).rejects.toThrow('4-views image (views.webp) is missing')
+    })
+
+    it('should extract specific turntable frame when config3d.degree is provided', async () => {
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'model-1',
+        name: 'robot.glb',
+        mediaType: 'model/gltf-binary',
+        projectId: 'proj-1',
+        media: {
+          proxyType: '3d',
+          videoTranscodes: [{ key: 'proxy/turntable.mp4' }],
+          imageTranscodes: [{ key: 'proxy/views.webp' }],
+        },
+      } as unknown as Asset)
+
+      vi.mocked(prisma.workflowTask.create).mockResolvedValue({
+        id: 'task-shot-3d',
+      } as unknown as WorkflowTask)
+
+      vi.mocked(workflowService.executeWait).mockResolvedValue({
+        id: 'task-shot-3d',
+        status: WorkflowTaskStatus.completed,
+        output: {
+          screenshots: [{ key: 'proxy/shot-45.webp', timestamp: 0.5833 }],
+        },
+      } as unknown as WorkflowTask)
+
+      vi.mocked(s3Service.getObject).mockResolvedValue({
+        buffer: Buffer.from('fake-shot-45-bytes'),
+        contentType: 'image/webp',
+      } as unknown as { buffer: Buffer; contentType: string })
+
+      const tool = createReadAssetTool('user-1')
+      const result = await tool.execute('call-3d-degree', {
+        assetId: 'model-1',
+        annotationId: null,
+        config3d: { degree: 45 },
+        imageConfig: null,
+        videoConfig: null,
+        docConfig: null,
+      })
+
+      expect(prisma.workflowTask.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          type: WorkflowTaskType.transcode_screenshot,
+          assetId: 'model-1',
+          payload: {
+            projectId: 'proj-1',
+            screenshot: {
+              start: expect.any(Number),
+              end: expect.any(Number),
+              count: 1,
+              commentTimestamp: expect.any(Number),
+              annotations: undefined,
+            },
+          },
+        }),
+      })
+
+      const textItem = result.content[0] as { type: 'text'; text: string }
+      const imageItem = result.content[1] as { type: 'image'; data: string; mimeType: string }
+
+      expect(textItem.text).toContain('view at 45°:')
+      expect(imageItem.data).toBe(Buffer.from('fake-shot-45-bytes').toString('base64'))
+      expect(result.details.key).toBe('proxy/shot-45.webp')
+    })
+
+    it('should throw error when config3d.degree is not a multiple of 15 or out of range', async () => {
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'model-1',
+        name: 'robot.glb',
+        mediaType: 'model/gltf-binary',
+        media: {
+          proxyType: '3d',
+          videoTranscodes: [{ key: 'proxy/turntable.mp4' }],
+        },
+      } as unknown as Asset)
+
+      const tool = createReadAssetTool('user-1')
+
+      await expect(
+        tool.execute('call-3d-invalid-deg', {
+          assetId: 'model-1',
+          annotationId: null,
+          config3d: { degree: 40 },
+          imageConfig: null,
+          videoConfig: null,
+          docConfig: null,
+        }),
+      ).rejects.toThrow('Invalid turntable degree: 40')
+
+      await expect(
+        tool.execute('call-3d-out-of-range', {
+          assetId: 'model-1',
+          annotationId: null,
+          config3d: { degree: 360 },
+          imageConfig: null,
+          videoConfig: null,
+          docConfig: null,
+        }),
+      ).rejects.toThrow('Invalid turntable degree: 360')
+    })
+
+    it('should extract frame with overlaid markups when annotationId is provided on 3D asset', async () => {
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'model-1',
+        name: 'robot.glb',
+        mediaType: 'model/gltf-binary',
+        projectId: 'proj-1',
+        media: {
+          proxyType: '3d',
+          videoTranscodes: [{ key: 'proxy/turntable.mp4' }],
+        },
+      } as unknown as Asset)
+
+      vi.spyOn(annotationResolver, 'resolveAnnotationsById').mockResolvedValue({
+        annotations: [
+          {
+            type: 'freehand',
+            color: '#ff0000',
+            points: [
+              [0, 0],
+              [10, 10],
+            ],
+          },
+        ],
+        timestamp: 0.5, // 0.5s = 45°
+      })
+
+      vi.mocked(prisma.workflowTask.create).mockResolvedValue({
+        id: 'task-shot-ann',
+      } as unknown as WorkflowTask)
+
+      vi.mocked(workflowService.executeWait).mockResolvedValue({
+        id: 'task-shot-ann',
+        status: WorkflowTaskStatus.completed,
+        output: {
+          screenshots: [{ key: 'proxy/shot-annotated.webp', timestamp: 0.5 }],
+        },
+      } as unknown as WorkflowTask)
+
+      vi.mocked(s3Service.getObject).mockResolvedValue({
+        buffer: Buffer.from('fake-shot-ann-bytes'),
+        contentType: 'image/webp',
+      } as unknown as { buffer: Buffer; contentType: string })
+
+      const tool = createReadAssetTool('user-1')
+      const result = await tool.execute('call-3d-ann', {
+        assetId: 'model-1',
+        annotationId: 'comm-1',
+        config3d: null,
+        imageConfig: null,
+        videoConfig: null,
+        docConfig: null,
+      })
+
+      expect(prisma.workflowTask.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          type: WorkflowTaskType.transcode_screenshot,
+          assetId: 'model-1',
+          payload: {
+            projectId: 'proj-1',
+            screenshot: {
+              start: 0.5,
+              end: 0.5,
+              count: 1,
+              commentTimestamp: 0.5,
+              annotations: [
+                {
+                  type: 'freehand',
+                  color: '#ff0000',
+                  points: [
+                    [0, 0],
+                    [10, 10],
+                  ],
+                },
+              ],
+            },
+          },
+        }),
+      })
+
+      const textItem = result.content[0] as { type: 'text'; text: string }
+      expect(textItem.text).toContain('view at 45° with visual markups overlaid:')
+      expect(result.details.key).toBe('proxy/shot-annotated.webp')
+    })
+
+    it('should throw error if config3d.degree conflicts with annotation angle', async () => {
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'model-1',
+        name: 'robot.glb',
+        mediaType: 'model/gltf-binary',
+        projectId: 'proj-1',
+        media: {
+          proxyType: '3d',
+          videoTranscodes: [{ key: 'proxy/turntable.mp4' }],
+        },
+      } as unknown as Asset)
+
+      vi.spyOn(annotationResolver, 'resolveAnnotationsById').mockResolvedValue({
+        annotations: [
+          {
+            type: 'box',
+            color: '#ff0000',
+            points: [
+              [0, 0],
+              [10, 10],
+            ],
+          },
+        ],
+        timestamp: 0.5, // 45°
+      })
+
+      const tool = createReadAssetTool('user-1')
+      await expect(
+        tool.execute('call-3d-conflict', {
+          assetId: 'model-1',
+          annotationId: 'comm-1',
+          config3d: { degree: 90 }, // Conflicts with 45°
+          imageConfig: null,
+          videoConfig: null,
+          docConfig: null,
+        }),
+      ).rejects.toThrow(
+        'Annotation "comm-1" was drawn at 45°, but degree 90° was specified. Do not pass a conflicting degree with annotationId.',
+      )
+    })
+
+    it('should throw error if 3D asset turntable video is missing when angle inspection is requested', async () => {
+      vi.mocked(authzService.hasPermission).mockResolvedValue()
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+        id: 'model-1',
+        name: 'robot.glb',
+        mediaType: 'model/gltf-binary',
+        media: {
+          proxyType: '3d',
+          videoTranscodes: [],
+        },
+      } as unknown as Asset)
+
+      const tool = createReadAssetTool('user-1')
+      await expect(
+        tool.execute('call-3d-missing-turntable', {
+          assetId: 'model-1',
+          annotationId: null,
+          config3d: { degree: 45 },
+          imageConfig: null,
+          videoConfig: null,
+          docConfig: null,
+        }),
+      ).rejects.toThrow('turntable video (turntable.mp4) is missing')
     })
   })
 

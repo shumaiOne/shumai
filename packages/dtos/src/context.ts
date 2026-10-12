@@ -104,6 +104,8 @@ export function serializeContextToXml(context?: ShumaiMessageContext | null): st
       lines.push(`  <position type="time" seconds="${context.position.seconds.toFixed(4)}" />`)
     } else if (context.position.type === 'page') {
       lines.push(`  <position type="page" page="${Math.round(context.position.page)}" />`)
+    } else if (context.position.type === 'degree') {
+      lines.push(`  <position type="degree" degree="${Math.round(context.position.degree)}" />`)
     }
   }
 

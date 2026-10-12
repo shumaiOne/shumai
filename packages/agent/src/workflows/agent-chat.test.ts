@@ -806,4 +806,89 @@ describe('Agent Chat Workflow', () => {
       }),
     )
   })
+
+  it('should format mediaPosition as degree for 3D assets in 1-on-1 chat', async () => {
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'a-3d',
+      project: { teamId: 't1' },
+      type: 'file',
+      name: 'model.glb',
+      mediaType: 'model/gltf-binary',
+      media: { proxyType: '3d' },
+      parentId: null,
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'chat',
+        status: 'pending',
+        assetId: 'a-3d',
+        payload: {
+          projectId: 'p1',
+          agent: {
+            agentId: 'b1',
+            prompt: 'Look at this angle',
+            sessionId: 'session-3d-1',
+            second: 0.5, // 0.5s turntable time = 45°
+          },
+        },
+      },
+    })
+
+    await agentChat(task)
+
+    expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messageContext: expect.objectContaining({
+          position: { type: 'degree', degree: 45 },
+        }),
+      }),
+    )
+  })
+
+  it('should format mediaPosition as degree for 3D assets in comment mode', async () => {
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'a-3d',
+      project: { teamId: 't1' },
+      type: 'file',
+      name: 'model.glb',
+      mediaType: 'model/gltf-binary',
+      media: { proxyType: '3d' },
+      parentId: null,
+    })
+
+    mockActivities.getCommentActivity.mockResolvedValue({
+      id: 'comment-3d-1',
+      creatorId: 'user-c1',
+      message: 'Look at the back',
+      replyToId: null,
+      second: 2.0, // 2.0s = 180°
+      attachments: [],
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'chat',
+        status: 'pending',
+        assetId: 'a-3d',
+        payload: {
+          projectId: 'p1',
+          agent: {
+            agentId: 'b1',
+            userCommentId: 'comment-3d-1',
+          },
+        },
+      },
+    })
+
+    await agentChat(task)
+
+    expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messageContext: expect.objectContaining({
+          position: { type: 'degree', degree: 180 },
+        }),
+      }),
+    )
+  })
 })

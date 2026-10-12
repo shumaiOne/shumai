@@ -1,6 +1,8 @@
 import { prisma } from '@shumai/db'
 import { Type } from 'typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
+import { secondToDegree } from '@shumai/core/src/utils/model3d'
+import { getProxyType } from '@shumai/core/src/utils/mime'
 
 const readThreadSchema = Type.Object({
   threadId: Type.String({
@@ -9,14 +11,21 @@ const readThreadSchema = Type.Object({
   }),
 })
 
-function formatCommentMeta(c: {
-  id: string
-  second?: number | null
-  annotation?: unknown
-}): string {
+function formatCommentMeta(
+  c: {
+    id: string
+    second?: number | null
+    annotation?: unknown
+  },
+  proxyType?: string,
+): string {
   const parts = [`id: ${c.id}`]
   if (c.second !== null && c.second !== undefined) {
-    parts.push(`time: ${c.second}s`)
+    if (proxyType === '3d') {
+      parts.push(`degree: ${secondToDegree(c.second)}°`)
+    } else {
+      parts.push(`time: ${c.second}s`)
+    }
   }
   const hasMarkup = Boolean(c.annotation && Array.isArray(c.annotation) && c.annotation.length > 0)
   parts.push(`has_markup: ${hasMarkup}`)
@@ -34,7 +43,10 @@ export const createReadThreadTool = (): AgentTool<
   execute: async (_toolCallId, params) => {
     const rootComment = await prisma.assetComment.findUnique({
       where: { id: params.threadId },
-      include: { creator: true },
+      include: {
+        creator: true,
+        asset: { select: { media: true, mediaType: true, name: true } },
+      },
     })
 
     if (!rootComment) {
@@ -61,9 +73,14 @@ export const createReadThreadTool = (): AgentTool<
       include: { creator: true },
     })
 
+    const proxyType =
+      (rootComment.asset?.media as PrismaJson.MediaInfo | null)?.proxyType ||
+      getProxyType(rootComment.asset?.mediaType, rootComment.asset?.name) ||
+      undefined
+
     const isRootAgent = rootComment.creator?.type === 'agent' || rootComment.sessionId !== null
     const rootAuthor = rootComment.creator?.name || (isRootAgent ? 'Ai Agent' : 'User')
-    const rootMeta = formatCommentMeta(rootComment)
+    const rootMeta = formatCommentMeta(rootComment, proxyType)
     let output = `Thread Root [${rootAuthor}] ${rootMeta}: ${rootComment.message || ''}\n\nReplies (${replies.length}):`
 
     if (replies.length === 0) {
@@ -72,7 +89,7 @@ export const createReadThreadTool = (): AgentTool<
       for (const reply of replies) {
         const isAgent = reply.creator?.type === 'agent' || reply.sessionId !== null
         const author = reply.creator?.name || (isAgent ? 'Ai Agent' : 'User')
-        const replyMeta = formatCommentMeta(reply)
+        const replyMeta = formatCommentMeta(reply, proxyType)
         output += `\n- [${author}] ${replyMeta}: ${reply.message || ''}`
       }
     }

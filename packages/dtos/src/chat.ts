@@ -47,7 +47,7 @@ export const shumaiAssetContextSchema = z.object({
   id: z.string(),
   name: z.string(),
   type: z.string(),
-  mediaType: z.enum(['image', 'video', 'pdf', 'audio', 'other']).optional(),
+  mediaType: z.enum(['image', 'video', 'pdf', 'audio', '3d', 'other']).optional(),
   mimeType: z.string().optional(),
   parentId: z.string().optional(),
   path: z.string().optional(),
@@ -64,7 +64,7 @@ export const shumaiAttachedFileContextSchema = z.object({
   id: z.string(),
   name: z.string(),
   type: z.string(),
-  mediaType: z.enum(['image', 'video', 'pdf', 'audio', 'other']).optional(),
+  mediaType: z.enum(['image', 'video', 'pdf', 'audio', '3d', 'other']).optional(),
   mimeType: z.string().optional(),
   path: z.string().optional(),
   url: z.string().optional(),
@@ -75,6 +75,7 @@ export type ShumaiAttachedFileContext = z.infer<typeof shumaiAttachedFileContext
 export const shumaiMediaPositionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('time'), seconds: z.number() }),
   z.object({ type: z.literal('page'), page: z.number() }),
+  z.object({ type: z.literal('degree'), degree: z.number().int() }),
 ])
 
 export type ShumaiMediaPosition = z.infer<typeof shumaiMediaPositionSchema>

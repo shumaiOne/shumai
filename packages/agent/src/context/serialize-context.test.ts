@@ -350,5 +350,24 @@ describe('serializeContextToXml', () => {
         '<context>\n  <annotation id="test&lt;id&gt;&amp;&quot;123&quot;" />\n</context>',
       )
     })
+
+    it('serializes position type="degree" with integer degree attribute without seconds', () => {
+      const context: ShumaiMessageContext = {
+        currentAsset: {
+          id: 'ast_3d',
+          name: 'robot.glb',
+          type: 'file',
+          mediaType: '3d',
+          path: 'robot.glb',
+        },
+        position: {
+          type: 'degree',
+          degree: 45,
+        },
+      }
+      expect(serializeContextToXml(context)).toBe(
+        '<context>\n  <current_asset id="ast_3d" name="robot.glb" type="file" media_type="3d" path="robot.glb" />\n  <position type="degree" degree="45" />\n</context>',
+      )
+    })
   })
 })

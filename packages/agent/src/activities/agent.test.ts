@@ -1187,6 +1187,43 @@ describe('Agent Database Activities Integration', () => {
       expect((rootEntry as any)?.details?.thread).toBeUndefined()
     })
 
+    it('should set media position to degree for 3D asset comments', async () => {
+      const asset3d = await prisma.asset.create({
+        data: {
+          name: 'robot.glb',
+          type: 'file',
+          status: 'processed',
+          mediaType: 'model/gltf-binary',
+          media: { proxyType: '3d' } as unknown as PrismaJson.MediaInfo,
+          projectId: project.id,
+        },
+      })
+
+      const comment3d = await prisma.assetComment.create({
+        data: {
+          assetId: asset3d.id,
+          message: 'Nice angle',
+          creatorId: user.id,
+          second: 0.5, // 45°
+        },
+      })
+
+      const sessionId = await initializeAgentSessionActivity({
+        teamId: team.id,
+        agentId: 'test-agent-id',
+        userCommentId: comment3d.id,
+        userId: user.id,
+      })
+
+      const storage = new DatabaseSessionStorage(sessionId)
+      const pathEntries = await storage.getPathToRoot(comment3d.id)
+      const entry = pathEntries.find((e) => e.id === comment3d.id)
+
+      expect(entry).toBeDefined()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test entry position parsing
+      expect((entry as any)?.details?.position).toEqual({ type: 'degree', degree: 45 })
+    })
+
     it('should return user name and role for team member', async () => {
       const info = await getUserTeamInfoActivity({
         userId: user.id,
@@ -2121,6 +2158,84 @@ describe('Agent Database Activities Integration', () => {
       expect(systemPromptArg).toContain('# Comment Threads')
       expect(systemPromptArg).toContain('<thread id="..." reply_count="..." />')
       expect(systemPromptArg).toContain('read_thread')
+    })
+
+    it('agentChatActivity injects # 3D Model Inspection into systemPrompt', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'User_3d_Prompt', email: `prompt-3d-${Date.now()}@example.com` },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'Team_3d_Prompt_' + Date.now() },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Project_3d_Prompt', teamId: team.id },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'robot.glb',
+          type: 'file',
+          status: 'processed',
+          mediaType: 'model/gltf-binary',
+          media: { proxyType: '3d' } as unknown as PrismaJson.MediaInfo,
+          projectId: project.id,
+        },
+      })
+
+      const comment = await prisma.assetComment.create({
+        data: {
+          assetId: asset.id,
+          creatorId: user.id,
+          message: 'Check this 3d model',
+        },
+      })
+
+      const mockSession = {
+        id: 'mock-session-id',
+        subscribe: vi.fn(),
+        getEntries: vi.fn().mockResolvedValue([]),
+        getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
+      }
+      const mockHarness = {
+        subscribe: vi.fn(),
+        prompt: vi.fn().mockResolvedValue({
+          content: [{ type: 'text', text: 'Response' }],
+          usage: { input: 10, output: 20 },
+        }),
+      }
+
+      vi.mocked(piAgent.createAgentSession).mockResolvedValue({
+        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
+      })
+
+      const context = {
+        agent: { id: 'agent-1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
+        dbProviders: [],
+        teamSkills: [],
+        allowedDomains: [],
+      } as unknown as AgentExecutionContext
+
+      await agentChatActivity({
+        teamId: team.id,
+        agentId: 'agent-1',
+        message: 'Hello',
+        imageUrls: [],
+        projectId: project.id,
+        folderId: asset.id,
+        assetId: asset.id,
+        sessionId: 'mock-session-id',
+        userCommentId: comment.id,
+        userId: user.id,
+        context,
+      })
+
+      const lastCall = vi.mocked(piAgent.createAgentSession).mock.calls.at(-1)
+      const systemPromptArg = lastCall?.[0].systemPrompt as string
+      expect(systemPromptArg).toContain('# 3D Model Inspection')
+      expect(systemPromptArg).toContain('media_type="3d"')
+      expect(systemPromptArg).toContain('config3d')
+      expect(systemPromptArg).toContain('<position type="degree" degree="..." />')
     })
   })
 })

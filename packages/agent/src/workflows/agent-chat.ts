@@ -8,6 +8,7 @@ import type {
   ShumaiMediaPosition,
 } from '@shumai/dtos'
 import { getProxyType } from '@shumai/core/src/utils/mime'
+import { secondToDegree } from '@shumai/core/src/utils/model3d'
 
 export async function agentChat(task: WorkflowTask): Promise<void> {
   const {
@@ -273,7 +274,9 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     // Build position
     let mediaPosition: ShumaiMediaPosition | undefined
     if (commentTimestamp !== undefined && commentTimestamp !== null) {
-      if (proxyType === 'pdf') {
+      if (proxyType === '3d') {
+        mediaPosition = { type: 'degree', degree: secondToDegree(commentTimestamp) }
+      } else if (proxyType === 'pdf') {
         mediaPosition = { type: 'page', page: Math.round(commentTimestamp) }
       } else {
         mediaPosition = { type: 'time', seconds: commentTimestamp }

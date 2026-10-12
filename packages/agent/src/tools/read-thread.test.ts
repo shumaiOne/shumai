@@ -129,6 +129,42 @@ describe('createReadThreadTool', () => {
     expect(textContent).toContain('- [Ai Agent] (id: reply-1, has_markup: false): Agent answer')
   })
 
+  it('should format 3d asset comment timestamps as degree: X°', async () => {
+    vi.mocked(prisma.assetComment.findUnique).mockResolvedValue({
+      id: 'root-3d',
+      message: 'Notice this angle',
+      creator: { name: 'Alice' },
+      second: 0.5,
+      annotation: [{ type: 'box' }],
+      asset: {
+        media: { proxyType: '3d' },
+        mediaType: 'model/gltf-binary',
+        name: 'robot.glb',
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+    vi.mocked(prisma.assetComment.findMany).mockResolvedValue([
+      {
+        id: 'reply-3d-1',
+        message: 'Looking at back side',
+        creator: { name: 'Bob' },
+        second: 2.0,
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any)
+
+    const tool = createReadThreadTool()
+    const result = await tool.execute('call-3d', { threadId: 'root-3d' })
+    const textContent = (result.content[0] as { text: string }).text
+
+    expect(textContent).toContain(
+      'Thread Root [Alice] (id: root-3d, degree: 45°, has_markup: true): Notice this angle',
+    )
+    expect(textContent).toContain(
+      '- [Bob] (id: reply-3d-1, degree: 180°, has_markup: false): Looking at back side',
+    )
+  })
+
   it('should describe threadId parameter as referencing <thread id="..." /> in <context>', () => {
     const tool = createReadThreadTool()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -8,6 +8,11 @@ import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/a
 import { resolveAnnotationsById } from './annotation-resolver'
 import { getFileMimeType } from '@shumai/core/src/utils/file-mime'
 import { is3dModel } from '@shumai/core/src/utils/mime'
+import {
+  isValidTurntableDegree,
+  secondToDegree,
+  degreeToSecond,
+} from '@shumai/core/src/utils/model3d'
 
 export const readAssetSchema = Type.Object(
   {
@@ -38,6 +43,31 @@ export const readAssetSchema = Type.Object(
       ),
       Type.Null(),
     ]),
+    config3d: Type.Optional(
+      Type.Union([
+        Type.Object(
+          {
+            degree: Type.Optional(
+              Type.Union([
+                Type.Integer({
+                  minimum: 0,
+                  maximum: 345,
+                  description:
+                    'Turntable rotation degree (integer: 0, 15, 30, ..., 345 in 15° increments) to inspect a specific angle of a 3D model. Leave null/omitted to view the 4-view composite overview.',
+                }),
+                Type.Null(),
+              ]),
+            ),
+          },
+          {
+            additionalProperties: false,
+            description:
+              'Configuration for 3D model assets. Pass null if inspecting another asset type. Optionally pass degree to inspect a specific turntable angle, or leave null/omitted to view the 4-view composite overview.',
+          },
+        ),
+        Type.Null(),
+      ]),
+    ),
     videoConfig: Type.Union([
       Type.Object(
         {
@@ -168,12 +198,12 @@ export function createReadAssetTool(
     label: 'Read Asset',
     description:
       'Inspects and reads the content of an asset in the workspace. ' +
-      'Supports visual analysis for images, video frame extraction, PDF page rendering, and direct text reading for text/markdown files. ' +
-      'Pass assetId, and provide the specific config (imageConfig, videoConfig, or docConfig) while setting unused configs to null. ' +
+      'Supports visual analysis for images, 3D models (overview or specific degree angle), video frame extraction, PDF page rendering, and direct text reading for text/markdown files. ' +
+      'Pass assetId, and provide the specific config (imageConfig, config3d, videoConfig, or docConfig) while setting unused configs to null. ' +
       'Optionally provide annotationId to view visual markups drawn on the asset.',
     parameters: readAssetSchema,
     execute: async (_toolCallId, params) => {
-      const { assetId, annotationId, s3KeyOnly, videoConfig, docConfig } = params
+      const { assetId, annotationId, s3KeyOnly, config3d, videoConfig, docConfig } = params
 
       if (agentType === 'autofill' && !userId) {
         if (!targetAssetId) {
@@ -245,14 +275,141 @@ export function createReadAssetTool(
       const bucket = process.env.S3_BUCKET || 'shumai'
 
       // ----------------------------------------------------------------------
-      // Branch 0: 3D Assets (Orthogonal 4-View Composite Image)
+      // Branch 0: 3D Assets (Orthogonal 4-View Composite Image or Degree Angle)
       // ----------------------------------------------------------------------
       const is3d = proxyType === '3d' || is3dModel(mediaType, filename)
       if (is3d) {
         if (videoConfig) {
           throw new Error(
-            `Asset ${asset.id} is a 3D model. 3D assets provide an orthogonal 4-view composite image (Front/Right/Back/Left); do not pass videoConfig.`,
+            `Asset ${asset.id} is a 3D model. To inspect specific angles pass 'config3d: { degree: ... }'; do not pass videoConfig.`,
           )
+        }
+
+        if (config3d?.degree !== undefined && config3d?.degree !== null) {
+          if (!isValidTurntableDegree(config3d.degree)) {
+            throw new Error(
+              `Invalid turntable degree: ${config3d.degree}. Degree must be an integer multiple of 15 between 0 and 345 (e.g. 0, 15, 30, 45, ..., 345).`,
+            )
+          }
+        }
+
+        let annotations: PrismaJson.AnnotationList | null = null
+        let commentTimestamp: number | null = null
+        if (annotationId) {
+          const resolved = await resolveAnnotationsById(asset.id, annotationId)
+          annotations = resolved.annotations
+          commentTimestamp = resolved.timestamp
+          if (commentTimestamp !== null && commentTimestamp !== undefined) {
+            const commentDegree = secondToDegree(commentTimestamp)
+            if (
+              config3d?.degree !== undefined &&
+              config3d?.degree !== null &&
+              config3d.degree !== commentDegree
+            ) {
+              throw new Error(
+                `Annotation "${annotationId}" was drawn at ${commentDegree}°, but degree ${config3d.degree}° was specified. Do not pass a conflicting degree with annotationId.`,
+              )
+            }
+          }
+        }
+
+        if ((config3d?.degree !== undefined && config3d?.degree !== null) || annotationId) {
+          if (!mediaInfo?.videoTranscodes || mediaInfo.videoTranscodes.length === 0) {
+            throw new Error(
+              `Asset ${asset.id} is a 3D model, but its turntable video (turntable.mp4) is missing.`,
+            )
+          }
+
+          let targetDegree: number
+          let targetSecond: number
+
+          if (config3d?.degree !== undefined && config3d?.degree !== null) {
+            targetDegree = config3d.degree
+            targetSecond = degreeToSecond(targetDegree)
+          } else {
+            targetSecond =
+              commentTimestamp !== null && commentTimestamp !== undefined ? commentTimestamp : 0
+            targetDegree = secondToDegree(targetSecond)
+          }
+
+          const task = await prisma.workflowTask.create({
+            data: {
+              assetId: asset.id,
+              projectId: asset.projectId || 'none',
+              type: WorkflowTaskType.transcode_screenshot,
+              status: WorkflowTaskStatus.pending,
+              payload: {
+                projectId: asset.projectId || 'none',
+                screenshot: {
+                  start: targetSecond,
+                  end: targetSecond,
+                  count: 1,
+                  commentTimestamp: targetSecond,
+                  annotations: annotations ?? undefined,
+                },
+              },
+            },
+          })
+
+          const completedTask = await workflowService.executeWait(task)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- transcode screenshot output
+          const output = completedTask.output as any
+          const screenshots = output?.screenshots as
+            | Array<{ key: string; timestamp: number }>
+            | undefined
+
+          if (!screenshots || screenshots.length === 0) {
+            throw new Error(
+              `Failed to extract 3D turntable frame for asset ${asset.id} at ${targetDegree}°.`,
+            )
+          }
+
+          const shotKey = screenshots[0].key
+          const downloadUrl = await s3Service.presign(
+            bucket,
+            shotKey,
+            'GET',
+            true,
+            asset.name || undefined,
+          )
+
+          const content: Array<TextContent | ImageContent> = []
+          const hasMarkup = Boolean(annotations && annotations.length > 0)
+          const textDescription = hasMarkup
+            ? `3D asset "${asset.name}" (ID: ${asset.id}, S3 Key: "${shotKey}") view at ${targetDegree}° with visual markups overlaid:`
+            : `3D asset "${asset.name}" (ID: ${asset.id}, S3 Key: "${shotKey}") view at ${targetDegree}°:`
+
+          if (s3KeyOnly) {
+            content.push({
+              type: 'text',
+              text: textDescription,
+            })
+          } else {
+            const { buffer, contentType } = await s3Service.getObject(bucket, shotKey)
+            const actualMimeType =
+              contentType && contentType !== 'application/octet-stream' ? contentType : 'image/webp'
+            content.push({
+              type: 'text',
+              text: textDescription,
+            })
+            content.push({
+              type: 'image',
+              data: buffer.toString('base64'),
+              mimeType: actualMimeType,
+            })
+          }
+
+          return {
+            content,
+            details: {
+              assetId: asset.id,
+              name: asset.name,
+              mediaType: asset.mediaType,
+              key: shotKey,
+              downloadUrl,
+              sourceKeys: [shotKey],
+            },
+          }
         }
 
         if (!mediaInfo?.imageTranscodes || mediaInfo.imageTranscodes.length === 0) {
