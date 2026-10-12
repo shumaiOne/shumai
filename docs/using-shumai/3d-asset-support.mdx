@@ -1,0 +1,158 @@
+---
+title: 3D Asset Support with Turntable Renderer
+description: Render interactive 3D model turntable previews, sprite scrubbing, and video proxies using turntable-renderer.
+---
+
+3D models and mesh assets cannot always be rendered consistently or inspected reliably across diverse client web browsers and mobile devices. Shumai integrates with [turntable-renderer](https://github.com/shumaiOne/turntable-renderer) — a standalone service that executes isolated, headless Blender 5.2 LTS subprocesses — to convert 3D model uploads into standardized, high-fidelity turntable previews.
+
+Turntable Renderer automatically produces:
+
+- **1080×1080 Turntable Video (`turntable.mp4`)**: A 4-second, 24-frame, 6 fps video rotating the model 360° (15° per frame) clockwise under dark studio lighting with a pure black background.
+- **Poster Image (`poster.webp`)**: A crisp still poster for grid cards and immediate file display.
+- **Hover Sprite Sheet (`sprite.webp`)**: A fast scrubbing sheet allowing users to rotate and inspect the model directly from the file browser on hover.
+- **Interactive 3D Viewer**: A specialized web viewer featuring 360° ruler scrubbing, rotation angle control (0° to 345°), playback controls, and angle-specific review comments and visual markups.
+
+---
+
+## Supported File Types
+
+When turntable-renderer is configured, Shumai automatically generates 3D turntable proxies for the following formats:
+
+| Format / Standard           | Extensions                        |
+| --------------------------- | --------------------------------- |
+| glTF / Binary glTF          | `.glb`, `.gltf`                   |
+| Universal Scene Description | `.usd`, `.usda`, `.usdc`, `.usdz` |
+| Autodesk FBX                | `.fbx`                            |
+| Wavefront OBJ               | `.obj`                            |
+| Stereolithography (STL)     | `.stl`                            |
+| COLLADA                     | `.dae`                            |
+
+---
+
+## Configuration
+
+Shumai supports configuring the turntable renderer either through the **WebUI** or via **Environment Variables**.
+
+### 1. WebUI (Team Settings → Integrations)
+
+Team owners can configure the turntable renderer directly from the web interface:
+
+1. Navigate to **Team Settings** from the sidebar.
+2. Select the **Integrations** tab.
+3. Under **3D Turntable Renderer**, enter the **Server URL** (e.g. `http://turntable-renderer:3000` or `http://localhost:3003`).
+4. Enter the **Username** and **Password** if Basic Authentication is enabled on the service.
+5. Click **Test Connection** to verify that Shumai can communicate with the renderer and check the detected Blender version.
+6. Click **Save Changes**.
+
+### 2. Environment Variables
+
+You can also configure turntable-renderer globally across the system using environment variables on the machine running Shumai or the transcode workers:
+
+| Variable                                 | Required        | Description                                                                           |
+| ---------------------------------------- | --------------- | ------------------------------------------------------------------------------------- |
+| `TURNTABLE_RENDERER_URL`                 | Yes (to enable) | Base URL of the turntable renderer service, e.g. `http://turntable-renderer:3000`.    |
+| `TURNTABLE_RENDERER_BASIC_AUTH_USERNAME` | No              | Username when Basic Authentication is enabled (alias: `TURNTABLE_RENDERER_USERNAME`). |
+| `TURNTABLE_RENDERER_BASIC_AUTH_PASSWORD` | No              | Password when Basic Authentication is enabled (alias: `TURNTABLE_RENDERER_PASSWORD`). |
+
+### Configuration Priority & Read-Only Mode
+
+> [!IMPORTANT]
+> **Environment variables take highest priority.** If `TURNTABLE_RENDERER_URL` is set in your environment, Shumai will always use the environment variable configuration.
+>
+> When configured via environment variables, the settings in **Team Settings → Integrations** will display a **Configured via environment variables (Read-only)** badge, and the input fields will be locked to prevent accidental changes or configuration drift.
+
+---
+
+## Deploying Turntable Renderer
+
+### Docker Quickstart
+
+The easiest way to run `turntable-renderer` is using the prebuilt Docker image:
+
+```bash
+docker run -d --rm \
+  --name turntable-renderer \
+  -p 3003:3000 \
+  -v $(pwd)/data:/app/data \
+  -e TURNTABLE_RENDERER_API_BASIC_AUTH_USERNAME=admin \
+  -e TURNTABLE_RENDERER_API_BASIC_AUTH_PASSWORD=your_password \
+  shumaione/turntable-renderer:latest
+```
+
+> **Note**: Host port `3003` maps to internal container port `3000`. Persistent temporary file storage is kept in `./data`.
+
+### Docker Compose Setup
+
+Add a `turntable-renderer` service to your `docker-compose.yaml`:
+
+```yaml
+services:
+  turntable-renderer:
+    image: shumaione/turntable-renderer:latest
+    restart: unless-stopped
+    ports:
+      - '3003:3000'
+    volumes:
+      - ./data/turntable:/app/data
+    environment:
+      TURNTABLE_RENDERER_API_BASIC_AUTH_USERNAME: admin
+      TURNTABLE_RENDERER_API_BASIC_AUTH_PASSWORD: your_password
+```
+
+Then point Shumai at it:
+
+```bash
+TURNTABLE_RENDERER_URL=http://localhost:3003
+TURNTABLE_RENDERER_BASIC_AUTH_USERNAME=admin
+TURNTABLE_RENDERER_BASIC_AUTH_PASSWORD=your_password
+```
+
+_(If both Shumai and turntable-renderer run within the same Docker Compose network, use `http://turntable-renderer:3000` as the URL)._
+
+### GPU Acceleration
+
+A dedicated GPU is optional — turntable-renderer's CPU rendering pipeline is fast enough for modest hardware. When a GPU is passed into the container, it is automatically detected and leveraged.
+
+#### Intel / AMD (Open Source Drivers)
+
+Pass the DRI render node:
+
+```bash
+docker run -d --rm \
+  --name turntable-renderer \
+  --shm-size=1gb \
+  -p 3003:3000 \
+  --device /dev/dri \
+  -v $(pwd)/data:/app/data \
+  -e TURNTABLE_RENDERER_API_BASIC_AUTH_USERNAME=admin \
+  -e TURNTABLE_RENDERER_API_BASIC_AUTH_PASSWORD=your_password \
+  shumaione/turntable-renderer:latest
+```
+
+#### NVIDIA (Proprietary Drivers)
+
+Requires host driver 580+ and the NVIDIA Container Toolkit (`--runtime nvidia`):
+
+```bash
+docker run -d --rm \
+  --name turntable-renderer \
+  --shm-size=1gb \
+  -p 3003:3000 \
+  --runtime nvidia \
+  --gpus all \
+  --device /dev/nvidia-modeset \
+  -v $(pwd)/data:/app/data \
+  -e TURNTABLE_RENDERER_API_BASIC_AUTH_USERNAME=admin \
+  -e TURNTABLE_RENDERER_API_BASIC_AUTH_PASSWORD=your_password \
+  shumaione/turntable-renderer:latest
+```
+
+---
+
+## Behavior Without Turntable Renderer
+
+If turntable-renderer is not configured or unreachable:
+
+- The 3D model upload completes successfully with status `processed`.
+- No turntable video proxy, sprite, or poster is generated.
+- The original raw 3D file is safely preserved and can be downloaded by team members.

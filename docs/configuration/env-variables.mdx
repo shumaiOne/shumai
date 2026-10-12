@@ -99,3 +99,29 @@ API keys to AI providers on startup.
 | `GEMINI_API_KEY`    | API key for Google Gemini provider. | `AIzaSy...`       |
 | `OPENAI_API_KEY`    | API key for OpenAI provider.        | `sk-proj-...`     |
 | `ANTHROPIC_API_KEY` | API key for Anthropic provider.     | `sk-ant-...`      |
+
+---
+
+## External Integrations Config
+
+Environment variables can configure external microservices globally. When set, these environment variables take precedence over any team-level settings configured in **Team Settings → Integrations**, and lock the corresponding settings fields in the WebUI to read-only.
+
+### Gotenberg Document Converter
+
+Used to convert Office documents, HTML, Markdown, and CSV files into high-fidelity PDF proxies for in-browser previewing. See the [Gotenberg Guide](/using-shumai/gotenberg) for setup instructions.
+
+| Variable                        | Description                                                              | Example / Default       |
+| :------------------------------ | :----------------------------------------------------------------------- | :---------------------- |
+| `GOTENBERG_URL`                 | Base URL of the external Gotenberg conversion API.                       | `http://gotenberg:3000` |
+| `GOTENBERG_BASIC_AUTH_USERNAME` | Username when Basic Authentication is enabled on the Gotenberg instance. | `admin`                 |
+| `GOTENBERG_BASIC_AUTH_PASSWORD` | Password when Basic Authentication is enabled on the Gotenberg instance. | `secret`                |
+
+### 3D Turntable Renderer
+
+Used to convert 3D model files (GLB, OBJ, FBX, USD, STL, DAE) into interactive 360° turntable video proxies, posters, and hover sprites. See the [3D Asset Support Guide](/using-shumai/3d-asset-support) for setup instructions.
+
+| Variable                                 | Description                                                                                                     | Example / Default                |
+| :--------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :------------------------------- |
+| `TURNTABLE_RENDERER_URL`                 | Base URL of the external turntable-renderer service.                                                            | `http://turntable-renderer:3000` |
+| `TURNTABLE_RENDERER_BASIC_AUTH_USERNAME` | Username when Basic Authentication is enabled on the turntable renderer (alias: `TURNTABLE_RENDERER_USERNAME`). | `admin`                          |
+| `TURNTABLE_RENDERER_BASIC_AUTH_PASSWORD` | Password when Basic Authentication is enabled on the turntable renderer (alias: `TURNTABLE_RENDERER_PASSWORD`). | `secret`                         |

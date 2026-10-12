@@ -33,6 +33,7 @@ Shumai 是一个开源的 Frame.io 替代方案，专为创意团队打造，让
 * **自定义素材元数据**：可以按你的制作流程，自由定义动态元数据字段。
 * **分享链接水印**：通过可自定义的文字和图片水印保护共享媒体，并将水印配置保存为模板以便重复使用。
 * **丰富的文件格式支持**：支持预览常见创意文件格式，包括图片（支持 PSD）、视频、音频和文档，同时可上传和存储任意类型的文件。
+* **基于转盘渲染服务的 3D 资产预览**：通过集成 [turntable-renderer](https://docs.shumai.one/using-shumai/3d-asset-support) 支持为 GLB、GLTF、FBX、OBJ、STL、USD 和 DAE 等 3D 模型生成高质量的交互式转盘预览与视频。
 * **基于 Gotenberg 的文档 PDF 转码代理**：通过集成 [Gotenberg](https://docs.shumai.one/using-shumai/gotenberg) 支持将 Word、PowerPoint、Excel、Markdown、HTML 和 CSV 文档高质量转换为 PDF 代理文件进行在线预览。
 * **非编剪辑导出与 Premiere 插件（实验性）**：支持将时间戳审阅评论导出至常用非编软件（Premiere Pro XML、DaVinci Resolve EDL、Final Cut Pro、Avid Media Composer），或使用实验性的 Premiere Pro 原生 UXP 插件导入媒体素材并将评论自动同步为时间轴标记。详见[相关文档](https://docs.shumai.one/using-shumai/nle-and-premiere)。
 

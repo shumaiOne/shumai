@@ -32,13 +32,37 @@ When Gotenberg is configured, Shumai automatically generates a PDF proxy for the
 
 ## Configuration
 
-Gotenberg support is opt-in and controlled by the following environment variables on the machine running the transcode workers:
+Shumai supports configuring Gotenberg either through the **WebUI** or via **Environment Variables**.
+
+### 1. WebUI (Team Settings → Integrations)
+
+Team owners can configure Gotenberg directly from the web interface:
+
+1. Navigate to **Team Settings** from the sidebar.
+2. Select the **Integrations** tab.
+3. Under **Gotenberg Document Converter**, enter the **Server URL** (e.g. `http://gotenberg:3000` or `http://localhost:3000`).
+4. Enter the **Username** and **Password** if Basic Authentication is enabled on the service.
+5. Click **Test Connection** to test communication with Gotenberg and verify its health.
+6. Click **Save Changes**.
+
+### 2. Environment Variables
+
+Gotenberg can also be configured globally across the system using environment variables on the machine running Shumai or the transcode workers:
 
 | Variable                        | Required        | Description                                                      |
 | ------------------------------- | --------------- | ---------------------------------------------------------------- |
 | `GOTENBERG_URL`                 | Yes (to enable) | Base URL of the Gotenberg service, e.g. `http://gotenberg:3000`. |
 | `GOTENBERG_BASIC_AUTH_USERNAME` | No              | Username when Basic Authentication is enabled on Gotenberg.      |
 | `GOTENBERG_BASIC_AUTH_PASSWORD` | No              | Password when Basic Authentication is enabled on Gotenberg.      |
+
+### Configuration Priority & Read-Only Mode
+
+> [!IMPORTANT]
+> **Environment variables take highest priority.** If `GOTENBERG_URL` is set in your environment, Shumai will always use the environment variable configuration.
+>
+> When configured via environment variables, the settings in **Team Settings → Integrations** will display a **Configured via environment variables (Read-only)** badge, and the input fields will be locked to prevent accidental changes or configuration drift.
+
+### Deploying Gotenberg
 
 ### Docker Quickstart
 

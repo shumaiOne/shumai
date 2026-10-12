@@ -33,6 +33,7 @@ Shumai is an open-source Frame.io alternative built for creative teams to collab
 * **Custom Asset Metadata**: Define dynamic metadata fields tailored to your production pipeline.
 * **Share Link Watermarking**: Protect shared media with customizable text and image watermarks, and save watermark as reusable templates.
 * **Wide File Format Support**: Preview common creative file formats, including images (with PSD support), videos, audio, and documents, while allowing any file type to be uploaded and stored.
+* **3D Asset Turntable Previews**: Generate interactive 3D model turntable previews and videos for formats like GLB, GLTF, FBX, OBJ, STL, USD, and DAE using [turntable-renderer](https://docs.shumai.one/using-shumai/3d-asset-support).
 * **Office & Document PDF Proxying via Gotenberg**: Convert Word, PowerPoint, Excel, Markdown, HTML, and CSV documents to high-quality PDF proxies for in-browser previewing using [Gotenberg](https://docs.shumai.one/using-shumai/gotenberg).
 * **NLE Export & Premiere Pro Plugin (Experimental)**: Export timestamped review comments to your favorite non-linear editor (Premiere Pro XML, DaVinci Resolve EDL, Final Cut Pro, Avid Media Composer) or use the experimental Premiere Pro UXP plugin to import media assets and auto-sync comments directly to sequence timeline markers. See [documentation](https://docs.shumai.one/using-shumai/nle-and-premiere).
 
