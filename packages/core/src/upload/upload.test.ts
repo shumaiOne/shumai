@@ -451,6 +451,93 @@ describe('UploadService', () => {
     expect(workflowTask).toBeNull()
   })
 
+  it('should create transcode_pdf for office documents when Gotenberg is configured in team settings without global env', async () => {
+    vi.restoreAllMocks()
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input)
+      if (url.includes('/health')) {
+        return new Response(JSON.stringify({ status: 'up' }), { status: 200 })
+      }
+      return new Response('Not Found', { status: 404 })
+    })
+    const originalEnv = process.env.GOTENBERG_URL
+    delete process.env.GOTENBERG_URL
+
+    try {
+      await prisma.team.update({
+        where: { id: teamId },
+        data: {
+          settings: {
+            gotenberg: {
+              url: 'http://gotenberg.local:3000',
+            },
+          },
+        },
+      })
+
+      const task = await prisma.task.create({
+        data: { creatorId: userId, total: 1, uploaded: 0, type: 'upload' },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'report.docx',
+          type: AssetType.file,
+          project: { connect: { id: projectId } },
+          parent: { connect: { id: parentId } },
+          status: AssetStatus.uploading,
+          storageKey: {
+            connectOrCreate: {
+              where: { key: 'test-key-doc-team-settings' },
+              create: { key: 'test-key-doc-team-settings' },
+            },
+          },
+          mediaType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
+      })
+
+      await uploadService.confirmFileUpload(userId, task.id, { fileId: asset.id })
+
+      const workflowTask = await prisma.workflowTask.findFirst({
+        where: { assetId: asset.id, type: WorkflowTaskType.transcode_pdf },
+      })
+      expect(workflowTask).not.toBeNull()
+      expect(workflowTask?.status).toBe(TaskStatus.pending)
+
+      // Test HTML document as well
+      const htmlTask = await prisma.task.create({
+        data: { creatorId: userId, total: 1, uploaded: 0, type: 'upload' },
+      })
+      const htmlAsset = await prisma.asset.create({
+        data: {
+          name: 'index.html',
+          type: AssetType.file,
+          project: { connect: { id: projectId } },
+          parent: { connect: { id: parentId } },
+          status: AssetStatus.uploading,
+          storageKey: {
+            connectOrCreate: {
+              where: { key: 'test-key-html-team-settings' },
+              create: { key: 'test-key-html-team-settings' },
+            },
+          },
+          mediaType: 'text/html',
+        },
+      })
+
+      await uploadService.confirmFileUpload(userId, htmlTask.id, { fileId: htmlAsset.id })
+
+      const htmlWorkflowTask = await prisma.workflowTask.findFirst({
+        where: { assetId: htmlAsset.id, type: WorkflowTaskType.transcode_pdf },
+      })
+      expect(htmlWorkflowTask).not.toBeNull()
+      expect(htmlWorkflowTask?.status).toBe(TaskStatus.pending)
+    } finally {
+      if (originalEnv !== undefined) {
+        process.env.GOTENBERG_URL = originalEnv
+      }
+    }
+  })
+
   it('should confirm file upload and create transcode_3d for 3D model when turntable is available', async () => {
     vi.spyOn(turntableService, 'isAvailable').mockResolvedValue(true)
     const task = await prisma.task.create({

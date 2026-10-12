@@ -363,7 +363,7 @@ export class UploadService {
         const isHtml = isHtmlDocument(asset.mediaType, asset.name)
 
         if (isOffice || isHtml) {
-          const gotenbergAvailable = await gotenbergService.isAvailable()
+          const gotenbergAvailable = await gotenbergService.isAvailable(team.id)
           if (!gotenbergAvailable) {
             await tx.asset.update({
               where: { id: asset.id },
