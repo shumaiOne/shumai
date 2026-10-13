@@ -609,6 +609,11 @@ function FileViewPage() {
     setSelectedCommentId(null)
   }
 
+  const handleSeek = () => {
+    setAnnotations([])
+    setSelectedCommentId(null)
+  }
+
   if (isMobile && !isCompareMode) {
     return (
       <MobileFileDetail
@@ -702,6 +707,7 @@ function FileViewPage() {
               mediaControllerRef={mediaControllerRef}
               onPlay={handlePlay}
               onTimeUpdate={setCurrentTime}
+              onSeek={handleSeek}
               annotations={annotations}
               startTime={startTime}
             >

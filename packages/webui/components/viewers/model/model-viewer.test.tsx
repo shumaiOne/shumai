@@ -5,9 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ModelViewer } from './model-viewer'
 import type { MediaController } from '../types'
 import type { AssetInfo } from '@shumai/dtos'
+import type { Annotation } from '@/ui/types'
 
 vi.mock('@/ui/components/drawing-canvas', () => ({
-  default: () => <div data-testid="drawing-canvas" />,
+  default: (props: { annotations?: unknown[] }) => (
+    <div data-testid="drawing-canvas" data-annotation-count={props.annotations?.length ?? 0} />
+  ),
 }))
 
 vi.mock('@/ui/paraglide/messages.js', () => ({
@@ -475,5 +478,92 @@ describe('ModelViewer', () => {
 
     const { queryByTitle } = render(<ModelViewer file={assetWithoutOriginal} />)
     expect(queryByTitle('Download asset')).toBeNull()
+  })
+
+  describe('onSeek callback for rotation interactions', () => {
+    it('calls onSeek when dragging the viewer surface to rotate', () => {
+      const onSeek = vi.fn()
+      const { getByTestId } = render(<ModelViewer file={mockAsset} onSeek={onSeek} />)
+      const surface = getByTestId('model-viewer-surface')
+
+      // Pointer down at x=100
+      fireEvent.pointerDown(surface, {
+        button: 0,
+        clientX: 100,
+        pointerId: 1,
+      })
+      expect(onSeek).not.toHaveBeenCalled()
+
+      // Drag right by +24px (2 frames rotation)
+      fireEvent.pointerMove(surface, {
+        clientX: 124,
+        pointerId: 1,
+      })
+      expect(onSeek).toHaveBeenCalledTimes(1)
+    })
+
+    it('calls onSeek when changing degree via slider', () => {
+      const onSeek = vi.fn()
+      const { getByTestId } = render(<ModelViewer file={mockAsset} onSeek={onSeek} />)
+      const minusBtn = getByTestId('ruler-step-minus')
+      expect(minusBtn).toBeDefined()
+
+      fireEvent.click(minusBtn)
+      expect(onSeek).toHaveBeenCalledTimes(1)
+    })
+
+    it('calls onSeek when pressing keyboard arrow keys to rotate', () => {
+      const onSeek = vi.fn()
+      render(<ModelViewer file={mockAsset} onSeek={onSeek} />)
+
+      fireEvent.keyDown(window, { key: 'ArrowLeft' })
+      expect(onSeek).toHaveBeenCalledTimes(1)
+
+      fireEvent.keyDown(window, { key: 'ArrowRight' })
+      expect(onSeek).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not call onSeek when programmatic seekTo is called via ref', () => {
+      const onSeek = vi.fn()
+      const ref = createRef<MediaController>()
+      render(<ModelViewer ref={ref} file={mockAsset} onSeek={onSeek} />)
+
+      act(() => {
+        ref.current?.seekTo(1.5)
+      })
+
+      expect(onSeek).not.toHaveBeenCalled()
+    })
+
+    it('clears displayed annotations when container onSeek empties annotations prop upon rotation', () => {
+      const initialAnnotation: Annotation = {
+        type: 'arrow',
+        color: '#ef4444',
+        points: [
+          [0, 0],
+          [100, 100],
+        ],
+      }
+      function Harness() {
+        const [annotations, setAnnotations] = React.useState<Annotation[]>([initialAnnotation])
+        return (
+          <ModelViewer
+            file={mockAsset}
+            annotations={annotations}
+            onSeek={() => setAnnotations([])}
+          />
+        )
+      }
+
+      const { getByTestId } = render(<Harness />)
+      const canvas = getByTestId('drawing-canvas')
+      expect(canvas.getAttribute('data-annotation-count')).toBe('1')
+
+      // Rotate via ruler step minus
+      fireEvent.click(getByTestId('ruler-step-minus'))
+
+      // Markup annotation disappears
+      expect(canvas.getAttribute('data-annotation-count')).toBe('0')
+    })
   })
 })

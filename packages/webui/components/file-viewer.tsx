@@ -12,6 +12,7 @@ export function FileViewer({
   onPlay,
   onPause,
   onTimeUpdate,
+  onSeek,
   annotations,
   startTime,
   shareId,
@@ -30,6 +31,7 @@ export function FileViewer({
       onPlay={onPlay}
       onPause={onPause}
       onTimeUpdate={onTimeUpdate}
+      onSeek={onSeek}
       annotations={annotations}
       startTime={startTime}
       shareId={shareId}

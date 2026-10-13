@@ -17,6 +17,7 @@ export interface FileViewerProps {
   onPlay?: () => void
   onPause?: () => void
   onTimeUpdate?: (time: number) => void
+  onSeek?: () => void
   startTime?: number
   shareId?: string
   /** When false, the viewer hides its download affordances. Defaults to true. */

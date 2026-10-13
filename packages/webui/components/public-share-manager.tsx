@@ -385,6 +385,11 @@ export function PublicShareManager({
     setSelectedCommentId(null)
   }
 
+  const handleSeek = () => {
+    setAnnotations([])
+    setSelectedCommentId(null)
+  }
+
   const updateCompareSearch = (patch: Record<string, unknown>) => {
     if (!viewingFileId) return
     navigate({
@@ -656,6 +661,7 @@ export function PublicShareManager({
                     mediaControllerRef={mediaControllerRef}
                     onPlay={handlePlay}
                     onTimeUpdate={setCurrentTime}
+                    onSeek={handleSeek}
                     annotations={annotations}
                     startTime={startTime}
                     shareId={shareId}

@@ -156,6 +156,11 @@ export function MobileFileDetail({
     setSelectedCommentId(null)
   }
 
+  const handleSeek = () => {
+    setAnnotations([])
+    setSelectedCommentId(null)
+  }
+
   const handleCommentSelect = (comment: CommentInfo) => {
     setSelectedCommentId(comment.id || null)
     const newAnnotations = comment.annotations as Annotation[]
@@ -238,6 +243,7 @@ export function MobileFileDetail({
           mediaControllerRef={mediaControllerRef}
           onPlay={handlePlay}
           onTimeUpdate={setCurrentTime}
+          onSeek={handleSeek}
           annotations={annotations}
           startTime={startTime}
           shareId={shareId}

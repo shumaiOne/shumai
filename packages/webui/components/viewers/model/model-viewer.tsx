@@ -23,6 +23,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
       onPlay,
       onPause,
       onTimeUpdate,
+      onSeek,
       annotations,
       startTime,
       shareId,
@@ -55,6 +56,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
     // Drag-to-rotate state
     const [isDraggingRotation, setIsDraggingRotation] = useState(false)
     const dragStartRef = useRef<{ clientX: number; frame: number }>({ clientX: 0, frame: 0 })
+    const hasTriggeredSeekInDragRef = useRef(false)
 
     const videoSrc = data.media?.videoTranscodes?.[0]?.url || data.media?.videoPreview?.url || ''
 
@@ -152,6 +154,11 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
       onTimeUpdateRef.current = onTimeUpdate
     }, [onTimeUpdate])
 
+    const onSeekRef = useRef(onSeek)
+    useEffect(() => {
+      onSeekRef.current = onSeek
+    }, [onSeek])
+
     // Synchronized playback frame loop (via requestVideoFrameCallback / requestAnimationFrame)
     useEffect(() => {
       if (!isPlaying) return
@@ -225,6 +232,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
 
     const seekToDegree = useCallback(
       (degree: number) => {
+        onSeekRef.current?.()
         videoRef.current?.pause()
         const frame = Math.round((((degree % 360) + 360) % 360) / 15) % TOTAL_FRAMES
         seekToFrame(frame)
@@ -280,10 +288,12 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
           togglePlay()
         } else if (e.key === 'ArrowLeft') {
           e.preventDefault()
+          onSeekRef.current?.()
           const currentFrame = secondToFrame(currentTime)
           seekToFrame(currentFrame - 1)
         } else if (e.key === 'ArrowRight') {
           e.preventDefault()
+          onSeekRef.current?.()
           const currentFrame = secondToFrame(currentTime)
           seekToFrame(currentFrame + 1)
         }
@@ -305,6 +315,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
         clientX: e.clientX,
         frame: currentFrame,
       }
+      hasTriggeredSeekInDragRef.current = false
       setIsDraggingRotation(true)
     }
 
@@ -314,12 +325,17 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
       // 12px drag movement corresponds to 1 frame (15°)
       // Dragging right (deltaX > 0) rotates turntable counterclockwise (decreasing frame index)
       const deltaFrames = Math.round(deltaX / 12)
+      if (deltaFrames !== 0 && !hasTriggeredSeekInDragRef.current) {
+        hasTriggeredSeekInDragRef.current = true
+        onSeekRef.current?.()
+      }
       const targetFrame = dragStartRef.current.frame - deltaFrames
       seekToFrame(targetFrame)
     }
 
     const handleViewerPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
       if (!isDraggingRotation) return
+      hasTriggeredSeekInDragRef.current = false
       setIsDraggingRotation(false)
       try {
         e.currentTarget.releasePointerCapture(e.pointerId)
