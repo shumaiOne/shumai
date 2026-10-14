@@ -706,17 +706,19 @@ model AssetCommentReaction {
 }
 
 model AssetEmbedding {
-  id          String   @id @default(ulid())
-  embedding   Unsupported("vector(1536)")?
-  startTime   Float?   @map("start_time")
-  endTime     Float?   @map("end_time")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(ulid())
+  embedding    Unsupported("vector(1536)")?
+  embedding768 Unsupported("vector(768)")? @map("embedding_768")
+  startTime    Float?   @map("start_time")
+  endTime      Float?   @map("end_time")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  assetId     String   @map("asset_id")
-  asset       Asset    @relation("AssetToEmbedding", fields: [assetId], references: [id], onDelete: Cascade)
+  assetId      String   @map("asset_id")
+  asset        Asset    @relation("AssetToEmbedding", fields: [assetId], references: [id], onDelete: Cascade)
 
   @@index([embedding], name: "AssetEmbedding_embedding_idx")
+  @@index([embedding768], name: "AssetEmbedding_embedding_768_idx")
   @@map("asset_embeddings")
 }
 

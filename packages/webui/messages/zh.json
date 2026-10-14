@@ -633,6 +633,8 @@
   "chat_agent": "对话智能体",
   "chat_agents": "对话智能体",
   "embedding_agent": "嵌入智能体",
+  "agent_readonly": "只读",
+  "agent_managed_by_system_hint": "此智能体由服务器环境配置管理，无法进行修改或删除。",
   "skills_count_value": "{count} 个技能",
   "autofill_agent": "自动填充智能体",
   "ai_provider": "AI 提供商",

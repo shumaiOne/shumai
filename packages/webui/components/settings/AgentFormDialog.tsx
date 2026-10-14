@@ -48,6 +48,7 @@ interface AgentFormDialogProps {
   type?: AgentType
   initialValues?: AgentInfo
   title: string
+  readOnly?: boolean
 }
 
 const agentFormSchema = z.object({
@@ -137,6 +138,7 @@ export function AgentFormDialog({
   type,
   initialValues,
   title,
+  readOnly = false,
 }: AgentFormDialogProps) {
   const queryClient = useQueryClient()
   const { canAdmin } = usePermissions()
@@ -368,6 +370,11 @@ export function AgentFormDialog({
         >
           <ScrollArea className="flex-1 min-h-0">
             <div className="p-6 pt-2 space-y-6">
+              {readOnly && (
+                <div className="p-3 bg-muted text-muted-foreground text-sm rounded-lg border border-border">
+                  {m.agent_managed_by_system_hint()}
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <form.Field
                   name="name"
@@ -382,6 +389,7 @@ export function AgentFormDialog({
                           onChange={(e) => field.handleChange(e.target.value)}
                           placeholder={m.agent_name_placeholder()}
                           aria-invalid={isInvalid}
+                          disabled={readOnly}
                         />
                         {isInvalid && <FieldError errors={mapErrors(field.state.meta.errors)} />}
                       </Field>
@@ -423,7 +431,7 @@ export function AgentFormDialog({
                           onValueChange={(val) =>
                             field.handleChange(val as 'owner' | 'editor' | 'reviewer')
                           }
-                          disabled={!canAdmin}
+                          disabled={readOnly || !canAdmin}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -453,12 +461,15 @@ export function AgentFormDialog({
                             <button
                               key={preset.id}
                               type="button"
-                              onClick={() => field.handleChange(preset.id)}
+                              disabled={readOnly}
+                              onClick={() => !readOnly && field.handleChange(preset.id)}
                               className={cn(
-                                'relative w-14 h-14 rounded-full overflow-hidden border-2 transition-all hover:scale-105',
+                                'relative w-14 h-14 rounded-full overflow-hidden border-2 transition-all',
+                                !readOnly && 'hover:scale-105',
                                 isSelected
                                   ? 'border-primary ring-2 ring-primary ring-offset-2'
                                   : 'border-border hover:border-muted-foreground',
+                                readOnly && 'cursor-default opacity-80',
                               )}
                             >
                               <img
@@ -473,7 +484,8 @@ export function AgentFormDialog({
                           !AVAILABLE_AVATARS.some((p) => p.id === field.state.value) && (
                             <button
                               type="button"
-                              className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-primary ring-2 ring-primary ring-offset-2 scale-105"
+                              disabled={true}
+                              className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-primary ring-2 ring-primary ring-offset-2 scale-105 cursor-default"
                             >
                               <img
                                 src={field.state.value}
@@ -1024,29 +1036,37 @@ export function AgentFormDialog({
           </ScrollArea>
 
           <DialogFooter className="p-6 pt-4 border-t border-border flex-shrink-0">
-            <Button variant="outline" onClick={onClose} type="button">
-              {m.cancel()}
-            </Button>
-            <form.Subscribe
-              selector={(state) => [state.canSubmit, state.isSubmitting]}
-              children={([canSubmit, isSubmitting]) => (
-                <Button
-                  type="submit"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[120px]"
-                  disabled={
-                    !canSubmit ||
-                    isSubmitting ||
-                    createMutation.isPending ||
-                    updateMutation.isPending
-                  }
-                >
-                  {(isSubmitting || createMutation.isPending || updateMutation.isPending) && (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  )}
-                  {initialValues ? m.save_changes() : m.create_agent()}
+            {readOnly ? (
+              <Button variant="outline" onClick={onClose} type="button">
+                {m.close()}
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={onClose} type="button">
+                  {m.cancel()}
                 </Button>
-              )}
-            />
+                <form.Subscribe
+                  selector={(state) => [state.canSubmit, state.isSubmitting]}
+                  children={([canSubmit, isSubmitting]) => (
+                    <Button
+                      type="submit"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[120px]"
+                      disabled={
+                        !canSubmit ||
+                        isSubmitting ||
+                        createMutation.isPending ||
+                        updateMutation.isPending
+                      }
+                    >
+                      {(isSubmitting || createMutation.isPending || updateMutation.isPending) && (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      )}
+                      {initialValues ? m.save_changes() : m.create_agent()}
+                    </Button>
+                  )}
+                />
+              </>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>

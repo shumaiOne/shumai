@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+* **agent**: Add support for local LiteRT-LM Gemma Embedding 2 (`gemma-embedding-2-openai`) provider and environment-enforced read-only embedding agents with automatic 768-dimensional vector search indexing
+
 ### Fixed
 
 ### Changed

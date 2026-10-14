@@ -633,6 +633,8 @@
   "chat_agent": "Chat Agent",
   "chat_agents": "Chat Agents",
   "embedding_agent": "Embedding Agent",
+  "agent_readonly": "Read-only",
+  "agent_managed_by_system_hint": "This agent is managed by the server environment configuration and cannot be modified or deleted.",
   "skills_count_value": "{count} Skills",
   "autofill_agent": "Autofill Agent",
   "ai_provider": "AI Provider",

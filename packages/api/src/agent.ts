@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { HTTPException } from 'hono/http-exception'
 import { zValidator } from '@hono/zod-validator'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
@@ -92,6 +93,13 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: agentId,
     })
 
+    const existingAgent = await agentService.getAgent({ agentId })
+    if (existingAgent?.type === 'embedding' && process.env.ENABLE_EMBEDDING_AGENT === 'true') {
+      throw new HTTPException(403, {
+        message: 'Embedding agent is managed by environment configuration and cannot be modified',
+      })
+    }
+
     const agent = await agentService.updateAgent({
       agentId,
       ...req,
@@ -123,6 +131,13 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: agentId,
       })
 
+      const existingAgent = await agentService.getAgent({ agentId })
+      if (existingAgent?.type === 'embedding' && process.env.ENABLE_EMBEDDING_AGENT === 'true') {
+        throw new HTTPException(403, {
+          message: 'Embedding agent is managed by environment configuration and cannot be modified',
+        })
+      }
+
       const agent = await agentService.updateAgentPermission(agentId, req.permission)
 
       await auditLogService.logAction({
@@ -149,6 +164,11 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     const existingAgent = await agentService.getAgent({ agentId })
+    if (existingAgent?.type === 'embedding' && process.env.ENABLE_EMBEDDING_AGENT === 'true') {
+      throw new HTTPException(403, {
+        message: 'Embedding agent is managed by environment configuration and cannot be deleted',
+      })
+    }
 
     await agentService.deleteAgent({
       agentId,

@@ -857,6 +857,154 @@ describe('SearchService', () => {
 
       mockExecuteWait.mockRestore()
     })
+
+    it('matches and sorts 768-dimensional embeddings using embedding_768 column', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'semantic-user-768', email: 'semantic-user-768@example.com', type: 'human' },
+      })
+
+      const team = await prisma.team.create({
+        data: { name: 'semantic-team-768' },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'semantic-project-768', teamId: team.id },
+      })
+
+      const botUser = await prisma.user.create({
+        data: { name: 'Embedding Bot 768', email: 'emb-768@example.com', type: 'agent' },
+      })
+      const provider = await prisma.provider.create({
+        data: {
+          name: 'gemma',
+          teamId: team.id,
+          config: { api: 'openai', apiKey: 'key' } as unknown as PrismaJson.ProviderConfig,
+        },
+      })
+      const model = await prisma.model.create({
+        data: {
+          modelId: 'embeddinggemma-2',
+          name: 'EmbeddingGemma 2',
+          providerId: provider.id,
+          config: {
+            reasoning: false,
+            input: ['text'],
+            contextWindow: 1000,
+            maxTokens: 1000,
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          } as unknown as PrismaJson.ModelConfig,
+        },
+      })
+      await prisma.agent.create({
+        data: {
+          id: botUser.id,
+          teamId: team.id,
+          type: 'embedding',
+          enabled: true,
+          providerId: provider.id,
+          modelId: model.id,
+          config: { provider: 'gemma-embedding-2-openai', model: 'embeddinggemma-2' },
+        },
+      })
+
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'root-768',
+          type: AssetType.folder,
+          projectId: project.id,
+          creatorId: user.id,
+          status: 'uploaded',
+        },
+      })
+
+      const videoAssetA = await prisma.asset.create({
+        data: {
+          name: 'VideoA_768.mp4',
+          type: AssetType.file,
+          mediaType: 'video/mp4',
+          projectId: project.id,
+          parentId: rootFolder.id,
+          creatorId: user.id,
+          status: 'uploaded',
+        },
+      })
+
+      const videoAssetB = await prisma.asset.create({
+        data: {
+          name: 'VideoB_768.mp4',
+          type: AssetType.file,
+          mediaType: 'video/mp4',
+          projectId: project.id,
+          parentId: rootFolder.id,
+          creatorId: user.id,
+          status: 'uploaded',
+        },
+      })
+
+      const arrA1 = Array(768).fill(0)
+      arrA1[0] = 1.0
+      const vectorA1 = JSON.stringify(arrA1)
+
+      const arrB1 = Array(768).fill(0)
+      arrB1[0] = 1.0
+      arrB1[1] = 1.0
+      const vectorB1 = JSON.stringify(arrB1)
+
+      await prisma.$executeRaw`
+        INSERT INTO asset_embeddings (id, asset_id, embedding_768, start_time, end_time, created_at, updated_at)
+        VALUES (
+          'chunk-768-a1', 
+          ${videoAssetA.id}, 
+          ${vectorA1}::vector, 
+          0.0, 
+          10.0, 
+          NOW(), 
+          NOW()
+        )
+      `
+      await prisma.$executeRaw`
+        INSERT INTO asset_embeddings (id, asset_id, embedding_768, start_time, end_time, created_at, updated_at)
+        VALUES (
+          'chunk-768-b1', 
+          ${videoAssetB.id}, 
+          ${vectorB1}::vector, 
+          5.0, 
+          15.0, 
+          NOW(), 
+          NOW()
+        )
+      `
+
+      // Query vector with 768 dims pointing along dimension 0
+      const queryVector = Array(768).fill(0)
+      queryVector[0] = 1.0
+      const mockExecuteWait = vi
+        .spyOn(workflowService, 'executeWait')
+        .mockImplementation(async (task) => {
+          return {
+            ...task,
+            status: 'completed',
+            output: {
+              embedding: queryVector,
+            },
+          } as unknown as typeof task
+        })
+
+      const result = await searchService.search(rootFolder.id, {
+        recursively: true,
+        assetType: 'file',
+        operator: 'AND',
+        conditions: [],
+        query: 'find 768 dim match',
+        isSemantic: true,
+      })
+
+      expect(result.data.length).toBeGreaterThanOrEqual(2)
+      expect(result.data[0].id).toBe(videoAssetA.id)
+      expect(result.data[1].id).toBe(videoAssetB.id)
+
+      mockExecuteWait.mockRestore()
+    })
   })
 
   describe('totalSize calculation', () => {

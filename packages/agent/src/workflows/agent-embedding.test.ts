@@ -314,18 +314,21 @@ describe('Agent Embedding Workflow', () => {
       assetKey: 'test-transcoded.mp4',
       startTime: 0,
       endTime: 60,
+      format: 'video',
     })
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(2, {
       assetId: 'a1',
       assetKey: 'test-transcoded.mp4',
       startTime: 55,
       endTime: 115,
+      format: 'video',
     })
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(3, {
       assetId: 'a1',
       assetKey: 'test-transcoded.mp4',
       startTime: 110,
       endTime: 150,
+      format: 'video',
     })
 
     // Verify video chunk embedding generation (3 chunks) on agent queue
@@ -482,6 +485,47 @@ describe('Agent Embedding Workflow', () => {
       expect.objectContaining({
         startTime: 0,
         endTime: 60,
+      }),
+    )
+  })
+
+  it('should run agent embedding workflow for video with gemma-embedding-2-openai requesting frames format', async () => {
+    mockActivities.getEmbeddingContextActivity.mockResolvedValue({
+      agent: { id: 'b1' },
+      asset: {
+        id: 'a1',
+        mediaType: 'video/mp4',
+        storageKey: { key: 'test.mp4' },
+        media: {
+          duration: 30.0,
+        },
+      },
+      chunkDuration: 60.0,
+      chunkOverlap: 5.0,
+      embeddingProvider: 'gemma-embedding-2-openai',
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_embedding',
+        status: 'pending',
+        assetId: 'a1',
+        teamId: 't1',
+      },
+    })
+
+    await agentEmbeddingMedia(task)
+
+    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        startTime: 0,
+        endTime: 30,
+        format: 'frames',
+      }),
+    )
+    expect(mockActivities.updateTaskUsageActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'gemma-embedding-2-openai',
       }),
     )
   })

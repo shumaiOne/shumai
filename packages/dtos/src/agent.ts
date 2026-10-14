@@ -42,6 +42,7 @@ export const agentInfoSchema = z.object({
   skills: z.array(agentSkillSchema).optional(),
   mcpServerIds: z.array(z.string()).optional(),
   deniedTools: z.array(z.string()).optional(),
+  readOnly: z.boolean().optional(),
 })
 export type AgentInfo = z.infer<typeof agentInfoSchema>
 

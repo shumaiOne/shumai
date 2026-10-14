@@ -6,6 +6,7 @@ import { notificationService } from '@shumai/core/src/notification/notification'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import { HTTPException } from 'hono/http-exception'
 import { getAllowedAgentRoles } from '@shumai/core/src/agent/permissions'
+import { AgentService, agentService } from '@shumai/core/src/agent/agent'
 import { sandboxService } from '@shumai/core/src/sandbox/sandbox-service'
 import { turntableService } from '@shumai/core/src/turntable/turntable'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
@@ -46,6 +47,7 @@ export class TeamService {
         },
       })
       await providerService.initBuiltinProviders(team.id)
+      await agentService.ensureEmbeddingAgentForTeam(team.id)
     }
 
     return team
@@ -86,10 +88,12 @@ export class TeamService {
         },
       })
 
-      // We use 'any' here because ProviderService expects the full PrismaClient,
+      // We use 'any' here because ProviderService/AgentService expect the full PrismaClient,
       // but the TransactionClient is compatible with the methods we use.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await new ProviderService(tx as any).initBuiltinProviders(team.id)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await new AgentService(tx as any).ensureEmbeddingAgentForTeam(team.id)
 
       return this.toTeamInfo(updatedTeam)
     })

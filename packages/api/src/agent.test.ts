@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { HTTPException } from 'hono/http-exception'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { authzService } from '@shumai/core/src/authz/authz'
@@ -210,6 +210,30 @@ describe('Agent API', () => {
         itemId: 'agent1',
       })
     })
+
+    it('returns 403 when updating embedding agent and ENABLE_EMBEDDING_AGENT is true', async () => {
+      process.env.ENABLE_EMBEDDING_AGENT = 'true'
+      try {
+        vi.mocked(agentService.getAgent).mockResolvedValueOnce({
+          id: 'agent1',
+          teamId: 'team1',
+          type: 'embedding',
+        } as unknown as Awaited<ReturnType<typeof agentService.getAgent>>)
+
+        const res = await app.request('/agents/agent1', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: 'Updated Embedding Agent',
+            type: 'embedding',
+          }),
+        })
+
+        expect(res.status).toBe(403)
+      } finally {
+        delete process.env.ENABLE_EMBEDDING_AGENT
+      }
+    })
   })
 
   describe('DELETE /agents/:agentId', () => {
@@ -226,6 +250,25 @@ describe('Agent API', () => {
         userId: undefined,
         itemId: 'agent1',
       })
+    })
+
+    it('returns 403 when deleting embedding agent and ENABLE_EMBEDDING_AGENT is true', async () => {
+      process.env.ENABLE_EMBEDDING_AGENT = 'true'
+      try {
+        vi.mocked(agentService.getAgent).mockResolvedValueOnce({
+          id: 'agent1',
+          teamId: 'team1',
+          type: 'embedding',
+        } as unknown as Awaited<ReturnType<typeof agentService.getAgent>>)
+
+        const res = await app.request('/agents/agent1', {
+          method: 'DELETE',
+        })
+
+        expect(res.status).toBe(403)
+      } finally {
+        delete process.env.ENABLE_EMBEDDING_AGENT
+      }
     })
   })
 
@@ -269,6 +312,27 @@ describe('Agent API', () => {
         userId: undefined,
         itemId: 'agent1',
       })
+    })
+
+    it('returns 403 when modifying embedding agent permission and ENABLE_EMBEDDING_AGENT is true', async () => {
+      process.env.ENABLE_EMBEDDING_AGENT = 'true'
+      try {
+        vi.mocked(agentService.getAgent).mockResolvedValueOnce({
+          id: 'agent1',
+          teamId: 'team1',
+          type: 'embedding',
+        } as unknown as Awaited<ReturnType<typeof agentService.getAgent>>)
+
+        const res = await app.request('/agents/agent1/permission', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ permission: 'owner' }),
+        })
+
+        expect(res.status).toBe(403)
+      } finally {
+        delete process.env.ENABLE_EMBEDDING_AGENT
+      }
     })
 
     it('denies access when user is not admin', async () => {
@@ -408,6 +472,59 @@ describe('Agent API', () => {
 
       expect(res.status).toBe(403)
       expect(agentService.listProjectChatAgents).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('read-only embedding agent when ENABLE_EMBEDDING_AGENT is true', () => {
+    beforeEach(() => {
+      process.env.ENABLE_EMBEDDING_AGENT = 'true'
+      vi.mocked(agentService.getAgent).mockResolvedValue({
+        id: 'emb1',
+        teamId: 'team1',
+        type: 'embedding',
+      } as unknown as Awaited<ReturnType<typeof agentService.getAgent>>)
+    })
+
+    afterEach(() => {
+      delete process.env.ENABLE_EMBEDDING_AGENT
+    })
+
+    it('rejects PUT /agents/:agentId with 403', async () => {
+      const res = await app.request('/agents/emb1', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Updated Embedding',
+          type: 'embedding',
+          enabled: false,
+        }),
+      })
+
+      expect(res.status).toBe(403)
+      expect(agentService.updateAgent).not.toHaveBeenCalled()
+    })
+
+    it('rejects DELETE /agents/:agentId with 403', async () => {
+      const res = await app.request('/agents/emb1', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      expect(res.status).toBe(403)
+      expect(agentService.deleteAgent).not.toHaveBeenCalled()
+    })
+
+    it('rejects PATCH /agents/:agentId/permission with 403', async () => {
+      const res = await app.request('/agents/emb1/permission', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          permission: 'owner',
+        }),
+      })
+
+      expect(res.status).toBe(403)
+      expect(agentService.updateAgentPermission).not.toHaveBeenCalled()
     })
   })
 })

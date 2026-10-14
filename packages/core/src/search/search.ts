@@ -68,12 +68,21 @@ export class SearchService {
 
       // 3. Construct raw SQL using SqlQueryBuilder
       const vectorJson = JSON.stringify(queryVector)
+      const is768 = queryVector.length === 768
+      const distanceExpr = is768
+        ? Prisma.sql`(ae.embedding_768 <=> ${vectorJson}::vector)`
+        : Prisma.sql`(ae.embedding <=> ${vectorJson}::vector)`
+      const notNullCond = is768
+        ? Prisma.sql`ae.embedding_768 IS NOT NULL`
+        : Prisma.sql`ae.embedding IS NOT NULL`
+
       const builder = new SqlQueryBuilder()
         .select(
-          Prisma.sql`a.id as "assetId", ae.start_time as "startTime", ae.end_time as "endTime", (ae.embedding <=> ${vectorJson}::vector) as "distance"`,
+          Prisma.sql`a.id as "assetId", ae.start_time as "startTime", ae.end_time as "endTime", ${distanceExpr} as "distance"`,
         )
         .from(Prisma.sql`assets a JOIN asset_embeddings ae ON a.id = ae.asset_id`)
         .addWhere(Prisma.sql`a.is_deleted = false`)
+        .addWhere(notNullCond)
 
       if (targetFolderIds.length > 0) {
         builder.addWhere(Prisma.sql`a.parent_id = ANY(${targetFolderIds})`)
@@ -158,6 +167,7 @@ export class SearchService {
         .select(Prisma.sql`COUNT(*)`)
         .from(Prisma.sql`assets a JOIN asset_embeddings ae ON a.id = ae.asset_id`)
         .addWhere(Prisma.sql`a.is_deleted = false`)
+        .addWhere(notNullCond)
 
       if (targetFolderIds.length > 0) {
         countBuilder.addWhere(Prisma.sql`a.parent_id = ANY(${targetFolderIds})`)

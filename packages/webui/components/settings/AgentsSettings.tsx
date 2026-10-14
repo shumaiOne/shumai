@@ -189,6 +189,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
       {(isCreateDialogOpen || editingAgent) && (
         <AgentFormDialog
           isOpen={true}
+          readOnly={editingAgent?.readOnly}
           title={
             editingAgent
               ? m.edit_item({ name: editingAgent.name })
@@ -340,29 +341,38 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                                   </div>
                                 </div>
                               </div>
-                              <DropdownMenu modal={false}>
-                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                  >
-                                    <MoreVertical className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-32">
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setAgentToDelete(agent)
-                                      setIsDeleteDialogOpen(true)
-                                    }}
-                                    className="text-red-500 focus:text-red-500 gap-2 cursor-pointer"
-                                  >
-                                    <Trash2 className="w-4 h-4" /> {m.delete()}
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              {agent.readOnly ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs text-muted-foreground border-border"
+                                >
+                                  {m.agent_readonly()}
+                                </Badge>
+                              ) : (
+                                <DropdownMenu modal={false}>
+                                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                    >
+                                      <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-32">
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setAgentToDelete(agent)
+                                        setIsDeleteDialogOpen(true)
+                                      }}
+                                      className="text-red-500 focus:text-red-500 gap-2 cursor-pointer"
+                                    >
+                                      <Trash2 className="w-4 h-4" /> {m.delete()}
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
                             </div>
 
                             <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
@@ -408,6 +418,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                               <div onClick={(e) => e.stopPropagation()}>
                                 <Switch
                                   checked={agent.enabled}
+                                  disabled={agent.readOnly}
                                   onCheckedChange={(enabled) => {
                                     updateAgentMutation.mutate({
                                       teamId,

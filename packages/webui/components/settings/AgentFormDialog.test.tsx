@@ -92,4 +92,39 @@ describe('AgentFormDialog', () => {
     expect(screen.getByText('Move Assets')).toBeDefined()
     expect(screen.getByText('Delete Asset')).toBeDefined()
   })
+
+  it('renders read-only state with system managed hint and only Close button', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AgentFormDialog
+          isOpen={true}
+          readOnly={true}
+          onClose={vi.fn()}
+          teamId="team-123"
+          type="embedding"
+          title="Edit Embedding Agent"
+          initialValues={{
+            id: 'agent-1',
+            name: 'embedding-agent',
+            type: 'embedding',
+            enabled: true,
+            permission: 'reviewer',
+            thinkingLevel: 'off',
+            skills: [],
+            mcpServerIds: [],
+            deniedTools: [],
+            readOnly: true,
+          }}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(
+      screen.getByText(
+        'This agent is managed by the server environment configuration and cannot be modified or deleted.',
+      ),
+    ).toBeDefined()
+    expect(screen.getAllByRole('button', { name: 'Close' }).length).toBe(2)
+    expect(screen.queryByRole('button', { name: 'Save Changes' })).toBeNull()
+  })
 })

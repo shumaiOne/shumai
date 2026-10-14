@@ -976,4 +976,85 @@ describe('AgentService', () => {
       expect(ids).toHaveLength(0)
     })
   })
+
+  describe('ensureEmbeddingAgent', () => {
+    test('creates embedding agent when ENABLE_EMBEDDING_AGENT is true', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { team } = await setupTestData(db)
+
+      process.env.ENABLE_EMBEDDING_AGENT = 'true'
+      try {
+        await svc.ensureEmbeddingAgentForTeam(team.id)
+        const agent = await db.agent.findFirst({
+          where: { teamId: team.id, type: 'embedding' },
+          include: { user: true, skills: { include: { skill: true } }, mcpServers: true },
+        })
+        expect(agent).toBeDefined()
+        const info = await svc.toAgentInfo(agent!)
+        expect(info.name).toBe('embedding-agent')
+        expect(info.type).toBe('embedding')
+        expect(info.enabled).toBe(true)
+        expect(info.avatarPreset).toBe('avatar-1')
+        expect(info.avatar).toContain('avatar-1.webp')
+        expect(info.readOnly).toBe(true)
+
+        // Ensure idempotency
+        await svc.ensureEmbeddingAgentForTeam(team.id)
+        const count = await db.agent.count({
+          where: { teamId: team.id, type: 'embedding' },
+        })
+        expect(count).toBe(1)
+      } finally {
+        delete process.env.ENABLE_EMBEDDING_AGENT
+      }
+    })
+
+    test('enables existing embedding agent when ENABLE_EMBEDDING_AGENT is true', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { team } = await setupTestData(db)
+
+      const bot = await db.user.create({
+        data: { name: 'Existing Embedding', email: 'existing-emb@shumai.ai', type: 'agent' },
+      })
+      await db.agent.create({
+        data: {
+          id: bot.id,
+          teamId: team.id,
+          type: 'embedding',
+          enabled: false,
+          config: { provider: '', model: '' },
+        },
+      })
+
+      process.env.ENABLE_EMBEDDING_AGENT = 'true'
+      try {
+        await svc.ensureEmbeddingAgentForTeam(team.id)
+        const agent = await db.agent.findFirst({
+          where: { teamId: team.id, type: 'embedding' },
+          include: { user: true, skills: { include: { skill: true } }, mcpServers: true },
+        })
+        expect(agent?.id).toBe(bot.id)
+        expect(agent?.enabled).toBe(true)
+        const info = await svc.toAgentInfo(agent!)
+        expect(info.readOnly).toBe(true)
+      } finally {
+        delete process.env.ENABLE_EMBEDDING_AGENT
+      }
+    })
+
+    test('does nothing when ENABLE_EMBEDDING_AGENT is false or not set', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const team = await db.team.create({ data: { name: 'Team No Agent' } })
+
+      delete process.env.ENABLE_EMBEDDING_AGENT
+      await svc.ensureEmbeddingAgentForTeam(team.id)
+      const agent = await db.agent.findFirst({
+        where: { teamId: team.id, type: 'embedding' },
+      })
+      expect(agent).toBeNull()
+    })
+  })
 })

@@ -68,7 +68,8 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { asset, chunkDuration, chunkOverlap } = context as any
+    const { asset, chunkDuration, chunkOverlap, embeddingProvider } = context as any
+    const isGemmaProvider = embeddingProvider === 'gemma-embedding-2-openai'
 
     const mediaInfo = asset.media as PrismaJson.MediaInfo | null
     const is3dWithViews =
@@ -115,7 +116,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
 
     const results: GeneratedEmbedding[] = []
     const usage = {
-      model: 'gemini-embedding-2',
+      model: isGemmaProvider ? 'gemma-embedding-2-openai' : 'gemini-embedding-2',
       inputTokens: 0,
       outputTokens: 0,
     }
@@ -151,6 +152,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
           assetKey: embeddingKey,
           startTime: start,
           endTime: end,
+          format: isGemmaProvider ? 'frames' : 'video',
         })
         const { chunkKey } = chunkRes
 

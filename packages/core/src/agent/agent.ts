@@ -43,8 +43,8 @@ interface AgentInfoSource {
   config: unknown
   soul: string | null
   user: { name: string; image: string | null }
-  skills: Array<{ id: string; skillId: string; skill: { id: string; name: string } }>
-  mcpServers: Array<{ mcpServerId: string }>
+  skills?: Array<{ id: string; skillId: string; skill: { id: string; name: string } }>
+  mcpServers?: Array<{ mcpServerId: string }>
 }
 
 function extractS3Key(urlOrKey?: string | null): string | null | undefined {
@@ -462,6 +462,8 @@ export class AgentService {
    */
   async toAgentInfo(agent: AgentInfoSource): Promise<AgentInfo> {
     const config = agent.config as unknown as PrismaJson.AgentConfig
+    const isReadOnly = agent.type === 'embedding' && process.env.ENABLE_EMBEDDING_AGENT === 'true'
+
     return {
       id: agent.id,
       name: agent.user.name,
@@ -475,13 +477,14 @@ export class AgentService {
       thinkingLevel: config.thinkingLevel || 'off',
       systemPrompt: config.systemPrompt,
       soul: agent.soul || undefined,
-      skills: agent.skills.map((s) => ({
+      skills: (agent.skills || []).map((s) => ({
         id: s.id,
         skillId: s.skillId,
         skill: s.skill,
       })),
       mcpServerIds: (agent.mcpServers || []).map((m) => m.mcpServerId),
       deniedTools: config.deniedTools || [],
+      readOnly: isReadOnly,
     }
   }
 
@@ -717,6 +720,49 @@ export class AgentService {
       },
       params,
     )
+  }
+
+  async ensureSystemEmbeddingAgents(): Promise<void> {
+    if (process.env.ENABLE_EMBEDDING_AGENT !== 'true') {
+      return
+    }
+
+    const teams = await this.prismaClient.team.findMany({
+      select: { id: true },
+    })
+
+    for (const team of teams) {
+      await this.ensureEmbeddingAgentForTeam(team.id)
+    }
+  }
+
+  async ensureEmbeddingAgentForTeam(teamId: string): Promise<void> {
+    if (process.env.ENABLE_EMBEDDING_AGENT !== 'true') {
+      return
+    }
+
+    const existing = await this.prismaClient.agent.findFirst({
+      where: {
+        teamId,
+        type: 'embedding',
+      },
+    })
+
+    if (!existing) {
+      await this.createAgent({
+        teamId,
+        name: 'embedding-agent',
+        type: 'embedding',
+        avatar: 'avatar-1',
+        thinkingLevel: 'off',
+        enabled: true,
+      })
+    } else if (!existing.enabled) {
+      await this.prismaClient.agent.update({
+        where: { id: existing.id },
+        data: { enabled: true },
+      })
+    }
   }
 }
 
