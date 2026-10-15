@@ -8,7 +8,6 @@ import * as path from 'path'
 import { promisify } from 'util'
 import { ApplicationFailure } from '@temporalio/activity'
 import { prisma } from '@shumai/db'
-import { getProxyType } from '@shumai/core/src/utils/mime'
 import { ulid } from 'ulid'
 import sharp from 'sharp'
 
@@ -24,15 +23,6 @@ export interface GeneratedEmbedding {
   embedding: number[]
   startTime?: number
   endTime?: number
-}
-
-export interface GenerateEmbeddingParams {
-  teamId: string
-  assetId: string
-  context: {
-    agent: unknown
-    asset: unknown
-  }
 }
 
 async function generateMultimodalEmbedding(
@@ -110,166 +100,6 @@ async function callGemmaEmbeddingServer(input: string | OpenAiEmbeddingItem[]): 
       inputTokens: json.usage?.prompt_tokens ?? 0,
       outputTokens: 0,
     },
-  }
-}
-
-export async function generateEmbeddingActivity(params: GenerateEmbeddingParams): Promise<{
-  embeddings: GeneratedEmbedding[]
-  usage: Usage
-}> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- context properties are fetched as JSON from the DB activity
-  const { asset } = params.context as any
-
-  if (!asset.mediaType) {
-    throw ApplicationFailure.create({ message: 'asset has no media type', nonRetryable: true })
-  }
-
-  const provider = process.env.EMBEDDING_PROVIDER || 'gemini-embedding-2'
-  let ai: GoogleGenAI | undefined
-  if (provider !== 'gemma-embedding-2-openai') {
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-      throw ApplicationFailure.create({
-        message: 'GEMINI_API_KEY environment variable is not configured',
-        nonRetryable: true,
-      })
-    }
-
-    const resolvedApiKey = process.env[apiKey] || apiKey
-    ai = new GoogleGenAI({ apiKey: resolvedApiKey })
-  }
-
-  const usage: Usage = {
-    model:
-      provider === 'gemma-embedding-2-openai' ? 'gemma-embedding-2-openai' : 'gemini-embedding-2',
-    inputTokens: 0,
-    outputTokens: 0,
-  }
-
-  const proxyType =
-    (asset.media as PrismaJson.MediaInfo | null)?.proxyType ||
-    getProxyType(asset.mediaType, asset.name)
-  const isImage = proxyType === 'image'
-  const isVideo = proxyType === 'video'
-
-  if (!isImage && !isVideo) {
-    throw ApplicationFailure.create({
-      message: `unsupported media type for embeddings: ${asset.mediaType}`,
-      nonRetryable: true,
-    })
-  }
-
-  const key = asset.storageKey?.key
-  if (!key) {
-    throw ApplicationFailure.create({ message: 'asset has no key', nonRetryable: true })
-  }
-
-  const bucket = process.env.S3_BUCKET || 'shumai'
-  const results: GeneratedEmbedding[] = []
-
-  if (isImage) {
-    const { buffer: data } = await s3Service.getObject(bucket, key)
-    if (provider === 'gemma-embedding-2-openai') {
-      let imgData = data
-      let mime = asset.mediaType
-      if (mime !== 'image/jpeg' && mime !== 'image/png') {
-        imgData = await sharp(data).jpeg().toBuffer()
-        mime = 'image/jpeg'
-      }
-      const gemmaRes = await callGemmaEmbeddingServer([
-        {
-          type: 'image_url',
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          image_url: {
-            url: `data:${mime};base64,${imgData.toString('base64')}`,
-          },
-        },
-      ])
-      results.push({ embedding: gemmaRes.embedding })
-      usage.inputTokens += gemmaRes.usage.inputTokens
-    } else if (ai) {
-      const embVec = await generateMultimodalEmbedding(ai, data, asset.mediaType)
-      results.push({ embedding: embVec })
-    }
-  } else if (isVideo) {
-    if (!ai) {
-      throw ApplicationFailure.create({
-        message: 'GoogleGenAI client is required for video embeddings',
-        nonRetryable: true,
-      })
-    }
-
-    const inputSource = await s3Service.resolveInput(bucket, key)
-    const isRemote = inputSource.startsWith('http://') || inputSource.startsWith('https://')
-
-    const { stdout } = await execFileAsync('ffprobe', [
-      '-v',
-      'error',
-      '-show_entries',
-      'format=duration',
-      '-of',
-      'default=noprint_wrappers=1:nokey=1',
-      inputSource,
-    ])
-    const duration = parseFloat(stdout.trim())
-    if (isNaN(duration)) {
-      throw ApplicationFailure.create({
-        message: 'failed to parse video duration',
-        nonRetryable: true,
-      })
-    }
-
-    const chunkSize = 60.0
-    for (let start = 0.0; start < duration; start += chunkSize) {
-      let end = start + chunkSize
-      if (end > duration) end = duration
-
-      const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}-${ulid()}.mp4`)
-      try {
-        await execFileAsync('ffmpeg', [
-          '-y',
-          '-loglevel',
-          'warning',
-          ...(isRemote
-            ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
-            : []),
-          '-ss',
-          start.toString(),
-          '-i',
-          inputSource,
-          '-map',
-          '0:V:0',
-          '-map',
-          '0:a:0?',
-          '-t',
-          (end - start).toString(),
-          '-c',
-          'copy',
-          chunkTmp,
-        ])
-
-        const chunkData = fs.readFileSync(chunkTmp)
-
-        try {
-          const embVec = await generateMultimodalEmbedding(ai, chunkData, 'video/mp4')
-          results.push({ embedding: embVec, startTime: start, endTime: end })
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
-          console.error(
-            `failed to generate video embedding for chunk ${start}-${end}: ${e.message}`,
-          )
-        }
-      } finally {
-        if (fs.existsSync(chunkTmp)) {
-          fs.unlinkSync(chunkTmp)
-        }
-      }
-    }
-  }
-
-  return {
-    embeddings: results,
-    usage,
   }
 }
 

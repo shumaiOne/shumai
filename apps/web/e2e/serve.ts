@@ -19,6 +19,7 @@ async function start() {
   process.env.BETTER_AUTH_URL = 'http://localhost:5200'
   process.env.NODE_ENV = 'development'
   process.env.SHUMAI_E2E = 'true'
+  process.env.ENABLE_EMBEDDING_AGENT = 'false'
 
   // Write variables to .env.e2e file so the teardown can load them
   const envContent = [`DATABASE_URL=${process.env.DATABASE_URL}`, `S3_BUCKET=${bucketName}`].join(

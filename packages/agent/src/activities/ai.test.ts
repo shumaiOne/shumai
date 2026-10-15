@@ -6,7 +6,6 @@ import {
   saveAssetEmbeddingsActivity,
   generateImageEmbeddingActivity,
   generateVideoChunkEmbeddingActivity,
-  generateEmbeddingActivity,
 } from './ai'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core'
@@ -144,33 +143,6 @@ describe('AI Activities Unit Tests', () => {
       'shumai',
       'files/a1/tmp-embedding-chunks/chunk-0-60.mp4',
     )
-  })
-
-  it('should resolve video input via resolveInput and avoid downloadToFile in generateEmbeddingActivity', async () => {
-    vi.mocked(s3Service.downloadToFile).mockClear()
-    vi.mocked(s3Service.resolveInput).mockClear()
-    vi.mocked(s3Service.resolveInput).mockResolvedValue(
-      'https://mock-storage/files/asset-123/video.mp4',
-    )
-
-    const res = await generateEmbeddingActivity({
-      teamId: 't1',
-      assetId: 'asset-123',
-      context: {
-        agent: {},
-        asset: {
-          mediaType: 'video/mp4',
-          name: 'sample.mp4',
-          storageKey: { key: 'files/asset-123/video.mp4' },
-          media: { proxyType: 'video' },
-        },
-      },
-    })
-
-    expect(s3Service.resolveInput).toHaveBeenCalledWith('shumai', 'files/asset-123/video.mp4')
-    expect(s3Service.downloadToFile).not.toHaveBeenCalled()
-    expect(s3Service.getObject).not.toHaveBeenCalledWith('shumai', 'files/asset-123/video.mp4')
-    expect(res.embeddings.length).toBeGreaterThan(0)
   })
 
   it('should generate text embedding successfully', async () => {

@@ -625,13 +625,11 @@ export function initAgentWorkflows() {
 export * from './activities/agent'
 export {
   extractAiMetadataActivity,
-  generateEmbeddingActivity,
   generateImageEmbeddingActivity,
   generateTextEmbeddingActivity,
   generateVideoChunkEmbeddingActivity,
   type ExtractAiMetadataParams,
   type GeneratedEmbedding,
-  type GenerateEmbeddingParams,
   type GenerateTextEmbeddingParams,
 } from './activities/ai'
 export * from './database-session-storage'
