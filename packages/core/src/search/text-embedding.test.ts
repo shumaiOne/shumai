@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { TextEmbeddingService } from './text-embedding'
+import { logger } from '@shumai/core/src/logger'
 
 const mockEmbedContent = vi.fn()
 
@@ -75,11 +76,51 @@ describe('TextEmbeddingService', () => {
     expect(first.embedding).toEqual(dummyEmbedding)
     expect(mockEmbedContent).toHaveBeenCalledTimes(1)
 
-    // Second call with same text (case-insensitive / trimmed)
-    const second = await service.generateEmbedding('  Ocean Breeze  ')
+    // Second call with same text and extra whitespace
+    const second = await service.generateEmbedding('  ocean breeze  ')
     expect(second.embedding).toEqual(dummyEmbedding)
     expect(second.cached).toBe(true)
     expect(mockEmbedContent).toHaveBeenCalledTimes(1)
+  })
+
+  it('preserves case distinctions in cache keys', async () => {
+    const dummyApple = Array(1536).fill(0.1)
+    const dummyLowerApple = Array(1536).fill(0.2)
+    mockEmbedContent
+      .mockResolvedValueOnce({
+        embeddings: [{ values: dummyApple }],
+      })
+      .mockResolvedValueOnce({
+        embeddings: [{ values: dummyLowerApple }],
+      })
+
+    const upper = await service.generateEmbedding('Apple')
+    expect(upper.embedding).toEqual(dummyApple)
+    expect(mockEmbedContent).toHaveBeenCalledTimes(1)
+
+    const lower = await service.generateEmbedding('apple')
+    expect(lower.embedding).toEqual(dummyLowerApple)
+    expect(lower.cached).toBeUndefined()
+    expect(mockEmbedContent).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not log raw query text on cache hits', async () => {
+    const dummyEmbedding = Array(1536).fill(0.05)
+    mockEmbedContent.mockResolvedValue({
+      embeddings: [{ values: dummyEmbedding }],
+    })
+    const debugSpy = vi.spyOn(logger, 'debug')
+
+    await service.generateEmbedding('confidential search query')
+    await service.generateEmbedding('confidential search query')
+
+    expect(debugSpy).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        key: expect.anything(),
+        text: expect.anything(),
+      }),
+      'Cache hit for text embedding',
+    )
   })
 
   it('clears cache when clearCache is called', async () => {

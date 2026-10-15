@@ -50,11 +50,11 @@ export class TextEmbeddingService {
       options?.model ||
       (provider === 'gemma-embedding-2-openai' ? 'embeddinggemma-2' : 'gemini-embedding-2')
 
-    const cacheKey = `${provider}:${model}:${trimmedText.toLowerCase()}`
+    const cacheKey = `${provider}:${model}:${trimmedText}`
     if (!options?.skipCache) {
       const cachedVector = this.cache.get(cacheKey)
       if (cachedVector) {
-        logger.debug({ provider, model, key: cacheKey }, 'Cache hit for text embedding')
+        logger.debug({ provider, model }, 'Cache hit for text embedding')
         return {
           embedding: cachedVector,
           usage: { model, inputTokens: 0, outputTokens: 0 },

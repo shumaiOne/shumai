@@ -45,17 +45,10 @@ export class SearchService {
         })
       }
 
-      // 2. Resolve provider and model from embedding agent config, if specified
-      const agentConfig = embeddingAgent.config
-      const provider = agentConfig?.provider
-      const model = agentConfig?.model
-
-      // 3. Generate query embedding directly
+      // 2. Generate query embedding directly using configured environment provider
       let queryVector: number[]
       try {
         const result = await this.embeddingSvc.generateEmbedding(req.query, {
-          provider,
-          model,
           teamId,
         })
         queryVector = result.embedding
