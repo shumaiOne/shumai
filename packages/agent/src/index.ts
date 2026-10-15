@@ -626,9 +626,12 @@ export {
   generateImageEmbeddingActivity,
   generateTextEmbeddingActivity,
   generateVideoChunkEmbeddingActivity,
+  saveAssetEmbeddingsActivity,
+  deleteAssetEmbeddingsActivity,
   type ExtractAiMetadataParams,
   type GeneratedEmbedding,
   type GenerateTextEmbeddingParams,
+  type ExistingAssetEmbeddingInfo,
 } from './activities/ai'
 export * from './database-session-storage'
 export * from './context/serialize-context'

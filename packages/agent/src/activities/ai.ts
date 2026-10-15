@@ -250,12 +250,49 @@ export async function getEmbeddingContextActivity(params: { teamId: string; asse
   const chunkOverlap = Number.isFinite(parsedOverlap) && parsedOverlap >= 0 ? parsedOverlap : 5.0
   const embeddingProvider = process.env.EMBEDDING_PROVIDER || 'gemini-embedding-2'
 
+  const existingEmbeddings = await prisma.$queryRaw<ExistingAssetEmbeddingInfo[]>`
+    SELECT
+      id,
+      start_time as "startTime",
+      end_time as "endTime",
+      (embedding IS NOT NULL) as "has1536",
+      (embedding_768 IS NOT NULL) as "has768"
+    FROM asset_embeddings
+    WHERE asset_id = ${params.assetId}
+  `
+
   return {
     agent,
     asset,
     chunkDuration,
     chunkOverlap,
     embeddingProvider,
+    existingEmbeddings,
+  }
+}
+
+export interface ExistingAssetEmbeddingInfo {
+  id: string
+  startTime: number | null
+  endTime: number | null
+  has1536: boolean
+  has768: boolean
+}
+
+export async function deleteAssetEmbeddingsActivity(params: { assetId: string; ids?: string[] }) {
+  if (params.ids && params.ids.length > 0) {
+    await prisma.assetEmbedding.deleteMany({
+      where: {
+        assetId: params.assetId,
+        id: { in: params.ids },
+      },
+    })
+  } else {
+    await prisma.assetEmbedding.deleteMany({
+      where: {
+        assetId: params.assetId,
+      },
+    })
   }
 }
 

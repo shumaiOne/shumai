@@ -38,6 +38,9 @@ describe('Agent Embedding Workflow', () => {
       saveAssetEmbeddingsActivity: Object.assign(vi.fn(), {
         _activityName: 'saveAssetEmbeddingsActivity',
       }),
+      deleteAssetEmbeddingsActivity: Object.assign(vi.fn(), {
+        _activityName: 'deleteAssetEmbeddingsActivity',
+      }),
       updateTaskUsageActivity: Object.assign(vi.fn(), { _activityName: 'updateTaskUsageActivity' }),
       createCommentActivity: Object.assign(vi.fn(), { _activityName: 'createCommentActivity' }),
       updateCommentActivity: Object.assign(vi.fn(), { _activityName: 'updateCommentActivity' }),
@@ -360,14 +363,19 @@ describe('Agent Embedding Workflow', () => {
       model: 'gemini-embedding-2',
     })
 
-    // Verify embeddings saved
-    expect(mockActivities.saveAssetEmbeddingsActivity).toHaveBeenCalledWith({
+    // Verify embeddings saved per chunk immediately
+    expect(mockActivities.saveAssetEmbeddingsActivity).toHaveBeenCalledTimes(3)
+    expect(mockActivities.saveAssetEmbeddingsActivity).toHaveBeenNthCalledWith(1, {
       assetId: 'a1',
-      embeddings: [
-        { embedding: [0.3, 0.4], startTime: 0, endTime: 60 },
-        { embedding: [0.3, 0.4], startTime: 55, endTime: 115 },
-        { embedding: [0.3, 0.4], startTime: 110, endTime: 150 },
-      ],
+      embeddings: [{ embedding: [0.3, 0.4], startTime: 0, endTime: 60 }],
+    })
+    expect(mockActivities.saveAssetEmbeddingsActivity).toHaveBeenNthCalledWith(2, {
+      assetId: 'a1',
+      embeddings: [{ embedding: [0.3, 0.4], startTime: 55, endTime: 115 }],
+    })
+    expect(mockActivities.saveAssetEmbeddingsActivity).toHaveBeenNthCalledWith(3, {
+      assetId: 'a1',
+      embeddings: [{ embedding: [0.3, 0.4], startTime: 110, endTime: 150 }],
     })
   })
 
@@ -453,6 +461,49 @@ describe('Agent Embedding Workflow', () => {
     })
   })
 
+  it('should save completed chunks to DB immediately before subsequent chunk failure', async () => {
+    mockActivities.getEmbeddingContextActivity.mockResolvedValue({
+      agent: { id: 'b1' },
+      asset: {
+        id: 'a1',
+        mediaType: 'video/mp4',
+        storageKey: { key: 'test.mp4' },
+        media: {
+          duration: 150.0,
+          videoTranscodes: [{ key: 'test-transcoded.mp4' }],
+        },
+      },
+      chunkDuration: 60.0,
+      chunkOverlap: 5.0,
+    })
+
+    // Chunk 1 succeeds, Chunk 2 fails
+    mockActivities.generateVideoChunkEmbeddingActivity
+      .mockResolvedValueOnce({
+        embedding: [0.1, 0.2],
+        usage: { inputTokens: 3, outputTokens: 3, model: 'gemini-embedding-2' },
+      })
+      .mockRejectedValueOnce(new Error('Rate limit exceeded at chunk 2'))
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_embedding',
+        status: 'pending',
+        assetId: 'a1',
+        teamId: 't1',
+      },
+    })
+
+    await expect(agentEmbeddingMedia(task)).rejects.toThrow('Rate limit exceeded at chunk 2')
+
+    // Chunk 1 MUST have been saved to the database before chunk 2 failed
+    expect(mockActivities.saveAssetEmbeddingsActivity).toHaveBeenCalledTimes(1)
+    expect(mockActivities.saveAssetEmbeddingsActivity).toHaveBeenCalledWith({
+      assetId: 'a1',
+      embeddings: [{ embedding: [0.1, 0.2], startTime: 0, endTime: 60 }],
+    })
+  })
+
   it('should not create redundant chunks when video exactly matches chunk duration', async () => {
     mockActivities.getEmbeddingContextActivity.mockResolvedValue({
       agent: { id: 'b1' },
@@ -528,5 +579,97 @@ describe('Agent Embedding Workflow', () => {
         model: 'gemma-embedding-2-openai',
       }),
     )
+  })
+
+  it('should skip already completed chunks when resuming a video embedding task', async () => {
+    mockActivities.getEmbeddingContextActivity.mockResolvedValue({
+      agent: { id: 'b1' },
+      asset: {
+        id: 'a1',
+        mediaType: 'video/mp4',
+        storageKey: { key: 'test.mp4' },
+        media: {
+          duration: 150.0,
+          videoTranscodes: [{ key: 'test-transcoded.mp4' }],
+        },
+      },
+      chunkDuration: 60.0,
+      chunkOverlap: 5.0,
+      existingEmbeddings: [
+        {
+          id: 'emb-1',
+          startTime: 0,
+          endTime: 60,
+          has1536: true,
+          has768: false,
+        },
+      ],
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_embedding',
+        status: 'pending',
+        assetId: 'a1',
+        teamId: 't1',
+      },
+    })
+
+    await agentEmbeddingMedia(task)
+
+    // Chunk 1 (0-60) should be skipped; only chunk 2 (55-115) and chunk 3 (110-150) should be transcoded and embedded
+    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledTimes(2)
+    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ startTime: 55, endTime: 115 }),
+    )
+    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ startTime: 110, endTime: 150 }),
+    )
+
+    expect(mockActivities.saveAssetEmbeddingsActivity).toHaveBeenCalledTimes(2)
+  })
+
+  it('should purge incompatible embeddings before processing', async () => {
+    mockActivities.getEmbeddingContextActivity.mockResolvedValue({
+      agent: { id: 'b1' },
+      asset: {
+        id: 'a1',
+        mediaType: 'image/png',
+        storageKey: { key: 'test.png' },
+      },
+      embeddingProvider: 'gemma-embedding-2-openai',
+      existingEmbeddings: [
+        {
+          id: 'old-gemini-emb',
+          startTime: null,
+          endTime: null,
+          has1536: true,
+          has768: false,
+        },
+      ],
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_embedding',
+        status: 'pending',
+        assetId: 'a1',
+        teamId: 't1',
+      },
+    })
+
+    await agentEmbeddingMedia(task)
+
+    // Should purge incompatible old-gemini-emb
+    expect(mockActivities.deleteAssetEmbeddingsActivity).toHaveBeenCalledWith({
+      assetId: 'a1',
+      ids: ['old-gemini-emb'],
+    })
+
+    // Should generate and save new embedding
+    expect(mockActivities.generateImageEmbeddingActivity).toHaveBeenCalled()
+    expect(mockActivities.saveAssetEmbeddingsActivity).toHaveBeenCalled()
   })
 })
