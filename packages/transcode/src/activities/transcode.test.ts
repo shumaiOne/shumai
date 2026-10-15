@@ -1288,6 +1288,10 @@ describe('Transcode Activities', () => {
       const uploadedArchive = new Bun.Archive(uploadedBuffer)
       const archiveFiles = await uploadedArchive.files()
       expect(archiveFiles.has('frame_0001.jpg')).toBe(true)
+      const uploadedFile = archiveFiles.get('frame_0001.jpg')!
+      expect(uploadedFile.size).toBeGreaterThan(0)
+      const uploadedFileBytes = await uploadedFile.bytes()
+      expect(uploadedFileBytes.byteLength).toBeGreaterThan(0)
     })
 
     it('should sample uniform 16 frames when chunk duration > 16s', async () => {

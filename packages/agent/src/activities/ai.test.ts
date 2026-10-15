@@ -405,6 +405,26 @@ describe('AI Activities Unit Tests', () => {
     ).rejects.toThrow('Failed to read chunk archive')
   })
 
+  it('should throw non-retryable ApplicationFailure when an extracted frame is empty (0 bytes)', async () => {
+    process.env.EMBEDDING_PROVIDER = 'gemma-embedding-2-openai'
+    const sampleArchive = new Bun.Archive({
+      'frame_0001.jpg': Buffer.alloc(0),
+    })
+    const archiveBytes = await sampleArchive.bytes()
+
+    vi.mocked(s3Service.getObject).mockResolvedValue({
+      buffer: Buffer.from(archiveBytes.buffer, archiveBytes.byteOffset, archiveBytes.byteLength),
+      contentType: 'application/x-tar',
+    } as unknown as { buffer: Buffer; contentType: string })
+
+    await expect(
+      generateVideoChunkEmbeddingActivity({
+        teamId: 't1',
+        chunkKey: 'files/asset-1/tmp-embedding-chunks/frames-0-60.tar',
+      }),
+    ).rejects.toThrow('is empty (0 bytes)')
+  })
+
   describe('extractAiMetadataActivity', () => {
     it('should return existing images if they are already in S3 storage', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock returned object cast as any due to partial implementation

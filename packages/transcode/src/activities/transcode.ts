@@ -1550,9 +1550,9 @@ export async function transcodeVideoChunkActivity(
         .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
         .sort()
 
-      const archiveEntries: Record<string, ReturnType<typeof Bun.file>> = {}
+      const archiveEntries: Record<string, Buffer> = {}
       for (const file of frameFiles) {
-        archiveEntries[file] = Bun.file(path.join(tmpDir, file))
+        archiveEntries[file] = fs.readFileSync(path.join(tmpDir, file))
       }
 
       const archive = new Bun.Archive(archiveEntries)

@@ -422,12 +422,18 @@ export async function generateVideoChunkEmbeddingActivity(
     const input: OpenAiEmbeddingItem[] = await Promise.all(
       selectedFrames.map(async (f) => {
         const file = filesMap.get(f)!
-        const arrayBuffer = await file.arrayBuffer()
+        const fileBytes = await file.bytes()
+        if (fileBytes.byteLength === 0) {
+          throw ApplicationFailure.create({
+            message: `Extracted frame ${f} in chunk archive ${params.chunkKey} is empty (0 bytes)`,
+            nonRetryable: true,
+          })
+        }
         return {
           type: 'image_url',
           // eslint-disable-next-line @typescript-eslint/naming-convention
           image_url: {
-            url: `data:image/jpeg;base64,${Buffer.from(arrayBuffer).toString('base64')}`,
+            url: `data:image/jpeg;base64,${Buffer.from(fileBytes).toString('base64')}`,
           },
         }
       }),
