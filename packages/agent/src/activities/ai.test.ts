@@ -6,6 +6,7 @@ import {
   saveAssetEmbeddingsActivity,
   generateImageEmbeddingActivity,
   generateVideoChunkEmbeddingActivity,
+  getGemmaEmbeddingTargetFrameCount,
 } from './ai'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core'
@@ -335,7 +336,84 @@ describe('AI Activities Unit Tests', () => {
     expect(mockFetch).toHaveBeenCalled()
   })
 
-  it('should sample uniform 16 frames when chunk archive contains more than 16 frames', async () => {
+  describe('getGemmaEmbeddingTargetFrameCount', () => {
+    it('should return 15 for standard aspect ratios', () => {
+      // 16:9
+      expect(getGemmaEmbeddingTargetFrameCount(1920, 1080)).toBe(15)
+      expect(getGemmaEmbeddingTargetFrameCount(1280, 720)).toBe(15)
+      expect(getGemmaEmbeddingTargetFrameCount(854, 480)).toBe(15)
+      // 9:16
+      expect(getGemmaEmbeddingTargetFrameCount(1080, 1920)).toBe(15)
+      // 1:1
+      expect(getGemmaEmbeddingTargetFrameCount(1080, 1080)).toBe(15)
+      expect(getGemmaEmbeddingTargetFrameCount(480, 480)).toBe(15)
+      // 4:3
+      expect(getGemmaEmbeddingTargetFrameCount(1440, 1080)).toBe(15)
+      expect(getGemmaEmbeddingTargetFrameCount(640, 480)).toBe(15)
+      // 3:4
+      expect(getGemmaEmbeddingTargetFrameCount(1080, 1440)).toBe(15)
+      // 21:9
+      expect(getGemmaEmbeddingTargetFrameCount(2560, 1080)).toBe(15)
+      expect(getGemmaEmbeddingTargetFrameCount(3440, 1440)).toBe(15)
+    })
+
+    it('should return 14 for non-standard aspect ratios and missing/invalid dimensions', () => {
+      expect(getGemmaEmbeddingTargetFrameCount(1000, 600)).toBe(14) // 5:3
+      expect(getGemmaEmbeddingTargetFrameCount(700, 500)).toBe(14) // 1.4:1
+      expect(getGemmaEmbeddingTargetFrameCount(854, 672)).toBe(14) // ~1.27:1
+      expect(getGemmaEmbeddingTargetFrameCount(undefined, undefined)).toBe(14)
+      expect(getGemmaEmbeddingTargetFrameCount(0, 0)).toBe(14)
+      expect(getGemmaEmbeddingTargetFrameCount(-100, 100)).toBe(14)
+    })
+  })
+
+  it('should sample uniform 15 frames when chunk archive contains standard 16:9 frames', async () => {
+    process.env.EMBEDDING_PROVIDER = 'gemma-embedding-2-openai'
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        model: 'embeddinggemma-2',
+        data: [{ embedding: Array(768).fill(0.3) }],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        usage: { prompt_tokens: 140 },
+      }),
+    })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const sampleJpg = await sharp({
+      create: {
+        width: 160,
+        height: 90,
+        channels: 3,
+        background: { r: 0, g: 0, b: 0 },
+      },
+    })
+      .jpeg()
+      .toBuffer()
+
+    const frames: Record<string, Buffer> = {}
+    for (let i = 1; i <= 30; i++) {
+      frames[`frame_${String(i).padStart(4, '0')}.jpg`] = sampleJpg
+    }
+    const sampleArchive = new Bun.Archive(frames)
+    const archiveBytes = await sampleArchive.bytes()
+
+    vi.mocked(s3Service.getObject).mockResolvedValue({
+      buffer: Buffer.from(archiveBytes.buffer, archiveBytes.byteOffset, archiveBytes.byteLength),
+      contentType: 'application/x-tar',
+    } as unknown as { buffer: Buffer; contentType: string })
+
+    const res = await generateVideoChunkEmbeddingActivity({
+      teamId: 't1',
+      chunkKey: 'files/asset-1/tmp-embedding-chunks/frames-0-60.tar',
+    })
+
+    expect(res.embedding).toHaveLength(768)
+    const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body)
+    expect(requestBody.input).toHaveLength(15)
+  })
+
+  it('should fallback to 14 frames when chunk archive contains non-standard or unparseable frames', async () => {
     process.env.EMBEDDING_PROVIDER = 'gemma-embedding-2-openai'
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -367,7 +445,7 @@ describe('AI Activities Unit Tests', () => {
 
     expect(res.embedding).toHaveLength(768)
     const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body)
-    expect(requestBody.input).toHaveLength(16)
+    expect(requestBody.input).toHaveLength(14)
   })
 
   it('should throw non-retryable ApplicationFailure when chunk archive contains no valid frames', async () => {
