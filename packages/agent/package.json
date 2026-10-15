@@ -19,7 +19,7 @@
     "@temporalio/workflow": "1.23.0",
     "adm-zip": "0.6.0",
     "jittered-fractional-indexing": "1.0.1",
-    "sharp": "0.35.5",
+    "sharp": "0.35.4",
     "typebox": "1.3.22",
     "ulid": "3.0.2",
     "zod": "4.5.4"
