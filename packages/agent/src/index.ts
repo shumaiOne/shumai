@@ -610,11 +610,9 @@ import * as aiActivities from './activities/ai'
 import { agentAutofillMedia } from './workflows/agent-autofill'
 import { agentChat } from './workflows/agent-chat'
 import { agentEmbeddingMedia } from './workflows/agent-embedding'
-import { queryEmbeddingForSearch } from './workflows/query-embedding-for-search'
 
 export function initAgentWorkflows() {
   registerWorkflow(WorkflowTaskType.ai_embedding, agentEmbeddingMedia)
-  registerWorkflow(WorkflowTaskType.query_embedding_for_search, queryEmbeddingForSearch)
   registerWorkflow(WorkflowTaskType.ai_metadata_autofill, agentAutofillMedia)
   registerWorkflow(WorkflowTaskType.chat, agentChat)
 
@@ -637,7 +635,6 @@ export * from './context/serialize-context'
 export * from './workflows/agent-autofill'
 export * from './workflows/agent-chat'
 export * from './workflows/agent-embedding'
-export * from './workflows/query-embedding-for-search'
 export * from './tools/generate-image'
 export * from './tools/generate-video'
 export * from './tools/rename-asset'

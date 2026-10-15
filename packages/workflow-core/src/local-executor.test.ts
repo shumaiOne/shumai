@@ -8,7 +8,6 @@ import { WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 // Mock the individual workflows
 const mocks = {
   agentEmbeddingMedia: vi.fn(),
-  queryEmbeddingForSearch: vi.fn(),
   agentAutofillMedia: vi.fn(),
   agentChat: vi.fn(),
   transcodeMedia: vi.fn(),
@@ -26,9 +25,6 @@ describe('LocalExecutor Integration Tests', () => {
 
     // Register workflows dynamically for testing
     registerWorkflow(WorkflowTaskType.ai_embedding, async (task) => mocks.agentEmbeddingMedia(task))
-    registerWorkflow(WorkflowTaskType.query_embedding_for_search, async (task) =>
-      mocks.queryEmbeddingForSearch(task),
-    )
     registerWorkflow(WorkflowTaskType.ai_metadata_autofill, async (task) =>
       mocks.agentAutofillMedia(task),
     )

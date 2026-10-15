@@ -1,18 +1,19 @@
 import { prisma } from '@shumai/db'
-import { Prisma, AssetType, WorkflowTaskType } from '@shumai/db'
+import { Prisma, AssetType } from '@shumai/db'
 import { AssetService, assetService } from '@shumai/core/src/asset/asset'
 import { AssetInfo } from '@shumai/dtos'
 import { SearchRequest } from '@shumai/dtos'
 import { PaginatedData, decodeCursor, encodeCursor, PageInfo } from '@shumai/core/src/pagination'
 import { generateSearchNgrams } from '@shumai/core/src/utils/ngram'
-import { workflowService } from '@shumai/workflow-core'
 import { HTTPException } from 'hono/http-exception'
 import { SqlQueryBuilder } from './sql-query-builder'
+import { TextEmbeddingService, textEmbeddingService } from './text-embedding'
 
 export class SearchService {
   constructor(
     private readonly prismaClient: typeof prisma = prisma,
     private readonly assetSvc: AssetService = assetService,
+    private readonly embeddingSvc: TextEmbeddingService = textEmbeddingService,
   ) {}
 
   async search(folderId: string, req: SearchRequest): Promise<PaginatedData<AssetInfo[]>> {
@@ -44,26 +45,31 @@ export class SearchService {
         })
       }
 
-      // 2. Generate query embedding via workflow
-      const task = await this.prismaClient.workflowTask.create({
-        data: {
-          type: WorkflowTaskType.query_embedding_for_search,
+      // 2. Resolve provider and model from embedding agent config, if specified
+      const agentConfig = embeddingAgent.config
+      const provider = agentConfig?.provider
+      const model = agentConfig?.model
+
+      // 3. Generate query embedding directly
+      let queryVector: number[]
+      try {
+        const result = await this.embeddingSvc.generateEmbedding(req.query, {
+          provider,
+          model,
           teamId,
-          assetId: folderId,
-          payload: {
-            projectId: '',
-            queryEmbeddingForSearch: { text: req.query },
-          } as PrismaJson.WorkflowTaskPayload,
-          status: 'pending',
-        },
-      })
+        })
+        queryVector = result.embedding
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        throw new HTTPException(502, {
+          message: `Failed to generate query embedding: ${msg}`,
+        })
+      }
 
-      const completedTask = await workflowService.executeWait(task)
-      const output = completedTask.output as Record<string, unknown> | null
-      const queryVector = output?.embedding as number[] | undefined
-
-      if (!queryVector) {
-        throw new Error('Failed to generate query embedding')
+      if (!queryVector || queryVector.length === 0) {
+        throw new HTTPException(502, {
+          message: 'Failed to generate query embedding: empty vector returned',
+        })
       }
 
       // 3. Construct raw SQL using SqlQueryBuilder

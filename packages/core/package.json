@@ -29,6 +29,7 @@
     "@aws-sdk/s3-request-presigner": "3.1121.0",
     "@earendil-works/pi-agent-core": "0.82.1",
     "@earendil-works/pi-ai": "0.82.1",
+    "@google/genai": "2.28.0",
     "@modelcontextprotocol/client": "2.0.0",
     "@shumai/db": "workspace:*",
     "@shumai/dtos": "workspace:*",

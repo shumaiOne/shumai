@@ -151,7 +151,7 @@
         "@anthropic-ai/sandbox-runtime": "0.0.74",
         "@earendil-works/pi-agent-core": "0.82.1",
         "@earendil-works/pi-ai": "0.82.1",
-        "@google/genai": "2.19.0",
+        "@google/genai": "2.28.0",
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
         "@shumai/dtos": "workspace:*",
@@ -211,6 +211,7 @@
         "@aws-sdk/s3-request-presigner": "3.1121.0",
         "@earendil-works/pi-agent-core": "0.82.1",
         "@earendil-works/pi-ai": "0.82.1",
+        "@google/genai": "2.28.0",
         "@modelcontextprotocol/client": "2.0.0",
         "@shumai/db": "workspace:*",
         "@shumai/dtos": "workspace:*",
@@ -275,7 +276,7 @@
       "version": "0.5.2",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.82.1",
-        "@google/genai": "2.19.0",
+        "@google/genai": "2.28.0",
         "@shumai/agent": "workspace:*",
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
@@ -653,7 +654,7 @@
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.12", "", {}, "sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=="],
 
-    "@google/genai": ["@google/genai@2.19.0", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-IM3u1FjpOLyOPsPh0smGA6Ntj2olUWCPbTs/WQj7cA/2AKCGw/652W7IaySx0XtwuscFnMYBoraebQusSZ0zSQ=="],
+    "@google/genai": ["@google/genai@2.28.0", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-hyNAJj+ywu3L46qlZod6KO/JvcT3QONz6VCiPevC/FWOjAD+LQb7DMLUoV8vzoLpt61Q0ruQX99iqbxEjPJWmw=="],
 
     "@grpc/grpc-js": ["@grpc/grpc-js@1.14.4", "", { "dependencies": { "@grpc/proto-loader": "^0.8.0", "@js-sdsl/ordered-map": "^4.4.2" } }, "sha512-k9Dj3DV/itK9D06Y8f190Qgop7/Ui+D0njFV3LHMPwPT75DpXLQohE9Wmz0QElrJnzsjB7KPWiKJbOl7IPDArQ=="],
 

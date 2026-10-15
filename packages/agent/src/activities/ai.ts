@@ -105,6 +105,8 @@ async function callGemmaEmbeddingServer(input: string | OpenAiEmbeddingItem[]): 
   }
 }
 
+import { textEmbeddingService } from '@shumai/core/src/search/text-embedding'
+
 export interface GenerateTextEmbeddingParams {
   text: string
   teamId: string
@@ -115,48 +117,35 @@ export async function generateTextEmbeddingActivity(params: GenerateTextEmbeddin
   usage: Usage
 }> {
   const provider = process.env.EMBEDDING_PROVIDER || 'gemini-embedding-2'
-  if (provider === 'gemma-embedding-2-openai') {
-    return callGemmaEmbeddingServer(`task: search query | text: ${params.text}`)
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) {
+  if (provider !== 'gemma-embedding-2-openai' && !process.env.GEMINI_API_KEY) {
     throw ApplicationFailure.create({
       message: 'GEMINI_API_KEY environment variable is not configured',
       nonRetryable: true,
     })
   }
 
-  const resolvedApiKey = process.env[apiKey] || apiKey
-  const ai = new GoogleGenAI({ apiKey: resolvedApiKey })
+  try {
+    const result = await textEmbeddingService.generateEmbedding(params.text, {
+      teamId: params.teamId,
+      skipCache: true,
+    })
 
-  const usage: Usage = {
-    model: 'gemini-embedding-2',
-    inputTokens: 0,
-    outputTokens: 0,
-  }
-
-  const response = await ai.models.embedContent({
-    model: 'gemini-embedding-2',
-    contents: [
-      {
-        parts: [{ text: params.text }],
-        role: 'user',
+    return {
+      embedding: result.embedding,
+      usage: {
+        model: result.usage?.model || provider,
+        inputTokens: result.usage?.inputTokens ?? 0,
+        outputTokens: result.usage?.outputTokens ?? 0,
       },
-    ],
-    config: {
-      outputDimensionality: 1536,
-    },
-  })
-
-  const values = response.embeddings?.[0]?.values
-  if (!values) {
-    throw new Error('No embedding values returned from gemini-embedding-2')
-  }
-
-  return {
-    embedding: values,
-    usage,
+    }
+  } catch (err) {
+    if (err instanceof ApplicationFailure) {
+      throw err
+    }
+    throw ApplicationFailure.create({
+      message: err instanceof Error ? err.message : String(err),
+      nonRetryable: false,
+    })
   }
 }
 

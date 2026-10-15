@@ -4,7 +4,7 @@ import { setupTestDbHooks } from '@shumai/db/test'
 import { SearchService } from './search'
 import { SearchConditionOperator } from '@shumai/dtos'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
-import { workflowService } from '@shumai/workflow-core'
+import { textEmbeddingService } from './text-embedding'
 
 import { AssetType } from '@shumai/db'
 import { assetService } from '@shumai/core/src/asset/asset'
@@ -805,20 +805,14 @@ describe('SearchService', () => {
         )
       `
 
-      // Mock the embedding generation workflow task.
+      // Mock the embedding generation
       // Our query vector points along the first dimension [1, 0, 0...]
       const queryVector = Array(1536).fill(0)
       queryVector[0] = 1.0
-      const mockExecuteWait = vi
-        .spyOn(workflowService, 'executeWait')
-        .mockImplementation(async (task) => {
-          return {
-            ...task,
-            status: 'completed',
-            output: {
-              embedding: queryVector,
-            },
-          } as unknown as typeof task
+      const mockGenerateEmbedding = vi
+        .spyOn(textEmbeddingService, 'generateEmbedding')
+        .mockResolvedValue({
+          embedding: queryVector,
         })
 
       // Search using semantic mode
@@ -855,7 +849,7 @@ describe('SearchService', () => {
       expect(result.data[2].startTime).toBe(10)
       expect(result.data[2].endTime).toBe(20)
 
-      mockExecuteWait.mockRestore()
+      mockGenerateEmbedding.mockRestore()
     })
 
     it('matches and sorts 768-dimensional embeddings using embedding_768 column', async () => {
@@ -978,16 +972,10 @@ describe('SearchService', () => {
       // Query vector with 768 dims pointing along dimension 0
       const queryVector = Array(768).fill(0)
       queryVector[0] = 1.0
-      const mockExecuteWait = vi
-        .spyOn(workflowService, 'executeWait')
-        .mockImplementation(async (task) => {
-          return {
-            ...task,
-            status: 'completed',
-            output: {
-              embedding: queryVector,
-            },
-          } as unknown as typeof task
+      const mockGenerateEmbedding = vi
+        .spyOn(textEmbeddingService, 'generateEmbedding')
+        .mockResolvedValue({
+          embedding: queryVector,
         })
 
       const result = await searchService.search(rootFolder.id, {
@@ -1003,7 +991,57 @@ describe('SearchService', () => {
       expect(result.data[0].id).toBe(videoAssetA.id)
       expect(result.data[1].id).toBe(videoAssetB.id)
 
-      mockExecuteWait.mockRestore()
+      mockGenerateEmbedding.mockRestore()
+    })
+
+    it('throws 502 if embedding generation fails during semantic search', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'semantic-user-fail', email: 'semantic-fail@example.com', type: 'human' },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'semantic-team-fail' },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'semantic-project-fail', teamId: team.id },
+      })
+      const botUser = await prisma.user.create({
+        data: { name: 'Embedding Bot Fail', email: 'emb-fail@example.com', type: 'agent' },
+      })
+      await prisma.agent.create({
+        data: {
+          id: botUser.id,
+          teamId: team.id,
+          type: 'embedding',
+          enabled: true,
+          config: { provider: 'gemini-embedding-2', model: 'gemini-embedding-2' },
+        },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'root-fail',
+          type: AssetType.folder,
+          projectId: project.id,
+          creatorId: user.id,
+          status: 'uploaded',
+        },
+      })
+
+      const mockGenerateEmbedding = vi
+        .spyOn(textEmbeddingService, 'generateEmbedding')
+        .mockRejectedValue(new Error('Rate limit exceeded'))
+
+      await expect(
+        searchService.search(rootFolder.id, {
+          recursively: true,
+          assetType: 'file',
+          operator: 'AND',
+          conditions: [],
+          query: 'fail query',
+          isSemantic: true,
+        }),
+      ).rejects.toThrow('Failed to generate query embedding: Rate limit exceeded')
+
+      mockGenerateEmbedding.mockRestore()
     })
   })
 
