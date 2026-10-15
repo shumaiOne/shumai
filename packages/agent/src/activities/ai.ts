@@ -1,17 +1,11 @@
 import { GoogleGenAI } from '@google/genai'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core'
-import { execFile } from 'child_process'
 import * as fs from 'fs'
-import * as os from 'os'
 import * as path from 'path'
-import { promisify } from 'util'
 import { ApplicationFailure } from '@temporalio/activity'
 import { prisma } from '@shumai/db'
-import { ulid } from 'ulid'
 import sharp from 'sharp'
-
-const execFileAsync = promisify(execFile)
 
 export interface Usage {
   inputTokens: number
@@ -397,52 +391,49 @@ export async function generateVideoChunkEmbeddingActivity(
       params.chunkKey,
     )
 
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-video-frames-'))
-    const tarTmp = path.join(os.tmpdir(), `agent-chunk-${Date.now()}-${ulid()}.tar`)
+    let filesMap: Map<string, File>
     try {
-      fs.writeFileSync(tarTmp, data)
-      await execFileAsync('tar', ['-xf', tarTmp, '-C', tmpDir])
+      const archive = new Bun.Archive(data)
+      filesMap = await archive.files()
+    } catch (err) {
+      throw ApplicationFailure.create({
+        message: `Failed to read chunk archive ${params.chunkKey}: ${err instanceof Error ? err.message : String(err)}`,
+        nonRetryable: true,
+      })
+    }
 
-      const frameFiles = fs
-        .readdirSync(tmpDir)
-        .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
-        .sort()
+    const frameFiles = Array.from(filesMap.keys())
+      .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
+      .sort()
 
-      if (frameFiles.length === 0) {
-        throw ApplicationFailure.create({
-          message: `No extracted frames found in chunk archive ${params.chunkKey}`,
-          nonRetryable: true,
-        })
-      }
+    if (frameFiles.length === 0) {
+      throw ApplicationFailure.create({
+        message: `No extracted frames found in chunk archive ${params.chunkKey}`,
+        nonRetryable: true,
+      })
+    }
 
-      let selectedFrames = frameFiles
-      if (selectedFrames.length > 16) {
-        const step = (selectedFrames.length - 1) / 15
-        selectedFrames = Array.from({ length: 16 }, (_, i) => selectedFrames[Math.round(i * step)])
-      }
+    let selectedFrames = frameFiles
+    if (selectedFrames.length > 16) {
+      const step = (selectedFrames.length - 1) / 15
+      selectedFrames = Array.from({ length: 16 }, (_, i) => selectedFrames[Math.round(i * step)])
+    }
 
-      const input: OpenAiEmbeddingItem[] = selectedFrames.map((f) => {
-        const frameBuffer = fs.readFileSync(path.join(tmpDir, f))
+    const input: OpenAiEmbeddingItem[] = await Promise.all(
+      selectedFrames.map(async (f) => {
+        const file = filesMap.get(f)!
+        const arrayBuffer = await file.arrayBuffer()
         return {
           type: 'image_url',
           // eslint-disable-next-line @typescript-eslint/naming-convention
           image_url: {
-            url: `data:image/jpeg;base64,${frameBuffer.toString('base64')}`,
+            url: `data:image/jpeg;base64,${Buffer.from(arrayBuffer).toString('base64')}`,
           },
         }
-      })
+      }),
+    )
 
-      return await callGemmaEmbeddingServer(input)
-    } finally {
-      if (fs.existsSync(tarTmp)) {
-        try {
-          fs.unlinkSync(tarTmp)
-        } catch (e) {
-          console.error('Failed to unlink tar file:', e)
-        }
-      }
-      fs.rmSync(tmpDir, { recursive: true, force: true })
-    }
+    return await callGemmaEmbeddingServer(input)
   }
 
   const apiKey = process.env.GEMINI_API_KEY

@@ -1235,9 +1235,23 @@ describe('Transcode Activities', () => {
       ;(child_process.execFile as any).mockImplementation(
         (
           _file: string,
-          _args: string[],
+          args: string[],
           cb: (err: Error | null, result: { stdout: string; stderr: string }) => void,
         ) => {
+          if (_file === 'ffmpeg' && args) {
+            const outPattern = args[args.length - 1]
+            if (outPattern && outPattern.includes('frame_%04d.jpg')) {
+              // eslint-disable-next-line @typescript-eslint/no-require-imports
+              const fsActual = require('fs')
+              // eslint-disable-next-line @typescript-eslint/no-require-imports
+              const pathActual = require('path')
+              const dir = pathActual.dirname(outPattern)
+              fsActual.writeFileSync(
+                pathActual.join(dir, 'frame_0001.jpg'),
+                Buffer.from('mock-frame'),
+              )
+            }
+          }
           cb(null, { stdout: '', stderr: '' })
         },
       )
@@ -1255,10 +1269,10 @@ describe('Transcode Activities', () => {
         expect.arrayContaining(['-vf', 'fps=1', '-q:v', '2']),
         expect.any(Function),
       )
-      expect(child_process.execFile).toHaveBeenCalledWith(
+      expect(child_process.execFile).not.toHaveBeenCalledWith(
         'tar',
-        expect.arrayContaining(['-cf']),
-        expect.any(Function),
+        expect.anything(),
+        expect.anything(),
       )
       expect(s3Service.putObject).toHaveBeenCalledWith(
         'shumai',
@@ -1268,6 +1282,12 @@ describe('Transcode Activities', () => {
         'application/x-tar',
       )
       expect(res.chunkKey).toMatch(/^files\/asset-abc\/tmp-embedding-chunks\/frames-10-25-.*\.tar$/)
+
+      const putCall = vi.mocked(s3Service.putObject).mock.calls[0]
+      const uploadedBuffer = putCall[2] as Buffer
+      const uploadedArchive = new Bun.Archive(uploadedBuffer)
+      const archiveFiles = await uploadedArchive.files()
+      expect(archiveFiles.has('frame_0001.jpg')).toBe(true)
     })
 
     it('should sample uniform 16 frames when chunk duration > 16s', async () => {

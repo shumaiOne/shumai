@@ -1505,7 +1505,6 @@ export async function transcodeVideoChunkActivity(
 
   if (params.format === 'frames') {
     const tmpDir = transcodeService.createTempDir('video-chunk-frames-')
-    const archiveTmp = path.join(os.tmpdir(), `chunk-frames-${Date.now()}-${ulid()}.tar`)
     try {
       const bucket = process.env.S3_BUCKET || 'shumai'
       const inputSource =
@@ -1546,9 +1545,23 @@ export async function transcodeVideoChunkActivity(
         path.join(tmpDir, 'frame_%04d.jpg'),
       ])
 
-      await execFileAsync('tar', ['-cf', archiveTmp, '-C', tmpDir, '.'])
+      const frameFiles = fs
+        .readdirSync(tmpDir)
+        .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
+        .sort()
 
-      const archiveData = fs.readFileSync(archiveTmp)
+      const archiveEntries: Record<string, ReturnType<typeof Bun.file>> = {}
+      for (const file of frameFiles) {
+        archiveEntries[file] = Bun.file(path.join(tmpDir, file))
+      }
+
+      const archive = new Bun.Archive(archiveEntries)
+      const archiveBytes = await archive.bytes()
+      const archiveData = Buffer.from(
+        archiveBytes.buffer,
+        archiveBytes.byteOffset,
+        archiveBytes.byteLength,
+      )
       const key = `files/${params.assetId}/tmp-embedding-chunks/frames-${params.startTime}-${params.endTime}-${ulid()}.tar`
       await s3Service.putObject(bucket, key, archiveData, archiveData.length, 'application/x-tar')
 
@@ -1562,13 +1575,6 @@ export async function transcodeVideoChunkActivity(
         nonRetryable: false,
       })
     } finally {
-      if (fs.existsSync(archiveTmp)) {
-        try {
-          fs.unlinkSync(archiveTmp)
-        } catch (e) {
-          console.error('Failed to cleanup local archive file:', e)
-        }
-      }
       transcodeService.removeDir(tmpDir)
     }
   }

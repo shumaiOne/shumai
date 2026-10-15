@@ -54,22 +54,10 @@ vi.mock('child_process', () => {
   const execFileMock: any = vi.fn((file: any, args: any, cb: any) => {
     cb(null, '120.0\n', '')
   })
-  // Setup custom promisify behavior to return { stdout, stderr }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock functions dynamically return varying types based on test command calls
-  execFileMock[Symbol.for('nodejs.util.promisify.custom')] = vi.fn(async (file: any, args: any) => {
+  execFileMock[Symbol.for('nodejs.util.promisify.custom')] = vi.fn(async (file: any) => {
     if (file === 'ffprobe') {
       return { stdout: '120.0\n', stderr: '' }
-    }
-    if (file === 'tar' && Array.isArray(args) && args[0] === '-xf') {
-      const destIndex = args.indexOf('-C')
-      const destDir = destIndex >= 0 ? args[destIndex + 1] : undefined
-      if (destDir) {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const fsActual = require('fs')
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pathActual = require('path')
-        fsActual.writeFileSync(pathActual.join(destDir, 'frame_0001.jpg'), Buffer.from('frame-1'))
-      }
     }
     return { stdout: '', stderr: '' }
   })
@@ -327,8 +315,13 @@ describe('AI Activities Unit Tests', () => {
     })
     vi.stubGlobal('fetch', mockFetch)
 
+    const sampleArchive = new Bun.Archive({
+      'frame_0001.jpg': Buffer.from('frame-1'),
+    })
+    const archiveBytes = await sampleArchive.bytes()
+
     vi.mocked(s3Service.getObject).mockResolvedValue({
-      buffer: Buffer.from('tar-data'),
+      buffer: Buffer.from(archiveBytes.buffer, archiveBytes.byteOffset, archiveBytes.byteLength),
       contentType: 'application/x-tar',
     } as unknown as { buffer: Buffer; contentType: string })
 
@@ -340,6 +333,76 @@ describe('AI Activities Unit Tests', () => {
     expect(res.embedding).toHaveLength(768)
     expect(res.usage.model).toBe('embeddinggemma-2')
     expect(mockFetch).toHaveBeenCalled()
+  })
+
+  it('should sample uniform 16 frames when chunk archive contains more than 16 frames', async () => {
+    process.env.EMBEDDING_PROVIDER = 'gemma-embedding-2-openai'
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        model: 'embeddinggemma-2',
+        data: [{ embedding: Array(768).fill(0.3) }],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        usage: { prompt_tokens: 140 },
+      }),
+    })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const frames: Record<string, Buffer> = {}
+    for (let i = 1; i <= 30; i++) {
+      frames[`frame_${String(i).padStart(4, '0')}.jpg`] = Buffer.from(`frame-${i}`)
+    }
+    const sampleArchive = new Bun.Archive(frames)
+    const archiveBytes = await sampleArchive.bytes()
+
+    vi.mocked(s3Service.getObject).mockResolvedValue({
+      buffer: Buffer.from(archiveBytes.buffer, archiveBytes.byteOffset, archiveBytes.byteLength),
+      contentType: 'application/x-tar',
+    } as unknown as { buffer: Buffer; contentType: string })
+
+    const res = await generateVideoChunkEmbeddingActivity({
+      teamId: 't1',
+      chunkKey: 'files/asset-1/tmp-embedding-chunks/frames-0-60.tar',
+    })
+
+    expect(res.embedding).toHaveLength(768)
+    const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body)
+    expect(requestBody.input).toHaveLength(16)
+  })
+
+  it('should throw non-retryable ApplicationFailure when chunk archive contains no valid frames', async () => {
+    process.env.EMBEDDING_PROVIDER = 'gemma-embedding-2-openai'
+    const sampleArchive = new Bun.Archive({
+      'info.txt': Buffer.from('not an image'),
+    })
+    const archiveBytes = await sampleArchive.bytes()
+
+    vi.mocked(s3Service.getObject).mockResolvedValue({
+      buffer: Buffer.from(archiveBytes.buffer, archiveBytes.byteOffset, archiveBytes.byteLength),
+      contentType: 'application/x-tar',
+    } as unknown as { buffer: Buffer; contentType: string })
+
+    await expect(
+      generateVideoChunkEmbeddingActivity({
+        teamId: 't1',
+        chunkKey: 'files/asset-1/tmp-embedding-chunks/frames-0-60.tar',
+      }),
+    ).rejects.toThrow('No extracted frames found in chunk archive')
+  })
+
+  it('should throw non-retryable ApplicationFailure when chunk archive data is corrupted', async () => {
+    process.env.EMBEDDING_PROVIDER = 'gemma-embedding-2-openai'
+    vi.mocked(s3Service.getObject).mockResolvedValue({
+      buffer: Buffer.from('corrupted non-tar bytes'),
+      contentType: 'application/x-tar',
+    } as unknown as { buffer: Buffer; contentType: string })
+
+    await expect(
+      generateVideoChunkEmbeddingActivity({
+        teamId: 't1',
+        chunkKey: 'files/asset-1/tmp-embedding-chunks/frames-0-60.tar',
+      }),
+    ).rejects.toThrow('Failed to read chunk archive')
   })
 
   describe('extractAiMetadataActivity', () => {
