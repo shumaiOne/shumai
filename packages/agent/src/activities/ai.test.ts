@@ -102,13 +102,13 @@ describe('AI Activities Unit Tests', () => {
     vi.clearAllMocks()
     process.env.GEMINI_API_KEY = 'test-key'
     delete process.env.EMBEDDING_PROVIDER
-    delete process.env.EMBEDDING_SERVER_URL
+    delete process.env.GEMMA_EMBEDDING_OPENAI_BASE_URL
   })
 
   afterEach(() => {
     vi.unstubAllGlobals()
     delete process.env.EMBEDDING_PROVIDER
-    delete process.env.EMBEDDING_SERVER_URL
+    delete process.env.GEMMA_EMBEDDING_OPENAI_BASE_URL
   })
 
   it('should generate image embedding', async () => {
@@ -242,6 +242,36 @@ describe('AI Activities Unit Tests', () => {
           ],
         }),
       }),
+    )
+  })
+
+  it('should respect custom GEMMA_EMBEDDING_OPENAI_BASE_URL with or without /v1 suffix', async () => {
+    process.env.EMBEDDING_PROVIDER = 'gemma-embedding-2-openai'
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        model: 'embeddinggemma-2',
+        data: [{ embedding: Array(768).fill(0.2) }],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        usage: { prompt_tokens: 10 },
+      }),
+    })
+    vi.stubGlobal('fetch', mockFetch)
+
+    // Test with /v1
+    process.env.GEMMA_EMBEDDING_OPENAI_BASE_URL = 'http://custom-host:9379/v1'
+    await generateTextEmbeddingActivity({ text: 'test query', teamId: 't1' })
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      'http://custom-host:9379/v1/embeddings',
+      expect.anything(),
+    )
+
+    // Test without /v1
+    process.env.GEMMA_EMBEDDING_OPENAI_BASE_URL = 'http://custom-host:9379'
+    await generateTextEmbeddingActivity({ text: 'test query', teamId: 't1' })
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      'http://custom-host:9379/v1/embeddings',
+      expect.anything(),
     )
   })
 

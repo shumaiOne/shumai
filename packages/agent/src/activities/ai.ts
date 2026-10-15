@@ -65,8 +65,16 @@ async function callGemmaEmbeddingServer(input: string | OpenAiEmbeddingItem[]): 
   embedding: number[]
   usage: Usage
 }> {
-  const serverUrl = process.env.EMBEDDING_SERVER_URL || 'http://localhost:9379'
-  const response = await fetch(`${serverUrl}/v1/embeddings`, {
+  const rawBaseUrl = process.env.GEMMA_EMBEDDING_OPENAI_BASE_URL || 'http://localhost:9379/v1'
+
+  const normalized = rawBaseUrl.replace(/\/+$/, '')
+  const endpoint = normalized.endsWith('/embeddings')
+    ? normalized
+    : normalized.endsWith('/v1')
+      ? `${normalized}/embeddings`
+      : `${normalized}/v1/embeddings`
+
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
