@@ -48,18 +48,18 @@ import { FIELD_TYPE_ICONS } from '../fields-manager'
 interface FileCardProps {
   teamId?: string
   item: AssetInfo
-  isSelected: boolean
-  isChecked: boolean
-  isEditing: boolean
-  onSelect: (item: AssetInfo, event: React.MouseEvent) => void
-  onDoubleClick: (item: AssetInfo) => void
-  onContextMenu: (e: React.MouseEvent, item: AssetInfo) => void
+  isSelected?: boolean
+  isChecked?: boolean
+  isEditing?: boolean
+  onSelect?: (item: AssetInfo, event: React.MouseEvent) => void
+  onDoubleClick?: (item: AssetInfo) => void
+  onContextMenu?: (e: React.MouseEvent, item: AssetInfo) => void
   // Deprecated manual drag handlers replaced by dnd-kit
-  onDragStart: (item: AssetInfo) => void
-  onDrop: (target: AssetInfo) => void
-  onRename: (newName: string) => void
-  onFinishEditing: () => void
-  onSaveField: (fieldId: string, value: unknown) => void
+  onDragStart?: (item: AssetInfo) => void
+  onDrop?: (target: AssetInfo) => void
+  onRename?: (newName: string) => void
+  onFinishEditing?: () => void
+  onSaveField?: (fieldId: string, value: unknown) => void
   dragState?: DragState
   disabled?: boolean
   onAction?: (
@@ -69,39 +69,43 @@ interface FileCardProps {
   isRecentlyDeleted?: boolean
   isRecents?: boolean
   selectedCount?: number
-  fields: MetadataFieldInfo[]
+  fields?: MetadataFieldInfo[]
   isShareView?: boolean
   canEdit?: boolean
   /** When false, hides the download action. Defaults to true. */
   allowDownload?: boolean
+  hideCheckbox?: boolean
+  hideActions?: boolean
 }
 
 export function FileCard({
   teamId,
   item,
-  isSelected,
-  isChecked,
-  isEditing,
-  onSelect,
-  onDoubleClick,
-  onContextMenu,
+  isSelected = false,
+  isChecked = false,
+  isEditing = false,
+  onSelect = () => {},
+  onDoubleClick = () => {},
+  onContextMenu = () => {},
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onDragStart: _onDragStart,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onDrop: _onDrop,
-  onRename,
-  onFinishEditing,
-  onSaveField,
+  onRename = () => {},
+  onFinishEditing = () => {},
+  onSaveField = () => {},
   dragState,
   disabled,
   onAction,
   isRecentlyDeleted,
   isRecents,
   selectedCount,
-  fields,
+  fields = [],
   isShareView,
   canEdit = true,
   allowDownload = true,
+  hideCheckbox = false,
+  hideActions = false,
 }: FileCardProps) {
   const [name, setName] = useState(item.name)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -170,10 +174,12 @@ export function FileCard({
       id: displayItem.id,
       item: displayItem,
     },
+    disabled: disabled,
   })
 
   // Combine refs
   const setNodeRef = (node: HTMLElement | null) => {
+    if (disabled) return
     setDraggableRef(node)
     setDroppableRef(node)
   }
@@ -332,17 +338,19 @@ export function FileCard({
         showDropFeedback && 'border-primary outline-1 outline-primary',
       )}
     >
-      <div className="absolute left-2 top-2 z-10 flex items-center gap-1.5">
-        <Checkbox
-          checked={isChecked}
-          onCheckedChange={() => {}}
-          onClick={(e) => {
-            e.stopPropagation()
-            onSelect(displayItem, e)
-          }}
-          className="h-4 w-4 bg-white/20 dark:bg-white/20 border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary border-foreground/15"
-        />
-      </div>
+      {!hideCheckbox && (
+        <div className="absolute left-2 top-2 z-10 flex items-center gap-1.5">
+          <Checkbox
+            checked={isChecked}
+            onCheckedChange={() => {}}
+            onClick={(e) => {
+              e.stopPropagation()
+              onSelect(displayItem, e)
+            }}
+            className="h-4 w-4 bg-white/20 dark:bg-white/20 border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary border-foreground/15"
+          />
+        </div>
+      )}
 
       <div className="absolute right-2 top-2 z-10 flex items-center gap-1.5">
         {displayItem.agent && (
@@ -395,7 +403,15 @@ export function FileCard({
               data-testid="file-card-preview-media"
               className={cn('h-full w-full', isProcessing && 'animate-pulse')}
             >
-              <FilePreview item={displayItem} showDuration={!isProcessing && !isFailed} />
+              <FilePreview
+                item={displayItem}
+                showDuration={!isProcessing && !isFailed}
+                matchDuration={
+                  displayItem.startTime != null && displayItem.endTime != null
+                    ? { startTime: displayItem.startTime, endTime: displayItem.endTime }
+                    : null
+                }
+              />
             </div>
             {previewBadges}
           </>
@@ -435,7 +451,15 @@ export function FileCard({
           </div>
         ) : (
           <>
-            <FilePreview item={displayItem} showDuration />
+            <FilePreview
+              item={displayItem}
+              showDuration
+              matchDuration={
+                displayItem.startTime != null && displayItem.endTime != null
+                  ? { startTime: displayItem.startTime, endTime: displayItem.endTime }
+                  : null
+              }
+            />
             {previewBadges}
           </>
         )}
@@ -487,7 +511,7 @@ export function FileCard({
             </Tooltip>
           </TooltipProvider>
         </div>
-        {!isRecents && (
+        {!hideActions && !isRecents && (
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button

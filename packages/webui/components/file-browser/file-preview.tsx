@@ -20,9 +20,13 @@ type FilePreviewItem = {
 interface FilePreviewProps {
   item: FilePreviewItem
   showDuration?: boolean
+  matchDuration?: {
+    startTime?: number | null
+    endTime?: number | null
+  } | null
 }
 
-export const FilePreview = ({ item, showDuration = false }: FilePreviewProps) => {
+export const FilePreview = ({ item, showDuration = false, matchDuration }: FilePreviewProps) => {
   const proxyType = item.preview?.proxyType || item.proxyType
   const isVideo = proxyType === 'video'
   const isAudio = proxyType === 'audio'
@@ -32,16 +36,25 @@ export const FilePreview = ({ item, showDuration = false }: FilePreviewProps) =>
   const duration = item.preview?.duration
   const pageCount = item.preview?.pageCount
 
-  const overlay =
-    showDuration && hasDuration && typeof duration === 'number' && duration > 0 ? (
-      <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white">
-        {formatTime(duration)}
-      </span>
-    ) : showDuration && isPdf && typeof pageCount === 'number' && pageCount > 0 ? (
-      <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white">
-        {pageCount} P
-      </span>
-    ) : null
+  const hasMatchedChunk =
+    matchDuration != null && matchDuration.startTime != null && matchDuration.endTime != null
+
+  const overlay = hasMatchedChunk ? (
+    <span
+      data-testid="file-preview-matched-duration"
+      className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/75 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-primary border border-primary/40 shadow-xs"
+    >
+      {formatTime(matchDuration.startTime!)} - {formatTime(matchDuration.endTime!)}
+    </span>
+  ) : showDuration && hasDuration && typeof duration === 'number' && duration > 0 ? (
+    <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white">
+      {formatTime(duration)}
+    </span>
+  ) : showDuration && isPdf && typeof pageCount === 'number' && pageCount > 0 ? (
+    <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white">
+      {pageCount} P
+    </span>
+  ) : null
 
   const isMediaWithSprite =
     (isVideo || isPdf || is3D) &&

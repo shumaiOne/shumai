@@ -8,23 +8,15 @@ import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import { Switch } from '@/ui/components/ui/switch'
-import { formatSize } from '@/ui/lib/format'
 import { cn } from '@/ui/lib/utils'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import {
-  AlertCircle,
-  ChevronDown,
-  ChevronUp,
-  FileIcon,
-  FolderIcon,
-  Loader2,
-  Search,
-  X,
-} from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronUp, Loader2, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
+import { FileCard } from '@/ui/components/file-browser/file-card'
+import { FolderCard } from '@/ui/components/file-browser/folder-card'
 import { FilterPanel } from './filter-panel'
 import { m } from '@/ui/paraglide/messages.js'
 
@@ -225,36 +217,25 @@ export function SearchFilterDialog({
     setConditions([])
   }
 
-  const formatTimestamp = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
-    const s = Math.floor(seconds % 60)
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-  }
-
   const handleResultClick = (item: AssetInfo) => {
     if (item.type === 'folder') {
-      navigate({
-        to: '/projects/$projectId/folders/$folderId',
-        params: { projectId, folderId: item.id! },
-      })
+      window.open(`/projects/${projectId}/folders/${item.id}`, '_blank', 'noopener,noreferrer')
     } else {
-      navigate({
-        to: '/projects/$projectId/files/$fileId',
-        params: { projectId, fileId: item.versionStack ? item.versionStack.id : item.id! },
-        search: {
-          version: undefined,
-          start: item.startTime && item.startTime > 0 ? item.startTime : undefined,
-        },
-      })
+      const fileId = item.versionStack ? item.versionStack.id : item.id!
+      const searchParams = new URLSearchParams()
+      if (item.startTime !== undefined && item.startTime !== null && item.startTime > 0) {
+        searchParams.set('start', String(item.startTime))
+      }
+      const query = searchParams.toString() ? `?${searchParams.toString()}` : ''
+      window.open(`/projects/${projectId}/files/${fileId}${query}`, '_blank', 'noopener,noreferrer')
     }
-    onOpenChange(false)
   }
 
   const activeFiltersCount = conditions.filter((c) => c.value !== '').length
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-background border-border rounded-2xl shadow-2xl flex flex-col h-[85vh]">
+      <DialogContent className="sm:max-w-4xl lg:max-w-5xl p-0 gap-0 overflow-hidden bg-background border-border rounded-2xl shadow-2xl flex flex-col h-[85vh]">
         <DialogHeader className="px-6 pt-3 pb-0 text-left">
           <DialogTitle className="text-lg font-bold">{m.search_dialog_title()}</DialogTitle>
         </DialogHeader>
@@ -394,121 +375,94 @@ export function SearchFilterDialog({
               )}
             </div>
 
-            <div className="flex flex-col border border-border rounded-xl divide-y divide-border overflow-hidden min-w-0">
-              {!hasActiveCriteria ? (
-                <div className="py-20 text-center flex flex-col items-center justify-center bg-muted/20 px-4">
-                  <Search className="w-10 h-10 text-muted-foreground/30 mb-2" />
-                  <h3 className="text-sm font-semibold text-foreground/80">
-                    {m.ready_to_search()}
-                  </h3>
-                  <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
-                    {m.type_query_instruction()}
+            {!hasActiveCriteria ? (
+              <div className="border border-border rounded-xl py-20 text-center flex flex-col items-center justify-center bg-muted/20 px-4">
+                <Search className="w-10 h-10 text-muted-foreground/30 mb-2" />
+                <h3 className="text-sm font-semibold text-foreground/80">{m.ready_to_search()}</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
+                  {m.type_query_instruction()}
+                </p>
+                {isSemantic && (
+                  <p className="text-xs text-muted-foreground/80 max-w-md mt-4 mx-auto border-t border-border/60 pt-3">
+                    {m.semantic_search_note()}
                   </p>
-                  {isSemantic && (
-                    <p className="text-xs text-muted-foreground/80 max-w-md mt-4 mx-auto border-t border-border/60 pt-3">
-                      {m.semantic_search_note()}
-                    </p>
-                  )}
-                </div>
-              ) : searchError ? (
-                <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
-                  <AlertCircle className="w-10 h-10 text-destructive/50 mb-2" />
-                  <h3 className="text-sm font-semibold text-foreground/80">{m.search_failed()}</h3>
-                  <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
-                    {searchError.message.includes('Embedding agent not configured')
-                      ? m.enable_embedding_agent_hint()
-                      : searchError.message}
-                  </p>
-                </div>
-              ) : isLoading ? (
-                Array.from({ length: 3 }).map((_, idx) => (
+                )}
+              </div>
+            ) : searchError ? (
+              <div className="border border-border rounded-xl py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
+                <AlertCircle className="w-10 h-10 text-destructive/50 mb-2" />
+                <h3 className="text-sm font-semibold text-foreground/80">{m.search_failed()}</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
+                  {searchError.message.includes('Embedding agent not configured')
+                    ? m.enable_embedding_agent_hint()
+                    : searchError.message}
+                </p>
+              </div>
+            ) : isLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {Array.from({ length: 8 }).map((_, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 flex items-center gap-3 animate-pulse bg-muted/10"
+                    className="flex flex-col rounded-xl border border-border bg-card p-2 space-y-2 animate-pulse"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-muted shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-muted rounded w-1/3" />
-                      <div className="h-3 bg-muted/50 rounded w-1/4" />
+                    <div className="aspect-square w-full rounded-lg bg-muted/60" />
+                    <div className="p-1 space-y-1.5">
+                      <div className="h-4 bg-muted/60 rounded w-3/4" />
+                      <div className="h-3 bg-muted/40 rounded w-1/2" />
                     </div>
                   </div>
-                ))
-              ) : flattenedResults.length === 0 ? (
-                <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
-                  <AlertCircle className="w-10 h-10 text-muted-foreground/30 mb-2" />
-                  <h3 className="text-sm font-semibold text-foreground/80">
-                    {m.no_records_matched()}
-                  </h3>
-                  <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
-                    {m.try_adjusting_spelling()}
-                  </p>
+                ))}
+              </div>
+            ) : flattenedResults.length === 0 ? (
+              <div className="border border-border rounded-xl py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
+                <AlertCircle className="w-10 h-10 text-muted-foreground/30 mb-2" />
+                <h3 className="text-sm font-semibold text-foreground/80">
+                  {m.no_records_matched()}
+                </h3>
+                <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
+                  {m.try_adjusting_spelling()}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {flattenedResults.map((record) => {
+                    const itemKey =
+                      record.startTime != null && record.endTime != null
+                        ? `${record.id}-${record.startTime}-${record.endTime}`
+                        : record.id
+                    if (record.type === 'folder') {
+                      return (
+                        <FolderCard
+                          key={itemKey}
+                          item={record}
+                          hideCheckbox
+                          hideActions
+                          disabled
+                          onSelect={() => handleResultClick(record)}
+                        />
+                      )
+                    }
+                    return (
+                      <FileCard
+                        key={itemKey}
+                        teamId={teamId}
+                        item={record}
+                        hideCheckbox
+                        hideActions
+                        disabled
+                        onSelect={() => handleResultClick(record)}
+                      />
+                    )
+                  })}
                 </div>
-              ) : (
-                <>
-                  {flattenedResults.map((record) => (
-                    <div
-                      key={record.id}
-                      onClick={() => handleResultClick(record)}
-                      className="p-3.5 flex items-center gap-3 hover:bg-muted/40 transition-colors group/record cursor-pointer min-w-0"
-                    >
-                      <div
-                        className={cn(
-                          'shrink-0 w-11 h-11 rounded-xl shadow-xs flex items-center justify-center text-white font-bold relative group-hover/record:scale-105 transition-transform bg-muted overflow-hidden',
-                          record.type === 'folder' ? 'bg-primary/5' : '',
-                        )}
-                      >
-                        {record.preview?.thumbnailUrl ? (
-                          <img
-                            src={record.preview.thumbnailUrl}
-                            alt=""
-                            className="w-full h-full object-cover rounded-xl"
-                          />
-                        ) : record.type === 'folder' ? (
-                          <FolderIcon className="h-6 w-6 text-primary/70" />
-                        ) : (
-                          <FileIcon className="h-6 w-6 text-muted-foreground" />
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-3 min-w-0">
-                          <div className="flex-1 min-w-0">
-                            <span className="font-medium text-sm text-foreground group-hover/record:text-primary transition-colors block truncate">
-                              {record.name}
-                            </span>
-                            <span className="text-xs text-muted-foreground block mt-0.5 truncate">
-                              {record.type === 'folder'
-                                ? m.folder()
-                                : `${m.size_prefix()} ${formatSize(record.sizeByte || 0)}`}
-                            </span>
-                            {record.startTime !== undefined &&
-                              record.startTime !== null &&
-                              record.endTime !== undefined &&
-                              record.endTime !== null && (
-                                <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded mt-1 inline-block max-w-full truncate">
-                                  {m.match_found_at()} {formatTimestamp(record.startTime)} -{' '}
-                                  {formatTimestamp(record.endTime)}
-                                </span>
-                              )}
-                          </div>
-                          <span className="text-xs text-muted-foreground font-mono shrink-0">
-                            {new Date(record.createdAt).toLocaleDateString(undefined, {
-                              year: 'numeric',
-                              month: 'short',
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {(hasNextPage || isFetchingNextPage) && (
-                    <div ref={ref} className="p-4 flex justify-center items-center">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                {(hasNextPage || isFetchingNextPage) && (
+                  <div ref={ref} className="p-4 flex justify-center items-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </ScrollArea>
 

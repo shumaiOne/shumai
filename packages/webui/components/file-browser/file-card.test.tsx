@@ -441,4 +441,39 @@ describe('FileCard', () => {
     expect(tooltip.textContent).toContain('FFmpeg transcode failed: exit code 1')
     vi.useRealTimers()
   })
+
+  it('does not render selection checkbox when hideCheckbox is true', () => {
+    renderComponent({ item: fileItem, hideCheckbox: true })
+    expect(screen.queryByRole('checkbox')).toBeNull()
+  })
+
+  it('renders selection checkbox by default when hideCheckbox is false or omitted', () => {
+    renderComponent({ item: fileItem })
+    expect(screen.getByRole('checkbox')).toBeTruthy()
+  })
+
+  it('does not render 3-dot dropdown menu when hideActions is true', () => {
+    renderComponent({ item: fileItem, hideActions: true })
+    // No dropdown trigger button rendered
+    expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('renders matched duration chunk in preview when startTime and endTime are present', () => {
+    const videoWithMatch: AssetInfo = {
+      ...fileItem,
+      startTime: 65,
+      endTime: 125,
+      preview: {
+        proxyType: 'video',
+        thumbnailUrl: 'https://example.com/poster.webp',
+        duration: 300,
+      },
+    } as AssetInfo
+
+    renderComponent({ item: videoWithMatch })
+
+    const matchedDuration = screen.getByTestId('file-preview-matched-duration')
+    expect(matchedDuration).toBeTruthy()
+    expect(matchedDuration.textContent).toBe('01:05 - 02:05')
+  })
 })

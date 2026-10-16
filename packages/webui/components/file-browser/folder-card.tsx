@@ -20,17 +20,17 @@ import { getAllFilesFromEntries } from '@/ui/lib/dnd-utils'
 
 interface FolderCardProps {
   item: AssetInfo
-  isSelected: boolean
-  isChecked: boolean
-  isEditing: boolean
-  onSelect: (item: AssetInfo, event: React.MouseEvent) => void
-  onDoubleClick: (item: AssetInfo) => void
-  onContextMenu: (e: React.MouseEvent, item: AssetInfo) => void
+  isSelected?: boolean
+  isChecked?: boolean
+  isEditing?: boolean
+  onSelect?: (item: AssetInfo, event: React.MouseEvent) => void
+  onDoubleClick?: (item: AssetInfo) => void
+  onContextMenu?: (e: React.MouseEvent, item: AssetInfo) => void
   // Deprecated manual drag props replaced by dnd-kit
-  onDragStart: (item: AssetInfo) => void
-  onDrop: (target: AssetInfo) => void
-  onRename: (newName: string) => void
-  onFinishEditing: () => void
+  onDragStart?: (item: AssetInfo) => void
+  onDrop?: (target: AssetInfo) => void
+  onRename?: (newName: string) => void
+  onFinishEditing?: () => void
   dragState?: DragState
   disabled?: boolean
   onAction?: (
@@ -49,6 +49,8 @@ interface FolderCardProps {
   onExternalDrop?: (files: File[], folderId: string) => void
   /** When false, hides the download action. Defaults to true. */
   allowDownload?: boolean
+  hideCheckbox?: boolean
+  hideActions?: boolean
 }
 
 const FolderPreviewGrid = ({ items }: { items: ChildPreview[] }) => {
@@ -106,18 +108,18 @@ const FolderPreviewGrid = ({ items }: { items: ChildPreview[] }) => {
 
 export function FolderCard({
   item,
-  isSelected,
-  isChecked,
-  isEditing,
-  onSelect,
-  onDoubleClick,
-  onContextMenu,
+  isSelected = false,
+  isChecked = false,
+  isEditing = false,
+  onSelect = () => {},
+  onDoubleClick = () => {},
+  onContextMenu = () => {},
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onDragStart: _onDragStart,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onDrop: _onDrop,
-  onRename,
-  onFinishEditing,
+  onRename = () => {},
+  onFinishEditing = () => {},
   dragState,
   disabled,
   onAction,
@@ -132,6 +134,8 @@ export function FolderCard({
   resetExternalDragState,
   onExternalDrop,
   allowDownload = true,
+  hideCheckbox = false,
+  hideActions = false,
 }: FolderCardProps) {
   const [name, setName] = useState(item.name || '')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -154,9 +158,11 @@ export function FolderCard({
       id: item.id,
       item: item,
     },
+    disabled: disabled,
   })
 
   const setNodeRef = (node: HTMLElement | null) => {
+    if (disabled) return
     setDraggableRef(node)
     setDroppableRef(node)
   }
@@ -333,13 +339,15 @@ export function FolderCard({
 
       <div className="shadow-[0_-4px_6px_rgba(0,0,0,0.08)] relative w-full flex flex-1 flex-col p-2 mt-5 bg-muted dark:bg-muted/50 rounded-sm">
         <div className="relative w-full aspect-video shrink-0 overflow-hidden">
-          <div className="absolute top-1 left-1 z-30 transition-all duration-200">
-            <Checkbox
-              checked={isChecked}
-              onClick={(e) => e.stopPropagation()} // Let parent handler deal with it
-              className="w-5 h-5 border-1 border-foreground/20 bg-background/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-            />
-          </div>
+          {!hideCheckbox && (
+            <div className="absolute top-1 left-1 z-30 transition-all duration-200">
+              <Checkbox
+                checked={isChecked}
+                onClick={(e) => e.stopPropagation()} // Let parent handler deal with it
+                className="w-5 h-5 border-1 border-foreground/20 bg-background/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+              />
+            </div>
+          )}
 
           {item.latestChildren && item.latestChildren.length > 0 && (
             <div data-testid="folder-preview-grid" className="h-full w-full">
@@ -376,7 +384,7 @@ export function FolderCard({
                 ? m.n_items_singular({ count: item.fileCount || 0 })
                 : m.n_items_plural({ count: item.fileCount || 0 })}
             </span>
-            {!isRecents && (
+            {!hideActions && !isRecents && (
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <button

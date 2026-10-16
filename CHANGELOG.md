@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+* **search**: Display search results in a responsive card grid with interactive hover video sprite scrubbing, semantic match chunk time range previews, and new-tab opening on click
 * **search**: Significantly improve semantic search response times by generating query text embeddings directly with in-memory caching instead of dispatching background tasks
 
 ## [0.5.2] - 2026-10-13

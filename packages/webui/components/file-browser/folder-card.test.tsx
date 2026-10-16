@@ -96,4 +96,19 @@ describe('FolderCard', () => {
     renderComponent({ item: folderItem, isRecentlyDeleted: true })
     expect(screen.queryByTestId('folder-card-days-left')).toBeNull()
   })
+
+  it('does not render selection checkbox when hideCheckbox is true', () => {
+    renderComponent({ item: folderItem, hideCheckbox: true })
+    expect(screen.queryByRole('checkbox')).toBeNull()
+  })
+
+  it('renders selection checkbox by default when hideCheckbox is false or omitted', () => {
+    renderComponent({ item: folderItem })
+    expect(screen.getByRole('checkbox')).toBeTruthy()
+  })
+
+  it('does not render 3-dot dropdown menu when hideActions is true', () => {
+    renderComponent({ item: folderItem, hideActions: true })
+    expect(screen.queryByRole('button')).toBeNull()
+  })
 })
