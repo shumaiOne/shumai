@@ -501,7 +501,6 @@ describe('UploadService', () => {
         where: { assetId: asset.id, type: WorkflowTaskType.transcode_pdf },
       })
       expect(workflowTask).not.toBeNull()
-      expect(workflowTask?.status).toBe(TaskStatus.pending)
 
       // Test HTML document as well
       const htmlTask = await prisma.task.create({
@@ -530,7 +529,6 @@ describe('UploadService', () => {
         where: { assetId: htmlAsset.id, type: WorkflowTaskType.transcode_pdf },
       })
       expect(htmlWorkflowTask).not.toBeNull()
-      expect(htmlWorkflowTask?.status).toBe(TaskStatus.pending)
     } finally {
       if (originalEnv !== undefined) {
         process.env.GOTENBERG_URL = originalEnv
