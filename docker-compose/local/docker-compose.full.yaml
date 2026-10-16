@@ -23,9 +23,6 @@ services:
     image: shumaione/turntable-renderer:latest
     container_name: shumai_turntable
     restart: unless-stopped
-    environment:
-      TURNTABLE_RENDERER_API_BASIC_AUTH_USERNAME: admin
-      TURNTABLE_RENDERER_API_BASIC_AUTH_PASSWORD: shumai_password
 
   gotenberg:
     image: gotenberg/gotenberg:8
@@ -74,8 +71,6 @@ services:
 
       # 3D Turntable Renderer Configuration
       TURNTABLE_RENDERER_URL: http://turntable-renderer:3000
-      TURNTABLE_RENDERER_BASIC_AUTH_USERNAME: admin
-      TURNTABLE_RENDERER_BASIC_AUTH_PASSWORD: shumai_password
 
       # Gotenberg Document Converter Configuration
       GOTENBERG_URL: http://gotenberg:3000
