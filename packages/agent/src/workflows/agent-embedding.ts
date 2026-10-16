@@ -13,6 +13,14 @@ export interface GeneratedEmbedding {
   endTime?: number
 }
 
+export interface ExistingAssetEmbeddingInfo {
+  id: string
+  startTime: number | null
+  endTime: number | null
+  has1536: boolean
+  has768: boolean
+}
+
 export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
   const {
     updateTaskStatusActivity,
@@ -20,6 +28,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     generateImageEmbeddingActivity,
     generateVideoChunkEmbeddingActivity,
     saveAssetEmbeddingsActivity,
+    deleteAssetEmbeddingsActivity,
     updateTaskUsageActivity,
     createCommentActivity,
     updateCommentActivity,
@@ -62,14 +71,40 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     }
 
     // 1. Fetch Agent Context
-    const context = await executeActivity(agentWorkerQueue, getEmbeddingContextActivity, {
+    const context = (await executeActivity(agentWorkerQueue, getEmbeddingContextActivity, {
       teamId: task.teamId,
       assetId: task.assetId,
-    })
+    })) as unknown as {
+      asset: {
+        id: string
+        mediaType: string | null
+        storageKey?: { key: string } | null
+        media?: unknown
+      }
+      chunkDuration: number
+      chunkOverlap: number
+      embeddingProvider: string
+      existingEmbeddings?: ExistingAssetEmbeddingInfo[]
+    }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { asset, chunkDuration, chunkOverlap, embeddingProvider } = context as any
+    const { asset, chunkDuration, chunkOverlap, embeddingProvider, existingEmbeddings } = context
     const isGemmaProvider = embeddingProvider === 'gemma-embedding-2-openai'
+
+    const existing = existingEmbeddings || []
+
+    // Purge incompatible embeddings (e.g. 1536d when Gemma is used, or 768d when Gemini is used)
+    const incompatibleIds = existing
+      .filter((e) => (isGemmaProvider ? e.has1536 || !e.has768 : e.has768 || !e.has1536))
+      .map((e) => e.id)
+
+    if (incompatibleIds.length > 0) {
+      await executeActivity(agentWorkerQueue, deleteAssetEmbeddingsActivity, {
+        assetId: task.assetId,
+        ids: incompatibleIds,
+      })
+    }
+
+    const validExistingChunks = existing.filter((e) => !incompatibleIds.includes(e.id))
 
     const mediaInfo = asset.media as PrismaJson.MediaInfo | null
     const is3dWithViews =
@@ -114,7 +149,6 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       throw ApplicationFailure.create({ message: 'asset has no key', nonRetryable: true })
     }
 
-    const results: GeneratedEmbedding[] = []
     const usage = {
       model: isGemmaProvider ? 'gemma-embedding-2-openai' : 'gemini-embedding-2',
       inputTokens: 0,
@@ -122,15 +156,23 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     }
 
     if (isImage) {
-      const result = await executeActivity(agentWorkerQueue, generateImageEmbeddingActivity, {
-        teamId: task.teamId,
-        assetKey: embeddingKey,
-        mediaType: embeddingMediaType,
-      })
-      results.push({ embedding: result.embedding })
-      if (result.usage) {
-        usage.inputTokens += result.usage.inputTokens || 0
-        usage.outputTokens += result.usage.outputTokens || 0
+      const alreadyEmbedded = validExistingChunks.some(
+        (e) => e.startTime === null && e.endTime === null,
+      )
+      if (!alreadyEmbedded) {
+        const result = await executeActivity(agentWorkerQueue, generateImageEmbeddingActivity, {
+          teamId: task.teamId,
+          assetKey: embeddingKey,
+          mediaType: embeddingMediaType,
+        })
+        await executeActivity(agentWorkerQueue, saveAssetEmbeddingsActivity, {
+          assetId: task.assetId,
+          embeddings: [{ embedding: result.embedding }],
+        })
+        if (result.usage) {
+          usage.inputTokens += result.usage.inputTokens || 0
+          usage.outputTokens += result.usage.outputTokens || 0
+        }
       }
     } else if (isVideo) {
       // Get video duration
@@ -144,6 +186,23 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
         let end = start + limit
         if (end >= duration) {
           end = duration
+        }
+
+        // Check if this chunk is already completed
+        const chunkExists = validExistingChunks.some(
+          (c) =>
+            c.startTime !== null &&
+            c.endTime !== null &&
+            Math.abs(c.startTime - start) < 0.1 &&
+            Math.abs(c.endTime - end) < 0.1,
+        )
+
+        if (chunkExists) {
+          // If this chunk reached the end of the video, stop
+          if (end >= duration) {
+            break
+          }
+          continue
         }
 
         // Step A: Slice chunk on transcode worker and upload to S3
@@ -167,10 +226,16 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
             },
           )
 
-          results.push({
-            embedding: chunkResult.embedding,
-            startTime: start,
-            endTime: end,
+          // Step C: Save chunk embedding to database immediately
+          await executeActivity(agentWorkerQueue, saveAssetEmbeddingsActivity, {
+            assetId: task.assetId,
+            embeddings: [
+              {
+                embedding: chunkResult.embedding,
+                startTime: start,
+                endTime: end,
+              },
+            ],
           })
 
           if (chunkResult.usage) {
@@ -178,7 +243,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
             usage.outputTokens += chunkResult.usage.outputTokens || 0
           }
         } finally {
-          // Step C: Delete temporary chunk from S3
+          // Step D: Delete temporary chunk from S3
           await executeActivity(transcodeWorkerQueue, deleteS3ObjectActivity, {
             key: chunkKey,
           })
@@ -189,14 +254,6 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
           break
         }
       }
-    }
-
-    // Save computed embeddings
-    if (results.length > 0) {
-      await executeActivity(agentWorkerQueue, saveAssetEmbeddingsActivity, {
-        assetId: task.assetId,
-        embeddings: results,
-      })
     }
 
     // Update Usage

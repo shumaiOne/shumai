@@ -4,6 +4,7 @@ import {
   extractAiMetadataActivity,
   getEmbeddingContextActivity,
   saveAssetEmbeddingsActivity,
+  deleteAssetEmbeddingsActivity,
   generateImageEmbeddingActivity,
   generateVideoChunkEmbeddingActivity,
   getGemmaEmbeddingTargetFrameCount,
@@ -720,6 +721,45 @@ describe('AI Database Activities Integration', () => {
       delete process.env.EMBEDDING_CHUNK_DURATION
       delete process.env.EMBEDDING_CHUNK_OVERLAP
     })
+
+    it('should return existing embeddings for the asset', async () => {
+      // Ensure agent exists
+      await prisma.agent.upsert({
+        where: { id: user.id },
+        update: {},
+        create: {
+          id: user.id,
+          teamId: team.id,
+          type: 'embedding',
+          enabled: true,
+          config: { provider: 'openai', model: 'gpt-4' },
+        },
+      })
+
+      await saveAssetEmbeddingsActivity({
+        assetId: asset.id,
+        embeddings: [
+          { embedding: Array(1536).fill(0.01), startTime: 0.0, endTime: 60.0 },
+          { embedding: Array(768).fill(0.02), startTime: 55.0, endTime: 115.0 },
+        ],
+      })
+
+      const ctx = await getEmbeddingContextActivity({
+        teamId: team.id,
+        assetId: asset.id,
+      })
+
+      expect(ctx.existingEmbeddings).toHaveLength(2)
+      const chunk1 = ctx.existingEmbeddings.find((e) => e.startTime === 0)
+      expect(chunk1).toBeDefined()
+      expect(chunk1?.has1536).toBe(true)
+      expect(chunk1?.has768).toBe(false)
+
+      const chunk2 = ctx.existingEmbeddings.find((e) => e.startTime === 55)
+      expect(chunk2).toBeDefined()
+      expect(chunk2?.has1536).toBe(false)
+      expect(chunk2?.has768).toBe(true)
+    })
   })
 
   describe('saveAssetEmbeddingsActivity', () => {
@@ -785,6 +825,54 @@ describe('AI Database Activities Integration', () => {
       expect(dbEmbeddings[0].has1536).toBe(false)
       expect(dbEmbeddings[1].has768).toBe(true)
       expect(dbEmbeddings[1].has1536).toBe(false)
+    })
+  })
+
+  describe('deleteAssetEmbeddingsActivity', () => {
+    it('should delete specific embeddings by id', async () => {
+      await saveAssetEmbeddingsActivity({
+        assetId: asset.id,
+        embeddings: [
+          { embedding: Array(1536).fill(0.01), startTime: 0, endTime: 60 },
+          { embedding: Array(1536).fill(0.02), startTime: 55, endTime: 115 },
+        ],
+      })
+
+      const before = await prisma.assetEmbedding.findMany({
+        where: { assetId: asset.id },
+      })
+      expect(before).toHaveLength(2)
+
+      const targetId = before[0].id
+      await deleteAssetEmbeddingsActivity({
+        assetId: asset.id,
+        ids: [targetId],
+      })
+
+      const after = await prisma.assetEmbedding.findMany({
+        where: { assetId: asset.id },
+      })
+      expect(after).toHaveLength(1)
+      expect(after[0].id).not.toBe(targetId)
+    })
+
+    it('should delete all embeddings for an asset when ids is not provided', async () => {
+      await saveAssetEmbeddingsActivity({
+        assetId: asset.id,
+        embeddings: [
+          { embedding: Array(1536).fill(0.01), startTime: 0, endTime: 60 },
+          { embedding: Array(1536).fill(0.02), startTime: 55, endTime: 115 },
+        ],
+      })
+
+      await deleteAssetEmbeddingsActivity({
+        assetId: asset.id,
+      })
+
+      const after = await prisma.assetEmbedding.findMany({
+        where: { assetId: asset.id },
+      })
+      expect(after).toHaveLength(0)
     })
   })
 })
