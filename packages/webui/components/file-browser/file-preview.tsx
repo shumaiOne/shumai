@@ -42,7 +42,7 @@ export const FilePreview = ({ item, showDuration = false, matchDuration }: FileP
   const overlay = hasMatchedChunk ? (
     <span
       data-testid="file-preview-matched-duration"
-      className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/75 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-primary border border-primary/40 shadow-xs"
+      className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white"
     >
       {formatTime(matchDuration.startTime!)} - {formatTime(matchDuration.endTime!)}
     </span>
