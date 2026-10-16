@@ -526,5 +526,86 @@ describe('Agent API', () => {
       expect(res.status).toBe(403)
       expect(agentService.updateAgentPermission).not.toHaveBeenCalled()
     })
+
+    it('rejects POST /teams/:teamId/agents with 403 for embedding agent', async () => {
+      const res = await app.request('/teams/team1/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Manual Embedding',
+          type: 'embedding',
+        }),
+      })
+
+      expect(res.status).toBe(403)
+      expect(agentService.createAgent).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('read-only embedding agent when ENABLE_EMBEDDING_AGENT is false', () => {
+    beforeEach(() => {
+      process.env.ENABLE_EMBEDDING_AGENT = 'false'
+      vi.mocked(agentService.getAgent).mockResolvedValue({
+        id: 'emb1',
+        teamId: 'team1',
+        type: 'embedding',
+      } as unknown as Awaited<ReturnType<typeof agentService.getAgent>>)
+    })
+
+    afterEach(() => {
+      delete process.env.ENABLE_EMBEDDING_AGENT
+    })
+
+    it('rejects PUT /agents/:agentId with 403', async () => {
+      const res = await app.request('/agents/emb1', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Updated Embedding',
+          type: 'embedding',
+          enabled: false,
+        }),
+      })
+
+      expect(res.status).toBe(403)
+      expect(agentService.updateAgent).not.toHaveBeenCalled()
+    })
+
+    it('rejects DELETE /agents/:agentId with 403', async () => {
+      const res = await app.request('/agents/emb1', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      expect(res.status).toBe(403)
+      expect(agentService.deleteAgent).not.toHaveBeenCalled()
+    })
+
+    it('rejects PATCH /agents/:agentId/permission with 403', async () => {
+      const res = await app.request('/agents/emb1/permission', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          permission: 'owner',
+        }),
+      })
+
+      expect(res.status).toBe(403)
+      expect(agentService.updateAgentPermission).not.toHaveBeenCalled()
+    })
+
+    it('rejects POST /teams/:teamId/agents with 403 for embedding agent', async () => {
+      const res = await app.request('/teams/team1/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Manual Embedding',
+          type: 'embedding',
+        }),
+      })
+
+      expect(res.status).toBe(403)
+      expect(agentService.createAgent).not.toHaveBeenCalled()
+    })
   })
 })

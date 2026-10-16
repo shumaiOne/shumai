@@ -224,7 +224,7 @@ export async function getEmbeddingContextActivity(params: { teamId: string; asse
       user: { teamMembers: { some: { teamId: params.teamId } } },
     },
   })
-  if (!agent) {
+  if (!agent || process.env.ENABLE_EMBEDDING_AGENT === 'false') {
     throw ApplicationFailure.create({
       message: 'embedding feature is disabled or agent not found',
       nonRetryable: true,

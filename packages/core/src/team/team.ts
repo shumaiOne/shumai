@@ -311,9 +311,12 @@ export class TeamService {
     delete rawSettings.emailNotification
     const settings = rawSettings as TeamSettingsResponse
 
-    const embeddingAgent = await prisma.agent.findFirst({
-      where: { teamId, type: 'embedding', enabled: true },
-    })
+    const embeddingAgent =
+      process.env.ENABLE_EMBEDDING_AGENT === 'false'
+        ? null
+        : await prisma.agent.findFirst({
+            where: { teamId, type: 'embedding', enabled: true },
+          })
     settings.semanticSearchEnabled = !!embeddingAgent
 
     if (!settings.transcode) {

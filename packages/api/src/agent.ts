@@ -63,6 +63,16 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: teamId,
     })
 
+    const isEmbeddingManagedByEnv =
+      process.env.ENABLE_EMBEDDING_AGENT === 'true' ||
+      process.env.ENABLE_EMBEDDING_AGENT === 'false'
+
+    if (req.type === 'embedding' && isEmbeddingManagedByEnv) {
+      throw new HTTPException(403, {
+        message: 'Embedding agent is managed by environment configuration and cannot be created',
+      })
+    }
+
     const agent = await agentService.createAgent({
       teamId,
       ...req,
@@ -93,8 +103,12 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: agentId,
     })
 
+    const isEmbeddingManagedByEnv =
+      process.env.ENABLE_EMBEDDING_AGENT === 'true' ||
+      process.env.ENABLE_EMBEDDING_AGENT === 'false'
+
     const existingAgent = await agentService.getAgent({ agentId })
-    if (existingAgent?.type === 'embedding' && process.env.ENABLE_EMBEDDING_AGENT === 'true') {
+    if (existingAgent?.type === 'embedding' && isEmbeddingManagedByEnv) {
       throw new HTTPException(403, {
         message: 'Embedding agent is managed by environment configuration and cannot be modified',
       })
@@ -131,8 +145,12 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: agentId,
       })
 
+      const isEmbeddingManagedByEnv =
+        process.env.ENABLE_EMBEDDING_AGENT === 'true' ||
+        process.env.ENABLE_EMBEDDING_AGENT === 'false'
+
       const existingAgent = await agentService.getAgent({ agentId })
-      if (existingAgent?.type === 'embedding' && process.env.ENABLE_EMBEDDING_AGENT === 'true') {
+      if (existingAgent?.type === 'embedding' && isEmbeddingManagedByEnv) {
         throw new HTTPException(403, {
           message: 'Embedding agent is managed by environment configuration and cannot be modified',
         })
@@ -163,8 +181,12 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: agentId,
     })
 
+    const isEmbeddingManagedByEnv =
+      process.env.ENABLE_EMBEDDING_AGENT === 'true' ||
+      process.env.ENABLE_EMBEDDING_AGENT === 'false'
+
     const existingAgent = await agentService.getAgent({ agentId })
-    if (existingAgent?.type === 'embedding' && process.env.ENABLE_EMBEDDING_AGENT === 'true') {
+    if (existingAgent?.type === 'embedding' && isEmbeddingManagedByEnv) {
       throw new HTTPException(403, {
         message: 'Embedding agent is managed by environment configuration and cannot be deleted',
       })

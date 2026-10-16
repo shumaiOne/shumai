@@ -35,6 +35,12 @@ export class SearchService {
       const teamId = team?.project?.teamId
       if (!teamId) throw new Error('Team ID not found for folder')
 
+      if (process.env.ENABLE_EMBEDDING_AGENT === 'false') {
+        throw new HTTPException(422, {
+          message: 'Embedding agent not configured or disabled for this team.',
+        })
+      }
+
       const embeddingAgent = await this.prismaClient.agent.findFirst({
         where: { teamId, type: 'embedding', enabled: true },
       })

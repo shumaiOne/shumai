@@ -1043,6 +1043,55 @@ describe('SearchService', () => {
 
       mockGenerateEmbedding.mockRestore()
     })
+
+    it('rejects semantic search when ENABLE_EMBEDDING_AGENT is false', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'u-emb-false', email: 'u-emb-false@example.com', type: 'human' },
+      })
+      const team = await prisma.team.create({ data: { name: 't-emb-false' } })
+      const project = await prisma.project.create({
+        data: { name: 'p-emb-false', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'root-false',
+          type: AssetType.folder,
+          projectId: project.id,
+          creatorId: user.id,
+          status: 'uploaded',
+        },
+      })
+
+      // Even if an embedding agent is enabled in db
+      const bot = await prisma.user.create({
+        data: { name: 'Bot', email: 'b-emb-false@example.com', password: 'pw', type: 'agent' },
+      })
+      await prisma.agent.create({
+        data: {
+          id: bot.id,
+          teamId: team.id,
+          type: 'embedding',
+          enabled: true,
+          config: { provider: '', model: '' },
+        },
+      })
+
+      process.env.ENABLE_EMBEDDING_AGENT = 'false'
+      try {
+        await expect(
+          searchService.search(rootFolder.id, {
+            recursively: true,
+            assetType: 'file',
+            operator: 'AND',
+            conditions: [],
+            query: 'test query',
+            isSemantic: true,
+          }),
+        ).rejects.toThrow('Embedding agent not configured or disabled for this team.')
+      } finally {
+        delete process.env.ENABLE_EMBEDDING_AGENT
+      }
+    })
   })
 
   describe('totalSize calculation', () => {

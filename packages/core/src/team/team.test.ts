@@ -605,4 +605,32 @@ describe('TeamService', () => {
     expect(settings.appearance?.hideAgent).toBe(true)
     expect((settings as Record<string, unknown>).emailNotification).toBeUndefined()
   })
+
+  it('should report semanticSearchEnabled false when ENABLE_EMBEDDING_AGENT is false even if agent is enabled in db', async () => {
+    const owner = await prisma.user.create({
+      data: { name: 'Owner', email: 'owner-emb-false@example.com', password: 'pw' },
+    })
+    const team = await teamService.createTeam(owner, { name: 'Emb False Team' })
+
+    const bot = await prisma.user.create({
+      data: { name: 'Bot', email: 'bot-emb-false@example.com', password: 'pw', type: 'agent' },
+    })
+    await prisma.agent.create({
+      data: {
+        id: bot.id,
+        teamId: team.id,
+        type: 'embedding',
+        enabled: true,
+        config: { provider: '', model: '' },
+      },
+    })
+
+    process.env.ENABLE_EMBEDDING_AGENT = 'false'
+    try {
+      const settings = await teamService.getSettings(team.id)
+      expect(settings.semanticSearchEnabled).toBe(false)
+    } finally {
+      delete process.env.ENABLE_EMBEDDING_AGENT
+    }
+  })
 })

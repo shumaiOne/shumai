@@ -1922,5 +1922,67 @@ describe('Transcode Activities', () => {
       })
       expect(task).toBeNull()
     })
+
+    it('should NOT create ai_embedding task when ENABLE_EMBEDDING_AGENT is false', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'Test User Embedding 3', email: 'test-embedding-agent-3@test.com' },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'Test Team Embedding 3' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'owner' },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project Embedding 3', teamId: team.id },
+      })
+      await prisma.agent.create({
+        data: {
+          id: user.id,
+          type: 'embedding',
+          enabled: true,
+          teamId: team.id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          config: { provider: 'test', model: 'test' } as any,
+        },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'robot.glb',
+          mediaType: 'model/gltf-binary',
+          type: 'file',
+          status: 'processed',
+          projectId: project.id,
+          media: {
+            proxyType: '3d',
+            imageTranscodes: [
+              {
+                key: 'files/asset-1/views.webp',
+                width: 2880,
+                height: 2880,
+                quality: 85,
+                format: 'webp',
+              },
+            ],
+          } as unknown as PrismaJson.MediaInfo,
+        },
+      })
+
+      process.env.ENABLE_EMBEDDING_AGENT = 'false'
+      try {
+        await createEmbeddingTaskIfEnabledActivity({
+          assetId: asset.id,
+          teamId: team.id,
+          projectId: project.id,
+        })
+
+        const task = await prisma.workflowTask.findFirst({
+          where: { assetId: asset.id, type: 'ai_embedding' },
+        })
+        expect(task).toBeNull()
+      } finally {
+        delete process.env.ENABLE_EMBEDDING_AGENT
+      }
+    })
   })
 })

@@ -663,6 +663,18 @@ describe('AI Database Activities Integration', () => {
       expect(ctx.agent.id).toBe(user.id)
       expect(ctx.asset.id).toBe(asset.id)
       expect(ctx.asset.mediaType).toBe('video/mp4')
+
+      process.env.ENABLE_EMBEDDING_AGENT = 'false'
+      try {
+        await expect(
+          getEmbeddingContextActivity({
+            teamId: team.id,
+            assetId: asset.id,
+          }),
+        ).rejects.toThrow('embedding feature is disabled or agent not found')
+      } finally {
+        delete process.env.ENABLE_EMBEDDING_AGENT
+      }
     })
 
     it('should parse valid positive chunk duration and fallback on invalid or negative ones', async () => {

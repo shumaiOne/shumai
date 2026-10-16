@@ -462,7 +462,10 @@ export class AgentService {
    */
   async toAgentInfo(agent: AgentInfoSource): Promise<AgentInfo> {
     const config = agent.config as unknown as PrismaJson.AgentConfig
-    const isReadOnly = agent.type === 'embedding' && process.env.ENABLE_EMBEDDING_AGENT === 'true'
+    const isManagedByEnv =
+      process.env.ENABLE_EMBEDDING_AGENT === 'true' ||
+      process.env.ENABLE_EMBEDDING_AGENT === 'false'
+    const isReadOnly = agent.type === 'embedding' && isManagedByEnv
 
     return {
       id: agent.id,
@@ -723,7 +726,8 @@ export class AgentService {
   }
 
   async ensureSystemEmbeddingAgents(): Promise<void> {
-    if (process.env.ENABLE_EMBEDDING_AGENT !== 'true') {
+    const envVal = process.env.ENABLE_EMBEDDING_AGENT
+    if (envVal !== 'true' && envVal !== 'false') {
       return
     }
 
@@ -737,7 +741,8 @@ export class AgentService {
   }
 
   async ensureEmbeddingAgentForTeam(teamId: string): Promise<void> {
-    if (process.env.ENABLE_EMBEDDING_AGENT !== 'true') {
+    const envVal = process.env.ENABLE_EMBEDDING_AGENT
+    if (envVal !== 'true' && envVal !== 'false') {
       return
     }
 
@@ -748,20 +753,29 @@ export class AgentService {
       },
     })
 
-    if (!existing) {
-      await this.createAgent({
-        teamId,
-        name: 'embedding-agent',
-        type: 'embedding',
-        avatar: 'avatar-1',
-        thinkingLevel: 'off',
-        enabled: true,
-      })
-    } else if (!existing.enabled) {
-      await this.prismaClient.agent.update({
-        where: { id: existing.id },
-        data: { enabled: true },
-      })
+    if (envVal === 'true') {
+      if (!existing) {
+        await this.createAgent({
+          teamId,
+          name: 'embedding-agent',
+          type: 'embedding',
+          avatar: 'avatar-1',
+          thinkingLevel: 'off',
+          enabled: true,
+        })
+      } else if (!existing.enabled) {
+        await this.prismaClient.agent.update({
+          where: { id: existing.id },
+          data: { enabled: true },
+        })
+      }
+    } else if (envVal === 'false') {
+      if (existing && existing.enabled) {
+        await this.prismaClient.agent.update({
+          where: { id: existing.id },
+          data: { enabled: false },
+        })
+      }
     }
   }
 }

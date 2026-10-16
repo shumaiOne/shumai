@@ -1372,7 +1372,7 @@ export async function createEmbeddingTaskIfEnabledActivity(
   const teamId = params.teamId || asset.project?.teamId || null
   const projectId = params.projectId || asset.projectId
 
-  if (!teamId) {
+  if (!teamId || process.env.ENABLE_EMBEDDING_AGENT === 'false') {
     return
   }
 
