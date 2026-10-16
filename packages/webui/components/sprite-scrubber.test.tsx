@@ -155,4 +155,19 @@ describe('SpriteScrubber', () => {
     fireEvent.mouseMove(scrubberVideo, { clientX: 25 })
     expect(scrubberVideo.getAttribute('data-frame')).toBe('25')
   })
+
+  it('renders with cursor-pointer instead of cursor-crosshair for cards', () => {
+    const { getByTestId } = render(
+      <SpriteScrubber
+        spriteUrl="https://example.com/sprite.webp"
+        thumbnailUrl="https://example.com/thumb.webp"
+        videoWidth={1920}
+        videoHeight={1080}
+      />,
+    )
+
+    const scrubber = getByTestId('sprite-scrubber')
+    expect(scrubber.className).toContain('cursor-pointer')
+    expect(scrubber.className).not.toContain('cursor-crosshair')
+  })
 })
