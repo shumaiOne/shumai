@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+* **cli**: Add administrative `shumai regenerate-embeddings` command to regenerate multimodal vector embeddings for all existing media files across active teams
+* **docker**: Provide three Docker Compose deployment tiers (Lite, with Embedding Server, and Full) with recommended memory specifications
+* **docs**: Add documentation for LiteRT-LM Embedding Server setup, 15 frames per minute video sampling, provider migration warnings, and CLI embedding regeneration
 * **agent**: Save video chunk embeddings incrementally to the database as each chunk finishes, preserving completed progress on failure and resuming from where it left off on retry
 * **agent**: Add support for local LiteRT-LM Gemma Embedding 2 (`gemma-embedding-2-openai`) provider and environment-enforced read-only embedding agents with automatic 768-dimensional vector search indexing
 

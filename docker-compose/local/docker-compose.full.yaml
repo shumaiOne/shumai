@@ -1,0 +1,94 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    container_name: shumai_postgres
+    environment:
+      POSTGRES_USER: shumai
+      POSTGRES_PASSWORD: shumai_password
+      POSTGRES_DB: shumai_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/18/docker
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U shumai -d shumai_db']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  embedding-server:
+    image: shumaione/embedding-server:latest
+    container_name: shumai_embedding
+    restart: unless-stopped
+
+  turntable-renderer:
+    image: shumaione/turntable-renderer:latest
+    container_name: shumai_turntable
+    restart: unless-stopped
+    environment:
+      TURNTABLE_RENDERER_API_BASIC_AUTH_USERNAME: admin
+      TURNTABLE_RENDERER_API_BASIC_AUTH_PASSWORD: shumai_password
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: shumai_gotenberg
+    restart: unless-stopped
+
+  shumai:
+    image: shumaione/shumai:latest
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor=unconfined
+      - seccomp=unconfined
+    container_name: shumai_app
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./data:/app/data
+    # Hardware Acceleration (NVENC / QuickSync / VA-API / RKMPP)
+    # Uncomment the extends section below for hardware acceleration:
+    # extends:
+    #   file: hwaccel.transcoding.yaml
+    #   service: cpu # set to one of [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl] for accelerated transcoding
+    environment:
+      # Database Configuration
+      DATABASE_URL: postgres://shumai:shumai_password@shumai_postgres:5432/shumai_db?search_path=public&sslmode=disable
+
+      # Server Configuration
+      SHUMAI_SERVER_PORT: 3000
+
+      # S3 Configuration
+      STORAGE_BACKEND: local
+      AWS_ENDPOINT_URL_S3: http://localhost:3000
+
+      # Better Auth
+      BETTER_AUTH_SECRET: qSxs9DxzHDZBbeeTNPEwBuspYwipBqz5Gk5XdBjNhWw=
+
+      # Sandbox Configuration
+      ENABLE_WEAKER_NESTED_SANDBOX: 'true'
+
+      # Embedding Configuration
+      EMBEDDING_PROVIDER: gemma-embedding-2-openai
+      GEMMA_EMBEDDING_OPENAI_BASE_URL: http://embedding-server:9379/v1
+      ENABLE_EMBEDDING_AGENT: 'true'
+      CONCURRENCY_AGENT: 1
+
+      # 3D Turntable Renderer Configuration
+      TURNTABLE_RENDERER_URL: http://turntable-renderer:3000
+      TURNTABLE_RENDERER_BASIC_AUTH_USERNAME: admin
+      TURNTABLE_RENDERER_BASIC_AUTH_PASSWORD: shumai_password
+
+      # Gotenberg Document Converter Configuration
+      GOTENBERG_URL: http://gotenberg:3000
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      embedding-server:
+        condition: service_started
+      turntable-renderer:
+        condition: service_started
+      gotenberg:
+        condition: service_started
+
+volumes:
+  postgres_data:

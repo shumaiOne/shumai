@@ -16,6 +16,7 @@ import { agentService } from '@shumai/core/src/agent/agent'
 
 import { handleDaemonCommands } from '@shumai/core/src/utils/daemon'
 import { authService } from '@shumai/core/src/auth/auth'
+import { embeddingService } from '@shumai/core/src/search/embedding-service'
 import { sandboxService } from '@shumai/core'
 import { notificationJobService } from '@shumai/core/src/notification/notification-job'
 
@@ -40,6 +41,29 @@ if (resetCmdIndex !== -1) {
   try {
     const link = await authService.generatePasswordResetLink(email)
     console.log(link)
+    process.exit(0)
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error(`Error: ${message}`)
+    process.exit(1)
+  }
+}
+
+const regenCmdIndex = cliArgs.findIndex((arg) => arg === 'regenerate-embeddings')
+
+if (regenCmdIndex !== -1) {
+  try {
+    console.log('🔄 Regenerating embeddings...')
+    const result = await embeddingService.regenerateEmbeddings()
+    console.log(
+      `✅ Successfully queued ${result.tasksCreated} embedding tasks for ${result.totalAssets} assets.`,
+    )
+    if (result.skippedTeams.length > 0) {
+      console.warn(
+        `⚠️ Skipped ${result.skippedTeams.length} team(s) without an active embedding agent.`,
+      )
+    }
+    console.log('The background workers will process the embedding tasks.')
     process.exit(0)
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error'

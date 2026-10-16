@@ -1,0 +1,131 @@
+---
+title: Embedding Server Setup (EmbeddingGemma 2)
+description: Run local, offline multimodal vector embeddings for semantic search using shumaiOne/embedding-server.
+---
+
+Shumai supports local, self-hosted multimodal vector embeddings for semantic search through [shumaiOne/embedding-server](https://github.com/shumaiOne/embedding-server) — a standalone Docker service powered by Google AI Edge's **LiteRT-LM** and **EmbeddingGemma 2 740M**.
+
+The embedding server provides a unified 768-dimensional vector space across text, images, and video frames with an OpenAI-compatible HTTP API (`/v1/embeddings`). Because the model weights are pre-baked directly into the Docker image, the server operates completely offline and air-gapped without requiring external network access or third-party cloud API keys.
+
+---
+
+## Model Architecture & Specs
+
+| Property                  | Value                                                    |
+| :------------------------ | :------------------------------------------------------- |
+| **Model**                 | `EmbeddingGemma 2 740M` (`google/embeddinggemma-2-740m`) |
+| **Runtime**               | Google AI Edge LiteRT-LM (Python 3.14 Debian slim)       |
+| **Vector Dimensionality** | 768 dimensions (multimodal: text, image, and video)      |
+| **Context Window**        | 2,048 tokens                                             |
+| **Network Mode**          | Completely offline capable (`--network none`)            |
+| **API Standard**          | OpenAI-compatible `/v1/embeddings`                       |
+
+---
+
+## Video Processing & Sampling
+
+For video assets, Shumai breaks videos into standardized segments and extracts keyframes:
+
+- **Chunking**: Videos are divided into **60-second chunks** with a **5-second overlap** at segment boundaries to preserve narrative and visual context.
+- **Frame Extraction Rate**: Shumai extracts **15 frames per minute** from each chunk.
+- **Adaptive Frame Bounding**:
+  - For standard aspect ratios (1:1, 4:3, 3:4, 16:9, 9:16, 21:9), Shumai extracts 15 frames, which produces ~1,982 prompt tokens and stays safely within the 2,048-token context window.
+  - For non-standard or custom aspect ratios (e.g. 5:3, 1.4:1), Shumai automatically samples 14 frames (~1,990 tokens) to mathematically guarantee that prompt length never exceeds 2,048 tokens, preventing out-of-memory errors on the embedding server.
+
+---
+
+## Important: Changing Embedding Providers Breaks Existing Embeddings
+
+> [!WARNING]
+> **Vector spaces from different embedding models are completely incompatible.**
+>
+> If you change your embedding provider (for example, switching from Google Gemini's 1536-dimensional embeddings to EmbeddingGemma's 768-dimensional embeddings, or vice versa), **all existing vector embeddings in your database become invalid**.
+>
+> To protect production databases from accidental corruption and search failures, **Shumai intentionally does not provide a WebUI toggle to change the embedding provider**. The provider can only be configured by an administrator via environment variables (`EMBEDDING_PROVIDER` and `GEMMA_EMBEDDING_OPENAI_BASE_URL`).
+
+---
+
+## Regenerating Embeddings via CLI
+
+When you do switch embedding providers or configure the embedding server on an existing Shumai deployment, you can regenerate embeddings for all existing media files using the administrative CLI command:
+
+### Inside Docker
+
+```bash
+docker exec -it <shumai-container-name> shumai regenerate-embeddings
+```
+
+### Local / Bare Metal
+
+```bash
+shumai regenerate-embeddings
+```
+
+_(Alternatively, `bun apps/web/src/index.ts regenerate-embeddings`)_
+
+### What the Command Does
+
+1. **Scans Teams**: Checks all teams in your workspace. If a team does not have an active (enabled) embedding agent, it logs a warning and safely skips that team.
+2. **Clears Existing Embeddings**: Purges all previous embeddings and cancels any pending/in-progress embedding tasks for eligible assets to ensure a clean transition to the new provider.
+3. **Enqueues Fresh Tasks**: Queues new background `ai_embedding` tasks for all eligible assets (images, videos, and 3D assets with rendered previews) across active teams.
+4. **Background Execution**: Background workers process the queued tasks according to your configured concurrency limits.
+
+---
+
+## Deployment & Configuration
+
+### Docker Quickstart
+
+To run the standalone embedding server container:
+
+```bash
+docker run -d \
+  --name shumai_embedding \
+  -p 9379:9379 \
+  shumaione/embedding-server:latest
+```
+
+### Docker Compose Setup
+
+In Docker Compose environments, add `embedding-server` to your `docker-compose.yaml` and configure Shumai to connect to it over Docker's internal network:
+
+```yaml
+services:
+  embedding-server:
+    image: shumaione/embedding-server:latest
+    container_name: shumai_embedding
+    restart: unless-stopped
+
+  shumai:
+    image: shumaione/shumai:latest
+    environment:
+      # Embedding Server Configuration
+      EMBEDDING_PROVIDER: gemma-embedding-2-openai
+      GEMMA_EMBEDDING_OPENAI_BASE_URL: http://embedding-server:9379/v1
+      ENABLE_EMBEDDING_AGENT: 'true'
+      CONCURRENCY_AGENT: 1
+    depends_on:
+      - embedding-server
+```
+
+> [!NOTE]
+> Since Shumai communicates with `embedding-server` over Docker's internal network, `embedding-server` does not need to expose any ports to the host machine.
+
+### Environment Variables
+
+| Variable                          | Required    | Description                                                                                                                   | Default                    |
+| :-------------------------------- | :---------- | :---------------------------------------------------------------------------------------------------------------------------- | :------------------------- |
+| `EMBEDDING_PROVIDER`              | Yes         | Set to `gemma-embedding-2-openai` to use the local LiteRT-LM server.                                                          | `gemini-embedding-2`       |
+| `GEMMA_EMBEDDING_OPENAI_BASE_URL` | Yes         | HTTP base URL of the embedding server (e.g. `http://embedding-server:9379/v1`).                                               | `http://localhost:9379/v1` |
+| `ENABLE_EMBEDDING_AGENT`          | No          | Automatically provisions and enables the system embedding agent for all teams on startup.                                     | `false`                    |
+| `CONCURRENCY_AGENT`               | Recommended | Maximum concurrent AI tasks executed by workers. **Set to `1`** when running `embedding-server` to prevent high memory usage. | `5`                        |
+
+---
+
+## Hardware & Resource Requirements
+
+- **Memory (RAM)**:
+  - We recommend at least **4 GB+ of dedicated system RAM** for the `embedding-server` container.
+  - Overall host system memory should be **4 GB+** when running the Lite+Embedding compose stack, and **8 GB+** for the full stack.
+- **Concurrency**:
+  - Always set `CONCURRENCY_AGENT=1` in your Shumai configuration when using `embedding-server`. Parallel multimodal embedding generations consume significant memory and can cause Docker containers to be terminated by the OS Out-Of-Memory (OOM) killer on low-resource machines.

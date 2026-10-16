@@ -66,12 +66,24 @@ For example, if you deploy Shumai on a remote server at `http://123.456.7.8` and
 
 Configures whether background transcoding and AI agents are executed locally or offloaded to a Temporal cluster.
 
-| Variable                   | Description                                                                                        | Example / Default               |
-| :------------------------- | :------------------------------------------------------------------------------------------------- | :------------------------------ |
-| `WORKFLOW_EXECUTOR`        | Engine choice. Use `local` for in-process database polling, or `temporal` for distributed workers. | `local` (default) or `temporal` |
-| `TEMPORAL_ADDRESS`         | Host and port of the Temporal cluster gRPC service.                                                | `localhost:7233` (default)      |
-| `EMBEDDING_CHUNK_DURATION` | The duration in seconds for each video chunk when generating video embeddings.                     | `60.0` (default)                |
-| `EMBEDDING_CHUNK_OVERLAP`  | The duration in seconds to overlap video chunks when generating video embeddings.                  | `5.0` (default)                 |
+| Variable                | Description                                                                                        | Example / Default               |
+| :---------------------- | :------------------------------------------------------------------------------------------------- | :------------------------------ |
+| `WORKFLOW_EXECUTOR`     | Engine choice. Use `local` for in-process database polling, or `temporal` for distributed workers. | `local` (default) or `temporal` |
+| `TEMPORAL_ADDRESS`      | Host and port of the Temporal cluster gRPC service.                                                | `localhost:7233` (default)      |
+| `CONCURRENCY_AGENT`     | Maximum concurrent AI tasks executed by workers. Set to `1` when running local `embedding-server`. | `5` (default)                   |
+| `CONCURRENCY_TRANSCODE` | Maximum concurrent media transcoding tasks executed by workers.                                    | `1` (default)                   |
+
+---
+
+## Embedding Config
+
+| Variable                          | Description                                                                                                   | Example / Default                 |
+| :-------------------------------- | :------------------------------------------------------------------------------------------------------------ | :-------------------------------- |
+| `EMBEDDING_PROVIDER`              | Multimodal embedding provider. Options: `gemini-embedding-2`, `gemma-embedding-2-openai`.                     | `gemini-embedding-2` (default)    |
+| `GEMMA_EMBEDDING_OPENAI_BASE_URL` | Base URL of the OpenAI-compatible LiteRT-LM embedding server.                                                 | `http://embedding-server:9379/v1` |
+| `ENABLE_EMBEDDING_AGENT`          | When set to `true`, automatically provisions and enables the system embedding agent for all teams on startup. | `false` (default)                 |
+| `EMBEDDING_CHUNK_DURATION`        | The duration in seconds for each video chunk when generating video embeddings.                                | `60.0` (default)                  |
+| `EMBEDDING_CHUNK_OVERLAP`         | The duration in seconds to overlap video chunks when generating video embeddings.                             | `5.0` (default)                   |
 
 ## Sandbox Config
 

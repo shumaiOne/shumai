@@ -12,11 +12,10 @@ Traditional search relies on matching exact characters (e.g., searching "dog" wi
 Semantic search translates text queries and file contents into conceptual profiles. Similar ideas and visuals are mapped near each other.
 
 1.  **Index Generation**: When you upload an asset, Shumai's background agent scans the file's visual elements, text contents, or descriptions, translating them into a concept profile.
-    - **Video Processing**: Shumai uses **gemini-embedding-2** for video indexing.
-      - **Chunking**: For long videos, Shumai breaks them into chunks to ensure high-quality indexing. By default, chunks are **60 seconds** long with a **5-second overlap** to ensure no context is lost at the boundaries.
-      - **Sampling**: The model processes a maximum of 32 frames per chunk: short chunks (≤32s) are sampled at 1 fps, while longer chunks are uniformly sampled to 32 frames.
-      - **Optimization**: To optimize processing, Shumai automatically transcodes each chunk to **1 FPS** and **removes the audio track** before sending it to the embedding agent.
-      - **Configuration**: Administrators can customize these settings using the `EMBEDDING_CHUNK_DURATION` and `EMBEDDING_CHUNK_OVERLAP` environment variables.
+    - **Multimodal Embedding Providers**: Shumai supports two embedding providers:
+      - **EmbeddingGemma 2 (Local)**: Powered by `shumaiOne/embedding-server` with 768-dimensional multimodal vectors running completely offline. Videos are sampled at **15 frames per minute** (14 frames for non-standard aspect ratios) per 60-second chunk. See the [Embedding Server Setup Guide](./embedding-server) for full details.
+      - **Gemini Embedding 2 (Cloud)**: Powered by Google's `gemini-embedding-2` API with 1536-dimensional vectors. Videos are chunked into 60-second segments (sampled up to 32 frames per chunk at 1 fps with audio stripped).
+    - **Chunking Configuration**: Administrators can customize chunk duration and overlap using the `EMBEDDING_CHUNK_DURATION` (default: 60s) and `EMBEDDING_CHUNK_OVERLAP` (default: 5s) environment variables.
 2.  **Concept Matching**: When you search with the "Semantic" toggle enabled, Shumai matches the conceptual meaning of your query against your assets.
 3.  **Result**: Searching "sunset at the beach" will successfully find a video file of ocean waves at dusk, even if the filename is `IMG_4029.mp4`.
 

@@ -35,6 +35,7 @@ Shumai 是一个开源的 Frame.io 替代方案，专为创意团队打造，让
 * **丰富的文件格式支持**：支持预览常见创意文件格式，包括图片（支持 PSD）、视频、音频和文档，同时可上传和存储任意类型的文件。
 * **基于转盘渲染服务的 3D 资产预览**：通过集成 [turntable-renderer](https://docs.shumai.one/using-shumai/3d-asset-support) 支持为 GLB、FBX、OBJ、STL、USD 和 DAE 等 3D 模型生成高质量的交互式转盘预览与视频。
 * **基于 Gotenberg 的文档 PDF 转码代理**：通过集成 [Gotenberg](https://docs.shumai.one/using-shumai/gotenberg) 支持将 Word、PowerPoint、Excel、Markdown、HTML 和 CSV 文档高质量转换为 PDF 代理文件进行在线预览。
+* **语义搜索**：支持按画面内容或概念含义搜索素材，底层基于向量嵌入技术。详见[相关文档](https://docs.shumai.one/using-shumai/semantic-search)。
 * **非编剪辑导出与 Premiere 插件（实验性）**：支持将时间戳审阅评论导出至常用非编软件（Premiere Pro XML、DaVinci Resolve EDL、Final Cut Pro、Avid Media Composer），或使用实验性的 Premiere Pro 原生 UXP 插件导入媒体素材并将评论自动同步为时间轴标记。详见[相关文档](https://docs.shumai.one/using-shumai/nle-and-premiere)。
 
 但 Shumai 不仅仅只满足于 Frame.io 的开源替代。随着 GPT-Image-2、Seedance 2.5 这类强大模型的问世，AI已经生成产品级的图片/视频。很多时候，你只要给一句提示词，就能直接生成或修改图片和视频，而不用再打开 Photoshop、Premiere 或者 Houdini。也正因为这样，Shumai 才把 AI Agent 做成了核心能力：
@@ -45,7 +46,6 @@ Shumai 是一个开源的 Frame.io 替代方案，专为创意团队打造，让
 * **Model Context Protocol (MCP) 支持**：通过远程 MCP 服务端为 Agent 接入外部工具与 API，支持 OAuth 鉴权与按 Agent 独立分配访问权限。
 * **沙箱隔离执行**：Agent 生成的脚本会在隔离环境里运行，更安全。
 * **AI 自动补全元数据**：新素材上传后，系统可以自动帮你补一些元数据。
-* **语义搜索**：支持按画面内容或语义找素材，底层用的是向量 embedding（Gemini Embedding 2）。
 * **资源配额**：支持按成员、角色或全团队对 AI Token、成本和工具调用设置使用上限与实时用量监控。
 
 下面是一个简短的 demo 视频，展示了 Shumai Agent 能做什么：
@@ -99,10 +99,22 @@ https://gh-proxy.com/https://raw.githubusercontent.com/shumaiOne/shumai/main/REA
 
    ```
 
-2. 下载 `docker-compose.yaml` 配置文件：
-   ```bash
-   curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose-aliyun.yaml
-   ```
+2. 根据您的需求和机器可用内存，下载对应的 `docker-compose.yaml` 配置文件：
+
+   * **精简版（建议内存：2 GB+）**：包含 Shumai 核心应用与 PostgreSQL 数据库。
+     ```bash
+     curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose-aliyun.yaml
+     ```
+
+   * **含嵌入向量服务版（建议内存：4 GB+）**：新增基于 `shumaiOne/embedding-server` (`EmbeddingGemma 2 740M`) 的本地多模态语义搜索能力。
+     ```bash
+     curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose-aliyun.embedding.yaml
+     ```
+
+   * **完整版（建议内存：8 GB+）**：一站式全功能套件，包含 `embedding-server`、`turntable-renderer`（3D 模型交互转盘预览）与 `Gotenberg`（文档与表格 PDF 代理转码）。
+     ```bash
+     curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose-aliyun.full.yaml
+     ```
 
    > [!NOTE]
    > 默认的 Docker Compose 配置使用基于 CPU 的软件转码。如果您的服务器配备了支持的显卡（NVIDIA NVENC、Intel QuickSync、AMD/Intel VA-API 或 Rockchip RKMPP）并需要开启 GPU 硬件加速转码，请参考 [硬件加速转码配置文档](https://docs.shumai.one/configuration/hardware-transcoding)。
@@ -152,233 +164,55 @@ https://gh-proxy.com/https://raw.githubusercontent.com/shumaiOne/shumai/main/REA
 
 5. 打开浏览器，访问 `http://localhost:3000` 即可开始使用（若是远程部署，请访问 `http://<您的服务器IP>:3000`）。
 
-### 方案二：通过 NPM / 包管理器安装
-
-通过 NPM 上的 `@shumai-one/shumai` 进行安装。
-
-#### 第一步：启动带 pgvector 支持的 PostgreSQL
-
-Shumai 依赖支持 `pgvector` 扩展的 PostgreSQL 数据库。您可以使用 Docker 快速启动一个预配置好的数据库容器：
-
-```bash
-docker run --name shumai_postgres \
-  -e POSTGRES_USER=shumai \
-  -e POSTGRES_PASSWORD=shumai_password \
-  -e POSTGRES_DB=shumai_db \
-  -p 5432:5432 \
-  -d docker.m.daocloud.io/pgvector/pgvector:pg18
-
-```
-
-#### 第二步：创建工作区目录
-
-创建一个专属目录用来存放环境配置和媒体文件（媒体文件默认会保存在 `./data` 目录下）：
-
-```bash
-mkdir shumai && cd shumai
-
-```
-
-#### 步骤 3：安装平台依赖
-
-#### Linux
-
-在 Linux 上运行 Shumai 需要安装以下系统依赖：
-
-- **`ffmpeg`** —— 用于媒体转码和元数据提取。
-- **`poppler`** (`poppler-utils`) —— 用于 PDF 页面图像提取和 PDF 雪碧图预览生成 (`pdftoppm`)。
-- **`imagemagick`** —— 用于 PSD 格式图像转码和 sRGB 色彩空间转换。
-- **`dcraw_emu`** (`libraw` / `libraw-bin`) —— 用于相机 RAW 格式图像解码和预览图生成。
-- **`bubblewrap`**、**`socat`** 和 **`ripgrep`** —— AI Agent 沙箱（`anthropic-experimental/sandbox-runtime`）所需，用于进程隔离、网络通信和工作区搜索。
-
-可以使用以下命令一次性安装所有依赖：
-
-> Ubuntu/Debian
-```bash
-sudo apt install -y ffmpeg poppler-utils imagemagick bubblewrap socat ripgrep libraw-bin
-```
-
-> Fedora
-```bash
-sudo dnf install -y ffmpeg poppler-utils ImageMagick bubblewrap socat ripgrep LibRaw
-```
-
-> Arch Linux
-```bash
-sudo pacman -S --noconfirm ffmpeg poppler imagemagick bubblewrap socat ripgrep libraw
-```
-
-> [!NOTE]
-> **Ubuntu 24.04+** 默认限制非特权用户创建 User Namespace，这会导致 `anthropic-experimental/sandbox-runtime` 无法使用 `bubblewrap` 提供沙箱隔离。
->
-> 如需临时启用 User Namespace，请执行：
->
-> ```bash
-> sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-> ```
->
-> 或者，配置 AppArmor Profile，为相关可执行文件授予所需的 `userns`权限。
-
----
-
-#### macOS
-
-在 macOS 上运行 Shumai 需要：
-
-- **`ffmpeg`** —— 用于媒体转码和元数据提取。
-- **`poppler`** —— 用于 PDF 页面图像提取和 PDF 雪碧图预览生成 (`pdftoppm`)。
-- **`imagemagick`** —— 用于 PSD 格式图像转码和 sRGB 色彩空间转换。
-- **`dcraw_emu`** (`libraw`) —— 用于相机 RAW 格式图像解码和预览图生成。
-- **`ripgrep`** —— AI Agent 沙箱（`anthropic-experimental/sandbox-runtime`）所需。
-
-使用 Homebrew 安装所需依赖：
-
-```bash
-brew install ffmpeg poppler imagemagick ripgrep libraw
-```
-
----
-
-#### Windows（Alpha）
-
-> [!WARNING]
-> anthropic-experimental/sandbox-runtime 的 Windows 支持目前仍处于 **Alpha** 阶段，整体设计仍在持续调整中。
->
-> 当前实现提供了以下能力：
-> - 通过 **Windows Filtering Platform (WFP)** 实现网络出口（egress）过滤。
-> - 通过 **ACL Stamping** 实现文件读写权限限制。
->
-> **但这并不能作为针对恶意沙箱进程的安全边界（security boundary）**。
->
-> 未来版本将对沙箱机制进行重大调整，届时沙箱进程将运行在独立的沙箱用户账户下。
-
-在 Windows 上运行 Shumai 需要：
-
-- **`ffmpeg`** —— 用于媒体转码和元数据提取。
-- **`imagemagick`** —— 用于 PSD 格式图像转码和 sRGB 色彩空间转换。
-
-使用你偏好的包管理器安装所需依赖：
-
-**winget**
-```powershell
-winget install Gyan.FFmpeg ImageMagick.ImageMagick
-```
-
-**Chocolatey**
-```powershell
-choco install ffmpeg imagemagick
-```
-
-#### 第四步：全局安装 Shumai
-
-使用您常用的包管理器进行全局安装：
-
-```bash
-# 使用 NPM
-npm install -g @shumai-one/shumai
-
-# 使用 PNPM
-pnpm add -g @shumai-one/shumai
-
-# 使用 Bun
-bun add -g @shumai-one/shumai
-
-```
-
-#### 第五步：配置环境配置
-
-在刚才创建的工作区目录（`shumai/`）下新建一个 `.env` 文件，并填入以下配置：
-
-```env
-DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
-BETTER_AUTH_SECRET=ySxs7DxzHDZBbeeHNPEwBuspYwipBqz5Gk5XdBjNhWw=
-STORAGE_BACKEND=local
-SHUMAI_SERVER_PORT=3000
-AWS_ENDPOINT_URL_S3=http://localhost:3000
-
-```
-
-> [!NOTE]
-> `SHUMAI_SERVER_PORT` 用于设置 Web 服务的启动端口，而 `AWS_ENDPOINT_URL_S3` 供浏览器端构建文件上传链接。
-> 如果您部署在远程服务器（如 `http://123.456.7.8`）并且做了端口映射（如 Docker 中的 `12345:3000`），请将 `AWS_ENDPOINT_URL_S3` 设置为 `http://123.456.7.8:12345`。
-
-#### 第六步：启动 Shumai
-
-> [!IMPORTANT]
-> **Bun 用户特别提示：** 由于发布的包二进制文件包含 `#!/usr/bin/env node` 头部声明（Shebang），直接在终端执行全局命令（例如 `shumai`）默认会通过 Node.js 运行。如果您是用 Bun 安装的并且希望调用 Bun 运行时，请在所有命令前加上 `bun run --bun` 前缀（例如：`bun run --bun shumai`、`bun run --bun shumai -d`、`bun run --bun shumai stop`）。
-
-在您的工作区目录下执行以下命令启动应用：
-
-```bash
-shumai
-
-```
-
-您也可以让 Shumai 在后台以守护进程（Daemon）模式运行和管理：
-
-* **后台模式启动**：
-```bash
-shumai -d
-
-```
-
-
-* **停止服务**：
-```bash
-shumai stop
-
-```
-
-
-* **重启服务**：
-```bash
-shumai restart
-
-```
-
-
-* **查看并跟踪实时日志**：
-```bash
-shumai logs
-
-```
-
-
-
-启动时，Shumai 会自动执行数据库迁移（Migration）并在 `http://localhost:3000` 拉起 Web 服务。
-
----
-
-### 方案三：源码编译运行（开发环境）
+### 方案二：源码编译运行（开发环境）
 
 如果您希望在本地参与 Shumai 的开发，请按以下步骤配置开发环境：
 
 1. 克隆代码仓库并安装依赖项：
-```bash
-git clone [https://github.com/shumaiOne/shumai.git](https://github.com/shumaiOne/shumai.git)
-cd shumai
-bun install
+   ```bash
+   git clone https://github.com/shumaiOne/shumai.git
+   cd shumai
+   bun install
+   ```
 
-```
+2. 启动 `pgvector` 数据库容器：
+   ```bash
+   docker run --name shumai_postgres \
+     -e POSTGRES_USER=shumai \
+     -e POSTGRES_PASSWORD=shumai_password \
+     -e POSTGRES_DB=shumai_db \
+     -p 5432:5432 \
+     -d docker.m.daocloud.io/pgvector/pgvector:pg18
+   ```
 
+3. 在项目根目录下创建一个 `.env` 文件，填入以下基础配置：
+   ```env
+   DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
+   BETTER_AUTH_SECRET=ySxs7DxzHDZBbeeHNPEwBuspYwipBqz5Gk5XdBjNhWw=
+   STORAGE_BACKEND=local
+   SHUMAI_SERVER_PORT=3000
+   AWS_ENDPOINT_URL_S3=http://localhost:3000
+   ```
 
-2. 启动 `pgvector` 数据库容器（参考**方案二中的第一步**）。
-3. 参照**方案二中的第五步**，在项目根目录下创建一个 `.env` 文件。
 4. 生成多语言国际化（i18n）代码：
-```bash
-bun run i18n:compile
-```
-> [!TIP]
-> 在前端开发过程中，可以在单独的终端窗口中运行 `bun run i18n:watch`，在修改 `packages/webui/messages/` 下的翻译文案时自动重新编译。
+   ```bash
+   bun run i18n:compile
+   ```
+   > [!TIP]
+   > 在前端开发过程中，可以在单独的终端窗口中运行 `bun run i18n:watch`，在修改 `packages/webui/messages/` 下的翻译文案时自动重新编译。
 
 5. 执行数据库结构迁移：
-```bash
-bun run db:migrate
-```
+   ```bash
+   bun run db:migrate
+   ```
+
 6. 启动本地开发服务器：
-```bash
-bun run dev
-```
+   ```bash
+   bun run dev
+   ```
+
+> [!NOTE]
+> 如需通过 NPM 或包管理器全局安装运行 Shumai，请参考[官方 NPM 安装指南](https://docs.shumai.one/getting-started/quickstart)。
 
 
 
