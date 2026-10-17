@@ -44,12 +44,6 @@ describe('Agent Embedding Workflow', () => {
       updateTaskUsageActivity: Object.assign(vi.fn(), { _activityName: 'updateTaskUsageActivity' }),
       createCommentActivity: Object.assign(vi.fn(), { _activityName: 'createCommentActivity' }),
       updateCommentActivity: Object.assign(vi.fn(), { _activityName: 'updateCommentActivity' }),
-      getAgentWorkerQueueActivity: Object.assign(vi.fn(), {
-        _activityName: 'getAgentWorkerQueueActivity',
-      }),
-      getTranscodeWorkerQueueActivity: Object.assign(vi.fn(), {
-        _activityName: 'getTranscodeWorkerQueueActivity',
-      }),
       downloadMediaToTmpActivity: Object.assign(vi.fn(), {
         _activityName: 'downloadMediaToTmpActivity',
       }),
@@ -64,8 +58,6 @@ describe('Agent Embedding Workflow', () => {
       }),
     }
 
-    mockActivities.getAgentWorkerQueueActivity.mockResolvedValue('agent_queue')
-    mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_queue')
     mockActivities.updateTaskStatusActivity.mockResolvedValue({})
     mockActivities.createCommentActivity.mockResolvedValue({ id: 'comment-placeholder-id' })
     mockActivities.getEmbeddingContextActivity.mockResolvedValue({
@@ -123,9 +115,6 @@ describe('Agent Embedding Workflow', () => {
     })
 
     await agentEmbeddingMedia(task)
-
-    // Verify queue discovery
-    expect(mockActivities.getAgentWorkerQueueActivity).toHaveBeenCalled()
 
     // Verify task processing status
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
@@ -306,9 +295,6 @@ describe('Agent Embedding Workflow', () => {
     })
 
     await agentEmbeddingMedia(task)
-
-    // Verify video transcode queue discovery
-    expect(mockActivities.getTranscodeWorkerQueueActivity).toHaveBeenCalled()
 
     // Verify video chunk slicing activity called 3 times on transcode queue
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledTimes(3)

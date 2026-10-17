@@ -23,15 +23,23 @@ import {
   isOfficeDocument,
 } from '@shumai/core/src/utils/mime'
 import { logger } from '@shumai/core/src/logger'
-import { ApplicationFailure, Context } from '@temporalio/activity'
-import { getLocalTaskAbortSignal } from '@shumai/workflow-core'
+import { ApplicationFailure, getLocalTaskAbortSignal } from '@shumai/workflow-core'
 
 function getActivityCancellationSignal(taskId?: string): AbortSignal | undefined {
-  try {
-    return Context.current().cancellationSignal
-  } catch {
-    return getLocalTaskAbortSignal(taskId)
+  return getLocalTaskAbortSignal(taskId)
+}
+
+export async function ensureLocalMediaFile(assetKey: string, filePath: string): Promise<string> {
+  if (fs.existsSync(filePath)) {
+    return filePath
   }
+  const dir = path.dirname(filePath)
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
+  const bucket = process.env.S3_BUCKET || 'shumai'
+  await s3Service.downloadToFile(bucket, assetKey, filePath)
+  return filePath
 }
 import * as path from 'path'
 import * as fs from 'fs'
@@ -367,6 +375,7 @@ export async function transcodeVideoActivity(
     // Not found
   }
 
+  await ensureLocalMediaFile(params.assetKey, params.filePath)
   const tmpDir = path.dirname(params.filePath)
   const outputFile = path.join(tmpDir, `${stem}-${suffix}.mp4`)
 
@@ -489,6 +498,7 @@ export async function transcodeHlsActivity(params: HlsActivityParams): Promise<P
     })
   }
 
+  await ensureLocalMediaFile(params.assetKey, params.filePath)
   const hlsTmpDir = path.join(path.dirname(params.filePath), `hls-${ulid()}`)
 
   try {
@@ -670,6 +680,7 @@ export async function transcodeAudioActivity(
     // Not found
   }
 
+  await ensureLocalMediaFile(params.assetKey, params.filePath)
   const tmpDir = path.dirname(params.filePath)
   const outputFile = path.join(tmpDir, `${stem}-audio-proxy.mp4`)
 
@@ -750,6 +761,7 @@ export async function transcodeImageActivity(
     // Not found
   }
 
+  await ensureLocalMediaFile(params.assetKey, params.filePath)
   const tmpDir = path.dirname(params.filePath)
   const outputFile = path.join(tmpDir, `${stem}-${params.imageSpec.width}p.webp`)
 
@@ -824,6 +836,7 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
     // Not found
   }
 
+  await ensureLocalMediaFile(params.assetKey, params.filePath)
   const tmpDir = path.dirname(params.filePath)
   const spriteFile = path.join(tmpDir, 'sprite.webp')
   const posterFile = path.join(tmpDir, 'poster.webp')

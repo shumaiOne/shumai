@@ -299,7 +299,7 @@ describe('Team API', () => {
 ### Workflow E2E Tests
 
 - Located in `packages/e2e/workflow/**/*.test.ts`.
-- Run via `bun run test:e2e:workflow` (which executes tests against both `local` and `temporal` executors dynamically).
+- Run via `bun run test:e2e:workflow`.
 - **Mandatory test coverage**: When creating or updating workflows or activities, you MUST create or update the corresponding E2E tests.
 - **Mocking**: Mock ONLY AI API calls. Do not mock S3, databases, or media/transcode extraction services.
 - Mock the AI response by spying on `AgentHarness.prototype.prompt`:
@@ -377,44 +377,35 @@ model Example {
   - The default `limit` should be **20**.
   - Always use the `paginateQuery` helper function from `packages/core/src/pagination.ts` for consistent cursor pagination.
 
-## Temporal Workflow & Activities
+## DBOS Workflow & Activities
 
-We use a custom workflow engine that supports both **Local** (polling-based) and **Temporal** (production-grade) execution.
+We use **DBOS Transact** (`@dbos-inc/dbos-sdk`) as our unified workflow engine for reliable, distributed background execution.
 
 ### Architecture
 
-1.  **Workflows**: Orchestrate multiple activities. They must be deterministic and compatible with Temporal's V8 isolate. Defined in worker packages (e.g., `@shumai/agent/src/workflows`, `@shumai/transcode/src/workflows`).
-2.  **Activities**: Perform the actual work (DB updates, API calls, media processing). Grouped by domain in worker packages (e.g., `@shumai/agent/src/activities`, `@shumai/transcode/src/activities`).
+1.  **Workflows**: Orchestrate multiple steps/activities reliably. Defined in worker packages (e.g., `@shumai/agent/src/workflows`, `@shumai/transcode/src/workflows`).
+2.  **Activities (Steps)**: Perform the actual work (DB updates, API calls, media processing). Grouped by domain in worker packages (e.g., `@shumai/agent/src/activities`, `@shumai/transcode/src/activities`).
 3.  **Executors**:
-    - `LocalExecutor` (in `@shumai/workflow-core`): Polls the database for `pending` tasks and executes them directly.
-    - `TemporalExecutor` (in `@shumai/workflow-core`): Submits tasks to a Temporal cluster.
-4.  **Automatic Submission**: New `WorkflowTask` records are automatically submitted to the `WorkflowService` via a Prisma Client Extension defined in `@shumai/db`.
+    - `DbosExecutor` (in `@shumai/workflow-core`): Coordinates workflow and step dispatching via DBOS queues against PostgreSQL.
+4.  **Automatic Submission**: New `WorkflowTask` records are automatically enqueued to `WorkflowService` via a Prisma Client Extension defined in `@shumai/db`.
 
 ### Dynamic Registration
 
-To avoid circular dependencies, workflows and activities are dynamically registered onto the `LocalExecutor` registry at bootstrap time via initializer functions (e.g., `initAgentWorkflows()`, `initTranscodeWorkflows()`).
+To avoid circular dependencies, workflows and activities are dynamically registered onto the workflow registry at bootstrap time via initializer functions (e.g., `initAgentWorkflows()`, `initTranscodeWorkflows()`).
 
 ### Non-Retryable Error Handling
 
-To prevent Temporal from indefinitely retrying fatal, expected business validation failures (e.g., missing records, invalid configurations, missing parameters), **never throw standard `Error` objects from workflow or activity logic.** Instead, throw a non-retryable `ApplicationFailure`.
+To prevent the engine from indefinitely retrying fatal, expected business validation failures (e.g., missing records, invalid configurations, missing parameters), **never throw standard `Error` objects from workflow or activity logic.** Instead, throw a non-retryable `ApplicationFailure` (alias of `WorkflowFailure`).
 
-**Mandatory Requirement**: You **MUST** set `nonRetryable: true` in the options object passed to `ApplicationFailure.create`. Standard errors or `ApplicationFailure` objects without `nonRetryable: true` will cause Temporal to retry the activity or workflow indefinitely.
+**Mandatory Requirement**: You **MUST** set `nonRetryable: true` in the options object passed to `ApplicationFailure.create`. Standard errors or failure objects without `nonRetryable: true` will cause DBOS to retry the activity or workflow according to its retry policy.
 
-- **Workflow Boundary**: In workflows, import `ApplicationFailure` from `@temporalio/workflow`:
+- **Import**: Import `ApplicationFailure` from `@shumai/workflow-core`:
   ```typescript
-  import { ApplicationFailure } from '@temporalio/workflow'
+  import { ApplicationFailure } from '@shumai/workflow-core'
   throw ApplicationFailure.create({ message: 'agentId missing in payload', nonRetryable: true })
   ```
-- **Activity Boundary**: In activities, import `ApplicationFailure` from `@temporalio/activity`:
-  ```typescript
-  import { ApplicationFailure } from '@temporalio/activity'
-  throw ApplicationFailure.create({
-    message: 'no autofill agent found for team',
-    nonRetryable: true,
-  })
-  ```
 
-### Temporal Workflow Patterns
+### Workflow Patterns
 
 - **Definition**: Define workflows as exported async functions.
   ```typescript
@@ -424,14 +415,12 @@ To prevent Temporal from indefinitely retrying fatal, expected business validati
     await activityB({ ... })
   }
   ```
-- **Environment Compatibility**: Always use `getActivities()` from `@shumai/workflow-core` to ensure the code works in both Local and Temporal environments.
-- **Activity Access**: Activities should be accessed via `getActivities()` within a workflow. Do not call services directly inside a workflow function to maintain Temporal compatibility.
-- **Queue Redirection**: Production Temporal workers use worker-specific unique queues for data locality (e.g., local disk access) and consistent state.
-  - Every workflow MUST first call `getAgentWorkerQueueActivity` or `getTranscodeWorkerQueueActivity` via the shared domain queue (e.g., `TaskQueueAgent` or `TaskQueueTranscode`) to obtain the specific queue name for that worker instance.
-  - ALL subsequent activities (including shared DB activities like updating task status) MUST be executed on that specific discovered queue.
-  - The shared domain worker ONLY registers the queue discovery activities. All other activities (shared and domain-specific) are registered on the specific worker.
+- **Activity Access**: Activities should be accessed via `getActivities()` within a workflow.
+- **Queues**: Workflows are dispatched to dedicated task queues (e.g. `TaskQueueTranscode`, `TaskQueueAgent`) managed by DBOS.
 
 ### Activity Patterns
+
+- **Implementation**: Activities _can_ and _should_ call other services (e.g., `aiService`, `transcodeService`) or interact with the database directly. Database (Prisma) queries or updates are allowed in all activity types (e.g., agent or transcode) for simplicity.
 
 - **Implementation**: Activities _can_ and _should_ call other services (e.g., `aiService`, `transcodeService`) or interact with the database directly. Database (Prisma) queries or updates are allowed in all activity types (e.g., agent or transcode) for simplicity.
 

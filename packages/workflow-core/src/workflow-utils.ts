@@ -1,5 +1,4 @@
-// Use type-only imports for activities to avoid bundling them in Temporal workflows
-import * as wf from '@temporalio/workflow'
+import { DBOS } from '@dbos-inc/dbos-sdk'
 
 /**
  * Task queue constants.
@@ -7,18 +6,44 @@ import * as wf from '@temporalio/workflow'
 export const TaskQueueAgent = 'agent_queue'
 export const TaskQueueTranscode = 'transcode_queue'
 
-/**
- * Detects if the current execution is within a Temporal Workflow isolate.
- */
-export function isTemporal(): boolean {
-  try {
-    // In Temporal TS SDK, workflowInfo() throws if called outside of a workflow context.
-    wf.workflowInfo()
-    return true
-  } catch {
-    return false
+export class WorkflowFailure extends Error {
+  readonly nonRetryable: boolean
+
+  private constructor(message: string, nonRetryable: boolean, cause?: unknown) {
+    super(message, { cause })
+    this.name = 'WorkflowFailure'
+    this.nonRetryable = nonRetryable
+  }
+
+  static create(opts: {
+    message: string
+    nonRetryable?: boolean
+    cause?: unknown
+  }): WorkflowFailure {
+    return new WorkflowFailure(opts.message, opts.nonRetryable ?? false, opts.cause)
   }
 }
+
+export const ApplicationFailure = WorkflowFailure
+
+export function isNonRetryableError(err: unknown): boolean {
+  if (err instanceof WorkflowFailure) {
+    return err.nonRetryable
+  }
+  if (err && typeof err === 'object' && 'nonRetryable' in err) {
+    return (err as { nonRetryable?: unknown }).nonRetryable === true
+  }
+  return false
+}
+
+const CLEANUP_OR_FINALIZE_ACTIVITIES = new Set([
+  'cleanupTmpDirActivity',
+  'updateTaskStatusActivity',
+  'updateWorkflowTaskActivity',
+  'updateAssetStatusActivity',
+  'updateCommentActivity',
+  'deleteS3ObjectActivity',
+])
 
 interface LocalLogger {
   debug(obj: Record<string, unknown>, msg: string): void
@@ -34,9 +59,6 @@ const globalObj = globalThis as typeof globalThis & {
 }
 /* eslint-enable @typescript-eslint/naming-convention */
 
-/**
- * A proxy that mimics proxyActivities for local execution.
- */
 function localActivitiesProxy(): Record<string, unknown> {
   const acts = globalObj.__localActivities
   if (!acts) {
@@ -46,39 +68,24 @@ function localActivitiesProxy(): Record<string, unknown> {
 }
 
 /**
- * Environment-aware sleep function.
+ * Environment-aware sleep function. Uses DBOS.sleepms in workflow context.
  */
 export async function sleep(ms: number): Promise<void> {
-  if (isTemporal()) {
-    await wf.sleep(ms)
+  if (DBOS.isWithinWorkflow()) {
+    await DBOS.sleepms(ms)
   } else {
     await new Promise((resolve) => setTimeout(resolve, ms))
   }
 }
 
 /**
- * Environment-aware activity proxy.
+ * Dynamic activities proxy that exposes registered activities and attaches metadata.
  */
 // getActivities must default to `any` so that workflows can dynamically
 // destructure and call any activity when they do not supply a precise type parameter.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getActivities<T = any>(): T {
-  // baseProxy is dynamically proxying all activities, so we must type it as any.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let baseProxy: any
-  if (isTemporal()) {
-    // Temporal's proxyActivities requires a type parameter, so we use any for generic activities.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    baseProxy = wf.proxyActivities<any>({
-      startToCloseTimeout: '120 minutes',
-      retry: {
-        maximumAttempts: 5,
-        initialInterval: '10s',
-      },
-    })
-  } else {
-    baseProxy = localActivitiesProxy()
-  }
+  const baseProxy = localActivitiesProxy()
 
   // Wrap the base proxy to attach the activity name to the returned functions
   // We use any here because we are dynamically intercepting properties on the proxy
@@ -102,23 +109,12 @@ export function getActivities<T = any>(): T {
   })
 }
 
-/**
- * Environment-aware logger for workflows and activities.
- */
-function getLogger() {
-  if (isTemporal()) {
-    return {
-      debug: (obj: Record<string, unknown>, msg: string) => wf.log.debug(msg, obj),
-      info: (obj: Record<string, unknown>, msg: string) => wf.log.info(msg, obj),
-      error: (obj: Record<string, unknown>, msg: string) => wf.log.error(msg, obj),
-      warn: (obj: Record<string, unknown>, msg: string) => wf.log.warn(msg, obj),
-    }
-  }
+function getLogger(): LocalLogger | Console {
   return globalObj.__localLogger || console
 }
 
 /**
- * Execute an activity on a specific task queue.
+ * Execute an activity on a specific task queue. In DBOS context, executes as a checkpointed step.
  * @param queue The task queue to run the activity on
  * @param activityFunc The proxy function obtained from `getActivities()`
  * @param args The arguments to pass to the activity
@@ -162,19 +158,30 @@ export async function executeActivity(
     // result holds the untyped return value from the dynamic activity proxy, so we type it as any.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any
-    if (isTemporal()) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const handle = wf.proxyActivities<any>({
-        startToCloseTimeout: '120 minutes',
-        taskQueue: queue,
-        retry: {
-          maximumAttempts: 5,
-          initialInterval: '10s',
-        },
-      })
-      result = await handle[activityName](...args)
+    if (DBOS.isWithinWorkflow()) {
+      try {
+        result = await DBOS.runStep(() => activityFunc(...args), {
+          name: activityName,
+          retriesAllowed: true,
+          maxAttempts: 5,
+          intervalSeconds: process.env.NODE_ENV === 'test' ? 1 : 10,
+          backoffRate: 2,
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- DBOS StepOptions property name
+          timeoutMS: 120 * 60 * 1000,
+          shouldRetry: (err) => !isNonRetryableError(err),
+        })
+      } catch (stepErr) {
+        if (
+          stepErr instanceof Error &&
+          stepErr.name === 'DBOSWorkflowCancelledError' &&
+          CLEANUP_OR_FINALIZE_ACTIVITIES.has(activityName)
+        ) {
+          result = await activityFunc(...args)
+        } else {
+          throw stepErr
+        }
+      }
     } else {
-      // For local execution, queue is ignored and we just execute the function
       result = await activityFunc(...args)
     }
     logger.debug(
@@ -253,6 +260,9 @@ export function runInLocalTaskContext<T>(context: LocalTaskContext, fn: () => T)
 }
 
 export function getLocalTaskAbortSignal(taskId?: string): AbortSignal | undefined {
+  if (DBOS.stepStatus?.cancelSignal) {
+    return DBOS.stepStatus.cancelSignal
+  }
   if (taskId) {
     const controller = localTaskAbortControllers.get(taskId)
     if (controller) {

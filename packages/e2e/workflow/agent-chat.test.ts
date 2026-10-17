@@ -5,22 +5,14 @@ import { workflowService, TaskQueueAgent } from '@shumai/workflow-core'
 import { initAgentWorkflows } from '@shumai/agent'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { AgentHarness } from '@earendil-works/pi-agent-core'
-import { fileURLToPath } from 'url'
-import * as path from 'path'
 
-const currentDir = path.dirname(fileURLToPath(import.meta.url))
-const agentWorkflowsPath = path.resolve(currentDir, '../../../apps/agent/src/workflows.ts')
-
-describe.each(['local', 'temporal'] as const)('Workflow E2E - agentChat (executor: %s)', (mode) => {
+describe('Workflow E2E - agentChat', () => {
   setupTestDbHooks()
-
-  let agentWorkerPromise: Promise<void> | null = null
 
   beforeAll(async () => {
     process.env.S3_BUCKET = 'shumai-e2e-test-bucket-chat'
     process.env.GEMINI_API_KEY = 'dummy-key'
 
-    workflowService.setExecutorType(mode)
     initAgentWorkflows()
 
     vi.spyOn(AgentHarness.prototype, 'prompt').mockResolvedValue({
@@ -29,24 +21,11 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - agentChat (executo
       stopReason: 'stop',
     } as unknown as Awaited<ReturnType<typeof AgentHarness.prototype.prompt>>)
 
-    if (mode === 'temporal') {
-      console.log('Starting background worker for chat Temporal E2E tests...')
-      agentWorkerPromise = workflowService.startWorkers(TaskQueueAgent, {
-        workflowsPath: agentWorkflowsPath,
-      })
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-    } else {
-      console.log('Starting local workflow service polling...')
-      workflowService.start()
-    }
+    await workflowService.startWorkers(TaskQueueAgent)
   })
 
   afterAll(async () => {
-    if (mode === 'temporal') {
-      console.log('Shutting down Temporal workers...')
-      await workflowService.shutdownWorkers()
-      await Promise.all([agentWorkerPromise].filter(Boolean))
-    }
+    await workflowService.shutdownWorkers()
     workflowService.close()
     vi.restoreAllMocks()
     try {

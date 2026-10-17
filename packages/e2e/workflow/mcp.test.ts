@@ -11,16 +11,11 @@ import {
   type RunningTestMcpServer,
 } from '@shumai/core/src/mcp/mcp-test-server'
 import { AgentHarness } from '@earendil-works/pi-agent-core'
-import { fileURLToPath } from 'url'
-import * as path from 'path'
 
-const currentDir = path.dirname(fileURLToPath(import.meta.url))
-const agentWorkflowsPath = path.resolve(currentDir, '../../../apps/agent/src/workflows.ts')
-
-describe.each(['local', 'temporal'] as const)('Workflow E2E - MCP tools (executor: %s)', (mode) => {
+describe('Workflow E2E - MCP tools', () => {
   setupTestDbHooks()
+  const mode = 'dbos'
 
-  let agentWorkerPromise: Promise<void> | null = null
   let mcpTestServer: RunningTestMcpServer
 
   beforeAll(async () => {
@@ -35,7 +30,6 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - MCP tools (executo
       serverInfo: { name: 'e2e-mcp' },
     })
 
-    workflowService.setExecutorType(mode)
     initAgentWorkflows()
 
     // Mock ONLY the AI model call. The mocked prompt locates the real `mcp`
@@ -74,24 +68,11 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - MCP tools (executo
       } as unknown as Awaited<ReturnType<typeof AgentHarness.prototype.prompt>>
     })
 
-    if (mode === 'temporal') {
-      console.log('Starting background worker for MCP Temporal E2E tests...')
-      agentWorkerPromise = workflowService.startWorkers(TaskQueueAgent, {
-        workflowsPath: agentWorkflowsPath,
-      })
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-    } else {
-      console.log('Starting local workflow service polling...')
-      workflowService.start()
-    }
+    await workflowService.startWorkers(TaskQueueAgent)
   })
 
   afterAll(async () => {
-    if (mode === 'temporal') {
-      console.log('Shutting down Temporal workers...')
-      await workflowService.shutdownWorkers()
-      await Promise.all([agentWorkerPromise].filter(Boolean))
-    }
+    await workflowService.shutdownWorkers()
     workflowService.close()
     vi.restoreAllMocks()
     await mcpService.closeAllConnections()

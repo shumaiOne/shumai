@@ -1,6 +1,10 @@
-import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@shumai/db'
-import { executeActivity, getActivities, TaskQueueAgent } from '@shumai/workflow-core'
+import {
+  ApplicationFailure,
+  executeActivity,
+  getActivities,
+  TaskQueueAgent,
+} from '@shumai/workflow-core'
 import type {
   ShumaiMessageContext,
   ShumaiAssetContext,
@@ -20,7 +24,6 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     createCommentActivity,
     updateCommentActivity,
     updateTaskUsageActivity,
-    getAgentWorkerQueueActivity,
     initializeAgentSessionActivity,
     getAssetPathHierarchyActivity,
     getAssetPathContextActivity,
@@ -29,12 +32,9 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
   } = getActivities()
 
   let placeholderCommentId: string | undefined
-  let agentWorkerQueue = ''
+  const agentWorkerQueue = TaskQueueAgent
 
   try {
-    // 0. Discover queue
-    agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
-
     // Update status to processing
     await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
       taskId: task.id,

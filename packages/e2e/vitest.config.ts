@@ -14,7 +14,7 @@ export default defineConfig({
     include: ['packages/e2e/workflow/**/*.test.ts'],
     server: {
       deps: {
-        inline: ['zod', '@shumai/workflow-core', '@temporalio/activity'],
+        inline: ['zod', '@shumai/workflow-core', '@dbos-inc/dbos-sdk'],
       },
     },
   },

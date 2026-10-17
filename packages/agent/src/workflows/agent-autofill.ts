@@ -1,6 +1,10 @@
 import type { WorkflowTask } from '@shumai/db'
-import { executeActivity, getActivities, TaskQueueAgent } from '@shumai/workflow-core'
-import { ApplicationFailure } from '@temporalio/workflow'
+import {
+  ApplicationFailure,
+  executeActivity,
+  getActivities,
+  TaskQueueAgent,
+} from '@shumai/workflow-core'
 import { getProxyType } from '@shumai/core/src/utils/mime'
 
 export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
@@ -14,16 +18,12 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     updateAssetMetadataActivity,
     createCommentActivity,
     updateCommentActivity,
-    getAgentWorkerQueueActivity,
   } = getActivities()
 
   let placeholderCommentId: string | undefined
-  let agentWorkerQueue = ''
+  const agentWorkerQueue = TaskQueueAgent
 
   try {
-    // 0. Discover queues
-    agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
-
     // Update status to processing
     await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
       taskId: task.id,

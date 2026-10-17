@@ -1,6 +1,6 @@
-import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@shumai/db'
 import {
+  ApplicationFailure,
   getActivities,
   executeActivity,
   TaskQueueAgent,
@@ -32,24 +32,15 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     updateTaskUsageActivity,
     createCommentActivity,
     updateCommentActivity,
-    getAgentWorkerQueueActivity,
-    getTranscodeWorkerQueueActivity,
     transcodeVideoChunkActivity,
     deleteS3ObjectActivity,
   } = getActivities()
 
   let placeholderCommentId: string | undefined
-  let agentWorkerQueue = ''
-  let transcodeWorkerQueue: string
+  const agentWorkerQueue = TaskQueueAgent
+  const transcodeWorkerQueue = TaskQueueTranscode
 
   try {
-    // 0. Discover queues
-    agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
-    transcodeWorkerQueue = await executeActivity(
-      TaskQueueTranscode,
-      getTranscodeWorkerQueueActivity,
-    )
-
     // Update status to processing
     await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
       taskId: task.id,

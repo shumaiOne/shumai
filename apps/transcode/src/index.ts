@@ -16,16 +16,7 @@ async function run() {
 
   console.log('🚀 Starting Transcode Worker...')
 
-  const options: { workflowBundle?: unknown; workflowsPath?: string } = {}
-  if (process.env.NODE_ENV === 'production') {
-    // @ts-ignore: Bun temporal plugin macro
-    const { default: workflowBundle } = await import('./workflows.ts:::workflow')
-    options.workflowBundle = workflowBundle
-  } else {
-    options.workflowsPath = new URL('./workflows.ts', import.meta.url).pathname
-  }
-
-  await workflowService.startWorkers(TaskQueueTranscode, options)
+  await workflowService.startWorkers(TaskQueueTranscode)
 }
 
 handleDaemonCommands('shumai-transcode', run).catch((err) => {

@@ -2,7 +2,6 @@ import tailwindPlugin from 'bun-plugin-tailwind'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { temporalWorkflow } from '../packages/workflow-core/src/bun-temporal-plugin'
 
 console.log('\n🚀 Starting NPM packaging build process for all applications...\n')
 
@@ -23,16 +22,13 @@ const rootPackageJson = JSON.parse(await Bun.file('package.json').text())
 const version = rootPackageJson.version || '0.1.0'
 
 const commonExternal = [
+  '@dbos-inc/dbos-sdk',
   '@prisma/client',
   '@prisma/adapter-pg',
   'pg',
   'sharp',
   'pino',
   'pino-pretty',
-  '@temporalio/activity',
-  '@temporalio/client',
-  '@temporalio/worker',
-  '@temporalio/workflow',
   'pdfkit',
   'prisma',
   'zod',
@@ -490,12 +486,7 @@ export default defineConfig({
 }
 
 // 2. Build shumai (Main app & platform binaries)
-const shumaiPlugins = [
-  temporalWorkflow({
-    bundleOptions: {},
-  }),
-  tailwindPlugin,
-]
+const shumaiPlugins = [tailwindPlugin]
 const shumaiExternal = commonExternal.filter((dep) => dep !== 'zod')
 await buildPlatformPackages('shumai', dummyRunnerPath, shumaiPlugins, shumaiExternal)
 await buildMainPackage({
@@ -508,33 +499,21 @@ await buildMainPackage({
 })
 
 // 3. Build shumai-agent (Agent app & platform binaries)
-const agentPlugins = [
-  temporalWorkflow({
-    bundleOptions: {},
-  }),
-]
 await buildPlatformPackages('shumai-agent', dummyRunnerPath)
 await buildMainPackage({
   appName: 'shumai-agent',
   description: 'AI worker agent for the shumai media workspace',
   hasPrisma: true,
   entrypoint: './apps/agent/src/index.ts',
-  plugins: agentPlugins,
 })
 
 // 4. Build shumai-transcode (Transcode app & platform binaries)
-const transcodePlugins = [
-  temporalWorkflow({
-    bundleOptions: {},
-  }),
-]
 await buildPlatformPackages('shumai-transcode', dummyRunnerPath)
 await buildMainPackage({
   appName: 'shumai-transcode',
   description: 'Media transcoding worker for the shumai media workspace',
   hasPrisma: true,
   entrypoint: './apps/transcode/src/index.ts',
-  plugins: transcodePlugins,
 })
 
 // 5. Build shumai-cli (pure Node.js bundle)

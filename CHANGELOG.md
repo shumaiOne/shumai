@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+* **workflow**: Migrate the background workflow engine to DBOS, unifying all-in-one and dedicated worker deployments using the existing PostgreSQL database without requiring a separate Temporal cluster
+
 ## [0.5.3] - 2026-10-16
 
 ### Added

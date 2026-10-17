@@ -1,7 +1,6 @@
 import type { WorkflowTask } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
-import { executeActivity, getActivities } from '@shumai/workflow-core'
-import { ApplicationFailure } from '@temporalio/workflow'
+import { executeActivity, getActivities, ApplicationFailure } from '@shumai/workflow-core'
 import { getWorkerQueueAndStartTask, completeTask, failTask } from './common'
 
 export async function overlayImageAnnotationWorkflow(task: WorkflowTask): Promise<void> {

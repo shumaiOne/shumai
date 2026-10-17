@@ -23,8 +23,7 @@ import {
 import * as piAgent from '../index'
 import { type AgentHarness, type Session } from '@earendil-works/pi-agent-core'
 import { DatabaseSessionStorage, type DatabaseSessionMetadata } from '../database-session-storage'
-import { triggerLocalCancel } from '@shumai/workflow-core'
-import { Context } from '@temporalio/activity'
+import { triggerLocalCancel, runInLocalTaskContext } from '@shumai/workflow-core'
 import { logger } from '@shumai/core/src/logger'
 
 import {
@@ -50,9 +49,6 @@ vi.mock('../index', async () => {
 describe('Agent Activities', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.spyOn(Context, 'current').mockImplementation(() => {
-      throw new Error('Not in Temporal')
-    })
   })
 
   it('should call agentChatActivity and prompt the harness', async () => {
@@ -240,13 +236,7 @@ describe('Agent Activities', () => {
     await executionPromise
   })
 
-  it('should listen to Temporal cancellation signal and call harness.abort when cancelled in Temporal mode', async () => {
-    const mockTemporalContext = {
-      cancellationSignal: new EventTarget(),
-      heartbeat: vi.fn(),
-    } as unknown as Context
-    vi.spyOn(Context, 'current').mockReturnValue(mockTemporalContext)
-
+  it('should listen to abort signal and call harness.abort when cancelled', async () => {
     let resolvePrompt!: (value: {
       content: Array<{ type: string; text: string } | { type: string }>
       usage: { input: number; output: number }
@@ -280,42 +270,36 @@ describe('Agent Activities', () => {
       allowedDomains: [],
     } as unknown as AgentExecutionContext
 
-    const addEventListenerSpy = vi.spyOn(mockTemporalContext.cancellationSignal, 'addEventListener')
-    const removeEventListenerSpy = vi.spyOn(
-      mockTemporalContext.cancellationSignal,
-      'removeEventListener',
-    )
+    const taskId = 'test-abort-task'
+    const abortController = new AbortController()
 
-    const executionPromise = agentChatActivity({
-      teamId: 't1',
-      agentId: 'b1',
-      message: 'Hi',
-      imageUrls: [],
-      projectId: 'p1',
-      folderId: 'f1',
-      sessionId: 'mock-session-id',
-      context,
+    await runInLocalTaskContext({ taskId, abortController }, async () => {
+      const executionPromise = agentChatActivity({
+        taskId,
+        teamId: 't1',
+        agentId: 'b1',
+        message: 'Hi',
+        imageUrls: [],
+        projectId: 'p1',
+        folderId: 'f1',
+        sessionId: 'mock-session-id',
+        context,
+      })
+
+      // Yield to let the asynchronous setup add the abort event listener
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      abortController.abort()
+      expect(mockHarness.abort).toHaveBeenCalled()
+
+      // Resolve the prompt promise to allow the activity to finish clean
+      resolvePrompt({
+        content: [{ type: 'text', text: 'AI response' }],
+        usage: { input: 10, output: 20 },
+      })
+
+      await executionPromise
     })
-
-    // Yield to let the asynchronous setup add the abort event listener
-    await new Promise((resolve) => setTimeout(resolve, 50))
-
-    expect(addEventListenerSpy).toHaveBeenCalledWith('abort', expect.any(Function), { once: true })
-
-    // Simulate Temporal cancellation event
-    mockTemporalContext.cancellationSignal.dispatchEvent(new Event('abort'))
-    expect(mockHarness.abort).toHaveBeenCalled()
-
-    // Resolve the prompt promise to allow the activity to finish clean
-    resolvePrompt({
-      content: [{ type: 'text', text: 'AI response' }],
-      usage: { input: 10, output: 20 },
-    })
-
-    await executionPromise
-    expect(removeEventListenerSpy).toHaveBeenCalledWith('abort', expect.any(Function))
-    addEventListenerSpy.mockRestore()
-    removeEventListenerSpy.mockRestore()
   })
 
   it('should include error message in text when stopReason is error', async () => {

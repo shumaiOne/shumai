@@ -3,7 +3,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core'
 import * as fs from 'fs'
 import * as path from 'path'
-import { ApplicationFailure } from '@temporalio/activity'
+import { ApplicationFailure } from '@shumai/workflow-core'
 import { prisma } from '@shumai/db'
 import sharp from 'sharp'
 

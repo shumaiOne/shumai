@@ -1,30 +1,20 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
-import * as wf from '@temporalio/workflow'
-import { getActivities, executeActivity } from './workflow-utils'
+import { describe, it, expect, vi, beforeAll } from 'vitest'
+import { DBOS } from '@dbos-inc/dbos-sdk'
+import {
+  getActivities,
+  executeActivity,
+  WorkflowFailure,
+  ApplicationFailure,
+  isNonRetryableError,
+  sleep,
+  getLocalTaskAbortSignal,
+  registerLocalTaskAbortController,
+  unregisterLocalTaskAbortController,
+} from './workflow-utils'
 
-const mockWorkflowInfo = vi.fn().mockImplementation(() => {
-  throw new Error('Not in workflow context')
-})
-const mockProxyActivities = vi.fn()
-
-vi.mock('@temporalio/workflow', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@temporalio/workflow')>()
-  return {
-    ...actual,
-    workflowInfo: () => mockWorkflowInfo(),
-    proxyActivities: (...args: unknown[]) => mockProxyActivities(...args),
-    log: {
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    },
-  }
-})
-
-describe('workflow-utils executeActivity', () => {
+describe('workflow-utils executeActivity and DBOS steps', () => {
   beforeAll(() => {
-    // Inject mock activities for local execution tests
+    // Inject mock activities for execution tests
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(globalThis as any).__localActivities = {
       updateTaskStatusActivity: vi.fn(),
@@ -37,7 +27,7 @@ describe('workflow-utils executeActivity', () => {
     expect((updateTaskStatusActivity as any)._activityName).toBe('updateTaskStatusActivity')
   })
 
-  it('should execute the function and pass arguments in local mode', async () => {
+  it('should execute the function directly when outside DBOS workflow context', async () => {
     const mockFn = vi.fn().mockResolvedValue('success-result')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(mockFn as any)._activityName = 'mockActivity'
@@ -61,36 +51,74 @@ describe('workflow-utils executeActivity', () => {
     )
   })
 
-  describe('Temporal mode', () => {
-    beforeAll(() => {
-      // Mock workflowInfo to simulate running in Temporal by returning a fake object
-      mockWorkflowInfo.mockReturnValue({} as unknown as wf.WorkflowInfo)
+  it('should execute via DBOS.runStep when within workflow context', async () => {
+    const mockFn = vi.fn().mockResolvedValue('step-success')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(mockFn as any)._activityName = 'myStepActivity'
+
+    const isWithinWorkflowSpy = vi.spyOn(DBOS, 'isWithinWorkflow').mockReturnValue(true)
+    const runStepSpy = vi
+      .spyOn(DBOS, 'runStep')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockImplementation(async (fn: () => unknown) => fn() as any)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await executeActivity('test-queue', mockFn as any, 'step-arg')
+
+    expect(runStepSpy).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        name: 'myStepActivity',
+        retriesAllowed: true,
+        shouldRetry: expect.any(Function),
+      }),
+    )
+    expect(result).toBe('step-success')
+
+    isWithinWorkflowSpy.mockRestore()
+    runStepSpy.mockRestore()
+  })
+
+  describe('WorkflowFailure / ApplicationFailure', () => {
+    it('should correctly configure nonRetryable errors', () => {
+      const err = WorkflowFailure.create({ message: 'fatal error', nonRetryable: true })
+      expect(err.message).toBe('fatal error')
+      expect(err.nonRetryable).toBe(true)
+      expect(isNonRetryableError(err)).toBe(true)
+
+      const appErr = ApplicationFailure.create({ message: 'fatal app error', nonRetryable: true })
+      expect(appErr.nonRetryable).toBe(true)
+      expect(isNonRetryableError(appErr)).toBe(true)
+
+      const retryableErr = ApplicationFailure.create({ message: 'transient', nonRetryable: false })
+      expect(retryableErr.nonRetryable).toBe(false)
+      expect(isNonRetryableError(retryableErr)).toBe(false)
+
+      expect(isNonRetryableError(new Error('generic'))).toBe(false)
+    })
+  })
+
+  describe('sleep and abort signals', () => {
+    it('should call DBOS.sleepms when within workflow', async () => {
+      const isWithinWorkflowSpy = vi.spyOn(DBOS, 'isWithinWorkflow').mockReturnValue(true)
+      const sleepmsSpy = vi.spyOn(DBOS, 'sleepms').mockResolvedValue()
+
+      await sleep(100)
+      expect(sleepmsSpy).toHaveBeenCalledWith(100)
+
+      isWithinWorkflowSpy.mockRestore()
+      sleepmsSpy.mockRestore()
     })
 
-    afterAll(() => {
-      mockWorkflowInfo.mockImplementation(() => {
-        throw new Error('Not in workflow context')
-      })
-      vi.restoreAllMocks()
-    })
+    it('should resolve abort signals registered for a taskId', () => {
+      const controller = new AbortController()
+      registerLocalTaskAbortController('task-123', controller)
 
-    it('should configure proxyActivities with retry options', async () => {
-      mockProxyActivities.mockReturnValue({
-        mockActivity: vi.fn().mockResolvedValue('temporal-success'),
-      })
+      const signal = getLocalTaskAbortSignal('task-123')
+      expect(signal).toBe(controller.signal)
 
-      const { mockActivity } = getActivities()
-      const result = await executeActivity('test-queue', mockActivity, 'arg1')
-
-      expect(mockProxyActivities).toHaveBeenCalledWith(
-        expect.objectContaining({
-          retry: {
-            maximumAttempts: 5,
-            initialInterval: '10s',
-          },
-        }),
-      )
-      expect(result).toBe('temporal-success')
+      unregisterLocalTaskAbortController('task-123')
+      expect(getLocalTaskAbortSignal('task-123')).toBeUndefined()
     })
   })
 })
