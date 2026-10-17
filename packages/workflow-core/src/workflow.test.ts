@@ -40,11 +40,11 @@ describe('WorkflowService', () => {
     vi.clearAllMocks()
     workflowService.start()
     await workflowService.ensureLaunched()
-  })
+  }, 15000)
 
   afterEach(async () => {
     await workflowService.shutdownWorkers()
-  })
+  }, 15000)
 
   it('should process ai_embedding task locally', async () => {
     const team = await prisma.team.create({

@@ -59,11 +59,16 @@ export class DbosExecutor implements Executor {
   private client: DBOSClient | null = null
   private listenQueues: string[] = [TaskQueueAgent, TaskQueueTranscode]
   private heartbeatIntervals = new Map<string, Timer>()
+  private inFlightSubmits = new Set<Promise<string>>()
 
   constructor(listenQueues?: string[]) {
     if (listenQueues) {
       this.listenQueues = listenQueues
     }
+  }
+
+  isStarted(): boolean {
+    return this.started
   }
 
   setListenQueues(queues: string[]): void {
@@ -163,6 +168,9 @@ export class DbosExecutor implements Executor {
   private getDefaultExecutorId(): string {
     if (process.env.DBOS__VMID) return process.env.DBOS__VMID
     if (process.env.SHUMAI_WORKER_ID) return process.env.SHUMAI_WORKER_ID
+    if (process.env.NODE_ENV === 'test') {
+      return `shumai-test-${process.pid}-${Math.random().toString(36).slice(2, 7)}`
+    }
     if (this.listenQueues.length === 0) return 'shumai-web'
     if (this.listenQueues.length === 1) {
       if (this.listenQueues[0] === TaskQueueTranscode) return 'shumai-transcode'
@@ -183,19 +191,24 @@ export class DbosExecutor implements Executor {
       this.registerAllWorkflowsWithDbos()
 
       const isTest = process.env.NODE_ENV === 'test'
+      if (!isTest && !dbosMigrationsRan) {
+        await DBOS.migrate(getDbosDatabaseUrl())
+        dbosMigrationsRan = true
+      }
+
       DBOS.setConfig({
         name: 'shumai',
         systemDatabaseUrl: getDbosDatabaseUrl(),
+        systemDatabasePoolSize: isTest ? 5 : undefined,
         applicationVersion: process.env.SHUMAI_VERSION || '1.0.0',
         // eslint-disable-next-line @typescript-eslint/naming-convention -- DBOS config property name
         executorID: this.getDefaultExecutorId(),
         listenQueues: this.listenQueues,
-        runMigrations: !dbosMigrationsRan,
+        runMigrations: false,
         logLevel: isTest ? 'error' : 'info',
       })
 
       await DBOS.launch()
-      dbosMigrationsRan = true
 
       const minPollingIntervalMs = isTest ? 50 : 1000
       await DBOS.registerQueue(TaskQueueTranscode, {
@@ -220,14 +233,26 @@ export class DbosExecutor implements Executor {
 
   async getClient(): Promise<DBOSClient> {
     if (!this.client) {
+      const isTest = process.env.NODE_ENV === 'test'
       this.client = await DBOSClient.create({
         systemDatabaseUrl: getDbosDatabaseUrl(),
+        systemDatabasePoolSize: isTest ? 3 : undefined,
       })
     }
     return this.client
   }
 
   async submit(task: WorkflowTask): Promise<string> {
+    const submitPromise = this.doSubmit(task)
+    this.inFlightSubmits.add(submitPromise)
+    try {
+      return await submitPromise
+    } finally {
+      this.inFlightSubmits.delete(submitPromise)
+    }
+  }
+
+  private async doSubmit(task: WorkflowTask): Promise<string> {
     if (task.status !== WorkflowTaskStatus.pending) {
       await prisma.workflowTask.updateMany({
         where: { id: task.id },
@@ -235,13 +260,9 @@ export class DbosExecutor implements Executor {
       })
     }
 
-    // In unit tests that do not start the workflow service or register workflows,
-    // avoid launching DBOS in the background if no workflows are registered.
-    if (!this.started && getRegisteredWorkflows().size === 0) {
-      return task.id
+    if (this.started) {
+      await this.ensureLaunched()
     }
-
-    await this.ensureLaunched()
 
     const workflowName = task.type
     if (!workflowName) {
@@ -262,6 +283,12 @@ export class DbosExecutor implements Executor {
     )
 
     return handle.workflowID
+  }
+
+  async waitForPendingSubmissions(): Promise<void> {
+    while (this.inFlightSubmits.size > 0) {
+      await Promise.allSettled(Array.from(this.inFlightSubmits))
+    }
   }
 
   async cancel(taskId: string): Promise<void> {
@@ -289,6 +316,7 @@ export class DbosExecutor implements Executor {
 
   close(): void {
     this.started = false
+    this.waitForPendingSubmissions().catch(() => {})
     for (const timer of this.heartbeatIntervals.values()) {
       clearInterval(timer)
     }
@@ -298,9 +326,8 @@ export class DbosExecutor implements Executor {
       this.client = null
     }
     if (DBOS.isInitialized()) {
-      DBOS.shutdown({ deregister: true })
+      DBOS.shutdown()
         .then(() => {
-          registeredDbosWorkflowNames.clear()
           this.launchPromise = null
         })
         .catch((err) => {
@@ -311,6 +338,7 @@ export class DbosExecutor implements Executor {
 
   async shutdown(): Promise<void> {
     this.started = false
+    await this.waitForPendingSubmissions()
     for (const timer of this.heartbeatIntervals.values()) {
       clearInterval(timer)
     }
@@ -320,8 +348,7 @@ export class DbosExecutor implements Executor {
       this.client = null
     }
     if (DBOS.isInitialized()) {
-      await DBOS.shutdown({ deregister: true })
-      registeredDbosWorkflowNames.clear()
+      await DBOS.shutdown()
       this.launchPromise = null
     }
   }

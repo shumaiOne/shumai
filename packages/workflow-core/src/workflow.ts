@@ -1,5 +1,6 @@
 import { prisma, registerWorkflowCancel, registerWorkflowTrigger, WorkflowTask } from '@shumai/db'
 import { DbosExecutor } from './dbos-executor'
+import { getRegisteredWorkflows } from './registry'
 
 export class WorkflowService {
   private executor: DbosExecutor
@@ -71,6 +72,14 @@ export class WorkflowService {
     await this.executor.shutdown()
   }
 
+  isStarted(): boolean {
+    return this.executor.isStarted()
+  }
+
+  async waitForPendingSubmissions(): Promise<void> {
+    await this.executor.waitForPendingSubmissions()
+  }
+
   // Starts DBOS worker for specific task queue(s)
   async startWorkers(
     queue: string | string[],
@@ -87,6 +96,13 @@ export class WorkflowService {
 
 export const workflowService = new WorkflowService()
 registerWorkflowTrigger(async (task) => {
+  if (
+    process.env.NODE_ENV === 'test' &&
+    !workflowService.isStarted() &&
+    getRegisteredWorkflows().size === 0
+  ) {
+    return
+  }
   await workflowService.submit(task)
 })
 registerWorkflowCancel(async (taskId) => {

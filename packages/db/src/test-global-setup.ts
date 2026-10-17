@@ -23,6 +23,15 @@ export async function globalTestSetup() {
     },
   })
   console.log('Prisma Migrations completed.')
+
+  console.log('Applying DBOS Migrations...')
+  await execAsync('bun packages/workflow-core/src/migrate.ts', {
+    env: {
+      ...process.env,
+      DATABASE_URL: databaseUrl,
+    },
+  })
+  console.log('DBOS Migrations completed.')
 }
 
 export async function setup() {

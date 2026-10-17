@@ -173,13 +173,49 @@ describe('DbosExecutor Tests', () => {
       )
     })
 
+    it('should enqueue workflow via client even when executor is not started and no local workflows are registered', async () => {
+      // executor is not started and has no local workflows registered (e.g. CLI or producer mode)
+      const mockClient = {
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- DBOS property name
+        enqueue: vi.fn().mockResolvedValue({ workflowID: 'task-cli-123' }),
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(executor, 'getClient').mockResolvedValue(mockClient as any)
+
+      const mockTask = {
+        id: 'task-cli-123',
+        type: WorkflowTaskType.ai_embedding,
+        status: WorkflowTaskStatus.pending,
+      } as WorkflowTask
+
+      const res = await executor.submit(mockTask)
+      expect(mockClient.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queueName: TaskQueueAgent,
+          workflowName: WorkflowTaskType.ai_embedding,
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- DBOS property name
+          workflowID: 'task-cli-123',
+        }),
+        mockTask,
+      )
+      expect(res).toBe('task-cli-123')
+    })
+
     it('should allow submitting tasks from within a running DBOS step', async () => {
       executor.start()
       await executor.ensureLaunched()
 
+      const mockClient = {
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- DBOS property name
+        enqueue: vi.fn().mockResolvedValue({ workflowID: 'task-from-step' }),
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(executor, 'getClient').mockResolvedValue(mockClient as any)
+
       activeExecutor = executor
       const result = await wf()
       expect(result).toBe('task-from-step')
-    })
+      expect(mockClient.enqueue).toHaveBeenCalled()
+    }, 15000)
   })
 })

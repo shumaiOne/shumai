@@ -53,8 +53,11 @@ const regenCmdIndex = cliArgs.findIndex((arg) => arg === 'regenerate-embeddings'
 
 if (regenCmdIndex !== -1) {
   try {
+    initAgentWorkflows()
+    initTranscodeWorkflows()
     console.log('🔄 Regenerating embeddings...')
     const result = await embeddingService.regenerateEmbeddings()
+    await workflowService.waitForPendingSubmissions()
     console.log(
       `✅ Successfully queued ${result.tasksCreated} embedding tasks for ${result.totalAssets} assets.`,
     )
