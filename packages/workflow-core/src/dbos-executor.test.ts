@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { DbosExecutor, getDbosDatabaseUrl, getQueueForTaskType } from './dbos-executor'
 import { TaskQueueAgent, TaskQueueTranscode } from './workflow-utils'
-import { WorkflowTaskStatus, WorkflowTaskType, WorkflowTask } from '@shumai/db'
+import { WorkflowTaskStatus, WorkflowTaskType, WorkflowTask, prisma } from '@shumai/db'
 import { DBOS } from '@dbos-inc/dbos-sdk'
 
 let activeExecutor: DbosExecutor | null = null
@@ -99,6 +99,116 @@ describe('DbosExecutor Tests', () => {
       expect(executor.getTranscodeConcurrencyLimit()).toBe(1)
       expect(executor.getAgentConcurrencyLimit()).toBe(5)
     })
+  })
+
+  describe('Executor Identity & Multi-instance Recovery', () => {
+    let originalEnv: NodeJS.ProcessEnv
+
+    beforeEach(() => {
+      originalEnv = { ...process.env }
+    })
+
+    afterEach(() => {
+      process.env = originalEnv
+    })
+
+    it('should derive unique executor IDs for multiple replicas of the same role when no explicit ID is provided', () => {
+      process.env.NODE_ENV = 'production'
+      delete process.env.DBOS__VMID
+      delete process.env.SHUMAI_WORKER_ID
+      delete process.env.POD_NAME
+
+      const worker1 = new DbosExecutor([TaskQueueTranscode])
+      const worker2 = new DbosExecutor([TaskQueueTranscode])
+
+      const id1 = worker1.getExecutorId()
+      const id2 = worker2.getExecutorId()
+
+      expect(id1).not.toBe(id2)
+      expect(id1).toContain('shumai-transcode')
+      expect(id2).toContain('shumai-transcode')
+    })
+
+    it('should incorporate SHUMAI_WORKER_ID or POD_NAME when configured', () => {
+      process.env.NODE_ENV = 'production'
+      delete process.env.DBOS__VMID
+
+      process.env.SHUMAI_WORKER_ID = 'replica-42'
+      const workerWithId = new DbosExecutor([TaskQueueTranscode])
+      expect(workerWithId.getExecutorId()).toBe('shumai-transcode-replica-42')
+
+      delete process.env.SHUMAI_WORKER_ID
+      process.env.POD_NAME = 'shumai-transcode-pod-0'
+      const workerWithPod = new DbosExecutor([TaskQueueTranscode])
+      expect(workerWithPod.getExecutorId()).toBe('shumai-transcode-pod-0')
+    })
+
+    it('should allow setting explicit executorId via constructor or setExecutorId', () => {
+      const customWorker = new DbosExecutor([TaskQueueAgent], 'my-custom-worker')
+      expect(customWorker.getExecutorId()).toBe('my-custom-worker')
+
+      customWorker.setExecutorId('updated-worker-id')
+      expect(customWorker.getExecutorId()).toBe('updated-worker-id')
+    })
+
+    it('should not recover live workflows belonging to another executor ID on startup', async () => {
+      const activeWorkerId = `active-worker-${Date.now()}`
+      const newWorkerId = `new-worker-${Date.now()}`
+      const taskUuid = `task-recovery-test-${Date.now()}`
+
+      // Seed a pending task claimed by activeWorkerId
+      await prisma.$queryRawUnsafe(
+        `
+        INSERT INTO dbos.workflow_status (
+          workflow_uuid, status, name, executor_id, created_at, updated_at, application_version, application_name, queue_name
+        ) VALUES (
+          $1, 'PENDING', 'testRecoveryWorkflow', $2, 0, 0, '1.0.0', 'shumai', 'transcode_queue'
+        )
+      `,
+        taskUuid,
+        activeWorkerId,
+      )
+
+      try {
+        // Launch a new worker with a distinct executor ID
+        const newWorker = new DbosExecutor([TaskQueueTranscode], newWorkerId)
+        newWorker.start()
+        await newWorker.ensureLaunched()
+
+        // Verify the active worker's task was NOT recovered (remains PENDING with activeWorkerId)
+        const rowsAfterOtherWorker = await prisma.$queryRawUnsafe<
+          Array<{ status: string; executorId: string }>
+        >(
+          'SELECT status, executor_id AS "executorId" FROM dbos.workflow_status WHERE workflow_uuid = $1',
+          taskUuid,
+        )
+        expect(rowsAfterOtherWorker[0].status).toBe('PENDING')
+        expect(rowsAfterOtherWorker[0].executorId).toBe(activeWorkerId)
+
+        await newWorker.shutdown()
+
+        // Now simulate the active worker restarting with its OWN executor ID
+        const restartedWorker = new DbosExecutor([TaskQueueTranscode], activeWorkerId)
+        restartedWorker.start()
+        await restartedWorker.ensureLaunched()
+
+        // Verify that on restart with the SAME executor ID, DBOS startup recovery DOES re-enqueue it
+        const rowsAfterRestart = await prisma.$queryRawUnsafe<
+          Array<{ status: string; executorId: string }>
+        >(
+          'SELECT status, executor_id AS "executorId" FROM dbos.workflow_status WHERE workflow_uuid = $1',
+          taskUuid,
+        )
+        expect(rowsAfterRestart[0].status).toBe('ENQUEUED')
+
+        await restartedWorker.shutdown()
+      } finally {
+        await prisma.$queryRawUnsafe(
+          'DELETE FROM dbos.workflow_status WHERE workflow_uuid = $1',
+          taskUuid,
+        )
+      }
+    }, 20000)
   })
 
   describe('Cancellation', () => {

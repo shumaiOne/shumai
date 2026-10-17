@@ -1,3 +1,4 @@
+import os from 'node:os'
 import { DBOS, DBOSClient } from '@dbos-inc/dbos-sdk'
 import { logger } from '@shumai/core/src/logger'
 import { prisma, WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
@@ -60,10 +61,15 @@ export class DbosExecutor implements Executor {
   private listenQueues: string[] = [TaskQueueAgent, TaskQueueTranscode]
   private heartbeatIntervals = new Map<string, Timer>()
   private inFlightSubmits = new Set<Promise<string>>()
+  private executorId?: string
+  private instanceSuffix = Math.random().toString(36).slice(2, 8)
 
-  constructor(listenQueues?: string[]) {
+  constructor(listenQueues?: string[], executorId?: string) {
     if (listenQueues) {
       this.listenQueues = listenQueues
+    }
+    if (executorId) {
+      this.executorId = executorId
     }
   }
 
@@ -165,18 +171,47 @@ export class DbosExecutor implements Executor {
     }
   }
 
-  private getDefaultExecutorId(): string {
-    if (process.env.DBOS__VMID) return process.env.DBOS__VMID
-    if (process.env.SHUMAI_WORKER_ID) return process.env.SHUMAI_WORKER_ID
-    if (process.env.NODE_ENV === 'test') {
-      return `shumai-test-${process.pid}-${Math.random().toString(36).slice(2, 7)}`
-    }
+  getRole(): string {
     if (this.listenQueues.length === 0) return 'shumai-web'
     if (this.listenQueues.length === 1) {
       if (this.listenQueues[0] === TaskQueueTranscode) return 'shumai-transcode'
       if (this.listenQueues[0] === TaskQueueAgent) return 'shumai-agent'
     }
     return 'shumai-all'
+  }
+
+  setExecutorId(id: string): void {
+    this.executorId = id
+  }
+
+  getExecutorId(): string {
+    return this.getDefaultExecutorId()
+  }
+
+  private getDefaultExecutorId(): string {
+    if (this.executorId) return this.executorId
+    if (process.env.DBOS__VMID) return process.env.DBOS__VMID
+
+    const role = this.getRole()
+    if (process.env.SHUMAI_WORKER_ID) {
+      const workerId = process.env.SHUMAI_WORKER_ID
+      return workerId.startsWith(role) ? workerId : `${role}-${workerId}`
+    }
+
+    if (process.env.NODE_ENV === 'test') {
+      return `shumai-test-${process.pid}-${this.instanceSuffix}`
+    }
+
+    // In Kubernetes, POD_NAME is standard and stable across pod restarts in StatefulSets
+    if (process.env.POD_NAME) {
+      const pod = process.env.POD_NAME
+      return pod.startsWith(role) ? pod : `${role}-${pod}`
+    }
+
+    // In Docker containers, HOSTNAME is set to the unique container short ID.
+    // If running on host machine / bare metal, disambiguate with pid and instance suffix.
+    const host = process.env.HOSTNAME || os.hostname() || 'instance'
+    return `${role}-${host}-${process.pid}-${this.instanceSuffix}`
   }
 
   async ensureLaunched(): Promise<void> {

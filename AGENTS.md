@@ -422,7 +422,15 @@ To prevent the engine from indefinitely retrying fatal, expected business valida
 
 - **Implementation**: Activities _can_ and _should_ call other services (e.g., `aiService`, `transcodeService`) or interact with the database directly. Database (Prisma) queries or updates are allowed in all activity types (e.g., agent or transcode) for simplicity.
 
-- **Implementation**: Activities _can_ and _should_ call other services (e.g., `aiService`, `transcodeService`) or interact with the database directly. Database (Prisma) queries or updates are allowed in all activity types (e.g., agent or transcode) for simplicity.
+### Worker Identity & Multi-Instance Deployments
+
+In multi-replica deployments (e.g., multiple transcode or agent worker instances), each worker instance MUST have a unique executor ID to prevent startup recovery from re-enqueueing workflows being actively processed by other live workers.
+
+- **Identity Derivation**: `DbosExecutor` automatically derives a unique per-instance ID:
+  - If `SHUMAI_WORKER_ID` or `DBOS__VMID` is set, it is used as the instance identifier.
+  - In Kubernetes, set `POD_NAME` (via Downward API: `fieldRef: { fieldPath: metadata.name }`) to provide stable, per-pod identity across StatefulSet restarts.
+  - In Docker/container environments, `HOSTNAME` (container ID) is automatically used.
+  - On bare metal/multi-process hosts, `process.pid` and an instance suffix are appended to guarantee uniqueness.
 
 ## Import conventions
 
