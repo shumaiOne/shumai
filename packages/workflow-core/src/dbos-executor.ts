@@ -246,16 +246,21 @@ export class DbosExecutor implements Executor {
       await DBOS.launch()
 
       const minPollingIntervalMs = isTest ? 50 : 1000
-      await DBOS.registerQueue(TaskQueueTranscode, {
-        workerConcurrency: this.getTranscodeConcurrencyLimit(),
-        minPollingIntervalMs,
-        onConflict: 'never_update',
-      })
-      await DBOS.registerQueue(TaskQueueAgent, {
-        workerConcurrency: this.getAgentConcurrencyLimit(),
-        minPollingIntervalMs,
-        onConflict: 'never_update',
-      })
+      for (const queueName of this.listenQueues) {
+        if (queueName === TaskQueueTranscode) {
+          await DBOS.registerQueue(TaskQueueTranscode, {
+            workerConcurrency: this.getTranscodeConcurrencyLimit(),
+            minPollingIntervalMs,
+            onConflict: 'always_update',
+          })
+        } else if (queueName === TaskQueueAgent) {
+          await DBOS.registerQueue(TaskQueueAgent, {
+            workerConcurrency: this.getAgentConcurrencyLimit(),
+            minPollingIntervalMs,
+            onConflict: 'always_update',
+          })
+        }
+      }
     })()
 
     try {

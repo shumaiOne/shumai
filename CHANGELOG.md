@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 * **workflow**: Fix an issue where creating background tasks from within an active workflow step caused an invalid transition error during video processing
 * **cli**: Fix an issue where running `shumai regenerate-embeddings` would report success without enqueueing tasks to background workers
 * **workflow**: Fix an issue where multiple worker replicas could share the same executor identity and disrupt live workflows on startup recovery
+* **workflow**: Fix an issue where changes to queue concurrency environment variables were ignored after initial registration
 
 ### Changed
 

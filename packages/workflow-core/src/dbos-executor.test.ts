@@ -99,6 +99,68 @@ describe('DbosExecutor Tests', () => {
       expect(executor.getTranscodeConcurrencyLimit()).toBe(1)
       expect(executor.getAgentConcurrencyLimit()).toBe(5)
     })
+
+    it('should update effective queue worker concurrency when environment variables change', async () => {
+      // First start with agent concurrency = 5 and transcode = 2
+      process.env.CONCURRENCY_AGENT = '5'
+      process.env.CONCURRENCY_TRANSCODE = '2'
+      executor.start()
+      await executor.ensureLaunched()
+
+      const agentQueueFirst = await DBOS.retrieveQueue(TaskQueueAgent)
+      expect(agentQueueFirst?.workerConcurrency).toBe(5)
+      const transcodeQueueFirst = await DBOS.retrieveQueue(TaskQueueTranscode)
+      expect(transcodeQueueFirst?.workerConcurrency).toBe(2)
+
+      await executor.shutdown()
+
+      // Now change environment variables to safety limits (e.g. CONCURRENCY_AGENT=1, CONCURRENCY_TRANSCODE=4)
+      process.env.CONCURRENCY_AGENT = '1'
+      process.env.CONCURRENCY_TRANSCODE = '4'
+      const executor2 = new DbosExecutor()
+      try {
+        executor2.start()
+        await executor2.ensureLaunched()
+
+        const agentQueueUpdated = await DBOS.retrieveQueue(TaskQueueAgent)
+        const transcodeQueueUpdated = await DBOS.retrieveQueue(TaskQueueTranscode)
+
+        expect(agentQueueUpdated?.workerConcurrency).toBe(1)
+        expect(transcodeQueueUpdated?.workerConcurrency).toBe(4)
+      } finally {
+        await executor2.shutdown()
+      }
+    })
+
+    it('should only update queues the worker listens to or configures, leaving unmanaged queues untouched', async () => {
+      // Step 1: Agent worker sets agent concurrency to 1
+      process.env.CONCURRENCY_AGENT = '1'
+      const agentWorker = new DbosExecutor([TaskQueueAgent])
+      agentWorker.start()
+      await agentWorker.ensureLaunched()
+
+      const agentQueue = await DBOS.retrieveQueue(TaskQueueAgent)
+      expect(agentQueue?.workerConcurrency).toBe(1)
+      await agentWorker.shutdown()
+
+      // Step 2: Dedicated transcode worker starts with transcode concurrency = 3 and unconfigured agent env
+      delete process.env.CONCURRENCY_AGENT
+      process.env.CONCURRENCY_TRANSCODE = '3'
+      const transcodeWorker = new DbosExecutor([TaskQueueTranscode])
+      try {
+        transcodeWorker.start()
+        await transcodeWorker.ensureLaunched()
+
+        const transcodeQueue = await DBOS.retrieveQueue(TaskQueueTranscode)
+        const agentQueueAfter = await DBOS.retrieveQueue(TaskQueueAgent)
+
+        expect(transcodeQueue?.workerConcurrency).toBe(3)
+        // Agent queue should still be 1, NOT overwritten by default 5
+        expect(agentQueueAfter?.workerConcurrency).toBe(1)
+      } finally {
+        await transcodeWorker.shutdown()
+      }
+    })
   })
 
   describe('Executor Identity & Multi-instance Recovery', () => {
