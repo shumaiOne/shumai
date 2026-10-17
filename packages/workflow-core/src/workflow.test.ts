@@ -39,10 +39,11 @@ describe('WorkflowService', () => {
     initTranscodeWorkflows()
     vi.clearAllMocks()
     workflowService.start()
+    await workflowService.ensureLaunched()
   })
 
-  afterEach(() => {
-    workflowService.close()
+  afterEach(async () => {
+    await workflowService.shutdownWorkers()
   })
 
   it('should process ai_embedding task locally', async () => {

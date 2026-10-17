@@ -63,6 +63,10 @@ export class WorkflowService {
     this.executor.close()
   }
 
+  async ensureLaunched(): Promise<void> {
+    await this.executor.ensureLaunched()
+  }
+
   async shutdownWorkers(): Promise<void> {
     await this.executor.shutdown()
   }

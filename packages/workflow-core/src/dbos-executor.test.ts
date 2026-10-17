@@ -4,6 +4,27 @@ import { TaskQueueAgent, TaskQueueTranscode } from './workflow-utils'
 import { WorkflowTaskStatus, WorkflowTaskType, WorkflowTask } from '@shumai/db'
 import { DBOS } from '@dbos-inc/dbos-sdk'
 
+let activeExecutor: DbosExecutor | null = null
+
+const stepFn = DBOS.registerStep(
+  async () => {
+    const mockTask = {
+      id: 'task-from-step',
+      type: WorkflowTaskType.chat,
+      status: WorkflowTaskStatus.pending,
+    } as WorkflowTask
+    return await activeExecutor!.submit(mockTask)
+  },
+  { name: 'testStepSubmittingTask' },
+)
+
+const wf = DBOS.registerWorkflow(
+  async () => {
+    return await stepFn()
+  },
+  { name: 'testWfRunningStep' },
+)
+
 describe('DbosExecutor Tests', () => {
   let executor: DbosExecutor
 
@@ -12,8 +33,8 @@ describe('DbosExecutor Tests', () => {
     executor = new DbosExecutor()
   })
 
-  afterEach(() => {
-    executor.close()
+  afterEach(async () => {
+    await executor.shutdown()
   })
 
   describe('Queue and URL resolution', () => {
@@ -123,12 +144,15 @@ describe('DbosExecutor Tests', () => {
 
   describe('Submit', () => {
     it('should enqueue workflow with correct parameters', async () => {
-      executor.start()
-      const enqueueSpy = vi
-        .spyOn(DBOS, 'enqueueWorkflowWithOptions')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/naming-convention -- mock handle
-        .mockResolvedValueOnce({ workflowID: 'task-123' } as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(executor as any).started = true
       vi.spyOn(executor, 'ensureLaunched').mockResolvedValueOnce(undefined)
+      const mockClient = {
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- DBOS property name
+        enqueue: vi.fn().mockResolvedValue({ workflowID: 'task-123' }),
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(executor, 'getClient').mockResolvedValue(mockClient as any)
 
       const mockTask = {
         id: 'task-123',
@@ -138,7 +162,7 @@ describe('DbosExecutor Tests', () => {
 
       const res = await executor.submit(mockTask)
       expect(res).toBe('task-123')
-      expect(enqueueSpy).toHaveBeenCalledWith(
+      expect(mockClient.enqueue).toHaveBeenCalledWith(
         expect.objectContaining({
           queueName: TaskQueueAgent,
           workflowName: WorkflowTaskType.chat,
@@ -147,8 +171,15 @@ describe('DbosExecutor Tests', () => {
         }),
         mockTask,
       )
+    })
 
-      enqueueSpy.mockRestore()
+    it('should allow submitting tasks from within a running DBOS step', async () => {
+      executor.start()
+      await executor.ensureLaunched()
+
+      activeExecutor = executor
+      const result = await wf()
+      expect(result).toBe('task-from-step')
     })
   })
 })

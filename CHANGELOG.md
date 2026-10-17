@@ -10,7 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+* **workflow**: Fix an issue where creating background tasks from within an active workflow step caused an invalid transition error during video processing
+
 ### Changed
+
 
 * **workflow**: Migrate the background workflow engine to DBOS, unifying all-in-one and dedicated worker deployments using the existing PostgreSQL database without requiring a separate Temporal cluster
 

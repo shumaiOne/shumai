@@ -1,4 +1,4 @@
-import { DBOS } from '@dbos-inc/dbos-sdk'
+import { DBOS, DBOSClient } from '@dbos-inc/dbos-sdk'
 import { logger } from '@shumai/core/src/logger'
 import { prisma, WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import type { Executor } from './executor'
@@ -56,6 +56,7 @@ const registeredDbosWorkflowNames = new Set<string>()
 export class DbosExecutor implements Executor {
   private launchPromise: Promise<void> | null = null
   private started = false
+  private client: DBOSClient | null = null
   private listenQueues: string[] = [TaskQueueAgent, TaskQueueTranscode]
   private heartbeatIntervals = new Map<string, Timer>()
 
@@ -217,6 +218,15 @@ export class DbosExecutor implements Executor {
     }
   }
 
+  async getClient(): Promise<DBOSClient> {
+    if (!this.client) {
+      this.client = await DBOSClient.create({
+        systemDatabaseUrl: getDbosDatabaseUrl(),
+      })
+    }
+    return this.client
+  }
+
   async submit(task: WorkflowTask): Promise<string> {
     if (task.status !== WorkflowTaskStatus.pending) {
       await prisma.workflowTask.updateMany({
@@ -239,7 +249,8 @@ export class DbosExecutor implements Executor {
     }
 
     const queueName = getQueueForTaskType(workflowName)
-    const handle = await DBOS.enqueueWorkflowWithOptions(
+    const client = await this.getClient()
+    const handle = await client.enqueue(
       {
         queueName,
         workflowName,
@@ -260,13 +271,12 @@ export class DbosExecutor implements Executor {
       this.heartbeatIntervals.delete(taskId)
     }
     triggerLocalCancel(taskId)
-    if (DBOS.isInitialized()) {
-      try {
-        await DBOS.cancelWorkflow(taskId)
-        logger.info({ taskId }, '[DbosExecutor] Cancelled workflow task')
-      } catch (err) {
-        logger.warn({ taskId, err }, '[DbosExecutor] Failed to cancel workflow task in DBOS')
-      }
+    try {
+      const client = await this.getClient()
+      await client.cancelWorkflow(taskId)
+      logger.info({ taskId }, '[DbosExecutor] Cancelled workflow task')
+    } catch (err) {
+      logger.warn({ taskId, err }, '[DbosExecutor] Failed to cancel workflow task in DBOS')
     }
   }
 
@@ -283,6 +293,10 @@ export class DbosExecutor implements Executor {
       clearInterval(timer)
     }
     this.heartbeatIntervals.clear()
+    if (this.client) {
+      this.client.destroy().catch(() => {})
+      this.client = null
+    }
     if (DBOS.isInitialized()) {
       DBOS.shutdown({ deregister: true })
         .then(() => {
@@ -301,6 +315,10 @@ export class DbosExecutor implements Executor {
       clearInterval(timer)
     }
     this.heartbeatIntervals.clear()
+    if (this.client) {
+      await this.client.destroy().catch(() => {})
+      this.client = null
+    }
     if (DBOS.isInitialized()) {
       await DBOS.shutdown({ deregister: true })
       registeredDbosWorkflowNames.clear()
