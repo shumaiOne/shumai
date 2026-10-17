@@ -4,7 +4,7 @@ import { PrismaClient, WorkflowTask } from './generated/prisma/client'
 import { PrismaTestingHelper } from './prisma-testing-helper'
 import { generateNgrams } from './utils/ngram'
 
-// Ensure BigInt serializes to JSON number gracefully for Temporal/HTTP payloads
+// Ensure BigInt serializes to JSON number gracefully for DBOS/HTTP payloads
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ;(BigInt.prototype as any).toJSON = function () {
   return Number(this)

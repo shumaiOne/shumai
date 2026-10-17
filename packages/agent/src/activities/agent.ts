@@ -8,8 +8,12 @@ import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
 import { AssetType, prisma, Prisma, type Skill } from '@shumai/db'
-import { registerLocalCancelHandler, unregisterLocalCancelHandler } from '@shumai/workflow-core'
-import { ApplicationFailure, Context } from '@temporalio/activity'
+import {
+  ApplicationFailure,
+  getLocalTaskAbortSignal,
+  registerLocalCancelHandler,
+  unregisterLocalCancelHandler,
+} from '@shumai/workflow-core'
 import { DatabaseSessionStorage } from '../database-session-storage'
 import {
   createAgentSession,
@@ -248,29 +252,17 @@ User messages may contain a <context> block detailing the user, active asset loc
     }
   }
 
-  let heartbeatInterval: ReturnType<typeof setInterval> | null = null
-
   const onAbort = () => {
     harness.abort()
   }
 
-  let temporalSignal: EventTarget | undefined
-  try {
-    temporalSignal = Context.current().cancellationSignal
-  } catch {
-    // Ignore
-  }
-
-  if (temporalSignal) {
-    temporalSignal.addEventListener('abort', onAbort, { once: true })
-
-    heartbeatInterval = setInterval(() => {
-      try {
-        Context.current().heartbeat()
-      } catch (err) {
-        logger.debug({ err }, 'Failed to send activity heartbeat')
-      }
-    }, 2000)
+  const abortSignal = getLocalTaskAbortSignal(params.taskId)
+  if (abortSignal) {
+    if (abortSignal.aborted) {
+      harness.abort()
+    } else {
+      abortSignal.addEventListener('abort', onAbort, { once: true })
+    }
   } else if (params.taskId) {
     registerLocalCancelHandler(params.taskId, () => {
       harness.abort()
@@ -457,11 +449,8 @@ User messages may contain a <context> block detailing the user, active asset loc
     }
     return { text, usage, sessionId }
   } finally {
-    if (heartbeatInterval) {
-      clearInterval(heartbeatInterval)
-    }
-    if (temporalSignal) {
-      temporalSignal.removeEventListener('abort', onAbort)
+    if (abortSignal) {
+      abortSignal.removeEventListener('abort', onAbort)
     }
     if (params.taskId) {
       unregisterLocalCancelHandler(params.taskId)

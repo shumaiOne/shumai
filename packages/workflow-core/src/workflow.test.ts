@@ -37,16 +37,14 @@ describe('WorkflowService', () => {
   beforeEach(async () => {
     initAgentWorkflows()
     initTranscodeWorkflows()
-    await prisma.workflowTask.deleteMany()
-    await prisma.assetComment.deleteMany()
-    await prisma.asset.deleteMany()
     vi.clearAllMocks()
     workflowService.start()
-  })
+    await workflowService.ensureLaunched()
+  }, 15000)
 
-  afterEach(() => {
-    workflowService.close()
-  })
+  afterEach(async () => {
+    await workflowService.shutdownWorkers()
+  }, 15000)
 
   it('should process ai_embedding task locally', async () => {
     const team = await prisma.team.create({
@@ -80,7 +78,7 @@ describe('WorkflowService', () => {
     // However, let's see if it gets to 'failed' or 'completed' depending on the environment.
 
     let finishedTask = null
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 50; i++) {
       finishedTask = await prisma.workflowTask.findUnique({
         where: { id: task.id },
       })
@@ -96,7 +94,7 @@ describe('WorkflowService', () => {
     expect(finishedTask?.status).toBeDefined()
     // Even if it fails due to missing API keys, the fact that it's no longer 'pending' means the workflow was triggered.
     expect(finishedTask?.status).not.toBe(WorkflowTaskStatus.pending)
-  }, 15000)
+  }, 30000)
 
   it('should propagate ApplicationFailure correctly in local executor', async () => {
     // Creating an ai_embedding task without any embedding agent configured for the team
@@ -127,7 +125,7 @@ describe('WorkflowService', () => {
     })
 
     let finishedTask = null
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 50; i++) {
       finishedTask = await prisma.workflowTask.findUnique({
         where: { id: task.id },
       })
@@ -141,7 +139,7 @@ describe('WorkflowService', () => {
     expect((finishedTask?.output as Record<string, unknown>)?.error).toBe(
       'embedding feature is disabled or agent not found',
     )
-  }, 15000)
+  }, 30000)
 
   it('should not double-submit the task when executeWait is called', async () => {
     const team = await prisma.team.create({

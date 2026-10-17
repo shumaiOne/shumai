@@ -35,9 +35,6 @@ describe('Agent Chat Workflow', () => {
       getAgentChatContextActivity: Object.assign(vi.fn(), {
         _activityName: 'getAgentChatContextActivity',
       }),
-      getAgentWorkerQueueActivity: Object.assign(vi.fn(), {
-        _activityName: 'getAgentWorkerQueueActivity',
-      }),
       agentChatActivity: Object.assign(vi.fn(), { _activityName: 'agentChatActivity' }),
       updateCommentActivity: Object.assign(vi.fn(), { _activityName: 'updateCommentActivity' }),
       updateTaskUsageActivity: Object.assign(vi.fn(), { _activityName: 'updateTaskUsageActivity' }),
@@ -56,7 +53,6 @@ describe('Agent Chat Workflow', () => {
       }),
     }
 
-    mockActivities.getAgentWorkerQueueActivity.mockResolvedValue('agent_queue')
     mockActivities.updateTaskStatusActivity.mockResolvedValue({})
     mockActivities.createCommentActivity.mockResolvedValue({ id: 'comment-placeholder-id' })
     mockActivities.generateSessionNameActivity.mockResolvedValue(undefined)
@@ -115,9 +111,6 @@ describe('Agent Chat Workflow', () => {
     })
 
     await agentChat(task)
-
-    // Verify queue discovery
-    expect(mockActivities.getAgentWorkerQueueActivity).toHaveBeenCalled()
 
     // Verify task status processing
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({

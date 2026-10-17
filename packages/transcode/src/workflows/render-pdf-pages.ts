@@ -1,6 +1,5 @@
 import type { WorkflowTask } from '@shumai/db'
-import { executeActivity, getActivities } from '@shumai/workflow-core'
-import { ApplicationFailure } from '@temporalio/workflow'
+import { executeActivity, getActivities, ApplicationFailure } from '@shumai/workflow-core'
 import { getWorkerQueueAndStartTask, fetchAssetWithKey, completeTask, failTask } from './common'
 
 export async function renderPdfPagesWorkflow(task: WorkflowTask): Promise<void> {

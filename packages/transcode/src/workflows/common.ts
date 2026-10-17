@@ -1,15 +1,18 @@
 import type { WorkflowTask } from '@shumai/db'
-import { executeActivity, getActivities, TaskQueueTranscode } from '@shumai/workflow-core'
-import { ApplicationFailure } from '@temporalio/workflow'
+import {
+  ApplicationFailure,
+  executeActivity,
+  getActivities,
+  TaskQueueTranscode,
+} from '@shumai/workflow-core'
 
 export async function getWorkerQueueAndStartTask(task: WorkflowTask): Promise<string> {
-  const { getTranscodeWorkerQueueActivity, updateTaskStatusActivity } = getActivities()
-  const workerQueue = await executeActivity(TaskQueueTranscode, getTranscodeWorkerQueueActivity)
-  await executeActivity(workerQueue, updateTaskStatusActivity, {
+  const { updateTaskStatusActivity } = getActivities()
+  await executeActivity(TaskQueueTranscode, updateTaskStatusActivity, {
     taskId: task.id,
     status: 'processing',
   })
-  return workerQueue
+  return TaskQueueTranscode
 }
 
 export async function fetchAssetWithKey(workerQueue: string, assetId: string) {

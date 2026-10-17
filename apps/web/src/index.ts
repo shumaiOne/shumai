@@ -53,8 +53,11 @@ const regenCmdIndex = cliArgs.findIndex((arg) => arg === 'regenerate-embeddings'
 
 if (regenCmdIndex !== -1) {
   try {
+    initAgentWorkflows()
+    initTranscodeWorkflows()
     console.log('🔄 Regenerating embeddings...')
     const result = await embeddingService.regenerateEmbeddings()
+    await workflowService.waitForPendingSubmissions()
     console.log(
       `✅ Successfully queued ${result.tasksCreated} embedding tasks for ${result.totalAssets} assets.`,
     )
@@ -86,29 +89,26 @@ async function run() {
   await agentService.ensureSystemEmbeddingAgents().catch(console.error)
   assetService.startCleanupJob()
   notificationJobService.start()
-  workflowService.start()
-  if (process.env.WORKFLOW_EXECUTOR === 'temporal') {
-    const args = process.argv.slice(2)
-    let workersOption = ''
-    for (let i = 0; i < args.length; i++) {
-      if (args[i] === '--workers') {
-        workersOption = args[i + 1] || ''
-      } else if (args[i].startsWith('--workers=')) {
-        workersOption = args[i].split('=')[1]
-      }
+  const args = process.argv.slice(2)
+  let workersOption = process.env.SHUMAI_WORKERS || 'all'
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--workers') {
+      workersOption = args[i + 1] || workersOption
+    } else if (args[i].startsWith('--workers=')) {
+      workersOption = args[i].split('=')[1] || workersOption
     }
-
-    const queuesToStart: string[] = []
-    if (workersOption === 'agent' || workersOption === 'ai') {
-      queuesToStart.push('agent_queue')
-    } else if (workersOption === 'transcode') {
-      queuesToStart.push('transcode_queue')
-    } else if (workersOption === 'all') {
-      queuesToStart.push('agent_queue', 'transcode_queue')
-    }
-
-    Promise.all(queuesToStart.map((q) => workflowService.startWorkers(q))).catch(console.error)
   }
+
+  let listenQueues: string[] = ['agent_queue', 'transcode_queue']
+  if (workersOption === 'none') {
+    listenQueues = []
+  } else if (workersOption === 'agent' || workersOption === 'ai') {
+    listenQueues = ['agent_queue']
+  } else if (workersOption === 'transcode') {
+    listenQueues = ['transcode_queue']
+  }
+
+  workflowService.start(listenQueues)
 
   const isProd = process.env.NODE_ENV === 'production'
 

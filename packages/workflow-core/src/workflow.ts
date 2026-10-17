@@ -1,33 +1,21 @@
 import { prisma, registerWorkflowCancel, registerWorkflowTrigger, WorkflowTask } from '@shumai/db'
-import path from 'path'
-import { ulid } from 'ulid'
-import * as taskActivities from './activities/task'
-import { Executor } from './executor'
-import { LocalExecutor } from './local-executor'
-import { TemporalExecutor } from './temporal-executor'
-import { TaskQueueAgent, TaskQueueTranscode, getConcurrencyLimit } from './workflow-utils'
-
-import type { Worker } from '@temporalio/worker'
+import { DbosExecutor } from './dbos-executor'
+import { getRegisteredWorkflows } from './registry'
 
 export class WorkflowService {
-  private executor: Executor
-  private activeWorkers: Worker[] = []
+  private executor: DbosExecutor
 
   constructor() {
-    const type = process.env.WORKFLOW_EXECUTOR || 'local'
-    if (type === 'temporal') {
-      this.executor = new TemporalExecutor(process.env.TEMPORAL_ADDRESS)
-    } else {
-      this.executor = new LocalExecutor()
-    }
+    this.executor = new DbosExecutor()
   }
 
-  setExecutorType(type: 'local' | 'temporal') {
-    if (type === 'temporal') {
-      this.executor = new TemporalExecutor(process.env.TEMPORAL_ADDRESS)
-    } else {
-      this.executor = new LocalExecutor()
-    }
+  getExecutor(): DbosExecutor {
+    return this.executor
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setExecutorType(_type: string): void {
+    // Retained for backwards compatibility in tests
   }
 
   async submit(task: WorkflowTask): Promise<string> {
@@ -35,9 +23,7 @@ export class WorkflowService {
   }
 
   async cancel(taskId: string): Promise<void> {
-    if (this.executor.cancel) {
-      await this.executor.cancel(taskId)
-    }
+    await this.executor.cancel(taskId)
   }
 
   async executeWait(task: WorkflowTask, timeoutMs: number = 30000): Promise<WorkflowTask> {
@@ -56,18 +42,21 @@ export class WorkflowService {
       }
 
       if (updatedTask.status === 'failed') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const error = (updatedTask.output as any)?.error || 'Workflow task failed'
+        const output = updatedTask.output as Record<string, unknown> | null
+        const error = typeof output?.error === 'string' ? output.error : 'Workflow task failed'
         throw new Error(error)
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 200))
     }
 
     throw new Error('Workflow task timed out')
   }
 
-  start(): void {
+  start(listenQueues?: string[]): void {
+    if (listenQueues) {
+      this.executor.setListenQueues(listenQueues)
+    }
     this.executor.start()
   }
 
@@ -75,116 +64,45 @@ export class WorkflowService {
     this.executor.close()
   }
 
-  async shutdownWorkers(): Promise<void> {
-    await Promise.all(this.activeWorkers.map((w) => w.shutdown()))
-    this.activeWorkers = []
+  async ensureLaunched(): Promise<void> {
+    await this.executor.ensureLaunched()
   }
 
-  // Starts Temporal workers for specific task queues
+  async shutdownWorkers(): Promise<void> {
+    await this.executor.shutdown()
+  }
+
+  isStarted(): boolean {
+    return this.executor.isStarted()
+  }
+
+  async waitForPendingSubmissions(): Promise<void> {
+    await this.executor.waitForPendingSubmissions()
+  }
+
+  // Starts DBOS worker for specific task queue(s)
   async startWorkers(
-    queue: string,
-    options: { workflowBundle?: unknown; workflowsPath?: string } = {},
+    queue: string | string[],
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _options: { workflowBundle?: unknown; workflowsPath?: string } = {},
   ): Promise<void> {
-    const type = this.executor instanceof TemporalExecutor ? 'temporal' : 'local'
-    if (type === 'temporal') {
-      const { Worker, NativeConnection } = await import('@temporalio/worker')
-
-      const connection = await NativeConnection.connect({
-        address: process.env.TEMPORAL_ADDRESS || 'localhost:7233',
-      })
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const activities = (globalThis as any).__localActivities
-
-      // For agent_queue and transcode_queue, use worker-specific unique queues
-      const workerId = ulid()
-      const workerSpecificQueue = `${queue}-${workerId}`
-
-      console.log(`Starting Temporal workers for domain: ${queue}`)
-      console.log(`  - Shared queue: ${queue}`)
-      console.log(`  - Worker-specific queue: ${workerSpecificQueue}`)
-
-      // Create a specific activities object for the shared worker that ONLY overrides the queue lookup
-      const sharedActivities: Record<string, unknown> = {}
-      if (queue === 'agent_queue') {
-        sharedActivities.getAgentWorkerQueueActivity = async () => workerSpecificQueue
-      } else if (queue === 'transcode_queue') {
-        sharedActivities.getTranscodeWorkerQueueActivity = async () => workerSpecificQueue
-      }
-
-      const { workflowBundle, workflowsPath } = options
-
-      const sharedWorker = await Worker.create({
-        connection,
-        // The workflowBundle is a pre-bundled set of workflows, its internal structure
-        // is managed by the Temporal worker and doesn't need explicit typing here.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ...(workflowBundle ? { workflowBundle: workflowBundle as any } : {}),
-        ...(workflowsPath ? { workflowsPath } : {}),
-        activities: sharedActivities,
-        taskQueue: queue,
-
-        bundlerOptions: {
-          webpackConfigHook: (config) => {
-            config.resolve = config.resolve || {}
-            config.resolve.alias = {
-              ...config.resolve.alias,
-              // Find the exact absolute path to the package directory
-              '@temporalio/workflow': path.dirname(
-                require.resolve('@temporalio/workflow/package.json'),
-              ),
-              '@shumai/workflow-core': require.resolve('./workflow-utils'),
-            }
-            return config
-          },
-        },
-      })
-
-      let maxConcurrentActivityTaskExecutions: number | undefined
-      if (queue === TaskQueueTranscode) {
-        maxConcurrentActivityTaskExecutions = getConcurrencyLimit(
-          process.env.CONCURRENCY_TRANSCODE,
-          1,
-        )
-      } else if (queue === TaskQueueAgent) {
-        maxConcurrentActivityTaskExecutions = getConcurrencyLimit(process.env.CONCURRENCY_AGENT, 5)
-      }
-
-      const specificWorker = await Worker.create({
-        connection,
-        // Register both domain-specific activities and shared task activities
-        activities: { ...activities, ...taskActivities },
-        taskQueue: workerSpecificQueue,
-        maxConcurrentActivityTaskExecutions,
-        bundlerOptions: {
-          webpackConfigHook: (config) => {
-            config.resolve = config.resolve || {}
-            config.resolve.alias = {
-              ...config.resolve.alias,
-              // Find the exact absolute path to the package directory
-              '@temporalio/workflow': path.dirname(
-                require.resolve('@temporalio/workflow/package.json'),
-              ),
-              '@shumai/workflow-core': require.resolve('./workflow-utils'),
-            }
-            return config
-          },
-        },
-      })
-
-      this.activeWorkers.push(sharedWorker, specificWorker)
-
-      await Promise.all([sharedWorker.run(), specificWorker.run()])
-    } else {
-      console.log(
-        `Workflow executor is set to "${type}". Separate worker processes are only needed for "temporal" mode.`,
-      )
-    }
+    const queues = Array.isArray(queue) ? queue : [queue]
+    console.log(`Starting DBOS worker for queue(s): ${queues.join(', ')}`)
+    this.executor.setListenQueues(queues)
+    this.executor.start()
+    await this.executor.ensureLaunched()
   }
 }
 
 export const workflowService = new WorkflowService()
 registerWorkflowTrigger(async (task) => {
+  if (
+    process.env.NODE_ENV === 'test' &&
+    !workflowService.isStarted() &&
+    getRegisteredWorkflows().size === 0
+  ) {
+    return
+  }
   await workflowService.submit(task)
 })
 registerWorkflowCancel(async (taskId) => {

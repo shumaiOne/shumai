@@ -43,12 +43,8 @@ describe('Agent Autofill Workflow', () => {
       }),
       createCommentActivity: Object.assign(vi.fn(), { _activityName: 'createCommentActivity' }),
       updateCommentActivity: Object.assign(vi.fn(), { _activityName: 'updateCommentActivity' }),
-      getAgentWorkerQueueActivity: Object.assign(vi.fn(), {
-        _activityName: 'getAgentWorkerQueueActivity',
-      }),
     }
 
-    mockActivities.getAgentWorkerQueueActivity.mockResolvedValue('agent_queue')
     mockActivities.updateTaskStatusActivity.mockResolvedValue({})
     mockActivities.createCommentActivity.mockResolvedValue({ id: 'comment-placeholder-id' })
     mockActivities.getAssetActivity.mockResolvedValue({
@@ -92,9 +88,6 @@ describe('Agent Autofill Workflow', () => {
     })
 
     await agentAutofillMedia(task)
-
-    // Verify queue discovery
-    expect(mockActivities.getAgentWorkerQueueActivity).toHaveBeenCalled()
 
     // Verify task processing status
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({

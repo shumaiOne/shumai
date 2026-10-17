@@ -8,16 +8,7 @@ import { writeFileSync } from 'node:fs'
  * to ensure that production dependencies match development/build versions exactly.
  */
 
-const depsToExtract = [
-  '@temporalio/activity',
-  '@temporalio/client',
-  '@temporalio/worker',
-  '@temporalio/workflow',
-  'exiftool-vendored',
-  'pdfkit',
-  'prisma',
-  'sharp',
-]
+const depsToExtract = ['@dbos-inc/dbos-sdk', 'pg', 'exiftool-vendored', 'pdfkit', 'prisma', 'sharp']
 
 function run(cmd: string) {
   try {
@@ -41,7 +32,7 @@ const deps: Record<string, string> = {}
 
 for (const dep of depsToExtract) {
   // regex to find the version after the package name in `bun pm ls` output
-  // e.g., ├── @temporalio/client@1.17.2
+  // e.g., ├── @dbos-inc/dbos-sdk@5.2.11
   const escapedDep = dep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const regex = new RegExp(`(?:^|\\s)${escapedDep}@(\\d+\\.\\d+\\.\\d+[^\\s]*)`, 'g')
   const match = regex.exec(output)

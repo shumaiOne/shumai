@@ -9,371 +9,350 @@ import * as path from 'path'
 import * as fs from 'fs'
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
-const transcodeWorkflowsPath = path.resolve(currentDir, '../../../apps/transcode/src/workflows.ts')
 const fixturesDir = path.resolve(currentDir, '../fixtures')
 
-describe.each(['local', 'temporal'] as const)(
-  'Workflow E2E - transcodeImageWorkflow (executor: %s)',
-  (mode) => {
-    setupTestDbHooks()
+describe('Workflow E2E - transcodeImageWorkflow', () => {
+  setupTestDbHooks()
 
-    let transcodeWorkerPromise: Promise<void> | null = null
+  beforeAll(async () => {
+    process.env.S3_BUCKET = 'shumai-e2e-test-bucket-transcode'
 
-    beforeAll(async () => {
-      process.env.S3_BUCKET = 'shumai-e2e-test-bucket-transcode'
+    initTranscodeWorkflows()
+    await workflowService.startWorkers(TaskQueueTranscode)
+  })
 
-      workflowService.setExecutorType(mode)
-      initTranscodeWorkflows()
+  afterAll(async () => {
+    await workflowService.shutdownWorkers()
+    workflowService.close()
+    vi.restoreAllMocks()
+    try {
+      console.log('Cleaning up local E2E storage files...')
+      await s3Service.deletePrefix('shumai-e2e-test-bucket-transcode', '')
+    } catch (err) {
+      console.error('Failed to clean up E2E storage folder:', err)
+    }
+  })
 
-      if (mode === 'temporal') {
-        console.log('Starting background worker for transcode Temporal E2E tests...')
-        transcodeWorkerPromise = workflowService.startWorkers(TaskQueueTranscode, {
-          workflowsPath: transcodeWorkflowsPath,
-        })
-        await new Promise((resolve) => setTimeout(resolve, 2000))
-      } else {
-        console.log('Starting local workflow service polling...')
-        workflowService.start()
-      }
+  it('should run transcodeMedia workflow for an image asset successfully', async () => {
+    // 1. Seed Database
+    const team = await prisma.team.create({
+      data: { name: 'E2E Image Transcode Team' },
     })
 
-    afterAll(async () => {
-      if (mode === 'temporal') {
-        console.log('Shutting down Temporal workers...')
-        await workflowService.shutdownWorkers()
-        await Promise.all([transcodeWorkerPromise].filter(Boolean))
-      }
-      workflowService.close()
-      vi.restoreAllMocks()
-      try {
-        console.log('Cleaning up local E2E storage files...')
-        await s3Service.deletePrefix('shumai-e2e-test-bucket-transcode', '')
-      } catch (err) {
-        console.error('Failed to clean up E2E storage folder:', err)
-      }
+    const project = await prisma.project.create({
+      data: { name: 'E2E Image Transcode Project', teamId: team.id },
     })
 
-    it('should run transcodeMedia workflow for an image asset successfully', async () => {
-      // 1. Seed Database
-      const team = await prisma.team.create({
-        data: { name: 'E2E Image Transcode Team' },
-      })
+    const storageKey = await prisma.storageKey.create({
+      data: {
+        key: 'projects/e2e/image-trans.png',
+      },
+    })
 
-      const project = await prisma.project.create({
-        data: { name: 'E2E Image Transcode Project', teamId: team.id },
-      })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'image-trans.png',
+        type: 'file',
+        status: 'uploaded',
+        mediaType: 'image/png',
+        projectId: project.id,
+        storageKeyId: storageKey.id,
+      },
+    })
 
-      const storageKey = await prisma.storageKey.create({
-        data: {
-          key: 'projects/e2e/image-trans.png',
-        },
-      })
+    // 2. Seed S3 Storage from Fixture
+    const pngPath = path.join(fixturesDir, 'small.png')
+    const pngBuffer = fs.readFileSync(pngPath)
+    await s3Service.putObject(
+      'shumai-e2e-test-bucket-transcode',
+      'projects/e2e/image-trans.png',
+      pngBuffer,
+      pngBuffer.length,
+      'image/png',
+    )
 
-      const asset = await prisma.asset.create({
-        data: {
-          name: 'image-trans.png',
-          type: 'file',
-          status: 'uploaded',
-          mediaType: 'image/png',
+    // 3. Create Workflow Task
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'transcode_image',
+        status: 'pending',
+        assetId: asset.id,
+        projectId: project.id,
+        teamId: team.id,
+        payload: {
           projectId: project.id,
-          storageKeyId: storageKey.id,
-        },
-      })
-
-      // 2. Seed S3 Storage from Fixture
-      const pngPath = path.join(fixturesDir, 'small.png')
-      const pngBuffer = fs.readFileSync(pngPath)
-      await s3Service.putObject(
-        'shumai-e2e-test-bucket-transcode',
-        'projects/e2e/image-trans.png',
-        pngBuffer,
-        pngBuffer.length,
-        'image/png',
-      )
-
-      // 3. Create Workflow Task
-      const task = await prisma.workflowTask.create({
-        data: {
-          type: 'transcode_image',
-          status: 'pending',
-          assetId: asset.id,
-          projectId: project.id,
-          teamId: team.id,
-          payload: {
-            projectId: project.id,
-            transcode: {
-              thumbnail: true,
-            },
+          transcode: {
+            thumbnail: true,
           },
         },
-      })
+      },
+    })
 
-      // 4. Wait for workflow to complete
-      console.log(
-        `Submitted E2E Image Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
-      )
-      const completedTask = await workflowService.executeWait(task, 45000)
+    // 4. Wait for workflow to complete
+    console.log(
+      `Submitted E2E Image Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
+    )
+    const completedTask = await workflowService.executeWait(task, 45000)
 
-      // 5. Verification
-      expect(completedTask.status).toBe('completed')
+    // 5. Verification
+    expect(completedTask.status).toBe('completed')
 
-      const updatedAsset = await prisma.asset.findUnique({
-        where: { id: asset.id },
-      })
-      expect(updatedAsset?.status).toBe(AssetStatus.processed)
+    const updatedAsset = await prisma.asset.findUnique({
+      where: { id: asset.id },
+    })
+    expect(updatedAsset?.status).toBe(AssetStatus.processed)
 
-      const mediaInfo = updatedAsset?.media as unknown as {
-        proxyType: string
-        imageTranscodes: unknown[]
-        thumbnail: unknown
-      }
-      expect(mediaInfo).toBeDefined()
-      expect(mediaInfo.proxyType).toBe('image')
-      expect(mediaInfo.imageTranscodes).toBeDefined()
-      expect(mediaInfo.imageTranscodes.length).toBeGreaterThan(0)
-      expect(mediaInfo.thumbnail).toBeDefined()
-    }, 50000)
+    const mediaInfo = updatedAsset?.media as unknown as {
+      proxyType: string
+      imageTranscodes: unknown[]
+      thumbnail: unknown
+    }
+    expect(mediaInfo).toBeDefined()
+    expect(mediaInfo.proxyType).toBe('image')
+    expect(mediaInfo.imageTranscodes).toBeDefined()
+    expect(mediaInfo.imageTranscodes.length).toBeGreaterThan(0)
+    expect(mediaInfo.thumbnail).toBeDefined()
+  }, 50000)
 
-    it('should run transcodeMedia workflow for a PSD image asset successfully', async () => {
-      // 1. Seed Database
-      const team = await prisma.team.create({
-        data: { name: 'E2E PSD Transcode Team' },
-      })
+  it('should run transcodeMedia workflow for a PSD image asset successfully', async () => {
+    // 1. Seed Database
+    const team = await prisma.team.create({
+      data: { name: 'E2E PSD Transcode Team' },
+    })
 
-      const project = await prisma.project.create({
-        data: { name: 'E2E PSD Transcode Project', teamId: team.id },
-      })
+    const project = await prisma.project.create({
+      data: { name: 'E2E PSD Transcode Project', teamId: team.id },
+    })
 
-      const storageKey = await prisma.storageKey.create({
-        data: {
-          key: 'projects/e2e/test.psd',
-        },
-      })
+    const storageKey = await prisma.storageKey.create({
+      data: {
+        key: 'projects/e2e/test.psd',
+      },
+    })
 
-      const asset = await prisma.asset.create({
-        data: {
-          name: 'test.psd',
-          type: 'file',
-          status: 'uploaded',
-          mediaType: 'image/vnd.adobe.photoshop',
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test.psd',
+        type: 'file',
+        status: 'uploaded',
+        mediaType: 'image/vnd.adobe.photoshop',
+        projectId: project.id,
+        storageKeyId: storageKey.id,
+      },
+    })
+
+    // 2. Seed S3 Storage from fixture test.psd
+    const psdPath = path.join(fixturesDir, 'test.psd')
+    const psdBuffer = fs.readFileSync(psdPath)
+    await s3Service.putObject(
+      'shumai-e2e-test-bucket-transcode',
+      'projects/e2e/test.psd',
+      psdBuffer,
+      psdBuffer.length,
+      'image/vnd.adobe.photoshop',
+    )
+
+    // 3. Create Workflow Task
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'transcode_image',
+        status: 'pending',
+        assetId: asset.id,
+        projectId: project.id,
+        teamId: team.id,
+        payload: {
           projectId: project.id,
-          storageKeyId: storageKey.id,
-        },
-      })
-
-      // 2. Seed S3 Storage from fixture test.psd
-      const psdPath = path.join(fixturesDir, 'test.psd')
-      const psdBuffer = fs.readFileSync(psdPath)
-      await s3Service.putObject(
-        'shumai-e2e-test-bucket-transcode',
-        'projects/e2e/test.psd',
-        psdBuffer,
-        psdBuffer.length,
-        'image/vnd.adobe.photoshop',
-      )
-
-      // 3. Create Workflow Task
-      const task = await prisma.workflowTask.create({
-        data: {
-          type: 'transcode_image',
-          status: 'pending',
-          assetId: asset.id,
-          projectId: project.id,
-          teamId: team.id,
-          payload: {
-            projectId: project.id,
-            transcode: {
-              thumbnail: true,
-            },
+          transcode: {
+            thumbnail: true,
           },
         },
-      })
+      },
+    })
 
-      // 4. Wait for workflow to complete
-      console.log(
-        `Submitted E2E PSD Image Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
-      )
-      const completedTask = await workflowService.executeWait(task, 45000)
+    // 4. Wait for workflow to complete
+    console.log(
+      `Submitted E2E PSD Image Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
+    )
+    const completedTask = await workflowService.executeWait(task, 45000)
 
-      // 5. Verification
-      expect(completedTask.status).toBe('completed')
+    // 5. Verification
+    expect(completedTask.status).toBe('completed')
 
-      const updatedAsset = await prisma.asset.findUnique({
-        where: { id: asset.id },
-      })
-      expect(updatedAsset?.status).toBe(AssetStatus.processed)
+    const updatedAsset = await prisma.asset.findUnique({
+      where: { id: asset.id },
+    })
+    expect(updatedAsset?.status).toBe(AssetStatus.processed)
 
-      const mediaInfo = updatedAsset?.media as unknown as {
-        proxyType: string
-        imageTranscodes: unknown[]
-        thumbnail: unknown
-      }
-      expect(mediaInfo).toBeDefined()
-      expect(mediaInfo.proxyType).toBe('image')
-      expect(mediaInfo.imageTranscodes).toBeDefined()
-      expect(mediaInfo.imageTranscodes.length).toBeGreaterThan(0)
-      expect(mediaInfo.thumbnail).toBeDefined()
-    }, 50000)
+    const mediaInfo = updatedAsset?.media as unknown as {
+      proxyType: string
+      imageTranscodes: unknown[]
+      thumbnail: unknown
+    }
+    expect(mediaInfo).toBeDefined()
+    expect(mediaInfo.proxyType).toBe('image')
+    expect(mediaInfo.imageTranscodes).toBeDefined()
+    expect(mediaInfo.imageTranscodes.length).toBeGreaterThan(0)
+    expect(mediaInfo.thumbnail).toBeDefined()
+  }, 50000)
 
-    it('should run transcodeMedia workflow for a RAW image asset (.dng) successfully', async () => {
-      // 1. Seed Database
-      const team = await prisma.team.create({
-        data: { name: 'E2E RAW Transcode Team' },
-      })
+  it('should run transcodeMedia workflow for a RAW image asset (.dng) successfully', async () => {
+    // 1. Seed Database
+    const team = await prisma.team.create({
+      data: { name: 'E2E RAW Transcode Team' },
+    })
 
-      const project = await prisma.project.create({
-        data: { name: 'E2E RAW Transcode Project', teamId: team.id },
-      })
+    const project = await prisma.project.create({
+      data: { name: 'E2E RAW Transcode Project', teamId: team.id },
+    })
 
-      const storageKey = await prisma.storageKey.create({
-        data: {
-          key: 'projects/e2e/test.dng',
-        },
-      })
+    const storageKey = await prisma.storageKey.create({
+      data: {
+        key: 'projects/e2e/test.dng',
+      },
+    })
 
-      const asset = await prisma.asset.create({
-        data: {
-          name: 'test.dng',
-          type: 'file',
-          status: 'uploaded',
-          mediaType: 'image/x-adobe-dng',
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test.dng',
+        type: 'file',
+        status: 'uploaded',
+        mediaType: 'image/x-adobe-dng',
+        projectId: project.id,
+        storageKeyId: storageKey.id,
+      },
+    })
+
+    // 2. Seed S3 Storage from fixture test.dng
+    const dngPath = path.join(fixturesDir, 'test.dng')
+    const dngBuffer = fs.readFileSync(dngPath)
+    await s3Service.putObject(
+      'shumai-e2e-test-bucket-transcode',
+      'projects/e2e/test.dng',
+      dngBuffer,
+      dngBuffer.length,
+      'image/x-adobe-dng',
+    )
+
+    // 3. Create Workflow Task
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'transcode_image',
+        status: 'pending',
+        assetId: asset.id,
+        projectId: project.id,
+        teamId: team.id,
+        payload: {
           projectId: project.id,
-          storageKeyId: storageKey.id,
-        },
-      })
-
-      // 2. Seed S3 Storage from fixture test.dng
-      const dngPath = path.join(fixturesDir, 'test.dng')
-      const dngBuffer = fs.readFileSync(dngPath)
-      await s3Service.putObject(
-        'shumai-e2e-test-bucket-transcode',
-        'projects/e2e/test.dng',
-        dngBuffer,
-        dngBuffer.length,
-        'image/x-adobe-dng',
-      )
-
-      // 3. Create Workflow Task
-      const task = await prisma.workflowTask.create({
-        data: {
-          type: 'transcode_image',
-          status: 'pending',
-          assetId: asset.id,
-          projectId: project.id,
-          teamId: team.id,
-          payload: {
-            projectId: project.id,
-            transcode: {
-              thumbnail: true,
-            },
+          transcode: {
+            thumbnail: true,
           },
         },
-      })
+      },
+    })
 
-      // 4. Wait for workflow to complete
-      console.log(
-        `Submitted E2E RAW Image Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
-      )
-      const completedTask = await workflowService.executeWait(task, 45000)
+    // 4. Wait for workflow to complete
+    console.log(
+      `Submitted E2E RAW Image Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
+    )
+    const completedTask = await workflowService.executeWait(task, 45000)
 
-      // 5. Verification
-      expect(completedTask.status).toBe('completed')
+    // 5. Verification
+    expect(completedTask.status).toBe('completed')
 
-      const updatedAsset = await prisma.asset.findUnique({
-        where: { id: asset.id },
-      })
-      expect(updatedAsset?.status).toBe(AssetStatus.processed)
+    const updatedAsset = await prisma.asset.findUnique({
+      where: { id: asset.id },
+    })
+    expect(updatedAsset?.status).toBe(AssetStatus.processed)
 
-      const mediaInfo = updatedAsset?.media as unknown as {
-        proxyType: string
-        imageTranscodes: unknown[]
-        thumbnail: unknown
-      }
-      expect(mediaInfo).toBeDefined()
-      expect(mediaInfo.proxyType).toBe('image')
-      expect(mediaInfo.imageTranscodes).toBeDefined()
-      expect(mediaInfo.imageTranscodes.length).toBeGreaterThan(0)
-      expect(mediaInfo.thumbnail).toBeDefined()
-    }, 50000)
+    const mediaInfo = updatedAsset?.media as unknown as {
+      proxyType: string
+      imageTranscodes: unknown[]
+      thumbnail: unknown
+    }
+    expect(mediaInfo).toBeDefined()
+    expect(mediaInfo.proxyType).toBe('image')
+    expect(mediaInfo.imageTranscodes).toBeDefined()
+    expect(mediaInfo.imageTranscodes.length).toBeGreaterThan(0)
+    expect(mediaInfo.thumbnail).toBeDefined()
+  }, 50000)
 
-    it('should transcode a rotated camera photo upright', async () => {
-      // 1. Seed Database
-      const team = await prisma.team.create({
-        data: { name: 'E2E Rotated Transcode Team' },
-      })
+  it('should transcode a rotated camera photo upright', async () => {
+    // 1. Seed Database
+    const team = await prisma.team.create({
+      data: { name: 'E2E Rotated Transcode Team' },
+    })
 
-      const project = await prisma.project.create({
-        data: { name: 'E2E Rotated Transcode Project', teamId: team.id },
-      })
+    const project = await prisma.project.create({
+      data: { name: 'E2E Rotated Transcode Project', teamId: team.id },
+    })
 
-      const storageKey = await prisma.storageKey.create({
-        data: {
-          key: 'projects/e2e/portrait-rotated.jpg',
-        },
-      })
+    const storageKey = await prisma.storageKey.create({
+      data: {
+        key: 'projects/e2e/portrait-rotated.jpg',
+      },
+    })
 
-      const asset = await prisma.asset.create({
-        data: {
-          name: 'portrait-rotated.jpg',
-          type: 'file',
-          status: 'uploaded',
-          mediaType: 'image/jpeg',
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'portrait-rotated.jpg',
+        type: 'file',
+        status: 'uploaded',
+        mediaType: 'image/jpeg',
+        projectId: project.id,
+        storageKeyId: storageKey.id,
+      },
+    })
+
+    // 2. Seed S3 Storage from fixture portrait-rotated.jpg: stored 600x400 with EXIF
+    // orientation 6, the way cameras save portrait shots, so it is displayed 400x600.
+    const jpgPath = path.join(fixturesDir, 'portrait-rotated.jpg')
+    const jpgBuffer = fs.readFileSync(jpgPath)
+    await s3Service.putObject(
+      'shumai-e2e-test-bucket-transcode',
+      'projects/e2e/portrait-rotated.jpg',
+      jpgBuffer,
+      jpgBuffer.length,
+      'image/jpeg',
+    )
+
+    // 3. Create Workflow Task
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'transcode_image',
+        status: 'pending',
+        assetId: asset.id,
+        projectId: project.id,
+        teamId: team.id,
+        payload: {
           projectId: project.id,
-          storageKeyId: storageKey.id,
-        },
-      })
-
-      // 2. Seed S3 Storage from fixture portrait-rotated.jpg: stored 600x400 with EXIF
-      // orientation 6, the way cameras save portrait shots, so it is displayed 400x600.
-      const jpgPath = path.join(fixturesDir, 'portrait-rotated.jpg')
-      const jpgBuffer = fs.readFileSync(jpgPath)
-      await s3Service.putObject(
-        'shumai-e2e-test-bucket-transcode',
-        'projects/e2e/portrait-rotated.jpg',
-        jpgBuffer,
-        jpgBuffer.length,
-        'image/jpeg',
-      )
-
-      // 3. Create Workflow Task
-      const task = await prisma.workflowTask.create({
-        data: {
-          type: 'transcode_image',
-          status: 'pending',
-          assetId: asset.id,
-          projectId: project.id,
-          teamId: team.id,
-          payload: {
-            projectId: project.id,
-            transcode: {
-              thumbnail: true,
-            },
+          transcode: {
+            thumbnail: true,
           },
         },
-      })
+      },
+    })
 
-      // 4. Wait for workflow to complete
-      console.log(
-        `Submitted E2E Rotated Image Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
-      )
-      const completedTask = await workflowService.executeWait(task, 45000)
+    // 4. Wait for workflow to complete
+    console.log(
+      `Submitted E2E Rotated Image Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
+    )
+    const completedTask = await workflowService.executeWait(task, 45000)
 
-      // 5. Verification: the asset and its transcode are portrait, not the stored landscape.
-      expect(completedTask.status).toBe('completed')
+    // 5. Verification: the asset and its transcode are portrait, not the stored landscape.
+    expect(completedTask.status).toBe('completed')
 
-      const updatedAsset = await prisma.asset.findUnique({
-        where: { id: asset.id },
-      })
-      expect(updatedAsset?.status).toBe(AssetStatus.processed)
+    const updatedAsset = await prisma.asset.findUnique({
+      where: { id: asset.id },
+    })
+    expect(updatedAsset?.status).toBe(AssetStatus.processed)
 
-      const mediaInfo = updatedAsset?.media as unknown as {
-        imageTranscodes: Array<{ width: number; height: number }>
-        metadata: { originalWidth: number; originalHeight: number }
-      }
-      expect(mediaInfo.metadata.originalWidth).toBe(400)
-      expect(mediaInfo.metadata.originalHeight).toBe(600)
-      expect(mediaInfo.imageTranscodes[0].width).toBe(400)
-      expect(mediaInfo.imageTranscodes[0].height).toBe(600)
-    }, 50000)
-  },
-)
+    const mediaInfo = updatedAsset?.media as unknown as {
+      imageTranscodes: Array<{ width: number; height: number }>
+      metadata: { originalWidth: number; originalHeight: number }
+    }
+    expect(mediaInfo.metadata.originalWidth).toBe(400)
+    expect(mediaInfo.metadata.originalHeight).toBe(600)
+    expect(mediaInfo.imageTranscodes[0].width).toBe(400)
+    expect(mediaInfo.imageTranscodes[0].height).toBe(600)
+  }, 50000)
+})

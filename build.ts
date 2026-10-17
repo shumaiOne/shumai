@@ -3,7 +3,6 @@ import { bunPluginPino } from 'bun-plugin-pino'
 import tailwindPlugin from 'bun-plugin-tailwind'
 import { existsSync } from 'fs'
 import { rm } from 'fs/promises'
-import { temporalWorkflow } from './packages/workflow-core/src/bun-temporal-plugin'
 
 console.log('\n🚀 Starting build process...\n')
 
@@ -22,20 +21,8 @@ await Bun.build({
   minify: true,
   splitting: true,
   naming: '[name].[ext]',
-  plugins: [
-    temporalWorkflow({
-      bundleOptions: {},
-    }),
-    tailwindPlugin,
-    bunPluginPino({ transports: ['pino-pretty'] }),
-  ],
-  external: [
-    '@temporalio/activity',
-    '@temporalio/client',
-    '@temporalio/worker',
-    '@temporalio/workflow',
-    'pdfkit',
-  ],
+  plugins: [tailwindPlugin, bunPluginPino({ transports: ['pino-pretty'] })],
+  external: ['@dbos-inc/dbos-sdk', 'pg', 'pdfkit'],
   // compile: {
   //   outfile: 'Shumai',
   //   autoloadBunfig: true,
@@ -47,3 +34,23 @@ await Bun.build({
     'process.env.NODE_ENV': JSON.stringify('production'),
   },
 })
+
+for (const worker of [
+  { entrypoint: './apps/transcode/src/index.ts', naming: 'transcode-worker.[ext]' },
+  { entrypoint: './apps/agent/src/index.ts', naming: 'agent-worker.[ext]' },
+]) {
+  await Bun.build({
+    entrypoints: [worker.entrypoint],
+    root: '.',
+    target: 'bun',
+    outdir: outdir,
+    minify: true,
+    splitting: false,
+    naming: worker.naming,
+    plugins: [bunPluginPino({ transports: ['pino-pretty'] })],
+    external: ['@dbos-inc/dbos-sdk', 'pg', 'pdfkit'],
+    define: {
+      'process.env.NODE_ENV': JSON.stringify('production'),
+    },
+  })
+}

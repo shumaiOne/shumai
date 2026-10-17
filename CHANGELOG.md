@@ -10,7 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+* **workflow**: Fix an issue where creating background tasks from within an active workflow step caused an invalid transition error during video processing
+* **cli**: Fix an issue where running `shumai regenerate-embeddings` would report success without enqueueing tasks to background workers
+* **workflow**: Fix an issue where multiple worker replicas could share the same executor identity and disrupt live workflows on startup recovery
+* **workflow**: Fix an issue where changes to queue concurrency environment variables were ignored after initial registration
+
 ### Changed
+
+
+* **workflow**: Migrate the background workflow engine to DBOS, unifying all-in-one and dedicated worker deployments using the existing PostgreSQL database without requiring a separate Temporal cluster
 
 ## [0.5.3] - 2026-10-16
 
