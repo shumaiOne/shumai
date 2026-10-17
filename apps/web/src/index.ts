@@ -87,12 +87,12 @@ async function run() {
   assetService.startCleanupJob()
   notificationJobService.start()
   const args = process.argv.slice(2)
-  let workersOption = 'all'
+  let workersOption = process.env.SHUMAI_WORKERS || 'all'
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--workers') {
-      workersOption = args[i + 1] || 'all'
+      workersOption = args[i + 1] || workersOption
     } else if (args[i].startsWith('--workers=')) {
-      workersOption = args[i].split('=')[1] || 'all'
+      workersOption = args[i].split('=')[1] || workersOption
     }
   }
 
