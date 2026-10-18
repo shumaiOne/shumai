@@ -138,7 +138,7 @@ spec:
             - -c
             - |
               set -e
-              apk add --no-cache curl jq >/dev/null 2>&1
+              apk add --no-cache curl jq aws-cli >/dev/null 2>&1
 
               echo "Waiting for Garage Admin API to respond..."
               until curl -s -f -H "Authorization: Bearer ${GARAGE_ADMIN_TOKEN}" http://garage:3903/v2/GetClusterStatus >/dev/null 2>&1; do
@@ -195,5 +195,13 @@ spec:
                   -H "Content-Type: application/json" \
                   -d "{\"bucketId\": \"${BUCKET_ID}\", \"accessKeyId\": \"${S3_ACCESS_KEY_ID}\", \"permissions\": {\"read\": true, \"write\": true, \"owner\": true}}" >/dev/null || true
               fi
+
+              echo "Configuring S3 bucket CORS for web uploads..."
+              AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID} \
+              AWS_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY} \
+              AWS_DEFAULT_REGION=garage \
+              aws --endpoint-url http://garage:3900 s3api put-bucket-cors \
+                --bucket "${S3_BUCKET}" \
+                --cors-configuration '{"CORSRules":[{"AllowedHeaders":["*"],"AllowedMethods":["GET","PUT","POST","DELETE","HEAD"],"AllowedOrigins":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3000}]}' || true
 
               echo "✅ Garage S3 storage cluster initialized successfully!"
