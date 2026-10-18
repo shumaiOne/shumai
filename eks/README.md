@@ -1,6 +1,10 @@
 # Shumai on AWS EKS with Graviton5 Spot & Autoscaling
 
-This directory contains a complete, production-ready Kubernetes deployment example demonstrating how to run Shumai on **Amazon Elastic Kubernetes Service (AWS EKS)** with horizontal autoscaling for compute-heavy media processing.
+This directory contains a complete, production-ready Kubernetes deployment example for running Shumai on **Amazon Elastic Kubernetes Service (Amazon EKS)**, with horizontal autoscaling for compute-intensive media processing.
+
+The example should also be straightforward to adapt to a generic Kubernetes cluster.
+
+To demonstrate a fully self-hosted setup, it uses Garage as an S3-compatible object storage solution. However, if you're deploying on AWS, consider using **Amazon S3** instead of running your own S3-compatible storage server, as it can be significantly more cost-effective and easier to manage.
 
 ---
 
@@ -21,34 +25,33 @@ This directory contains a complete, production-ready Kubernetes deployment examp
 │ General Workload Node (c9g.large On-Demand, ~$0.087/hr)                             │
 │                   │                                                                 │
 │                   ▼                                                                 │
-│       ┌───────────────────────┐    DBOS Tasks    ┌───────────────────────────┐      │
-│       │     shumai-server     ├─────────────────►│      shumai-postgres      │      │
-│       │ (SHUMAI_WORKERS=agent)│ (transcode_queue)│      (pgvector:pg18)      │      │
-│       └───────────┬───────────┘                  └─────────────┬─────────────┘      │
-│                   │                                            │                    │
-│                   │                                            │ Task Polling       │
-│                   ▼                                            ▼                    │
-│       ┌───────────────────────┐                  ┌───────────────────────────┐      │
-│       │       garage-s3       │◄─────────────────┤     shumai-transcode      │      │
-│       │    (dxflrs/garage)    │ Fetch Source /   │     (Worker Pod 1)        │      │
-│       └───────────────────────┘ Write Proxies    └───────────────────────────┘      │
-└────────────────────────────────────────────────────────────────┬────────────────────┘
-                                                                 │ HPA Target: 70% CPU
-                                                                 ▼
-┌─────────────────────────────────────────────────────────────────────────────────────┐
+│       ┌───────────────────────┐   Enqueue DBOS Tasks    ┌───────────────────┐       │
+│       │     shumai-server     ├────────────────────────►│  shumai-postgres  │       │
+│       │(SHUMAI_WORKERS=agent) │    (transcode_queue)    │  (pgvector:pg18)  │       │
+│       └───────────┬───────────┘                         └─────────┬─────────┘       │
+│                   │ Internal S3 Traffic                           │                 │
+│                   ▼                                               │                 │
+│       ┌───────────────────────┐                                   │                 │
+│       │       garage-s3       │                                   │                 │
+│       │    (dxflrs/garage)    │                                   │                 │
+│       └───────────▲───────────┘                                   │                 │
+└───────────────────┼───────────────────────────────────────────────┼─────────────────┘
+                    │ Read Source / Write Proxies                   │ Poll Tasks
+                    │                                               ▼
+┌───────────────────┴─────────────────────────────────────────────────────────────────┐
 │ Transcode Compute Pool (c9g.xlarge Graviton5 Spot, ~$0.08/hr, 1 Pod per Node)       │
 │                                                                                     │
 │  ┌──────────────────────────┐  ┌──────────────────────────┐  ┌────────────────────┐ │
 │  │     shumai-transcode     │  │     shumai-transcode     │  │  shumai-transcode  │ │
-│  │      (Worker Pod 2)      │  │      (Worker Pod 3)      │  │   (Worker Pod N)   │ │
-│  └──────────────────────────┘  └──────────────────────────┘  └────────────────────┘ │
-│           ▲                              ▲                             ▲            │
-│           │                              │                             │            │
-│  ┌────────┴─────────────────┐  ┌─────────┴────────────────┐  ┌─────────┴──────────┐ │
-│  │ Node: c9g.xlarge (Spot)  │  │ Node: c9g.xlarge (Spot)  │  │Node: c9g.xlarge    │ │
+│  │      (Worker Pod 1)      │  │      (Worker Pod 2)      │  │   (Worker Pod N)   │ │
+│  └────────────┬─────────────┘  └────────────┬─────────────┘  └──────────┬─────────┘ │
+│               ▼                             ▼                           ▼           │
+│  ┌──────────────────────────┐  ┌──────────────────────────┐  ┌────────────────────┐ │
+│  │   Node 1: c9g.xlarge     │  │   Node 2: c9g.xlarge     │  │ Node N: c9g.xlarge │ │
+│  │       (Spot)             │  │       (Spot)             │  │       (Spot)       │ │
 │  └──────────────────────────┘  └──────────────────────────┘  └────────────────────┘ │
 │                                                                                     │
-│        Cluster Autoscaler: Dynamically provisions / terminates c9g.xlarge nodes     │
+│  HPA: Scales pods 1..5 on CPU > 70% │ Cluster Autoscaler: Scales Spot nodes 1..5    │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -67,28 +70,11 @@ Media transcoding with FFmpeg is one of the most CPU-intensive workloads in mode
 
 - **Dedicated Transcode Pool (`shumai-transcode-spot`)**: High-performance 4 vCPU / 8 GiB RAM Graviton Spot instances (`c9g.xlarge` primary, with `c8g.xlarge` fallback pools) dedicated exclusively to media encoding.
 
-**Why choose AWS Graviton5 (`c9g.xlarge`)?**
-AWS Graviton5 is AWS's fifth-generation custom ARM64 processor, built on the 6th-generation Nitro system with sustained 3.3 GHz clock speeds, high-speed DDR5 memory (8800 MT/s), and 5x more L3 cache. As demonstrated in AWS's video encoding benchmarks (see [Optimized Video Encoding with FFmpeg on AWS Graviton Processors](https://aws.amazon.com/cn/blogs/opensource/optimized-video-encoding-with-ffmpeg-on-aws-graviton-processors/)), Graviton processors deliver exceptional performance and frames-per-second per dollar for media workloads. Graviton5 further pushes compute performance by up to 25% per vCPU. Coupled with AWS EC2 Spot instances, `c9g.xlarge` costs only **~$0.08/hour** (a massive discount over On-Demand).
-
-### 2. In-Cluster S3 vs. Native Amazon S3
-
-> [!NOTE]
-> **Why Garage is included in this example**:
-> We include **Garage S3** (`dxflrs/garage`) on EBS gp3 to demonstrate a **100% self-contained, fully self-hosted deployment** that boots without requiring an external cloud storage account or pre-existing S3 buckets.
-
-> [!TIP]
-> **Production Recommendation**:
-> If you are deploying on AWS, you should consider using **native Amazon S3 directly** (e.g. by setting `S3_BUCKET: my-prod-bucket`). Real Amazon S3 provides virtually infinite capacity, 11 9s durability, global availability, and eliminates the operational overhead of managing in-cluster storage volumes.
-
-When running Garage in-cluster, Shumai utilizes **Split-Horizon S3 Resolution**:
-- **Internal Traffic (`AWS_ENDPOINT_URL_S3`)**: Points to `http://garage.shumai.svc.cluster.local:3900`. Backend server and worker pods stream source files and upload transcoded HLS chunks over private cluster networking with **zero AWS data transfer fees** and microsecond latency.
-- **Public Client Traffic (`AWS_PUBLIC_ENDPOINT_URL_S3`)**: Points to the public LoadBalancer (`http://<garage-public-elb>:3900`) for generating presigned upload/download URLs so end-user browsers can stream and upload files directly.
-
-### 3. Task Orchestration via DBOS Transact
+### 2. Task Orchestration via DBOS Transact
 
 All video and document transcoding jobs are enqueued to `transcode_queue` inside PostgreSQL via **DBOS Transact**. Transcode workers are completely stateless and consume jobs from the queue. Each worker pod uses the Kubernetes Downward API (`POD_NAME`) to obtain a unique, collision-free executor ID.
 
-### 4. What Happens If Transcode Spot Nodes Are Interrupted or Killed?
+### 3. What Happens If Transcode Spot Nodes Are Interrupted or Killed?
 
 Because the transcode workers are completely stateless and coordinated via **DBOS Transact** against PostgreSQL on the On-Demand node:
 
@@ -240,17 +226,3 @@ kubectl delete namespace shumai
 # 2. Delete the EKS cluster and CloudFormation stacks
 eksctl delete cluster -f eks/eks-cluster.yaml --wait
 ```
-
----
-
-## Portability to Generic Kubernetes
-
-While this directory is configured for AWS EKS, the exact same architecture applies directly to any Kubernetes environment:
-
-- **Google Kubernetes Engine (GKE)**: Use `tau T2A` ARM64 instances for transcode workers and standard persistent disks (`pd-balanced`).
-- **Azure Kubernetes Service (AKS)**: Use `Dpsv5` ARM64 Spot node pools.
-- **Local (Minikube / Docker Desktop / Kind)**: Use the same manifests without node selectors or Cluster Autoscaler. Access services via `kubectl port-forward`:
-  ```bash
-  kubectl port-forward -n shumai svc/shumai-server 3000:3000
-  kubectl port-forward -n shumai svc/garage 3900:3900
-  ```
