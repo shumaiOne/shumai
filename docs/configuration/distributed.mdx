@@ -130,219 +130,40 @@ When running multiple replicas of the transcode or agent worker across multiple 
 
 ---
 
-## Kubernetes Deployment & Autoscaling (HPA)
+## Scalable Deployment on Kubernetes & AWS EKS
 
-Shumai provides an out-of-the-box Kubernetes configuration under `k8s/` showcasing horizontal scalability for media processing. Because DBOS manages task queues directly within PostgreSQL, transcode workers are completely stateless and can scale dynamically with workload demand.
-
-### Architecture
+For production cloud deployments requiring high-throughput media processing, Shumai can be deployed on Kubernetes or **AWS Elastic Kubernetes Service (AWS EKS)** with automated horizontal autoscaling.
 
 ```mermaid
 graph TD
-    User([User / Web Browser]) -->|Port 3000| Server[Pod: shumai-server<br/>SHUMAI_WORKERS=agent]
-    Server -->|Enqueue to transcode_queue| DB[(PostgreSQL: pgvector18<br/>Service: shumai-postgres)]
-    Server -->|Direct Uploads / Stream Proxies| Storage[(Garage S3<br/>Service: garage:3900)]
+    User([User / Web Browser]) -->|Port 80/3000| Server[Pod: shumai-server<br/>SHUMAI_WORKERS=agent]
+    Server -->|Enqueue to transcode_queue| DB[(PostgreSQL: pgvector18)]
+    Server -->|Direct Uploads / Stream Proxies| Storage[(S3 / Garage Storage)]
 
     DB -->|Poll transcode_queue| Worker1[Pod: shumai-transcode-1]
-    DB -->|Poll transcode_queue| WorkerN[Pod: shumai-transcode-N<br/>Autoscaled Replicas: 1..5]
+    DB -->|Poll transcode_queue| WorkerN[Pod: shumai-transcode-N<br/>Autoscaled: 1..5 Replicas]
     Worker1 -->|Fetch Source / Store Proxies| Storage
     WorkerN -->|Fetch Source / Store Proxies| Storage
 
-    HPA[HorizontalPodAutoscaler<br/>Target: 70% CPU<br/>min: 1, max: 5] -.->|Autoscale| WorkerN
+    HPA[HorizontalPodAutoscaler<br/>Target: 70% CPU<br/>min: 1, max: 5] -.->|Autoscale Pods| WorkerN
+    CA[Cluster Autoscaler] -.->|Autoscale c7g.xlarge Spot Nodes| WorkerN
 ```
 
-### Components
+### Key Architectural Highlights
 
-The `k8s/` directory includes a self-contained Kustomize stack:
+- **Decoupled Stateless Workers**: The main web and API server runs on lightweight general compute (`SHUMAI_WORKERS=agent`), delegating media transcoding to background workers orchestrated via DBOS task queues in PostgreSQL.
+- **Dedicated Graviton3 Spot Compute (`c7g.xlarge`)**: Media encoding runs on 4 vCPU / 8 GiB RAM AWS Graviton3 Spot instances (~$0.06/hr), utilizing ARM64 FP16/SVE vector optimizations to achieve up to 40% better encoding performance at minimal cost.
+- **1:1 Pod-to-Node Scaling**: Worker pods request `3000m` CPU, guaranteeing that each active transcoding job gets an entire dedicated 4 vCPU `c7g.xlarge` instance without CPU throttling.
+- **End-to-End Autoscaling**: Kubernetes HPA detects encoding load and scales worker pods (1 to 5 replicas), while Kubernetes Cluster Autoscaler provisions and terminates underlying EC2 Spot instances automatically.
 
-1. **`shumai-server`**: Main dashboard and REST API handling web traffic and AI agent tasks (`SHUMAI_WORKERS=agent`).
-2. **`shumai-transcode`**: Dedicated transcoding worker pool running `shumaione/shumai-transcode:latest` with `CONCURRENCY_TRANSCODE=1`. Each pod receives its unique identity via the Kubernetes Downward API (`POD_NAME`).
-3. **`garage`**: Lightweight in-cluster S3-compatible storage powered by `dxflrs/garage`, automatically initialized with bucket `shumai` and pre-configured credentials.
-4. **`shumai-postgres`**: PostgreSQL database with `pgvector:pg18` hosting application data and DBOS workflow queues.
-5. **`shumai-transcode-hpa`**: `HorizontalPodAutoscaler` (`autoscaling/v2`) targeting 70% CPU utilization, scaling between **1 and 5 replicas**.
+### Complete Deployment Example & Source Code
 
-### Deploying the Stack
+For the full, production-ready manifests, declarative `eksctl` cluster configuration, and step-by-step walkthrough, see the **[EKS Deployment Example](https://github.com/shumaiOne/shumai/tree/main/eks)** in the Shumai repository:
 
-Deploy the entire stack with a single command:
+👉 **[View the EKS Deployment Guide & Manifests on GitHub](https://github.com/shumaiOne/shumai/tree/main/eks)**
 
-```bash
-kubectl apply -k k8s/
-```
+The repository includes:
 
-Check the status of all pods:
-
-```bash
-kubectl get pods -n shumai
-```
-
-Inspect the HorizontalPodAutoscaler:
-
-```bash
-kubectl get hpa -n shumai
-```
-
-```text
-NAME                   REFERENCE                     TARGETS         MINPODS   MAXPODS   REPLICAS
-shumai-transcode-hpa   Deployment/shumai-transcode   cpu: 10%/70%    1         5         1
-```
-
-### Accessing the Dashboard & Storage
-
-In Kubernetes, services are created as internal `ClusterIP` services by default. To access the stack from your local development machine:
-
-1. **Forward the Web Server**:
-
-   ```bash
-   kubectl port-forward -n shumai svc/shumai-server 3000:3000
-   ```
-
-   Open **`http://localhost:3000`** in your browser.
-
-2. **Forward In-Cluster S3 Storage (Garage)**:
-   Shumai uses direct client-to-S3 presigned URLs for uploading and streaming media. `shumai-server` is configured with `AWS_PUBLIC_ENDPOINT_URL_S3: http://localhost:3900`. Forward port 3900 to allow your local browser to upload directly to Garage S3:
-   ```bash
-   kubectl port-forward -n shumai svc/garage 3900:3900
-   ```
-
-> [!NOTE]
-> In production environments, configure an Ingress controller (e.g. `ingress-nginx` or AWS ALB) with a public domain or set `AWS_ENDPOINT_URL_S3` to an external cloud S3/R2 bucket.
-
-### How Autoscaling Operates
-
-1. **Scale-Up**: When users upload video assets, the `shumai-server` creates transcode workflow tasks and submits them to `transcode_queue` in PostgreSQL. As the active transcode worker utilizes CPU for FFmpeg encoding, CPU usage crosses the 70% threshold, triggering the HPA to scale up additional `shumai-transcode` pods (up to 5 pods).
-2. **Per-Pod Executor Identity**: Each newly spawned pod uses `POD_NAME` as its DBOS executor identity. Pods poll `transcode_queue` in parallel, safely picking up and executing transcode jobs concurrently.
-3. **Graceful Scale-Down & Drainage**: Worker pods configure `terminationGracePeriodSeconds: 300` and handle `SIGTERM` gracefully by draining active DBOS steps before termination, ensuring zero video proxy corruption during scale-down.
-
----
-
-## Deploying on AWS EKS with Graviton3 Spot Instances (`c7g.xlarge`)
-
-For production cloud deployments on Amazon Web Services (AWS), running transcode workers on **AWS Graviton3 (`c7g.xlarge`) Spot instances** provides the highest performance-to-cost ratio for CPU-intensive video processing.
-
-### Why Graviton3 Spot Instances?
-
-- **Dedicated Transcode Compute (`c7g.xlarge`)**: `c7g.xlarge` provides 4 dedicated ARM64 vCPUs and 8 GiB RAM, offering up to 25% better compute performance than x86-based equivalents for video transcoding.
-- **Cost-Optimized System Nodes (`c7g.large`)**: The web server, PostgreSQL database, and Garage S3 run on a lightweight 2 vCPU / 4 GiB RAM (`c7g.large` Spot) node (~$0.029/hr).
-- **Massive Cost Savings (60–70% off)**: In regions such as `us-east-1`, `c7g.xlarge` Spot instances cost approximately **$0.06/hour** (compared to ~$0.145/hour On-Demand).
-- **Fault-Tolerant by Design**: Because DBOS workflow queues persist task states and execution steps directly in PostgreSQL, any spot interruption (2-minute warning) is handled cleanly: uncompleted jobs are simply recovered by surviving workers with zero data loss or stuck tasks.
-- **Native Multi-Arch Images**: Official Docker images (`shumaione/shumai` and `shumaione/shumai-transcode`) provide native `linux/arm64` image manifests that run directly on AWS Graviton without emulation overhead.
-
-### Step 1: Provision the EKS Cluster with `eksctl`
-
-Save the following cluster definition as `k8s/eks-cluster.yaml`:
-
-```yaml
-apiVersion: eksctl.io/v1alpha5
-kind: ClusterConfig
-
-metadata:
-  name: shumai-eks
-  region: us-east-1
-  version: '1.31'
-
-iam:
-  withOIDC: true
-
-addons:
-  - name: aws-ebs-csi-driver
-    wellKnownPolicies:
-      ebsCSIController: true
-
-managedNodeGroups:
-  # General system workload: Web UI, REST API, DBOS PostgreSQL, and Garage S3
-  - name: shumai-general-spot
-    instanceType: c7g.large # 2 vCPU, 4 GiB RAM (2c4g Spot, ~$0.029/hr)
-    spot: true
-    minSize: 1
-    maxSize: 2
-    desiredCapacity: 1
-    amiFamily: AmazonLinux2023
-    volumeSize: 50
-    volumeType: gp3
-    labels:
-      workload: general
-    iam:
-      withAddonPolicies:
-        autoScaler: true
-        ebs: true
-
-  # Transcoding compute pool: High-CPU media processing
-  - name: shumai-transcode-spot
-    instanceType: c7g.xlarge # 4 vCPU, 8 GiB RAM (Graviton3 Spot, ~$0.06/hr)
-    spot: true
-    minSize: 1
-    maxSize: 5
-    desiredCapacity: 1
-    amiFamily: AmazonLinux2023
-    volumeSize: 50
-    volumeType: gp3
-    labels:
-      workload: transcode
-    iam:
-      withAddonPolicies:
-        autoScaler: true
-        ebs: true
-```
-
-Create the cluster using `eksctl`:
-
-```bash
-eksctl create cluster -f k8s/eks-cluster.yaml
-```
-
-This sets up:
-
-1. An EKS control plane (Kubernetes 1.31) running in a dedicated VPC across multiple availability zones.
-2. Two managed Spot node groups: a cost-efficient 2c4g node (`c7g.large`) for general system services and dedicated `c7g.xlarge` nodes for media transcoding.
-3. IAM roles for service accounts (IRSA) and the AWS EBS CSI driver for persistent volume claims.
-
-### Step 2: Deploy the Shumai Stack & Public Services
-
-Deploy the manifests to your newly provisioned EKS cluster:
-
-```bash
-kubectl apply -k k8s/
-```
-
-Verify that all pods are running across your Graviton nodes:
-
-```bash
-kubectl get nodes -L kubernetes.io/arch,node.kubernetes.io/instance-type,workload
-kubectl get pods -n shumai -o wide
-```
-
-### Step 3: Accessing Public Services & Browser Uploads
-
-`k8s/shumai-server.yaml` and `k8s/garage.yaml` expose public AWS Load Balancer services (`type: LoadBalancer`). Retrieve the public external endpoints:
-
-```bash
-kubectl get svc -n shumai
-```
-
-```text
-NAME             TYPE           EXTERNAL-IP                                PORT(S)
-shumai-server    LoadBalancer   k8s-shumai-xxx.us-east-1.elb.amazonaws.com 80:31234/TCP,3000:31235/TCP
-garage-public    LoadBalancer   k8s-garage-xxx.us-east-1.elb.amazonaws.com 3900:31236/TCP
-```
-
-1. Configure `AWS_PUBLIC_ENDPOINT_URL_S3` on `shumai-server` to point to `http://<garage-public-elb>:3900` so web browsers upload directly to the public Garage endpoint.
-2. Open `http://<shumai-server-elb>` in your browser to access the Shumai dashboard.
-
-### Step 4: Autoscale Workers with HPA & Cluster Autoscaler
-
-To allow Kubernetes to automatically scale both transcode pods and underlying EC2 Spot nodes:
-
-1. **Deploy Kubernetes Cluster Autoscaler**:
-
-```bash
-curl -s https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml \
-  | sed 's/<YOUR CLUSTER NAME>/shumai-eks/g' \
-  | kubectl apply -f -
-```
-
-2. **Dedicated Node Allocation (1 Pod per `c7g.xlarge`)**:
-   `k8s/shumai-transcode.yaml` configures transcode worker requests to `3000m` CPU and limits to `3900m` (all 4 vCPUs). Because a `c7g.xlarge` instance has ~3.9 vCPUs allocatable, Kubernetes guarantees that **strictly one transcode worker runs per `c7g.xlarge` node**, allowing FFmpeg to utilize the full Graviton3 compute capacity without contention.
-
-3. **Autoscaling Flow**:
-   - When multiple videos are uploaded, HPA (`k8s/shumai-transcode-hpa.yaml`) detects high CPU usage and scales transcode worker pods.
-   - For pods that cannot fit on existing nodes, Cluster Autoscaler dynamically requests additional `c7g.xlarge` Spot instances from the AWS Auto Scaling Group.
-   - Once transcoding completes and the CPU load drops below 70% for 5 minutes (`stabilizationWindowSeconds: 300`), HPA scales down worker pods, and Cluster Autoscaler terminates unneeded EC2 Spot instances.
+- [`eks/eks-cluster.yaml`](https://github.com/shumaiOne/shumai/blob/main/eks/eks-cluster.yaml): Complete `eksctl` ClusterConfig with compute tiering.
+- [`eks/kustomization.yaml`](https://github.com/shumaiOne/shumai/blob/main/eks/kustomization.yaml): Single-command Kustomize deployment for all services.
+- Detailed instructions for setting up public endpoints, automated Cluster Autoscaler, and zero-downtime graceful shutdown.
