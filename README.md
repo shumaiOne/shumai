@@ -29,7 +29,7 @@ Shumai is an open-source Frame.io alternative built for creative teams to collab
 * **Frame-by-Frame Annotations & Comments**: Leave precise feedback with frame-specific drawing tools and timestamped comments on both video and image assets.
 * **Secure Sharing & Collections**: Create private share links and curated media collections for clients, stakeholders, and collaborators.
 * **Granular Access Control**: Manage workspace permissions with team-level and project-level role-based access control.
-* **Distributed Transcoding & Workflows via DBOS**: Offload resource-intensive video transcoding and AI agents to a background worker pool orchestrated durably by DBOS on PostgreSQL.
+* **Durable Workflows via DBOS**: Run background tasks and AI agent workflows orchestrated reliably by DBOS on PostgreSQL with automatic recovery and fault tolerance.
 * **Scalable Deployment on Kubernetes**: Horizontally autoscale video transcoding on multiple instances. See [EKS Deployment Example](eks/README.md).
 * **Custom Asset Metadata**: Define dynamic metadata fields tailored to your production pipeline.
 * **Share Link Watermarking**: Protect shared media with customizable text and image watermarks, and save watermark as reusable templates.
