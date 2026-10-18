@@ -360,6 +360,13 @@ declare global {
       imageAnnotation?: ImageAnnotationSpec
       pdfPages?: PdfPagesSpec
       watermark?: WatermarkTaskPayload
+      recoveryAttempts?: number
+    }
+
+    export interface WorkflowTaskOutput {
+      error?: string
+      recoveryAttempts?: number
+      [key: string]: unknown
     }
 
     // ----------------------------------------------------------------------

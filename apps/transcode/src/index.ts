@@ -14,14 +14,26 @@ async function run() {
   // Initialize workflows and activities
   initTranscodeWorkflows()
 
-  console.log('🚀 Starting Transcode Worker...')
+  const isOnce = process.argv.includes('--once') || process.env.SHUMAI_WORKER_ONCE === 'true'
+  if (isOnce) {
+    workflowService.getExecutor().setOnceMode(true)
+    console.log('🚀 Starting Transcode Worker in --once mode (single-task execution)...')
+  } else {
+    console.log('🚀 Starting Transcode Worker...')
+  }
 
   await workflowService.startWorkers(TaskQueueTranscode)
 
   let isShuttingDown = false
+  let idleTimer: Timer | null = null
+
   const shutdown = async () => {
     if (isShuttingDown) return
     isShuttingDown = true
+    if (idleTimer) {
+      clearTimeout(idleTimer)
+      idleTimer = null
+    }
     console.log('Shutting down Transcode Worker gracefully...')
     try {
       await workflowService.shutdownWorkers()
@@ -29,6 +41,32 @@ async function run() {
       console.error('Error during Transcode Worker shutdown:', err)
     }
     process.exit(0)
+  }
+
+  if (isOnce) {
+    const idleTimeoutMs = process.env.SHUMAI_WORKER_IDLE_TIMEOUT_MS
+      ? parseInt(process.env.SHUMAI_WORKER_IDLE_TIMEOUT_MS, 10)
+      : 15_000
+
+    idleTimer = setTimeout(async () => {
+      console.log(
+        `[Transcode Worker] No tasks received within idle timeout (${idleTimeoutMs / 1000}s), shutting down.`,
+      )
+      await shutdown()
+    }, idleTimeoutMs)
+
+    workflowService.getExecutor().on('workflowStarted', (task) => {
+      console.log(`[Transcode Worker] Claimed task ${task.id}, cancelling idle timer.`)
+      if (idleTimer) {
+        clearTimeout(idleTimer)
+        idleTimer = null
+      }
+    })
+
+    workflowService.getExecutor().on('workflowFinished', async ({ taskId }) => {
+      console.log(`[Transcode Worker] Completed task ${taskId} in --once mode, shutting down.`)
+      await shutdown()
+    })
   }
 
   process.on('SIGINT', shutdown)

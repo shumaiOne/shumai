@@ -35,16 +35,10 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
 
     const { asset, key } = await fetchAssetWithKey(task.assetId)
 
-    const download = await downloadMediaToTmpActivity({
-      assetKey: key,
-    })
-    const { filePath } = download
-    tmpDir = download.tmpDir
-
     const spec = task.payload?.transcode || {}
     const proxyType = asset.mediaType?.startsWith('audio/') ? 'audio' : 'video'
     const mediaInfo = await getMediaInfoActivity({
-      filePath,
+      assetKey: key,
       assetId: asset.id,
       proxyType,
       mediaType: asset.mediaType || '',
@@ -79,6 +73,12 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
         mediaInfo,
       })
     }
+
+    const download = await downloadMediaToTmpActivity({
+      assetKey: key,
+    })
+    const { filePath } = download
+    tmpDir = download.tmpDir
 
     // Generate the sprite (and its poster fallback) before the expensive proxy transcodes so the
     // file list can show a poster/sprite preview while the asset is still processing.

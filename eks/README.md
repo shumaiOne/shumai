@@ -1,10 +1,10 @@
-# Shumai on AWS EKS with Graviton5 Spot & Autoscaling
+# Shumai on AWS EKS with KEDA & Scale-to-Zero On-Demand Workers
 
-This directory contains a complete, production-ready Kubernetes deployment example for running Shumai on **Amazon Elastic Kubernetes Service (Amazon EKS)**, with horizontal autoscaling for compute-intensive media processing.
+This directory contains a complete, production-ready Kubernetes deployment example for running Shumai on **Amazon Elastic Kubernetes Service (Amazon EKS)**, using **KEDA (Kubernetes Event-driven Autoscaling)** and **Scale-to-Zero On-Demand AWS Graviton5 instances** for compute-intensive media processing.
 
-The example should also be straightforward to adapt to a generic Kubernetes cluster.
+The example should also be straightforward to adapt to any standard Kubernetes cluster.
 
-To demonstrate a fully self-hosted setup, it uses Garage as an S3-compatible object storage solution. However, if you're deploying on AWS, consider using **Amazon S3** instead of running your own S3-compatible storage server, as it can be significantly more cost-effective and easier to manage.
+To demonstrate a fully self-hosted setup, it uses Garage as an S3-compatible object storage solution. However, if you're deploying on AWS, consider using **Amazon S3** instead of running your own S3-compatible storage server, as it is managed and highly scalable.
 
 ---
 
@@ -27,7 +27,8 @@ To demonstrate a fully self-hosted setup, it uses Garage as an S3-compatible obj
 │                   ▼                                                                 │
 │       ┌───────────────────────┐   Enqueue DBOS Tasks    ┌───────────────────┐       │
 │       │     shumai-server     ├────────────────────────►│  shumai-postgres  │       │
-│       │(SHUMAI_WORKERS=agent) │    (transcode_queue)    │  (pgvector:pg18)  │       │
+│       │(SHUMAI_WORKERS=agent) │ (task_queue_transcode)  │  (pgvector:pg18)  │       │
+│       │ [Stale Recovery Loop] │                         │                   │       │
 │       └───────────┬───────────┘                         └─────────┬─────────┘       │
 │                   │ Internal S3 Traffic                           │                 │
 │                   ▼                                               │                 │
@@ -36,22 +37,29 @@ To demonstrate a fully self-hosted setup, it uses Garage as an S3-compatible obj
 │       │    (dxflrs/garage)    │                                   │                 │
 │       └───────────▲───────────┘                                   │                 │
 └───────────────────┼───────────────────────────────────────────────┼─────────────────┘
-                    │ Read Source / Write Proxies                   │ Poll Tasks
-                    │                                               ▼
+                    │ Read Source / Write Proxies                   │
+                    │                                               │ KEDA monitors
+                    │                                               ▼ dbos.workflow_status
+                    │                         ┌───────────────────────────────────────┐
+                    │                         │ KEDA Controller: ScaledJob            │
+                    │                         │ Spawns 1 Job per enqueued task (0..10)│
+                    │                         └───────────────────┬───────────────────┘
+                    │                                             │
+                    │                                             ▼ Creates K8s Jobs
 ┌───────────────────┴─────────────────────────────────────────────────────────────────┐
-│ Transcode Compute Pool (c9g.xlarge Graviton5 Spot, ~$0.08/hr, 1 Pod per Node)       │
+│ Transcode Compute Pool (c9g.xlarge Graviton5 On-Demand, minSize: 0, maxSize: 10)     │
 │                                                                                     │
 │  ┌──────────────────────────┐  ┌──────────────────────────┐  ┌────────────────────┐ │
-│  │     shumai-transcode     │  │     shumai-transcode     │  │  shumai-transcode  │ │
-│  │      (Worker Pod 1)      │  │      (Worker Pod 2)      │  │   (Worker Pod N)   │ │
+│  │   Job: transcode-job-1   │  │   Job: transcode-job-2   │  │Job: transcode-job-N│ │
+│  │    (Worker Pod: --once)  │  │    (Worker Pod: --once)  │  │ (Worker Pod: --once│ │
 │  └────────────┬─────────────┘  └────────────┬─────────────┘  └──────────┬─────────┘ │
 │               ▼                             ▼                           ▼           │
 │  ┌──────────────────────────┐  ┌──────────────────────────┐  ┌────────────────────┐ │
 │  │   Node 1: c9g.xlarge     │  │   Node 2: c9g.xlarge     │  │ Node N: c9g.xlarge │ │
-│  │       (Spot)             │  │       (Spot)             │  │       (Spot)       │ │
+│  │     (On-Demand)          │  │     (On-Demand)          │  │     (On-Demand)    │ │
 │  └──────────────────────────┘  └──────────────────────────┘  └────────────────────┘ │
 │                                                                                     │
-│  HPA: Scales pods 1..5 on CPU > 70% │ Cluster Autoscaler: Scales Spot nodes 1..5    │
+│  Scale-to-Zero: When queue is empty, 0 Jobs run and 0 EC2 instances are billed!     │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -59,65 +67,51 @@ To demonstrate a fully self-hosted setup, it uses Garage as an S3-compatible obj
 
 ## Core Design Principles
 
-### 1. Compute Tiering: On-Demand Core & Graviton Spot Workers
+### 1. Scale-to-Zero On-Demand Instances (`minSize: 0`)
 
-Media transcoding with FFmpeg is one of the most CPU-intensive workloads in modern web applications. To ensure rock-solid stability for persistent data while minimizing transcoding costs, this deployment strictly separates system services from media encoding:
+Media transcoding with FFmpeg is bursty: hours may pass with zero transcoding activity, followed by sudden batches of 4K video uploads.
 
-- **General System Node (`shumai-general`)**: A single 2 vCPU / 4 GiB RAM (`c9g.large` **On-Demand**) node (~$0.087/hr) hosts the Web UI, API server, PostgreSQL database, and Garage S3.
-  > [!IMPORTANT]
-  > **Why On-Demand for Core Services?**
-  > Spot instances are subject to involuntary AWS reclamation (interruption). Running stateful services (PostgreSQL, local S3 storage) and the primary user-facing API on an On-Demand instance guarantees that the database and storage layers are never killed, evicted, or subject to abrupt downtime.
+- **Zero Idle Cost**: The transcode node group [`eks/eks-cluster.yaml`](./eks-cluster.yaml) is configured with `minSize: 0` and `desiredCapacity: 0`. When no media transcoding tasks are active, **zero transcode EC2 instances exist**, costing **$0/hr**.
+- **No Spot Interruption Risk**: Transcoding jobs run on AWS Graviton5 **On-Demand** instances (`c9g.xlarge`, ~$0.174/hr). This eliminates the risk of Spot instances being reclaimed mid-encode by AWS, preventing wasted CPU cycles and avoiding unexpected transcoding delays.
 
-- **Dedicated Transcode Pool (`shumai-transcode-spot`)**: High-performance 4 vCPU / 8 GiB RAM Graviton Spot instances (`c9g.xlarge` primary, with `c8g.xlarge` fallback pools) dedicated exclusively to media encoding.
+### 2. KEDA `ScaledJob` vs. `Deployment` / `StatefulSet`
 
-### 2. Task Orchestration via DBOS Transact
+Standard Kubernetes Horizontal Pod Autoscaler (HPA) scales `Deployment` replicas based on metrics like CPU utilization. However, HPAs on Deployments suffer from severe limitations during video processing:
+1. When a 1-minute video finishes on Pod A while a 30-minute video is still encoding on Pod B, CPU drops and HPA reduces replica count, which can arbitrarily terminate Pod B mid-encode.
+2. StatefulSets scale down in strict ordinal order (`pod-4`, `pod-3`, etc.), which would terminate `pod-4` even if `pod-4` is the only pod currently transcoding!
 
-All video and document transcoding jobs are enqueued to `transcode_queue` inside PostgreSQL via **DBOS Transact**. Transcode workers are completely stateless and consume jobs from the queue. Each worker pod uses the Kubernetes Downward API (`POD_NAME`) to obtain a unique, collision-free executor ID.
+**KEDA `ScaledJob` solves this natively**:
+- KEDA queries PostgreSQL directly:
+  ```sql
+  SELECT COUNT(*) FROM dbos.workflow_status WHERE queue_name = 'task_queue_transcode' AND status IN ('ENQUEUED', 'PENDING');
+  ```
+- KEDA spawns an independent Kubernetes `Job` for each enqueued task.
+- Each Job runs the transcode worker in `--once` mode.
+- When the job's video finishes transcoding, the pod exits `0` and Kubernetes marks the Job completed.
+- Completing or terminating one job **never impacts any other job**!
 
-### 3. What Happens If Transcode Spot Nodes Are Interrupted or Killed?
+### 3. Single-Task Worker Execution (`--once` Mode)
 
-Because the transcode workers are completely stateless and coordinated via **DBOS Transact** against PostgreSQL on the On-Demand node:
+In [`eks/shumai-transcode.yaml`](./shumai-transcode.yaml), the worker container runs with `bun run /app/apps/transcode/src/index.ts --once`:
+- Transcode concurrency is strictly set to `1`.
+- The worker claims 1 DBOS workflow task from `task_queue_transcode`.
+- As soon as that task finishes (success, failure, or cancellation), the worker initiates graceful DBOS drain and exits with code `0`.
+- **Idle Timeout**: If a job was spawned but another worker claimed the task first, the worker waits 15 seconds. If no task arrives within 15 seconds, it exits `0` cleanly so the pod and node can shut down.
 
-1. **State Isolation**:
-   PostgreSQL, EBS persistent volume claims, the Web UI, and S3 storage live on the On-Demand node and are **never terminated** during Spot interruptions.
-2. **AWS 2-Minute Interruption Warning & Graceful Drain**:
-   When AWS reclaims a Spot instance, it issues a 2-minute notice. Kubernetes drains the node and sends `SIGTERM` to the worker pod. With `terminationGracePeriodSeconds: 300`, the worker finishes any encoding step currently near completion, uploads the result to S3, and exits cleanly.
-3. **Automatic Step Recovery via DBOS**:
-   If an instance is terminated abruptly mid-encode, **zero data or tasks are lost**. The video source file remains safe in S3. DBOS workflow step states are durably tracked in PostgreSQL; uncompleted tasks are detected by surviving or newly launched workers and automatically re-executed from their last durable checkpoint.
-4. **Spot Capacity Pool Diversification**:
-   [`eks/eks-cluster.yaml`](./eks-cluster.yaml) configures `instanceTypes: [c9g.xlarge, c8g.xlarge]`. If AWS temporarily exhausts Graviton5 (`c9g.xlarge`) Spot capacity in an Availability Zone, the Auto Scaling Group immediately falls back to Graviton4 (`c8g.xlarge`) Spot capacity. All three families share the same 4 vCPU / 8 GiB RAM profile and ARM64 architecture.
-5. **What If All Spot Nodes Are Killed Simultaneously?**
-   - Transcode worker pods enter `Pending` state (`Insufficient cpu`).
-   - All newly submitted transcode jobs queue safely inside PostgreSQL on the On-Demand node. No user uploads or jobs are dropped.
-   - The **Cluster Autoscaler** detects the `Pending` pods and continuously requests new EC2 Spot instances from AWS.
-   - As soon as Spot capacity becomes available (typically within 1–2 minutes), new nodes launch, pods schedule to `Running`, and workers resume draining the queue.
+### 4. Automated Stale-Heartbeat Recovery Sweep
 
----
+If a worker node crashes abruptly (e.g. host kernel panic or hardware failure):
+- Every active worker updates `WorkflowTask.heartbeat` in PostgreSQL every 5 seconds.
+- The single core web server (`shumai-server`) runs a lightweight background sweep every 30 seconds (`workflowService.startStaleTaskRecovery()`).
+- Any task stuck in `status = 'processing'` with `heartbeat < now() - 90s` and whose DBOS status is `'PENDING'` is automatically re-enqueued via `client.resumeWorkflow(task.id, { queueName })`.
+- Resumed workflows skip already completed steps using DBOS durable operation outputs.
+- **Poison-Pill Protection**: If a malformed media file crashes workers repeatedly, after 3 recovery attempts the task and asset are marked as `failed` to prevent infinite restart loops.
 
-## Autoscaling Mechanics
+### 5. Zombie Worker & Graceful Shutdown Safety
 
-Autoscaling operates across two coordinated layers:
-
-```mermaid
-flowchart LR
-    Upload[Video Uploads Spike] --> HPA[HPA detects CPU > 70%]
-    HPA --> ScalePods[Scale Pods 1 to 5]
-    ScalePods --> Pending[Pods Enter Pending: 3000m CPU needed]
-    Pending --> CA[Cluster Autoscaler launches c9g.xlarge Spot nodes]
-    CA --> Ready[1 Pod scheduled per dedicated c9g.xlarge Node]
-```
-
-1. **Horizontal Pod Autoscaler (HPA)**:
-   - Configured in [`shumai-transcode-hpa.yaml`](./shumai-transcode-hpa.yaml) targeting **70% CPU utilization** of the pod's `3000m` CPU request (= 2.1 vCPUs).
-   - When a video transcode starts, FFmpeg consumes ~3.5 cores, immediately exceeding 70% and prompting HPA to scale out worker pods (up to 5 replicas).
-2. **1:1 Dedicated Pod-to-Node Allocation**:
-   - In [`shumai-transcode.yaml`](./shumai-transcode.yaml), worker pods request `cpu: 3000m` and `memory: 4Gi` with limits at `cpu: 3900m` and `memory: 6Gi`.
-   - Because a `c9g.xlarge` instance has `3920m` allocatable CPU, **strictly 1 transcode pod can fit per node**, giving FFmpeg unrestricted access to all 4 physical cores without CPU throttling.
-   - Additional pods enter `Pending` state, which immediately triggers the **Kubernetes Cluster Autoscaler** to scale up the AWS Auto Scaling Group (`shumai-transcode-spot`).
-3. **Graceful Scale-Down & Task Safety**:
-   - **5-Minute HPA Stabilization Window** (`stabilizationWindowSeconds: 300`): Once the queue is clear and CPU drops to 0%, HPA holds replicas for 5 minutes to avoid pod thrashing if new uploads arrive.
-   - **5-Minute Termination Grace Period** (`terminationGracePeriodSeconds: 300`): When Kubernetes terminates a worker, it sends `SIGTERM`. The worker stops taking new jobs, drains the active FFmpeg transcode step, uploads proxies to S3, and exits cleanly.
-   - **10-Minute Node Cooldown**: Cluster Autoscaler waits for idle nodes to be unneeded for 10 minutes (`scale-down-unneeded-time=10m`) before cordoning, draining, and terminating the EC2 Spot instance.
+- When Kubernetes drains a node or sends `SIGTERM`, `DBOS.shutdown({ workflowCompletionTimeoutMS: 290_000 })` gives the worker up to 290 seconds to finish its active FFmpeg step and upload proxies to S3.
+- Heartbeats remain active throughout the shutdown drain period to prevent the web server from prematurely declaring the worker dead.
+- If a slow worker resumes execution after ownership was transferred, DBOS raises `DBOSWorkflowConflictError` (code 5). Shumai catches this error and avoids overwriting the active task or asset status.
 
 ---
 
@@ -128,6 +122,7 @@ flowchart LR
 - [AWS CLI](https://aws.amazon.com/cli/) installed and configured (`aws configure`).
 - [`eksctl`](https://eksctl.io/) installed.
 - [`kubectl`](https://kubernetes.io/docs/tasks/tools/) installed.
+- [`helm`](https://helm.sh/) installed.
 
 ### Step 1: Provision the EKS Cluster
 
@@ -138,12 +133,28 @@ eksctl create cluster -f eks/eks-cluster.yaml
 ```
 
 This provisions:
-- An EKS 1.31 control plane in a dedicated VPC across multiple AZs.
-- `shumai-general`: 1x `c9g.large` On-Demand instance (labeled `workload: general`) for reliable API, database, and storage.
-- `shumai-transcode-spot`: Autoscaling `c9g.xlarge` Spot instances with `c8g.xlarge` fallback pools (min: 1, max: 5, labeled `workload: transcode`).
+- An EKS 1.31 control plane across multiple AZs.
+- `shumai-general`: 1x `c9g.large` On-Demand instance (labeled `workload: general`) for API, database, and storage.
+- `shumai-transcode`: Scale-to-zero `c9g.xlarge` On-Demand instance pool (`minSize: 0`, `maxSize: 10`, `desiredCapacity: 0`, tainted `dedicated=transcode:NoSchedule`).
 - AWS EBS CSI Driver with IAM OIDC roles.
 
-### Step 2: Deploy the Shumai Stack
+### Step 2: Install KEDA
+
+Install KEDA using Helm:
+
+```bash
+helm repo add kedacore https://kedacore.github.io/charts
+helm repo update
+helm install keda kedacore/keda --namespace keda --create-namespace
+```
+
+Verify KEDA operator is running:
+
+```bash
+kubectl get pods -n keda
+```
+
+### Step 3: Deploy the Shumai Stack
 
 Deploy all components with Kustomize:
 
@@ -151,13 +162,13 @@ Deploy all components with Kustomize:
 kubectl apply -k eks/
 ```
 
-Verify that all initial pods reach `Running` state:
+Verify initial core pods on the general node reach `Running` state:
 
 ```bash
 kubectl get pods -n shumai -o wide
 ```
 
-### Step 3: Configure Public Access & S3 Endpoint
+### Step 4: Configure Public Access & S3 Endpoint
 
 Retrieve the external LoadBalancer hostnames created by AWS:
 
@@ -171,7 +182,6 @@ shumai-server    LoadBalancer   k8s-shumai-xxx.us-east-1.elb.amazonaws.com 80:31
 garage-public    LoadBalancer   k8s-garage-xxx.us-east-1.elb.amazonaws.com 3900:31236/TCP
 ```
 
-#### Option A: Quick Testing (Automated 1-Liner)
 Inject the public Garage ELB hostname into `shumai-server`:
 
 ```bash
@@ -179,19 +189,11 @@ GARAGE_ELB=$(kubectl get svc garage-public -n shumai -o jsonpath='{.status.loadB
 kubectl set env deployment/shumai-server -n shumai AWS_PUBLIC_ENDPOINT_URL_S3="http://${GARAGE_ELB}:3900"
 ```
 
-#### Option B: Production with Custom Domains
-In production, point DNS records (e.g. Route 53) to your load balancers:
-- Web App: `https://shumai.mycompany.com`
-- S3 Storage: `https://s3.mycompany.com`
+*(Note: In production with custom domains, point your DNS to the load balancers and configure `AWS_PUBLIC_ENDPOINT_URL_S3: https://s3.mycompany.com` in [`eks/config.yaml`](./config.yaml).)*
 
-Set `AWS_PUBLIC_ENDPOINT_URL_S3: https://s3.mycompany.com` in [`eks/config.yaml`](./config.yaml) and apply once.
+### Step 5: Deploy Kubernetes Cluster Autoscaler
 
-#### Option C: Native Amazon S3
-If using real AWS S3, set `STORAGE_BACKEND: s3`, provide `S3_BUCKET`, and omit `AWS_PUBLIC_ENDPOINT_URL_S3` (native AWS S3 endpoints resolve globally).
-
-### Step 4: Deploy Kubernetes Cluster Autoscaler
-
-Deploy the official Cluster Autoscaler to enable automated node provisioning:
+Deploy Cluster Autoscaler to dynamically provision `c9g.xlarge` EC2 nodes when KEDA jobs are created:
 
 ```bash
 curl -s https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml \
@@ -202,20 +204,22 @@ curl -s https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-a
 kubectl patch deployment cluster-autoscaler -n kube-system -p '{"spec":{"template":{"spec":{"nodeSelector":{"workload":"general"}}}}}'
 ```
 
-### Step 5: Test Horizontal Autoscaling
+### Step 6: Test Scale-to-Zero Queue-Driven Autoscaling
 
 1. Open `http://<shumai-server-elb>` in your browser and log in with your credentials.
-2. Upload a batch of 10–20 video files simultaneously.
-3. Watch the workers scale up horizontally:
+2. Upload a batch of 5–10 video files simultaneously.
+3. Observe KEDA detecting the tasks and spawning individual Kubernetes Jobs:
    ```bash
-   kubectl get hpa -n shumai -w
+   kubectl get scaledjobs -n shumai
+   kubectl get jobs -n shumai -w
    kubectl get pods -n shumai -l app=shumai-transcode -o wide
-   kubectl get nodes -L node.kubernetes.io/instance-type,workload
+   kubectl get nodes -L role,workload
    ```
-4. Observe that each worker consumes ~3 vCPUs on its dedicated `c9g.xlarge` instance.
-5. Once all jobs complete, observe HPA scaling back down to 1 pod and Cluster Autoscaler terminating idle EC2 Spot instances.
+4. Watch Cluster Autoscaler provision dedicated `c9g.xlarge` EC2 instances for the Jobs.
+5. As each video finishes transcoding, its pod exits `0` and completes immediately.
+6. Once all jobs are done, KEDA holds 0 jobs, and Cluster Autoscaler terminates all transcode EC2 instances, returning the transcode pool to **0 nodes ($0/hr)**!
 
-### Step 6: Cluster Teardown & Cost Cleanup
+### Step 7: Cluster Teardown & Cost Cleanup
 
 When you are finished testing, delete all resources to prevent ongoing cloud charges:
 

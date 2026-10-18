@@ -156,6 +156,16 @@ describe('transcodeVideoWorkflow', () => {
         }),
       }),
     })
+    expect(mockActivities.getMediaInfoActivity).toHaveBeenCalledWith({
+      assetKey: 'video.mp4',
+      assetId: 'asset-1',
+      proxyType: 'video',
+      mediaType: 'video/mp4',
+    })
+    const getMediaInfoOrder = mockActivities.getMediaInfoActivity.mock.invocationCallOrder[0]
+    const downloadOrder = mockActivities.downloadMediaToTmpActivity.mock.invocationCallOrder[0]
+    expect(getMediaInfoOrder).toBeLessThan(downloadOrder)
+
     expect(mockActivities.updateAssetStatusActivity).toHaveBeenCalledWith({
       assetId: 'asset-1',
       status: AssetStatus.processed,

@@ -94,18 +94,42 @@ async function ensureAssetNotPurging(assetKey: string): Promise<void> {
 }
 
 export const getMediaInfoActivity = defineStep(async function getMediaInfoActivity(params: {
-  filePath: string
+  filePath?: string
+  assetKey?: string
   assetId: string
   proxyType?: 'image' | 'video' | 'audio' | 'pdf' | null
   mediaType?: string
 }): Promise<PrismaJson.MediaInfo> {
+  let tempLocalDir: string | undefined
   try {
     const proxyType =
-      params.proxyType || getProxyType(params.mediaType, params.filePath) || undefined
+      params.proxyType ||
+      getProxyType(params.mediaType, params.filePath || params.assetKey) ||
+      undefined
     const isVideo = proxyType === 'video'
     const isImage = proxyType === 'image'
     const isAudio = proxyType === 'audio'
     const isPdf = proxyType === 'pdf'
+
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    let mediaSource = params.filePath
+    if (!mediaSource) {
+      if (params.assetKey) {
+        if (isVideo || isAudio) {
+          mediaSource = await s3Service.resolveInput(bucket, params.assetKey)
+        } else {
+          tempLocalDir = transcodeService.createTempDir('mediainfo-')
+          const ext = path.extname(params.assetKey) || (isImage ? '.jpg' : isPdf ? '.pdf' : '')
+          const localTarget = path.join(tempLocalDir, `input${ext}`)
+          mediaSource = await ensureLocalMediaFile(params.assetKey, localTarget)
+        }
+      } else {
+        throw ApplicationFailure.create({
+          message: 'Neither filePath nor assetKey provided to getMediaInfoActivity',
+          nonRetryable: true,
+        })
+      }
+    }
 
     const fileType = isVideo
       ? 'video'
@@ -145,11 +169,11 @@ export const getMediaInfoActivity = defineStep(async function getMediaInfoActivi
       let isDowngradedToAudio = false
       let videoInfo: Awaited<ReturnType<typeof transcodeService.getVideoInfo>> | null = null
       try {
-        videoInfo = await transcodeService.getVideoInfo(params.filePath)
+        videoInfo = await transcodeService.getVideoInfo(mediaSource)
       } catch (err) {
         if (err instanceof Error && err.message.includes('No video stream found')) {
           try {
-            const audioInfo = await transcodeService.getAudioInfo(params.filePath)
+            const audioInfo = await transcodeService.getAudioInfo(mediaSource)
             isDowngradedToAudio = true
             mediaInfo.proxyType = 'audio'
             mediaInfo.duration = audioInfo.duration
@@ -247,7 +271,7 @@ export const getMediaInfoActivity = defineStep(async function getMediaInfoActivi
           metadataUpdates.push({ key: 'audio_bit_depth', value: info.audioBitDepth })
       }
     } else if (isAudio) {
-      const info = await transcodeService.getAudioInfo(params.filePath)
+      const info = await transcodeService.getAudioInfo(mediaSource)
       mediaInfo.duration = info.duration
       mediaInfo.metadata = {
         originalWidth: 0,
@@ -278,7 +302,7 @@ export const getMediaInfoActivity = defineStep(async function getMediaInfoActivi
       if (info.audioBitDepth !== undefined)
         metadataUpdates.push({ key: 'audio_bit_depth', value: info.audioBitDepth })
     } else if (isImage) {
-      const info = await transcodeService.getImageInfo(params.filePath)
+      const info = await transcodeService.getImageInfo(mediaSource)
       mediaInfo.metadata = {
         originalWidth: info.originalWidth,
         originalHeight: info.originalHeight,
@@ -295,7 +319,7 @@ export const getMediaInfoActivity = defineStep(async function getMediaInfoActivi
         { key: 'resolution_height', value: info.originalHeight },
       )
     } else if (isPdf) {
-      const info = await transcodeService.getPdfInfo(params.filePath)
+      const info = await transcodeService.getPdfInfo(mediaSource)
       mediaInfo.frames = info.totalFrames
       mediaInfo.metadata = {
         originalWidth: info.originalWidth,
@@ -328,6 +352,14 @@ export const getMediaInfoActivity = defineStep(async function getMediaInfoActivi
       nonRetryable: true,
       cause: err instanceof Error ? err : undefined,
     })
+  } finally {
+    if (tempLocalDir) {
+      try {
+        fs.rmSync(tempLocalDir, { recursive: true, force: true })
+      } catch {
+        // ignore cleanup error
+      }
+    }
   }
 })
 

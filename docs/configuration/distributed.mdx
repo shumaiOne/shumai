@@ -132,29 +132,33 @@ When running multiple replicas of the transcode or agent worker across multiple 
 
 ## Scalable Deployment on Kubernetes & AWS EKS
 
-For production cloud deployments requiring high-throughput media processing, Shumai can be deployed on Kubernetes or **AWS Elastic Kubernetes Service (AWS EKS)** with automated horizontal autoscaling.
+For production cloud deployments requiring high-throughput media processing, Shumai can be deployed on Kubernetes or **AWS Elastic Kubernetes Service (AWS EKS)** with automated scale-to-zero queue-driven scaling via **KEDA (Kubernetes Event-driven Autoscaling)**.
 
 ```mermaid
 graph TD
     User([User / Web Browser]) -->|Port 80/3000| Server[Pod: shumai-server<br/>SHUMAI_WORKERS=agent]
-    Server -->|Enqueue to transcode_queue| DB[(PostgreSQL: pgvector18)]
+    Server -->|Enqueue to transcode_queue| DB[(PostgreSQL: pgvector18<br/>dbos.workflow_status)]
     Server -->|Direct Uploads / Stream Proxies| Storage[(S3 / Garage Storage)]
 
-    DB -->|Poll transcode_queue| Worker1[Pod: shumai-transcode-1]
-    DB -->|Poll transcode_queue| WorkerN[Pod: shumai-transcode-N<br/>Autoscaled: 1..5 Replicas]
-    Worker1 -->|Fetch Source / Store Proxies| Storage
-    WorkerN -->|Fetch Source / Store Proxies| Storage
+    KEDA[KEDA ScaledJob<br/>PostgreSQL Trigger<br/>min: 0, max: 10] -.->|Monitors Queue| DB
+    KEDA -->|Spawns 1 Job per task| Job1[Job: shumai-transcode-1<br/>--once mode]
+    KEDA -->|Spawns 1 Job per task| JobN[Job: shumai-transcode-N<br/>--once mode]
 
-    HPA[HorizontalPodAutoscaler<br/>Target: 70% CPU<br/>min: 1, max: 5] -.->|Autoscale Pods| WorkerN
-    CA[Cluster Autoscaler] -.->|Autoscale c9g.xlarge Spot Nodes| WorkerN
+    Job1 -->|Fetch Source / Store Proxies| Storage
+    JobN -->|Fetch Source / Store Proxies| Storage
+    Job1 -->|Mark Complete & Exit 0| DB
+    JobN -->|Mark Complete & Exit 0| DB
+
+    CA[Cluster Autoscaler / Karpenter] -.->|Scale-to-Zero On-Demand Nodes<br/>0 to 10 instances| JobN
 ```
 
 ### Key Architectural Highlights
 
 - **Decoupled Stateless Workers**: The main web and API server, database, and storage run on reliable On-Demand compute (`c9g.large`, `SHUMAI_WORKERS=agent`), delegating media transcoding to background workers orchestrated via DBOS task queues in PostgreSQL.
-- **Dedicated Graviton5 Spot Compute (`c9g.xlarge`)**: Media encoding runs on 4 vCPU / 8 GiB RAM AWS Graviton5 Spot instances (~$0.08/hr), utilizing ARM64 vector optimizations and high-speed DDR5 memory to achieve exceptional encoding performance at minimal cost.
-- **1:1 Pod-to-Node Scaling**: Worker pods request `3000m` CPU, guaranteeing that each active transcoding job gets an entire dedicated 4 vCPU `c9g.xlarge` instance without CPU throttling.
-- **End-to-End Autoscaling**: Kubernetes HPA detects encoding load and scales worker pods (1 to 5 replicas), while Kubernetes Cluster Autoscaler provisions and terminates underlying EC2 Spot instances automatically.
+- **Dedicated Graviton5 On-Demand Compute (`c9g.xlarge`)**: Media encoding runs on 4 vCPU / 8 GiB RAM AWS Graviton5 On-Demand instances (~$0.174/hr), utilizing ARM64 vector optimizations and high-speed DDR5 memory without involuntary Spot interruptions.
+- **Queue-Driven Scale-to-Zero via KEDA**: KEDA monitors `dbos.workflow_status` for enqueued and pending transcode tasks and dynamically provisions Kubernetes `ScaledJob` resources (scaling 0 to 10). When the queue is empty, transcode nodes scale down to zero (`minSize: 0`), incurring **$0/hr** in worker costs.
+- **Single-Workflow `--once` Mode**: Each worker pod runs in `--once` mode, claims exactly 1 workflow task, processes it to completion, and exits `0`. Because each task runs in an isolated Kubernetes Job, terminating or finishing jobs never interrupts peer tasks.
+- **Automated Stale Task Recovery**: The core web server runs an integrated recovery sweep that detects stale or orphaned tasks (e.g. from node crash) and resumes them automatically in DBOS, with a 3-attempt cap to safely handle poison-pill media.
 
 ### Complete Deployment Example & Source Code
 

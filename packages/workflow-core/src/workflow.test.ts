@@ -188,4 +188,144 @@ describe('WorkflowService', () => {
 
     submitSpy.mockRestore()
   })
+
+  describe('Stale Task Recovery', () => {
+    it('should resume stale pending workflow task in DBOS and increment recoveryAttempts', async () => {
+      const task = await prisma.workflowTask.create({
+        data: {
+          assetId: 'stale-asset-1',
+          type: WorkflowTaskType.transcode,
+          status: WorkflowTaskStatus.processing,
+          heartbeat: new Date(Date.now() - 100_000), // 100s ago
+        },
+      })
+
+      const mockClient = {
+        retrieveWorkflow: vi.fn().mockReturnValue({
+          getStatus: vi.fn().mockResolvedValue({ status: 'PENDING' }),
+        }),
+        resumeWorkflow: vi.fn().mockResolvedValue(undefined),
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(workflowService.getExecutor(), 'getClient').mockResolvedValue(mockClient as any)
+
+      const recoveredCount = await workflowService.recoverStaleTasks({
+        staleThresholdMs: 90_000,
+        maxRecoveryAttempts: 3,
+      })
+
+      expect(recoveredCount).toBe(1)
+      expect(mockClient.resumeWorkflow).toHaveBeenCalledWith(
+        task.id,
+        expect.objectContaining({ queueName: expect.any(String) }),
+      )
+
+      const updatedTask = await prisma.workflowTask.findUnique({
+        where: { id: task.id },
+      })
+      const output = updatedTask?.output as { recoveryAttempts?: number } | null
+      expect(output?.recoveryAttempts).toBe(1)
+      expect(updatedTask?.heartbeat?.getTime()).toBeGreaterThan(Date.now() - 5000)
+    })
+
+    it('should mark task and asset as failed when recoveryAttempts exceeds maxRecoveryAttempts', async () => {
+      const asset = await prisma.asset.create({
+        data: {
+          id: 'poison-asset-1',
+          name: 'poison.mp4',
+          type: 'file',
+          status: 'processing',
+        },
+      })
+
+      const task = await prisma.workflowTask.create({
+        data: {
+          assetId: asset.id,
+          type: WorkflowTaskType.transcode,
+          status: WorkflowTaskStatus.processing,
+          heartbeat: new Date(Date.now() - 100_000),
+          output: { recoveryAttempts: 3 },
+        },
+      })
+
+      const mockClient = {
+        retrieveWorkflow: vi.fn(),
+        resumeWorkflow: vi.fn(),
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(workflowService.getExecutor(), 'getClient').mockResolvedValue(mockClient as any)
+
+      const recoveredCount = await workflowService.recoverStaleTasks({
+        staleThresholdMs: 90_000,
+        maxRecoveryAttempts: 3,
+      })
+
+      expect(recoveredCount).toBe(1)
+      expect(mockClient.resumeWorkflow).not.toHaveBeenCalled()
+
+      const updatedTask = await prisma.workflowTask.findUnique({
+        where: { id: task.id },
+      })
+      expect(updatedTask?.status).toBe(WorkflowTaskStatus.failed)
+      const output = updatedTask?.output as { error?: string; recoveryAttempts?: number } | null
+      expect(output?.recoveryAttempts).toBe(4)
+      expect(output?.error).toContain('exceeded maximum stale recovery attempts')
+
+      const updatedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(updatedAsset?.status).toBe('failed')
+    })
+
+    it('should reconcile completed or cancelled DBOS workflow status', async () => {
+      const taskSuccess = await prisma.workflowTask.create({
+        data: {
+          assetId: 'stale-asset-success',
+          type: WorkflowTaskType.transcode,
+          status: WorkflowTaskStatus.processing,
+          heartbeat: new Date(Date.now() - 100_000),
+        },
+      })
+
+      const taskCancelled = await prisma.workflowTask.create({
+        data: {
+          assetId: 'stale-asset-cancelled',
+          type: WorkflowTaskType.transcode,
+          status: WorkflowTaskStatus.processing,
+          heartbeat: new Date(Date.now() - 100_000),
+        },
+      })
+
+      const mockClient = {
+        retrieveWorkflow: vi.fn().mockImplementation((taskId: string) => ({
+          getStatus: vi.fn().mockResolvedValue({
+            status: taskId === taskSuccess.id ? 'SUCCESS' : 'CANCELLED',
+          }),
+        })),
+        resumeWorkflow: vi.fn(),
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(workflowService.getExecutor(), 'getClient').mockResolvedValue(mockClient as any)
+
+      const count = await workflowService.recoverStaleTasks({
+        staleThresholdMs: 90_000,
+        maxRecoveryAttempts: 3,
+      })
+
+      expect(count).toBe(2)
+      expect(mockClient.resumeWorkflow).not.toHaveBeenCalled()
+
+      const updatedSuccess = await prisma.workflowTask.findUnique({
+        where: { id: taskSuccess.id },
+      })
+      expect(updatedSuccess?.status).toBe(WorkflowTaskStatus.completed)
+
+      const updatedCancelled = await prisma.workflowTask.findUnique({
+        where: { id: taskCancelled.id },
+      })
+      expect(updatedCancelled?.status).toBe(WorkflowTaskStatus.failed)
+      const cancelledOutput = updatedCancelled?.output as { error?: string } | null
+      expect(cancelledOutput?.error).toBe('Workflow was cancelled')
+    })
+  })
 })

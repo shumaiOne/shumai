@@ -1,8 +1,17 @@
-import { prisma, registerWorkflowCancel, registerWorkflowTrigger, WorkflowTask } from '@shumai/db'
-import { DbosExecutor, getRegisteredWorkflows } from './dbos-executor'
+import { logger } from '@shumai/core/src/logger'
+import {
+  AssetStatus,
+  prisma,
+  registerWorkflowCancel,
+  registerWorkflowTrigger,
+  WorkflowTask,
+  WorkflowTaskStatus,
+} from '@shumai/db'
+import { DbosExecutor, getQueueForTaskType, getRegisteredWorkflows } from './dbos-executor'
 
 export class WorkflowService {
   private executor: DbosExecutor
+  private staleRecoveryTimer: Timer | null = null
 
   constructor() {
     this.executor = new DbosExecutor()
@@ -55,6 +64,7 @@ export class WorkflowService {
   }
 
   close(): void {
+    this.stopStaleTaskRecovery()
     this.executor.close()
   }
 
@@ -62,8 +72,9 @@ export class WorkflowService {
     await this.executor.ensureLaunched()
   }
 
-  async shutdownWorkers(): Promise<void> {
-    await this.executor.shutdown()
+  async shutdownWorkers(options?: { workflowCompletionTimeoutMs?: number }): Promise<void> {
+    this.stopStaleTaskRecovery()
+    await this.executor.shutdown(options)
   }
 
   isStarted(): boolean {
@@ -81,6 +92,152 @@ export class WorkflowService {
     this.executor.setListenQueues(queues)
     this.executor.start()
     await this.executor.ensureLaunched()
+  }
+
+  startStaleTaskRecovery(options?: {
+    intervalMs?: number
+    staleThresholdMs?: number
+    maxRecoveryAttempts?: number
+  }): void {
+    if (this.staleRecoveryTimer) {
+      return
+    }
+    const intervalMs = options?.intervalMs ?? 30_000
+    this.staleRecoveryTimer = setInterval(() => {
+      this.recoverStaleTasks(options).catch((err) => {
+        logger.error({ err }, '[WorkflowService] Stale task recovery sweep encountered an error')
+      })
+    }, intervalMs)
+  }
+
+  stopStaleTaskRecovery(): void {
+    if (this.staleRecoveryTimer) {
+      clearInterval(this.staleRecoveryTimer)
+      this.staleRecoveryTimer = null
+    }
+  }
+
+  async recoverStaleTasks(options?: {
+    staleThresholdMs?: number
+    maxRecoveryAttempts?: number
+  }): Promise<number> {
+    const staleThresholdMs = options?.staleThresholdMs ?? 90_000
+    const maxRecoveryAttempts = options?.maxRecoveryAttempts ?? 3
+    const cutoff = new Date(Date.now() - staleThresholdMs)
+
+    const staleTasks = await prisma.workflowTask.findMany({
+      where: {
+        status: WorkflowTaskStatus.processing,
+        heartbeat: { lt: cutoff },
+      },
+    })
+
+    if (staleTasks.length === 0) return 0
+
+    let recoveredCount = 0
+    const client = await this.executor.getClient()
+
+    for (const task of staleTasks) {
+      try {
+        const currentTask = await prisma.workflowTask.findUnique({
+          where: { id: task.id },
+        })
+        if (
+          !currentTask ||
+          currentTask.status !== WorkflowTaskStatus.processing ||
+          (currentTask.heartbeat &&
+            currentTask.heartbeat.getTime() >= Date.now() - staleThresholdMs)
+        ) {
+          continue
+        }
+
+        const output = (currentTask.output as PrismaJson.WorkflowTaskOutput | null) || {}
+        const recoveryAttempts = (output.recoveryAttempts ?? 0) + 1
+
+        if (recoveryAttempts > maxRecoveryAttempts) {
+          logger.error(
+            { taskId: task.id, recoveryAttempts, maxRecoveryAttempts },
+            '[WorkflowService] Stale task exceeded max recovery attempts. Marking as failed.',
+          )
+          await prisma.workflowTask.update({
+            where: { id: task.id },
+            data: {
+              status: WorkflowTaskStatus.failed,
+              output: {
+                ...output,
+                recoveryAttempts,
+                error: `Task exceeded maximum stale recovery attempts (${maxRecoveryAttempts}). Marked as failed.`,
+              },
+            },
+          })
+          if (task.assetId && task.type && task.type.startsWith('transcode')) {
+            await prisma.asset.updateMany({
+              where: { id: task.assetId, status: AssetStatus.processing },
+              data: { status: AssetStatus.failed },
+            })
+          }
+          recoveredCount++
+          continue
+        }
+
+        const handle = client.retrieveWorkflow(task.id)
+        const wfStatus = await handle.getStatus().catch(() => null)
+
+        if (wfStatus?.status === 'PENDING') {
+          await prisma.workflowTask.update({
+            where: { id: task.id },
+            data: {
+              heartbeat: new Date(),
+              output: {
+                ...output,
+                recoveryAttempts,
+              },
+            },
+          })
+          const queueName = getQueueForTaskType(task.type)
+          await client.resumeWorkflow(task.id, { queueName })
+          logger.info(
+            { taskId: task.id, queueName, recoveryAttempts },
+            '[WorkflowService] Resumed stale pending workflow task in DBOS',
+          )
+          recoveredCount++
+        } else if (wfStatus?.status === 'SUCCESS') {
+          await prisma.workflowTask.update({
+            where: { id: task.id },
+            data: { status: WorkflowTaskStatus.completed },
+          })
+          recoveredCount++
+        } else if (wfStatus?.status === 'ERROR') {
+          await prisma.workflowTask.update({
+            where: { id: task.id },
+            data: {
+              status: WorkflowTaskStatus.failed,
+              output: {
+                ...output,
+                error: wfStatus.error ? String(wfStatus.error) : 'Workflow failed in DBOS',
+              },
+            },
+          })
+          recoveredCount++
+        } else if (wfStatus?.status === 'CANCELLED') {
+          await prisma.workflowTask.update({
+            where: { id: task.id },
+            data: {
+              status: WorkflowTaskStatus.failed,
+              output: {
+                ...output,
+                error: 'Workflow was cancelled',
+              },
+            },
+          })
+          recoveredCount++
+        }
+      } catch (err) {
+        logger.warn({ taskId: task.id, err }, '[WorkflowService] Error while checking stale task')
+      }
+    }
+
+    return recoveredCount
   }
 }
 

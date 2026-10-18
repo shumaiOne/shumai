@@ -133,18 +133,8 @@ describe('DbosExecutor Tests', () => {
     })
 
     it('should only update queues the worker listens to or configures, leaving unmanaged queues untouched', async () => {
-      // Step 1: Agent worker sets agent concurrency to 1
-      process.env.CONCURRENCY_AGENT = '1'
-      const agentWorker = new DbosExecutor([TaskQueueAgent])
-      agentWorker.start()
-      await agentWorker.ensureLaunched()
+      const registerQueueSpy = vi.spyOn(DBOS, 'registerQueue')
 
-      const agentQueue = await DBOS.retrieveQueue(TaskQueueAgent)
-      expect(agentQueue?.workerConcurrency).toBe(1)
-      await agentWorker.shutdown()
-
-      // Step 2: Dedicated transcode worker starts with transcode concurrency = 3 and unconfigured agent env
-      delete process.env.CONCURRENCY_AGENT
       process.env.CONCURRENCY_TRANSCODE = '3'
       const transcodeWorker = new DbosExecutor([TaskQueueTranscode])
       try {
@@ -152,12 +142,15 @@ describe('DbosExecutor Tests', () => {
         await transcodeWorker.ensureLaunched()
 
         const transcodeQueue = await DBOS.retrieveQueue(TaskQueueTranscode)
-        const agentQueueAfter = await DBOS.retrieveQueue(TaskQueueAgent)
-
         expect(transcodeQueue?.workerConcurrency).toBe(3)
-        // Agent queue should still be 1, NOT overwritten by default 5
-        expect(agentQueueAfter?.workerConcurrency).toBe(1)
+
+        // transcodeWorker should only have registered TaskQueueTranscode, not unmanaged queues like TaskQueueAgent
+        const registeredQueueNames = registerQueueSpy.mock.calls.map((call) => call[0])
+        expect(registeredQueueNames).toContain(TaskQueueTranscode)
+        expect(registeredQueueNames).not.toContain(TaskQueueAgent)
       } finally {
+        registerQueueSpy.mockRestore()
+        delete process.env.CONCURRENCY_TRANSCODE
         await transcodeWorker.shutdown()
       }
     })
@@ -389,5 +382,96 @@ describe('DbosExecutor Tests', () => {
       expect(result).toBe('task-from-step')
       expect(mockClient.enqueue).toHaveBeenCalled()
     }, 15000)
+  })
+
+  describe('Once mode, events, and conflict handling', () => {
+    it('should force concurrency to 1 in onceMode', () => {
+      executor.setOnceMode(true)
+      expect(executor.isOnceMode()).toBe(true)
+      expect(executor.getTranscodeConcurrencyLimit()).toBe(1)
+    })
+
+    it('should emit workflowStarted and workflowFinished events during execution', async () => {
+      let startedTask: WorkflowTask | null = null
+      let finishedPayload: { taskId: string; success: boolean } | null = null
+
+      executor.on('workflowStarted', (task) => {
+        startedTask = task
+      })
+      executor.on('workflowFinished', (payload) => {
+        finishedPayload = payload
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const wrapper = (executor as any).createDbosWorkflowWrapper('test-events-workflow')
+      const { registerWorkflow } = await import('./dbos-executor')
+      registerWorkflow('test-events-workflow', async () => {
+        // do work
+      })
+
+      const task = await prisma.workflowTask.create({
+        data: {
+          id: 'test-events-task',
+          assetId: 'asset-events',
+          type: WorkflowTaskType.transcode,
+          status: WorkflowTaskStatus.pending,
+        },
+      })
+
+      await wrapper(task)
+
+      expect(startedTask).toBeDefined()
+      expect((startedTask as WorkflowTask | null)?.id).toBe('test-events-task')
+      expect(finishedPayload).toBeDefined()
+      expect((finishedPayload as { taskId: string; success: boolean } | null)?.taskId).toBe(
+        'test-events-task',
+      )
+      expect((finishedPayload as { taskId: string; success: boolean } | null)?.success).toBe(true)
+    })
+
+    it('should handle DBOSWorkflowConflictError without marking task failed', async () => {
+      const { DBOSWorkflowConflictError: DbosWorkflowConflictError } =
+        await import('@dbos-inc/dbos-sdk')
+      const { registerWorkflow } = await import('./dbos-executor')
+
+      registerWorkflow('test-conflict-workflow', async () => {
+        throw new DbosWorkflowConflictError('test-conflict-task')
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const wrapper = (executor as any).createDbosWorkflowWrapper('test-conflict-workflow')
+
+      const task = await prisma.workflowTask.create({
+        data: {
+          id: 'test-conflict-task',
+          assetId: 'asset-conflict',
+          type: WorkflowTaskType.transcode,
+          status: WorkflowTaskStatus.pending,
+        },
+      })
+
+      await expect(wrapper(task)).rejects.toThrow('is no longer owned by this execution')
+
+      const updatedTask = await prisma.workflowTask.findUnique({
+        where: { id: 'test-conflict-task' },
+      })
+      // Task should NOT be marked as failed!
+      expect(updatedTask?.status).not.toBe(WorkflowTaskStatus.failed)
+    })
+
+    it('should pass workflowCompletionTimeoutMs to DBOS.shutdown', async () => {
+      const shutdownSpy = vi.spyOn(DBOS, 'shutdown').mockResolvedValue(undefined)
+      const isInitSpy = vi.spyOn(DBOS, 'isInitialized').mockReturnValue(true)
+
+      await executor.shutdown({ workflowCompletionTimeoutMs: 290000 })
+
+      expect(shutdownSpy).toHaveBeenCalledWith({
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- DBOS SDK parameter name
+        workflowCompletionTimeoutMS: 290000,
+      })
+
+      shutdownSpy.mockRestore()
+      isInitSpy.mockRestore()
+    })
   })
 })

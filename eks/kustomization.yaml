@@ -8,4 +8,3 @@ resources:
   - garage.yaml
   - shumai-server.yaml
   - shumai-transcode.yaml
-  - shumai-transcode-hpa.yaml

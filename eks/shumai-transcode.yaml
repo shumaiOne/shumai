@@ -1,55 +1,97 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
 metadata:
-  name: shumai-transcode
+  name: keda-postgres-auth
+  namespace: shumai
+spec:
+  secretTargetRef:
+    - parameter: connection
+      name: shumai-secret
+      key: KEDA_DATABASE_URL
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: shumai-transcode-scaler
   namespace: shumai
   labels:
     app: shumai-transcode
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: shumai-transcode
-  template:
-    metadata:
-      labels:
-        app: shumai-transcode
-    spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: eks.amazonaws.com/nodegroup
-                    operator: In
-                    values:
-                      - shumai-transcode-spot
-              - matchExpressions:
-                  - key: workload
-                    operator: In
-                    values:
-                      - transcode
-      terminationGracePeriodSeconds: 300
-      containers:
-        - name: worker
-          image: shumaione/shumai-transcode:latest
-          imagePullPolicy: IfNotPresent
-          env:
-            # Downward API: Injects the unique pod name so DbosExecutor assigns a unique,
-            # deterministic executor ID per worker replica across pod restarts.
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-          envFrom:
-            - configMapRef:
-                name: shumai-config
-            - secretRef:
-                name: shumai-secret
-          resources:
-            requests:
-              cpu: 3000m
-              memory: 4Gi
-            limits:
-              cpu: 3900m
-              memory: 6Gi
+  jobTargetRef:
+    parallelism: 1
+    completions: 1
+    backoffLimit: 0
+    template:
+      metadata:
+        labels:
+          app: shumai-transcode
+      spec:
+        restartPolicy: Never
+        terminationGracePeriodSeconds: 300
+        tolerations:
+          - key: dedicated
+            operator: Equal
+            value: transcode
+            effect: NoSchedule
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: role
+                      operator: In
+                      values:
+                        - transcode
+                - matchExpressions:
+                    - key: workload
+                      operator: In
+                      values:
+                        - transcode
+                - matchExpressions:
+                    - key: eks.amazonaws.com/nodegroup
+                      operator: In
+                      values:
+                        - shumai-transcode
+        containers:
+          - name: worker
+            image: shumaione/shumai-transcode:latest
+            imagePullPolicy: IfNotPresent
+            command:
+              - bun
+              - run
+              - /app/apps/transcode/src/index.ts
+              - --once
+            env:
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: SHUMAI_WORKER_ONCE
+                value: 'true'
+            envFrom:
+              - configMapRef:
+                  name: shumai-config
+              - secretRef:
+                  name: shumai-secret
+            resources:
+              requests:
+                cpu: 3000m
+                memory: 4Gi
+              limits:
+                cpu: 3900m
+                memory: 6Gi
+  pollingInterval: 10
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 10
+  maxReplicaCount: 10
+  rollout:
+    strategy: default
+  scalingStrategy:
+    strategy: default
+  triggers:
+    - type: postgresql
+      metadata:
+        query: "SELECT COUNT(*) FROM dbos.workflow_status WHERE queue_name = 'task_queue_transcode' AND status IN ('ENQUEUED', 'PENDING');"
+        targetQueryValue: '1'
+      authenticationRef:
+        name: keda-postgres-auth

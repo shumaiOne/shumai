@@ -218,6 +218,40 @@ describe('Transcode Activities', () => {
     )
   })
 
+  it('should resolve presigned URL when assetKey is provided without filePath for video', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'remote-video.mp4', type: 'file', status: 'uploaded' },
+    })
+
+    vi.spyOn(s3Service, 'resolveInput').mockResolvedValueOnce(
+      'http://s3.local/shumai/remote-video.mp4?presigned=true',
+    )
+    vi.mocked(transcodeService.getVideoInfo).mockResolvedValueOnce({
+      originalWidth: 1920,
+      originalHeight: 1080,
+      duration: 15,
+      bitRate: 1000000,
+      videoBitRate: 800000,
+      frameRate: 30,
+      totalFrames: 450,
+      hasAudio: false,
+      mimeType: 'video/mp4',
+    })
+
+    const result = await getMediaInfoActivity({
+      assetId: asset.id,
+      assetKey: 'remote-video.mp4',
+      proxyType: 'video',
+      mediaType: 'video/mp4',
+    })
+
+    expect(s3Service.resolveInput).toHaveBeenCalledWith(expect.any(String), 'remote-video.mp4')
+    expect(transcodeService.getVideoInfo).toHaveBeenCalledWith(
+      'http://s3.local/shumai/remote-video.mp4?presigned=true',
+    )
+    expect(result.duration).toBe(15)
+  })
+
   it('should downgrade proxyType to audio when getVideoInfo throws No video stream found but audio exists', async () => {
     const asset = await prisma.asset.create({
       data: { name: 'audio-with-art.mp4', type: 'file', status: 'uploaded' },

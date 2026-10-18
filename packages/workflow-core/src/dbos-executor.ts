@@ -1,5 +1,6 @@
+import EventEmitter from 'node:events'
 import os from 'node:os'
-import { DBOS, DBOSClient } from '@dbos-inc/dbos-sdk'
+import { DBOS, DBOSClient, DBOSWorkflowConflictError } from '@dbos-inc/dbos-sdk'
 import { logger } from '@shumai/core/src/logger'
 import { prisma, WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import {
@@ -11,6 +12,22 @@ import {
   triggerLocalCancel,
   unregisterLocalTaskAbortController,
 } from './workflow-utils'
+
+export function isWorkflowConflictError(err: unknown): boolean {
+  if (err instanceof DBOSWorkflowConflictError) return true
+  if (
+    err &&
+    typeof err === 'object' &&
+    'dbosErrorCode' in err &&
+    (err as { dbosErrorCode: unknown }).dbosErrorCode === 5
+  ) {
+    return true
+  }
+  if (err instanceof Error && err.message.includes('is no longer owned by this execution')) {
+    return true
+  }
+  return false
+}
 
 export type WorkflowFn = (task: WorkflowTask) => Promise<void>
 const workflowRegistry = new Map<string, WorkflowFn>()
@@ -63,7 +80,7 @@ export function getQueueForTaskType(type: string | null | undefined): string {
 let dbosMigrationsRan = false
 const registeredDbosWorkflowNames = new Set<string>()
 
-export class DbosExecutor {
+export class DbosExecutor extends EventEmitter {
   private launchPromise: Promise<void> | null = null
   private started = false
   private client: DBOSClient | null = null
@@ -72,14 +89,24 @@ export class DbosExecutor {
   private inFlightSubmits = new Set<Promise<string>>()
   private executorId?: string
   private instanceSuffix = Math.random().toString(36).slice(2, 8)
+  private onceMode = false
 
   constructor(listenQueues?: string[], executorId?: string) {
+    super()
     if (listenQueues) {
       this.listenQueues = listenQueues
     }
     if (executorId) {
       this.executorId = executorId
     }
+  }
+
+  setOnceMode(once: boolean): void {
+    this.onceMode = once
+  }
+
+  isOnceMode(): boolean {
+    return this.onceMode
   }
 
   isStarted(): boolean {
@@ -91,6 +118,7 @@ export class DbosExecutor {
   }
 
   getTranscodeConcurrencyLimit(): number {
+    if (this.onceMode) return 1
     return getConcurrencyLimit(process.env.CONCURRENCY_TRANSCODE, 1)
   }
 
@@ -116,6 +144,7 @@ export class DbosExecutor {
       if (!fn) {
         throw new Error(`No workflow registered for type: ${type}`)
       }
+      this.emit('workflowStarted', task)
       // Mark task as processing and start heartbeat
       try {
         await prisma.workflowTask.updateMany({
@@ -151,11 +180,20 @@ export class DbosExecutor {
       const abortController = new AbortController()
       registerLocalTaskAbortController(task.id, abortController)
 
+      let workflowError: unknown
       try {
         await runInLocalTaskContext({ taskId: task.id, abortController }, async () => {
           await fn(task)
         })
       } catch (err) {
+        workflowError = err
+        if (isWorkflowConflictError(err)) {
+          logger.warn(
+            { taskId: task.id, type, err },
+            '[DbosExecutor] Workflow execution superseded (ownership lost or conflict). Skipping marking task as failed.',
+          )
+          throw err
+        }
         logger.error({ taskId: task.id, type, err }, `[DbosExecutor] Error in workflow ${type}`)
         try {
           await prisma.workflowTask.updateMany({
@@ -176,6 +214,12 @@ export class DbosExecutor {
         clearInterval(heartbeatInterval)
         this.heartbeatIntervals.delete(task.id)
         unregisterLocalTaskAbortController(task.id)
+        this.emit('workflowFinished', {
+          taskId: task.id,
+          type,
+          success: !workflowError,
+          error: workflowError,
+        })
       }
     }
   }
@@ -366,14 +410,17 @@ export class DbosExecutor {
   close(): void {
     this.started = false
     this.waitForPendingSubmissions().catch(() => {})
-    for (const timer of this.heartbeatIntervals.values()) {
-      clearInterval(timer)
+    const cleanupResources = () => {
+      for (const timer of this.heartbeatIntervals.values()) {
+        clearInterval(timer)
+      }
+      this.heartbeatIntervals.clear()
+      if (this.client) {
+        this.client.destroy().catch(() => {})
+        this.client = null
+      }
     }
-    this.heartbeatIntervals.clear()
-    if (this.client) {
-      this.client.destroy().catch(() => {})
-      this.client = null
-    }
+
     if (DBOS.isInitialized()) {
       DBOS.shutdown()
         .then(() => {
@@ -382,23 +429,43 @@ export class DbosExecutor {
         .catch((err) => {
           logger.warn({ err }, '[DbosExecutor] Error during DBOS shutdown')
         })
+        .finally(cleanupResources)
+    } else {
+      cleanupResources()
     }
   }
 
-  async shutdown(): Promise<void> {
+  async shutdown(options?: { workflowCompletionTimeoutMs?: number }): Promise<void> {
     this.started = false
     await this.waitForPendingSubmissions()
-    for (const timer of this.heartbeatIntervals.values()) {
-      clearInterval(timer)
-    }
-    this.heartbeatIntervals.clear()
-    if (this.client) {
-      await this.client.destroy().catch(() => {})
-      this.client = null
-    }
-    if (DBOS.isInitialized()) {
-      await DBOS.shutdown()
-      this.launchPromise = null
+
+    const timeoutMs =
+      options?.workflowCompletionTimeoutMs ??
+      (process.env.SHUMAI_WORKER_DRAIN_TIMEOUT_MS
+        ? parseInt(process.env.SHUMAI_WORKER_DRAIN_TIMEOUT_MS, 10)
+        : undefined)
+
+    try {
+      if (DBOS.isInitialized()) {
+        await DBOS.shutdown(
+          timeoutMs !== undefined
+            ? {
+                // eslint-disable-next-line @typescript-eslint/naming-convention -- DBOS SDK parameter name
+                workflowCompletionTimeoutMS: timeoutMs,
+              }
+            : undefined,
+        )
+        this.launchPromise = null
+      }
+    } finally {
+      for (const timer of this.heartbeatIntervals.values()) {
+        clearInterval(timer)
+      }
+      this.heartbeatIntervals.clear()
+      if (this.client) {
+        await this.client.destroy().catch(() => {})
+        this.client = null
+      }
     }
   }
 }
