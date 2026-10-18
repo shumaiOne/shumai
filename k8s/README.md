@@ -109,7 +109,7 @@ kubectl port-forward -n shumai svc/garage 3900:3900
 ```
 
 > [!NOTE]
-> **Production Environments**: In production cloud clusters (AWS EKS, GKE, self-hosted), you would configure an Ingress controller (e.g. `ingress-nginx` or AWS ALB) with a public domain or point `AWS_ENDPOINT_URL_S3` to an external cloud S3/R2 bucket.
+> **AWS EKS Deployment with Graviton3 Spot Instances**: For production deployments on AWS with dedicated high-performance ARM64 transcoding, see [`k8s/eks-cluster.yaml`](file:///Users/yiling/Projects/shumai/k8s/eks-cluster.yaml) and the [Distributed Deployment Guide](file:///Users/yiling/Projects/shumai/docs/configuration/distributed.mdx#deploying-on-aws-eks-with-graviton3-spot-instances-c7gxlarge). It provisions a lightweight 2c4g node for general services and auto-scales dedicated `c7g.xlarge` Spot instances for media processing.
 
 ---
 

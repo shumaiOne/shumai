@@ -211,3 +211,138 @@ In Kubernetes, services are created as internal `ClusterIP` services by default.
 1. **Scale-Up**: When users upload video assets, the `shumai-server` creates transcode workflow tasks and submits them to `transcode_queue` in PostgreSQL. As the active transcode worker utilizes CPU for FFmpeg encoding, CPU usage crosses the 70% threshold, triggering the HPA to scale up additional `shumai-transcode` pods (up to 5 pods).
 2. **Per-Pod Executor Identity**: Each newly spawned pod uses `POD_NAME` as its DBOS executor identity. Pods poll `transcode_queue` in parallel, safely picking up and executing transcode jobs concurrently.
 3. **Graceful Scale-Down & Drainage**: Worker pods configure `terminationGracePeriodSeconds: 300` and handle `SIGTERM` gracefully by draining active DBOS steps before termination, ensuring zero video proxy corruption during scale-down.
+
+---
+
+## Deploying on AWS EKS with Graviton3 Spot Instances (`c7g.xlarge`)
+
+For production cloud deployments on Amazon Web Services (AWS), running transcode workers on **AWS Graviton3 (`c7g.xlarge`) Spot instances** provides the highest performance-to-cost ratio for CPU-intensive video processing.
+
+### Why Graviton3 Spot Instances?
+
+- **Dedicated Transcode Compute (`c7g.xlarge`)**: `c7g.xlarge` provides 4 dedicated ARM64 vCPUs and 8 GiB RAM, offering up to 25% better compute performance than x86-based equivalents for video transcoding.
+- **Cost-Optimized System Nodes (`c7g.large`)**: The web server, PostgreSQL database, and Garage S3 run on a lightweight 2 vCPU / 4 GiB RAM (`c7g.large` Spot) node (~$0.029/hr).
+- **Massive Cost Savings (60–70% off)**: In regions such as `us-east-1`, `c7g.xlarge` Spot instances cost approximately **$0.06/hour** (compared to ~$0.145/hour On-Demand).
+- **Fault-Tolerant by Design**: Because DBOS workflow queues persist task states and execution steps directly in PostgreSQL, any spot interruption (2-minute warning) is handled cleanly: uncompleted jobs are simply recovered by surviving workers with zero data loss or stuck tasks.
+- **Native Multi-Arch Images**: Official Docker images (`shumaione/shumai` and `shumaione/shumai-transcode`) provide native `linux/arm64` image manifests that run directly on AWS Graviton without emulation overhead.
+
+### Step 1: Provision the EKS Cluster with `eksctl`
+
+Save the following cluster definition as `k8s/eks-cluster.yaml`:
+
+```yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: shumai-eks
+  region: us-east-1
+  version: '1.31'
+
+iam:
+  withOIDC: true
+
+addons:
+  - name: aws-ebs-csi-driver
+    wellKnownPolicies:
+      ebsCSIController: true
+
+managedNodeGroups:
+  # General system workload: Web UI, REST API, DBOS PostgreSQL, and Garage S3
+  - name: shumai-general-spot
+    instanceType: c7g.large # 2 vCPU, 4 GiB RAM (2c4g Spot, ~$0.029/hr)
+    spot: true
+    minSize: 1
+    maxSize: 2
+    desiredCapacity: 1
+    amiFamily: AmazonLinux2023
+    volumeSize: 50
+    volumeType: gp3
+    labels:
+      workload: general
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        ebs: true
+
+  # Transcoding compute pool: High-CPU media processing
+  - name: shumai-transcode-spot
+    instanceType: c7g.xlarge # 4 vCPU, 8 GiB RAM (Graviton3 Spot, ~$0.06/hr)
+    spot: true
+    minSize: 1
+    maxSize: 5
+    desiredCapacity: 1
+    amiFamily: AmazonLinux2023
+    volumeSize: 50
+    volumeType: gp3
+    labels:
+      workload: transcode
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        ebs: true
+```
+
+Create the cluster using `eksctl`:
+
+```bash
+eksctl create cluster -f k8s/eks-cluster.yaml
+```
+
+This sets up:
+
+1. An EKS control plane (Kubernetes 1.31) running in a dedicated VPC across multiple availability zones.
+2. Two managed Spot node groups: a cost-efficient 2c4g node (`c7g.large`) for general system services and dedicated `c7g.xlarge` nodes for media transcoding.
+3. IAM roles for service accounts (IRSA) and the AWS EBS CSI driver for persistent volume claims.
+
+### Step 2: Deploy the Shumai Stack & Public Services
+
+Deploy the manifests to your newly provisioned EKS cluster:
+
+```bash
+kubectl apply -k k8s/
+```
+
+Verify that all pods are running across your Graviton nodes:
+
+```bash
+kubectl get nodes -L kubernetes.io/arch,node.kubernetes.io/instance-type,workload
+kubectl get pods -n shumai -o wide
+```
+
+### Step 3: Accessing Public Services & Browser Uploads
+
+`k8s/shumai-server.yaml` and `k8s/garage.yaml` expose public AWS Load Balancer services (`type: LoadBalancer`). Retrieve the public external endpoints:
+
+```bash
+kubectl get svc -n shumai
+```
+
+```text
+NAME             TYPE           EXTERNAL-IP                                PORT(S)
+shumai-server    LoadBalancer   k8s-shumai-xxx.us-east-1.elb.amazonaws.com 80:31234/TCP,3000:31235/TCP
+garage-public    LoadBalancer   k8s-garage-xxx.us-east-1.elb.amazonaws.com 3900:31236/TCP
+```
+
+1. Configure `AWS_PUBLIC_ENDPOINT_URL_S3` on `shumai-server` to point to `http://<garage-public-elb>:3900` so web browsers upload directly to the public Garage endpoint.
+2. Open `http://<shumai-server-elb>` in your browser to access the Shumai dashboard.
+
+### Step 4: Autoscale Workers with HPA & Cluster Autoscaler
+
+To allow Kubernetes to automatically scale both transcode pods and underlying EC2 Spot nodes:
+
+1. **Deploy Kubernetes Cluster Autoscaler**:
+
+```bash
+curl -s https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml \
+  | sed 's/<YOUR CLUSTER NAME>/shumai-eks/g' \
+  | kubectl apply -f -
+```
+
+2. **Dedicated Node Allocation (1 Pod per `c7g.xlarge`)**:
+   `k8s/shumai-transcode.yaml` configures transcode worker requests to `3000m` CPU and limits to `3900m` (all 4 vCPUs). Because a `c7g.xlarge` instance has ~3.9 vCPUs allocatable, Kubernetes guarantees that **strictly one transcode worker runs per `c7g.xlarge` node**, allowing FFmpeg to utilize the full Graviton3 compute capacity without contention.
+
+3. **Autoscaling Flow**:
+   - When multiple videos are uploaded, HPA (`k8s/shumai-transcode-hpa.yaml`) detects high CPU usage and scales transcode worker pods.
+   - For pods that cannot fit on existing nodes, Cluster Autoscaler dynamically requests additional `c7g.xlarge` Spot instances from the AWS Auto Scaling Group.
+   - Once transcoding completes and the CPU load drops below 70% for 5 minutes (`stabilizationWindowSeconds: 300`), HPA scales down worker pods, and Cluster Autoscaler terminates unneeded EC2 Spot instances.

@@ -6,11 +6,14 @@ metadata:
   labels:
     app: shumai-server
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   ports:
-    - port: 3000
+    - port: 80
       targetPort: 3000
       name: http
+    - port: 3000
+      targetPort: 3000
+      name: http-alt
   selector:
     app: shumai-server
 ---
@@ -31,6 +34,20 @@ spec:
       labels:
         app: shumai-server
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: eks.amazonaws.com/nodegroup
+                    operator: In
+                    values:
+                      - shumai-general-spot
+              - matchExpressions:
+                  - key: workload
+                    operator: In
+                    values:
+                      - general
       containers:
         - name: server
           image: shumaione/shumai:latest
@@ -38,6 +55,7 @@ spec:
           env:
             - name: SHUMAI_WORKERS
               value: 'agent'
+            # For cloud deployments, set to your public S3 / Garage LoadBalancer endpoint
             - name: AWS_PUBLIC_ENDPOINT_URL_S3
               value: 'http://localhost:3900'
           envFrom:

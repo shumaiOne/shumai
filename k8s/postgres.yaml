@@ -28,6 +28,20 @@ spec:
       labels:
         app: shumai-postgres
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: eks.amazonaws.com/nodegroup
+                    operator: In
+                    values:
+                      - shumai-general-spot
+              - matchExpressions:
+                  - key: workload
+                    operator: In
+                    values:
+                      - general
       containers:
         - name: postgres
           image: pgvector/pgvector:pg18
@@ -41,6 +55,8 @@ spec:
               value: 'shumai_password'
             - name: POSTGRES_DB
               value: 'shumai_db'
+            - name: PGDATA
+              value: '/var/lib/postgresql/18/docker/pgdata'
           readinessProbe:
             exec:
               command:

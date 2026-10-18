@@ -40,6 +40,22 @@ spec:
   selector:
     app: garage
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-public
+  namespace: shumai
+  labels:
+    app: garage
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 3900
+      targetPort: 3900
+      name: s3-api
+  selector:
+    app: garage
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -56,6 +72,20 @@ spec:
       labels:
         app: garage
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: eks.amazonaws.com/nodegroup
+                    operator: In
+                    values:
+                      - shumai-general-spot
+              - matchExpressions:
+                  - key: workload
+                    operator: In
+                    values:
+                      - general
       containers:
         - name: garage
           image: dxflrs/garage:v2.4.1
