@@ -391,7 +391,7 @@ We use **DBOS Transact** (`@dbos-inc/dbos-sdk`) as our unified workflow engine f
 
 ### Dynamic Registration
 
-To avoid circular dependencies, workflows and activities are dynamically registered onto the workflow registry at bootstrap time via initializer functions (e.g., `initAgentWorkflows()`, `initTranscodeWorkflows()`).
+To avoid circular dependencies, workflows are dynamically registered onto the workflow registry at bootstrap time via initializer functions (e.g., `initAgentWorkflows()`, `initTranscodeWorkflows()`).
 
 ### Non-Retryable Error Handling
 
@@ -409,17 +409,27 @@ To prevent the engine from indefinitely retrying fatal, expected business valida
 
 - **Definition**: Define workflows as exported async functions.
   ```typescript
+  import { activityA, activityB } from '../activities/my-activities'
+
   export async function myWorkflow(task: WorkflowTask): Promise<void> {
-    const { activityA, activityB } = getActivities()
     await activityA({ ... })
     await activityB({ ... })
   }
   ```
-- **Activity Access**: Activities should be accessed via `getActivities()` within a workflow.
+- **Activity Invocation**: Workflows import and call activities directly as standard async functions.
 - **Queues**: Workflows are dispatched to dedicated task queues (e.g. `TaskQueueTranscode`, `TaskQueueAgent`) managed by DBOS.
 
 ### Activity Patterns
 
+- **Definition**: Wrap exported activity functions with `defineStep` from `@shumai/workflow-core`.
+  ```typescript
+  export const myActivity = defineStep(
+    async function myActivity(params: MyActivityParams): Promise<MyActivityResult> {
+      ...
+    },
+    { runOnCancel: false }, // optional: set runOnCancel: true for cleanup/status handlers
+  )
+  ```
 - **Implementation**: Activities _can_ and _should_ call other services (e.g., `aiService`, `transcodeService`) or interact with the database directly. Database (Prisma) queries or updates are allowed in all activity types (e.g., agent or transcode) for simplicity.
 
 ### Worker Identity & Multi-Instance Deployments

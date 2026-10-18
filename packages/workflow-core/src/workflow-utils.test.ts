@@ -1,60 +1,42 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest'
-import { DBOS } from '@dbos-inc/dbos-sdk'
+import { describe, it, expect, vi } from 'vitest'
+import { DBOS, Error as DBOSError } from '@dbos-inc/dbos-sdk'
 import {
-  getActivities,
-  executeActivity,
+  defineStep,
   WorkflowFailure,
   ApplicationFailure,
   isNonRetryableError,
+  isDbosWorkflowCancelledError,
   sleep,
   getLocalTaskAbortSignal,
   registerLocalTaskAbortController,
   unregisterLocalTaskAbortController,
 } from './workflow-utils'
 
-describe('workflow-utils executeActivity and DBOS steps', () => {
-  beforeAll(() => {
-    // Inject mock activities for execution tests
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(globalThis as any).__localActivities = {
-      updateTaskStatusActivity: vi.fn(),
+describe('workflow-utils defineStep and DBOS steps', () => {
+  it('should preserve function name by default or use custom name', () => {
+    async function sampleActivity(arg: string) {
+      return `result-${arg}`
     }
-  })
+    const step1 = defineStep(sampleActivity)
+    expect(step1.name).toBe('sampleActivity')
 
-  it('should attach _activityName to proxy functions from getActivities', () => {
-    const { updateTaskStatusActivity } = getActivities()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((updateTaskStatusActivity as any)._activityName).toBe('updateTaskStatusActivity')
+    const step2 = defineStep(async () => 'ok', { name: 'customName' })
+    expect(step2.name).toBe('customName')
   })
 
   it('should execute the function directly when outside DBOS workflow context', async () => {
     const mockFn = vi.fn().mockResolvedValue('success-result')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(mockFn as any)._activityName = 'mockActivity'
+    const step = defineStep(mockFn, { name: 'mockStep' })
 
-    const result = await executeActivity(
-      'test-queue',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      mockFn as any,
-      { some: 'args' },
-    )
+    const result = await step({ some: 'args' })
 
     expect(mockFn).toHaveBeenCalledWith({ some: 'args' })
     expect(result).toBe('success-result')
   })
 
-  it('should throw error if function does not have _activityName', async () => {
-    const normalFn = async () => {}
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await expect(executeActivity('queue', normalFn as any)).rejects.toThrow(
-      'executeActivity must be called with an activity function obtained from getActivities()',
-    )
-  })
-
   it('should execute via DBOS.runStep when within workflow context', async () => {
     const mockFn = vi.fn().mockResolvedValue('step-success')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(mockFn as any)._activityName = 'myStepActivity'
+    const step = defineStep(mockFn, { name: 'myStepActivity' })
 
     const isWithinWorkflowSpy = vi.spyOn(DBOS, 'isWithinWorkflow').mockReturnValue(true)
     const runStepSpy = vi
@@ -62,8 +44,7 @@ describe('workflow-utils executeActivity and DBOS steps', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .mockImplementation(async (fn: () => unknown) => fn() as any)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await executeActivity('test-queue', mockFn as any, 'step-arg')
+    const result = await step('step-arg')
 
     expect(runStepSpy).toHaveBeenCalledWith(
       expect.any(Function),
@@ -77,6 +58,41 @@ describe('workflow-utils executeActivity and DBOS steps', () => {
 
     isWithinWorkflowSpy.mockRestore()
     runStepSpy.mockRestore()
+  })
+
+  it('should execute cleanup fallback if cancelled with DBOSWorkflowCancelledError and runOnCancel is true', async () => {
+    const mockFn = vi.fn().mockResolvedValue('cleanup-done')
+    const step = defineStep(mockFn, { name: 'cleanupStep', runOnCancel: true })
+
+    // SDK's real DBOSWorkflowCancelledError does not set err.name (err.name is 'Error')
+    const realCancelErr = new DBOSError.DBOSWorkflowCancelledError('test-workflow-id')
+    expect(realCancelErr.name).toBe('Error')
+
+    const isWithinWorkflowSpy = vi.spyOn(DBOS, 'isWithinWorkflow').mockReturnValue(true)
+    const runStepSpy = vi.spyOn(DBOS, 'runStep').mockRejectedValue(realCancelErr)
+
+    const result = await step('arg')
+
+    expect(result).toBe('cleanup-done')
+    expect(mockFn).toHaveBeenCalledWith('arg')
+
+    isWithinWorkflowSpy.mockRestore()
+    runStepSpy.mockRestore()
+  })
+
+  it('should correctly identify DBOS workflow cancellation errors', () => {
+    const realCancelErr = new DBOSError.DBOSWorkflowCancelledError('wf-1')
+    expect(isDbosWorkflowCancelledError(realCancelErr)).toBe(true)
+
+    const duckTypedErr = { name: 'DBOSWorkflowCancelledError' }
+    expect(isDbosWorkflowCancelledError(duckTypedErr)).toBe(true)
+
+    const codeErr = { dbosErrorCode: 24 }
+    expect(isDbosWorkflowCancelledError(codeErr)).toBe(true)
+
+    expect(isDbosWorkflowCancelledError(new Error('other error'))).toBe(false)
+    expect(isDbosWorkflowCancelledError(null)).toBe(false)
+    expect(isDbosWorkflowCancelledError(undefined)).toBe(false)
   })
 
   describe('WorkflowFailure / ApplicationFailure', () => {

@@ -23,7 +23,7 @@ import {
   isOfficeDocument,
 } from '@shumai/core/src/utils/mime'
 import { logger } from '@shumai/core/src/logger'
-import { ApplicationFailure, getLocalTaskAbortSignal } from '@shumai/workflow-core'
+import { ApplicationFailure, defineStep, getLocalTaskAbortSignal } from '@shumai/workflow-core'
 
 function getActivityCancellationSignal(taskId?: string): AbortSignal | undefined {
   return getLocalTaskAbortSignal(taskId)
@@ -93,7 +93,7 @@ async function ensureAssetNotPurging(assetKey: string): Promise<void> {
   }
 }
 
-export async function getMediaInfoActivity(params: {
+export const getMediaInfoActivity = defineStep(async function getMediaInfoActivity(params: {
   filePath: string
   assetId: string
   proxyType?: 'image' | 'video' | 'audio' | 'pdf' | null
@@ -329,7 +329,7 @@ export async function getMediaInfoActivity(params: {
       cause: err instanceof Error ? err : undefined,
     })
   }
-}
+})
 
 export interface VideoActivityParams {
   taskId?: string
@@ -351,7 +351,7 @@ export interface VideoActivityParams {
   audioStreamIndex?: number
 }
 
-export async function transcodeVideoActivity(
+export const transcodeVideoActivity = defineStep(async function transcodeVideoActivity(
   params: VideoActivityParams,
 ): Promise<PrismaJson.VideoTranscode> {
   const bucket = process.env.S3_BUCKET || 'shumai'
@@ -460,7 +460,7 @@ export async function transcodeVideoActivity(
   } finally {
     if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile)
   }
-}
+})
 
 export interface HlsActivityParams {
   taskId: string
@@ -484,7 +484,9 @@ export interface HlsActivityParams {
   audioStreamIndex?: number
 }
 
-export async function transcodeHlsActivity(params: HlsActivityParams): Promise<PrismaJson.HlsInfo> {
+export const transcodeHlsActivity = defineStep(async function transcodeHlsActivity(
+  params: HlsActivityParams,
+): Promise<PrismaJson.HlsInfo> {
   const bucket = process.env.S3_BUCKET || 'shumai'
   const assetDir = path.posix.dirname(params.assetKey)
   const hlsDirKey = path.posix.join(assetDir, 'hls')
@@ -648,7 +650,7 @@ export async function transcodeHlsActivity(params: HlsActivityParams): Promise<P
       }
     }
   }
-}
+})
 
 export interface AudioActivityParams {
   taskId?: string
@@ -658,7 +660,7 @@ export interface AudioActivityParams {
   audioStreamIndex?: number
 }
 
-export async function transcodeAudioActivity(
+export const transcodeAudioActivity = defineStep(async function transcodeAudioActivity(
   params: AudioActivityParams,
 ): Promise<PrismaJson.VideoTranscode> {
   const bucket = process.env.S3_BUCKET || 'shumai'
@@ -736,7 +738,7 @@ export async function transcodeAudioActivity(
   } finally {
     if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile)
   }
-}
+})
 
 export interface ImageActivityParams {
   assetKey: string
@@ -744,7 +746,7 @@ export interface ImageActivityParams {
   imageSpec: PrismaJson.ImageTranscode
 }
 
-export async function transcodeImageActivity(
+export const transcodeImageActivity = defineStep(async function transcodeImageActivity(
   params: ImageActivityParams,
 ): Promise<PrismaJson.ImageTranscode> {
   const bucket = process.env.S3_BUCKET || 'shumai'
@@ -807,7 +809,7 @@ export async function transcodeImageActivity(
   } finally {
     if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile)
   }
-}
+})
 
 export interface GenerateSpriteActivityParams {
   taskId?: string
@@ -818,7 +820,9 @@ export interface GenerateSpriteActivityParams {
   posterSpec: PrismaJson.PosterInfo
 }
 
-export async function generateSpriteActivity(params: GenerateSpriteActivityParams) {
+export const generateSpriteActivity = defineStep(async function generateSpriteActivity(
+  params: GenerateSpriteActivityParams,
+) {
   const bucket = process.env.S3_BUCKET || 'shumai'
   const signal = getActivityCancellationSignal(params.taskId)
   if (signal?.aborted) {
@@ -929,7 +933,7 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
     if (fs.existsSync(spriteFile)) fs.unlinkSync(spriteFile)
     if (fs.existsSync(posterFile)) fs.unlinkSync(posterFile)
   }
-}
+})
 
 export interface GeneratePdfProxyActivityParams {
   teamId?: string | null
@@ -940,7 +944,7 @@ export interface GeneratePdfProxyActivityParams {
   filename: string
 }
 
-export async function generatePdfProxyActivity(
+export const generatePdfProxyActivity = defineStep(async function generatePdfProxyActivity(
   params: GeneratePdfProxyActivityParams,
 ): Promise<{ pdfProxyKey: string; pdfFilePath: string }> {
   const isOffice = isOfficeDocument(params.mediaType, params.filename)
@@ -1054,47 +1058,54 @@ export async function generatePdfProxyActivity(
       cause: err instanceof Error ? err : undefined,
     })
   }
-}
+})
 
-export async function downloadMediaToTmpActivity(params: {
-  assetKey: string
-}): Promise<{ filePath: string; tmpDir: string }> {
-  const bucket = process.env.S3_BUCKET || 'shumai'
-  const tmpDir = transcodeService.createTempDir('transcode-')
-  const filePath = path.join(tmpDir, path.basename(params.assetKey))
+export const downloadMediaToTmpActivity = defineStep(
+  async function downloadMediaToTmpActivity(params: {
+    assetKey: string
+  }): Promise<{ filePath: string; tmpDir: string }> {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const tmpDir = transcodeService.createTempDir('transcode-')
+    const filePath = path.join(tmpDir, path.basename(params.assetKey))
 
-  if (!fs.existsSync(tmpDir)) {
-    fs.mkdirSync(tmpDir, { recursive: true })
-  }
-
-  try {
-    await s3Service.downloadToFile(bucket, params.assetKey, filePath)
-  } catch (err) {
-    const { code, message } = getErrorDetails(err)
-    const lowerMsg = message.toLowerCase()
-    if (code === 'ENOENT' || lowerMsg.includes('enoent') || lowerMsg.includes('nosuchkey')) {
-      throw ApplicationFailure.create({
-        message: `Failed to download media to tmp: ${message}`,
-        nonRetryable: true,
-        cause: err instanceof Error ? err : undefined,
-      })
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true })
     }
-    throw err
-  }
 
-  return { filePath, tmpDir }
-}
+    try {
+      await s3Service.downloadToFile(bucket, params.assetKey, filePath)
+    } catch (err) {
+      const { code, message } = getErrorDetails(err)
+      const lowerMsg = message.toLowerCase()
+      if (code === 'ENOENT' || lowerMsg.includes('enoent') || lowerMsg.includes('nosuchkey')) {
+        throw ApplicationFailure.create({
+          message: `Failed to download media to tmp: ${message}`,
+          nonRetryable: true,
+          cause: err instanceof Error ? err : undefined,
+        })
+      }
+      throw err
+    }
 
-export async function cleanupTmpDirActivity(params: { tmpDir: string }): Promise<void> {
-  transcodeService.removeDir(params.tmpDir)
-}
+    return { filePath, tmpDir }
+  },
+)
+
+export const cleanupTmpDirActivity = defineStep(
+  async function cleanupTmpDirActivity(params: { tmpDir: string }): Promise<void> {
+    transcodeService.removeDir(params.tmpDir)
+  },
+  { runOnCancel: true },
+)
 
 export interface UpdateAssetMediaActivityParams {
   assetId: string
   mediaInfo: PrismaJson.MediaInfo
 }
 
-export async function updateAssetMediaActivity(params: UpdateAssetMediaActivityParams) {
+export const updateAssetMediaActivity = defineStep(async function updateAssetMediaActivity(
+  params: UpdateAssetMediaActivityParams,
+) {
   const bucket = process.env.S3_BUCKET || 'shumai'
   const asset = await prisma.asset.findUnique({
     where: { id: params.assetId },
@@ -1126,9 +1137,9 @@ export async function updateAssetMediaActivity(params: UpdateAssetMediaActivityP
       '[updateAssetMediaActivity] Asset was deleted or pending purge before media update completed',
     )
   }
-}
+})
 
-export async function takeScreenshotsActivity(params: {
+export const takeScreenshotsActivity = defineStep(async function takeScreenshotsActivity(params: {
   taskId?: string
   assetKey: string
   assetId: string
@@ -1180,7 +1191,7 @@ export async function takeScreenshotsActivity(params: {
     }
     throw err
   }
-}
+})
 
 export interface ExtractPosterActivityParams {
   assetKey: string
@@ -1193,7 +1204,7 @@ export interface ExtractPosterActivityParams {
   streamIndex?: number
 }
 
-export async function extractPosterActivity(
+export const extractPosterActivity = defineStep(async function extractPosterActivity(
   params: ExtractPosterActivityParams,
 ): Promise<{ poster: PrismaJson.PosterInfo }> {
   const signal = params.signal || getActivityCancellationSignal(params.taskId)
@@ -1272,36 +1283,38 @@ export async function extractPosterActivity(
   } finally {
     transcodeService.removeDir(tmpDir)
   }
-}
+})
 
-export async function overlayAnnotationsActivity(params: {
-  assetKey: string
-  assetId: string
-  annotations: PrismaJson.AnnotationList
-}): Promise<string> {
-  try {
-    return await transcodeService.overlayAnnotations(params)
-  } catch (err) {
-    const { code, message } = getErrorDetails(err)
-    const lowerMsg = message.toLowerCase()
-    if (
-      code === 'ENOENT' ||
-      lowerMsg.includes('enoent') ||
-      lowerMsg.includes('nosuchkey') ||
-      lowerMsg.includes('ffmpeg') ||
-      lowerMsg.includes('sharp')
-    ) {
-      throw ApplicationFailure.create({
-        message: `Overlay annotations failed: ${message}`,
-        nonRetryable: true,
-        cause: err instanceof Error ? err : undefined,
-      })
+export const overlayAnnotationsActivity = defineStep(
+  async function overlayAnnotationsActivity(params: {
+    assetKey: string
+    assetId: string
+    annotations: PrismaJson.AnnotationList
+  }): Promise<string> {
+    try {
+      return await transcodeService.overlayAnnotations(params)
+    } catch (err) {
+      const { code, message } = getErrorDetails(err)
+      const lowerMsg = message.toLowerCase()
+      if (
+        code === 'ENOENT' ||
+        lowerMsg.includes('enoent') ||
+        lowerMsg.includes('nosuchkey') ||
+        lowerMsg.includes('ffmpeg') ||
+        lowerMsg.includes('sharp')
+      ) {
+        throw ApplicationFailure.create({
+          message: `Overlay annotations failed: ${message}`,
+          nonRetryable: true,
+          cause: err instanceof Error ? err : undefined,
+        })
+      }
+      throw err
     }
-    throw err
-  }
-}
+  },
+)
 
-export async function renderPdfPagesActivity(params: {
+export const renderPdfPagesActivity = defineStep(async function renderPdfPagesActivity(params: {
   taskId?: string
   assetKey: string
   assetId: string
@@ -1352,7 +1365,7 @@ export async function renderPdfPagesActivity(params: {
     }
     throw err
   }
-}
+})
 
 export interface CreateEmbeddingTaskIfEnabledParams {
   assetId: string
@@ -1360,75 +1373,77 @@ export interface CreateEmbeddingTaskIfEnabledParams {
   projectId: string | null
 }
 
-export async function createEmbeddingTaskIfEnabledActivity(
-  params: CreateEmbeddingTaskIfEnabledParams,
-): Promise<void> {
-  const asset = await prisma.asset.findUnique({
-    where: { id: params.assetId },
-    include: {
-      project: true,
-    },
-  })
-  if (!asset) {
-    return
-  }
-
-  const mediaInfo = asset.media as PrismaJson.MediaInfo | null
-  const isVideo = asset.mediaType?.startsWith('video/')
-  const isImage =
-    asset.mediaType?.startsWith('image/') ||
-    (mediaInfo?.proxyType === '3d' && (mediaInfo.imageTranscodes?.length ?? 0) > 0)
-  if (!isVideo && !isImage) {
-    return
-  }
-
-  const teamId = params.teamId || asset.project?.teamId || null
-  const projectId = params.projectId || asset.projectId
-
-  if (!teamId || process.env.ENABLE_EMBEDDING_AGENT === 'false') {
-    return
-  }
-
-  // Check if there is an active embedding agent for the team
-  const embeddingAgent = await prisma.agent.findFirst({
-    where: {
-      type: 'embedding',
-      enabled: true,
-      user: { teamMembers: { some: { teamId } } },
-    },
-  })
-
-  if (!embeddingAgent) {
-    return
-  }
-
-  // Check if a pending/processing embedding task already exists for this asset to avoid duplicates
-  const existing = await prisma.workflowTask.findFirst({
-    where: {
-      assetId: params.assetId,
-      type: WorkflowTaskType.ai_embedding,
-      status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
-    },
-  })
-  if (existing) {
-    return
-  }
-
-  // Create embedding task
-  await prisma.workflowTask.create({
-    data: {
-      assetId: params.assetId,
-      type: WorkflowTaskType.ai_embedding,
-      status: WorkflowTaskStatus.pending,
-      teamId,
-      projectId,
-      payload: {
-        projectId: projectId ?? '',
-        agent: { agentId: embeddingAgent.id },
+export const createEmbeddingTaskIfEnabledActivity = defineStep(
+  async function createEmbeddingTaskIfEnabledActivity(
+    params: CreateEmbeddingTaskIfEnabledParams,
+  ): Promise<void> {
+    const asset = await prisma.asset.findUnique({
+      where: { id: params.assetId },
+      include: {
+        project: true,
       },
-    },
-  })
-}
+    })
+    if (!asset) {
+      return
+    }
+
+    const mediaInfo = asset.media as PrismaJson.MediaInfo | null
+    const isVideo = asset.mediaType?.startsWith('video/')
+    const isImage =
+      asset.mediaType?.startsWith('image/') ||
+      (mediaInfo?.proxyType === '3d' && (mediaInfo.imageTranscodes?.length ?? 0) > 0)
+    if (!isVideo && !isImage) {
+      return
+    }
+
+    const teamId = params.teamId || asset.project?.teamId || null
+    const projectId = params.projectId || asset.projectId
+
+    if (!teamId || process.env.ENABLE_EMBEDDING_AGENT === 'false') {
+      return
+    }
+
+    // Check if there is an active embedding agent for the team
+    const embeddingAgent = await prisma.agent.findFirst({
+      where: {
+        type: 'embedding',
+        enabled: true,
+        user: { teamMembers: { some: { teamId } } },
+      },
+    })
+
+    if (!embeddingAgent) {
+      return
+    }
+
+    // Check if a pending/processing embedding task already exists for this asset to avoid duplicates
+    const existing = await prisma.workflowTask.findFirst({
+      where: {
+        assetId: params.assetId,
+        type: WorkflowTaskType.ai_embedding,
+        status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
+      },
+    })
+    if (existing) {
+      return
+    }
+
+    // Create embedding task
+    await prisma.workflowTask.create({
+      data: {
+        assetId: params.assetId,
+        type: WorkflowTaskType.ai_embedding,
+        status: WorkflowTaskStatus.pending,
+        teamId,
+        projectId,
+        payload: {
+          projectId: projectId ?? '',
+          agent: { agentId: embeddingAgent.id },
+        },
+      },
+    })
+  },
+)
 
 export interface CreateAutofillTaskIfEnabledParams {
   assetId: string
@@ -1436,66 +1451,68 @@ export interface CreateAutofillTaskIfEnabledParams {
   projectId: string | null
 }
 
-export async function createAutofillTaskIfEnabledActivity(
-  params: CreateAutofillTaskIfEnabledParams,
-): Promise<void> {
-  const asset = await prisma.asset.findUnique({
-    where: { id: params.assetId },
-    include: {
-      project: true,
-    },
-  })
-  if (!asset || (asset.type !== 'file' && asset.type !== 'version_stack')) {
-    return
-  }
-
-  const teamId = params.teamId || asset.project?.teamId || null
-  const projectId = params.projectId || asset.projectId
-
-  if (!teamId) {
-    return
-  }
-
-  // Check if there is an active autofill agent for the team
-  const autofillAgent = await prisma.agent.findFirst({
-    where: {
-      type: 'autofill',
-      enabled: true,
-      user: { teamMembers: { some: { teamId } } },
-    },
-  })
-
-  if (!autofillAgent) {
-    return
-  }
-
-  // Check if a pending/processing autofill task already exists for this asset to avoid duplicates
-  const existing = await prisma.workflowTask.findFirst({
-    where: {
-      assetId: params.assetId,
-      type: WorkflowTaskType.ai_metadata_autofill,
-      status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
-    },
-  })
-  if (existing) {
-    return
-  }
-
-  // Create autofill task
-  await prisma.workflowTask.create({
-    data: {
-      assetId: params.assetId,
-      type: WorkflowTaskType.ai_metadata_autofill,
-      status: WorkflowTaskStatus.pending,
-      teamId,
-      projectId,
-      payload: {
-        projectId: projectId ?? '',
-        agent: { agentId: autofillAgent.id },
+export const createAutofillTaskIfEnabledActivity = defineStep(
+  async function createAutofillTaskIfEnabledActivity(
+    params: CreateAutofillTaskIfEnabledParams,
+  ): Promise<void> {
+    const asset = await prisma.asset.findUnique({
+      where: { id: params.assetId },
+      include: {
+        project: true,
       },
-    },
-  })
-}
+    })
+    if (!asset || (asset.type !== 'file' && asset.type !== 'version_stack')) {
+      return
+    }
+
+    const teamId = params.teamId || asset.project?.teamId || null
+    const projectId = params.projectId || asset.projectId
+
+    if (!teamId) {
+      return
+    }
+
+    // Check if there is an active autofill agent for the team
+    const autofillAgent = await prisma.agent.findFirst({
+      where: {
+        type: 'autofill',
+        enabled: true,
+        user: { teamMembers: { some: { teamId } } },
+      },
+    })
+
+    if (!autofillAgent) {
+      return
+    }
+
+    // Check if a pending/processing autofill task already exists for this asset to avoid duplicates
+    const existing = await prisma.workflowTask.findFirst({
+      where: {
+        assetId: params.assetId,
+        type: WorkflowTaskType.ai_metadata_autofill,
+        status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
+      },
+    })
+    if (existing) {
+      return
+    }
+
+    // Create autofill task
+    await prisma.workflowTask.create({
+      data: {
+        assetId: params.assetId,
+        type: WorkflowTaskType.ai_metadata_autofill,
+        status: WorkflowTaskStatus.pending,
+        teamId,
+        projectId,
+        payload: {
+          projectId: projectId ?? '',
+          agent: { agentId: autofillAgent.id },
+        },
+      },
+    })
+  },
+)
 
 export interface TranscodeVideoChunkParams {
   assetId: string
@@ -1506,7 +1523,7 @@ export interface TranscodeVideoChunkParams {
   format?: 'video' | 'frames'
 }
 
-export async function transcodeVideoChunkActivity(
+export const transcodeVideoChunkActivity = defineStep(async function transcodeVideoChunkActivity(
   params: TranscodeVideoChunkParams,
 ): Promise<{ chunkKey: string }> {
   if (!params.filePath && !params.assetKey) {
@@ -1660,12 +1677,15 @@ export async function transcodeVideoChunkActivity(
       }
     }
   }
-}
+})
 
-export async function deleteS3ObjectActivity(params: { key: string }): Promise<void> {
-  const bucket = process.env.S3_BUCKET || 'shumai'
-  await s3Service.deleteObject(bucket, params.key)
-}
+export const deleteS3ObjectActivity = defineStep(
+  async function deleteS3ObjectActivity(params: { key: string }): Promise<void> {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    await s3Service.deleteObject(bucket, params.key)
+  },
+  { runOnCancel: true },
+)
 
 export interface Render3dModelActivityParams {
   taskId: string
@@ -1702,7 +1722,7 @@ export interface Start3dRenderActivityResult {
   modelMetadata?: Record<string, unknown>
 }
 
-export async function start3dRenderActivity(
+export const start3dRenderActivity = defineStep(async function start3dRenderActivity(
   params: Start3dRenderActivityParams,
 ): Promise<Start3dRenderActivityResult> {
   const signal = getActivityCancellationSignal(params.taskId)
@@ -1783,7 +1803,7 @@ export async function start3dRenderActivity(
       nonRetryable: true,
     })
   }
-}
+})
 
 export interface WaitFor3dVideoRenderActivityParams {
   taskId: string
@@ -1798,7 +1818,7 @@ export interface WaitFor3dVideoRenderActivityResult {
   videoFilePath: string
 }
 
-export async function waitFor3dVideoRenderActivity(
+export const waitFor3dVideoRenderActivity = defineStep(async function waitFor3dVideoRenderActivity(
   params: WaitFor3dVideoRenderActivityParams,
 ): Promise<WaitFor3dVideoRenderActivityResult> {
   const signal = getActivityCancellationSignal(params.taskId)
@@ -1897,12 +1917,12 @@ export async function waitFor3dVideoRenderActivity(
       nonRetryable: true,
     })
   }
-}
+})
 
 /**
  * @deprecated Legacy monolithic 3D render activity. Prefer using `start3dRenderActivity` and `waitFor3dVideoRenderActivity`.
  */
-export async function render3dModelActivity(
+export const render3dModelActivity = defineStep(async function render3dModelActivity(
   params: Render3dModelActivityParams,
 ): Promise<Render3dModelActivityResult> {
   const tmpDir = path.dirname(params.filePath)
@@ -1930,7 +1950,7 @@ export async function render3dModelActivity(
     posterFilePath: startResult.posterFilePath,
     modelMetadata: startResult.modelMetadata,
   }
-}
+})
 
 export interface Generate3dSpriteActivityParams {
   taskId: string
@@ -1939,7 +1959,7 @@ export interface Generate3dSpriteActivityParams {
   spriteKey: string
 }
 
-export async function generate3dSpriteActivity(
+export const generate3dSpriteActivity = defineStep(async function generate3dSpriteActivity(
   params: Generate3dSpriteActivityParams,
 ): Promise<{ spriteKey: string }> {
   const signal = getActivityCancellationSignal(params.taskId)
@@ -1978,7 +1998,7 @@ export async function generate3dSpriteActivity(
       nonRetryable: true,
     })
   }
-}
+})
 
 export interface Generate3dViewsActivityParams {
   taskId: string
@@ -1987,7 +2007,7 @@ export interface Generate3dViewsActivityParams {
   viewsKey: string
 }
 
-export async function generate3dViewsActivity(
+export const generate3dViewsActivity = defineStep(async function generate3dViewsActivity(
   params: Generate3dViewsActivityParams,
 ): Promise<{ viewsKey: string }> {
   const signal = getActivityCancellationSignal(params.taskId)
@@ -2026,4 +2046,4 @@ export async function generate3dViewsActivity(
       nonRetryable: true,
     })
   }
-}
+})

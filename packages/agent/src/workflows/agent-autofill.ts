@@ -1,38 +1,33 @@
 import type { WorkflowTask } from '@shumai/db'
 import {
   ApplicationFailure,
-  executeActivity,
-  getActivities,
-  TaskQueueAgent,
+  updateTaskStatusActivity,
+  updateTaskUsageActivity,
 } from '@shumai/workflow-core'
 import { getProxyType } from '@shumai/core/src/utils/mime'
+import {
+  autofillAiActivity,
+  createCommentActivity,
+  getAgentAutofillContextActivity,
+  getAssetActivity,
+  getProjectAutofillFieldsActivity,
+  updateAssetMetadataActivity,
+  updateCommentActivity,
+} from '../activities/agent'
 
 export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
-  const {
-    updateTaskStatusActivity,
-    getAssetActivity,
-    getProjectAutofillFieldsActivity,
-    getAgentAutofillContextActivity,
-    autofillAiActivity,
-    updateTaskUsageActivity,
-    updateAssetMetadataActivity,
-    createCommentActivity,
-    updateCommentActivity,
-  } = getActivities()
-
   let placeholderCommentId: string | undefined
-  const agentWorkerQueue = TaskQueueAgent
 
   try {
     // Update status to processing
-    await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
+    await updateTaskStatusActivity({
       taskId: task.id,
       status: 'processing',
     })
 
     // 0. Create Placeholder Comment
     const payload = task.payload
-    const placeholder = await executeActivity(agentWorkerQueue, createCommentActivity, {
+    const placeholder = await createCommentActivity({
       assetId: task.assetId,
       message: '__AUTOFILL__',
       sessionId: payload?.agent?.sessionId || task.id,
@@ -41,7 +36,7 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     placeholderCommentId = placeholder.id
 
     // 1. Get Asset
-    const asset = await executeActivity(agentWorkerQueue, getAssetActivity, task.assetId)
+    const asset = await getAssetActivity(task.assetId)
     if (!asset || !asset.project) {
       throw ApplicationFailure.create({ message: 'Asset or project not found', nonRetryable: true })
     }
@@ -49,19 +44,15 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     const projectId = asset.project.id
 
     // 2. Get Project Autofill Fields
-    const fields = await executeActivity(
-      agentWorkerQueue,
-      getProjectAutofillFieldsActivity,
-      projectId,
-    )
+    const fields = await getProjectAutofillFieldsActivity(projectId)
     if (fields.length === 0) {
       if (placeholderCommentId) {
-        await executeActivity(agentWorkerQueue, updateCommentActivity, {
+        await updateCommentActivity({
           commentId: placeholderCommentId,
           message: 'Autofill completed: No autofill fields defined in project.',
         })
       }
-      await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
+      await updateTaskStatusActivity({
         taskId: task.id,
         status: 'completed',
       })
@@ -69,7 +60,7 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     }
 
     // 3. Fetch Agent Context
-    const context = await executeActivity(agentWorkerQueue, getAgentAutofillContextActivity, {
+    const context = await getAgentAutofillContextActivity({
       teamId,
     })
 
@@ -91,7 +82,7 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
             : undefined
         : undefined
 
-    const aiResult = await executeActivity(agentWorkerQueue, autofillAiActivity, {
+    const aiResult = await autofillAiActivity({
       teamId,
       assetId: asset.id,
       assetName: asset.name,
@@ -99,19 +90,17 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
       duration,
       pageCount,
       projectId: asset.projectId ?? undefined,
-      fields: fields.map(
-        (f: { key: string; config: Record<string, unknown>; description?: string | null }) => ({
-          id: f.key,
-          config: f.config as unknown as PrismaJson.FieldConfig,
-          description: f.description,
-        }),
-      ),
+      fields: fields.map((f) => ({
+        id: f.key,
+        config: (f.config as unknown as PrismaJson.FieldConfig) ?? {},
+        description: f.description,
+      })),
       context,
     })
 
     if (aiResult.usage) {
       // Update Usage
-      await executeActivity(agentWorkerQueue, updateTaskUsageActivity, {
+      await updateTaskUsageActivity({
         taskId: task.id,
         inputTokens: aiResult.usage.inputTokens,
         outputTokens: aiResult.usage.outputTokens,
@@ -129,7 +118,7 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
       }))
 
     if (metadataUpdates.length > 0) {
-      await executeActivity(agentWorkerQueue, updateAssetMetadataActivity, {
+      await updateAssetMetadataActivity({
         assetId: asset.id,
         metadata: metadataUpdates,
       })
@@ -137,7 +126,7 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
 
     // 7. Update Placeholder Comment
     if (placeholderCommentId) {
-      await executeActivity(agentWorkerQueue, updateCommentActivity, {
+      await updateCommentActivity({
         commentId: placeholderCommentId,
         message: 'Autofill completed successfully.',
         sessionId: aiResult.sessionId,
@@ -145,7 +134,7 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     }
 
     // Update status to completed
-    await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
+    await updateTaskStatusActivity({
       taskId: task.id,
       status: 'completed',
     })
@@ -153,9 +142,9 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     console.error(`AgentAutofillMedia failed for task ${task.id}:`, err)
 
     // Update placeholder comment with error message
-    if (placeholderCommentId && agentWorkerQueue) {
+    if (placeholderCommentId) {
       try {
-        await executeActivity(agentWorkerQueue, updateCommentActivity, {
+        await updateCommentActivity({
           commentId: placeholderCommentId,
           message: `Autofill failed: ${err instanceof Error ? err.message : String(err)}`,
         })
@@ -165,13 +154,11 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     }
 
     // Update status to failed
-    if (agentWorkerQueue) {
-      await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
-        taskId: task.id,
-        status: 'failed',
-        output: { error: err instanceof Error ? err.message : String(err) },
-      })
-    }
+    await updateTaskStatusActivity({
+      taskId: task.id,
+      status: 'failed',
+      output: { error: err instanceof Error ? err.message : String(err) },
+    })
     throw err
   }
 }

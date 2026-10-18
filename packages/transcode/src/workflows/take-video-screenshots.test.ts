@@ -1,47 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { takeVideoScreenshotsWorkflow } from './take-video-screenshots'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
-import * as workflowUtils from '@shumai/workflow-core'
+import { getAssetActivity, updateTaskStatusActivity } from '@shumai/workflow-core'
+import { takeScreenshotsActivity } from '../activities/transcode'
 
 vi.mock('@shumai/workflow-core', async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const actual = (await importOriginal()) as any
+  const actual = await importOriginal<typeof import('@shumai/workflow-core')>()
   return {
     ...actual,
-    getActivities: vi.fn(),
-    executeActivity: vi.fn(),
-    sleep: vi.fn(),
+    updateTaskStatusActivity: vi.fn(),
+    getAssetActivity: vi.fn(),
   }
 })
 
+vi.mock('../activities/transcode', () => ({
+  takeScreenshotsActivity: vi.fn(),
+}))
+
 describe('takeVideoScreenshotsWorkflow', () => {
   const mockActivities = {
-    updateTaskStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateTaskStatusActivity',
-    }),
-    getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
-    getTranscodeWorkerQueueActivity: Object.assign(vi.fn(), {
-      _activityName: 'getTranscodeWorkerQueueActivity',
-    }),
-    takeScreenshotsActivity: Object.assign(vi.fn(), { _activityName: 'takeScreenshotsActivity' }),
+    updateTaskStatusActivity: vi.mocked(updateTaskStatusActivity),
+    getAssetActivity: vi.mocked(getAssetActivity),
+    takeScreenshotsActivity: vi.mocked(takeScreenshotsActivity),
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.getActivities as any).mockReturnValue(mockActivities)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.executeActivity as any).mockImplementation(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (_queue: string, fn: any, ...args: any[]) => {
-        if (typeof fn !== 'function') {
-          throw new Error(`fn is not a function in executeActivity. Queue: ${_queue}`)
-        }
-        return fn(...args)
-      },
-    )
-
-    mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_worker_queue')
   })
 
   it('should run screenshot workflow successfully', async () => {
@@ -77,7 +61,8 @@ describe('takeVideoScreenshotsWorkflow', () => {
       id: 'asset-video',
       storageKey: { key: 'video.mp4' },
       mediaType: 'video/mp4',
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
 
     mockActivities.takeScreenshotsActivity.mockResolvedValue([
       { key: 'files/asset-video/screenshots/shot1.webp', timestamp: 0.0 },
@@ -149,7 +134,8 @@ describe('takeVideoScreenshotsWorkflow', () => {
           { key: 'proxy-360p.mp4', height: 360, width: 640 },
         ],
       },
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
 
     mockActivities.takeScreenshotsActivity.mockResolvedValue([
       { key: 'files/asset-video-proxy/screenshots/shot1.webp', timestamp: 1.2345 },
@@ -208,7 +194,8 @@ describe('takeVideoScreenshotsWorkflow', () => {
           { key: 'proxy-720p.mp4', height: 720, width: 1280, hdr: false },
         ],
       },
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
 
     mockActivities.takeScreenshotsActivity.mockResolvedValue([
       { key: 'files/asset-video-hdr/screenshots/shot1.webp', timestamp: 2.0 },

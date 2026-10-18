@@ -1,10 +1,22 @@
 import type { WorkflowTask } from '@shumai/db'
 import {
   ApplicationFailure,
-  executeActivity,
-  getActivities,
-  TaskQueueAgent,
+  updateTaskStatusActivity,
+  updateTaskUsageActivity,
 } from '@shumai/workflow-core'
+import {
+  agentChatActivity,
+  createCommentActivity,
+  generateSessionNameActivity,
+  getAgentChatContextActivity,
+  getAssetActivity,
+  getAssetPathContextActivity,
+  getAssetPathHierarchyActivity,
+  getCommentActivity,
+  getUserTeamInfoActivity,
+  initializeAgentSessionActivity,
+  updateCommentActivity,
+} from '../activities/agent'
 import type {
   ShumaiMessageContext,
   ShumaiAssetContext,
@@ -15,28 +27,11 @@ import { getProxyType } from '@shumai/core/src/utils/mime'
 import { secondToDegree } from '@shumai/core/src/utils/model3d'
 
 export async function agentChat(task: WorkflowTask): Promise<void> {
-  const {
-    updateTaskStatusActivity,
-    getAssetActivity,
-    getCommentActivity,
-    getAgentChatContextActivity,
-    agentChatActivity,
-    createCommentActivity,
-    updateCommentActivity,
-    updateTaskUsageActivity,
-    initializeAgentSessionActivity,
-    getAssetPathHierarchyActivity,
-    getAssetPathContextActivity,
-    generateSessionNameActivity,
-    getUserTeamInfoActivity,
-  } = getActivities()
-
   let placeholderCommentId: string | undefined
-  const agentWorkerQueue = TaskQueueAgent
 
   try {
     // Update status to processing
-    await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
+    await updateTaskStatusActivity({
       taskId: task.id,
       status: 'processing',
     })
@@ -65,7 +60,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     let commentAnnotations: unknown[] | undefined
 
     if (userCommentId) {
-      userComment = await executeActivity(agentWorkerQueue, getCommentActivity, userCommentId)
+      userComment = await getCommentActivity(userCommentId)
       if (!userComment) {
         throw ApplicationFailure.create({ message: 'User comment not found', nonRetryable: true })
       }
@@ -84,7 +79,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       }
 
       // 2. Create Placeholder Comment
-      const placeholder = await executeActivity(agentWorkerQueue, createCommentActivity, {
+      const placeholder = await createCommentActivity({
         assetId: task.assetId,
         message: '__CHAT__',
         sessionId: sessionId || 'pending',
@@ -119,7 +114,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     }
 
     // 3. Get Asset
-    const asset = await executeActivity(agentWorkerQueue, getAssetActivity, task.assetId)
+    const asset = await getAssetActivity(task.assetId)
     if (!asset || !asset.project) {
       throw ApplicationFailure.create({ message: 'Asset or project not found', nonRetryable: true })
     }
@@ -134,7 +129,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
           nonRetryable: true,
         })
       }
-      sessionId = await executeActivity(agentWorkerQueue, initializeAgentSessionActivity, {
+      sessionId = await initializeAgentSessionActivity({
         teamId,
         agentId: agentId,
         userCommentId,
@@ -144,18 +139,14 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     }
 
     // 4b. Fetch Agent Context
-    const context = await executeActivity(agentWorkerQueue, getAgentChatContextActivity, {
+    const context = await getAgentChatContextActivity({
       teamId,
       agentId: agentId,
       userId: payload.agent?.userId,
       projectId: payload.projectId,
     })
 
-    const pathHierarchy = await executeActivity(
-      agentWorkerQueue,
-      getAssetPathHierarchyActivity,
-      task.assetId,
-    )
+    const pathHierarchy = await getAssetPathHierarchyActivity(task.assetId)
     const assetPath = pathHierarchy?.path || ''
     const ancestors = pathHierarchy?.ancestors || []
 
@@ -180,11 +171,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     if (userCommentId && userComment?.attachments) {
       for (const att of userComment.attachments) {
         if (att.asset) {
-          const filePath = await executeActivity(
-            agentWorkerQueue,
-            getAssetPathContextActivity,
-            att.asset.id,
-          )
+          const filePath = await getAssetPathContextActivity(att.asset.id)
           const attProxyType =
             (att.asset.media as PrismaJson.MediaInfo | null)?.proxyType ||
             getProxyType(att.asset.mediaType, att.asset.name) ||
@@ -203,13 +190,9 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       }
     } else if (payload.agent?.attachedFiles) {
       for (const fileId of payload.agent.attachedFiles) {
-        const file = await executeActivity(agentWorkerQueue, getAssetActivity, fileId)
+        const file = await getAssetActivity(fileId)
         if (file) {
-          const filePath = await executeActivity(
-            agentWorkerQueue,
-            getAssetPathContextActivity,
-            fileId,
-          )
+          const filePath = await getAssetPathContextActivity(fileId)
           const fileProxyType =
             (file.media as PrismaJson.MediaInfo | null)?.proxyType ||
             getProxyType(file.mediaType, file.name) ||
@@ -232,13 +215,9 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     const referencedAssets: ShumaiAttachedFileContext[] = []
     if (payload.agent?.assetIds) {
       for (const assetId of payload.agent.assetIds) {
-        const referencedAsset = await executeActivity(agentWorkerQueue, getAssetActivity, assetId)
+        const referencedAsset = await getAssetActivity(assetId)
         if (referencedAsset) {
-          const filePath = await executeActivity(
-            agentWorkerQueue,
-            getAssetPathContextActivity,
-            assetId,
-          )
+          const filePath = await getAssetPathContextActivity(assetId)
           const refProxyType =
             (referencedAsset.media as PrismaJson.MediaInfo | null)?.proxyType ||
             getProxyType(referencedAsset.mediaType, referencedAsset.name) ||
@@ -265,7 +244,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     const targetUserId = userCommentId ? commentCreatorId : payload.agent?.userId
     let userInfo: { name: string; role: string } | null = null
     if (targetUserId) {
-      userInfo = await executeActivity(agentWorkerQueue, getUserTeamInfoActivity, {
+      userInfo = await getUserTeamInfoActivity({
         userId: targetUserId,
         teamId,
       })
@@ -325,7 +304,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       folderId = asset.parentId
     }
 
-    const aiResult = await executeActivity(agentWorkerQueue, agentChatActivity, {
+    const aiResult = await agentChatActivity({
       taskId: task.id,
       teamId,
       agentId: agentId,
@@ -344,7 +323,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     // 7. Update Placeholder Comment
     if (placeholderCommentId) {
-      await executeActivity(agentWorkerQueue, updateCommentActivity, {
+      await updateCommentActivity({
         commentId: placeholderCommentId,
         message: aiResult.text,
         sessionId: aiResult.sessionId,
@@ -353,7 +332,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     // 8. Update Usage
     if (aiResult.usage) {
-      await executeActivity(agentWorkerQueue, updateTaskUsageActivity, {
+      await updateTaskUsageActivity({
         taskId: task.id,
         inputTokens: aiResult.usage.inputTokens,
         outputTokens: aiResult.usage.outputTokens,
@@ -363,7 +342,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     // 9. Generate Session Name for new chats
     if (isNewChat) {
-      await executeActivity(agentWorkerQueue, generateSessionNameActivity, {
+      await generateSessionNameActivity({
         teamId,
         agentId,
         prompt,
@@ -375,7 +354,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     }
 
     // Update status to completed
-    await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
+    await updateTaskStatusActivity({
       taskId: task.id,
       status: 'completed',
       output: { sessionId: aiResult.sessionId },
@@ -384,7 +363,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     console.error(`AgentChat failed for task ${task.id}:`, err)
 
     // Update placeholder comment with error message
-    if (placeholderCommentId && agentWorkerQueue) {
+    if (placeholderCommentId) {
       try {
         let errorMessage = 'Sorry, I encountered an error while processing your request.'
         if (err instanceof Error) {
@@ -406,7 +385,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
           errorMessage = 'Agent execution stopped.'
         }
 
-        await executeActivity(agentWorkerQueue, updateCommentActivity, {
+        await updateCommentActivity({
           commentId: placeholderCommentId,
           message: errorMessage,
         })
@@ -416,13 +395,11 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     }
 
     // Update status to failed
-    if (agentWorkerQueue) {
-      await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
-        taskId: task.id,
-        status: 'failed',
-        output: { error: err instanceof Error ? err.message : String(err) },
-      })
-    }
+    await updateTaskStatusActivity({
+      taskId: task.id,
+      status: 'failed',
+      output: { error: err instanceof Error ? err.message : String(err) },
+    })
     throw err
   }
 }

@@ -1,13 +1,20 @@
 import type { WorkflowTask } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
-import { executeActivity, getActivities } from '@shumai/workflow-core'
+import { updateAssetStatusActivity } from '@shumai/workflow-core'
 import {
-  getWorkerQueueAndStartTask,
-  fetchAssetWithKey,
-  completeTask,
-  failTask,
-  cleanupTmpDir,
-} from './common'
+  downloadMediaToTmpActivity,
+  getMediaInfoActivity,
+  transcodeVideoActivity,
+  transcodeHlsActivity,
+  transcodeAudioActivity,
+  transcodeImageActivity,
+  extractPosterActivity,
+  generateSpriteActivity,
+  updateAssetMediaActivity,
+  createEmbeddingTaskIfEnabledActivity,
+  createAutofillTaskIfEnabledActivity,
+} from '../activities/transcode'
+import { startTask, fetchAssetWithKey, completeTask, failTask, cleanupTmpDir } from './common'
 import {
   getTargetVideoResolutions,
   getTargetHlsResolutions,
@@ -16,35 +23,19 @@ import {
 
 export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> {
   let tmpDir: string | undefined
-  let workerQueue = ''
   let mediaProcessed = false
 
   try {
-    workerQueue = await getWorkerQueueAndStartTask(task)
+    await startTask(task)
 
-    const {
-      updateAssetStatusActivity,
-      getMediaInfoActivity,
-      transcodeVideoActivity,
-      transcodeHlsActivity,
-      transcodeAudioActivity,
-      transcodeImageActivity,
-      extractPosterActivity,
-      generateSpriteActivity,
-      updateAssetMediaActivity,
-      downloadMediaToTmpActivity,
-      createEmbeddingTaskIfEnabledActivity,
-      createAutofillTaskIfEnabledActivity,
-    } = getActivities()
-
-    await executeActivity(workerQueue, updateAssetStatusActivity, {
+    await updateAssetStatusActivity({
       assetId: task.assetId,
       status: 'processing',
     })
 
-    const { asset, key } = await fetchAssetWithKey(workerQueue, task.assetId)
+    const { asset, key } = await fetchAssetWithKey(task.assetId)
 
-    const download = await executeActivity(workerQueue, downloadMediaToTmpActivity, {
+    const download = await downloadMediaToTmpActivity({
       assetKey: key,
     })
     const { filePath } = download
@@ -52,7 +43,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
 
     const spec = task.payload?.transcode || {}
     const proxyType = asset.mediaType?.startsWith('audio/') ? 'audio' : 'video'
-    const mediaInfo = await executeActivity(workerQueue, getMediaInfoActivity, {
+    const mediaInfo = await getMediaInfoActivity({
       filePath,
       assetId: asset.id,
       proxyType,
@@ -73,7 +64,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       const posterSpec: PrismaJson.PosterInfo = {
         key: assetDir ? `${assetDir}/poster.webp` : 'poster.webp',
       }
-      const posterResult = await executeActivity(workerQueue, extractPosterActivity, {
+      const posterResult = await extractPosterActivity({
         assetKey: key,
         posterSpec,
         taskId: task.id,
@@ -83,7 +74,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
         streamIndex: mediaInfo.metadata?.videoStreamIndex,
       })
       mediaInfo.poster = posterResult.poster
-      await executeActivity(workerQueue, updateAssetMediaActivity, {
+      await updateAssetMediaActivity({
         assetId: asset.id,
         mediaInfo,
       })
@@ -105,7 +96,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
         key: assetDir ? `${assetDir}/poster.webp` : 'poster.webp',
       }
 
-      const spriteResult = await executeActivity(workerQueue, generateSpriteActivity, {
+      const spriteResult = await generateSpriteActivity({
         taskId: task.id,
         assetKey: key,
         filePath,
@@ -120,7 +111,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
         mediaInfo.poster = spriteResult.poster
       }
 
-      await executeActivity(workerQueue, updateAssetMediaActivity, {
+      await updateAssetMediaActivity({
         assetId: asset.id,
         mediaInfo,
       })
@@ -152,7 +143,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
             hdr: isHdr,
           }
 
-          const videoTranscode = await executeActivity(workerQueue, transcodeVideoActivity, {
+          const videoTranscode = await transcodeVideoActivity({
             taskId: task.id,
             assetKey: key,
             filePath,
@@ -183,7 +174,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
           hdr: isHdr,
         }
 
-        const videoTranscode = await executeActivity(workerQueue, transcodeVideoActivity, {
+        const videoTranscode = await transcodeVideoActivity({
           taskId: task.id,
           assetKey: key,
           filePath,
@@ -214,7 +205,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
           metadata.originalHeight,
         )
         if (hlsLadders.length > 0) {
-          const hlsResult = await executeActivity(workerQueue, transcodeHlsActivity, {
+          const hlsResult = await transcodeHlsActivity({
             taskId: task.id,
             assetKey: key,
             filePath,
@@ -222,6 +213,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
             originalWidth: metadata.originalWidth,
             originalHeight: metadata.originalHeight,
             originalFps: metadata.frameRate,
+            duration: metadata.duration,
             sourceVideoBitrate: metadata.videoBitRate || metadata.bitRate,
             hardwareAcceleration: spec.hardwareAcceleration,
             threads: spec.threads,
@@ -242,7 +234,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
 
     const isAudio = mediaInfo.proxyType === 'audio'
     if (isAudio && metadata) {
-      const audioTranscode = await executeActivity(workerQueue, transcodeAudioActivity, {
+      const audioTranscode = await transcodeAudioActivity({
         taskId: task.id,
         assetKey: key,
         filePath,
@@ -253,7 +245,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
     }
 
     if (spec.thumbnail && isVideo) {
-      const thumbTranscode = await executeActivity(workerQueue, transcodeImageActivity, {
+      const thumbTranscode = await transcodeImageActivity({
         assetKey: key,
         filePath,
         imageSpec: { width: 300, height: 300, quality: 80, format: 'webp', isPreview: true },
@@ -261,35 +253,35 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       mediaInfo.thumbnail = thumbTranscode
     }
 
-    await executeActivity(workerQueue, updateAssetMediaActivity, {
+    await updateAssetMediaActivity({
       assetId: asset.id,
       mediaInfo,
     })
 
-    await executeActivity(workerQueue, updateAssetStatusActivity, {
+    await updateAssetStatusActivity({
       assetId: asset.id,
       status: 'processed',
     })
     mediaProcessed = true
 
-    await executeActivity(workerQueue, createEmbeddingTaskIfEnabledActivity, {
+    await createEmbeddingTaskIfEnabledActivity({
       assetId: asset.id,
       teamId: task.teamId,
       projectId: task.projectId,
     })
 
-    await executeActivity(workerQueue, createAutofillTaskIfEnabledActivity, {
+    await createAutofillTaskIfEnabledActivity({
       assetId: asset.id,
       teamId: task.teamId,
       projectId: task.projectId,
     })
 
-    await completeTask(workerQueue, task.id)
+    await completeTask(task.id)
   } catch (err) {
     console.error(`transcodeVideoWorkflow failed for task ${task.id}:`, err)
-    await failTask(workerQueue, task.id, err, mediaProcessed ? undefined : task.assetId)
+    await failTask(task.id, err, mediaProcessed ? undefined : task.assetId)
     throw err
   } finally {
-    await cleanupTmpDir(workerQueue, tmpDir)
+    await cleanupTmpDir(tmpDir)
   }
 }

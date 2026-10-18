@@ -1,71 +1,77 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { transcodeVideoWorkflow } from './transcode-video'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType, AssetStatus } from '@shumai/db'
-import * as workflowUtils from '@shumai/workflow-core'
+import {
+  getAssetActivity,
+  updateAssetStatusActivity,
+  updateTaskStatusActivity,
+} from '@shumai/workflow-core'
+import {
+  getMediaInfoActivity,
+  transcodeVideoActivity,
+  transcodeHlsActivity,
+  transcodeAudioActivity,
+  transcodeImageActivity,
+  generateSpriteActivity,
+  updateAssetMediaActivity,
+  downloadMediaToTmpActivity,
+  cleanupTmpDirActivity,
+  createEmbeddingTaskIfEnabledActivity,
+  createAutofillTaskIfEnabledActivity,
+  extractPosterActivity,
+  type VideoActivityParams,
+} from '../activities/transcode'
 
 vi.mock('@shumai/workflow-core', async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const actual = (await importOriginal()) as any
+  const actual = await importOriginal<typeof import('@shumai/workflow-core')>()
   return {
     ...actual,
-    getActivities: vi.fn(),
-    executeActivity: vi.fn(),
-    sleep: vi.fn(),
+    updateTaskStatusActivity: vi.fn(),
+    updateAssetStatusActivity: vi.fn(),
+    getAssetActivity: vi.fn(),
   }
 })
 
+vi.mock('../activities/transcode', () => ({
+  getMediaInfoActivity: vi.fn(),
+  transcodeVideoActivity: vi.fn(),
+  transcodeHlsActivity: vi.fn(),
+  transcodeAudioActivity: vi.fn(),
+  transcodeImageActivity: vi.fn(),
+  generateSpriteActivity: vi.fn(),
+  updateAssetMediaActivity: vi.fn(),
+  downloadMediaToTmpActivity: vi.fn(),
+  cleanupTmpDirActivity: vi.fn(),
+  createEmbeddingTaskIfEnabledActivity: vi.fn(),
+  createAutofillTaskIfEnabledActivity: vi.fn(),
+  extractPosterActivity: vi.fn(),
+}))
+
 describe('transcodeVideoWorkflow', () => {
-  const mockActivities = {
-    updateTaskStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateTaskStatusActivity',
-    }),
-    updateAssetStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateAssetStatusActivity',
-    }),
-    getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
-    getMediaInfoActivity: Object.assign(vi.fn(), { _activityName: 'getMediaInfoActivity' }),
-    transcodeVideoActivity: Object.assign(vi.fn(), { _activityName: 'transcodeVideoActivity' }),
-    transcodeHlsActivity: Object.assign(vi.fn(), { _activityName: 'transcodeHlsActivity' }),
-    transcodeAudioActivity: Object.assign(vi.fn(), { _activityName: 'transcodeAudioActivity' }),
-    transcodeImageActivity: Object.assign(vi.fn(), { _activityName: 'transcodeImageActivity' }),
-    generateSpriteActivity: Object.assign(vi.fn(), { _activityName: 'generateSpriteActivity' }),
-    updateAssetMediaActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateAssetMediaActivity',
-    }),
-    getTranscodeWorkerQueueActivity: Object.assign(vi.fn(), {
-      _activityName: 'getTranscodeWorkerQueueActivity',
-    }),
-    downloadMediaToTmpActivity: Object.assign(vi.fn(), {
-      _activityName: 'downloadMediaToTmpActivity',
-    }),
-    cleanupTmpDirActivity: Object.assign(vi.fn(), { _activityName: 'cleanupTmpDirActivity' }),
-    createEmbeddingTaskIfEnabledActivity: Object.assign(vi.fn(), {
-      _activityName: 'createEmbeddingTaskIfEnabledActivity',
-    }),
-    createAutofillTaskIfEnabledActivity: Object.assign(vi.fn(), {
-      _activityName: 'createAutofillTaskIfEnabledActivity',
-    }),
-    extractPosterActivity: Object.assign(vi.fn(), {
-      _activityName: 'extractPosterActivity',
-    }),
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mockActivities holds mock functions cast to allow partial mock payloads in unit tests
+  let mockActivities: any
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.getActivities as any).mockReturnValue(mockActivities)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.executeActivity as any).mockImplementation(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (_queue: string, fn: any, ...args: any[]) => {
-        if (typeof fn !== 'function') {
-          throw new Error(`fn is not a function in executeActivity. Queue: ${_queue}`)
-        }
-        return fn(...args)
-      },
-    )
 
-    mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_worker_queue')
+    mockActivities = {
+      updateTaskStatusActivity: vi.mocked(updateTaskStatusActivity),
+      updateAssetStatusActivity: vi.mocked(updateAssetStatusActivity),
+      getAssetActivity: vi.mocked(getAssetActivity),
+      getMediaInfoActivity: vi.mocked(getMediaInfoActivity),
+      transcodeVideoActivity: vi.mocked(transcodeVideoActivity),
+      transcodeHlsActivity: vi.mocked(transcodeHlsActivity),
+      transcodeAudioActivity: vi.mocked(transcodeAudioActivity),
+      transcodeImageActivity: vi.mocked(transcodeImageActivity),
+      generateSpriteActivity: vi.mocked(generateSpriteActivity),
+      updateAssetMediaActivity: vi.mocked(updateAssetMediaActivity),
+      downloadMediaToTmpActivity: vi.mocked(downloadMediaToTmpActivity),
+      cleanupTmpDirActivity: vi.mocked(cleanupTmpDirActivity),
+      createEmbeddingTaskIfEnabledActivity: vi.mocked(createEmbeddingTaskIfEnabledActivity),
+      createAutofillTaskIfEnabledActivity: vi.mocked(createAutofillTaskIfEnabledActivity),
+      extractPosterActivity: vi.mocked(extractPosterActivity),
+    }
+
     mockActivities.downloadMediaToTmpActivity.mockResolvedValue({
       filePath: '/tmp/video.mp4',
       tmpDir: '/tmp',
@@ -554,15 +560,17 @@ describe('transcodeVideoWorkflow', () => {
       imageTranscodes: [],
     })
 
-    mockActivities.transcodeVideoActivity.mockImplementation(async (params) => {
-      return {
-        key: `files/asset-hdr/video-${params.videoSpec.resolution}${params.videoSpec.hdr ? '-hdr' : ''}.mp4`,
-        width: params.videoSpec.width,
-        height: params.videoSpec.height,
-        resolution: params.videoSpec.resolution,
-        hdr: params.videoSpec.hdr,
-      }
-    })
+    mockActivities.transcodeVideoActivity.mockImplementation(
+      async (params: VideoActivityParams) => {
+        return {
+          key: `files/asset-hdr/video-${params.videoSpec.resolution}${params.videoSpec.hdr ? '-hdr' : ''}.mp4`,
+          width: params.videoSpec.width,
+          height: params.videoSpec.height,
+          resolution: params.videoSpec.resolution,
+          hdr: params.videoSpec.hdr,
+        }
+      },
+    )
 
     await transcodeVideoWorkflow(task)
 
@@ -659,15 +667,17 @@ describe('transcodeVideoWorkflow', () => {
       imageTranscodes: [],
     })
 
-    mockActivities.transcodeVideoActivity.mockImplementation(async (params) => {
-      return {
-        key: `files/asset-sdr-source/video-${params.videoSpec.resolution}.mp4`,
-        width: params.videoSpec.width,
-        height: params.videoSpec.height,
-        resolution: params.videoSpec.resolution,
-        hdr: params.videoSpec.hdr,
-      }
-    })
+    mockActivities.transcodeVideoActivity.mockImplementation(
+      async (params: VideoActivityParams) => {
+        return {
+          key: `files/asset-sdr-source/video-${params.videoSpec.resolution}.mp4`,
+          width: params.videoSpec.width,
+          height: params.videoSpec.height,
+          resolution: params.videoSpec.resolution,
+          hdr: params.videoSpec.hdr,
+        }
+      },
+    )
 
     await transcodeVideoWorkflow(task)
 
@@ -846,12 +856,14 @@ describe('transcodeVideoWorkflow', () => {
       imageTranscodes: [],
     })
 
-    mockActivities.transcodeVideoActivity.mockImplementation(async (params) => ({
-      key: `files/asset-multi/${params.videoSpec.resolution}.mp4`,
-      width: params.videoSpec.width,
-      height: params.videoSpec.height,
-      resolution: params.videoSpec.resolution,
-    }))
+    mockActivities.transcodeVideoActivity.mockImplementation(
+      async (params: VideoActivityParams) => ({
+        key: `files/asset-multi/${params.videoSpec.resolution}.mp4`,
+        width: params.videoSpec.width,
+        height: params.videoSpec.height,
+        resolution: params.videoSpec.resolution,
+      }),
+    )
 
     return transcodeVideoWorkflow(task).then(() => {
       // 180p preview + 1080p + 720p (2160p is skipped since > 1920)

@@ -1,4 +1,4 @@
-import { DBOS } from '@dbos-inc/dbos-sdk'
+import { DBOS, Error as DBOSError } from '@dbos-inc/dbos-sdk'
 
 /**
  * Task queue constants.
@@ -36,36 +36,26 @@ export function isNonRetryableError(err: unknown): boolean {
   return false
 }
 
-const CLEANUP_OR_FINALIZE_ACTIVITIES = new Set([
-  'cleanupTmpDirActivity',
-  'updateTaskStatusActivity',
-  'updateWorkflowTaskActivity',
-  'updateAssetStatusActivity',
-  'updateCommentActivity',
-  'deleteS3ObjectActivity',
-])
-
-interface LocalLogger {
-  debug(obj: Record<string, unknown>, msg: string): void
-  info(obj: Record<string, unknown>, msg: string): void
-  error(obj: Record<string, unknown>, msg: string): void
-  warn(obj: Record<string, unknown>, msg: string): void
-}
-
-/* eslint-disable @typescript-eslint/naming-convention */
-const globalObj = globalThis as typeof globalThis & {
-  __localActivities?: Record<string, unknown>
-  __localLogger?: LocalLogger
-}
-/* eslint-enable @typescript-eslint/naming-convention */
-
-function localActivitiesProxy(): Record<string, unknown> {
-  const acts = globalObj.__localActivities
-  if (!acts) {
-    throw new Error('Local activities not injected into globalThis.__localActivities')
+export function isDbosWorkflowCancelledError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') {
+    return false
   }
-  return acts
+  if (err instanceof DBOSError.DBOSWorkflowCancelledError) {
+    return true
+  }
+  const errorObj = err as {
+    name?: unknown
+    constructor?: { name?: unknown }
+    dbosErrorCode?: unknown
+  }
+  return (
+    errorObj.name === 'DBOSWorkflowCancelledError' ||
+    errorObj.constructor?.name === 'DBOSWorkflowCancelledError' ||
+    errorObj.dbosErrorCode === 24
+  )
 }
+
+import { logger } from '@shumai/core/src/logger'
 
 /**
  * Environment-aware sleep function. Uses DBOS.sleepms in workflow context.
@@ -78,124 +68,63 @@ export async function sleep(ms: number): Promise<void> {
   }
 }
 
-/**
- * Dynamic activities proxy that exposes registered activities and attaches metadata.
- */
-// getActivities must default to `any` so that workflows can dynamically
-// destructure and call any activity when they do not supply a precise type parameter.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function getActivities<T = any>(): T {
-  const baseProxy = localActivitiesProxy()
-
-  // Wrap the base proxy to attach the activity name to the returned functions
-  // We use any here because we are dynamically intercepting properties on the proxy
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new Proxy(baseProxy as any, {
-    get(target, prop) {
-      if (typeof prop === 'string') {
-        const original = target[prop]
-        if (typeof original === 'function') {
-          // Return a wrapper function that has the _activityName property
-          const wrapped = (...args: unknown[]) => original(...args)
-          // We attach a hidden property to track the activity name for executeActivity
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ;(wrapped as any)._activityName = prop
-          return wrapped
-        }
-        return original
-      }
-      return Reflect.get(target, prop)
-    },
-  })
-}
-
-function getLogger(): LocalLogger | Console {
-  return globalObj.__localLogger || console
+export interface StepOptions {
+  name?: string
+  runOnCancel?: boolean
 }
 
 /**
- * Execute an activity on a specific task queue. In DBOS context, executes as a checkpointed step.
- * @param queue The task queue to run the activity on
- * @param activityFunc The proxy function obtained from `getActivities()`
- * @param args The arguments to pass to the activity
+ * Wraps an activity function so that when invoked within a DBOS workflow, it executes
+ * as a durable checkpointed step with retries, timeout, and cancellation handling.
+ * When called outside a workflow (e.g. in unit tests), it invokes the underlying function directly.
  */
-// Overload signature for untyped or generic activity callbacks.
-export async function executeActivity(
-  queue: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activityFunc: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ...args: any[]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<any>
-export async function executeActivity<TArgs extends unknown[], TRet>(
-  queue: string,
-  activityFunc: (...args: TArgs) => Promise<TRet>,
-  ...args: TArgs
-): Promise<TRet>
-// Implementation signature for executeActivity.
-export async function executeActivity(
-  queue: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activityFunc: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ...args: any[]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<any> {
-  // We extract the hidden _activityName property attached by getActivities()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const activityName = (activityFunc as any)._activityName
-  if (!activityName) {
-    throw new Error(
-      'executeActivity must be called with an activity function obtained from getActivities()',
-    )
-  }
+export function defineStep<TArgs extends unknown[], TRet>(
+  fn: (...args: TArgs) => Promise<TRet>,
+  options?: StepOptions,
+): (...args: TArgs) => Promise<TRet> {
+  const stepName = options?.name || fn.name || 'anonymousStep'
+  const runOnCancel = options?.runOnCancel ?? false
 
-  const logger = getLogger()
-  logger.debug({ queue, activityName }, `Executing activity ${activityName} on queue ${queue}`)
+  const wrapped = async (...args: TArgs): Promise<TRet> => {
+    logger.debug({ activityName: stepName }, `Executing step ${stepName}`)
 
-  try {
-    // result holds the untyped return value from the dynamic activity proxy, so we type it as any.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let result: any
-    if (DBOS.isWithinWorkflow()) {
-      try {
-        result = await DBOS.runStep(() => activityFunc(...args), {
-          name: activityName,
-          retriesAllowed: true,
-          maxAttempts: 5,
-          intervalSeconds: process.env.NODE_ENV === 'test' ? 1 : 10,
-          backoffRate: 2,
-          // eslint-disable-next-line @typescript-eslint/naming-convention -- DBOS StepOptions property name
-          timeoutMS: 120 * 60 * 1000,
-          shouldRetry: (err) => !isNonRetryableError(err),
-        })
-      } catch (stepErr) {
-        if (
-          stepErr instanceof Error &&
-          stepErr.name === 'DBOSWorkflowCancelledError' &&
-          CLEANUP_OR_FINALIZE_ACTIVITIES.has(activityName)
-        ) {
-          result = await activityFunc(...args)
-        } else {
-          throw stepErr
+    try {
+      let result: TRet
+      if (DBOS.isWithinWorkflow()) {
+        try {
+          result = await DBOS.runStep(() => fn(...args), {
+            name: stepName,
+            retriesAllowed: true,
+            maxAttempts: 5,
+            intervalSeconds: process.env.NODE_ENV === 'test' ? 1 : 10,
+            backoffRate: 2,
+            // eslint-disable-next-line @typescript-eslint/naming-convention -- DBOS StepOptions property name
+            timeoutMS: 120 * 60 * 1000,
+            shouldRetry: (err) => !isNonRetryableError(err),
+          })
+        } catch (stepErr) {
+          if (runOnCancel && isDbosWorkflowCancelledError(stepErr)) {
+            result = await fn(...args)
+          } else {
+            throw stepErr
+          }
         }
+      } else {
+        result = await fn(...args)
       }
-    } else {
-      result = await activityFunc(...args)
+      logger.debug({ activityName: stepName }, `Step ${stepName} completed successfully`)
+      return result
+    } catch (err) {
+      logger.error(
+        { activityName: stepName, err },
+        `Step ${stepName} failed: ${err instanceof Error ? err.message : String(err)}`,
+      )
+      throw err
     }
-    logger.debug(
-      { queue, activityName },
-      `Activity ${activityName} completed successfully on queue ${queue}`,
-    )
-    return result
-  } catch (err) {
-    logger.error(
-      { queue, activityName, err },
-      `Activity ${activityName} failed on queue ${queue}: ${err instanceof Error ? err.message : String(err)}`,
-    )
-    throw err
   }
+
+  Object.defineProperty(wrapped, 'name', { value: stepName })
+  return wrapped
 }
 
 /**
