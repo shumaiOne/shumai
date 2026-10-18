@@ -1,4 +1,4 @@
-import { DBOS } from '@dbos-inc/dbos-sdk'
+import { DBOS, Error as DBOSError } from '@dbos-inc/dbos-sdk'
 
 /**
  * Task queue constants.
@@ -34,6 +34,25 @@ export function isNonRetryableError(err: unknown): boolean {
     return (err as { nonRetryable?: unknown }).nonRetryable === true
   }
   return false
+}
+
+export function isDbosWorkflowCancelledError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') {
+    return false
+  }
+  if (err instanceof DBOSError.DBOSWorkflowCancelledError) {
+    return true
+  }
+  const errorObj = err as {
+    name?: unknown
+    constructor?: { name?: unknown }
+    dbosErrorCode?: unknown
+  }
+  return (
+    errorObj.name === 'DBOSWorkflowCancelledError' ||
+    errorObj.constructor?.name === 'DBOSWorkflowCancelledError' ||
+    errorObj.dbosErrorCode === 24
+  )
 }
 
 import { logger } from '@shumai/core/src/logger'
@@ -84,11 +103,7 @@ export function defineStep<TArgs extends unknown[], TRet>(
             shouldRetry: (err) => !isNonRetryableError(err),
           })
         } catch (stepErr) {
-          if (
-            runOnCancel &&
-            stepErr instanceof Error &&
-            stepErr.name === 'DBOSWorkflowCancelledError'
-          ) {
+          if (runOnCancel && isDbosWorkflowCancelledError(stepErr)) {
             result = await fn(...args)
           } else {
             throw stepErr

@@ -1,10 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
-import { DBOS } from '@dbos-inc/dbos-sdk'
+import { DBOS, Error as DBOSError } from '@dbos-inc/dbos-sdk'
 import {
   defineStep,
   WorkflowFailure,
   ApplicationFailure,
   isNonRetryableError,
+  isDbosWorkflowCancelledError,
   sleep,
   getLocalTaskAbortSignal,
   registerLocalTaskAbortController,
@@ -59,15 +60,16 @@ describe('workflow-utils defineStep and DBOS steps', () => {
     runStepSpy.mockRestore()
   })
 
-  it('should execute cleanup fallback if cancelled and runOnCancel is true', async () => {
+  it('should execute cleanup fallback if cancelled with DBOSWorkflowCancelledError and runOnCancel is true', async () => {
     const mockFn = vi.fn().mockResolvedValue('cleanup-done')
     const step = defineStep(mockFn, { name: 'cleanupStep', runOnCancel: true })
 
-    const cancelErr = new Error('Workflow cancelled')
-    cancelErr.name = 'DBOSWorkflowCancelledError'
+    // SDK's real DBOSWorkflowCancelledError does not set err.name (err.name is 'Error')
+    const realCancelErr = new DBOSError.DBOSWorkflowCancelledError('test-workflow-id')
+    expect(realCancelErr.name).toBe('Error')
 
     const isWithinWorkflowSpy = vi.spyOn(DBOS, 'isWithinWorkflow').mockReturnValue(true)
-    const runStepSpy = vi.spyOn(DBOS, 'runStep').mockRejectedValue(cancelErr)
+    const runStepSpy = vi.spyOn(DBOS, 'runStep').mockRejectedValue(realCancelErr)
 
     const result = await step('arg')
 
@@ -76,6 +78,21 @@ describe('workflow-utils defineStep and DBOS steps', () => {
 
     isWithinWorkflowSpy.mockRestore()
     runStepSpy.mockRestore()
+  })
+
+  it('should correctly identify DBOS workflow cancellation errors', () => {
+    const realCancelErr = new DBOSError.DBOSWorkflowCancelledError('wf-1')
+    expect(isDbosWorkflowCancelledError(realCancelErr)).toBe(true)
+
+    const duckTypedErr = { name: 'DBOSWorkflowCancelledError' }
+    expect(isDbosWorkflowCancelledError(duckTypedErr)).toBe(true)
+
+    const codeErr = { dbosErrorCode: 24 }
+    expect(isDbosWorkflowCancelledError(codeErr)).toBe(true)
+
+    expect(isDbosWorkflowCancelledError(new Error('other error'))).toBe(false)
+    expect(isDbosWorkflowCancelledError(null)).toBe(false)
+    expect(isDbosWorkflowCancelledError(undefined)).toBe(false)
   })
 
   describe('WorkflowFailure / ApplicationFailure', () => {
