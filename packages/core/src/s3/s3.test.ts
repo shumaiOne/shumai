@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as crypto from 'crypto'
+import * as os from 'os'
+import { Readable } from 'stream'
 import * as fs from 'fs'
 import * as path from 'path'
 import {
@@ -10,7 +13,16 @@ import {
   ListPartsCommand,
   AbortMultipartUploadCommand,
 } from '@aws-sdk/client-s3'
-import { buildContentDisposition, LocalStorageService, S3StorageService } from './s3'
+import {
+  buildContentDisposition,
+  checkLocalUrl,
+  localUrlLifetimeSeconds,
+  maxLocalPartSize,
+  LocalStorageService,
+  S3StorageService,
+  signLocalUrl,
+  verifyLocalUrlSignature,
+} from './s3'
 
 const s3ClientConstructorSpy = vi.fn()
 const s3SendSpy = vi.fn()
@@ -606,6 +618,322 @@ describe('S3Service implementations', () => {
     it('should resolveInput to presigned URL if file does not exist on disk', async () => {
       const input = await localS3.resolveInput('my-bucket', 'nonexistent.mp4')
       expect(input).toBe('http://localhost:3000/files/my-bucket/nonexistent.mp4')
+    })
+  })
+
+  describe('LocalStorageService multipart', () => {
+    let base: string
+    let local: LocalStorageService
+    const readFinal = (key: string) => fs.readFileSync(path.join(base, 'bkt', key))
+    const partFiles = () => {
+      const root = path.join(base, '.multipart')
+      return fs.existsSync(root) ? fs.readdirSync(root, { recursive: true }) : []
+    }
+
+    beforeEach(() => {
+      base = fs.mkdtempSync(path.join(os.tmpdir(), 'shumai-mp-'))
+      local = new LocalStorageService('http://localhost:3000', base)
+    })
+    afterEach(() => {
+      fs.rmSync(base, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 })
+    })
+
+    it('assembles parts uploaded out of order into the object in part order', async () => {
+      const id = await local.createMultipartUpload('bkt', 'dir/file.bin')
+      await local.uploadPart('bkt', 'dir/file.bin', id, 3, Buffer.from('CCC'))
+      await local.uploadPart('bkt', 'dir/file.bin', id, 1, Buffer.from('AAAA'))
+      const p2 = await local.uploadPart('bkt', 'dir/file.bin', id, 2, Buffer.from('BB'))
+      expect(p2.size).toBe(2)
+
+      const listed = await local.listParts('bkt', 'dir/file.bin', id)
+      expect(listed.map((p) => p.partNumber)).toEqual([1, 2, 3])
+
+      const done = await local.completeMultipartUpload(
+        'bkt',
+        'dir/file.bin',
+        id,
+        listed.map((p) => ({ partNumber: p.partNumber, etag: p.etag })),
+      )
+      expect(done.size).toBe(9)
+      expect(readFinal('dir/file.bin').toString()).toBe('AAAABBCCC')
+      expect(await local.getObjectSize('bkt', 'dir/file.bin')).toBe(9)
+      // Only the small completion marker (for idempotent retries) outlives the parts.
+      expect(partFiles().filter((f) => /part-|.tmp$|.lock$/.test(String(f)))).toEqual([])
+    })
+
+    it('accepts streamed part bodies and replaces a retried part', async () => {
+      const id = await local.createMultipartUpload('bkt', 'k')
+      await local.uploadPart('bkt', 'k', id, 1, Buffer.from('old'))
+      await local.uploadPart(
+        'bkt',
+        'k',
+        id,
+        1,
+        Readable.from([Buffer.from('ne'), Buffer.from('w')]),
+      )
+      await local.completeMultipartUpload('bkt', 'k', id, [{ partNumber: 1 }])
+      expect(readFinal('k').toString()).toBe('new')
+    })
+
+    it('rejects completing with a missing part, wrong etag, or unordered parts', async () => {
+      const id = await local.createMultipartUpload('bkt', 'k')
+      await local.uploadPart('bkt', 'k', id, 1, Buffer.from('a'))
+      await local.uploadPart('bkt', 'k', id, 2, Buffer.from('b'))
+      await expect(
+        local.completeMultipartUpload('bkt', 'k', id, [{ partNumber: 1 }, { partNumber: 3 }]),
+      ).rejects.toThrow(/Part 3/)
+      await expect(
+        local.completeMultipartUpload('bkt', 'k', id, [{ partNumber: 1, etag: '"nope"' }]),
+      ).rejects.toThrow(/Part 1/)
+      await expect(
+        local.completeMultipartUpload('bkt', 'k', id, [{ partNumber: 2 }, { partNumber: 1 }]),
+      ).rejects.toThrow(/ascending/)
+      await expect(local.completeMultipartUpload('bkt', 'k', id, [])).rejects.toThrow()
+      expect(fs.existsSync(path.join(base, 'bkt', 'k'))).toBe(false)
+    })
+
+    it('abort removes only the staged parts and never the final object', async () => {
+      await local.putObject('bkt', 'k', Buffer.from('existing object'), 15)
+      const id = await local.createMultipartUpload('bkt', 'k')
+      await local.uploadPart('bkt', 'k', id, 1, Buffer.from('a'))
+      expect(partFiles().length).toBeGreaterThan(0)
+      await local.abortMultipartUpload('bkt', 'k', id)
+      expect(partFiles()).toEqual([])
+      await expect(local.listParts('bkt', 'k', id)).rejects.toThrow(/does not exist/)
+      expect(readFinal('k').toString()).toBe('existing object')
+    })
+
+    it('rejects a part larger than the cap, for buffers and streams, leaving nothing behind', async () => {
+      const id = await local.createMultipartUpload('bkt', 'k')
+      await expect(
+        local.uploadPart('bkt', 'k', id, 1, Buffer.from('0123456789'), 5),
+      ).rejects.toMatchObject({ code: 'EntityTooLarge' })
+      await expect(
+        local.uploadPart(
+          'bkt',
+          'k',
+          id,
+          2,
+          Readable.from([Buffer.from('012'), Buffer.from('345')]),
+          5,
+        ),
+      ).rejects.toMatchObject({ code: 'EntityTooLarge' })
+      expect(await local.listParts('bkt', 'k', id)).toEqual([])
+      const entries = fs.readdirSync(path.join(base, '.multipart'), { recursive: true })
+      expect(entries.filter((e) => String(e).endsWith('.tmp'))).toEqual([])
+      const ok = await local.uploadPart('bkt', 'k', id, 3, Buffer.from('12345'), 5)
+      expect(ok.size).toBe(5)
+    })
+
+    it('caps parts at the lower of 5 GiB and MAX_REQUEST_BODY_SIZE', () => {
+      const saved = process.env.MAX_REQUEST_BODY_SIZE
+      try {
+        delete process.env.MAX_REQUEST_BODY_SIZE
+        expect(maxLocalPartSize()).toBe(5 * 1024 ** 3)
+        process.env.MAX_REQUEST_BODY_SIZE = '1000'
+        expect(maxLocalPartSize()).toBe(1000)
+        process.env.MAX_REQUEST_BODY_SIZE = String(20 * 1024 ** 3)
+        expect(maxLocalPartSize()).toBe(5 * 1024 ** 3)
+      } finally {
+        if (saved === undefined) delete process.env.MAX_REQUEST_BODY_SIZE
+        else process.env.MAX_REQUEST_BODY_SIZE = saved
+      }
+    })
+
+    it('completes idempotently: a retried or concurrent complete returns the same result', async () => {
+      const id = await local.createMultipartUpload('bkt', 'k')
+      await local.uploadPart('bkt', 'k', id, 1, Buffer.from('hello '))
+      await local.uploadPart('bkt', 'k', id, 2, Buffer.from('world'))
+      const parts = [{ partNumber: 1 }, { partNumber: 2 }]
+      const [a, b] = await Promise.all([
+        local.completeMultipartUpload('bkt', 'k', id, parts),
+        local.completeMultipartUpload('bkt', 'k', id, parts),
+      ])
+      expect(b).toEqual(a)
+      expect(a.etag).toMatch(/^"[0-9a-f]{32}-2"$/)
+      const retry = await local.completeMultipartUpload('bkt', 'k', id, parts)
+      expect(retry).toEqual(a)
+      expect(readFinal('k').toString()).toBe('hello world')
+    })
+
+    it('does not treat a retried complete as success when the object changed or parts differ', async () => {
+      const id = await local.createMultipartUpload('bkt', 'k')
+      await local.uploadPart('bkt', 'k', id, 1, Buffer.from('abc'))
+      await local.completeMultipartUpload('bkt', 'k', id, [{ partNumber: 1 }])
+      await expect(
+        local.completeMultipartUpload('bkt', 'k', id, [{ partNumber: 1 }, { partNumber: 2 }]),
+      ).rejects.toMatchObject({ code: 'NoSuchUpload' })
+      await local.putObject('bkt', 'k', Buffer.from('replaced with other size'), 24)
+      await expect(
+        local.completeMultipartUpload('bkt', 'k', id, [{ partNumber: 1 }]),
+      ).rejects.toMatchObject({ code: 'NoSuchUpload' })
+    })
+
+    it('fails a complete that cannot get the lock in time, and steals a stale lock', async () => {
+      const id = await local.createMultipartUpload('bkt', 'k')
+      await local.uploadPart('bkt', 'k', id, 1, Buffer.from('abc'))
+      const scope = fs.readdirSync(path.join(base, '.multipart'))[0]
+      const lock = path.join(base, '.multipart', scope, `${id}.lock`)
+      fs.writeFileSync(lock, '')
+      await expect(
+        local.completeMultipartUpload('bkt', 'k', id, [{ partNumber: 1 }], 120),
+      ).rejects.toMatchObject({ code: 'OperationAborted' })
+      const old = new Date(Date.now() - 2 * 3600 * 1000)
+      fs.utimesSync(lock, old, old)
+      const done = await local.completeMultipartUpload('bkt', 'k', id, [{ partNumber: 1 }])
+      expect(done.size).toBe(3)
+    })
+
+    it('sweeps only stale staged uploads and leaves final objects alone', async () => {
+      await local.putObject('bkt', 'final.bin', Buffer.from('keep me'), 7)
+      const staleId = await local.createMultipartUpload('bkt', 'stale.bin')
+      await local.uploadPart('bkt', 'stale.bin', staleId, 1, Buffer.from('x'))
+      const freshId = await local.createMultipartUpload('bkt', 'fresh.bin')
+      await local.uploadPart('bkt', 'fresh.bin', freshId, 1, Buffer.from('y'))
+      const old = new Date(Date.now() - 48 * 3600 * 1000)
+      const staleDir = fs
+        .readdirSync(path.join(base, '.multipart'), { recursive: true })
+        .map(String)
+        .find((e) => e.endsWith(staleId))!
+      const staleAbs = path.join(base, '.multipart', staleDir)
+      for (const f of fs.readdirSync(staleAbs)) fs.utimesSync(path.join(staleAbs, f), old, old)
+      fs.utimesSync(staleAbs, old, old)
+
+      expect(await local.sweepStaleMultipartUploads()).toBe(1)
+      await expect(local.listParts('bkt', 'stale.bin', staleId)).rejects.toThrow(/does not exist/)
+      expect((await local.listParts('bkt', 'fresh.bin', freshId)).length).toBe(1)
+      expect(readFinal('final.bin').toString()).toBe('keep me')
+      expect(await local.sweepStaleMultipartUploads()).toBe(0)
+    })
+
+    it('rejects a key that escapes into a sibling directory sharing the base path prefix', async () => {
+      const sibling = `../${path.basename(base)}-evil`
+      await expect(local.putObject(sibling, 'k', Buffer.from('x'), 1)).rejects.toThrow(/traversal/)
+      expect(fs.existsSync(`${base}-evil`)).toBe(false)
+    })
+
+    it('rejects invalid part numbers', async () => {
+      const id = await local.createMultipartUpload('bkt', 'k')
+      for (const bad of [0, -1, 1.5, 10001, Number.NaN]) {
+        await expect(local.uploadPart('bkt', 'k', id, bad, Buffer.from('x'))).rejects.toThrow(
+          /Part number/,
+        )
+        await expect(
+          local.presignMultipart('bkt', 'k', {
+            key: 'k',
+            method: 'PUT',
+            uploadId: id,
+            partNumber: bad,
+            fileId: 'f',
+          }),
+        ).rejects.toThrow(/Part number/)
+      }
+    })
+
+    it('rejects path traversal in upload ids and keys', async () => {
+      await expect(local.uploadPart('bkt', 'k', '../evil', 1, Buffer.from('x'))).rejects.toThrow(
+        /Invalid upload id/,
+      )
+      await expect(local.listParts('bkt', 'k', '..\\evil')).rejects.toThrow(/Invalid upload id/)
+      await expect(local.createMultipartUpload('bkt', '../../escape')).rejects.toThrow(/traversal/)
+      const id = await local.createMultipartUpload('bkt', 'k')
+      await expect(
+        local.completeMultipartUpload('bkt', '../../escape', id, [{ partNumber: 1 }]),
+      ).rejects.toThrow(/traversal/)
+      expect(fs.existsSync(path.join(base, '..', 'escape'))).toBe(false)
+    })
+
+    it('does not let an upload id be used against a different key', async () => {
+      const id = await local.createMultipartUpload('bkt', 'a')
+      await expect(local.uploadPart('bkt', 'b', id, 1, Buffer.from('x'))).rejects.toThrow(
+        /does not exist/,
+      )
+    })
+
+    it('presigns a distinct, operation-bound URL per part', async () => {
+      const req = { key: 'k', uploadId: 'up1', fileId: 'f' }
+      const url = async (method: 'PUT' | 'POST' | 'GET' | 'DELETE', partNumber?: number) =>
+        (await local.presignMultipart('bkt', 'k', { ...req, method, partNumber })).url
+      const p1 = await url('PUT', 1)
+      const p2 = await url('PUT', 2)
+      expect(p1).not.toBe(p2)
+      expect(p1).toContain('uploadId=up1')
+      expect(p1).toContain('partNumber=1')
+      const sigs = new Set([p1, p2, await url('POST'), await url('GET'), await url('DELETE')])
+      expect(sigs.size).toBe(5)
+      // Creating an upload needs no id; other operations do.
+      const create = await local.presignMultipart('bkt', 'k', {
+        key: 'k',
+        method: 'POST',
+        fileId: 'f',
+      })
+      expect(create.url).not.toContain('uploadId')
+      await expect(
+        local.presignMultipart('bkt', 'k', { key: 'k', method: 'DELETE', fileId: 'f' }),
+      ).rejects.toThrow(/upload id/)
+    })
+
+    const paramsOf = (u: string) => {
+      const q = new URL(u, 'http://x').searchParams
+      return { sig: q.get('Signature')!, exp: Number(q.get('exp')) }
+    }
+
+    it('binds part URL signatures to method, upload id and part number', () => {
+      const mp = { method: 'PUT', uploadId: 'up1', partNumber: 1 }
+      const { sig, exp } = paramsOf(signLocalUrl('bkt', 'k', mp))
+      const verify = (m?: typeof mp, e: number | undefined = exp, s = sig) =>
+        verifyLocalUrlSignature('bkt', 'k', s, m, e)
+      expect(verify(mp)).toBe(true)
+      expect(verify({ ...mp, partNumber: 2 })).toBe(false)
+      expect(verify({ ...mp, method: 'DELETE' })).toBe(false)
+      expect(verify({ ...mp, uploadId: 'up2' })).toBe(false)
+      // A whole-object URL signature cannot be replayed as a part upload, nor the reverse.
+      expect(verify(undefined)).toBe(false)
+      const whole = paramsOf(signLocalUrl('bkt', 'k'))
+      expect(verifyLocalUrlSignature('bkt', 'k', whole.sig, mp, whole.exp)).toBe(false)
+      expect(verifyLocalUrlSignature('bkt', 'k', whole.sig, undefined, whole.exp)).toBe(true)
+    })
+
+    it('expires signed URLs and signs the expiry', () => {
+      const mp = { method: 'PUT', uploadId: 'up1', partNumber: 1 }
+      const now = Date.now()
+      const { sig, exp } = paramsOf(signLocalUrl('bkt', 'k', mp, 60, now))
+      expect(exp).toBe(Math.floor(now / 1000) + 60)
+      expect(checkLocalUrl('bkt', 'k', sig, mp, exp, now + 30_000)).toBe('ok')
+      expect(checkLocalUrl('bkt', 'k', sig, mp, exp, now + 61_000)).toBe('expired')
+      // Moving the expiry forward invalidates the signature rather than extending the URL.
+      expect(checkLocalUrl('bkt', 'k', sig, mp, exp + 3600, now + 61_000)).toBe('invalid')
+      // Multipart URLs without an expiry are never valid.
+      expect(checkLocalUrl('bkt', 'k', sig, mp, undefined, now)).toBe('invalid')
+    })
+
+    it('uses PRESIGNED_URL_EXPIRES_IN hours as the default lifetime', () => {
+      const saved = process.env.PRESIGNED_URL_EXPIRES_IN
+      try {
+        delete process.env.PRESIGNED_URL_EXPIRES_IN
+        expect(localUrlLifetimeSeconds()).toBe(5 * 3600)
+        process.env.PRESIGNED_URL_EXPIRES_IN = '2'
+        expect(localUrlLifetimeSeconds()).toBe(2 * 3600)
+      } finally {
+        if (saved === undefined) delete process.env.PRESIGNED_URL_EXPIRES_IN
+        else process.env.PRESIGNED_URL_EXPIRES_IN = saved
+      }
+    })
+
+    it('does not let field boundaries shift between bucket and key', () => {
+      const { sig, exp } = paramsOf(signLocalUrl('a', 'b/c'))
+      expect(verifyLocalUrlSignature('a', 'b/c', sig, undefined, exp)).toBe(true)
+      expect(verifyLocalUrlSignature('a/b', 'c', sig, undefined, exp)).toBe(false)
+    })
+
+    it('still accepts a legacy non-expiring whole-object PUT signature, but not for multipart', () => {
+      const secret = process.env.BETTER_AUTH_SECRET || 'shumai-local-storage-secret'
+      const legacy = crypto.createHmac('sha256', secret).update('bkt/k').digest('hex')
+      expect(verifyLocalUrlSignature('bkt', 'k', legacy)).toBe(true)
+      expect(verifyLocalUrlSignature('bkt', 'other', legacy)).toBe(false)
+      expect(verifyLocalUrlSignature('bkt', 'k', legacy, { method: 'DELETE', uploadId: 'u' })).toBe(
+        false,
+      )
     })
   })
 

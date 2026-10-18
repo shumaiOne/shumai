@@ -220,7 +220,9 @@ export class UploadService {
             'Failed to abort multipart upload on confirm error',
           )
         }
-      } else if (key) {
+      }
+      // Aborting only discards staged parts; the completed object (if any) is removed explicitly.
+      if (key) {
         try {
           await s3Service.deleteObject(bucket, key)
         } catch (err) {
@@ -531,7 +533,9 @@ export class UploadService {
       } catch (err) {
         logger.warn({ err, key, uploadId }, 'Failed to abort multipart upload in S3')
       }
-    } else if (key) {
+    }
+    // Aborting only discards staged parts; a completed object (if any) is removed explicitly.
+    if (key) {
       try {
         await s3Service.deleteObject(bucket, key)
       } catch (err) {
