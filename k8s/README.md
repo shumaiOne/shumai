@@ -90,14 +90,31 @@ NAME                    REFERENCE                     TARGETS        MINPODS   M
 shumai-transcode-hpa   Deployment/shumai-transcode   0%/70%         1         5         1          1m
 ```
 
-### 4. Access the Shumai Dashboard
-Forward port 3000 from the `shumai-server` service to your local machine:
+### 4. Access the Dashboard & S3 Storage
 
+In Kubernetes, the services are created as internal `ClusterIP` services by default. To interact with the stack from your local machine:
+
+#### Step A: Port-forward the Web Server
+Forward port 3000 to access the web application:
 ```bash
 kubectl port-forward -n shumai svc/shumai-server 3000:3000
 ```
+Open your browser to **`http://localhost:3000`**.
 
-Open your browser to `http://localhost:3000`.
+#### Step B: Enable In-Cluster S3 Media Uploads
+Shumai uses direct client-to-S3 pre-signed URLs for high-throughput uploads. For your local browser to upload directly to the in-cluster Garage S3 service:
+
+1. Forward the Garage S3 API port (3900):
+   ```bash
+   kubectl port-forward -n shumai svc/garage 3900:3900
+   ```
+2. Map the cluster S3 domain name to `127.0.0.1` in your local `/etc/hosts`:
+   ```bash
+   echo "127.0.0.1 garage.shumai.svc.cluster.local" | sudo tee -a /etc/hosts
+   ```
+
+> [!NOTE]
+> **Production Environments**: In production cloud clusters (AWS EKS, GKE, self-hosted), you would configure an Ingress controller (e.g. `ingress-nginx` or AWS ALB) with a public domain or point `AWS_ENDPOINT_URL_S3` to an external cloud S3/R2 bucket so port-forwarding and `/etc/hosts` mappings are not required.
 
 ---
 

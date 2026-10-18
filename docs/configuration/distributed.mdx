@@ -185,6 +185,28 @@ NAME                   REFERENCE                     TARGETS         MINPODS   M
 shumai-transcode-hpa   Deployment/shumai-transcode   cpu: 10%/70%    1         5         1
 ```
 
+### Accessing the Dashboard & Storage
+
+In Kubernetes, services are created as internal `ClusterIP` services by default. To access the stack from your local development machine:
+
+1. **Forward the Web Server**:
+
+   ```bash
+   kubectl port-forward -n shumai svc/shumai-server 3000:3000
+   ```
+
+   Open **`http://localhost:3000`** in your browser.
+
+2. **Enable Browser Uploads to Garage S3**:
+   Shumai uses direct client-to-S3 presigned URLs for uploading media. To allow your local browser to upload directly to the in-cluster Garage S3 service:
+   ```bash
+   kubectl port-forward -n shumai svc/garage 3900:3900
+   echo "127.0.0.1 garage.shumai.svc.cluster.local" | sudo tee -a /etc/hosts
+   ```
+
+> [!NOTE]
+> In production environments, configure an Ingress controller (e.g. `ingress-nginx` or AWS ALB) with a public domain or set `AWS_ENDPOINT_URL_S3` to an external cloud S3/R2 bucket so port-forwarding and `/etc/hosts` mappings are not required.
+
 ### How Autoscaling Operates
 
 1. **Scale-Up**: When users upload video assets, the `shumai-server` creates transcode workflow tasks and submits them to `transcode_queue` in PostgreSQL. As the active transcode worker utilizes CPU for FFmpeg encoding, CPU usage crosses the 70% threshold, triggering the HPA to scale up additional `shumai-transcode` pods (up to 5 pods).
