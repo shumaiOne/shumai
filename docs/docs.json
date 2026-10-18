@@ -76,8 +76,8 @@
         "pages": ["configuration/env-variables", "configuration/hardware-transcoding"]
       },
       {
-        "group": "Temporal Deployment",
-        "pages": ["configuration/temporal"]
+        "group": "Distributed Deployment",
+        "pages": ["configuration/distributed"]
       },
       {
         "group": "Releases",

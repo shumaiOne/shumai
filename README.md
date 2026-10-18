@@ -29,7 +29,7 @@ Shumai is an open-source Frame.io alternative built for creative teams to collab
 * **Frame-by-Frame Annotations & Comments**: Leave precise feedback with frame-specific drawing tools and timestamped comments on both video and image assets.
 * **Secure Sharing & Collections**: Create private share links and curated media collections for clients, stakeholders, and collaborators.
 * **Granular Access Control**: Manage workspace permissions with team-level and project-level role-based access control.
-* **Distributed Transcoding via Temporal**: Offload resource-intensive video transcoding to a background worker pool orchestrated by Temporal.
+* **Distributed Transcoding & Workflows via DBOS**: Offload resource-intensive video transcoding and AI agents to a background worker pool orchestrated durably by DBOS on PostgreSQL.
 * **Custom Asset Metadata**: Define dynamic metadata fields tailored to your production pipeline.
 * **Share Link Watermarking**: Protect shared media with customizable text and image watermarks, and save watermark as reusable templates.
 * **Wide File Format Support**: Preview common creative file formats, including images (with PSD support), videos, audio, and documents, while allowing any file type to be uploaded and stored.
@@ -73,7 +73,7 @@ The ultimate goal is an **agentic Kanban**, where agents and team members can wo
 
 ## Installation
 
-Below is a quickstart guide for running Shumai with local storage. For advanced configuration options (including S3-compatible storage and Temporal workflow orchestration), see our [Documentation](https://docs.shumai.one/getting-started/overview).
+Below is a quickstart guide for running Shumai with local storage. For advanced configuration options (including S3-compatible storage and distributed worker orchestration), see our [Documentation](https://docs.shumai.one/getting-started/overview).
 
 ### Option 1: Docker Compose
 

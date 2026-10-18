@@ -32,6 +32,6 @@ Ideal for small teams, local development, or low-volume workflows. In this setup
 
 ### 2. High-Scale Distributed Deployment
 
-Recommended for production environments with high-volume video uploads. In this setup, background tasks are managed via a centralized queue (Temporal). This allows you to offload heavy workloads to specialized worker machines (for example, putting video transcoding tasks on high-CPU/GPU machines and AI agents on separate sandboxed environments).
+Recommended for production environments with high-volume video uploads. In this setup, background tasks are managed via durable queues (orchestrated by DBOS directly in PostgreSQL). This allows you to offload heavy workloads to specialized worker machines (for example, putting video transcoding tasks on high-CPU/GPU machines and AI agents on separate sandboxed environments).
 
 _Note: S3-compatible cloud storage is required for distributed deployments so that all workers can access the uploaded files._

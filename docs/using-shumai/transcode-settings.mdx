@@ -77,6 +77,6 @@ The **FFmpeg Threads** slider controls the maximum number of CPU threads used by
 
 ## Processing Architecture
 
-Transcoding is resource-intensive. Depending on your scaling needs, your administrator can run the transcode engine on the main server (Single-Server mode) or delegate tasks to specialized transcoding worker machines (Temporal Worker mode).
+Transcoding is resource-intensive. Depending on your scaling needs, your administrator can run the transcode engine on the main server (Single-Server mode) or delegate tasks to specialized transcoding worker machines (Dedicated Worker mode).
 
-In all modes, the processing machine must have system media utilities (`ffmpeg` and `ffprobe`) installed. See the [Temporal Deployment Guide](/configuration/temporal) for setting up distributed transcoding workers.
+In all modes, the processing machine must have system media utilities (`ffmpeg` and `ffprobe`) installed. See the [Distributed Deployment Guide](/configuration/distributed) for setting up dedicated transcoding workers.

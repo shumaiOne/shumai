@@ -64,14 +64,15 @@ For example, if you deploy Shumai on a remote server at `http://123.456.7.8` and
 
 ## Workflow Config
 
-Configures whether background transcoding and AI agents are executed locally or offloaded to a Temporal cluster.
+Configures background worker execution, concurrency limits, and worker identity for DBOS Transact queues.
 
-| Variable                | Description                                                                                        | Example / Default               |
-| :---------------------- | :------------------------------------------------------------------------------------------------- | :------------------------------ |
-| `WORKFLOW_EXECUTOR`     | Engine choice. Use `local` for in-process database polling, or `temporal` for distributed workers. | `local` (default) or `temporal` |
-| `TEMPORAL_ADDRESS`      | Host and port of the Temporal cluster gRPC service.                                                | `localhost:7233` (default)      |
-| `CONCURRENCY_AGENT`     | Maximum concurrent AI tasks executed by workers. Set to `1` when running local `embedding-server`. | `5` (default)                   |
-| `CONCURRENCY_TRANSCODE` | Maximum concurrent media transcoding tasks executed by workers.                                    | `1` (default)                   |
+| Variable                | Description                                                                                                                       | Example / Default |
+| :---------------------- | :-------------------------------------------------------------------------------------------------------------------------------- | :---------------- |
+| `SHUMAI_WORKERS`        | Queues listened to by the web server. Options: `all` (default), `none` (API/UI only), `agent` (or `ai`), `transcode`.             | `all` (default)   |
+| `CONCURRENCY_TRANSCODE` | Maximum concurrent media transcoding tasks executed by workers.                                                                   | `1` (default)     |
+| `CONCURRENCY_AGENT`     | Maximum concurrent AI tasks executed by workers. Set to `1` when running local `embedding-server`.                                | `5` (default)     |
+| `SHUMAI_WORKER_ID`      | Optional explicit instance ID for worker replicas in multi-node deployments (auto-derived from hostname and process ID if unset). | `worker-1`        |
+| `POD_NAME`              | Kubernetes pod name, used to provide stable per-pod worker identity across StatefulSet restarts.                                  | `transcode-pod-0` |
 
 ---
 
