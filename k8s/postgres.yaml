@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: shumai-postgres
+  namespace: shumai
+  labels:
+    app: shumai-postgres
+spec:
+  ports:
+    - port: 5432
+      name: postgres
+  selector:
+    app: shumai-postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: shumai-postgres
+  namespace: shumai
+spec:
+  serviceName: shumai-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shumai-postgres
+  template:
+    metadata:
+      labels:
+        app: shumai-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: pgvector/pgvector:pg18
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_USER
+              value: 'shumai'
+            - name: POSTGRES_PASSWORD
+              value: 'shumai_password'
+            - name: POSTGRES_DB
+              value: 'shumai_db'
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U shumai -d shumai_db
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/18/docker
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ['ReadWriteOnce']
+        resources:
+          requests:
+            storage: 5Gi

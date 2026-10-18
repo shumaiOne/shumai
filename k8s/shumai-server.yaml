@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: shumai-server
+  namespace: shumai
+  labels:
+    app: shumai-server
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+  selector:
+    app: shumai-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shumai-server
+  namespace: shumai
+  labels:
+    app: shumai-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shumai-server
+  template:
+    metadata:
+      labels:
+        app: shumai-server
+    spec:
+      containers:
+        - name: server
+          image: shumaione/shumai:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SHUMAI_WORKERS
+              value: 'agent'
+          envFrom:
+            - configMapRef:
+                name: shumai-config
+            - secretRef:
+                name: shumai-secret
+          ports:
+            - containerPort: 3000
+              name: http
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10

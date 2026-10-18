@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shumai-config
+  namespace: shumai
+data:
+  # S3 Storage Configuration (Garage S3)
+  STORAGE_BACKEND: 's3'
+  AWS_ENDPOINT_URL_S3: 'http://garage.shumai.svc.cluster.local:3900'
+  S3_BUCKET: 'shumai'
+  S3_REGION: 'garage'
+  S3_FORCE_PATH_STYLE: 'true'
+
+  # Server & Worker Configuration
+  SHUMAI_SERVER_PORT: '3000'
+  CONCURRENCY_TRANSCODE: '1'
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: shumai-secret
+  namespace: shumai
+type: Opaque
+stringData:
+  DATABASE_URL: 'postgresql://shumai:shumai_password@shumai-postgres.shumai.svc.cluster.local:5432/shumai_db?schema=public'
+  BETTER_AUTH_SECRET: 'qSxs9DxzHDZBbeeTNPEwBuspYwipBqz5Gk5XdBjNhWw='
+  S3_ACCESS_KEY_ID: 'GKshumaiaccesskeyid001'
+  S3_SECRET_ACCESS_KEY: 'shumaisecretaccesskey00000000000000001'
+  GARAGE_ADMIN_TOKEN: 'admin-secret-token'

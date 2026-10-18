@@ -76,14 +76,16 @@ npm install -g @shumai-one/shumai-transcode
 shumai-transcode
 ```
 
-Alternatively, you can run the transcode worker using the official Docker image:
+Alternatively, you can run the transcode worker using the dedicated lightweight Docker image:
 
 ```bash
 docker run -d \
   --name shumai-transcode-worker \
   --env-file .env \
-  shumaione/shumai:latest shumai-transcode
+  shumaione/shumai-transcode:latest
 ```
+
+(You can also use the all-in-one image: `docker run -d --name shumai-transcode-worker --env-file .env shumaione/shumai:latest shumai-transcode`.)
 
 ### AI Agent Worker
 
@@ -123,5 +125,68 @@ Workers pull tasks from PostgreSQL queues based on configurable concurrency limi
 When running multiple replicas of the transcode or agent worker across multiple machines or pods:
 
 - `DbosExecutor` automatically derives a unique per-instance ID from the machine hostname and process ID to ensure startup recovery only re-enqueues tasks belonging to that specific instance.
-- **Custom Worker ID**: Set `SHUMAI_WORKER_ID` if you wish to assign an explicit identifier.
-- **Kubernetes**: In Kubernetes StatefulSets, set `POD_NAME` (via Downward API `fieldRef: { fieldPath: metadata.name }`) to provide stable identity across pod restarts.
+- **Custom Worker ID**: Set `SHUMAI_WORKERS_ID` (or `SHUMAI_WORKER_ID`) if you wish to assign an explicit identifier.
+- **Kubernetes**: In Kubernetes Pods, set `POD_NAME` (via Downward API `fieldRef: { fieldPath: metadata.name }`) to provide stable, unique per-pod identity across pod restarts.
+
+---
+
+## Kubernetes Deployment & Autoscaling (HPA)
+
+Shumai provides an out-of-the-box Kubernetes configuration under `k8s/` showcasing horizontal scalability for media processing. Because DBOS manages task queues directly within PostgreSQL, transcode workers are completely stateless and can scale dynamically with workload demand.
+
+### Architecture
+
+```mermaid
+graph TD
+    User([User / Web Browser]) -->|Port 3000| Server[Pod: shumai-server<br/>SHUMAI_WORKERS=agent]
+    Server -->|Enqueue to transcode_queue| DB[(PostgreSQL: pgvector18<br/>Service: shumai-postgres)]
+    Server -->|Direct Uploads / Stream Proxies| Storage[(Garage S3<br/>Service: garage:3900)]
+
+    DB -->|Poll transcode_queue| Worker1[Pod: shumai-transcode-1]
+    DB -->|Poll transcode_queue| WorkerN[Pod: shumai-transcode-N<br/>Autoscaled Replicas: 1..5]
+    Worker1 -->|Fetch Source / Store Proxies| Storage
+    WorkerN -->|Fetch Source / Store Proxies| Storage
+
+    HPA[HorizontalPodAutoscaler<br/>Target: 70% CPU<br/>min: 1, max: 5] -.->|Autoscale| WorkerN
+```
+
+### Components
+
+The `k8s/` directory includes a self-contained Kustomize stack:
+
+1. **`shumai-server`**: Main dashboard and REST API handling web traffic and AI agent tasks (`SHUMAI_WORKERS=agent`).
+2. **`shumai-transcode`**: Dedicated transcoding worker pool running `shumaione/shumai-transcode:latest` with `CONCURRENCY_TRANSCODE=1`. Each pod receives its unique identity via the Kubernetes Downward API (`POD_NAME`).
+3. **`garage`**: Lightweight in-cluster S3-compatible storage powered by `dxflrs/garage`, automatically initialized with bucket `shumai` and pre-configured credentials.
+4. **`shumai-postgres`**: PostgreSQL database with `pgvector:pg18` hosting application data and DBOS workflow queues.
+5. **`shumai-transcode-hpa`**: `HorizontalPodAutoscaler` (`autoscaling/v2`) targeting 70% CPU utilization, scaling between **1 and 5 replicas**.
+
+### Deploying the Stack
+
+Deploy the entire stack with a single command:
+
+```bash
+kubectl apply -k k8s/
+```
+
+Check the status of all pods:
+
+```bash
+kubectl get pods -n shumai
+```
+
+Inspect the HorizontalPodAutoscaler:
+
+```bash
+kubectl get hpa -n shumai
+```
+
+```text
+NAME                   REFERENCE                     TARGETS         MINPODS   MAXPODS   REPLICAS
+shumai-transcode-hpa   Deployment/shumai-transcode   cpu: 10%/70%    1         5         1
+```
+
+### How Autoscaling Operates
+
+1. **Scale-Up**: When users upload video assets, the `shumai-server` creates transcode workflow tasks and submits them to `transcode_queue` in PostgreSQL. As the active transcode worker utilizes CPU for FFmpeg encoding, CPU usage crosses the 70% threshold, triggering the HPA to scale up additional `shumai-transcode` pods (up to 5 pods).
+2. **Per-Pod Executor Identity**: Each newly spawned pod uses `POD_NAME` as its DBOS executor identity. Pods poll `transcode_queue` in parallel, safely picking up and executing transcode jobs concurrently.
+3. **Graceful Scale-Down & Drainage**: Worker pods configure `terminationGracePeriodSeconds: 300` and handle `SIGTERM` gracefully by draining active DBOS steps before termination, ensuring zero video proxy corruption during scale-down.

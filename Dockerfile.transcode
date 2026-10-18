@@ -1,0 +1,80 @@
+#syntax=docker/dockerfile:1.7-labs
+# Stage 1: Builder
+FROM oven/bun:1.4.2 AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json bun.lock ./
+COPY --parents packages/*/package.json ./
+COPY --parents apps/*/package.json ./
+COPY patches/ ./patches/
+
+# Install dependencies (including devDependencies for build tools)
+RUN bun install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Build transcode worker bundle
+RUN bun run build.ts transcode
+
+# Generate runner-package.json for the runner stage
+RUN bun run scripts/extract-runtime-deps.ts
+
+# Stage 2: Runner
+FROM oven/bun:1.4.2 AS runner
+
+# Install transcoding system dependencies and Jellyfin-FFmpeg (with VA-API/hardware acceleration support)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    gosu \
+    poppler-utils \
+    imagemagick \
+    fonts-noto-cjk \
+    libraw-bin \
+    libimage-exiftool-perl \
+    && . /etc/os-release \
+    && TARGETARCH=$(dpkg --print-architecture) \
+    && FFMPEG_VERSION="8.1.2-5" \
+    && curl -fsSL -o /tmp/jellyfin-ffmpeg.deb "https://github.com/jellyfin/jellyfin-ffmpeg/releases/download/v${FFMPEG_VERSION}/jellyfin-ffmpeg8_${FFMPEG_VERSION}-${VERSION_CODENAME}_${TARGETARCH}.deb" \
+    && apt-get install -y --no-install-recommends /tmp/jellyfin-ffmpeg.deb \
+    && rm -f /tmp/jellyfin-ffmpeg.deb \
+    && ldconfig /usr/lib/jellyfin-ffmpeg/lib \
+    && ln -sf /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/local/bin/ffmpeg \
+    && ln -sf /usr/lib/jellyfin-ffmpeg/ffprobe /usr/local/bin/ffprobe \
+    && ln -sf /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/bin/ffmpeg \
+    && ln -sf /usr/lib/jellyfin-ffmpeg/ffprobe /usr/bin/ffprobe \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up working directory and make it owned by the bun user, ensure video/render group access
+RUN usermod -a -G video,render bun 2>/dev/null || true \
+    && mkdir -p /app/data \
+    && chown -R bun:bun /app
+
+# Switch to the non-root bun user
+USER bun
+WORKDIR /app
+
+# Install runtime dependencies with exact matching versions extracted from the builder stage
+COPY --chown=bun:bun --from=builder /app/runner-package.json ./package.json
+RUN bun install
+
+# Copy build artifacts
+COPY --chown=bun:bun --from=builder /app/dist ./
+
+# Switch back to root at the end so the container runs the entrypoint as root
+USER root
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Expose "bun transcode-worker.js" as "shumai-transcode" CLI command
+RUN printf '#!/bin/sh\nexec bun /app/transcode-worker.js "$@"\n' > /usr/local/bin/shumai-transcode \
+    && chmod +x /usr/local/bin/shumai-transcode
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+# Default command: start transcode worker
+CMD ["shumai-transcode"]

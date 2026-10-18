@@ -17,6 +17,22 @@ async function run() {
   console.log('🚀 Starting Transcode Worker...')
 
   await workflowService.startWorkers(TaskQueueTranscode)
+
+  let isShuttingDown = false
+  const shutdown = async () => {
+    if (isShuttingDown) return
+    isShuttingDown = true
+    console.log('Shutting down Transcode Worker gracefully...')
+    try {
+      await workflowService.shutdownWorkers()
+    } catch (err) {
+      console.error('Error during Transcode Worker shutdown:', err)
+    }
+    process.exit(0)
+  }
+
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
 }
 
 handleDaemonCommands('shumai-transcode', run).catch((err) => {

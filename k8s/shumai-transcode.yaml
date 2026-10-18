@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shumai-transcode
+  namespace: shumai
+  labels:
+    app: shumai-transcode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shumai-transcode
+  template:
+    metadata:
+      labels:
+        app: shumai-transcode
+    spec:
+      terminationGracePeriodSeconds: 300
+      containers:
+        - name: worker
+          image: shumaione/shumai-transcode:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            # Downward API: Injects the unique pod name so DbosExecutor assigns a unique,
+            # deterministic executor ID per worker replica across pod restarts.
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          envFrom:
+            - configMapRef:
+                name: shumai-config
+            - secretRef:
+                name: shumai-secret
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
