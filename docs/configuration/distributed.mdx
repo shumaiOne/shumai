@@ -197,15 +197,14 @@ In Kubernetes, services are created as internal `ClusterIP` services by default.
 
    Open **`http://localhost:3000`** in your browser.
 
-2. **Enable Browser Uploads to Garage S3**:
-   Shumai uses direct client-to-S3 presigned URLs for uploading media. To allow your local browser to upload directly to the in-cluster Garage S3 service:
+2. **Forward In-Cluster S3 Storage (Garage)**:
+   Shumai uses direct client-to-S3 presigned URLs for uploading and streaming media. `shumai-server` is configured with `AWS_PUBLIC_ENDPOINT_URL_S3: http://localhost:3900`. Forward port 3900 to allow your local browser to upload directly to Garage S3:
    ```bash
    kubectl port-forward -n shumai svc/garage 3900:3900
-   echo "127.0.0.1 garage.shumai.svc.cluster.local" | sudo tee -a /etc/hosts
    ```
 
 > [!NOTE]
-> In production environments, configure an Ingress controller (e.g. `ingress-nginx` or AWS ALB) with a public domain or set `AWS_ENDPOINT_URL_S3` to an external cloud S3/R2 bucket so port-forwarding and `/etc/hosts` mappings are not required.
+> In production environments, configure an Ingress controller (e.g. `ingress-nginx` or AWS ALB) with a public domain or set `AWS_ENDPOINT_URL_S3` to an external cloud S3/R2 bucket.
 
 ### How Autoscaling Operates
 

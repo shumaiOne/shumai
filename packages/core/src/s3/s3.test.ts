@@ -351,7 +351,35 @@ describe('S3Service implementations', () => {
 
       const input = await s3.resolveInput('test-bucket', 'video.mp4')
       expect(input).toBe('https://presigned.s3.url')
-      expect(presignSpy).toHaveBeenCalledWith('test-bucket', 'video.mp4', 'GET')
+      expect(presignSpy).toHaveBeenCalledWith(
+        'test-bucket',
+        'video.mp4',
+        'GET',
+        false,
+        undefined,
+        true,
+      )
+    })
+
+    it('should support separate publicEndpoint for presigning while resolveInput uses internal client', async () => {
+      const s3 = new S3StorageService(
+        'http://internal-s3:9000',
+        'key',
+        'secret',
+        'test-bucket',
+        'us-east-1',
+        'https://public.example.com',
+      )
+
+      getSignedUrlSpy.mockClear()
+      await s3.presign('test-bucket', 'asset.mp4', 'GET')
+      const presignClientCall = getSignedUrlSpy.mock.calls[0][0]
+
+      getSignedUrlSpy.mockClear()
+      await s3.resolveInput('test-bucket', 'asset.mp4')
+      const resolveClientCall = getSignedUrlSpy.mock.calls[0][0]
+
+      expect(presignClientCall).not.toBe(resolveClientCall)
     })
 
     it('should stream in uploadFileToKey', async () => {
@@ -641,6 +669,16 @@ describe('S3Service implementations', () => {
       const url = await s3Service.presign('bucket', 'key', 'GET')
       expect(url).toContain('http://123.456.7.8:12345')
       expect(url).not.toContain('4567')
+    })
+
+    it('should initialize S3StorageService with AWS_PUBLIC_ENDPOINT_URL_S3 when set', async () => {
+      process.env.STORAGE_BACKEND = 's3'
+      process.env.AWS_ENDPOINT_URL_S3 = 'http://garage.shumai.svc.cluster.local:3900'
+      process.env.AWS_PUBLIC_ENDPOINT_URL_S3 = 'http://localhost:3900'
+
+      vi.resetModules()
+      const { s3Service } = await import('./s3')
+      expect(s3Service).toBeDefined()
     })
   })
 

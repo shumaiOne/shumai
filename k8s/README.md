@@ -101,20 +101,15 @@ kubectl port-forward -n shumai svc/shumai-server 3000:3000
 ```
 Open your browser to **`http://localhost:3000`**.
 
-#### Step B: Enable In-Cluster S3 Media Uploads
-Shumai uses direct client-to-S3 pre-signed URLs for high-throughput uploads. For your local browser to upload directly to the in-cluster Garage S3 service:
+#### Step B: Port-forward In-Cluster S3 Storage (Garage)
+Shumai generates direct client-to-S3 presigned URLs configured via `AWS_PUBLIC_ENDPOINT_URL_S3` (`http://localhost:3900`). To allow your browser to upload and stream media files directly:
 
-1. Forward the Garage S3 API port (3900):
-   ```bash
-   kubectl port-forward -n shumai svc/garage 3900:3900
-   ```
-2. Map the cluster S3 domain name to `127.0.0.1` in your local `/etc/hosts`:
-   ```bash
-   echo "127.0.0.1 garage.shumai.svc.cluster.local" | sudo tee -a /etc/hosts
-   ```
+```bash
+kubectl port-forward -n shumai svc/garage 3900:3900
+```
 
 > [!NOTE]
-> **Production Environments**: In production cloud clusters (AWS EKS, GKE, self-hosted), you would configure an Ingress controller (e.g. `ingress-nginx` or AWS ALB) with a public domain or point `AWS_ENDPOINT_URL_S3` to an external cloud S3/R2 bucket so port-forwarding and `/etc/hosts` mappings are not required.
+> **Production Environments**: In production cloud clusters (AWS EKS, GKE, self-hosted), you would configure an Ingress controller (e.g. `ingress-nginx` or AWS ALB) with a public domain or point `AWS_ENDPOINT_URL_S3` to an external cloud S3/R2 bucket.
 
 ---
 

@@ -38,6 +38,8 @@ spec:
           env:
             - name: SHUMAI_WORKERS
               value: 'agent'
+            - name: AWS_PUBLIC_ENDPOINT_URL_S3
+              value: 'http://localhost:3900'
           envFrom:
             - configMapRef:
                 name: shumai-config

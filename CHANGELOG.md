@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 * **deploy**: Add dedicated `shumaione/shumai-transcode` Docker image and a complete Kubernetes example featuring horizontal pod autoscaling (1 to 5 replicas) for media processing with in-cluster Garage S3 storage
+* **storage**: Support configuring a separate public endpoint (`AWS_PUBLIC_ENDPOINT_URL_S3`) for browser-facing presigned URLs while preserving internal cluster endpoints for backend workers
 
 ### Fixed
 
