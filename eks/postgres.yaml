@@ -36,6 +36,7 @@ spec:
                   - key: eks.amazonaws.com/nodegroup
                     operator: In
                     values:
+                      - shumai-general
                       - shumai-general-spot
               - matchExpressions:
                   - key: workload

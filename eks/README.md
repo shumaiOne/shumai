@@ -18,7 +18,7 @@ This directory contains a complete, production-ready Kubernetes deployment examp
                     │                                         │ Direct Browser Uploads
                     │                                         ▼ (Presigned URLs)
 ┌───────────────────┼─────────────────────────────────────────────────────────────────┐
-│ General Workload Node (c9g.large Spot, ~$0.03/hr)                                   │
+│ General Workload Node (c9g.large On-Demand, ~$0.087/hr)                             │
 │                   │                                                                 │
 │                   ▼                                                                 │
 │       ┌───────────────────────┐    DBOS Tasks    ┌───────────────────────────┐      │
@@ -56,12 +56,16 @@ This directory contains a complete, production-ready Kubernetes deployment examp
 
 ## Core Design Principles
 
-### 1. Compute Tiering & Why Graviton5 (`c9g.xlarge`)
+### 1. Compute Tiering: On-Demand Core & Graviton Spot Workers
 
-Media transcoding with FFmpeg is one of the most CPU-intensive workloads in modern web applications. To achieve maximum throughput at minimum cost, this deployment separates system services from media encoding:
+Media transcoding with FFmpeg is one of the most CPU-intensive workloads in modern web applications. To ensure rock-solid stability for persistent data while minimizing transcoding costs, this deployment strictly separates system services from media encoding:
 
-- **General System Node (`shumai-general-spot`)**: A single 2 vCPU / 4 GiB RAM (`c9g.large` Spot) node (~$0.03/hr) runs the Web UI, API, PostgreSQL, and Garage S3.
-- **Dedicated Transcode Pool (`shumai-transcode-spot`)**: High-performance 4 vCPU / 8 GiB RAM (`c9g.xlarge` Spot) instances dedicated exclusively to media encoding.
+- **General System Node (`shumai-general`)**: A single 2 vCPU / 4 GiB RAM (`c9g.large` **On-Demand**) node (~$0.087/hr) hosts the Web UI, API server, PostgreSQL database, and Garage S3.
+  > [!IMPORTANT]
+  > **Why On-Demand for Core Services?**
+  > Spot instances are subject to involuntary AWS reclamation (interruption). Running stateful services (PostgreSQL, local S3 storage) and the primary user-facing API on an On-Demand instance guarantees that the database and storage layers are never killed, evicted, or subject to abrupt downtime.
+
+- **Dedicated Transcode Pool (`shumai-transcode-spot`)**: High-performance 4 vCPU / 8 GiB RAM Graviton Spot instances (`c9g.xlarge` primary, with `c8g.xlarge` fallback pools) dedicated exclusively to media encoding.
 
 **Why choose AWS Graviton5 (`c9g.xlarge`)?**
 AWS Graviton5 is AWS's fifth-generation custom ARM64 processor, built on the 6th-generation Nitro system with sustained 3.3 GHz clock speeds, high-speed DDR5 memory (8800 MT/s), and 5x more L3 cache. As demonstrated in AWS's video encoding benchmarks (see [Optimized Video Encoding with FFmpeg on AWS Graviton Processors](https://aws.amazon.com/cn/blogs/opensource/optimized-video-encoding-with-ffmpeg-on-aws-graviton-processors/)), Graviton processors deliver exceptional performance and frames-per-second per dollar for media workloads. Graviton5 further pushes compute performance by up to 25% per vCPU. Coupled with AWS EC2 Spot instances, `c9g.xlarge` costs only **~$0.08/hour** (a massive discount over On-Demand).
@@ -83,6 +87,24 @@ When running Garage in-cluster, Shumai utilizes **Split-Horizon S3 Resolution**:
 ### 3. Task Orchestration via DBOS Transact
 
 All video and document transcoding jobs are enqueued to `transcode_queue` inside PostgreSQL via **DBOS Transact**. Transcode workers are completely stateless and consume jobs from the queue. Each worker pod uses the Kubernetes Downward API (`POD_NAME`) to obtain a unique, collision-free executor ID.
+
+### 4. What Happens If Transcode Spot Nodes Are Interrupted or Killed?
+
+Because the transcode workers are completely stateless and coordinated via **DBOS Transact** against PostgreSQL on the On-Demand node:
+
+1. **State Isolation**:
+   PostgreSQL, EBS persistent volume claims, the Web UI, and S3 storage live on the On-Demand node and are **never terminated** during Spot interruptions.
+2. **AWS 2-Minute Interruption Warning & Graceful Drain**:
+   When AWS reclaims a Spot instance, it issues a 2-minute notice. Kubernetes drains the node and sends `SIGTERM` to the worker pod. With `terminationGracePeriodSeconds: 300`, the worker finishes any encoding step currently near completion, uploads the result to S3, and exits cleanly.
+3. **Automatic Step Recovery via DBOS**:
+   If an instance is terminated abruptly mid-encode, **zero data or tasks are lost**. The video source file remains safe in S3. DBOS workflow step states are durably tracked in PostgreSQL; uncompleted tasks are detected by surviving or newly launched workers and automatically re-executed from their last durable checkpoint.
+4. **Spot Capacity Pool Diversification**:
+   [`eks/eks-cluster.yaml`](./eks-cluster.yaml) configures `instanceTypes: [c9g.xlarge, c8g.xlarge]`. If AWS temporarily exhausts Graviton5 (`c9g.xlarge`) Spot capacity in an Availability Zone, the Auto Scaling Group immediately falls back to Graviton4 (`c8g.xlarge`) Spot capacity. All three families share the same 4 vCPU / 8 GiB RAM profile and ARM64 architecture.
+5. **What If All Spot Nodes Are Killed Simultaneously?**
+   - Transcode worker pods enter `Pending` state (`Insufficient cpu`).
+   - All newly submitted transcode jobs queue safely inside PostgreSQL on the On-Demand node. No user uploads or jobs are dropped.
+   - The **Cluster Autoscaler** detects the `Pending` pods and continuously requests new EC2 Spot instances from AWS.
+   - As soon as Spot capacity becomes available (typically within 1–2 minutes), new nodes launch, pods schedule to `Running`, and workers resume draining the queue.
 
 ---
 
@@ -131,8 +153,8 @@ eksctl create cluster -f eks/eks-cluster.yaml
 
 This provisions:
 - An EKS 1.31 control plane in a dedicated VPC across multiple AZs.
-- `shumai-general-spot`: 1x `c9g.large` Spot instance (labeled `workload: general`).
-- `shumai-transcode-spot`: Autoscaling `c9g.xlarge` Spot instances (min: 1, max: 5, labeled `workload: transcode`).
+- `shumai-general`: 1x `c9g.large` On-Demand instance (labeled `workload: general`) for reliable API, database, and storage.
+- `shumai-transcode-spot`: Autoscaling `c9g.xlarge` Spot instances with `c8g.xlarge` fallback pools (min: 1, max: 5, labeled `workload: transcode`).
 - AWS EBS CSI Driver with IAM OIDC roles.
 
 ### Step 2: Deploy the Shumai Stack

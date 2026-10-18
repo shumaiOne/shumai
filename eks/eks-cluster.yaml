@@ -16,9 +16,10 @@ addons:
 
 managedNodeGroups:
   # General system workload: Web UI, REST API, DBOS PostgreSQL, and Garage S3
-  - name: shumai-general-spot
-    instanceType: c9g.large # 2 vCPU, 4 GiB RAM (Graviton5 Spot, ~$0.03/hr)
-    spot: true
+  # Runs on On-Demand instances to guarantee database & storage durability without spot interruptions
+  - name: shumai-general
+    instanceType: c9g.large # 2 vCPU, 4 GiB RAM (Graviton5 On-Demand, ~$0.087/hr)
+    spot: false
     minSize: 1
     maxSize: 2
     desiredCapacity: 1
@@ -33,8 +34,11 @@ managedNodeGroups:
         ebs: true
 
   # Transcoding compute pool: High-CPU media processing
+  # Uses Spot instances with capacity diversification across Graviton generations
   - name: shumai-transcode-spot
-    instanceType: c9g.xlarge # 4 vCPU, 8 GiB RAM (Graviton5 Spot, ~$0.08/hr)
+    instanceTypes:
+      - c9g.xlarge # 4 vCPU, 8 GiB RAM (Graviton5 Spot, ~$0.08/hr, primary)
+      - c8g.xlarge # 4 vCPU, 8 GiB RAM (Graviton4 Spot, ~$0.07/hr, fallback pool)
     spot: true
     minSize: 1
     maxSize: 5

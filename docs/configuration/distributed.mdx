@@ -151,7 +151,7 @@ graph TD
 
 ### Key Architectural Highlights
 
-- **Decoupled Stateless Workers**: The main web and API server runs on lightweight general compute (`SHUMAI_WORKERS=agent`), delegating media transcoding to background workers orchestrated via DBOS task queues in PostgreSQL.
+- **Decoupled Stateless Workers**: The main web and API server, database, and storage run on reliable On-Demand compute (`c9g.large`, `SHUMAI_WORKERS=agent`), delegating media transcoding to background workers orchestrated via DBOS task queues in PostgreSQL.
 - **Dedicated Graviton5 Spot Compute (`c9g.xlarge`)**: Media encoding runs on 4 vCPU / 8 GiB RAM AWS Graviton5 Spot instances (~$0.08/hr), utilizing ARM64 vector optimizations and high-speed DDR5 memory to achieve exceptional encoding performance at minimal cost.
 - **1:1 Pod-to-Node Scaling**: Worker pods request `3000m` CPU, guaranteeing that each active transcoding job gets an entire dedicated 4 vCPU `c9g.xlarge` instance without CPU throttling.
 - **End-to-End Autoscaling**: Kubernetes HPA detects encoding load and scales worker pods (1 to 5 replicas), while Kubernetes Cluster Autoscaler provisions and terminates underlying EC2 Spot instances automatically.
