@@ -1,42 +1,33 @@
 import type { WorkflowTask } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
-import { executeActivity, getActivities } from '@shumai/workflow-core'
+import { updateAssetStatusActivity } from '@shumai/workflow-core'
 import {
-  getWorkerQueueAndStartTask,
-  fetchAssetWithKey,
-  completeTask,
-  failTask,
-  cleanupTmpDir,
-} from './common'
+  downloadMediaToTmpActivity,
+  start3dRenderActivity,
+  waitFor3dVideoRenderActivity,
+  generate3dSpriteActivity,
+  generate3dViewsActivity,
+  updateAssetMediaActivity,
+  createEmbeddingTaskIfEnabledActivity,
+  createAutofillTaskIfEnabledActivity,
+} from '../activities/transcode'
+import { startTask, fetchAssetWithKey, completeTask, failTask, cleanupTmpDir } from './common'
 
 export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
   let tmpDir: string | undefined
-  let workerQueue = ''
   let mediaProcessed = false
 
   try {
-    workerQueue = await getWorkerQueueAndStartTask(task)
+    await startTask(task)
 
-    const {
-      updateAssetStatusActivity,
-      downloadMediaToTmpActivity,
-      start3dRenderActivity,
-      waitFor3dVideoRenderActivity,
-      generate3dSpriteActivity,
-      generate3dViewsActivity,
-      updateAssetMediaActivity,
-      createEmbeddingTaskIfEnabledActivity,
-      createAutofillTaskIfEnabledActivity,
-    } = getActivities()
-
-    await executeActivity(workerQueue, updateAssetStatusActivity, {
+    await updateAssetStatusActivity({
       assetId: task.assetId,
       status: 'processing',
     })
 
-    const { asset, key } = await fetchAssetWithKey(workerQueue, task.assetId)
+    const { asset, key } = await fetchAssetWithKey(task.assetId)
 
-    const download = await executeActivity(workerQueue, downloadMediaToTmpActivity, {
+    const download = await downloadMediaToTmpActivity({
       assetKey: key,
     })
     const currentFilePath = download.filePath
@@ -49,9 +40,9 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
     const spriteKey = assetDir ? `${assetDir}/sprite.webp` : 'sprite.webp'
     const viewsKey = assetDir ? `${assetDir}/views.webp` : 'views.webp'
 
-    const renderStart = await executeActivity(workerQueue, start3dRenderActivity, {
+    const renderStart = await start3dRenderActivity({
       taskId: task.id,
-      teamId: task.teamId,
+      teamId: task.teamId || '',
       assetId: asset.id,
       assetKey: key,
       filePath: currentFilePath,
@@ -91,21 +82,21 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
       },
     }
 
-    await executeActivity(workerQueue, updateAssetMediaActivity, {
+    await updateAssetMediaActivity({
       assetId: asset.id,
       mediaInfo,
     })
 
-    const renderVideo = await executeActivity(workerQueue, waitFor3dVideoRenderActivity, {
+    const renderVideo = await waitFor3dVideoRenderActivity({
       taskId: task.id,
-      teamId: task.teamId,
+      teamId: task.teamId || '',
       assetKey: key,
       renderTaskId: renderStart.renderTaskId,
       targetVideoKey: videoKey,
       tmpDir,
     })
 
-    await executeActivity(workerQueue, generate3dSpriteActivity, {
+    await generate3dSpriteActivity({
       taskId: task.id,
       assetKey: key,
       videoFilePath: renderVideo.videoFilePath,
@@ -119,7 +110,7 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
       tileY: 10,
     }
 
-    await executeActivity(workerQueue, generate3dViewsActivity, {
+    await generate3dViewsActivity({
       taskId: task.id,
       assetKey: key,
       videoFilePath: renderVideo.videoFilePath,
@@ -136,7 +127,7 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
       },
     ]
 
-    await executeActivity(workerQueue, updateAssetMediaActivity, {
+    await updateAssetMediaActivity({
       assetId: asset.id,
       mediaInfo,
     })
@@ -157,35 +148,35 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
     }
     mediaInfo.finishedAt = new Date().toISOString()
 
-    await executeActivity(workerQueue, updateAssetMediaActivity, {
+    await updateAssetMediaActivity({
       assetId: asset.id,
       mediaInfo,
     })
 
-    await executeActivity(workerQueue, updateAssetStatusActivity, {
+    await updateAssetStatusActivity({
       assetId: asset.id,
       status: 'processed',
     })
     mediaProcessed = true
 
-    await executeActivity(workerQueue, createEmbeddingTaskIfEnabledActivity, {
+    await createEmbeddingTaskIfEnabledActivity({
       assetId: asset.id,
       teamId: task.teamId,
       projectId: task.projectId,
     })
 
-    await executeActivity(workerQueue, createAutofillTaskIfEnabledActivity, {
+    await createAutofillTaskIfEnabledActivity({
       assetId: asset.id,
       teamId: task.teamId,
       projectId: task.projectId,
     })
 
-    await completeTask(workerQueue, task.id)
+    await completeTask(task.id)
   } catch (err) {
     console.error(`transcode3dWorkflow failed for task ${task.id}:`, err)
-    await failTask(workerQueue, task.id, err, mediaProcessed ? undefined : task.assetId)
+    await failTask(task.id, err, mediaProcessed ? undefined : task.assetId)
     throw err
   } finally {
-    await cleanupTmpDir(workerQueue, tmpDir)
+    await cleanupTmpDir(tmpDir)
   }
 }

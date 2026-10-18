@@ -604,9 +604,7 @@ export function formatSkillsForPrompt(
 }
 
 import { WorkflowTaskType } from '@shumai/db'
-import { registerActivities, registerWorkflow } from '@shumai/workflow-core'
-import * as agentActivities from './activities/agent'
-import * as aiActivities from './activities/ai'
+import { registerWorkflow } from '@shumai/workflow-core'
 import { agentAutofillMedia } from './workflows/agent-autofill'
 import { agentChat } from './workflows/agent-chat'
 import { agentEmbeddingMedia } from './workflows/agent-embedding'
@@ -615,9 +613,6 @@ export function initAgentWorkflows() {
   registerWorkflow(WorkflowTaskType.ai_embedding, agentEmbeddingMedia)
   registerWorkflow(WorkflowTaskType.ai_metadata_autofill, agentAutofillMedia)
   registerWorkflow(WorkflowTaskType.chat, agentChat)
-
-  registerActivities(agentActivities)
-  registerActivities(aiActivities)
 }
 
 export * from './activities/agent'

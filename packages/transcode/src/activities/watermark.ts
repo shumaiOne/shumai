@@ -13,7 +13,7 @@ import {
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { logger } from '@shumai/core/src/logger'
 import { stemFromKey } from '@shumai/core/src/utils/filename'
-import { ApplicationFailure } from '@shumai/workflow-core'
+import { ApplicationFailure, defineStep } from '@shumai/workflow-core'
 import * as path from 'path'
 import * as fs from 'fs'
 import { ulid } from 'ulid'
@@ -35,7 +35,7 @@ export interface InitWatermarkFileResult {
   media?: PrismaJson.MediaInfo | null
 }
 
-export async function initWatermarkFileActivity(
+export const initWatermarkFileActivity = defineStep(async function initWatermarkFileActivity(
   params: InitWatermarkFileParams,
 ): Promise<InitWatermarkFileResult> {
   return await prisma.$transaction(async (tx) => {
@@ -46,12 +46,12 @@ export async function initWatermarkFileActivity(
         media: PrismaJson.MediaInfo | null
       }>
     >`
-      SELECT id, status, media
-      FROM watermark_files
-      WHERE asset_id = ${params.assetId}
-        AND watermark_config_id = ${params.watermarkConfigId}
-      FOR UPDATE
-    `
+        SELECT id, status, media
+        FROM watermark_files
+        WHERE asset_id = ${params.assetId}
+          AND watermark_config_id = ${params.watermarkConfigId}
+        FOR UPDATE
+      `
 
     if (rows.length > 0) {
       const existing = rows[0]
@@ -74,7 +74,7 @@ export async function initWatermarkFileActivity(
 
     return { action: 'created' }
   })
-}
+})
 
 export interface WaitForWatermarkFileParams {
   assetId: string
@@ -86,7 +86,7 @@ export interface WaitForWatermarkFileResult {
   media?: PrismaJson.MediaInfo | null
 }
 
-export async function waitForWatermarkFileActivity(
+export const waitForWatermarkFileActivity = defineStep(async function waitForWatermarkFileActivity(
   params: WaitForWatermarkFileParams,
 ): Promise<WaitForWatermarkFileResult> {
   const pollIntervalMs = 1000
@@ -113,358 +113,278 @@ export async function waitForWatermarkFileActivity(
   }
 
   return { status: WatermarkFileStatus.failed }
-}
+})
 
 export interface TranscodeWatermarkMediaParams {
   assetId: string
   watermarkConfigId: string
 }
 
-export async function transcodeWatermarkMediaActivity(
-  params: TranscodeWatermarkMediaParams,
-): Promise<PrismaJson.MediaInfo> {
-  const bucket = process.env.S3_BUCKET || 'shumai'
+export const transcodeWatermarkMediaActivity = defineStep(
+  async function transcodeWatermarkMediaActivity(
+    params: TranscodeWatermarkMediaParams,
+  ): Promise<PrismaJson.MediaInfo> {
+    const bucket = process.env.S3_BUCKET || 'shumai'
 
-  const watermarkConfigRecord = await prisma.watermarkConfig.findUnique({
-    where: { id: params.watermarkConfigId },
-  })
-  if (!watermarkConfigRecord) {
-    throw ApplicationFailure.create({
-      message: `Watermark config not found: ${params.watermarkConfigId}`,
-      nonRetryable: true,
+    const watermarkConfigRecord = await prisma.watermarkConfig.findUnique({
+      where: { id: params.watermarkConfigId },
     })
-  }
-
-  const asset = await prisma.asset.findUnique({
-    where: { id: params.assetId },
-    include: {
-      storageKey: true,
-      project: {
-        include: { team: true },
-      },
-    },
-  })
-
-  if (!asset || !asset.storageKey?.key) {
-    throw ApplicationFailure.create({
-      message: `Asset or storage key not found: ${params.assetId}`,
-      nonRetryable: true,
-    })
-  }
-
-  const teamSettings = asset.project?.team?.settings as PrismaJson.Settings | null
-  const hardwareAcceleration = teamSettings?.transcode?.hardwareAcceleration ?? 'off'
-  const threads = teamSettings?.transcode?.threads ?? 0
-
-  // The config column is declared as PrismaJson.WatermarkConfigSpec, which is
-  // structurally identical to the DTO type, so no cast is required.
-  const config: WatermarkConfigSpec = watermarkConfigRecord.config
-  const assetKey = asset.storageKey.key
-  const stem = stemFromKey(assetKey)
-
-  const tmpDir = transcodeService.createTempDir('watermark-')
-
-  try {
-    const is3d = (asset.media as PrismaJson.MediaInfo | null)?.proxyType === '3d'
-    const isVideo =
-      !is3d &&
-      (asset.mediaType?.startsWith('video/') ||
-        (asset.media as PrismaJson.MediaInfo | null)?.proxyType === 'video')
-    const isImage =
-      !is3d &&
-      (asset.mediaType?.startsWith('image/') ||
-        (asset.media as PrismaJson.MediaInfo | null)?.proxyType === 'image')
-
-    if (!isVideo && !isImage && !is3d) {
+    if (!watermarkConfigRecord) {
       throw ApplicationFailure.create({
-        message: `Asset ${params.assetId} is neither video nor image`,
+        message: `Watermark config not found: ${params.watermarkConfigId}`,
         nonRetryable: true,
       })
     }
 
-    const inputKey = is3d
-      ? (asset.media as PrismaJson.MediaInfo | null)?.videoTranscodes?.[0]?.key ||
-        (asset.media as PrismaJson.MediaInfo | null)?.videoPreview?.key
-      : assetKey
+    const asset = await prisma.asset.findUnique({
+      where: { id: params.assetId },
+      include: {
+        storageKey: true,
+        project: {
+          include: { team: true },
+        },
+      },
+    })
 
-    if (is3d && !inputKey) {
+    if (!asset || !asset.storageKey?.key) {
       throw ApplicationFailure.create({
-        message: `Turntable video transcode not found for 3D asset ${params.assetId}`,
+        message: `Asset or storage key not found: ${params.assetId}`,
         nonRetryable: true,
       })
     }
 
-    const rawFilePath = path.join(tmpDir, path.basename(inputKey!))
-    await s3Service.downloadToFile(bucket, inputKey!, rawFilePath)
+    const teamSettings = asset.project?.team?.settings as PrismaJson.Settings | null
+    const hardwareAcceleration = teamSettings?.transcode?.hardwareAcceleration ?? 'off'
+    const threads = teamSettings?.transcode?.threads ?? 0
 
-    let originalWidth = 1920
-    let originalHeight = 1080
-    let duration = 0
-    let bitRate = 0
-    let videoBitRate: number | undefined
-    let frameRate = 30
-    let totalFrames = 0
-    let startTimecode = '00:00:00:00'
-    let hasAudio = false
-    let sourceVideoBitrate: number | undefined
-    let colorTransfer: string | undefined
-    let colorPrimaries: string | undefined
-    let colorSpace: string | undefined
-    let isHdr: boolean | undefined
-    let hdrType: PrismaJson.HdrType | undefined
-    let dvProfile: number | undefined
+    // The config column is declared as PrismaJson.WatermarkConfigSpec, which is
+    // structurally identical to the DTO type, so no cast is required.
+    const config: WatermarkConfigSpec = watermarkConfigRecord.config
+    const assetKey = asset.storageKey.key
+    const stem = stemFromKey(assetKey)
 
-    if (isVideo || is3d) {
-      const info = await transcodeService.getVideoInfo(rawFilePath)
-      originalWidth = info.originalWidth
-      originalHeight = info.originalHeight
-      duration = info.duration
-      bitRate = info.bitRate
-      videoBitRate = info.videoBitRate
-      frameRate = info.frameRate
-      totalFrames = info.totalFrames
-      startTimecode = info.startTimecode || '00:00:00:00'
-      hasAudio = info.hasAudio
-      sourceVideoBitrate = info.videoBitRate || info.bitRate
-      colorTransfer = info.colorTransfer
-      colorPrimaries = info.colorPrimaries
-      colorSpace = info.colorSpace
-      isHdr = info.isHdr
-      hdrType = info.hdrType
-      dvProfile = info.dvProfile
-    } else if (isImage) {
-      const info = await transcodeService.getImageInfo(rawFilePath)
-      originalWidth = info.originalWidth
-      originalHeight = info.originalHeight
-    }
+    const tmpDir = transcodeService.createTempDir('watermark-')
 
-    // Process image blocks if any
-    const blockImagesMap = new Map<string, RenderBlockImageData>()
-    const imageBlocks = (config.blocks || []).filter(
-      (b) => b.type === 'image',
-    ) as WatermarkBlockImage[]
+    try {
+      const is3d = (asset.media as PrismaJson.MediaInfo | null)?.proxyType === '3d'
+      const isVideo =
+        !is3d &&
+        (asset.mediaType?.startsWith('video/') ||
+          (asset.media as PrismaJson.MediaInfo | null)?.proxyType === 'video')
+      const isImage =
+        !is3d &&
+        (asset.mediaType?.startsWith('image/') ||
+          (asset.media as PrismaJson.MediaInfo | null)?.proxyType === 'image')
 
-    for (const imgBlock of imageBlocks) {
-      if (!imgBlock.imageAssetKey) continue
-      try {
-        const imgTmpPath = path.join(tmpDir, `block-${ulid()}`)
-        await s3Service.downloadToFile(bucket, imgBlock.imageAssetKey, imgTmpPath)
-        const buffer = fs.readFileSync(imgTmpPath)
-        // Downscale to a bounded size and normalize to PNG so large logo assets
-        // don't balloon the SVG/base64 payload.
-        const processed = await transcodeService.downscaleImageToPng(
-          buffer,
-          MAX_BLOCK_IMAGE_DIMENSION,
-        )
-        blockImagesMap.set(imgBlock.imageAssetKey, {
-          imageAssetKey: imgBlock.imageAssetKey,
-          base64Data: processed.buffer.toString('base64'),
-          mimeType: 'image/png',
-          width: processed.width,
-          height: processed.height,
-        })
-      } catch (err) {
-        logger.warn(
-          { imageAssetKey: imgBlock.imageAssetKey, err },
-          'Failed to load watermark block image',
-        )
-      }
-    }
-
-    const originalMedia = asset.media as PrismaJson.MediaInfo | null
-
-    const mediaInfo: PrismaJson.MediaInfo = {
-      duration,
-      filesize: 0,
-      frames: totalFrames,
-      proxyType: is3d ? '3d' : isVideo ? 'video' : 'image',
-      imageTranscodes: [],
-      videoTranscodes: [],
-      poster: originalMedia?.poster,
-      sprite: originalMedia?.sprite,
-      finishedAt: new Date().toISOString(),
-      metadata: {
-        originalWidth,
-        originalHeight,
-        duration,
-        bitRate,
-        videoBitRate,
-        frameRate,
-        totalFrames,
-        startTimecode,
-        hasAudio,
-        colorTransfer: colorTransfer ?? originalMedia?.metadata?.colorTransfer,
-        colorPrimaries: colorPrimaries ?? originalMedia?.metadata?.colorPrimaries,
-        colorSpace: colorSpace ?? originalMedia?.metadata?.colorSpace,
-        isHdr: isHdr ?? originalMedia?.metadata?.isHdr,
-        hdrType: hdrType ?? originalMedia?.metadata?.hdrType,
-        dvProfile: dvProfile ?? originalMedia?.metadata?.dvProfile,
-        format: originalMedia?.metadata?.format ?? {},
-      },
-      original: {
-        key: assetKey,
-        filesizeInBytes: 0,
-        codec: '',
-      },
-    }
-
-    if (isImage) {
-      const originalTranscodes = originalMedia?.imageTranscodes || []
-      let totalSize = 0
-
-      for (let i = 0; i < originalTranscodes.length; i++) {
-        const it = originalTranscodes[i]
-        const targetWidth = it.width || originalWidth
-        const targetHeight = it.height || originalHeight
-
-        const svgString = generateWatermarkSvg(config, targetWidth, targetHeight, blockImagesMap)
-        const overlayPngBuffer = await transcodeService.renderSvgToPng(svgString)
-
-        const outFileName = `${stem}-watermark-${params.watermarkConfigId}-${targetWidth}x${targetHeight}.webp`
-        const outFilePath = path.join(tmpDir, outFileName)
-
-        await transcodeService.compositeOverlayToWebpFile(
-          rawFilePath,
-          overlayPngBuffer,
-          outFilePath,
-          targetWidth,
-          targetHeight,
-        )
-
-        const stat = fs.statSync(outFilePath)
-        totalSize += stat.size
-        const outputKey = path.posix.join(path.posix.dirname(assetKey), outFileName)
-
-        await s3Service.putObject(
-          bucket,
-          outputKey,
-          Bun.file(outFilePath).stream(),
-          stat.size,
-          'image/webp',
-        )
-
-        mediaInfo.imageTranscodes.push({
-          key: outputKey,
-          width: targetWidth,
-          height: targetHeight,
-          quality: it.quality ?? 90,
-          format: it.format ?? 'webp',
-        })
-      }
-      mediaInfo.filesize = totalSize
-    } else if (isVideo || is3d) {
-      const originalTranscodes = originalMedia?.videoTranscodes || []
-      let totalSize = 0
-
-      for (let i = 0; i < originalTranscodes.length; i++) {
-        const vt = originalTranscodes[i]
-        const targetWidth = vt.width || originalWidth
-        const targetHeight = vt.height || originalHeight
-        const resolution = vt.resolution || `${targetHeight}p`
-        const isVtHdr = Boolean(vt.hdr)
-        const suffix = isVtHdr ? `${resolution}-hdr` : resolution
-
-        const svgString = generateWatermarkSvg(config, targetWidth, targetHeight, blockImagesMap)
-        const overlayPngBuffer = await transcodeService.renderSvgToPng(svgString)
-
-        const overlayPngPath = path.join(tmpDir, `watermarkOverlay-${i}.png`)
-        fs.writeFileSync(overlayPngPath, overlayPngBuffer)
-
-        const outFileName = `${stem}-watermark-${params.watermarkConfigId}-${suffix}.mp4`
-        const outFilePath = path.join(tmpDir, outFileName)
-
-        await transcodeService.transcodeVideo({
-          inputFile: rawFilePath,
-          outputFile: outFilePath,
-          width: targetWidth,
-          height: targetHeight,
-          disableAudio: !hasAudio,
-          overlayFile: overlayPngPath,
-          hardwareAcceleration,
-          sourceVideoBitrate,
-          threads,
-          hdr: isVtHdr,
-          sourceIsHdr: isHdr ?? originalMedia?.metadata?.isHdr,
-          sourceHdrType: hdrType ?? originalMedia?.metadata?.hdrType,
-          sourceColorTransfer: colorTransfer ?? originalMedia?.metadata?.colorTransfer,
-          sourceColorPrimaries: colorPrimaries ?? originalMedia?.metadata?.colorPrimaries,
-          sourceColorSpace: colorSpace ?? originalMedia?.metadata?.colorSpace,
-          streamIndex: originalMedia?.metadata?.videoStreamIndex,
-          audioStreamIndex: originalMedia?.metadata?.audioStreamIndex,
-        })
-
-        const stat = fs.statSync(outFilePath)
-        totalSize += stat.size
-        const outputKey = path.posix.join(path.posix.dirname(assetKey), outFileName)
-
-        await s3Service.putObject(
-          bucket,
-          outputKey,
-          Bun.file(outFilePath).stream(),
-          stat.size,
-          'video/mp4',
-        )
-
-        mediaInfo.videoTranscodes.push({
-          key: outputKey,
-          width: targetWidth,
-          height: targetHeight,
-          resolution,
-          hdr: isVtHdr,
+      if (!isVideo && !isImage && !is3d) {
+        throw ApplicationFailure.create({
+          message: `Asset ${params.assetId} is neither video nor image`,
+          nonRetryable: true,
         })
       }
 
-      if (is3d && mediaInfo.videoTranscodes.length > 0) {
-        mediaInfo.videoPreview = {
-          key: mediaInfo.videoTranscodes[0].key,
-          width: mediaInfo.videoTranscodes[0].width,
-          height: mediaInfo.videoTranscodes[0].height,
-          resolution: mediaInfo.videoTranscodes[0].resolution,
+      const inputKey = is3d
+        ? (asset.media as PrismaJson.MediaInfo | null)?.videoTranscodes?.[0]?.key ||
+          (asset.media as PrismaJson.MediaInfo | null)?.videoPreview?.key
+        : assetKey
+
+      if (is3d && !inputKey) {
+        throw ApplicationFailure.create({
+          message: `Turntable video transcode not found for 3D asset ${params.assetId}`,
+          nonRetryable: true,
+        })
+      }
+
+      const rawFilePath = path.join(tmpDir, path.basename(inputKey!))
+      await s3Service.downloadToFile(bucket, inputKey!, rawFilePath)
+
+      let originalWidth = 1920
+      let originalHeight = 1080
+      let duration = 0
+      let bitRate = 0
+      let videoBitRate: number | undefined
+      let frameRate = 30
+      let totalFrames = 0
+      let startTimecode = '00:00:00:00'
+      let hasAudio = false
+      let sourceVideoBitrate: number | undefined
+      let colorTransfer: string | undefined
+      let colorPrimaries: string | undefined
+      let colorSpace: string | undefined
+      let isHdr: boolean | undefined
+      let hdrType: PrismaJson.HdrType | undefined
+      let dvProfile: number | undefined
+
+      if (isVideo || is3d) {
+        const info = await transcodeService.getVideoInfo(rawFilePath)
+        originalWidth = info.originalWidth
+        originalHeight = info.originalHeight
+        duration = info.duration
+        bitRate = info.bitRate
+        videoBitRate = info.videoBitRate
+        frameRate = info.frameRate
+        totalFrames = info.totalFrames
+        startTimecode = info.startTimecode || '00:00:00:00'
+        hasAudio = info.hasAudio
+        sourceVideoBitrate = info.videoBitRate || info.bitRate
+        colorTransfer = info.colorTransfer
+        colorPrimaries = info.colorPrimaries
+        colorSpace = info.colorSpace
+        isHdr = info.isHdr
+        hdrType = info.hdrType
+        dvProfile = info.dvProfile
+      } else if (isImage) {
+        const info = await transcodeService.getImageInfo(rawFilePath)
+        originalWidth = info.originalWidth
+        originalHeight = info.originalHeight
+      }
+
+      // Process image blocks if any
+      const blockImagesMap = new Map<string, RenderBlockImageData>()
+      const imageBlocks = (config.blocks || []).filter(
+        (b) => b.type === 'image',
+      ) as WatermarkBlockImage[]
+
+      for (const imgBlock of imageBlocks) {
+        if (!imgBlock.imageAssetKey) continue
+        try {
+          const imgTmpPath = path.join(tmpDir, `block-${ulid()}`)
+          await s3Service.downloadToFile(bucket, imgBlock.imageAssetKey, imgTmpPath)
+          const buffer = fs.readFileSync(imgTmpPath)
+          // Downscale to a bounded size and normalize to PNG so large logo assets
+          // don't balloon the SVG/base64 payload.
+          const processed = await transcodeService.downscaleImageToPng(
+            buffer,
+            MAX_BLOCK_IMAGE_DIMENSION,
+          )
+          blockImagesMap.set(imgBlock.imageAssetKey, {
+            imageAssetKey: imgBlock.imageAssetKey,
+            base64Data: processed.buffer.toString('base64'),
+            mimeType: 'image/png',
+            width: processed.width,
+            height: processed.height,
+          })
+        } catch (err) {
+          logger.warn(
+            { imageAssetKey: imgBlock.imageAssetKey, err },
+            'Failed to load watermark block image',
+          )
         }
       }
 
-      if (originalMedia?.isHls && originalMedia?.hls?.resolutions?.length) {
-        const hlsWatermarkDirKey = path.posix.join(
-          path.posix.dirname(assetKey),
-          `hls-watermark-${params.watermarkConfigId}`,
-        )
-        const masterKey = path.posix.join(hlsWatermarkDirKey, 'master.m3u8')
-        const hlsTmpDir = path.join(tmpDir, `hls-watermark-${params.watermarkConfigId}`)
-        fs.mkdirSync(hlsTmpDir, { recursive: true })
+      const originalMedia = asset.media as PrismaJson.MediaInfo | null
 
-        const renditionSpecs: Array<{
-          resolution: string
-          width: number
-          height: number
-          bitrateBps: number
-          isHdr?: boolean
-        }> = []
-        const hlsResolutions: PrismaJson.VideoTranscode[] = []
+      const mediaInfo: PrismaJson.MediaInfo = {
+        duration,
+        filesize: 0,
+        frames: totalFrames,
+        proxyType: is3d ? '3d' : isVideo ? 'video' : 'image',
+        imageTranscodes: [],
+        videoTranscodes: [],
+        poster: originalMedia?.poster,
+        sprite: originalMedia?.sprite,
+        finishedAt: new Date().toISOString(),
+        metadata: {
+          originalWidth,
+          originalHeight,
+          duration,
+          bitRate,
+          videoBitRate,
+          frameRate,
+          totalFrames,
+          startTimecode,
+          hasAudio,
+          colorTransfer: colorTransfer ?? originalMedia?.metadata?.colorTransfer,
+          colorPrimaries: colorPrimaries ?? originalMedia?.metadata?.colorPrimaries,
+          colorSpace: colorSpace ?? originalMedia?.metadata?.colorSpace,
+          isHdr: isHdr ?? originalMedia?.metadata?.isHdr,
+          hdrType: hdrType ?? originalMedia?.metadata?.hdrType,
+          dvProfile: dvProfile ?? originalMedia?.metadata?.dvProfile,
+          format: originalMedia?.metadata?.format ?? {},
+        },
+        original: {
+          key: assetKey,
+          filesizeInBytes: 0,
+          codec: '',
+        },
+      }
 
-        for (const vt of originalMedia.hls.resolutions) {
-          const ladder = vt.resolution || `${vt.height}p`
-          const targetWidth = vt.width || originalWidth
-          const targetHeight = vt.height || originalHeight
-          const isVtHdr = Boolean(vt.hdr)
+      if (isImage) {
+        const originalTranscodes = originalMedia?.imageTranscodes || []
+        let totalSize = 0
+
+        for (let i = 0; i < originalTranscodes.length; i++) {
+          const it = originalTranscodes[i]
+          const targetWidth = it.width || originalWidth
+          const targetHeight = it.height || originalHeight
 
           const svgString = generateWatermarkSvg(config, targetWidth, targetHeight, blockImagesMap)
           const overlayPngBuffer = await transcodeService.renderSvgToPng(svgString)
-          const overlayPngPath = path.join(tmpDir, `watermarkOverlay-hls-${ladder}.png`)
-          fs.writeFileSync(overlayPngPath, overlayPngBuffer)
 
-          const ladderDir = path.join(hlsTmpDir, ladder)
-          await transcodeService.transcodeHlsRendition({
-            inputFile: rawFilePath,
-            outputDir: ladderDir,
+          const outFileName = `${stem}-watermark-${params.watermarkConfigId}-${targetWidth}x${targetHeight}.webp`
+          const outFilePath = path.join(tmpDir, outFileName)
+
+          await transcodeService.compositeOverlayToWebpFile(
+            rawFilePath,
+            overlayPngBuffer,
+            outFilePath,
+            targetWidth,
+            targetHeight,
+          )
+
+          const stat = fs.statSync(outFilePath)
+          totalSize += stat.size
+          const outputKey = path.posix.join(path.posix.dirname(assetKey), outFileName)
+
+          await s3Service.putObject(
+            bucket,
+            outputKey,
+            Bun.file(outFilePath).stream(),
+            stat.size,
+            'image/webp',
+          )
+
+          mediaInfo.imageTranscodes.push({
+            key: outputKey,
             width: targetWidth,
             height: targetHeight,
+            quality: it.quality ?? 90,
+            format: it.format ?? 'webp',
+          })
+        }
+        mediaInfo.filesize = totalSize
+      } else if (isVideo || is3d) {
+        const originalTranscodes = originalMedia?.videoTranscodes || []
+        let totalSize = 0
+
+        for (let i = 0; i < originalTranscodes.length; i++) {
+          const vt = originalTranscodes[i]
+          const targetWidth = vt.width || originalWidth
+          const targetHeight = vt.height || originalHeight
+          const resolution = vt.resolution || `${targetHeight}p`
+          const isVtHdr = Boolean(vt.hdr)
+          const suffix = isVtHdr ? `${resolution}-hdr` : resolution
+
+          const svgString = generateWatermarkSvg(config, targetWidth, targetHeight, blockImagesMap)
+          const overlayPngBuffer = await transcodeService.renderSvgToPng(svgString)
+
+          const overlayPngPath = path.join(tmpDir, `watermarkOverlay-${i}.png`)
+          fs.writeFileSync(overlayPngPath, overlayPngBuffer)
+
+          const outFileName = `${stem}-watermark-${params.watermarkConfigId}-${suffix}.mp4`
+          const outFilePath = path.join(tmpDir, outFileName)
+
+          await transcodeService.transcodeVideo({
+            inputFile: rawFilePath,
+            outputFile: outFilePath,
+            width: targetWidth,
+            height: targetHeight,
+            disableAudio: !hasAudio,
             overlayFile: overlayPngPath,
-            frameRate,
             hardwareAcceleration,
             sourceVideoBitrate,
             threads,
             hdr: isVtHdr,
-            disableAudio: !hasAudio,
             sourceIsHdr: isHdr ?? originalMedia?.metadata?.isHdr,
             sourceHdrType: hdrType ?? originalMedia?.metadata?.hdrType,
             sourceColorTransfer: colorTransfer ?? originalMedia?.metadata?.colorTransfer,
@@ -474,82 +394,169 @@ export async function transcodeWatermarkMediaActivity(
             audioStreamIndex: originalMedia?.metadata?.audioStreamIndex,
           })
 
-          const targetBps = calculateEffectiveBitrateBps(
-            targetHeight,
-            targetWidth,
-            sourceVideoBitrate,
-            frameRate,
+          const stat = fs.statSync(outFilePath)
+          totalSize += stat.size
+          const outputKey = path.posix.join(path.posix.dirname(assetKey), outFileName)
+
+          await s3Service.putObject(
+            bucket,
+            outputKey,
+            Bun.file(outFilePath).stream(),
+            stat.size,
+            'video/mp4',
           )
 
-          renditionSpecs.push({
-            resolution: ladder,
+          mediaInfo.videoTranscodes.push({
+            key: outputKey,
             width: targetWidth,
             height: targetHeight,
-            bitrateBps: targetBps,
-            isHdr: isVtHdr,
-          })
-
-          const ladderFiles = fs.readdirSync(ladderDir)
-          for (const file of ladderFiles) {
-            const filePath = path.join(ladderDir, file)
-            const stat = fs.statSync(filePath)
-            totalSize += stat.size
-            const contentType = file.endsWith('.m3u8')
-              ? 'application/vnd.apple.mpegurl'
-              : file.endsWith('.m4s')
-                ? 'video/iso.segment'
-                : 'video/mp4'
-            const s3Key = path.posix.join(hlsWatermarkDirKey, ladder, file)
-            await s3Service.putObject(
-              bucket,
-              s3Key,
-              Bun.file(filePath).stream(),
-              stat.size,
-              contentType,
-            )
-          }
-
-          hlsResolutions.push({
-            key: path.posix.join(hlsWatermarkDirKey, ladder, 'index.m3u8'),
-            width: targetWidth,
-            height: targetHeight,
-            resolution: ladder,
+            resolution,
             hdr: isVtHdr,
           })
         }
 
-        const masterM3u8Content = buildHlsMasterPlaylist(renditionSpecs)
-        const masterM3u8Buffer = Buffer.from(masterM3u8Content, 'utf-8')
-        await s3Service.putObject(
-          bucket,
-          masterKey,
-          masterM3u8Buffer,
-          masterM3u8Buffer.length,
-          'application/vnd.apple.mpegurl',
-        )
-
-        mediaInfo.isHls = true
-        mediaInfo.hls = {
-          key: masterKey,
-          resolutions: hlsResolutions,
+        if (is3d && mediaInfo.videoTranscodes.length > 0) {
+          mediaInfo.videoPreview = {
+            key: mediaInfo.videoTranscodes[0].key,
+            width: mediaInfo.videoTranscodes[0].width,
+            height: mediaInfo.videoTranscodes[0].height,
+            resolution: mediaInfo.videoTranscodes[0].resolution,
+          }
         }
+
+        if (originalMedia?.isHls && originalMedia?.hls?.resolutions?.length) {
+          const hlsWatermarkDirKey = path.posix.join(
+            path.posix.dirname(assetKey),
+            `hls-watermark-${params.watermarkConfigId}`,
+          )
+          const masterKey = path.posix.join(hlsWatermarkDirKey, 'master.m3u8')
+          const hlsTmpDir = path.join(tmpDir, `hls-watermark-${params.watermarkConfigId}`)
+          fs.mkdirSync(hlsTmpDir, { recursive: true })
+
+          const renditionSpecs: Array<{
+            resolution: string
+            width: number
+            height: number
+            bitrateBps: number
+            isHdr?: boolean
+          }> = []
+          const hlsResolutions: PrismaJson.VideoTranscode[] = []
+
+          for (const vt of originalMedia.hls.resolutions) {
+            const ladder = vt.resolution || `${vt.height}p`
+            const targetWidth = vt.width || originalWidth
+            const targetHeight = vt.height || originalHeight
+            const isVtHdr = Boolean(vt.hdr)
+
+            const svgString = generateWatermarkSvg(
+              config,
+              targetWidth,
+              targetHeight,
+              blockImagesMap,
+            )
+            const overlayPngBuffer = await transcodeService.renderSvgToPng(svgString)
+            const overlayPngPath = path.join(tmpDir, `watermarkOverlay-hls-${ladder}.png`)
+            fs.writeFileSync(overlayPngPath, overlayPngBuffer)
+
+            const ladderDir = path.join(hlsTmpDir, ladder)
+            await transcodeService.transcodeHlsRendition({
+              inputFile: rawFilePath,
+              outputDir: ladderDir,
+              width: targetWidth,
+              height: targetHeight,
+              overlayFile: overlayPngPath,
+              frameRate,
+              hardwareAcceleration,
+              sourceVideoBitrate,
+              threads,
+              hdr: isVtHdr,
+              disableAudio: !hasAudio,
+              sourceIsHdr: isHdr ?? originalMedia?.metadata?.isHdr,
+              sourceHdrType: hdrType ?? originalMedia?.metadata?.hdrType,
+              sourceColorTransfer: colorTransfer ?? originalMedia?.metadata?.colorTransfer,
+              sourceColorPrimaries: colorPrimaries ?? originalMedia?.metadata?.colorPrimaries,
+              sourceColorSpace: colorSpace ?? originalMedia?.metadata?.colorSpace,
+              streamIndex: originalMedia?.metadata?.videoStreamIndex,
+              audioStreamIndex: originalMedia?.metadata?.audioStreamIndex,
+            })
+
+            const targetBps = calculateEffectiveBitrateBps(
+              targetHeight,
+              targetWidth,
+              sourceVideoBitrate,
+              frameRate,
+            )
+
+            renditionSpecs.push({
+              resolution: ladder,
+              width: targetWidth,
+              height: targetHeight,
+              bitrateBps: targetBps,
+              isHdr: isVtHdr,
+            })
+
+            const ladderFiles = fs.readdirSync(ladderDir)
+            for (const file of ladderFiles) {
+              const filePath = path.join(ladderDir, file)
+              const stat = fs.statSync(filePath)
+              totalSize += stat.size
+              const contentType = file.endsWith('.m3u8')
+                ? 'application/vnd.apple.mpegurl'
+                : file.endsWith('.m4s')
+                  ? 'video/iso.segment'
+                  : 'video/mp4'
+              const s3Key = path.posix.join(hlsWatermarkDirKey, ladder, file)
+              await s3Service.putObject(
+                bucket,
+                s3Key,
+                Bun.file(filePath).stream(),
+                stat.size,
+                contentType,
+              )
+            }
+
+            hlsResolutions.push({
+              key: path.posix.join(hlsWatermarkDirKey, ladder, 'index.m3u8'),
+              width: targetWidth,
+              height: targetHeight,
+              resolution: ladder,
+              hdr: isVtHdr,
+            })
+          }
+
+          const masterM3u8Content = buildHlsMasterPlaylist(renditionSpecs)
+          const masterM3u8Buffer = Buffer.from(masterM3u8Content, 'utf-8')
+          await s3Service.putObject(
+            bucket,
+            masterKey,
+            masterM3u8Buffer,
+            masterM3u8Buffer.length,
+            'application/vnd.apple.mpegurl',
+          )
+
+          mediaInfo.isHls = true
+          mediaInfo.hls = {
+            key: masterKey,
+            resolutions: hlsResolutions,
+          }
+        }
+
+        mediaInfo.filesize = totalSize
       }
 
-      mediaInfo.filesize = totalSize
+      return mediaInfo
+    } catch (err) {
+      logger.error({ assetId: params.assetId, err }, 'Failed to generate watermark proxy')
+      throw ApplicationFailure.create({
+        message: `Failed to generate watermark proxy: ${err instanceof Error ? err.message : String(err)}`,
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    } finally {
+      transcodeService.removeDir(tmpDir)
     }
-
-    return mediaInfo
-  } catch (err) {
-    logger.error({ assetId: params.assetId, err }, 'Failed to generate watermark proxy')
-    throw ApplicationFailure.create({
-      message: `Failed to generate watermark proxy: ${err instanceof Error ? err.message : String(err)}`,
-      nonRetryable: true,
-      cause: err instanceof Error ? err : undefined,
-    })
-  } finally {
-    transcodeService.removeDir(tmpDir)
-  }
-}
+  },
+)
 
 export interface CompleteWatermarkFileParams {
   assetId: string
@@ -559,30 +566,31 @@ export interface CompleteWatermarkFileParams {
   shareLinkId?: string | null
 }
 
-export async function completeWatermarkFileActivity(
-  params: CompleteWatermarkFileParams,
-): Promise<void> {
-  await prisma.watermarkFile.upsert({
-    where: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      assetId_watermarkConfigId: {
+export const completeWatermarkFileActivity = defineStep(
+  async function completeWatermarkFileActivity(params: CompleteWatermarkFileParams): Promise<void> {
+    await prisma.watermarkFile.upsert({
+      where: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        assetId_watermarkConfigId: {
+          assetId: params.assetId,
+          watermarkConfigId: params.watermarkConfigId,
+        },
+      },
+      create: {
         assetId: params.assetId,
         watermarkConfigId: params.watermarkConfigId,
+        media: params.mediaInfo ?? undefined,
+        status: params.status,
       },
-    },
-    create: {
-      assetId: params.assetId,
-      watermarkConfigId: params.watermarkConfigId,
-      media: params.mediaInfo ?? undefined,
-      status: params.status,
-    },
-    update: {
-      media: params.mediaInfo ?? undefined,
-      status: params.status,
-    },
-  })
+      update: {
+        media: params.mediaInfo ?? undefined,
+        status: params.status,
+      },
+    })
 
-  if (params.shareLinkId) {
-    await watermarkService.checkAndUpdateShareLinkStatus(params.shareLinkId)
-  }
-}
+    if (params.shareLinkId) {
+      await watermarkService.checkAndUpdateShareLinkStatus(params.shareLinkId)
+    }
+  },
+  { runOnCancel: true },
+)

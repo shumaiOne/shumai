@@ -1,12 +1,12 @@
 import type { WorkflowTask } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
-import { executeActivity, getActivities, ApplicationFailure } from '@shumai/workflow-core'
-import { getWorkerQueueAndStartTask, completeTask, failTask } from './common'
+import { ApplicationFailure, getAssetActivity } from '@shumai/workflow-core'
+import { overlayAnnotationsActivity } from '../activities/transcode'
+import { startTask, completeTask, failTask } from './common'
 
 export async function overlayImageAnnotationWorkflow(task: WorkflowTask): Promise<void> {
-  let workerQueue = ''
   try {
-    workerQueue = await getWorkerQueueAndStartTask(task)
+    await startTask(task)
 
     const payload = task.payload
     if (!payload?.imageAnnotation) {
@@ -16,8 +16,7 @@ export async function overlayImageAnnotationWorkflow(task: WorkflowTask): Promis
       })
     }
 
-    const { getAssetActivity, overlayAnnotationsActivity } = getActivities()
-    const asset = await executeActivity(workerQueue, getAssetActivity, task.assetId)
+    const asset = await getAssetActivity(task.assetId)
     let key = asset?.storageKey?.key
     if (asset?.media) {
       const mediaInfo = asset.media as unknown as PrismaJson.MediaInfo
@@ -33,16 +32,16 @@ export async function overlayImageAnnotationWorkflow(task: WorkflowTask): Promis
       })
     }
 
-    const keyWithOverlay = await executeActivity(workerQueue, overlayAnnotationsActivity, {
+    const keyWithOverlay = await overlayAnnotationsActivity({
       assetKey: key,
       assetId: asset.id,
-      annotations: payload.imageAnnotation.annotations,
+      annotations: payload.imageAnnotation.annotations || [],
     })
 
-    await completeTask(workerQueue, task.id, { key: keyWithOverlay })
+    await completeTask(task.id, { key: keyWithOverlay })
   } catch (err) {
     console.error(`overlayImageAnnotationWorkflow failed for task ${task.id}:`, err)
-    await failTask(workerQueue, task.id, err)
+    await failTask(task.id, err)
     throw err
   }
 }

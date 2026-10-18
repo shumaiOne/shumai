@@ -2,8 +2,6 @@ import os from 'node:os'
 import { DBOS, DBOSClient } from '@dbos-inc/dbos-sdk'
 import { logger } from '@shumai/core/src/logger'
 import { prisma, WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
-import type { Executor } from './executor'
-import { getRegisteredWorkflows } from './registry'
 import {
   getConcurrencyLimit,
   registerLocalTaskAbortController,
@@ -13,6 +11,17 @@ import {
   triggerLocalCancel,
   unregisterLocalTaskAbortController,
 } from './workflow-utils'
+
+export type WorkflowFn = (task: WorkflowTask) => Promise<void>
+const workflowRegistry = new Map<string, WorkflowFn>()
+
+export function registerWorkflow(type: string, fn: WorkflowFn): void {
+  workflowRegistry.set(type, fn)
+}
+
+export function getRegisteredWorkflows(): Map<string, WorkflowFn> {
+  return workflowRegistry
+}
 
 export function getDbosDatabaseUrl(rawUrl?: string): string {
   const urlStr =
@@ -54,7 +63,7 @@ export function getQueueForTaskType(type: string | null | undefined): string {
 let dbosMigrationsRan = false
 const registeredDbosWorkflowNames = new Set<string>()
 
-export class DbosExecutor implements Executor {
+export class DbosExecutor {
   private launchPromise: Promise<void> | null = null
   private started = false
   private client: DBOSClient | null = null

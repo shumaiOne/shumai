@@ -1,6 +1,4 @@
-export * from './executor'
 export * from './dbos-executor'
-export * from './registry'
 export * from './workflow-utils'
 export * from './workflow'
 export * from './activities/task'

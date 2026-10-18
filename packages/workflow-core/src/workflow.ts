@@ -1,6 +1,5 @@
 import { prisma, registerWorkflowCancel, registerWorkflowTrigger, WorkflowTask } from '@shumai/db'
-import { DbosExecutor } from './dbos-executor'
-import { getRegisteredWorkflows } from './registry'
+import { DbosExecutor, getRegisteredWorkflows } from './dbos-executor'
 
 export class WorkflowService {
   private executor: DbosExecutor
@@ -11,11 +10,6 @@ export class WorkflowService {
 
   getExecutor(): DbosExecutor {
     return this.executor
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  setExecutorType(_type: string): void {
-    // Retained for backwards compatibility in tests
   }
 
   async submit(task: WorkflowTask): Promise<string> {
@@ -81,11 +75,7 @@ export class WorkflowService {
   }
 
   // Starts DBOS worker for specific task queue(s)
-  async startWorkers(
-    queue: string | string[],
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _options: { workflowBundle?: unknown; workflowsPath?: string } = {},
-  ): Promise<void> {
+  async startWorkers(queue: string | string[]): Promise<void> {
     const queues = Array.isArray(queue) ? queue : [queue]
     console.log(`Starting DBOS worker for queue(s): ${queues.join(', ')}`)
     this.executor.setListenQueues(queues)

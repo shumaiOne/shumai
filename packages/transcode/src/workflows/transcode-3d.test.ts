@@ -1,69 +1,63 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { transcode3dWorkflow } from './transcode-3d'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType, AssetStatus } from '@shumai/db'
-import * as workflowUtils from '@shumai/workflow-core'
+import {
+  getAssetActivity,
+  updateAssetStatusActivity,
+  updateTaskStatusActivity,
+} from '@shumai/workflow-core'
+import {
+  downloadMediaToTmpActivity,
+  start3dRenderActivity,
+  waitFor3dVideoRenderActivity,
+  generate3dSpriteActivity,
+  generate3dViewsActivity,
+  updateAssetMediaActivity,
+  cleanupTmpDirActivity,
+  createEmbeddingTaskIfEnabledActivity,
+  createAutofillTaskIfEnabledActivity,
+} from '../activities/transcode'
 
 vi.mock('@shumai/workflow-core', async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const actual = (await importOriginal()) as any
+  const actual = await importOriginal<typeof import('@shumai/workflow-core')>()
   return {
     ...actual,
-    getActivities: vi.fn(),
-    executeActivity: vi.fn(),
-    sleep: vi.fn(),
+    updateTaskStatusActivity: vi.fn(),
+    updateAssetStatusActivity: vi.fn(),
+    getAssetActivity: vi.fn(),
   }
 })
 
+vi.mock('../activities/transcode', () => ({
+  downloadMediaToTmpActivity: vi.fn(),
+  start3dRenderActivity: vi.fn(),
+  waitFor3dVideoRenderActivity: vi.fn(),
+  generate3dSpriteActivity: vi.fn(),
+  generate3dViewsActivity: vi.fn(),
+  updateAssetMediaActivity: vi.fn(),
+  cleanupTmpDirActivity: vi.fn(),
+  createEmbeddingTaskIfEnabledActivity: vi.fn(),
+  createAutofillTaskIfEnabledActivity: vi.fn(),
+}))
+
 describe('transcode3dWorkflow', () => {
   const mockActivities = {
-    updateTaskStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateTaskStatusActivity',
-    }),
-    updateAssetStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateAssetStatusActivity',
-    }),
-    getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
-    render3dModelActivity: Object.assign(vi.fn(), { _activityName: 'render3dModelActivity' }),
-    start3dRenderActivity: Object.assign(vi.fn(), { _activityName: 'start3dRenderActivity' }),
-    waitFor3dVideoRenderActivity: Object.assign(vi.fn(), {
-      _activityName: 'waitFor3dVideoRenderActivity',
-    }),
-    generate3dSpriteActivity: Object.assign(vi.fn(), { _activityName: 'generate3dSpriteActivity' }),
-    generate3dViewsActivity: Object.assign(vi.fn(), { _activityName: 'generate3dViewsActivity' }),
-    updateAssetMediaActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateAssetMediaActivity',
-    }),
-    getTranscodeWorkerQueueActivity: Object.assign(vi.fn(), {
-      _activityName: 'getTranscodeWorkerQueueActivity',
-    }),
-    downloadMediaToTmpActivity: Object.assign(vi.fn(), {
-      _activityName: 'downloadMediaToTmpActivity',
-    }),
-    cleanupTmpDirActivity: Object.assign(vi.fn(), { _activityName: 'cleanupTmpDirActivity' }),
-    createEmbeddingTaskIfEnabledActivity: Object.assign(vi.fn(), {
-      _activityName: 'createEmbeddingTaskIfEnabledActivity',
-    }),
-    createAutofillTaskIfEnabledActivity: Object.assign(vi.fn(), {
-      _activityName: 'createAutofillTaskIfEnabledActivity',
-    }),
+    updateTaskStatusActivity: vi.mocked(updateTaskStatusActivity),
+    updateAssetStatusActivity: vi.mocked(updateAssetStatusActivity),
+    getAssetActivity: vi.mocked(getAssetActivity),
+    start3dRenderActivity: vi.mocked(start3dRenderActivity),
+    waitFor3dVideoRenderActivity: vi.mocked(waitFor3dVideoRenderActivity),
+    generate3dSpriteActivity: vi.mocked(generate3dSpriteActivity),
+    generate3dViewsActivity: vi.mocked(generate3dViewsActivity),
+    updateAssetMediaActivity: vi.mocked(updateAssetMediaActivity),
+    downloadMediaToTmpActivity: vi.mocked(downloadMediaToTmpActivity),
+    cleanupTmpDirActivity: vi.mocked(cleanupTmpDirActivity),
+    createEmbeddingTaskIfEnabledActivity: vi.mocked(createEmbeddingTaskIfEnabledActivity),
+    createAutofillTaskIfEnabledActivity: vi.mocked(createAutofillTaskIfEnabledActivity),
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.getActivities as any).mockReturnValue(mockActivities)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.executeActivity as any).mockImplementation(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (_queue: string, fn: any, ...args: any[]) => {
-        if (typeof fn !== 'function') {
-          throw new Error(`fn is not a function in executeActivity. Queue: ${_queue}`)
-        }
-        return fn(...args)
-      },
-    )
-
-    mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_worker_queue')
     mockActivities.downloadMediaToTmpActivity.mockResolvedValue({
       filePath: '/tmp/model.glb',
       tmpDir: '/tmp',
@@ -102,7 +96,8 @@ describe('transcode3dWorkflow', () => {
       storageKey: { key: 'files/asset-3d/robot.glb' },
       mediaType: 'model/gltf-binary',
       sizeByte: BigInt(1024),
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
 
     mockActivities.start3dRenderActivity.mockResolvedValue({
       renderTaskId: 'task_render_1',
@@ -248,7 +243,8 @@ describe('transcode3dWorkflow', () => {
       storageKey: { key: 'files/corrupt.glb' },
       mediaType: 'model/gltf-binary',
       sizeByte: BigInt(512),
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
 
     mockActivities.start3dRenderActivity.mockRejectedValue(new Error('Renderer crashed'))
 

@@ -1,64 +1,57 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { transcodeImageWorkflow } from './transcode-image'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType, AssetStatus } from '@shumai/db'
-import * as workflowUtils from '@shumai/workflow-core'
+import {
+  getAssetActivity,
+  updateAssetStatusActivity,
+  updateTaskStatusActivity,
+} from '@shumai/workflow-core'
+import {
+  downloadMediaToTmpActivity,
+  getMediaInfoActivity,
+  transcodeImageActivity,
+  updateAssetMediaActivity,
+  cleanupTmpDirActivity,
+  createEmbeddingTaskIfEnabledActivity,
+  createAutofillTaskIfEnabledActivity,
+} from '../activities/transcode'
 
 vi.mock('@shumai/workflow-core', async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const actual = (await importOriginal()) as any
+  const actual = await importOriginal<typeof import('@shumai/workflow-core')>()
   return {
     ...actual,
-    getActivities: vi.fn(),
-    executeActivity: vi.fn(),
-    sleep: vi.fn(),
+    updateTaskStatusActivity: vi.fn(),
+    updateAssetStatusActivity: vi.fn(),
+    getAssetActivity: vi.fn(),
   }
 })
 
+vi.mock('../activities/transcode', () => ({
+  downloadMediaToTmpActivity: vi.fn(),
+  getMediaInfoActivity: vi.fn(),
+  transcodeImageActivity: vi.fn(),
+  updateAssetMediaActivity: vi.fn(),
+  cleanupTmpDirActivity: vi.fn(),
+  createEmbeddingTaskIfEnabledActivity: vi.fn(),
+  createAutofillTaskIfEnabledActivity: vi.fn(),
+}))
+
 describe('transcodeImageWorkflow', () => {
   const mockActivities = {
-    updateTaskStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateTaskStatusActivity',
-    }),
-    updateAssetStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateAssetStatusActivity',
-    }),
-    getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
-    getMediaInfoActivity: Object.assign(vi.fn(), { _activityName: 'getMediaInfoActivity' }),
-    transcodeImageActivity: Object.assign(vi.fn(), { _activityName: 'transcodeImageActivity' }),
-    updateAssetMediaActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateAssetMediaActivity',
-    }),
-    getTranscodeWorkerQueueActivity: Object.assign(vi.fn(), {
-      _activityName: 'getTranscodeWorkerQueueActivity',
-    }),
-    downloadMediaToTmpActivity: Object.assign(vi.fn(), {
-      _activityName: 'downloadMediaToTmpActivity',
-    }),
-    cleanupTmpDirActivity: Object.assign(vi.fn(), { _activityName: 'cleanupTmpDirActivity' }),
-    createEmbeddingTaskIfEnabledActivity: Object.assign(vi.fn(), {
-      _activityName: 'createEmbeddingTaskIfEnabledActivity',
-    }),
-    createAutofillTaskIfEnabledActivity: Object.assign(vi.fn(), {
-      _activityName: 'createAutofillTaskIfEnabledActivity',
-    }),
+    updateTaskStatusActivity: vi.mocked(updateTaskStatusActivity),
+    updateAssetStatusActivity: vi.mocked(updateAssetStatusActivity),
+    getAssetActivity: vi.mocked(getAssetActivity),
+    getMediaInfoActivity: vi.mocked(getMediaInfoActivity),
+    transcodeImageActivity: vi.mocked(transcodeImageActivity),
+    updateAssetMediaActivity: vi.mocked(updateAssetMediaActivity),
+    downloadMediaToTmpActivity: vi.mocked(downloadMediaToTmpActivity),
+    cleanupTmpDirActivity: vi.mocked(cleanupTmpDirActivity),
+    createEmbeddingTaskIfEnabledActivity: vi.mocked(createEmbeddingTaskIfEnabledActivity),
+    createAutofillTaskIfEnabledActivity: vi.mocked(createAutofillTaskIfEnabledActivity),
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.getActivities as any).mockReturnValue(mockActivities)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.executeActivity as any).mockImplementation(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (_queue: string, fn: any, ...args: any[]) => {
-        if (typeof fn !== 'function') {
-          throw new Error(`fn is not a function in executeActivity. Queue: ${_queue}`)
-        }
-        return fn(...args)
-      },
-    )
-
-    mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_worker_queue')
     mockActivities.downloadMediaToTmpActivity.mockResolvedValue({
       filePath: '/tmp/image.jpg',
       tmpDir: '/tmp',
@@ -94,7 +87,8 @@ describe('transcodeImageWorkflow', () => {
       id: 'asset-image',
       storageKey: { key: 'image.jpg' },
       mediaType: 'image/jpeg',
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
 
     mockActivities.getMediaInfoActivity.mockResolvedValue({
       proxyType: 'image',
@@ -111,12 +105,14 @@ describe('transcodeImageWorkflow', () => {
       },
       videoTranscodes: [],
       imageTranscodes: [],
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
 
     mockActivities.transcodeImageActivity.mockResolvedValue({
       key: 't.webp',
       width: 300,
       height: 300,
+      quality: 80,
       format: 'webp',
     })
 
@@ -185,7 +181,8 @@ describe('transcodeImageWorkflow', () => {
       id: 'asset-raw',
       storageKey: { key: 'photo.cr2' },
       mediaType: 'image/x-canon-cr2',
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
 
     // RAW file without usable preview returns originalWidth: 0, originalHeight: 0
     mockActivities.getMediaInfoActivity.mockResolvedValue({
@@ -203,7 +200,8 @@ describe('transcodeImageWorkflow', () => {
       },
       videoTranscodes: [],
       imageTranscodes: [],
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
 
     await transcodeImageWorkflow(task)
 

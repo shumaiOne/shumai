@@ -10,6 +10,7 @@ import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/perm
 import { AssetType, prisma, Prisma, type Skill } from '@shumai/db'
 import {
   ApplicationFailure,
+  defineStep,
   getLocalTaskAbortSignal,
   registerLocalCancelHandler,
   unregisterLocalCancelHandler,
@@ -475,7 +476,7 @@ export interface AgentChatParams {
   attachedAssets?: Array<{ id: string; name: string; type: string }>
 }
 
-export async function getUserTeamInfoActivity(params: {
+export const getUserTeamInfoActivity = defineStep(async function getUserTeamInfoActivity(params: {
   userId?: string
   teamId: string
 }): Promise<{ name: string; role: string } | null> {
@@ -495,9 +496,11 @@ export async function getUserTeamInfoActivity(params: {
     name: user.name || 'Unknown User',
     role: member?.role || 'user',
   }
-}
+})
 
-export async function agentChatActivity(params: AgentChatParams) {
+export const agentChatActivity = defineStep(async function agentChatActivity(
+  params: AgentChatParams,
+) {
   const cleanMessage = params.message.replace(/<@[A-Z0-9]+>/g, '').trim()
   const sessionId = params.sessionId
 
@@ -516,7 +519,7 @@ export async function agentChatActivity(params: AgentChatParams) {
     messageContext: params.messageContext,
     attachedAssets: params.attachedAssets,
   })
-}
+})
 
 export interface AutofillAiParams {
   teamId: string
@@ -531,7 +534,9 @@ export interface AutofillAiParams {
   pageCount?: number
 }
 
-export async function autofillAiActivity(params: AutofillAiParams) {
+export const autofillAiActivity = defineStep(async function autofillAiActivity(
+  params: AutofillAiParams,
+) {
   const toolSchema = fieldsToTypeBoxSchema(params.fields)
   let capturedData: Record<string, unknown> | null = null
 
@@ -604,369 +609,373 @@ export async function autofillAiActivity(params: AutofillAiParams) {
     usage,
     sessionId,
   }
-}
+})
 
-export async function initializeAgentSessionActivity(params: {
-  teamId: string
-  agentId: string
-  userCommentId: string
-  userId?: string
-}): Promise<string> {
-  const agentId = params.agentId === 'default' ? 'default' : params.agentId
+export const initializeAgentSessionActivity = defineStep(
+  async function initializeAgentSessionActivity(params: {
+    teamId: string
+    agentId: string
+    userCommentId: string
+    userId?: string
+  }): Promise<string> {
+    const agentId = params.agentId === 'default' ? 'default' : params.agentId
 
-  // Ensure user exists for agent
-  const userExists = await prisma.user.findUnique({ where: { id: agentId } })
-  if (!userExists) {
-    await prisma.user.create({
-      data: {
-        id: agentId,
-        name: 'Ai Agent',
-        email: `${agentId}@shumai.ai`,
-        type: 'agent',
-      },
-    })
-  }
-
-  // Ensure agent exists
-  const agentExists = await prisma.agent.findUnique({ where: { id: agentId } })
-  if (!agentExists) {
-    await prisma.agent.create({
-      data: {
-        id: agentId,
-        teamId: params.teamId,
-        type: 'chat',
-        config: {
-          provider: 'openai',
-          model: 'gpt-4',
-        },
-      },
-    })
-  }
-
-  const userComment = await prisma.assetComment.findUnique({
-    where: { id: params.userCommentId },
-    include: { creator: true },
-  })
-
-  if (!userComment) {
-    throw new Error(`User comment ${params.userCommentId} not found`)
-  }
-
-  const rootCommentId = userComment.replyToId || userComment.id
-  const targetUserCommentId = rootCommentId
-
-  let session = await prisma.agentSession.findFirst({
-    where: {
-      assetId: userComment.assetId,
-      type: 'comment',
-      userCommentId: targetUserCommentId,
-    },
-  })
-
-  if (!session) {
-    session = await prisma.agentSession.create({
-      data: {
-        agentId,
-        userId: params.userId || null,
-        cwd: process.cwd(),
-        assetId: userComment.assetId,
-        userCommentId: targetUserCommentId,
-        type: 'comment',
-      },
-    })
-  }
-
-  const rootComment = await prisma.assetComment.findUnique({
-    where: { id: rootCommentId },
-    include: { creator: true },
-  })
-  if (!rootComment) {
-    throw new Error(`Root comment ${rootCommentId} not found`)
-  }
-
-  // Ensure preceding top-level comments up to rootCommentId are synced in Main Session first
-  let mainSession = await prisma.agentSession.findFirst({
-    where: {
-      assetId: userComment.assetId,
-      type: 'comment',
-      userCommentId: null,
-    },
-  })
-  if (!mainSession) {
-    mainSession = await prisma.agentSession.create({
-      data: {
-        agentId,
-        userId: params.userId || null,
-        cwd: process.cwd(),
-        assetId: userComment.assetId,
-        userCommentId: null,
-        type: 'comment',
-      },
-    })
-  }
-
-  // 1. Fetch top-level comments up to rootComment.createdAt sorted by id
-  const topLevelComments = await prisma.assetComment.findMany({
-    where: {
-      assetId: userComment.assetId,
-      replyToId: null,
-      createdAt: { lte: rootComment.createdAt },
-    },
-    orderBy: { id: 'asc' },
-    include: {
-      creator: true,
-      attachments: { include: { asset: true } },
-    },
-  })
-
-  // 2. Fetch thread replies up to userComment.createdAt excluding userComment itself
-  const threadReplies = userComment.replyToId
-    ? await prisma.assetComment.findMany({
-        where: {
-          replyToId: rootCommentId,
-          createdAt: { lte: userComment.createdAt },
-          id: { not: userComment.id },
-        },
-        orderBy: { id: 'asc' },
-        include: {
-          creator: true,
-          attachments: { include: { asset: true } },
+    // Ensure user exists for agent
+    const userExists = await prisma.user.findUnique({ where: { id: agentId } })
+    if (!userExists) {
+      await prisma.user.create({
+        data: {
+          id: agentId,
+          name: 'Ai Agent',
+          email: `${agentId}@shumai.ai`,
+          type: 'agent',
         },
       })
-    : []
-
-  const allCommentsToSync = [...topLevelComments, ...threadReplies]
-
-  // Resolve user mentions from IDs to names and roles
-  const mentionRegex = /<@([^>]+)>/g
-  const mentionedUserIds = new Set<string>()
-  for (const c of allCommentsToSync) {
-    if (c.message) {
-      const matches = [...c.message.matchAll(mentionRegex)]
-      for (const match of matches) {
-        mentionedUserIds.add(match[1])
-      }
     }
-  }
 
-  const userIdToNameMap = new Map<string, string>()
-  if (mentionedUserIds.size > 0) {
-    const resolvedUsers = await prisma.user.findMany({
-      where: { id: { in: Array.from(mentionedUserIds) } },
-      select: { id: true, name: true },
-    })
-    for (const u of resolvedUsers) {
-      if (u.name) userIdToNameMap.set(u.id, u.name)
-    }
-  }
-
-  const userRoleMap = new Map<string, string>()
-  const humanCreatorIds = Array.from(
-    new Set(
-      allCommentsToSync
-        .filter((c) => c.creator?.type !== 'agent' && c.creatorId)
-        .map((c) => c.creatorId!),
-    ),
-  )
-  if (humanCreatorIds.length > 0) {
-    const members = await prisma.teamMember.findMany({
-      where: {
-        teamId: params.teamId,
-        userId: { in: humanCreatorIds },
-      },
-      select: { userId: true, role: true },
-    })
-    for (const m of members) {
-      userRoleMap.set(m.userId, m.role)
-    }
-  }
-
-  const assetRecord = await prisma.asset.findUnique({
-    where: { id: userComment.assetId },
-    select: { media: true },
-  })
-  const proxyType = (assetRecord?.media as PrismaJson.MediaInfo | null)?.proxyType
-
-  function buildCommentEntry(c: (typeof allCommentsToSync)[0]) {
-    const isAgent = c.creator?.type === 'agent' || c.sessionId !== null
-    let messageContent = c.message || ''
-
-    messageContent = messageContent.replace(mentionRegex, (match, userId) => {
-      const resolvedName = userIdToNameMap.get(userId)
-      return resolvedName ? `<@${resolvedName}>` : match
-    })
-
-    if (isAgent) {
-      const message: AgentMessage = {
-        role: 'assistant',
-        content: [{ type: 'text', text: messageContent }],
-        api: 'custom',
-        provider: 'shumai',
-        model: 'agent',
-        usage: {
-          input: 0,
-          output: 0,
-          cacheRead: 0,
-          cacheWrite: 0,
-          totalTokens: 0,
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+    // Ensure agent exists
+    const agentExists = await prisma.agent.findUnique({ where: { id: agentId } })
+    if (!agentExists) {
+      await prisma.agent.create({
+        data: {
+          id: agentId,
+          teamId: params.teamId,
+          type: 'chat',
+          config: {
+            provider: 'openai',
+            model: 'gpt-4',
+          },
         },
-        stopReason: 'stop',
-        timestamp: c.createdAt.getTime(),
-      }
-      return {
-        type: 'message' as const,
-        data: { message },
-      }
+      })
     }
 
-    let userObj: ShumaiMessageContext['user'] = undefined
-    if (c.creator) {
-      const role = (c.creatorId ? userRoleMap.get(c.creatorId) : undefined) || 'user'
-      userObj = {
-        id: c.creator.id,
-        name: c.creator.name || 'Unknown',
-        role,
-      }
+    const userComment = await prisma.assetComment.findUnique({
+      where: { id: params.userCommentId },
+      include: { creator: true },
+    })
+
+    if (!userComment) {
+      throw new Error(`User comment ${params.userCommentId} not found`)
     }
 
-    let position: ShumaiMediaPosition | undefined = undefined
-    if (c.second !== null && c.second !== undefined) {
-      if (proxyType === '3d') {
-        position = { type: 'degree', degree: secondToDegree(c.second) }
-      } else if (proxyType === 'pdf') {
-        position = { type: 'page', page: Math.round(c.second) }
-      } else {
-        position = { type: 'time', seconds: c.second }
-      }
+    const rootCommentId = userComment.replyToId || userComment.id
+    const targetUserCommentId = rootCommentId
+
+    let session = await prisma.agentSession.findFirst({
+      where: {
+        assetId: userComment.assetId,
+        type: 'comment',
+        userCommentId: targetUserCommentId,
+      },
+    })
+
+    if (!session) {
+      session = await prisma.agentSession.create({
+        data: {
+          agentId,
+          userId: params.userId || null,
+          cwd: process.cwd(),
+          assetId: userComment.assetId,
+          userCommentId: targetUserCommentId,
+          type: 'comment',
+        },
+      })
     }
 
-    const annotation = !!(c.annotation && Array.isArray(c.annotation) && c.annotation.length > 0)
+    const rootComment = await prisma.assetComment.findUnique({
+      where: { id: rootCommentId },
+      include: { creator: true },
+    })
+    if (!rootComment) {
+      throw new Error(`Root comment ${rootCommentId} not found`)
+    }
 
-    const attachedFiles: ShumaiMessageContext['attachedFiles'] = []
-    if (c.attachments && c.attachments.length > 0) {
-      for (const att of c.attachments) {
-        if (att.asset) {
-          const attProxyType = (att.asset.media as PrismaJson.MediaInfo | null)?.proxyType
-          attachedFiles.push({
-            id: att.asset.id,
-            name: att.asset.name,
-            type: att.asset.type,
-            mediaType: attProxyType as
-              | 'image'
-              | 'video'
-              | 'pdf'
-              | 'audio'
-              | '3d'
-              | 'other'
-              | undefined,
-            mimeType: att.asset.mediaType || undefined,
-          })
+    // Ensure preceding top-level comments up to rootCommentId are synced in Main Session first
+    let mainSession = await prisma.agentSession.findFirst({
+      where: {
+        assetId: userComment.assetId,
+        type: 'comment',
+        userCommentId: null,
+      },
+    })
+    if (!mainSession) {
+      mainSession = await prisma.agentSession.create({
+        data: {
+          agentId,
+          userId: params.userId || null,
+          cwd: process.cwd(),
+          assetId: userComment.assetId,
+          userCommentId: null,
+          type: 'comment',
+        },
+      })
+    }
+
+    // 1. Fetch top-level comments up to rootComment.createdAt sorted by id
+    const topLevelComments = await prisma.assetComment.findMany({
+      where: {
+        assetId: userComment.assetId,
+        replyToId: null,
+        createdAt: { lte: rootComment.createdAt },
+      },
+      orderBy: { id: 'asc' },
+      include: {
+        creator: true,
+        attachments: { include: { asset: true } },
+      },
+    })
+
+    // 2. Fetch thread replies up to userComment.createdAt excluding userComment itself
+    const threadReplies = userComment.replyToId
+      ? await prisma.assetComment.findMany({
+          where: {
+            replyToId: rootCommentId,
+            createdAt: { lte: userComment.createdAt },
+            id: { not: userComment.id },
+          },
+          orderBy: { id: 'asc' },
+          include: {
+            creator: true,
+            attachments: { include: { asset: true } },
+          },
+        })
+      : []
+
+    const allCommentsToSync = [...topLevelComments, ...threadReplies]
+
+    // Resolve user mentions from IDs to names and roles
+    const mentionRegex = /<@([^>]+)>/g
+    const mentionedUserIds = new Set<string>()
+    for (const c of allCommentsToSync) {
+      if (c.message) {
+        const matches = [...c.message.matchAll(mentionRegex)]
+        for (const match of matches) {
+          mentionedUserIds.add(match[1])
         }
       }
     }
 
-    const commentDetails: ShumaiMessageContext = {
-      id: c.id,
-      ...(userObj ? { user: userObj } : {}),
-      ...(position ? { position } : {}),
-      ...(annotation
-        ? {
-            annotation: true,
-            annotations: c.annotation as unknown as ShumaiMessageContext['annotations'],
-          }
-        : {}),
-      ...(attachedFiles.length > 0 ? { attachedFiles } : {}),
-    }
-
-    return {
-      type: 'custom_message' as const,
-      data: {
-        customType: 'shumai_message',
-        content: messageContent,
-        display: true,
-        details: commentDetails,
-      },
-    }
-  }
-
-  // 3. Sync top-level comments into agent_session_entries (DAG spine)
-  let mainPrevId: string | null = null
-  for (const c of topLevelComments) {
-    const existingEntry = await prisma.agentSessionEntry.findUnique({
-      where: { id: c.id },
-      select: { id: true },
-    })
-
-    if (!existingEntry) {
-      const entryData = buildCommentEntry(c)
-      await prisma.agentSessionEntry.create({
-        data: {
-          id: c.id,
-          sessionId: mainSession.id,
-          assetId: userComment.assetId,
-          type: entryData.type,
-          parentId: mainPrevId,
-          createdAt: c.createdAt,
-          data: entryData.data as PrismaJson.PiSessionEntryData,
-        },
+    const userIdToNameMap = new Map<string, string>()
+    if (mentionedUserIds.size > 0) {
+      const resolvedUsers = await prisma.user.findMany({
+        where: { id: { in: Array.from(mentionedUserIds) } },
+        select: { id: true, name: true },
       })
+      for (const u of resolvedUsers) {
+        if (u.name) userIdToNameMap.set(u.id, u.name)
+      }
     }
-    mainPrevId = c.id
-  }
 
-  if (mainPrevId) {
-    await prisma.agentSession.update({
-      where: { id: mainSession.id },
-      data: { leafId: mainPrevId },
+    const userRoleMap = new Map<string, string>()
+    const humanCreatorIds = Array.from(
+      new Set(
+        allCommentsToSync
+          .filter((c) => c.creator?.type !== 'agent' && c.creatorId)
+          .map((c) => c.creatorId!),
+      ),
+    )
+    if (humanCreatorIds.length > 0) {
+      const members = await prisma.teamMember.findMany({
+        where: {
+          teamId: params.teamId,
+          userId: { in: humanCreatorIds },
+        },
+        select: { userId: true, role: true },
+      })
+      for (const m of members) {
+        userRoleMap.set(m.userId, m.role)
+      }
+    }
+
+    const assetRecord = await prisma.asset.findUnique({
+      where: { id: userComment.assetId },
+      select: { media: true },
     })
-  }
+    const proxyType = (assetRecord?.media as PrismaJson.MediaInfo | null)?.proxyType
 
-  // 4. Sync thread replies and set Thread Session leafId
-  let threadLeafId: string = rootCommentId
+    function buildCommentEntry(c: (typeof allCommentsToSync)[0]) {
+      const isAgent = c.creator?.type === 'agent' || c.sessionId !== null
+      let messageContent = c.message || ''
 
-  if (threadReplies.length > 0) {
-    let lastReplyParentId: string = rootCommentId
-    for (const reply of threadReplies) {
-      const existingReplyEntry = await prisma.agentSessionEntry.findUnique({
-        where: { id: reply.id },
+      messageContent = messageContent.replace(mentionRegex, (match, userId) => {
+        const resolvedName = userIdToNameMap.get(userId)
+        return resolvedName ? `<@${resolvedName}>` : match
+      })
+
+      if (isAgent) {
+        const message: AgentMessage = {
+          role: 'assistant',
+          content: [{ type: 'text', text: messageContent }],
+          api: 'custom',
+          provider: 'shumai',
+          model: 'agent',
+          usage: {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+            totalTokens: 0,
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+          },
+          stopReason: 'stop',
+          timestamp: c.createdAt.getTime(),
+        }
+        return {
+          type: 'message' as const,
+          data: { message },
+        }
+      }
+
+      let userObj: ShumaiMessageContext['user'] = undefined
+      if (c.creator) {
+        const role = (c.creatorId ? userRoleMap.get(c.creatorId) : undefined) || 'user'
+        userObj = {
+          id: c.creator.id,
+          name: c.creator.name || 'Unknown',
+          role,
+        }
+      }
+
+      let position: ShumaiMediaPosition | undefined = undefined
+      if (c.second !== null && c.second !== undefined) {
+        if (proxyType === '3d') {
+          position = { type: 'degree', degree: secondToDegree(c.second) }
+        } else if (proxyType === 'pdf') {
+          position = { type: 'page', page: Math.round(c.second) }
+        } else {
+          position = { type: 'time', seconds: c.second }
+        }
+      }
+
+      const annotation = !!(c.annotation && Array.isArray(c.annotation) && c.annotation.length > 0)
+
+      const attachedFiles: ShumaiMessageContext['attachedFiles'] = []
+      if (c.attachments && c.attachments.length > 0) {
+        for (const att of c.attachments) {
+          if (att.asset) {
+            const attProxyType = (att.asset.media as PrismaJson.MediaInfo | null)?.proxyType
+            attachedFiles.push({
+              id: att.asset.id,
+              name: att.asset.name,
+              type: att.asset.type,
+              mediaType: attProxyType as
+                | 'image'
+                | 'video'
+                | 'pdf'
+                | 'audio'
+                | '3d'
+                | 'other'
+                | undefined,
+              mimeType: att.asset.mediaType || undefined,
+            })
+          }
+        }
+      }
+
+      const commentDetails: ShumaiMessageContext = {
+        id: c.id,
+        ...(userObj ? { user: userObj } : {}),
+        ...(position ? { position } : {}),
+        ...(annotation
+          ? {
+              annotation: true,
+              annotations: c.annotation as unknown as ShumaiMessageContext['annotations'],
+            }
+          : {}),
+        ...(attachedFiles.length > 0 ? { attachedFiles } : {}),
+      }
+
+      return {
+        type: 'custom_message' as const,
+        data: {
+          customType: 'shumai_message',
+          content: messageContent,
+          display: true,
+          details: commentDetails,
+        },
+      }
+    }
+
+    // 3. Sync top-level comments into agent_session_entries (DAG spine)
+    let mainPrevId: string | null = null
+    for (const c of topLevelComments) {
+      const existingEntry = await prisma.agentSessionEntry.findUnique({
+        where: { id: c.id },
         select: { id: true },
       })
 
-      if (!existingReplyEntry) {
-        const entryData = buildCommentEntry(reply)
+      if (!existingEntry) {
+        const entryData = buildCommentEntry(c)
         await prisma.agentSessionEntry.create({
           data: {
-            id: reply.id,
-            sessionId: session.id,
+            id: c.id,
+            sessionId: mainSession.id,
             assetId: userComment.assetId,
             type: entryData.type,
-            parentId: lastReplyParentId,
-            createdAt: reply.createdAt,
+            parentId: mainPrevId,
+            createdAt: c.createdAt,
             data: entryData.data as PrismaJson.PiSessionEntryData,
           },
         })
       }
-      lastReplyParentId = reply.id
+      mainPrevId = c.id
     }
-    threadLeafId = lastReplyParentId
-  }
 
-  await prisma.agentSession.update({
-    where: { id: session.id },
-    data: { leafId: threadLeafId },
-  })
+    if (mainPrevId) {
+      await prisma.agentSession.update({
+        where: { id: mainSession.id },
+        data: { leafId: mainPrevId },
+      })
+    }
 
-  return session.id
-}
+    // 4. Sync thread replies and set Thread Session leafId
+    let threadLeafId: string = rootCommentId
 
-export async function deleteCommentActivity(commentId: string) {
+    if (threadReplies.length > 0) {
+      let lastReplyParentId: string = rootCommentId
+      for (const reply of threadReplies) {
+        const existingReplyEntry = await prisma.agentSessionEntry.findUnique({
+          where: { id: reply.id },
+          select: { id: true },
+        })
+
+        if (!existingReplyEntry) {
+          const entryData = buildCommentEntry(reply)
+          await prisma.agentSessionEntry.create({
+            data: {
+              id: reply.id,
+              sessionId: session.id,
+              assetId: userComment.assetId,
+              type: entryData.type,
+              parentId: lastReplyParentId,
+              createdAt: reply.createdAt,
+              data: entryData.data as PrismaJson.PiSessionEntryData,
+            },
+          })
+        }
+        lastReplyParentId = reply.id
+      }
+      threadLeafId = lastReplyParentId
+    }
+
+    await prisma.agentSession.update({
+      where: { id: session.id },
+      data: { leafId: threadLeafId },
+    })
+
+    return session.id
+  },
+)
+
+export const deleteCommentActivity = defineStep(async function deleteCommentActivity(
+  commentId: string,
+) {
   return prisma.assetComment.delete({
     where: { id: commentId },
   })
-}
+})
 
-export async function createCommentActivity(params: {
+export const createCommentActivity = defineStep(async function createCommentActivity(params: {
   assetId: string
   message: string
   sessionId?: string | null
@@ -1037,211 +1046,231 @@ export async function createCommentActivity(params: {
       replyToId: params.replyToId,
     },
   })
-}
+})
 
-export async function updateCommentActivity(params: {
-  commentId: string
-  message: string
-  sessionId?: string | null
-}) {
-  return prisma.assetComment.update({
-    where: { id: params.commentId },
-    data: {
-      message: params.message,
-      ...(params.sessionId !== undefined ? { sessionId: params.sessionId } : {}),
-    },
-  })
-}
+export const updateCommentActivity = defineStep(
+  async function updateCommentActivity(params: {
+    commentId: string
+    message: string
+    sessionId?: string | null
+  }) {
+    return prisma.assetComment.update({
+      where: { id: params.commentId },
+      data: {
+        message: params.message,
+        ...(params.sessionId !== undefined ? { sessionId: params.sessionId } : {}),
+      },
+    })
+  },
+  { runOnCancel: true },
+)
 
-export async function getAgentChatContextActivity(params: {
-  teamId: string
-  agentId: string
-  userId?: string
-  projectId?: string
-}): Promise<AgentExecutionContext> {
-  const team = await prisma.team.findUnique({
-    where: { id: params.teamId },
-  })
-  if (!team) {
-    throw ApplicationFailure.create({ message: 'failed to get team', nonRetryable: true })
-  }
+export const getAgentChatContextActivity = defineStep(
+  async function getAgentChatContextActivity(params: {
+    teamId: string
+    agentId: string
+    userId?: string
+    projectId?: string
+  }): Promise<AgentExecutionContext> {
+    const team = await prisma.team.findUnique({
+      where: { id: params.teamId },
+    })
+    if (!team) {
+      throw ApplicationFailure.create({ message: 'failed to get team', nonRetryable: true })
+    }
 
-  const agent = await prisma.agent.findUnique({
-    where: { id: params.agentId },
-    include: {
-      provider: true,
-      modelRef: true,
-      skills: {
-        include: {
-          skill: true,
+    const agent = await prisma.agent.findUnique({
+      where: { id: params.agentId },
+      include: {
+        provider: true,
+        modelRef: true,
+        skills: {
+          include: {
+            skill: true,
+          },
         },
       },
-    },
-  })
-  if (!agent) {
-    throw ApplicationFailure.create({
-      message: `agent ${params.agentId} not found`,
-      nonRetryable: true,
     })
-  }
-
-  if (params.userId) {
-    const effectiveRole = await resolveEffectiveRole(params.teamId, params.projectId, params.userId)
-    const userLevel = getRoleLevel(effectiveRole)
-    const requiredLevel = getAgentRequiredLevel(agent.permission)
-    if (userLevel < requiredLevel) {
+    if (!agent) {
       throw ApplicationFailure.create({
-        message: `Permission denied: Insufficient role to use agent "${params.agentId}". Minimum required role is "${agent.permission}".`,
+        message: `agent ${params.agentId} not found`,
         nonRetryable: true,
       })
     }
-  }
 
-  if (!agent.provider) {
-    throw ApplicationFailure.create({
-      message: 'agent has no provider configured',
-      nonRetryable: true,
-    })
-  }
-  if (!agent.modelRef) {
-    throw ApplicationFailure.create({
-      message: 'agent has no model configured',
-      nonRetryable: true,
-    })
-  }
-
-  const providerName = agent.provider.name
-
-  // Fetch the required provider configuration from database
-  const dbProviders = await prisma.provider.findMany({
-    where: { teamId: params.teamId, name: providerName },
-    include: { models: true },
-  })
-
-  // Only advertise skills that are explicitly enabled for this agent (agent_skills)
-  // AND permitted for the requesting user's effective role. Disabled or
-  // un-permitted skills must not be listed in the system prompt nor loadable
-  // via read_skill (read_skill keeps its own permission check as a backstop).
-  const enabledSkills = (agent.skills ?? []).map((as) => as.skill)
-  let permittedSkills = enabledSkills
-  if (params.userId) {
-    const effectiveRole = await resolveEffectiveRole(params.teamId, params.projectId, params.userId)
-    if (!effectiveRole) {
-      permittedSkills = []
-    } else {
+    if (params.userId) {
+      const effectiveRole = await resolveEffectiveRole(
+        params.teamId,
+        params.projectId,
+        params.userId,
+      )
       const userLevel = getRoleLevel(effectiveRole)
-      permittedSkills = enabledSkills.filter((s) => (getRoleLevel(s.permission) || 1) <= userLevel)
+      const requiredLevel = getAgentRequiredLevel(agent.permission)
+      if (userLevel < requiredLevel) {
+        throw ApplicationFailure.create({
+          message: `Permission denied: Insufficient role to use agent "${params.agentId}". Minimum required role is "${agent.permission}".`,
+          nonRetryable: true,
+        })
+      }
     }
-  }
-  const enabledSkillIds = permittedSkills.map((s) => s.id)
 
-  // Fetch the agent's assigned MCP servers
-  const assignments = await prisma.agentMcpServer.findMany({
-    where: { agentId: params.agentId },
-    include: { mcpServer: true },
-  })
-  const mcpServers = assignments.map((a) => a.mcpServer)
+    if (!agent.provider) {
+      throw ApplicationFailure.create({
+        message: 'agent has no provider configured',
+        nonRetryable: true,
+      })
+    }
+    if (!agent.modelRef) {
+      throw ApplicationFailure.create({
+        message: 'agent has no model configured',
+        nonRetryable: true,
+      })
+    }
 
-  const sandbox = await prisma.sandbox.findUnique({
-    where: { teamId: params.teamId },
-  })
-  const allowedDomains = sandbox?.networkSandboxEnabled ? sandbox.allowedDomains : ['*']
+    const providerName = agent.provider.name
 
-  return {
-    agent,
-    dbProviders,
-    teamSkills: permittedSkills,
-    mcpServers,
-    enabledSkillIds,
-    allowedDomains,
-  }
-}
-
-export async function getAgentAutofillContextActivity(params: {
-  teamId: string
-}): Promise<AgentExecutionContext> {
-  const agent = await prisma.agent.findFirst({
-    where: {
-      type: 'autofill',
-      enabled: true,
-      teamId: params.teamId,
-    },
-  })
-  if (!agent) {
-    throw ApplicationFailure.create({
-      message: 'no autofill agent found for team',
-      nonRetryable: true,
+    // Fetch the required provider configuration from database
+    const dbProviders = await prisma.provider.findMany({
+      where: { teamId: params.teamId, name: providerName },
+      include: { models: true },
     })
-  }
 
-  const team = await prisma.team.findUnique({
-    where: { id: params.teamId },
-  })
-  if (!team) {
-    throw ApplicationFailure.create({ message: 'failed to get team', nonRetryable: true })
-  }
+    // Only advertise skills that are explicitly enabled for this agent (agent_skills)
+    // AND permitted for the requesting user's effective role. Disabled or
+    // un-permitted skills must not be listed in the system prompt nor loadable
+    // via read_skill (read_skill keeps its own permission check as a backstop).
+    const enabledSkills = (agent.skills ?? []).map((as) => as.skill)
+    let permittedSkills = enabledSkills
+    if (params.userId) {
+      const effectiveRole = await resolveEffectiveRole(
+        params.teamId,
+        params.projectId,
+        params.userId,
+      )
+      if (!effectiveRole) {
+        permittedSkills = []
+      } else {
+        const userLevel = getRoleLevel(effectiveRole)
+        permittedSkills = enabledSkills.filter(
+          (s) => (getRoleLevel(s.permission) || 1) <= userLevel,
+        )
+      }
+    }
+    const enabledSkillIds = permittedSkills.map((s) => s.id)
 
-  // Find provider/model configuration
-  const agentWithDetails = await prisma.agent.findUnique({
-    where: { id: agent.id },
-    include: {
-      provider: true,
-      modelRef: true,
-      skills: {
-        include: {
-          skill: true,
+    // Fetch the agent's assigned MCP servers
+    const assignments = await prisma.agentMcpServer.findMany({
+      where: { agentId: params.agentId },
+      include: { mcpServer: true },
+    })
+    const mcpServers = assignments.map((a) => a.mcpServer)
+
+    const sandbox = await prisma.sandbox.findUnique({
+      where: { teamId: params.teamId },
+    })
+    const allowedDomains = sandbox?.networkSandboxEnabled ? sandbox.allowedDomains : ['*']
+
+    return {
+      agent,
+      dbProviders,
+      teamSkills: permittedSkills,
+      mcpServers,
+      enabledSkillIds,
+      allowedDomains,
+    }
+  },
+)
+
+export const getAgentAutofillContextActivity = defineStep(
+  async function getAgentAutofillContextActivity(params: {
+    teamId: string
+  }): Promise<AgentExecutionContext> {
+    const agent = await prisma.agent.findFirst({
+      where: {
+        type: 'autofill',
+        enabled: true,
+        teamId: params.teamId,
+      },
+    })
+    if (!agent) {
+      throw ApplicationFailure.create({
+        message: 'no autofill agent found for team',
+        nonRetryable: true,
+      })
+    }
+
+    const team = await prisma.team.findUnique({
+      where: { id: params.teamId },
+    })
+    if (!team) {
+      throw ApplicationFailure.create({ message: 'failed to get team', nonRetryable: true })
+    }
+
+    // Find provider/model configuration
+    const agentWithDetails = await prisma.agent.findUnique({
+      where: { id: agent.id },
+      include: {
+        provider: true,
+        modelRef: true,
+        skills: {
+          include: {
+            skill: true,
+          },
         },
       },
-    },
-  })
-  if (!agentWithDetails) {
-    throw ApplicationFailure.create({ message: `agent ${agent.id} not found`, nonRetryable: true })
-  }
-  if (!agentWithDetails.provider) {
-    throw ApplicationFailure.create({
-      message: 'agent has no provider configured',
-      nonRetryable: true,
     })
-  }
-  if (!agentWithDetails.modelRef) {
-    throw ApplicationFailure.create({
-      message: 'agent has no model configured',
-      nonRetryable: true,
+    if (!agentWithDetails) {
+      throw ApplicationFailure.create({
+        message: `agent ${agent.id} not found`,
+        nonRetryable: true,
+      })
+    }
+    if (!agentWithDetails.provider) {
+      throw ApplicationFailure.create({
+        message: 'agent has no provider configured',
+        nonRetryable: true,
+      })
+    }
+    if (!agentWithDetails.modelRef) {
+      throw ApplicationFailure.create({
+        message: 'agent has no model configured',
+        nonRetryable: true,
+      })
+    }
+
+    const providerName = agentWithDetails.provider.name
+
+    // Fetch the required provider configuration from database
+    const dbProviders = await prisma.provider.findMany({
+      where: { teamId: params.teamId, name: providerName },
+      include: { models: true },
     })
-  }
 
-  const providerName = agentWithDetails.provider.name
+    // Only advertise skills that are explicitly enabled for this agent (agent_skills).
+    // Disabled skills must not be listed in the system prompt nor loadable via read_skill.
+    const enabledSkills = (agentWithDetails.skills ?? []).map((as) => as.skill)
+    const enabledSkillIds = enabledSkills.map((s) => s.id)
 
-  // Fetch the required provider configuration from database
-  const dbProviders = await prisma.provider.findMany({
-    where: { teamId: params.teamId, name: providerName },
-    include: { models: true },
-  })
+    // Autofill agents currently do not use MCP tools.
+    const mcpServers: Prisma.McpServerGetPayload<Record<string, never>>[] = []
 
-  // Only advertise skills that are explicitly enabled for this agent (agent_skills).
-  // Disabled skills must not be listed in the system prompt nor loadable via read_skill.
-  const enabledSkills = (agentWithDetails.skills ?? []).map((as) => as.skill)
-  const enabledSkillIds = enabledSkills.map((s) => s.id)
+    const sandbox = await prisma.sandbox.findUnique({
+      where: { teamId: params.teamId },
+    })
+    const allowedDomains = sandbox?.networkSandboxEnabled ? sandbox.allowedDomains : ['*']
 
-  // Autofill agents currently do not use MCP tools.
-  const mcpServers: Prisma.McpServerGetPayload<Record<string, never>>[] = []
+    return {
+      agent: agentWithDetails,
+      dbProviders,
+      teamSkills: enabledSkills,
+      mcpServers,
+      enabledSkillIds,
+      allowedDomains,
+    }
+  },
+)
 
-  const sandbox = await prisma.sandbox.findUnique({
-    where: { teamId: params.teamId },
-  })
-  const allowedDomains = sandbox?.networkSandboxEnabled ? sandbox.allowedDomains : ['*']
-
-  return {
-    agent: agentWithDetails,
-    dbProviders,
-    teamSkills: enabledSkills,
-    mcpServers,
-    enabledSkillIds,
-    allowedDomains,
-  }
-}
-
-export async function getAssetActivity(assetId: string) {
+export const getAssetActivity = defineStep(async function getAssetActivity(assetId: string) {
   const asset = await prisma.asset.findUnique({
     where: { id: assetId },
     include: {
@@ -1294,11 +1323,12 @@ export async function getAssetActivity(assetId: string) {
 
   return {
     ...resolvedAsset,
+    sizeByte: Number(resolvedAsset.sizeByte),
     url,
   }
-}
+})
 
-export async function getCommentActivity(commentId: string) {
+export const getCommentActivity = defineStep(async function getCommentActivity(commentId: string) {
   const comment = await prisma.assetComment.findUnique({
     where: { id: commentId },
     include: {
@@ -1335,52 +1365,60 @@ export async function getCommentActivity(commentId: string) {
     ...comment,
     attachments: attachmentsWithUrl,
   }
-}
+})
 
-export async function getProjectAutofillFieldsActivity(projectId: string) {
-  const fields = await metadataService.listProjectFields('', projectId)
-  return fields.filter((f) => f.field.config?.autofillSource === 'CONTENT').map((f) => f.field)
-}
+export const getProjectAutofillFieldsActivity = defineStep(
+  async function getProjectAutofillFieldsActivity(projectId: string) {
+    const fields = await metadataService.listProjectFields('', projectId)
+    return fields.filter((f) => f.field.config?.autofillSource === 'CONTENT').map((f) => f.field)
+  },
+)
 
-export async function updateAssetMetadataActivity(params: {
-  assetId: string
-  metadata: UpdateAssetMetadataRequest[]
-}) {
-  return metadataService.updateAssetMetadata(params.assetId, params.metadata)
-}
+export const updateAssetMetadataActivity = defineStep(
+  async function updateAssetMetadataActivity(params: {
+    assetId: string
+    metadata: UpdateAssetMetadataRequest[]
+  }) {
+    return metadataService.updateAssetMetadata(params.assetId, params.metadata)
+  },
+)
 
-export async function getAssetPathHierarchyActivity(
-  assetId: string,
-): Promise<{ path: string; ancestors: Array<{ id: string; name: string }> }> {
-  const parts: { name: string; id: string }[] = []
-  let currentId: string | null = assetId
+export const getAssetPathHierarchyActivity = defineStep(
+  async function getAssetPathHierarchyActivity(
+    assetId: string,
+  ): Promise<{ path: string; ancestors: Array<{ id: string; name: string }> }> {
+    const parts: { name: string; id: string }[] = []
+    let currentId: string | null = assetId
 
-  while (currentId) {
-    /* prettier-ignore */
-    const assetNode = (await prisma.asset.findUnique({
-      where: { id: currentId },
-      select: { id: true, name: true, parentId: true, type: true },
-    })) as { id: string; name: string; parentId: string | null; type: AssetType } | null
-    if (!assetNode) break
+    while (currentId) {
+      /* prettier-ignore */
+      const assetNode = (await prisma.asset.findUnique({
+        where: { id: currentId },
+        select: { id: true, name: true, parentId: true, type: true },
+      })) as { id: string; name: string; parentId: string | null; type: AssetType } | null
+      if (!assetNode) break
 
-    if (assetNode.name) {
-      parts.unshift({ name: assetNode.name, id: assetNode.id })
+      if (assetNode.name) {
+        parts.unshift({ name: assetNode.name, id: assetNode.id })
+      }
+
+      currentId = assetNode.parentId
     }
 
-    currentId = assetNode.parentId
-  }
+    if (parts.length === 0) return { path: '', ancestors: [] }
 
-  if (parts.length === 0) return { path: '', ancestors: [] }
+    const path = parts.map((p) => p.name).join('/')
+    const ancestors = parts.slice(0, -1)
+    return { path, ancestors }
+  },
+)
 
-  const path = parts.map((p) => p.name).join('/')
-  const ancestors = parts.slice(0, -1)
-  return { path, ancestors }
-}
-
-export async function getAssetPathContextActivity(assetId: string): Promise<string> {
+export const getAssetPathContextActivity = defineStep(async function getAssetPathContextActivity(
+  assetId: string,
+): Promise<string> {
   const { path } = await getAssetPathHierarchyActivity(assetId)
   return path
-}
+})
 
 export interface GenerateSessionNameParams {
   teamId: string
@@ -1393,7 +1431,7 @@ export interface GenerateSessionNameParams {
   }
 }
 
-export async function generateSessionNameActivity(
+export const generateSessionNameActivity = defineStep(async function generateSessionNameActivity(
   params: GenerateSessionNameParams,
 ): Promise<void> {
   const { sessionId, prompt, teamId, agentId } = params
@@ -1522,4 +1560,4 @@ export async function generateSessionNameActivity(
         })
     }
   }
-}
+})

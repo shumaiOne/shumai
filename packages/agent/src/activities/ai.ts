@@ -2,10 +2,16 @@ import { GoogleGenAI } from '@google/genai'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core'
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
-import { ApplicationFailure } from '@shumai/workflow-core'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+import { ulid } from 'ulid'
+import { ApplicationFailure, defineStep } from '@shumai/workflow-core'
 import { prisma } from '@shumai/db'
 import sharp from 'sharp'
+
+const execFileAsync = promisify(execFile)
 
 export interface Usage {
   inputTokens: number
@@ -112,42 +118,44 @@ export interface GenerateTextEmbeddingParams {
   teamId: string
 }
 
-export async function generateTextEmbeddingActivity(params: GenerateTextEmbeddingParams): Promise<{
-  embedding: number[]
-  usage: Usage
-}> {
-  const provider = process.env.EMBEDDING_PROVIDER || 'gemini-embedding-2'
-  if (provider !== 'gemma-embedding-2-openai' && !process.env.GEMINI_API_KEY) {
-    throw ApplicationFailure.create({
-      message: 'GEMINI_API_KEY environment variable is not configured',
-      nonRetryable: true,
-    })
-  }
-
-  try {
-    const result = await textEmbeddingService.generateEmbedding(params.text, {
-      teamId: params.teamId,
-      skipCache: true,
-    })
-
-    return {
-      embedding: result.embedding,
-      usage: {
-        model: result.usage?.model || provider,
-        inputTokens: result.usage?.inputTokens ?? 0,
-        outputTokens: result.usage?.outputTokens ?? 0,
-      },
+export const generateTextEmbeddingActivity = defineStep(
+  async function generateTextEmbeddingActivity(params: GenerateTextEmbeddingParams): Promise<{
+    embedding: number[]
+    usage: Usage
+  }> {
+    const provider = process.env.EMBEDDING_PROVIDER || 'gemini-embedding-2'
+    if (provider !== 'gemma-embedding-2-openai' && !process.env.GEMINI_API_KEY) {
+      throw ApplicationFailure.create({
+        message: 'GEMINI_API_KEY environment variable is not configured',
+        nonRetryable: true,
+      })
     }
-  } catch (err) {
-    if (err instanceof ApplicationFailure) {
-      throw err
+
+    try {
+      const result = await textEmbeddingService.generateEmbedding(params.text, {
+        teamId: params.teamId,
+        skipCache: true,
+      })
+
+      return {
+        embedding: result.embedding,
+        usage: {
+          model: result.usage?.model || provider,
+          inputTokens: result.usage?.inputTokens ?? 0,
+          outputTokens: result.usage?.outputTokens ?? 0,
+        },
+      }
+    } catch (err) {
+      if (err instanceof ApplicationFailure) {
+        throw err
+      }
+      throw ApplicationFailure.create({
+        message: err instanceof Error ? err.message : String(err),
+        nonRetryable: false,
+      })
     }
-    throw ApplicationFailure.create({
-      message: err instanceof Error ? err.message : String(err),
-      nonRetryable: false,
-    })
-  }
-}
+  },
+)
 
 export interface ExtractAiMetadataParams {
   assetKey: string
@@ -156,7 +164,7 @@ export interface ExtractAiMetadataParams {
   isImage: boolean
 }
 
-export async function extractAiMetadataActivity(
+export const extractAiMetadataActivity = defineStep(async function extractAiMetadataActivity(
   params: ExtractAiMetadataParams,
 ): Promise<string[]> {
   const bucket = process.env.S3_BUCKET || 'shumai'
@@ -207,50 +215,51 @@ export async function extractAiMetadataActivity(
   }
 
   return generatedFiles
-}
+})
 
-export async function getEmbeddingContextActivity(params: { teamId: string; assetId: string }) {
-  const team = await prisma.team.findUnique({
-    where: { id: params.teamId },
-  })
-  if (!team) {
-    throw ApplicationFailure.create({ message: 'failed to get team', nonRetryable: true })
-  }
-
-  const agent = await prisma.agent.findFirst({
-    where: {
-      type: 'embedding',
-      enabled: true,
-      user: { teamMembers: { some: { teamId: params.teamId } } },
-    },
-  })
-  if (!agent || process.env.ENABLE_EMBEDDING_AGENT === 'false') {
-    throw ApplicationFailure.create({
-      message: 'embedding feature is disabled or agent not found',
-      nonRetryable: true,
+export const getEmbeddingContextActivity = defineStep(
+  async function getEmbeddingContextActivity(params: { teamId: string; assetId: string }) {
+    const team = await prisma.team.findUnique({
+      where: { id: params.teamId },
     })
-  }
+    if (!team) {
+      throw ApplicationFailure.create({ message: 'failed to get team', nonRetryable: true })
+    }
 
-  const asset = await prisma.asset.findUnique({
-    where: { id: params.assetId },
-    include: { storageKey: true },
-  })
-  if (!asset) {
-    throw ApplicationFailure.create({ message: 'failed to get asset', nonRetryable: true })
-  }
-  if (!asset.mediaType) {
-    throw ApplicationFailure.create({ message: 'asset has no media type', nonRetryable: true })
-  }
+    const agent = await prisma.agent.findFirst({
+      where: {
+        type: 'embedding',
+        enabled: true,
+        user: { teamMembers: { some: { teamId: params.teamId } } },
+      },
+    })
+    if (!agent || process.env.ENABLE_EMBEDDING_AGENT === 'false') {
+      throw ApplicationFailure.create({
+        message: 'embedding feature is disabled or agent not found',
+        nonRetryable: true,
+      })
+    }
 
-  const parsedDuration = parseFloat(process.env.EMBEDDING_CHUNK_DURATION || '')
-  const chunkDuration =
-    Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : 60.0
+    const asset = await prisma.asset.findUnique({
+      where: { id: params.assetId },
+      include: { storageKey: true },
+    })
+    if (!asset) {
+      throw ApplicationFailure.create({ message: 'failed to get asset', nonRetryable: true })
+    }
+    if (!asset.mediaType) {
+      throw ApplicationFailure.create({ message: 'asset has no media type', nonRetryable: true })
+    }
 
-  const parsedOverlap = parseFloat(process.env.EMBEDDING_CHUNK_OVERLAP || '')
-  const chunkOverlap = Number.isFinite(parsedOverlap) && parsedOverlap >= 0 ? parsedOverlap : 5.0
-  const embeddingProvider = process.env.EMBEDDING_PROVIDER || 'gemini-embedding-2'
+    const parsedDuration = parseFloat(process.env.EMBEDDING_CHUNK_DURATION || '')
+    const chunkDuration =
+      Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : 60.0
 
-  const existingEmbeddings = await prisma.$queryRaw<ExistingAssetEmbeddingInfo[]>`
+    const parsedOverlap = parseFloat(process.env.EMBEDDING_CHUNK_OVERLAP || '')
+    const chunkOverlap = Number.isFinite(parsedOverlap) && parsedOverlap >= 0 ? parsedOverlap : 5.0
+    const embeddingProvider = process.env.EMBEDDING_PROVIDER || 'gemini-embedding-2'
+
+    const existingEmbeddings = await prisma.$queryRaw<ExistingAssetEmbeddingInfo[]>`
     SELECT
       id,
       start_time as "startTime",
@@ -261,15 +270,16 @@ export async function getEmbeddingContextActivity(params: { teamId: string; asse
     WHERE asset_id = ${params.assetId}
   `
 
-  return {
-    agent,
-    asset,
-    chunkDuration,
-    chunkOverlap,
-    embeddingProvider,
-    existingEmbeddings,
-  }
-}
+    return {
+      agent,
+      asset,
+      chunkDuration,
+      chunkOverlap,
+      embeddingProvider,
+      existingEmbeddings,
+    }
+  },
+)
 
 export interface ExistingAssetEmbeddingInfo {
   id: string
@@ -279,62 +289,66 @@ export interface ExistingAssetEmbeddingInfo {
   has768: boolean
 }
 
-export async function deleteAssetEmbeddingsActivity(params: { assetId: string; ids?: string[] }) {
-  if (params.ids && params.ids.length > 0) {
-    await prisma.assetEmbedding.deleteMany({
-      where: {
-        assetId: params.assetId,
-        id: { in: params.ids },
-      },
-    })
-  } else {
-    await prisma.assetEmbedding.deleteMany({
-      where: {
-        assetId: params.assetId,
-      },
-    })
-  }
-}
-
-export async function saveAssetEmbeddingsActivity(params: {
-  assetId: string
-  embeddings: Array<{
-    embedding: number[]
-    startTime?: number
-    endTime?: number
-  }>
-}) {
-  for (const item of params.embeddings) {
-    const embVec = JSON.stringify(item.embedding)
-    const is768 = item.embedding.length === 768
-
-    if (item.startTime !== undefined && item.endTime !== undefined) {
-      if (is768) {
-        await prisma.$executeRaw`
-          INSERT INTO asset_embeddings (id, asset_id, embedding_768, start_time, end_time, updated_at)
-          VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, ${item.startTime}, ${item.endTime}, NOW())
-        `
-      } else {
-        await prisma.$executeRaw`
-          INSERT INTO asset_embeddings (id, asset_id, embedding, start_time, end_time, updated_at)
-          VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, ${item.startTime}, ${item.endTime}, NOW())
-        `
-      }
+export const deleteAssetEmbeddingsActivity = defineStep(
+  async function deleteAssetEmbeddingsActivity(params: { assetId: string; ids?: string[] }) {
+    if (params.ids && params.ids.length > 0) {
+      await prisma.assetEmbedding.deleteMany({
+        where: {
+          assetId: params.assetId,
+          id: { in: params.ids },
+        },
+      })
     } else {
-      if (is768) {
-        await prisma.$executeRaw`
-          INSERT INTO asset_embeddings (id, asset_id, embedding_768, updated_at)
-          VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, NOW())
-        `
+      await prisma.assetEmbedding.deleteMany({
+        where: {
+          assetId: params.assetId,
+        },
+      })
+    }
+  },
+)
+
+export const saveAssetEmbeddingsActivity = defineStep(
+  async function saveAssetEmbeddingsActivity(params: {
+    assetId: string
+    embeddings: Array<{
+      embedding: number[]
+      startTime?: number
+      endTime?: number
+    }>
+  }) {
+    for (const item of params.embeddings) {
+      const embVec = JSON.stringify(item.embedding)
+      const is768 = item.embedding.length === 768
+
+      if (item.startTime !== undefined && item.endTime !== undefined) {
+        if (is768) {
+          await prisma.$executeRaw`
+            INSERT INTO asset_embeddings (id, asset_id, embedding_768, start_time, end_time, updated_at)
+            VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, ${item.startTime}, ${item.endTime}, NOW())
+          `
+        } else {
+          await prisma.$executeRaw`
+            INSERT INTO asset_embeddings (id, asset_id, embedding, start_time, end_time, updated_at)
+            VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, ${item.startTime}, ${item.endTime}, NOW())
+          `
+        }
       } else {
-        await prisma.$executeRaw`
-          INSERT INTO asset_embeddings (id, asset_id, embedding, updated_at)
-          VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, NOW())
-        `
+        if (is768) {
+          await prisma.$executeRaw`
+            INSERT INTO asset_embeddings (id, asset_id, embedding_768, updated_at)
+            VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, NOW())
+          `
+        } else {
+          await prisma.$executeRaw`
+            INSERT INTO asset_embeddings (id, asset_id, embedding, updated_at)
+            VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, NOW())
+          `
+        }
       }
     }
-  }
-}
+  },
+)
 
 export interface GenerateImageEmbeddingParams {
   teamId: string
@@ -342,60 +356,60 @@ export interface GenerateImageEmbeddingParams {
   mediaType: string
 }
 
-export async function generateImageEmbeddingActivity(
-  params: GenerateImageEmbeddingParams,
-): Promise<{
-  embedding: number[]
-  usage: Usage
-}> {
-  const provider = process.env.EMBEDDING_PROVIDER || 'gemini-embedding-2'
-  const { buffer: data } = await s3Service.getObject(
-    process.env.S3_BUCKET || 'shumai',
-    params.assetKey,
-  )
+export const generateImageEmbeddingActivity = defineStep(
+  async function generateImageEmbeddingActivity(params: GenerateImageEmbeddingParams): Promise<{
+    embedding: number[]
+    usage: Usage
+  }> {
+    const provider = process.env.EMBEDDING_PROVIDER || 'gemini-embedding-2'
+    const { buffer: data } = await s3Service.getObject(
+      process.env.S3_BUCKET || 'shumai',
+      params.assetKey,
+    )
 
-  if (provider === 'gemma-embedding-2-openai') {
-    let imgData = data
-    let mimeType = params.mediaType || 'image/jpeg'
-    if (mimeType !== 'image/jpeg' && mimeType !== 'image/png') {
-      imgData = await sharp(data).jpeg().toBuffer()
-      mimeType = 'image/jpeg'
-    }
-    return callGemmaEmbeddingServer([
-      {
-        type: 'image_url',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        image_url: {
-          url: `data:${mimeType};base64,${imgData.toString('base64')}`,
+    if (provider === 'gemma-embedding-2-openai') {
+      let imgData = data
+      let mimeType = params.mediaType || 'image/jpeg'
+      if (mimeType !== 'image/jpeg' && mimeType !== 'image/png') {
+        imgData = await sharp(data).jpeg().toBuffer()
+        mimeType = 'image/jpeg'
+      }
+      return callGemmaEmbeddingServer([
+        {
+          type: 'image_url',
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          image_url: {
+            url: `data:${mimeType};base64,${imgData.toString('base64')}`,
+          },
         },
-      },
-    ])
-  }
+      ])
+    }
 
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) {
-    throw ApplicationFailure.create({
-      message: 'GEMINI_API_KEY environment variable is not configured',
-      nonRetryable: true,
-    })
-  }
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) {
+      throw ApplicationFailure.create({
+        message: 'GEMINI_API_KEY environment variable is not configured',
+        nonRetryable: true,
+      })
+    }
 
-  const resolvedApiKey = process.env[apiKey] || apiKey
-  const ai = new GoogleGenAI({ apiKey: resolvedApiKey })
+    const resolvedApiKey = process.env[apiKey] || apiKey
+    const ai = new GoogleGenAI({ apiKey: resolvedApiKey })
 
-  const usage: Usage = {
-    model: 'gemini-embedding-2',
-    inputTokens: 0,
-    outputTokens: 0,
-  }
+    const usage: Usage = {
+      model: 'gemini-embedding-2',
+      inputTokens: 0,
+      outputTokens: 0,
+    }
 
-  const embVec = await generateMultimodalEmbedding(ai, data, params.mediaType)
+    const embVec = await generateMultimodalEmbedding(ai, data, params.mediaType)
 
-  return {
-    embedding: embVec,
-    usage,
-  }
-}
+    return {
+      embedding: embVec,
+      usage,
+    }
+  },
+)
 
 /**
  * Standard aspect ratios for video embedding:
@@ -434,121 +448,296 @@ export interface GenerateVideoChunkEmbeddingParams {
   chunkKey: string
 }
 
-export async function generateVideoChunkEmbeddingActivity(
-  params: GenerateVideoChunkEmbeddingParams,
-): Promise<{
-  embedding: number[]
-  usage: Usage
-}> {
-  const provider = process.env.EMBEDDING_PROVIDER || 'gemini-embedding-2'
-  const isGemma = provider === 'gemma-embedding-2-openai' || params.chunkKey.endsWith('.tar')
+export const generateVideoChunkEmbeddingActivity = defineStep(
+  async function generateVideoChunkEmbeddingActivity(
+    params: GenerateVideoChunkEmbeddingParams,
+  ): Promise<{
+    embedding: number[]
+    usage: Usage
+  }> {
+    const provider = process.env.EMBEDDING_PROVIDER || 'gemini-embedding-2'
+    const isGemma = provider === 'gemma-embedding-2-openai' || params.chunkKey.endsWith('.tar')
 
-  if (isGemma) {
-    const { buffer: data } = await s3Service.getObject(
-      process.env.S3_BUCKET || 'shumai',
-      params.chunkKey,
-    )
+    if (isGemma) {
+      const { buffer: data } = await s3Service.getObject(
+        process.env.S3_BUCKET || 'shumai',
+        params.chunkKey,
+      )
 
-    let filesMap: Map<string, File>
+      let filesMap: Map<string, File>
+      try {
+        const archive = new Bun.Archive(data)
+        filesMap = await archive.files()
+      } catch (err) {
+        throw ApplicationFailure.create({
+          message: `Failed to read chunk archive ${params.chunkKey}: ${err instanceof Error ? err.message : String(err)}`,
+          nonRetryable: true,
+        })
+      }
+
+      const frameFiles = Array.from(filesMap.keys())
+        .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
+        .sort()
+
+      if (frameFiles.length === 0) {
+        throw ApplicationFailure.create({
+          message: `No extracted frames found in chunk archive ${params.chunkKey}`,
+          nonRetryable: true,
+        })
+      }
+
+      let targetFrameCount = 14
+      try {
+        const firstFile = filesMap.get(frameFiles[0])
+        if (firstFile) {
+          const firstFileBytes = await firstFile.bytes()
+          if (firstFileBytes.byteLength > 0) {
+            const meta = await sharp(Buffer.from(firstFileBytes)).metadata()
+            targetFrameCount = getGemmaEmbeddingTargetFrameCount(meta.width, meta.height)
+          }
+        }
+      } catch {
+        targetFrameCount = 14
+      }
+
+      let selectedFrames = frameFiles
+      if (selectedFrames.length > targetFrameCount) {
+        const step = (selectedFrames.length - 1) / (targetFrameCount - 1)
+        selectedFrames = Array.from(
+          { length: targetFrameCount },
+          (_, i) => selectedFrames[Math.round(i * step)],
+        )
+      }
+
+      const input: OpenAiEmbeddingItem[] = await Promise.all(
+        selectedFrames.map(async (f) => {
+          const file = filesMap.get(f)!
+          const fileBytes = await file.bytes()
+          if (fileBytes.byteLength === 0) {
+            throw ApplicationFailure.create({
+              message: `Extracted frame ${f} in chunk archive ${params.chunkKey} is empty (0 bytes)`,
+              nonRetryable: true,
+            })
+          }
+          return {
+            type: 'image_url',
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            image_url: {
+              url: `data:image/jpeg;base64,${Buffer.from(fileBytes).toString('base64')}`,
+            },
+          }
+        }),
+      )
+
+      return await callGemmaEmbeddingServer(input)
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) {
+      throw ApplicationFailure.create({
+        message: 'GEMINI_API_KEY environment variable is not configured',
+        nonRetryable: true,
+      })
+    }
+
+    const resolvedApiKey = process.env[apiKey] || apiKey
+    const ai = new GoogleGenAI({ apiKey: resolvedApiKey })
+
+    const usage: Usage = {
+      model: 'gemini-embedding-2',
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
     try {
-      const archive = new Bun.Archive(data)
-      filesMap = await archive.files()
+      const { buffer: data } = await s3Service.getObject(
+        process.env.S3_BUCKET || 'shumai',
+        params.chunkKey,
+      )
+
+      const embVec = await generateMultimodalEmbedding(ai, data, 'video/mp4')
+      return {
+        embedding: embVec,
+        usage,
+      }
     } catch (err) {
       throw ApplicationFailure.create({
-        message: `Failed to read chunk archive ${params.chunkKey}: ${err instanceof Error ? err.message : String(err)}`,
-        nonRetryable: true,
+        message: `Failed to generate video chunk embedding for key ${params.chunkKey}: ${err instanceof Error ? err.message : String(err)}`,
+        nonRetryable: false,
       })
     }
+  },
+)
 
-    const frameFiles = Array.from(filesMap.keys())
-      .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
-      .sort()
+export interface TranscodeVideoChunkParams {
+  assetId: string
+  assetKey?: string
+  filePath?: string
+  startTime: number
+  endTime: number
+  format?: 'video' | 'frames'
+}
 
-    if (frameFiles.length === 0) {
-      throw ApplicationFailure.create({
-        message: `No extracted frames found in chunk archive ${params.chunkKey}`,
-        nonRetryable: true,
-      })
-    }
-
-    let targetFrameCount = 14
-    try {
-      const firstFile = filesMap.get(frameFiles[0])
-      if (firstFile) {
-        const firstFileBytes = await firstFile.bytes()
-        if (firstFileBytes.byteLength > 0) {
-          const meta = await sharp(Buffer.from(firstFileBytes)).metadata()
-          targetFrameCount = getGemmaEmbeddingTargetFrameCount(meta.width, meta.height)
-        }
-      }
-    } catch {
-      targetFrameCount = 14
-    }
-
-    let selectedFrames = frameFiles
-    if (selectedFrames.length > targetFrameCount) {
-      const step = (selectedFrames.length - 1) / (targetFrameCount - 1)
-      selectedFrames = Array.from(
-        { length: targetFrameCount },
-        (_, i) => selectedFrames[Math.round(i * step)],
-      )
-    }
-
-    const input: OpenAiEmbeddingItem[] = await Promise.all(
-      selectedFrames.map(async (f) => {
-        const file = filesMap.get(f)!
-        const fileBytes = await file.bytes()
-        if (fileBytes.byteLength === 0) {
-          throw ApplicationFailure.create({
-            message: `Extracted frame ${f} in chunk archive ${params.chunkKey} is empty (0 bytes)`,
-            nonRetryable: true,
-          })
-        }
-        return {
-          type: 'image_url',
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          image_url: {
-            url: `data:image/jpeg;base64,${Buffer.from(fileBytes).toString('base64')}`,
-          },
-        }
-      }),
-    )
-
-    return await callGemmaEmbeddingServer(input)
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) {
+export const transcodeVideoChunkActivity = defineStep(async function transcodeVideoChunkActivity(
+  params: TranscodeVideoChunkParams,
+): Promise<{ chunkKey: string }> {
+  if (!params.filePath && !params.assetKey) {
     throw ApplicationFailure.create({
-      message: 'GEMINI_API_KEY environment variable is not configured',
+      message: 'Neither filePath nor assetKey was provided for video chunk transcoding',
       nonRetryable: true,
     })
   }
 
-  const resolvedApiKey = process.env[apiKey] || apiKey
-  const ai = new GoogleGenAI({ apiKey: resolvedApiKey })
+  if (params.format === 'frames') {
+    const tmpDir = transcodeService.createTempDir('video-chunk-frames-')
+    try {
+      const bucket = process.env.S3_BUCKET || 'shumai'
+      const inputSource =
+        params.filePath ||
+        (params.assetKey ? await s3Service.resolveInput(bucket, params.assetKey) : '')
+      if (!inputSource) {
+        throw ApplicationFailure.create({
+          message: 'Neither filePath nor assetKey was provided for video chunk transcoding',
+          nonRetryable: true,
+        })
+      }
+      const isRemote = inputSource.startsWith('http://') || inputSource.startsWith('https://')
 
-  const usage: Usage = {
-    model: 'gemini-embedding-2',
-    inputTokens: 0,
-    outputTokens: 0,
+      const duration = Math.max(0.1, params.endTime - params.startTime)
+      const fpsFilter = duration > 16 ? `fps=${16 / duration}` : 'fps=1'
+      const vframesArgs = duration > 16 ? ['-vframes', '16'] : []
+
+      await execFileAsync('ffmpeg', [
+        '-y',
+        '-loglevel',
+        'warning',
+        ...(isRemote
+          ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
+          : []),
+        '-ss',
+        params.startTime.toString(),
+        '-i',
+        inputSource,
+        '-map',
+        '0:V:0',
+        '-t',
+        duration.toString(),
+        '-vf',
+        fpsFilter,
+        ...vframesArgs,
+        '-q:v',
+        '2',
+        path.join(tmpDir, 'frame_%04d.jpg'),
+      ])
+
+      const frameFiles = fs
+        .readdirSync(tmpDir)
+        .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
+        .sort()
+
+      const archiveEntries: Record<string, Buffer> = {}
+      for (const file of frameFiles) {
+        archiveEntries[file] = fs.readFileSync(path.join(tmpDir, file))
+      }
+
+      const archive = new Bun.Archive(archiveEntries)
+      const archiveBytes = await archive.bytes()
+      const archiveData = Buffer.from(
+        archiveBytes.buffer,
+        archiveBytes.byteOffset,
+        archiveBytes.byteLength,
+      )
+      const key = `files/${params.assetId}/tmp-embedding-chunks/frames-${params.startTime}-${params.endTime}-${ulid()}.tar`
+      await s3Service.putObject(bucket, key, archiveData, archiveData.length, 'application/x-tar')
+
+      return { chunkKey: key }
+    } catch (err) {
+      if (err instanceof ApplicationFailure) {
+        throw err
+      }
+      throw ApplicationFailure.create({
+        message: `Failed to extract video chunk frames for ${params.startTime}-${params.endTime}: ${err instanceof Error ? err.message : String(err)}`,
+        nonRetryable: false,
+      })
+    } finally {
+      transcodeService.removeDir(tmpDir)
+    }
   }
 
+  const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}-${ulid()}.mp4`)
   try {
-    const { buffer: data } = await s3Service.getObject(
-      process.env.S3_BUCKET || 'shumai',
-      params.chunkKey,
-    )
-
-    const embVec = await generateMultimodalEmbedding(ai, data, 'video/mp4')
-    return {
-      embedding: embVec,
-      usage,
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const inputSource =
+      params.filePath ||
+      (params.assetKey ? await s3Service.resolveInput(bucket, params.assetKey) : '')
+    if (!inputSource) {
+      throw ApplicationFailure.create({
+        message: 'Neither filePath nor assetKey was provided for video chunk transcoding',
+        nonRetryable: true,
+      })
     }
+    const isRemote = inputSource.startsWith('http://') || inputSource.startsWith('https://')
+
+    // Slice video segment using ffmpeg, force 1fps and remove audio for gemini-embedding-2 optimization
+    // Note: -ss placed before -i for fast input seeking via demuxer Range requests
+    await execFileAsync('ffmpeg', [
+      '-y',
+      '-loglevel',
+      'warning',
+      ...(isRemote
+        ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
+        : []),
+      '-ss',
+      params.startTime.toString(),
+      '-i',
+      inputSource,
+      '-map',
+      '0:V:0',
+      '-t',
+      (params.endTime - params.startTime).toString(),
+      '-vf',
+      'fps=1',
+      '-c:v',
+      'libx264',
+      '-preset',
+      'ultrafast',
+      '-crf',
+      '28',
+      '-an',
+      chunkTmp,
+    ])
+
+    const chunkData = fs.readFileSync(chunkTmp)
+
+    // Upload to S3
+    const key = `files/${params.assetId}/tmp-embedding-chunks/chunk-${params.startTime}-${params.endTime}-${ulid()}.mp4`
+
+    await s3Service.putObject(bucket, key, chunkData, chunkData.length, 'video/mp4')
+
+    return { chunkKey: key }
   } catch (err) {
+    if (err instanceof ApplicationFailure) {
+      throw err
+    }
     throw ApplicationFailure.create({
-      message: `Failed to generate video chunk embedding for key ${params.chunkKey}: ${err instanceof Error ? err.message : String(err)}`,
+      message: `Failed to transcode video chunk for ${params.startTime}-${params.endTime}: ${err instanceof Error ? err.message : String(err)}`,
       nonRetryable: false,
     })
+  } finally {
+    if (fs.existsSync(chunkTmp)) {
+      try {
+        fs.unlinkSync(chunkTmp)
+      } catch (e) {
+        console.error('Failed to cleanup local chunk file:', e)
+      }
+    }
   }
-}
+})
+
+export const deleteS3ObjectActivity = defineStep(
+  async function deleteS3ObjectActivity(params: { key: string }): Promise<void> {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    await s3Service.deleteObject(bucket, params.key)
+  },
+  { runOnCancel: true },
+)

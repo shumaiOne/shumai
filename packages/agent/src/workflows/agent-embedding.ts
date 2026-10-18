@@ -1,11 +1,20 @@
 import type { WorkflowTask } from '@shumai/db'
 import {
   ApplicationFailure,
-  getActivities,
-  executeActivity,
-  TaskQueueAgent,
-  TaskQueueTranscode,
+  updateTaskStatusActivity,
+  updateTaskUsageActivity,
 } from '@shumai/workflow-core'
+import { createCommentActivity, updateCommentActivity } from '../activities/agent'
+import {
+  deleteAssetEmbeddingsActivity,
+  deleteS3ObjectActivity,
+  generateImageEmbeddingActivity,
+  generateVideoChunkEmbeddingActivity,
+  getEmbeddingContextActivity,
+  saveAssetEmbeddingsActivity,
+  transcodeVideoChunkActivity,
+  type ExistingAssetEmbeddingInfo,
+} from '../activities/ai'
 
 export interface GeneratedEmbedding {
   embedding: number[]
@@ -13,43 +22,21 @@ export interface GeneratedEmbedding {
   endTime?: number
 }
 
-export interface ExistingAssetEmbeddingInfo {
-  id: string
-  startTime: number | null
-  endTime: number | null
-  has1536: boolean
-  has768: boolean
-}
+export type { ExistingAssetEmbeddingInfo }
 
 export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
-  const {
-    updateTaskStatusActivity,
-    getEmbeddingContextActivity,
-    generateImageEmbeddingActivity,
-    generateVideoChunkEmbeddingActivity,
-    saveAssetEmbeddingsActivity,
-    deleteAssetEmbeddingsActivity,
-    updateTaskUsageActivity,
-    createCommentActivity,
-    updateCommentActivity,
-    transcodeVideoChunkActivity,
-    deleteS3ObjectActivity,
-  } = getActivities()
-
   let placeholderCommentId: string | undefined
-  const agentWorkerQueue = TaskQueueAgent
-  const transcodeWorkerQueue = TaskQueueTranscode
 
   try {
     // Update status to processing
-    await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
+    await updateTaskStatusActivity({
       taskId: task.id,
       status: 'processing',
     })
 
     // 0. Create Placeholder Comment
     const payload = task.payload
-    const placeholder = await executeActivity(agentWorkerQueue, createCommentActivity, {
+    const placeholder = await createCommentActivity({
       assetId: task.assetId,
       message: '__EMBEDDING__',
       sessionId: payload?.agent?.sessionId || task.id,
@@ -62,7 +49,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     }
 
     // 1. Fetch Agent Context
-    const context = (await executeActivity(agentWorkerQueue, getEmbeddingContextActivity, {
+    const context = (await getEmbeddingContextActivity({
       teamId: task.teamId,
       assetId: task.assetId,
     })) as unknown as {
@@ -89,7 +76,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       .map((e) => e.id)
 
     if (incompatibleIds.length > 0) {
-      await executeActivity(agentWorkerQueue, deleteAssetEmbeddingsActivity, {
+      await deleteAssetEmbeddingsActivity({
         assetId: task.assetId,
         ids: incompatibleIds,
       })
@@ -151,12 +138,12 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
         (e) => e.startTime === null && e.endTime === null,
       )
       if (!alreadyEmbedded) {
-        const result = await executeActivity(agentWorkerQueue, generateImageEmbeddingActivity, {
+        const result = await generateImageEmbeddingActivity({
           teamId: task.teamId,
           assetKey: embeddingKey,
-          mediaType: embeddingMediaType,
+          mediaType: embeddingMediaType || 'image/jpeg',
         })
-        await executeActivity(agentWorkerQueue, saveAssetEmbeddingsActivity, {
+        await saveAssetEmbeddingsActivity({
           assetId: task.assetId,
           embeddings: [{ embedding: result.embedding }],
         })
@@ -197,7 +184,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
         }
 
         // Step A: Slice chunk on transcode worker and upload to S3
-        const chunkRes = await executeActivity(transcodeWorkerQueue, transcodeVideoChunkActivity, {
+        const chunkRes = await transcodeVideoChunkActivity({
           assetId: asset.id,
           assetKey: embeddingKey,
           startTime: start,
@@ -208,17 +195,13 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
 
         try {
           // Step B: Generate embedding on agent worker
-          const chunkResult = await executeActivity(
-            agentWorkerQueue,
-            generateVideoChunkEmbeddingActivity,
-            {
-              teamId: task.teamId,
-              chunkKey,
-            },
-          )
+          const chunkResult = await generateVideoChunkEmbeddingActivity({
+            teamId: task.teamId,
+            chunkKey,
+          })
 
           // Step C: Save chunk embedding to database immediately
-          await executeActivity(agentWorkerQueue, saveAssetEmbeddingsActivity, {
+          await saveAssetEmbeddingsActivity({
             assetId: task.assetId,
             embeddings: [
               {
@@ -235,7 +218,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
           }
         } finally {
           // Step D: Delete temporary chunk from S3
-          await executeActivity(transcodeWorkerQueue, deleteS3ObjectActivity, {
+          await deleteS3ObjectActivity({
             key: chunkKey,
           })
         }
@@ -248,7 +231,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     }
 
     // Update Usage
-    await executeActivity(agentWorkerQueue, updateTaskUsageActivity, {
+    await updateTaskUsageActivity({
       taskId: task.id,
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
@@ -257,14 +240,14 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
 
     // 7. Update Placeholder Comment
     if (placeholderCommentId) {
-      await executeActivity(agentWorkerQueue, updateCommentActivity, {
+      await updateCommentActivity({
         commentId: placeholderCommentId,
         message: 'Embedding completed successfully.',
       })
     }
 
     // Update status to completed
-    await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
+    await updateTaskStatusActivity({
       taskId: task.id,
       status: 'completed',
     })
@@ -272,9 +255,9 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     console.error(`AgentEmbeddingMedia failed for task ${task.id}:`, err)
 
     // Update placeholder comment with error message
-    if (placeholderCommentId && agentWorkerQueue) {
+    if (placeholderCommentId) {
       try {
-        await executeActivity(agentWorkerQueue, updateCommentActivity, {
+        await updateCommentActivity({
           commentId: placeholderCommentId,
           message: `Embedding failed: ${err instanceof Error ? err.message : String(err)}`,
         })
@@ -284,13 +267,11 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     }
 
     // Update status to failed
-    if (agentWorkerQueue) {
-      await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
-        taskId: task.id,
-        status: 'failed',
-        output: { error: err instanceof Error ? err.message : String(err) },
-      })
-    }
+    await updateTaskStatusActivity({
+      taskId: task.id,
+      status: 'failed',
+      output: { error: err instanceof Error ? err.message : String(err) },
+    })
     throw err
   }
 }

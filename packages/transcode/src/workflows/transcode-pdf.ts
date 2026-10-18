@@ -1,47 +1,38 @@
 import type { WorkflowTask } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
-import { executeActivity, getActivities } from '@shumai/workflow-core'
+import { updateAssetStatusActivity } from '@shumai/workflow-core'
 import {
-  getWorkerQueueAndStartTask,
-  fetchAssetWithKey,
-  completeTask,
-  failTask,
-  cleanupTmpDir,
-} from './common'
+  downloadMediaToTmpActivity,
+  generatePdfProxyActivity,
+  getMediaInfoActivity,
+  generateSpriteActivity,
+  updateAssetMediaActivity,
+  createEmbeddingTaskIfEnabledActivity,
+  createAutofillTaskIfEnabledActivity,
+} from '../activities/transcode'
+import { startTask, fetchAssetWithKey, completeTask, failTask, cleanupTmpDir } from './common'
 
 export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
   let tmpDir: string | undefined
-  let workerQueue = ''
   let mediaProcessed = false
 
   try {
-    workerQueue = await getWorkerQueueAndStartTask(task)
+    await startTask(task)
 
-    const {
-      updateAssetStatusActivity,
-      getMediaInfoActivity,
-      generateSpriteActivity,
-      updateAssetMediaActivity,
-      downloadMediaToTmpActivity,
-      generatePdfProxyActivity,
-      createEmbeddingTaskIfEnabledActivity,
-      createAutofillTaskIfEnabledActivity,
-    } = getActivities()
-
-    await executeActivity(workerQueue, updateAssetStatusActivity, {
+    await updateAssetStatusActivity({
       assetId: task.assetId,
       status: 'processing',
     })
 
-    const { asset, key } = await fetchAssetWithKey(workerQueue, task.assetId)
+    const { asset, key } = await fetchAssetWithKey(task.assetId)
 
-    const download = await executeActivity(workerQueue, downloadMediaToTmpActivity, {
+    const download = await downloadMediaToTmpActivity({
       assetKey: key,
     })
     let currentFilePath = download.filePath
     tmpDir = download.tmpDir
 
-    const pdfProxy = await executeActivity(workerQueue, generatePdfProxyActivity, {
+    const pdfProxy = await generatePdfProxyActivity({
       teamId: task.teamId,
       assetId: asset.id,
       assetKey: key,
@@ -53,7 +44,7 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
     currentFilePath = pdfProxy.pdfFilePath
 
     const spec = task.payload?.transcode || {}
-    const mediaInfo = await executeActivity(workerQueue, getMediaInfoActivity, {
+    const mediaInfo = await getMediaInfoActivity({
       filePath: currentFilePath,
       assetId: asset.id,
       proxyType: 'pdf',
@@ -83,7 +74,7 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
         key: assetDir ? `${assetDir}/poster.webp` : 'poster.webp',
       }
 
-      const spriteResult = await executeActivity(workerQueue, generateSpriteActivity, {
+      const spriteResult = await generateSpriteActivity({
         assetKey: key,
         filePath: currentFilePath,
         spriteSpec,
@@ -94,35 +85,35 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
       mediaInfo.poster = spriteResult.poster
     }
 
-    await executeActivity(workerQueue, updateAssetMediaActivity, {
+    await updateAssetMediaActivity({
       assetId: asset.id,
       mediaInfo,
     })
 
-    await executeActivity(workerQueue, updateAssetStatusActivity, {
+    await updateAssetStatusActivity({
       assetId: asset.id,
       status: 'processed',
     })
     mediaProcessed = true
 
-    await executeActivity(workerQueue, createEmbeddingTaskIfEnabledActivity, {
+    await createEmbeddingTaskIfEnabledActivity({
       assetId: asset.id,
       teamId: task.teamId,
       projectId: task.projectId,
     })
 
-    await executeActivity(workerQueue, createAutofillTaskIfEnabledActivity, {
+    await createAutofillTaskIfEnabledActivity({
       assetId: asset.id,
       teamId: task.teamId,
       projectId: task.projectId,
     })
 
-    await completeTask(workerQueue, task.id)
+    await completeTask(task.id)
   } catch (err) {
     console.error(`transcodePdfWorkflow failed for task ${task.id}:`, err)
-    await failTask(workerQueue, task.id, err, mediaProcessed ? undefined : task.assetId)
+    await failTask(task.id, err, mediaProcessed ? undefined : task.assetId)
     throw err
   } finally {
-    await cleanupTmpDir(workerQueue, tmpDir)
+    await cleanupTmpDir(tmpDir)
   }
 }

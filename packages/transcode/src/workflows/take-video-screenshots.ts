@@ -1,11 +1,11 @@
 import type { WorkflowTask } from '@shumai/db'
-import { executeActivity, getActivities, ApplicationFailure } from '@shumai/workflow-core'
-import { getWorkerQueueAndStartTask, fetchAssetWithKey, completeTask, failTask } from './common'
+import { ApplicationFailure } from '@shumai/workflow-core'
+import { takeScreenshotsActivity } from '../activities/transcode'
+import { startTask, fetchAssetWithKey, completeTask, failTask } from './common'
 
 export async function takeVideoScreenshotsWorkflow(task: WorkflowTask): Promise<void> {
-  let workerQueue = ''
   try {
-    workerQueue = await getWorkerQueueAndStartTask(task)
+    await startTask(task)
 
     const payload = task.payload
     if (!payload?.screenshot) {
@@ -15,7 +15,7 @@ export async function takeVideoScreenshotsWorkflow(task: WorkflowTask): Promise<
       })
     }
 
-    const { asset, key } = await fetchAssetWithKey(workerQueue, task.assetId)
+    const { asset, key } = await fetchAssetWithKey(task.assetId)
     let targetKey = key
     if (asset?.media) {
       const mediaInfo = asset.media as unknown as PrismaJson.MediaInfo
@@ -34,9 +34,7 @@ export async function takeVideoScreenshotsWorkflow(task: WorkflowTask): Promise<
       }
     }
 
-    const { takeScreenshotsActivity } = getActivities()
-
-    const screenshots = await executeActivity(workerQueue, takeScreenshotsActivity, {
+    const screenshots = await takeScreenshotsActivity({
       taskId: task.id,
       assetKey: targetKey,
       assetId: asset.id,
@@ -47,10 +45,10 @@ export async function takeVideoScreenshotsWorkflow(task: WorkflowTask): Promise<
       annotations: payload.screenshot.annotations,
     })
 
-    await completeTask(workerQueue, task.id, { screenshots })
+    await completeTask(task.id, { screenshots })
   } catch (err) {
     console.error(`takeVideoScreenshotsWorkflow failed for task ${task.id}:`, err)
-    await failTask(workerQueue, task.id, err)
+    await failTask(task.id, err)
     throw err
   }
 }

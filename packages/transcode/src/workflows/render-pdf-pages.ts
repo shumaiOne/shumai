@@ -1,11 +1,11 @@
 import type { WorkflowTask } from '@shumai/db'
-import { executeActivity, getActivities, ApplicationFailure } from '@shumai/workflow-core'
-import { getWorkerQueueAndStartTask, fetchAssetWithKey, completeTask, failTask } from './common'
+import { ApplicationFailure } from '@shumai/workflow-core'
+import { renderPdfPagesActivity } from '../activities/transcode'
+import { startTask, fetchAssetWithKey, completeTask, failTask } from './common'
 
 export async function renderPdfPagesWorkflow(task: WorkflowTask): Promise<void> {
-  let workerQueue = ''
   try {
-    workerQueue = await getWorkerQueueAndStartTask(task)
+    await startTask(task)
 
     const payload = task.payload
     if (!payload?.pdfPages) {
@@ -15,11 +15,10 @@ export async function renderPdfPagesWorkflow(task: WorkflowTask): Promise<void> 
       })
     }
 
-    const { asset, key } = await fetchAssetWithKey(workerQueue, task.assetId)
-    const { renderPdfPagesActivity } = getActivities()
+    const { asset, key } = await fetchAssetWithKey(task.assetId)
     const pdfKey = (asset.media as PrismaJson.MediaInfo | null)?.pdfTranscode?.key || key
 
-    const pages = await executeActivity(workerQueue, renderPdfPagesActivity, {
+    const pages = await renderPdfPagesActivity({
       taskId: task.id,
       assetKey: pdfKey,
       assetId: asset.id,
@@ -29,10 +28,10 @@ export async function renderPdfPagesWorkflow(task: WorkflowTask): Promise<void> 
       annotations: payload.pdfPages.annotations,
     })
 
-    await completeTask(workerQueue, task.id, { pages })
+    await completeTask(task.id, { pages })
   } catch (err) {
     console.error(`renderPdfPagesWorkflow failed for task ${task.id}:`, err)
-    await failTask(workerQueue, task.id, err)
+    await failTask(task.id, err)
     throw err
   }
 }

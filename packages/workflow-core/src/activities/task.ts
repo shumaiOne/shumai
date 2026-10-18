@@ -1,7 +1,8 @@
 import { prisma } from '@shumai/db'
 import { WorkflowTaskStatus, AssetStatus, AssetType, Prisma } from '@shumai/db'
+import { defineStep } from '../workflow-utils'
 
-export async function getAssetStatusActivity(params: {
+export const getAssetStatusActivity = defineStep(async function getAssetStatusActivity(params: {
   assetId: string
 }): Promise<AssetStatus | null> {
   const asset = await prisma.asset.findUnique({
@@ -9,9 +10,9 @@ export async function getAssetStatusActivity(params: {
     select: { status: true },
   })
   return asset?.status || null
-}
+})
 
-export async function getAssetActivity(assetId: string) {
+export const getAssetActivity = defineStep(async function getAssetActivity(assetId: string) {
   const asset = await prisma.asset.findUnique({
     where: { id: assetId },
     include: {
@@ -53,7 +54,7 @@ export async function getAssetActivity(assetId: string) {
     ...asset,
     sizeByte: Number(asset.sizeByte),
   }
-}
+})
 
 export interface UpdateTaskStatusParams {
   taskId: string
@@ -61,15 +62,18 @@ export interface UpdateTaskStatusParams {
   output?: unknown
 }
 
-export async function updateTaskStatusActivity(params: UpdateTaskStatusParams): Promise<void> {
-  await prisma.workflowTask.updateMany({
-    where: { id: params.taskId },
-    data: {
-      status: params.status,
-      output: params.output as Prisma.InputJsonValue,
-    },
-  })
-}
+export const updateTaskStatusActivity = defineStep(
+  async function updateTaskStatusActivity(params: UpdateTaskStatusParams): Promise<void> {
+    await prisma.workflowTask.updateMany({
+      where: { id: params.taskId },
+      data: {
+        status: params.status,
+        output: params.output as Prisma.InputJsonValue,
+      },
+    })
+  },
+  { runOnCancel: true },
+)
 
 export interface UpdateAssetStatusParams {
   assetId: string
@@ -77,36 +81,39 @@ export interface UpdateAssetStatusParams {
   error?: string
 }
 
-export async function updateAssetStatusActivity(params: UpdateAssetStatusParams): Promise<void> {
-  if (params.status === AssetStatus.failed) {
-    const asset = await prisma.asset.findUnique({
-      where: { id: params.assetId },
-      select: { media: true, status: true },
-    })
-    // Never overwrite an asset that has already completed media processing
-    if (asset?.status === AssetStatus.processed) {
+export const updateAssetStatusActivity = defineStep(
+  async function updateAssetStatusActivity(params: UpdateAssetStatusParams): Promise<void> {
+    if (params.status === AssetStatus.failed) {
+      const asset = await prisma.asset.findUnique({
+        where: { id: params.assetId },
+        select: { media: true, status: true },
+      })
+      // Never overwrite an asset that has already completed media processing
+      if (asset?.status === AssetStatus.processed) {
+        return
+      }
+      const data: Prisma.AssetUpdateInput = { status: params.status }
+      if (params.error !== undefined) {
+        const existingMedia = (asset?.media as PrismaJson.MediaInfo | null) || {}
+        data.media = {
+          ...existingMedia,
+          error: params.error.slice(0, 500),
+        } as PrismaJson.MediaInfo
+      }
+      await prisma.asset.updateMany({
+        where: { id: params.assetId, isDeleted: false, status: { not: AssetStatus.processed } },
+        data,
+      })
       return
     }
-    const data: Prisma.AssetUpdateInput = { status: params.status }
-    if (params.error !== undefined) {
-      const existingMedia = (asset?.media as PrismaJson.MediaInfo | null) || {}
-      data.media = {
-        ...existingMedia,
-        error: params.error.slice(0, 500),
-      } as PrismaJson.MediaInfo
-    }
-    await prisma.asset.updateMany({
-      where: { id: params.assetId, isDeleted: false, status: { not: AssetStatus.processed } },
-      data,
-    })
-    return
-  }
 
-  await prisma.asset.updateMany({
-    where: { id: params.assetId, isDeleted: false },
-    data: { status: params.status },
-  })
-}
+    await prisma.asset.updateMany({
+      where: { id: params.assetId, isDeleted: false },
+      data: { status: params.status },
+    })
+  },
+  { runOnCancel: true },
+)
 
 export interface UpdateTaskUsageParams {
   taskId: string
@@ -115,7 +122,9 @@ export interface UpdateTaskUsageParams {
   model: string
 }
 
-export async function updateTaskUsageActivity(params: UpdateTaskUsageParams): Promise<void> {
+export const updateTaskUsageActivity = defineStep(async function updateTaskUsageActivity(
+  params: UpdateTaskUsageParams,
+): Promise<void> {
   await prisma.workflowTask.updateMany({
     where: { id: params.taskId },
     data: {
@@ -124,7 +133,7 @@ export async function updateTaskUsageActivity(params: UpdateTaskUsageParams): Pr
       model: params.model,
     },
   })
-}
+})
 
 export interface UpdateWorkflowTaskParams {
   taskId: string
@@ -136,16 +145,19 @@ export interface UpdateWorkflowTaskParams {
   model?: string | null
 }
 
-export async function updateWorkflowTaskActivity(params: UpdateWorkflowTaskParams): Promise<void> {
-  await prisma.workflowTask.updateMany({
-    where: { id: params.taskId },
-    data: {
-      ...(params.status !== undefined ? { status: params.status } : {}),
-      ...(params.heartbeat ? { heartbeat: new Date() } : {}),
-      ...(params.output !== undefined ? { output: params.output as Prisma.InputJsonValue } : {}),
-      ...(params.inputTokens !== undefined ? { inputTokens: params.inputTokens } : {}),
-      ...(params.outputTokens !== undefined ? { outputTokens: params.outputTokens } : {}),
-      ...(params.model !== undefined ? { model: params.model } : {}),
-    },
-  })
-}
+export const updateWorkflowTaskActivity = defineStep(
+  async function updateWorkflowTaskActivity(params: UpdateWorkflowTaskParams): Promise<void> {
+    await prisma.workflowTask.updateMany({
+      where: { id: params.taskId },
+      data: {
+        ...(params.status !== undefined ? { status: params.status } : {}),
+        ...(params.heartbeat ? { heartbeat: new Date() } : {}),
+        ...(params.output !== undefined ? { output: params.output as Prisma.InputJsonValue } : {}),
+        ...(params.inputTokens !== undefined ? { inputTokens: params.inputTokens } : {}),
+        ...(params.outputTokens !== undefined ? { outputTokens: params.outputTokens } : {}),
+        ...(params.model !== undefined ? { model: params.model } : {}),
+      },
+    })
+  },
+  { runOnCancel: true },
+)

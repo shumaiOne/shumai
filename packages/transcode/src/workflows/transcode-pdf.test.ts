@@ -1,67 +1,60 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { transcodePdfWorkflow } from './transcode-pdf'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType, AssetStatus } from '@shumai/db'
-import * as workflowUtils from '@shumai/workflow-core'
+import {
+  getAssetActivity,
+  updateAssetStatusActivity,
+  updateTaskStatusActivity,
+} from '@shumai/workflow-core'
+import {
+  downloadMediaToTmpActivity,
+  generatePdfProxyActivity,
+  getMediaInfoActivity,
+  generateSpriteActivity,
+  updateAssetMediaActivity,
+  cleanupTmpDirActivity,
+  createEmbeddingTaskIfEnabledActivity,
+  createAutofillTaskIfEnabledActivity,
+} from '../activities/transcode'
 
 vi.mock('@shumai/workflow-core', async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const actual = (await importOriginal()) as any
+  const actual = await importOriginal<typeof import('@shumai/workflow-core')>()
   return {
     ...actual,
-    getActivities: vi.fn(),
-    executeActivity: vi.fn(),
-    sleep: vi.fn(),
+    updateTaskStatusActivity: vi.fn(),
+    updateAssetStatusActivity: vi.fn(),
+    getAssetActivity: vi.fn(),
   }
 })
 
+vi.mock('../activities/transcode', () => ({
+  downloadMediaToTmpActivity: vi.fn(),
+  generatePdfProxyActivity: vi.fn(),
+  getMediaInfoActivity: vi.fn(),
+  generateSpriteActivity: vi.fn(),
+  updateAssetMediaActivity: vi.fn(),
+  cleanupTmpDirActivity: vi.fn(),
+  createEmbeddingTaskIfEnabledActivity: vi.fn(),
+  createAutofillTaskIfEnabledActivity: vi.fn(),
+}))
+
 describe('transcodePdfWorkflow', () => {
   const mockActivities = {
-    updateTaskStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateTaskStatusActivity',
-    }),
-    updateAssetStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateAssetStatusActivity',
-    }),
-    getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
-    getMediaInfoActivity: Object.assign(vi.fn(), { _activityName: 'getMediaInfoActivity' }),
-    generateSpriteActivity: Object.assign(vi.fn(), { _activityName: 'generateSpriteActivity' }),
-    updateAssetMediaActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateAssetMediaActivity',
-    }),
-    getTranscodeWorkerQueueActivity: Object.assign(vi.fn(), {
-      _activityName: 'getTranscodeWorkerQueueActivity',
-    }),
-    downloadMediaToTmpActivity: Object.assign(vi.fn(), {
-      _activityName: 'downloadMediaToTmpActivity',
-    }),
-    generatePdfProxyActivity: Object.assign(vi.fn(), {
-      _activityName: 'generatePdfProxyActivity',
-    }),
-    cleanupTmpDirActivity: Object.assign(vi.fn(), { _activityName: 'cleanupTmpDirActivity' }),
-    createEmbeddingTaskIfEnabledActivity: Object.assign(vi.fn(), {
-      _activityName: 'createEmbeddingTaskIfEnabledActivity',
-    }),
-    createAutofillTaskIfEnabledActivity: Object.assign(vi.fn(), {
-      _activityName: 'createAutofillTaskIfEnabledActivity',
-    }),
+    updateTaskStatusActivity: vi.mocked(updateTaskStatusActivity),
+    updateAssetStatusActivity: vi.mocked(updateAssetStatusActivity),
+    getAssetActivity: vi.mocked(getAssetActivity),
+    getMediaInfoActivity: vi.mocked(getMediaInfoActivity),
+    generateSpriteActivity: vi.mocked(generateSpriteActivity),
+    updateAssetMediaActivity: vi.mocked(updateAssetMediaActivity),
+    downloadMediaToTmpActivity: vi.mocked(downloadMediaToTmpActivity),
+    generatePdfProxyActivity: vi.mocked(generatePdfProxyActivity),
+    cleanupTmpDirActivity: vi.mocked(cleanupTmpDirActivity),
+    createEmbeddingTaskIfEnabledActivity: vi.mocked(createEmbeddingTaskIfEnabledActivity),
+    createAutofillTaskIfEnabledActivity: vi.mocked(createAutofillTaskIfEnabledActivity),
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.getActivities as any).mockReturnValue(mockActivities)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.executeActivity as any).mockImplementation(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (_queue: string, fn: any, ...args: any[]) => {
-        if (typeof fn !== 'function') {
-          throw new Error(`fn is not a function in executeActivity. Queue: ${_queue}`)
-        }
-        return fn(...args)
-      },
-    )
-
-    mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_worker_queue')
     mockActivities.downloadMediaToTmpActivity.mockResolvedValue({
       filePath: '/tmp/doc.pdf',
       tmpDir: '/tmp',
@@ -102,7 +95,8 @@ describe('transcodePdfWorkflow', () => {
       id: 'asset-pdf',
       storageKey: { key: 'document.pdf' },
       mediaType: 'application/pdf',
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
 
     mockActivities.getMediaInfoActivity.mockResolvedValue({
       proxyType: 'pdf',
@@ -119,7 +113,8 @@ describe('transcodePdfWorkflow', () => {
       },
       videoTranscodes: [],
       imageTranscodes: [],
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
 
     mockActivities.generateSpriteActivity.mockResolvedValue({
       sprite: { key: 'sprite.webp', frames: 100, tileX: 10, tileY: 10 },

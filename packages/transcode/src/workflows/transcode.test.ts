@@ -1,52 +1,45 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { transcodeMedia } from './transcode'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
-import * as workflowUtils from '@shumai/workflow-core'
+import {
+  getAssetActivity,
+  updateAssetStatusActivity,
+  updateTaskStatusActivity,
+} from '@shumai/workflow-core'
+import {
+  downloadMediaToTmpActivity,
+  getMediaInfoActivity,
+  renderPdfPagesActivity,
+} from '../activities/transcode'
 
 vi.mock('@shumai/workflow-core', async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const actual = (await importOriginal()) as any
+  const actual = await importOriginal<typeof import('@shumai/workflow-core')>()
   return {
     ...actual,
-    getActivities: vi.fn(),
-    executeActivity: vi.fn(),
-    sleep: vi.fn(),
+    updateTaskStatusActivity: vi.fn(),
+    updateAssetStatusActivity: vi.fn(),
+    getAssetActivity: vi.fn(),
   }
 })
 
+vi.mock('../activities/transcode', () => ({
+  downloadMediaToTmpActivity: vi.fn(),
+  getMediaInfoActivity: vi.fn(),
+  renderPdfPagesActivity: vi.fn(),
+}))
+
 describe('transcodeMedia Fallback Dispatcher', () => {
   const mockActivities = {
-    updateTaskStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateTaskStatusActivity',
-    }),
-    updateAssetStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateAssetStatusActivity',
-    }),
-    getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
-    getTranscodeWorkerQueueActivity: Object.assign(vi.fn(), {
-      _activityName: 'getTranscodeWorkerQueueActivity',
-    }),
-    renderPdfPagesActivity: Object.assign(vi.fn(), {
-      _activityName: 'renderPdfPagesActivity',
-    }),
+    updateTaskStatusActivity: vi.mocked(updateTaskStatusActivity),
+    updateAssetStatusActivity: vi.mocked(updateAssetStatusActivity),
+    getAssetActivity: vi.mocked(getAssetActivity),
+    renderPdfPagesActivity: vi.mocked(renderPdfPagesActivity),
+    downloadMediaToTmpActivity: vi.mocked(downloadMediaToTmpActivity),
+    getMediaInfoActivity: vi.mocked(getMediaInfoActivity),
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.getActivities as any).mockReturnValue(mockActivities)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.executeActivity as any).mockImplementation(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (_queue: string, fn: any, ...args: any[]) => {
-        if (typeof fn !== 'function') {
-          throw new Error(`fn is not a function in executeActivity. Queue: ${_queue}`)
-        }
-        return fn(...args)
-      },
-    )
-
-    mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_worker_queue')
   })
 
   it('should dispatch to pdfPages workflow when payload.pdfPages is present', async () => {
@@ -79,7 +72,8 @@ describe('transcodeMedia Fallback Dispatcher', () => {
       id: 'asset-pdf',
       storageKey: { key: 'doc.pdf' },
       mediaType: 'application/pdf',
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
 
     mockActivities.renderPdfPagesActivity.mockResolvedValue([])
 

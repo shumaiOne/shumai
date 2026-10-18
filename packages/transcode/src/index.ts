@@ -1,7 +1,5 @@
 import { WorkflowTaskType } from '@shumai/db'
-import { registerActivities, registerWorkflow } from '@shumai/workflow-core'
-import * as transcodeActivities from './activities/transcode'
-import * as watermarkActivities from './activities/watermark'
+import { registerWorkflow } from '@shumai/workflow-core'
 import { transcodeVideoWorkflow } from './workflows/transcode-video'
 import { transcodeImageWorkflow } from './workflows/transcode-image'
 import { transcodePdfWorkflow } from './workflows/transcode-pdf'
@@ -22,8 +20,6 @@ export function initTranscodeWorkflows() {
   registerWorkflow(WorkflowTaskType.transcode_screenshot, takeVideoScreenshotsWorkflow)
   registerWorkflow(WorkflowTaskType.transcode_image_annotation, overlayImageAnnotationWorkflow)
   registerWorkflow(WorkflowTaskType.transcode_watermark, transcodeWatermarkWorkflow)
-  registerActivities(transcodeActivities)
-  registerActivities(watermarkActivities)
 }
 
 export * from './transcoder'

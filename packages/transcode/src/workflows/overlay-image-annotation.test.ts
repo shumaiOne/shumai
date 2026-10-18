@@ -1,49 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { overlayImageAnnotationWorkflow } from './overlay-image-annotation'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
-import * as workflowUtils from '@shumai/workflow-core'
+import { getAssetActivity, updateTaskStatusActivity } from '@shumai/workflow-core'
+import { overlayAnnotationsActivity } from '../activities/transcode'
 
 vi.mock('@shumai/workflow-core', async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const actual = (await importOriginal()) as any
+  const actual = await importOriginal<typeof import('@shumai/workflow-core')>()
   return {
     ...actual,
-    getActivities: vi.fn(),
-    executeActivity: vi.fn(),
-    sleep: vi.fn(),
+    updateTaskStatusActivity: vi.fn(),
+    getAssetActivity: vi.fn(),
   }
 })
 
+vi.mock('../activities/transcode', () => ({
+  overlayAnnotationsActivity: vi.fn(),
+}))
+
 describe('overlayImageAnnotationWorkflow', () => {
   const mockActivities = {
-    updateTaskStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateTaskStatusActivity',
-    }),
-    getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
-    getTranscodeWorkerQueueActivity: Object.assign(vi.fn(), {
-      _activityName: 'getTranscodeWorkerQueueActivity',
-    }),
-    overlayAnnotationsActivity: Object.assign(vi.fn(), {
-      _activityName: 'overlayAnnotationsActivity',
-    }),
+    updateTaskStatusActivity: vi.mocked(updateTaskStatusActivity),
+    getAssetActivity: vi.mocked(getAssetActivity),
+    overlayAnnotationsActivity: vi.mocked(overlayAnnotationsActivity),
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.getActivities as any).mockReturnValue(mockActivities)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(workflowUtils.executeActivity as any).mockImplementation(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (_queue: string, fn: any, ...args: any[]) => {
-        if (typeof fn !== 'function') {
-          throw new Error(`fn is not a function in executeActivity. Queue: ${_queue}`)
-        }
-        return fn(...args)
-      },
-    )
-
-    mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_worker_queue')
   })
 
   it('should run image annotation overlay workflow successfully', async () => {
@@ -78,7 +60,8 @@ describe('overlayImageAnnotationWorkflow', () => {
       media: {
         imageTranscodes: [{ key: 'image-transcoded.webp' }],
       },
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
 
     mockActivities.overlayAnnotationsActivity.mockResolvedValue(
       'files/asset-image/annotations/ann1.webp',

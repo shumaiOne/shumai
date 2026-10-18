@@ -2,14 +2,34 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { agentChat } from './agent-chat'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import * as workflowUtils from '@shumai/workflow-core'
+import * as workflowCore from '@shumai/workflow-core'
+import * as agentActivities from '../activities/agent'
 
 vi.mock('@shumai/workflow-core', async () => {
   const actual = await vi.importActual('@shumai/workflow-core')
   return {
     ...actual,
-    getActivities: vi.fn(),
-    executeActivity: vi.fn(),
+    updateTaskStatusActivity: vi.fn(),
+    updateTaskUsageActivity: vi.fn(),
+  }
+})
+
+vi.mock('../activities/agent', async () => {
+  const actual = await vi.importActual('../activities/agent')
+  return {
+    ...actual,
+    getCommentActivity: vi.fn(),
+    createCommentActivity: vi.fn(),
+    getAssetActivity: vi.fn(),
+    initializeAgentSessionActivity: vi.fn(),
+    getAgentChatContextActivity: vi.fn(),
+    agentChatActivity: vi.fn(),
+    updateCommentActivity: vi.fn(),
+    deleteCommentActivity: vi.fn(),
+    getAssetPathHierarchyActivity: vi.fn(),
+    getAssetPathContextActivity: vi.fn(),
+    generateSessionNameActivity: vi.fn(),
+    getUserTeamInfoActivity: vi.fn(),
   }
 })
 
@@ -23,34 +43,20 @@ describe('Agent Chat Workflow', () => {
     vi.clearAllMocks()
 
     mockActivities = {
-      updateTaskStatusActivity: Object.assign(vi.fn(), {
-        _activityName: 'updateTaskStatusActivity',
-      }),
-      getCommentActivity: Object.assign(vi.fn(), { _activityName: 'getCommentActivity' }),
-      createCommentActivity: Object.assign(vi.fn(), { _activityName: 'createCommentActivity' }),
-      getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
-      initializeAgentSessionActivity: Object.assign(vi.fn(), {
-        _activityName: 'initializeAgentSessionActivity',
-      }),
-      getAgentChatContextActivity: Object.assign(vi.fn(), {
-        _activityName: 'getAgentChatContextActivity',
-      }),
-      agentChatActivity: Object.assign(vi.fn(), { _activityName: 'agentChatActivity' }),
-      updateCommentActivity: Object.assign(vi.fn(), { _activityName: 'updateCommentActivity' }),
-      updateTaskUsageActivity: Object.assign(vi.fn(), { _activityName: 'updateTaskUsageActivity' }),
-      deleteCommentActivity: Object.assign(vi.fn(), { _activityName: 'deleteCommentActivity' }),
-      getAssetPathHierarchyActivity: Object.assign(vi.fn(), {
-        _activityName: 'getAssetPathHierarchyActivity',
-      }),
-      getAssetPathContextActivity: Object.assign(vi.fn(), {
-        _activityName: 'getAssetPathContextActivity',
-      }),
-      generateSessionNameActivity: Object.assign(vi.fn(), {
-        _activityName: 'generateSessionNameActivity',
-      }),
-      getUserTeamInfoActivity: Object.assign(vi.fn(), {
-        _activityName: 'getUserTeamInfoActivity',
-      }),
+      updateTaskStatusActivity: vi.mocked(workflowCore.updateTaskStatusActivity),
+      getCommentActivity: vi.mocked(agentActivities.getCommentActivity),
+      createCommentActivity: vi.mocked(agentActivities.createCommentActivity),
+      getAssetActivity: vi.mocked(agentActivities.getAssetActivity),
+      initializeAgentSessionActivity: vi.mocked(agentActivities.initializeAgentSessionActivity),
+      getAgentChatContextActivity: vi.mocked(agentActivities.getAgentChatContextActivity),
+      agentChatActivity: vi.mocked(agentActivities.agentChatActivity),
+      updateCommentActivity: vi.mocked(agentActivities.updateCommentActivity),
+      updateTaskUsageActivity: vi.mocked(workflowCore.updateTaskUsageActivity),
+      deleteCommentActivity: vi.mocked(agentActivities.deleteCommentActivity),
+      getAssetPathHierarchyActivity: vi.mocked(agentActivities.getAssetPathHierarchyActivity),
+      getAssetPathContextActivity: vi.mocked(agentActivities.getAssetPathContextActivity),
+      generateSessionNameActivity: vi.mocked(agentActivities.generateSessionNameActivity),
+      getUserTeamInfoActivity: vi.mocked(agentActivities.getUserTeamInfoActivity),
     }
 
     mockActivities.updateTaskStatusActivity.mockResolvedValue({})
@@ -87,13 +93,6 @@ describe('Agent Chat Workflow', () => {
       text: 'Hello user, how can I help you?',
       sessionId: 'session-123',
       usage: { inputTokens: 10, outputTokens: 20, model: 'gemini-model' },
-    })
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mockActivities contains vi.fn mock functions which are cast to expected activity proxy types
-    vi.mocked(workflowUtils.getActivities).mockReturnValue(mockActivities as any)
-    vi.mocked(workflowUtils.executeActivity).mockImplementation(async (_queue, act, ...args) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- act is one of the mocked activities
-      return (act as any)(...args)
     })
   })
 
