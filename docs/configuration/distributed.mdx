@@ -146,14 +146,14 @@ graph TD
     WorkerN -->|Fetch Source / Store Proxies| Storage
 
     HPA[HorizontalPodAutoscaler<br/>Target: 70% CPU<br/>min: 1, max: 5] -.->|Autoscale Pods| WorkerN
-    CA[Cluster Autoscaler] -.->|Autoscale c7g.xlarge Spot Nodes| WorkerN
+    CA[Cluster Autoscaler] -.->|Autoscale c9g.xlarge Spot Nodes| WorkerN
 ```
 
 ### Key Architectural Highlights
 
 - **Decoupled Stateless Workers**: The main web and API server runs on lightweight general compute (`SHUMAI_WORKERS=agent`), delegating media transcoding to background workers orchestrated via DBOS task queues in PostgreSQL.
-- **Dedicated Graviton3 Spot Compute (`c7g.xlarge`)**: Media encoding runs on 4 vCPU / 8 GiB RAM AWS Graviton3 Spot instances (~$0.06/hr), utilizing ARM64 FP16/SVE vector optimizations to achieve up to 40% better encoding performance at minimal cost.
-- **1:1 Pod-to-Node Scaling**: Worker pods request `3000m` CPU, guaranteeing that each active transcoding job gets an entire dedicated 4 vCPU `c7g.xlarge` instance without CPU throttling.
+- **Dedicated Graviton5 Spot Compute (`c9g.xlarge`)**: Media encoding runs on 4 vCPU / 8 GiB RAM AWS Graviton5 Spot instances (~$0.08/hr), utilizing ARM64 vector optimizations and high-speed DDR5 memory to achieve exceptional encoding performance at minimal cost.
+- **1:1 Pod-to-Node Scaling**: Worker pods request `3000m` CPU, guaranteeing that each active transcoding job gets an entire dedicated 4 vCPU `c9g.xlarge` instance without CPU throttling.
 - **End-to-End Autoscaling**: Kubernetes HPA detects encoding load and scales worker pods (1 to 5 replicas), while Kubernetes Cluster Autoscaler provisions and terminates underlying EC2 Spot instances automatically.
 
 ### Complete Deployment Example & Source Code

@@ -1,4 +1,4 @@
-# Shumai on AWS EKS with Graviton3 Spot & Autoscaling
+# Shumai on AWS EKS with Graviton5 Spot & Autoscaling
 
 This directory contains a complete, production-ready Kubernetes deployment example demonstrating how to run Shumai on **Amazon Elastic Kubernetes Service (AWS EKS)** with horizontal autoscaling for compute-heavy media processing.
 
@@ -18,7 +18,7 @@ This directory contains a complete, production-ready Kubernetes deployment examp
                     │                                         │ Direct Browser Uploads
                     │                                         ▼ (Presigned URLs)
 ┌───────────────────┼─────────────────────────────────────────────────────────────────┐
-│ General Workload Node (c7g.large Spot, ~$0.029/hr)                                  │
+│ General Workload Node (c9g.large Spot, ~$0.03/hr)                                   │
 │                   │                                                                 │
 │                   ▼                                                                 │
 │       ┌───────────────────────┐    DBOS Tasks    ┌───────────────────────────┐      │
@@ -36,7 +36,7 @@ This directory contains a complete, production-ready Kubernetes deployment examp
                                                                  │ HPA Target: 70% CPU
                                                                  ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│ Transcode Compute Pool (c7g.xlarge Graviton3 Spot, ~$0.06/hr, 1 Pod per Node)       │
+│ Transcode Compute Pool (c9g.xlarge Graviton5 Spot, ~$0.08/hr, 1 Pod per Node)       │
 │                                                                                     │
 │  ┌──────────────────────────┐  ┌──────────────────────────┐  ┌────────────────────┐ │
 │  │     shumai-transcode     │  │     shumai-transcode     │  │  shumai-transcode  │ │
@@ -45,10 +45,10 @@ This directory contains a complete, production-ready Kubernetes deployment examp
 │           ▲                              ▲                             ▲            │
 │           │                              │                             │            │
 │  ┌────────┴─────────────────┐  ┌─────────┴────────────────┐  ┌─────────┴──────────┐ │
-│  │ Node: c7g.xlarge (Spot)  │  │ Node: c7g.xlarge (Spot)  │  │Node: c7g.xlarge    │ │
+│  │ Node: c9g.xlarge (Spot)  │  │ Node: c9g.xlarge (Spot)  │  │Node: c9g.xlarge    │ │
 │  └──────────────────────────┘  └──────────────────────────┘  └────────────────────┘ │
 │                                                                                     │
-│        Cluster Autoscaler: Dynamically provisions / terminates c7g.xlarge nodes      │
+│        Cluster Autoscaler: Dynamically provisions / terminates c9g.xlarge nodes     │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -56,15 +56,15 @@ This directory contains a complete, production-ready Kubernetes deployment examp
 
 ## Core Design Principles
 
-### 1. Compute Tiering & Why Graviton3 (`c7g.xlarge`)
+### 1. Compute Tiering & Why Graviton5 (`c9g.xlarge`)
 
 Media transcoding with FFmpeg is one of the most CPU-intensive workloads in modern web applications. To achieve maximum throughput at minimum cost, this deployment separates system services from media encoding:
 
-- **General System Node (`shumai-general-spot`)**: A single 2 vCPU / 4 GiB RAM (`c7g.large` Spot) node (~$0.029/hr) runs the Web UI, API, PostgreSQL, and Garage S3.
-- **Dedicated Transcode Pool (`shumai-transcode-spot`)**: High-performance 4 vCPU / 8 GiB RAM (`c7g.xlarge` Spot) instances dedicated exclusively to media encoding.
+- **General System Node (`shumai-general-spot`)**: A single 2 vCPU / 4 GiB RAM (`c9g.large` Spot) node (~$0.03/hr) runs the Web UI, API, PostgreSQL, and Garage S3.
+- **Dedicated Transcode Pool (`shumai-transcode-spot`)**: High-performance 4 vCPU / 8 GiB RAM (`c9g.xlarge` Spot) instances dedicated exclusively to media encoding.
 
-**Why choose AWS Graviton3 (`c7g.xlarge`)?**
-AWS Graviton3 ARM64 processors feature dedicated Neoverse V1 cores with native FP16 and SVE (Scalable Vector Extension) vector units. As detailed in AWS's benchmark study, [Optimized Video Encoding with FFmpeg on AWS Graviton Processors](https://aws.amazon.com/cn/blogs/opensource/optimized-video-encoding-with-ffmpeg-on-aws-graviton-processors/), Graviton processors deliver **up to 25–40% better performance** and higher frames-per-second per dollar compared to x86 equivalents. Coupled with AWS EC2 Spot instances, `c7g.xlarge` costs only **~$0.06/hour** (a ~60% discount over On-Demand).
+**Why choose AWS Graviton5 (`c9g.xlarge`)?**
+AWS Graviton5 is AWS's fifth-generation custom ARM64 processor, built on the 6th-generation Nitro system with sustained 3.3 GHz clock speeds, high-speed DDR5 memory (8800 MT/s), and 5x more L3 cache. As demonstrated in AWS's video encoding benchmarks (see [Optimized Video Encoding with FFmpeg on AWS Graviton Processors](https://aws.amazon.com/cn/blogs/opensource/optimized-video-encoding-with-ffmpeg-on-aws-graviton-processors/)), Graviton processors deliver exceptional performance and frames-per-second per dollar for media workloads. Graviton5 further pushes compute performance by up to 25% per vCPU. Coupled with AWS EC2 Spot instances, `c9g.xlarge` costs only **~$0.08/hour** (a massive discount over On-Demand).
 
 ### 2. In-Cluster S3 vs. Native Amazon S3
 
@@ -95,8 +95,8 @@ flowchart LR
     Upload[Video Uploads Spike] --> HPA[HPA detects CPU > 70%]
     HPA --> ScalePods[Scale Pods 1 to 5]
     ScalePods --> Pending[Pods Enter Pending: 3000m CPU needed]
-    Pending --> CA[Cluster Autoscaler launches c7g.xlarge Spot nodes]
-    CA --> Ready[1 Pod scheduled per dedicated c7g.xlarge Node]
+    Pending --> CA[Cluster Autoscaler launches c9g.xlarge Spot nodes]
+    CA --> Ready[1 Pod scheduled per dedicated c9g.xlarge Node]
 ```
 
 1. **Horizontal Pod Autoscaler (HPA)**:
@@ -104,7 +104,7 @@ flowchart LR
    - When a video transcode starts, FFmpeg consumes ~3.5 cores, immediately exceeding 70% and prompting HPA to scale out worker pods (up to 5 replicas).
 2. **1:1 Dedicated Pod-to-Node Allocation**:
    - In [`shumai-transcode.yaml`](./shumai-transcode.yaml), worker pods request `cpu: 3000m` and `memory: 4Gi` with limits at `cpu: 3900m` and `memory: 6Gi`.
-   - Because a `c7g.xlarge` instance has `3920m` allocatable CPU, **strictly 1 transcode pod can fit per node**, giving FFmpeg unrestricted access to all 4 physical cores without CPU throttling.
+   - Because a `c9g.xlarge` instance has `3920m` allocatable CPU, **strictly 1 transcode pod can fit per node**, giving FFmpeg unrestricted access to all 4 physical cores without CPU throttling.
    - Additional pods enter `Pending` state, which immediately triggers the **Kubernetes Cluster Autoscaler** to scale up the AWS Auto Scaling Group (`shumai-transcode-spot`).
 3. **Graceful Scale-Down & Task Safety**:
    - **5-Minute HPA Stabilization Window** (`stabilizationWindowSeconds: 300`): Once the queue is clear and CPU drops to 0%, HPA holds replicas for 5 minutes to avoid pod thrashing if new uploads arrive.
@@ -131,8 +131,8 @@ eksctl create cluster -f eks/eks-cluster.yaml
 
 This provisions:
 - An EKS 1.31 control plane in a dedicated VPC across multiple AZs.
-- `shumai-general-spot`: 1x `c7g.large` Spot instance (labeled `workload: general`).
-- `shumai-transcode-spot`: Autoscaling `c7g.xlarge` Spot instances (min: 1, max: 5, labeled `workload: transcode`).
+- `shumai-general-spot`: 1x `c9g.large` Spot instance (labeled `workload: general`).
+- `shumai-transcode-spot`: Autoscaling `c9g.xlarge` Spot instances (min: 1, max: 5, labeled `workload: transcode`).
 - AWS EBS CSI Driver with IAM OIDC roles.
 
 ### Step 2: Deploy the Shumai Stack
@@ -204,7 +204,7 @@ kubectl patch deployment cluster-autoscaler -n kube-system -p '{"spec":{"templat
    kubectl get pods -n shumai -l app=shumai-transcode -o wide
    kubectl get nodes -L node.kubernetes.io/instance-type,workload
    ```
-4. Observe that each worker consumes ~3 vCPUs on its dedicated `c7g.xlarge` instance.
+4. Observe that each worker consumes ~3 vCPUs on its dedicated `c9g.xlarge` instance.
 5. Once all jobs complete, observe HPA scaling back down to 1 pod and Cluster Autoscaler terminating idle EC2 Spot instances.
 
 ### Step 6: Cluster Teardown & Cost Cleanup
