@@ -76,14 +76,16 @@ npm install -g @shumai-one/shumai-transcode
 shumai-transcode
 ```
 
-Alternatively, you can run the transcode worker using the official Docker image:
+Alternatively, you can run the transcode worker using the dedicated lightweight Docker image:
 
 ```bash
 docker run -d \
   --name shumai-transcode-worker \
   --env-file .env \
-  shumaione/shumai:latest shumai-transcode
+  shumaione/shumai-transcode:latest
 ```
+
+(You can also use the all-in-one image: `docker run -d --name shumai-transcode-worker --env-file .env shumaione/shumai:latest shumai-transcode`.)
 
 ### AI Agent Worker
 
@@ -123,5 +125,49 @@ Workers pull tasks from PostgreSQL queues based on configurable concurrency limi
 When running multiple replicas of the transcode or agent worker across multiple machines or pods:
 
 - `DbosExecutor` automatically derives a unique per-instance ID from the machine hostname and process ID to ensure startup recovery only re-enqueues tasks belonging to that specific instance.
-- **Custom Worker ID**: Set `SHUMAI_WORKER_ID` if you wish to assign an explicit identifier.
-- **Kubernetes**: In Kubernetes StatefulSets, set `POD_NAME` (via Downward API `fieldRef: { fieldPath: metadata.name }`) to provide stable identity across pod restarts.
+- **Custom Worker ID**: Set `SHUMAI_WORKERS_ID` (or `SHUMAI_WORKER_ID`) if you wish to assign an explicit identifier.
+- **Kubernetes**: In Kubernetes Pods, set `POD_NAME` (via Downward API `fieldRef: { fieldPath: metadata.name }`) to provide stable, unique per-pod identity across pod restarts.
+
+---
+
+## Scalable Deployment on Kubernetes & AWS EKS
+
+For production cloud deployments requiring high-throughput media processing, Shumai can be deployed on Kubernetes or **AWS Elastic Kubernetes Service (AWS EKS)** with automated scale-to-zero queue-driven scaling via **KEDA (Kubernetes Event-driven Autoscaling)**.
+
+```mermaid
+graph TD
+    User([User / Web Browser]) -->|Port 80/3000| Server[Pod: shumai-server<br/>SHUMAI_WORKERS=agent]
+    Server -->|Enqueue to transcode_queue| DB[(PostgreSQL: pgvector18<br/>dbos.workflow_status)]
+    Server -->|Direct Uploads / Stream Proxies| Storage[(S3 / Garage Storage)]
+
+    KEDA[KEDA ScaledJob<br/>PostgreSQL Trigger<br/>min: 0, max: 10] -.->|Monitors Queue| DB
+    KEDA -->|Spawns Jobs for queue| Job1[Job: shumai-transcode-1<br/>Auto-drain worker]
+    KEDA -->|Spawns Jobs for queue| JobN[Job: shumai-transcode-N<br/>Auto-drain worker]
+
+    Job1 -->|Fetch Source / Store Proxies| Storage
+    JobN -->|Fetch Source / Store Proxies| Storage
+    Job1 -->|Mark Complete & Exit 0| DB
+    JobN -->|Mark Complete & Exit 0| DB
+
+    CA[Cluster Autoscaler / Karpenter] -.->|Scale-to-Zero On-Demand Nodes<br/>0 to 10 instances| JobN
+```
+
+### Key Architectural Highlights
+
+- **Decoupled Stateless Workers**: The main web and API server, database, and storage run on reliable On-Demand compute (`c9g.large`, `SHUMAI_WORKERS=agent`), delegating media transcoding to background workers orchestrated via DBOS task queues in PostgreSQL.
+- **Dedicated Graviton5 On-Demand Compute (`c9g.xlarge`)**: Media encoding runs on 4 vCPU / 8 GiB RAM AWS Graviton5 On-Demand instances (~$0.174/hr), utilizing ARM64 vector optimizations and high-speed DDR5 memory without involuntary Spot interruptions.
+- **Queue-Driven Scale-to-Zero via KEDA**: KEDA monitors `dbos.workflow_status` for enqueued and pending transcode tasks and dynamically provisions Kubernetes `ScaledJob` resources (scaling 0 to 10). When the queue is empty, transcode nodes scale down to zero (`minSize: 0`), incurring **$0/hr** in worker costs.
+- **Idle-Timeout Auto-Drain**: Worker pods continuously process queued tasks with concurrency `1`. When the queue is fully drained and a pod has been idle for 10 seconds (`SHUMAI_WORKER_IDLE_TIMEOUT_MS=10000`), it exits `0` cleanly so the node can scale down, processing batch uploads without cold-start pod churn.
+- **Automated Stale Task Recovery**: The core web server runs an integrated recovery sweep that detects stale or orphaned tasks (e.g. from node crash) and resumes them automatically in DBOS, with a 3-attempt cap to safely handle poison-pill media.
+
+### Complete Deployment Example & Source Code
+
+For the full, production-ready manifests, declarative `eksctl` cluster configuration, and step-by-step walkthrough, see the **[EKS Deployment Example](https://github.com/shumaiOne/shumai/tree/main/eks)** in the Shumai repository:
+
+👉 **[View the EKS Deployment Guide & Manifests on GitHub](https://github.com/shumaiOne/shumai/tree/main/eks)**
+
+The repository includes:
+
+- [`eks/eks-cluster.yaml`](https://github.com/shumaiOne/shumai/blob/main/eks/eks-cluster.yaml): Complete `eksctl` ClusterConfig with compute tiering.
+- [`eks/kustomization.yaml`](https://github.com/shumaiOne/shumai/blob/main/eks/kustomization.yaml): Single-command Kustomize deployment for all services.
+- Detailed instructions for setting up public endpoints, automated Cluster Autoscaler, and zero-downtime graceful shutdown.

@@ -111,6 +111,7 @@ export interface S3Service {
     method: string,
     download?: boolean,
     filename?: string,
+    internal?: boolean,
   ) => Promise<string>
   presignMultipart: (
     bucket: string,
@@ -123,6 +124,7 @@ export interface S3Service {
 
 export class S3StorageService implements S3Service {
   private client: S3Client
+  private presignClient: S3Client
   private bucket: string
   private presignCache = new LruTtlCache<string, string>(50000)
 
@@ -132,6 +134,7 @@ export class S3StorageService implements S3Service {
     secretAccessKey: string,
     bucket: string,
     region: string = 'auto',
+    publicEndpoint?: string,
   ) {
     this.client = new S3Client({
       region,
@@ -144,6 +147,20 @@ export class S3StorageService implements S3Service {
       requestChecksumCalculation: 'WHEN_REQUIRED',
       responseChecksumValidation: 'WHEN_REQUIRED',
     })
+    this.presignClient =
+      publicEndpoint && publicEndpoint !== endpoint
+        ? new S3Client({
+            region,
+            endpoint: publicEndpoint,
+            credentials: {
+              accessKeyId,
+              secretAccessKey,
+            },
+            forcePathStyle: true,
+            requestChecksumCalculation: 'WHEN_REQUIRED',
+            responseChecksumValidation: 'WHEN_REQUIRED',
+          })
+        : this.client
     this.bucket = bucket
   }
 
@@ -342,12 +359,13 @@ export class S3StorageService implements S3Service {
     method: string,
     download?: boolean,
     filename?: string,
+    internal?: boolean,
   ): Promise<string> {
     const expireHours = parseInt(process.env.PRESIGNED_URL_EXPIRES_IN || '5', 10)
     const expiresInSeconds = expireHours * 3600
     const cacheTtlMs = expiresInSeconds * 1000
 
-    const cacheKey = `${bucket}/${key}?download=${download || false}&filename=${filename || ''}`
+    const cacheKey = `${bucket}/${key}?download=${download || false}&filename=${filename || ''}&internal=${internal || false}`
     if (method === 'GET' && !download) {
       const cached = this.presignCache.get(cacheKey)
       if (cached) {
@@ -355,6 +373,7 @@ export class S3StorageService implements S3Service {
       }
     }
 
+    const signingClient = internal ? this.client : this.presignClient
     let url: string
 
     if (method === 'GET') {
@@ -363,19 +382,19 @@ export class S3StorageService implements S3Service {
         Key: key,
         ResponseContentDisposition: download ? buildContentDisposition(filename) : undefined,
       })
-      url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+      url = await getSignedUrl(signingClient, command, { expiresIn: expiresInSeconds })
     } else if (method === 'PUT') {
       const command = new PutObjectCommand({
         Bucket: bucket,
         Key: key,
       })
-      url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+      url = await getSignedUrl(signingClient, command, { expiresIn: expiresInSeconds })
     } else if (method === 'DELETE') {
       const command = new DeleteObjectCommand({
         Bucket: bucket,
         Key: key,
       })
-      url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+      url = await getSignedUrl(signingClient, command, { expiresIn: expiresInSeconds })
     } else {
       throw new Error(`Unsupported method for presign: ${method}`)
     }
@@ -405,13 +424,13 @@ export class S3StorageService implements S3Service {
           UploadId: request.uploadId,
           PartNumber: request.partNumber,
         })
-        url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+        url = await getSignedUrl(this.presignClient, command, { expiresIn: expiresInSeconds })
       } else {
         const command = new PutObjectCommand({
           Bucket: bucket,
           Key: key,
         })
-        url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+        url = await getSignedUrl(this.presignClient, command, { expiresIn: expiresInSeconds })
       }
     } else if (request.method === 'POST') {
       if (request.uploadId) {
@@ -420,13 +439,13 @@ export class S3StorageService implements S3Service {
           Key: key,
           UploadId: request.uploadId,
         })
-        url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+        url = await getSignedUrl(this.presignClient, command, { expiresIn: expiresInSeconds })
       } else {
         const command = new CreateMultipartUploadCommand({
           Bucket: bucket,
           Key: key,
         })
-        url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+        url = await getSignedUrl(this.presignClient, command, { expiresIn: expiresInSeconds })
       }
     } else if (request.method === 'GET') {
       if (!request.uploadId) {
@@ -437,7 +456,7 @@ export class S3StorageService implements S3Service {
         Key: key,
         UploadId: request.uploadId,
       })
-      url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+      url = await getSignedUrl(this.presignClient, command, { expiresIn: expiresInSeconds })
     } else if (request.method === 'DELETE') {
       if (!request.uploadId) {
         throw new Error('Abort multipart upload requires uploadId')
@@ -447,7 +466,7 @@ export class S3StorageService implements S3Service {
         Key: key,
         UploadId: request.uploadId,
       })
-      url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+      url = await getSignedUrl(this.presignClient, command, { expiresIn: expiresInSeconds })
     } else {
       throw new Error(`Unsupported method for presignMultipart: ${request.method}`)
     }
@@ -466,7 +485,7 @@ export class S3StorageService implements S3Service {
   }
 
   async resolveInput(bucket: string, key: string): Promise<string> {
-    return this.presign(bucket, key, 'GET')
+    return this.presign(bucket, key, 'GET', false, undefined, true)
   }
 }
 
@@ -743,6 +762,8 @@ export function getStorageBackend(): 's3' | 'local' {
 const storageBackend = getStorageBackend()
 const port = process.env.SHUMAI_SERVER_PORT || '3000'
 const s3Endpoint = process.env.AWS_ENDPOINT_URL_S3 || `http://localhost:${port}`
+const s3PublicEndpoint =
+  process.env.AWS_PUBLIC_ENDPOINT_URL_S3 || process.env.S3_PUBLIC_ENDPOINT || undefined
 
 export const s3Service: S3Service =
   storageBackend === 's3'
@@ -752,5 +773,6 @@ export const s3Service: S3Service =
         process.env.S3_SECRET_ACCESS_KEY || 'minioadmin',
         process.env.S3_BUCKET || 'shumai',
         process.env.S3_REGION || 'auto',
+        s3PublicEndpoint,
       )
     : new LocalStorageService(s3Endpoint)

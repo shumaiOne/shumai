@@ -68,7 +68,7 @@ export const updateTaskStatusActivity = defineStep(
       where: { id: params.taskId },
       data: {
         status: params.status,
-        output: params.output as Prisma.InputJsonValue,
+        output: params.output as PrismaJson.WorkflowTaskOutput,
       },
     })
   },
@@ -152,7 +152,9 @@ export const updateWorkflowTaskActivity = defineStep(
       data: {
         ...(params.status !== undefined ? { status: params.status } : {}),
         ...(params.heartbeat ? { heartbeat: new Date() } : {}),
-        ...(params.output !== undefined ? { output: params.output as Prisma.InputJsonValue } : {}),
+        ...(params.output !== undefined
+          ? { output: params.output as PrismaJson.WorkflowTaskOutput }
+          : {}),
         ...(params.inputTokens !== undefined ? { inputTokens: params.inputTokens } : {}),
         ...(params.outputTokens !== undefined ? { outputTokens: params.outputTokens } : {}),
         ...(params.model !== undefined ? { model: params.model } : {}),

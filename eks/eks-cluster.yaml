@@ -1,0 +1,57 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: shumai-eks
+  region: us-east-1
+  version: '1.31'
+
+iam:
+  withOIDC: true
+
+addons:
+  - name: aws-ebs-csi-driver
+    wellKnownPolicies:
+      ebsCSIController: true
+
+managedNodeGroups:
+  # General system workload: Web UI, REST API, DBOS PostgreSQL, and Garage S3
+  # Runs on On-Demand instances to guarantee database & storage durability without spot interruptions
+  - name: shumai-general
+    instanceType: c9g.large # 2 vCPU, 4 GiB RAM (Graviton5 On-Demand, ~$0.087/hr)
+    spot: false
+    minSize: 1
+    maxSize: 2
+    desiredCapacity: 1
+    amiFamily: AmazonLinux2023
+    volumeSize: 50
+    volumeType: gp3
+    labels:
+      workload: general
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        ebs: true
+
+  # Transcoding compute pool: High-CPU media processing
+  # Uses On-Demand instances with scale-to-zero (minSize: 0) managed by Cluster Autoscaler / Karpenter
+  - name: shumai-transcode
+    instanceType: c9g.xlarge # 4 vCPU, 8 GiB RAM (Graviton5 On-Demand, ~$0.174/hr)
+    spot: false
+    minSize: 0
+    maxSize: 5
+    desiredCapacity: 0
+    amiFamily: AmazonLinux2023
+    volumeSize: 50
+    volumeType: gp3
+    labels:
+      workload: transcode
+      role: transcode
+    taints:
+      - key: dedicated
+        value: transcode
+        effect: NoSchedule
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        ebs: true

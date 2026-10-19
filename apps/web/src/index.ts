@@ -109,6 +109,7 @@ async function run() {
   }
 
   workflowService.start(listenQueues)
+  workflowService.startStaleTaskRecovery()
 
   const isProd = process.env.NODE_ENV === 'production'
 
@@ -206,8 +207,10 @@ async function run() {
 
   console.log(`🚀 Server running at ${server.url}`)
 
-  const shutdown = () => {
+  const shutdown = async () => {
     console.log('\nShutting down gracefully...')
+    workflowService.stopStaleTaskRecovery()
+    await workflowService.shutdownWorkers().catch(() => {})
     assetService.stopCleanupJob()
     server.stop(true)
     process.exit(0)

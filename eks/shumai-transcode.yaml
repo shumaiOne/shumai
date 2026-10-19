@@ -1,0 +1,90 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-postgres-auth
+  namespace: shumai
+spec:
+  secretTargetRef:
+    - parameter: connection
+      name: shumai-secret
+      key: KEDA_DATABASE_URL
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: shumai-transcode-scaler
+  namespace: shumai
+  labels:
+    app: shumai-transcode
+spec:
+  jobTargetRef:
+    parallelism: 1
+    completions: 1
+    backoffLimit: 0
+    template:
+      metadata:
+        labels:
+          app: shumai-transcode
+      spec:
+        restartPolicy: Never
+        terminationGracePeriodSeconds: 300
+        tolerations:
+          - key: dedicated
+            operator: Equal
+            value: transcode
+            effect: NoSchedule
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: role
+                      operator: In
+                      values:
+                        - transcode
+                - matchExpressions:
+                    - key: workload
+                      operator: In
+                      values:
+                        - transcode
+                - matchExpressions:
+                    - key: eks.amazonaws.com/nodegroup
+                      operator: In
+                      values:
+                        - shumai-transcode
+        containers:
+          - name: worker
+            image: shumaione/shumai-transcode:latest
+            imagePullPolicy: Always
+            env:
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: SHUMAI_WORKER_IDLE_TIMEOUT_MS
+                value: '10000'
+            envFrom:
+              - configMapRef:
+                  name: shumai-config
+              - secretRef:
+                  name: shumai-secret
+            resources:
+              requests:
+                cpu: 3000m
+                memory: 4Gi
+              limits:
+                cpu: 3900m
+                memory: 6Gi
+  pollingInterval: 10
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 10
+  maxReplicaCount: 5
+  scalingStrategy:
+    strategy: default
+  triggers:
+    - type: postgresql
+      metadata:
+        query: "SELECT COUNT(*) FROM dbos.workflow_status WHERE queue_name = 'transcode_queue' AND status IN ('ENQUEUED', 'PENDING');"
+        targetQueryValue: '1'
+      authenticationRef:
+        name: keda-postgres-auth

@@ -74,3 +74,31 @@ jobs:
           provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      # Extract metadata for Docker (Transcode Worker)
+      - name: Extract metadata for Docker (Transcode Worker)
+        id: meta-transcode
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            shumaione/shumai-transcode
+            crpi-000nkafzu6xvpwsc.cn-hongkong.personal.cr.aliyuncs.com/shumai-one/shumai-transcode
+          tags: |
+            type=semver,pattern={{version}}
+            type=ref,event=branch,enable=${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.pr && !inputs.tag) }}
+            type=raw,value=pr-${{ inputs.pr }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.pr != '' && inputs.tag == '' }}
+            type=raw,value=${{ inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.tag != '' }}
+          labels: |
+            org.opencontainers.image.revision=${{ steps.checkout.outputs.commit }}
+
+      # Build and push Docker image (Transcode Worker)
+      - name: Build and push Docker image (Transcode Worker)
+        uses: docker/build-push-action@v7
+        with:
+          platforms: linux/amd64,linux/arm64
+          context: .
+          file: ./Dockerfile.transcode
+          push: true
+          provenance: false
+          tags: ${{ steps.meta-transcode.outputs.tags }}
+          labels: ${{ steps.meta-transcode.outputs.labels }}
