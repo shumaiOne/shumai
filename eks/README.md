@@ -27,7 +27,7 @@ To demonstrate a fully self-hosted setup, it uses Garage as an S3-compatible obj
 │                   ▼                                                                 │
 │       ┌───────────────────────┐   Enqueue DBOS Tasks    ┌───────────────────┐       │
 │       │     shumai-server     ├────────────────────────►│  shumai-postgres  │       │
-│       │(SHUMAI_WORKERS=agent) │ (task_queue_transcode)  │  (pgvector:pg18)  │       │
+│       │(SHUMAI_WORKERS=agent) │   (transcode_queue)     │  (pgvector:pg18)  │       │
 │       │ [Stale Recovery Loop] │                         │                   │       │
 │       └───────────┬───────────┘                         └─────────┬─────────┘       │
 │                   │ Internal S3 Traffic                           │                 │
@@ -42,7 +42,7 @@ To demonstrate a fully self-hosted setup, it uses Garage as an S3-compatible obj
                     │                                               ▼ dbos.workflow_status
                     │                         ┌───────────────────────────────────────┐
                     │                         │ KEDA Controller: ScaledJob            │
-                    │                         │ Spawns 1 Job per enqueued task (0..10)│
+                    │                         │ Spawns Jobs based on pending tasks    │
                     │                         └───────────────────┬───────────────────┘
                     │                                             │
                     │                                             ▼ Creates K8s Jobs
@@ -51,7 +51,7 @@ To demonstrate a fully self-hosted setup, it uses Garage as an S3-compatible obj
 │                                                                                     │
 │  ┌──────────────────────────┐  ┌──────────────────────────┐  ┌────────────────────┐ │
 │  │   Job: transcode-job-1   │  │   Job: transcode-job-2   │  │Job: transcode-job-N│ │
-│  │    (Worker Pod: --once)  │  │    (Worker Pod: --once)  │  │ (Worker Pod: --once│ │
+│  │   (Auto-Drain Worker)    │  │   (Auto-Drain Worker)    │  │ (Auto-Drain Worker)│ │
 │  └────────────┬─────────────┘  └────────────┬─────────────┘  └──────────┬─────────┘ │
 │               ▼                             ▼                           ▼           │
 │  ┌──────────────────────────┐  ┌──────────────────────────┐  ┌────────────────────┐ │
@@ -83,20 +83,20 @@ Standard Kubernetes Horizontal Pod Autoscaler (HPA) scales `Deployment` replicas
 **KEDA `ScaledJob` solves this natively**:
 - KEDA queries PostgreSQL directly:
   ```sql
-  SELECT COUNT(*) FROM dbos.workflow_status WHERE queue_name = 'task_queue_transcode' AND status IN ('ENQUEUED', 'PENDING');
+  SELECT COUNT(*) FROM dbos.workflow_status WHERE queue_name = 'transcode_queue' AND status IN ('ENQUEUED', 'PENDING');
   ```
-- KEDA spawns an independent Kubernetes `Job` for each enqueued task.
-- Each Job runs the transcode worker in `--once` mode.
-- When the job's video finishes transcoding, the pod exits `0` and Kubernetes marks the Job completed.
+- KEDA spawns independent Kubernetes `Job` pods based on enqueued workload.
+- Each Job runs the transcode worker with an idle timeout (`SHUMAI_WORKER_IDLE_TIMEOUT_MS=10000`).
+- When the job drains its tasks and becomes idle, the pod exits `0` and Kubernetes marks the Job completed.
 - Completing or terminating one job **never impacts any other job**!
 
-### 3. Single-Task Worker Execution (`--once` Mode)
+### 3. Idle-Timeout Auto-Drain (10s Inactivity Shutdown)
 
-In [`eks/shumai-transcode.yaml`](./shumai-transcode.yaml), the worker container runs with `bun run /app/apps/transcode/src/index.ts --once`:
-- Transcode concurrency is strictly set to `1`.
-- The worker claims 1 DBOS workflow task from `task_queue_transcode`.
-- As soon as that task finishes (success, failure, or cancellation), the worker initiates graceful DBOS drain and exits with code `0`.
-- **Idle Timeout**: If a job was spawned but another worker claimed the task first, the worker waits 15 seconds. If no task arrives within 15 seconds, it exits `0` cleanly so the pod and node can shut down.
+In [`eks/shumai-transcode.yaml`](./shumai-transcode.yaml), the worker container runs with `SHUMAI_WORKER_IDLE_TIMEOUT_MS: "10000"`:
+- **Concurrency Isolation**: Transcode concurrency is set to `1` per pod (`CONCURRENCY_TRANSCODE=1`). Each pod has exclusive access to the node's 4 vCPUs for FFmpeg.
+- **Batch Processing Without Cold Starts**: Unlike single-task execution, a running worker continuously pulls tasks from `transcode_queue`. When a user uploads 100 images or multiple video files, a warm worker processes them back-to-back in seconds without restarting the container or control plane churn.
+- **Automatic Scale-to-Zero**: When `activeWorkflows === 0` and no new task arrives within 10 consecutive seconds, the worker initiates graceful DBOS shutdown and exits with code `0`.
+- The completed Job pod terminates, freeing the node so Cluster Autoscaler can terminate the EC2 instance down to zero.
 
 ### 4. Automated Stale-Heartbeat Recovery Sweep
 

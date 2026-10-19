@@ -384,13 +384,7 @@ describe('DbosExecutor Tests', () => {
     }, 15000)
   })
 
-  describe('Once mode, events, and conflict handling', () => {
-    it('should force concurrency to 1 in onceMode', () => {
-      executor.setOnceMode(true)
-      expect(executor.isOnceMode()).toBe(true)
-      expect(executor.getTranscodeConcurrencyLimit()).toBe(1)
-    })
-
+  describe('Workflow events and conflict handling', () => {
     it('should emit workflowStarted and workflowFinished events during execution', async () => {
       let startedTask: WorkflowTask | null = null
       let finishedPayload: { taskId: string; success: boolean } | null = null

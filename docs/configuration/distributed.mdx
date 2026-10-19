@@ -141,8 +141,8 @@ graph TD
     Server -->|Direct Uploads / Stream Proxies| Storage[(S3 / Garage Storage)]
 
     KEDA[KEDA ScaledJob<br/>PostgreSQL Trigger<br/>min: 0, max: 10] -.->|Monitors Queue| DB
-    KEDA -->|Spawns 1 Job per task| Job1[Job: shumai-transcode-1<br/>--once mode]
-    KEDA -->|Spawns 1 Job per task| JobN[Job: shumai-transcode-N<br/>--once mode]
+    KEDA -->|Spawns Jobs for queue| Job1[Job: shumai-transcode-1<br/>Auto-drain worker]
+    KEDA -->|Spawns Jobs for queue| JobN[Job: shumai-transcode-N<br/>Auto-drain worker]
 
     Job1 -->|Fetch Source / Store Proxies| Storage
     JobN -->|Fetch Source / Store Proxies| Storage
@@ -157,7 +157,7 @@ graph TD
 - **Decoupled Stateless Workers**: The main web and API server, database, and storage run on reliable On-Demand compute (`c9g.large`, `SHUMAI_WORKERS=agent`), delegating media transcoding to background workers orchestrated via DBOS task queues in PostgreSQL.
 - **Dedicated Graviton5 On-Demand Compute (`c9g.xlarge`)**: Media encoding runs on 4 vCPU / 8 GiB RAM AWS Graviton5 On-Demand instances (~$0.174/hr), utilizing ARM64 vector optimizations and high-speed DDR5 memory without involuntary Spot interruptions.
 - **Queue-Driven Scale-to-Zero via KEDA**: KEDA monitors `dbos.workflow_status` for enqueued and pending transcode tasks and dynamically provisions Kubernetes `ScaledJob` resources (scaling 0 to 10). When the queue is empty, transcode nodes scale down to zero (`minSize: 0`), incurring **$0/hr** in worker costs.
-- **Single-Workflow `--once` Mode**: Each worker pod runs in `--once` mode, claims exactly 1 workflow task, processes it to completion, and exits `0`. Because each task runs in an isolated Kubernetes Job, terminating or finishing jobs never interrupts peer tasks.
+- **Idle-Timeout Auto-Drain**: Worker pods continuously process queued tasks with concurrency `1`. When the queue is fully drained and a pod has been idle for 10 seconds (`SHUMAI_WORKER_IDLE_TIMEOUT_MS=10000`), it exits `0` cleanly so the node can scale down, processing batch uploads without cold-start pod churn.
 - **Automated Stale Task Recovery**: The core web server runs an integrated recovery sweep that detects stale or orphaned tasks (e.g. from node crash) and resumes them automatically in DBOS, with a 3-attempt cap to safely handle poison-pill media.
 
 ### Complete Deployment Example & Source Code

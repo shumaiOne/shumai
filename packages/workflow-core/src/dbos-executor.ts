@@ -89,7 +89,6 @@ export class DbosExecutor extends EventEmitter {
   private inFlightSubmits = new Set<Promise<string>>()
   private executorId?: string
   private instanceSuffix = Math.random().toString(36).slice(2, 8)
-  private onceMode = false
 
   constructor(listenQueues?: string[], executorId?: string) {
     super()
@@ -101,14 +100,6 @@ export class DbosExecutor extends EventEmitter {
     }
   }
 
-  setOnceMode(once: boolean): void {
-    this.onceMode = once
-  }
-
-  isOnceMode(): boolean {
-    return this.onceMode
-  }
-
   isStarted(): boolean {
     return this.started
   }
@@ -118,7 +109,6 @@ export class DbosExecutor extends EventEmitter {
   }
 
   getTranscodeConcurrencyLimit(): number {
-    if (this.onceMode) return 1
     return getConcurrencyLimit(process.env.CONCURRENCY_TRANSCODE, 1)
   }
 

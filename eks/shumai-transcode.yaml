@@ -60,14 +60,13 @@ spec:
               - bun
               - run
               - /app/apps/transcode/src/index.ts
-              - --once
             env:
               - name: POD_NAME
                 valueFrom:
                   fieldRef:
                     fieldPath: metadata.name
-              - name: SHUMAI_WORKER_ONCE
-                value: 'true'
+              - name: SHUMAI_WORKER_IDLE_TIMEOUT_MS
+                value: '10000'
             envFrom:
               - configMapRef:
                   name: shumai-config
@@ -91,7 +90,7 @@ spec:
   triggers:
     - type: postgresql
       metadata:
-        query: "SELECT COUNT(*) FROM dbos.workflow_status WHERE queue_name = 'task_queue_transcode' AND status IN ('ENQUEUED', 'PENDING');"
+        query: "SELECT COUNT(*) FROM dbos.workflow_status WHERE queue_name = 'transcode_queue' AND status IN ('ENQUEUED', 'PENDING');"
         targetQueryValue: '1'
       authenticationRef:
         name: keda-postgres-auth
