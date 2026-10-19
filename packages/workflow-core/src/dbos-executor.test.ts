@@ -248,13 +248,18 @@ describe('DbosExecutor Tests', () => {
         await restartedWorker.ensureLaunched()
 
         // Verify that on restart with the SAME executor ID, DBOS startup recovery DOES re-enqueue it
-        const rowsAfterRestart = await prisma.$queryRawUnsafe<
-          Array<{ status: string; executorId: string }>
-        >(
-          'SELECT status, executor_id AS "executorId" FROM dbos.workflow_status WHERE workflow_uuid = $1',
-          taskUuid,
+        await vi.waitFor(
+          async () => {
+            const rowsAfterRestart = await prisma.$queryRawUnsafe<
+              Array<{ status: string; executorId: string }>
+            >(
+              'SELECT status, executor_id AS "executorId" FROM dbos.workflow_status WHERE workflow_uuid = $1',
+              taskUuid,
+            )
+            expect(rowsAfterRestart[0]?.status).toBe('ENQUEUED')
+          },
+          { timeout: 5000, interval: 50 },
         )
-        expect(rowsAfterRestart[0].status).toBe('ENQUEUED')
 
         await restartedWorker.shutdown()
       } finally {

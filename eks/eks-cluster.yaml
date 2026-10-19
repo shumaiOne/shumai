@@ -39,7 +39,7 @@ managedNodeGroups:
     instanceType: c9g.xlarge # 4 vCPU, 8 GiB RAM (Graviton5 On-Demand, ~$0.174/hr)
     spot: false
     minSize: 0
-    maxSize: 10
+    maxSize: 5
     desiredCapacity: 0
     amiFamily: AmazonLinux2023
     volumeSize: 50

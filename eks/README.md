@@ -47,7 +47,7 @@ To demonstrate a fully self-hosted setup, it uses Garage as an S3-compatible obj
                     │                                             │
                     │                                             ▼ Creates K8s Jobs
 ┌───────────────────┴─────────────────────────────────────────────────────────────────┐
-│ Transcode Compute Pool (c9g.xlarge Graviton5 On-Demand, minSize: 0, maxSize: 10)     │
+│ Transcode Compute Pool (c9g.xlarge Graviton5 On-Demand, minSize: 0, maxSize: 5)      │
 │                                                                                     │
 │  ┌──────────────────────────┐  ┌──────────────────────────┐  ┌────────────────────┐ │
 │  │   Job: transcode-job-1   │  │   Job: transcode-job-2   │  │Job: transcode-job-N│ │
@@ -98,21 +98,6 @@ In [`eks/shumai-transcode.yaml`](./shumai-transcode.yaml), the worker container 
 - **Automatic Scale-to-Zero**: When `activeWorkflows === 0` and no new task arrives within 10 consecutive seconds, the worker initiates graceful DBOS shutdown and exits with code `0`.
 - The completed Job pod terminates, freeing the node so Cluster Autoscaler can terminate the EC2 instance down to zero.
 
-### 4. Automated Stale-Heartbeat Recovery Sweep
-
-If a worker node crashes abruptly (e.g. host kernel panic or hardware failure):
-- Every active worker updates `WorkflowTask.heartbeat` in PostgreSQL every 5 seconds.
-- The single core web server (`shumai-server`) runs a lightweight background sweep every 30 seconds (`workflowService.startStaleTaskRecovery()`).
-- Any task stuck in `status = 'processing'` with `heartbeat < now() - 90s` and whose DBOS status is `'PENDING'` is automatically re-enqueued via `client.resumeWorkflow(task.id, { queueName })`.
-- Resumed workflows skip already completed steps using DBOS durable operation outputs.
-- **Poison-Pill Protection**: If a malformed media file crashes workers repeatedly, after 3 recovery attempts the task and asset are marked as `failed` to prevent infinite restart loops.
-
-### 5. Zombie Worker & Graceful Shutdown Safety
-
-- When Kubernetes drains a node or sends `SIGTERM`, `DBOS.shutdown({ workflowCompletionTimeoutMS: 290_000 })` gives the worker up to 290 seconds to finish its active FFmpeg step and upload proxies to S3.
-- Heartbeats remain active throughout the shutdown drain period to prevent the web server from prematurely declaring the worker dead.
-- If a slow worker resumes execution after ownership was transferred, DBOS raises `DBOSWorkflowConflictError` (code 5). Shumai catches this error and avoids overwriting the active task or asset status.
-
 ---
 
 ## Step-by-Step Deployment Guide
@@ -133,9 +118,9 @@ eksctl create cluster -f eks/eks-cluster.yaml
 ```
 
 This provisions:
-- An EKS 1.31 control plane across multiple AZs.
+- An EKS 1.31 control plane in `us-east-1` across multiple AZs. *(Note: AWS Graviton5 `c9g` instances are available in `us-east-1`. If deploying to a region where `c9g` is not yet offered, substitute `c7g.large` / `c7g.xlarge` or `c8g` in `eks/eks-cluster.yaml`.)*
 - `shumai-general`: 1x `c9g.large` On-Demand instance (labeled `workload: general`) for API, database, and storage.
-- `shumai-transcode`: Scale-to-zero `c9g.xlarge` On-Demand instance pool (`minSize: 0`, `maxSize: 10`, `desiredCapacity: 0`, tainted `dedicated=transcode:NoSchedule`).
+- `shumai-transcode`: Scale-to-zero `c9g.xlarge` On-Demand instance pool (`minSize: 0`, `maxSize: 5`, `desiredCapacity: 0`, tainted `dedicated=transcode:NoSchedule`).
 - AWS EBS CSI Driver with IAM OIDC roles.
 
 ### Step 2: Install KEDA
@@ -148,10 +133,10 @@ helm repo update
 helm install keda kedacore/keda --namespace keda --create-namespace
 ```
 
-Verify KEDA operator is running:
+Wait for the KEDA operator to reach `Running` state:
 
 ```bash
-kubectl get pods -n keda
+kubectl wait --namespace keda --for=condition=ready pod -l app.kubernetes.io/name=keda-operator --timeout=120s
 ```
 
 ### Step 3: Deploy the Shumai Stack
@@ -162,34 +147,54 @@ Deploy all components with Kustomize:
 kubectl apply -k eks/
 ```
 
-Verify initial core pods on the general node reach `Running` state:
+This applies:
+- [`eks/storageclass.yaml`](./storageclass.yaml): Configures `gp3` as the default StorageClass using `ebs.csi.aws.com` with `WaitForFirstConsumer` binding and dynamic EBS volume expansion.
+- PostgreSQL (`pgvector:pg18`) with durable EBS storage.
+- Garage S3 object store with automatic bucket and CORS initialization (`garage-init` job).
+- Shumai API & Web server.
+- KEDA `ScaledJob` for transcode worker auto-scaling.
+
+Wait for the core database and storage services to initialize:
 
 ```bash
+# Wait for PostgreSQL and Garage S3 pods to become Ready
+kubectl wait --namespace shumai --for=condition=ready pod -l app=shumai-postgres --timeout=180s
+kubectl wait --namespace shumai --for=condition=ready pod -l app=garage --timeout=180s
+
+# Wait for the bucket initialization job to complete
+kubectl wait --namespace shumai --for=condition=complete job/garage-init --timeout=180s
+
+# Verify all pods in the shumai namespace
 kubectl get pods -n shumai -o wide
 ```
 
+*(Note: On first startup, `shumai-server` automatically runs database migrations against PostgreSQL; this may take 30–60 seconds before the server reaches `Running (1/1)`.)*
+
 ### Step 4: Configure Public Access & S3 Endpoint
 
-Retrieve the external LoadBalancer hostnames created by AWS:
+AWS automatically provisions external Elastic Load Balancers for `shumai-server` and `garage-public`. Because AWS takes 30–60 seconds to allocate external hostnames, wait for the hostnames to become available:
 
 ```bash
-kubectl get svc -n shumai
-```
+# Wait for AWS to assign external hostnames to the LoadBalancers
+echo "Waiting for LoadBalancer external hostnames..."
+until [ -n "$(kubectl get svc garage-public -n shumai -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')" ]; do
+  sleep 5
+done
 
-```text
-NAME             TYPE           EXTERNAL-IP                                PORT(S)
-shumai-server    LoadBalancer   k8s-shumai-xxx.us-east-1.elb.amazonaws.com 80:31234/TCP,3000:31235/TCP
-garage-public    LoadBalancer   k8s-garage-xxx.us-east-1.elb.amazonaws.com 3900:31236/TCP
-```
-
-Inject the public Garage ELB hostname into `shumai-server`:
-
-```bash
 GARAGE_ELB=$(kubectl get svc garage-public -n shumai -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+SERVER_ELB=$(kubectl get svc shumai-server -n shumai -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+echo "Garage S3 Hostname: http://${GARAGE_ELB}:3900"
+echo "Shumai Web UI:     http://${SERVER_ELB}"
+```
+
+Inject the public Garage S3 hostname into `shumai-server` so that browsers generate correct presigned upload URLs:
+
+```bash
 kubectl set env deployment/shumai-server -n shumai AWS_PUBLIC_ENDPOINT_URL_S3="http://${GARAGE_ELB}:3900"
 ```
 
-*(Note: In production with custom domains, point your DNS to the load balancers and configure `AWS_PUBLIC_ENDPOINT_URL_S3: https://s3.mycompany.com` in [`eks/config.yaml`](./config.yaml).)*
+*(Note: In production with custom domains, point your DNS CNAME records to the load balancers and configure `AWS_PUBLIC_ENDPOINT_URL_S3: https://s3.mycompany.com` in [`eks/config.yaml`](./config.yaml).)*
 
 ### Step 5: Deploy Kubernetes Cluster Autoscaler
 
@@ -206,17 +211,17 @@ kubectl patch deployment cluster-autoscaler -n kube-system -p '{"spec":{"templat
 
 ### Step 6: Test Scale-to-Zero Queue-Driven Autoscaling
 
-1. Open `http://<shumai-server-elb>` in your browser and log in with your credentials.
-2. Upload a batch of 5–10 video files simultaneously.
-3. Observe KEDA detecting the tasks and spawning individual Kubernetes Jobs:
+1. Open `http://${SERVER_ELB}` in your browser and register an account via **Sign Up**. *(The first registered account automatically becomes the instance administrator).*
+2. Create a project and upload a batch of 5–10 video files simultaneously.
+3. Observe KEDA detecting pending DBOS tasks and spawning individual Kubernetes Jobs:
    ```bash
    kubectl get scaledjobs -n shumai
    kubectl get jobs -n shumai -w
    kubectl get pods -n shumai -l app=shumai-transcode -o wide
    kubectl get nodes -L role,workload
    ```
-4. Watch Cluster Autoscaler provision dedicated `c9g.xlarge` EC2 instances for the Jobs.
-5. As each video finishes transcoding, its pod exits `0` and completes immediately.
+4. Watch Cluster Autoscaler dynamically provision dedicated `c9g.xlarge` Graviton5 EC2 instances for the Jobs.
+5. As each video finishes transcoding, its worker pod exits `0` and completes immediately.
 6. Once all jobs are done, KEDA holds 0 jobs, and Cluster Autoscaler terminates all transcode EC2 instances, returning the transcode pool to **0 nodes ($0/hr)**!
 
 ### Step 7: Cluster Teardown & Cost Cleanup
@@ -224,9 +229,17 @@ kubectl patch deployment cluster-autoscaler -n kube-system -p '{"spec":{"templat
 When you are finished testing, delete all resources to prevent ongoing cloud charges:
 
 ```bash
-# 1. Delete Kubernetes namespace to release ELB load balancers and EBS volumes
+# 1. Delete Kubernetes namespace first to release AWS ELB load balancers and EBS volumes
+# (Important: Wait for this to complete so AWS SecurityGroups can be deleted without dependency conflicts)
 kubectl delete namespace shumai
 
-# 2. Delete the EKS cluster and CloudFormation stacks
+# 2. Uninstall KEDA
+helm uninstall keda -n keda
+kubectl delete namespace keda
+
+# 3. Delete the EKS cluster and CloudFormation stacks
 eksctl delete cluster -f eks/eks-cluster.yaml --wait
+
+# 4. Confirm all AWS resources are released
+aws eks list-clusters --region us-east-1
 ```

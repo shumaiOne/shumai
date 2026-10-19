@@ -52,13 +52,11 @@ spec:
       containers:
         - name: server
           image: shumaione/shumai:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
             - name: SHUMAI_WORKERS
               value: 'agent'
-            # For cloud deployments, set to your public S3 / Garage LoadBalancer endpoint
-            - name: AWS_PUBLIC_ENDPOINT_URL_S3
-              value: 'http://localhost:3900'
+
           envFrom:
             - configMapRef:
                 name: shumai-config

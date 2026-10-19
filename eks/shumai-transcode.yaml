@@ -55,11 +55,7 @@ spec:
         containers:
           - name: worker
             image: shumaione/shumai-transcode:latest
-            imagePullPolicy: IfNotPresent
-            command:
-              - bun
-              - run
-              - /app/apps/transcode/src/index.ts
+            imagePullPolicy: Always
             env:
               - name: POD_NAME
                 valueFrom:
@@ -82,9 +78,7 @@ spec:
   pollingInterval: 10
   successfulJobsHistoryLimit: 5
   failedJobsHistoryLimit: 10
-  maxReplicaCount: 10
-  rollout:
-    strategy: default
+  maxReplicaCount: 5
   scalingStrategy:
     strategy: default
   triggers:
