@@ -1018,7 +1018,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
             {/* Native Video Layer (Hardware-accelerated, full HDR EDR) */}
             {!isAudio && (
               <div
-                className="absolute pointer-events-none"
+                className="absolute pointer-events-none overflow-hidden"
                 style={{
                   left: 0,
                   top: 0,
@@ -1030,7 +1030,10 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
               >
                 <video
                   ref={videoRef}
-                  className="w-full h-full block object-contain pointer-events-none"
+                  className={cn(
+                    'w-full h-full block object-contain pointer-events-none',
+                    !hasStartedPlaying && data.preview?.thumbnailUrl && 'blur-md scale-105',
+                  )}
                   playsInline
                   preload="auto"
                   poster={data.preview?.thumbnailUrl || undefined}

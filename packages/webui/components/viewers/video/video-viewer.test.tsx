@@ -567,7 +567,7 @@ describe('VideoViewer', () => {
     expect(settingsButton?.textContent).not.toContain('1920p')
   })
 
-  it('sets poster on video element from file.preview.thumbnailUrl', () => {
+  it('sets poster on video element from file.preview.thumbnailUrl and blurs until playback starts', () => {
     const videoWithThumb: AssetInfo = {
       id: 'video-thumb',
       name: 'thumb.mp4',
@@ -597,6 +597,15 @@ describe('VideoViewer', () => {
     const { container } = render(<VideoViewer file={videoWithThumb} />)
     const video = container.querySelector('[data-testid="video-area"] video') as HTMLVideoElement
     expect(video.getAttribute('poster')).toBe('https://cdn.example.com/poster.jpg')
+    expect(video.className).toContain('blur-md')
+    expect(video.className).toContain('scale-105')
+
+    act(() => {
+      video.dispatchEvent(new Event('play'))
+    })
+
+    expect(video.className).not.toContain('blur-md')
+    expect(video.className).not.toContain('scale-105')
   })
 
   it('shows loading spinner initially and transitions to play overlay on loadeddata', () => {

@@ -346,6 +346,15 @@ describe('CompareVideoPane', () => {
       '[data-testid="compare-video-area"] video',
     ) as HTMLVideoElement
     expect(video.getAttribute('poster')).toBe('https://cdn.example.com/compare-poster.jpg')
+    expect(video.className).toContain('blur-md')
+    expect(video.className).toContain('scale-105')
+
+    act(() => {
+      video.dispatchEvent(new Event('play'))
+    })
+
+    expect(video.className).not.toContain('blur-md')
+    expect(video.className).not.toContain('scale-105')
   })
 
   it('shows loading spinner initially, transitions on loadeddata, and blocks play while loading', () => {

@@ -718,7 +718,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
         {/* Native Video Layer (Hardware-accelerated, full HDR EDR) */}
         {!isAudio && (
           <div
-            className="absolute pointer-events-none"
+            className="absolute pointer-events-none overflow-hidden"
             style={{
               left: 0,
               top: 0,
@@ -730,7 +730,10 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
           >
             <video
               ref={videoRef}
-              className="w-full h-full block object-contain pointer-events-none"
+              className={cn(
+                'w-full h-full block object-contain pointer-events-none',
+                !hasStartedPlaying && file.preview?.thumbnailUrl && 'blur-md scale-105',
+              )}
               playsInline
               preload="auto"
               poster={file.preview?.thumbnailUrl || undefined}
