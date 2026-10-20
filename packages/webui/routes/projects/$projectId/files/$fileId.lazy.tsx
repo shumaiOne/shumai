@@ -85,7 +85,8 @@ function FileViewPage() {
     files: AssetInfo[]
     nextCursor?: string
     folderId?: string
-  }>({ show: false, files: [], nextCursor: undefined, folderId: undefined })
+  }>({ show: true, files: [], nextCursor: undefined, folderId: undefined })
+  const [isCarouselLoading, setIsCarouselLoading] = useState(true)
   const $patchMetadata = client.api.files[':fileId'].metadata.$patch
   const { mutate: patchMetadata } = useMutation<
     InferResponseType<typeof $patchMetadata>,
@@ -382,9 +383,11 @@ function FileViewPage() {
   useEffect(() => {
     if (!parentFolderId || !activeFileId) return
     if (carouselState.folderId === parentFolderId) {
+      setIsCarouselLoading(false)
       return
     }
 
+    setIsCarouselLoading(true)
     let isMounted = true
 
     const fetchCarouselData = async () => {
@@ -446,31 +449,29 @@ function FileViewPage() {
         }
 
         if (isMounted) {
-          if (found) {
-            setCarouselState({
-              show: true,
-              files: allFiles,
-              nextCursor: lastCursor,
-              folderId: parentFolderId,
-            })
-          } else {
-            setCarouselState({
-              show: false,
-              files: [],
-              nextCursor: undefined,
-              folderId: parentFolderId,
-            })
-          }
+          const fallbackFiles = fileData ? [fileData as unknown as AssetInfo] : []
+          const finalFiles = found ? allFiles : fallbackFiles
+          setCarouselState({
+            show: true,
+            files: finalFiles,
+            nextCursor: found ? lastCursor : undefined,
+            folderId: parentFolderId,
+          })
         }
       } catch (err) {
         console.error(err)
         if (isMounted) {
+          const fallbackFiles = fileData ? [fileData as unknown as AssetInfo] : []
           setCarouselState({
-            show: false,
-            files: [],
+            show: true,
+            files: fallbackFiles,
             nextCursor: undefined,
             folderId: parentFolderId,
           })
+        }
+      } finally {
+        if (isMounted) {
+          setIsCarouselLoading(false)
         }
       }
     }
@@ -480,7 +481,7 @@ function FileViewPage() {
     return () => {
       isMounted = false
     }
-  }, [parentFolderId, activeFileId, carouselState.folderId])
+  }, [parentFolderId, activeFileId, carouselState.folderId, fileData])
 
   useEffect(() => {
     setCurrentTime(0)
@@ -711,15 +712,14 @@ function FileViewPage() {
               annotations={annotations}
               startTime={startTime}
             >
-              {carouselState.show && (
-                <FileViewerLeftSidebar
-                  projectId={projectId}
-                  currentAssetId={activeFileId}
-                  parentFolderId={parentFolderId}
-                  initialFiles={carouselState.files}
-                  initialNextCursor={carouselState.nextCursor}
-                />
-              )}
+              <FileViewerLeftSidebar
+                projectId={projectId}
+                currentAssetId={activeFileId}
+                parentFolderId={parentFolderId}
+                initialFiles={carouselState.files}
+                initialNextCursor={carouselState.nextCursor}
+                isLoading={isCarouselLoading}
+              />
             </FileViewer>
           )}
         </div>

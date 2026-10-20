@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { FileDetailSkeleton } from '@/ui/components/loading-skeletons'
 
 export const Route = createFileRoute('/projects/$projectId/files/$fileId')({
+  pendingComponent: () => <FileDetailSkeleton />,
   validateSearch: (search: Record<string, unknown>) => {
     return {
       version: (search.version as string) || undefined,

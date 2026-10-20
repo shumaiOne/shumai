@@ -5,6 +5,28 @@ import { useUiStore } from '@/ui/stores/ui'
 import { useChatbotStore } from '@/ui/stores/chatbot'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 import { useIsMobile } from '@/ui/hooks/use-mobile'
+import { Skeleton } from '@/ui/components/ui/skeleton'
+import { useRouterState } from '@tanstack/react-router'
+
+export function TopNavBreadcrumbSkeleton() {
+  return (
+    <div
+      className="flex h-14 flex-nowrap items-center justify-between gap-2 border-b border-border bg-card px-4 py-2 flex-shrink-0"
+      data-testid="top-nav-breadcrumb-skeleton"
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+        <Skeleton className="h-5 w-5 rounded md:hidden shrink-0 -ml-1 mr-1" />
+        <Skeleton className="h-4 w-20 md:w-28 shrink-0" />
+        <span className="text-muted-foreground text-xs">/</span>
+        <Skeleton className="h-4 w-24 md:w-36 shrink-0" />
+      </div>
+      <div className="hidden md:flex items-center gap-2 shrink-0">
+        <Skeleton className="h-8 w-20 rounded-md" />
+        <Skeleton className="h-8 w-8 rounded-md" />
+      </div>
+    </div>
+  )
+}
 
 export function TopNav() {
   const { projectState } = useTopNavStore()
@@ -12,12 +34,16 @@ export function TopNav() {
   const { isChatbotOpen, setIsChatbotOpen } = useChatbotStore()
   const hideAgent = useUserMetadataStore((s) => Boolean(s.metadata['appearance.hideAgent']))
   const isMobile = useIsMobile()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
 
-  if (isMobile && projectState?.fileId) {
+  if (isMobile && (projectState?.fileId || pathname.includes('/files/'))) {
     return null
   }
 
   if (!projectState) {
+    if (pathname.startsWith('/projects/')) {
+      return <TopNavBreadcrumbSkeleton />
+    }
     return <TeamHeader />
   }
 

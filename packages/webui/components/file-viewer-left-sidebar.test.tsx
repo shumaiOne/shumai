@@ -227,4 +227,38 @@ describe('FileViewerLeftSidebar', () => {
     expect(agentBadge?.getAttribute('title')).toBe('DrawBot')
     expect(agentBadge?.textContent).toBe('AI')
   })
+
+  it('renders thumbnail skeletons when isLoading is true and initialFiles is empty', () => {
+    const { container } = render(
+      <FileViewerLeftSidebar
+        projectId="proj-1"
+        currentAssetId="file-1"
+        parentFolderId="folder-1"
+        initialFiles={[]}
+        initialNextCursor={undefined}
+        isLoading={true}
+      />,
+    )
+
+    const skeletons = container.querySelectorAll('[data-testid="carousel-skeleton-item"]')
+    expect(skeletons.length).toBe(6)
+  })
+
+  it('renders files instead of skeletons when isLoading is false', () => {
+    const { container } = render(
+      <FileViewerLeftSidebar
+        projectId="proj-1"
+        currentAssetId="file-1"
+        parentFolderId="folder-1"
+        initialFiles={mockFiles}
+        initialNextCursor={undefined}
+        isLoading={false}
+      />,
+    )
+
+    const skeletons = container.querySelectorAll('[data-testid="carousel-skeleton-item"]')
+    expect(skeletons.length).toBe(0)
+    const links = container.querySelectorAll('[data-testid="carousel-link"]')
+    expect(links.length).toBe(3)
+  })
 })

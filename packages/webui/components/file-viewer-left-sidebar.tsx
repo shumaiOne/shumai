@@ -6,6 +6,7 @@ import { File, Loader2, AudioLines } from 'lucide-react'
 import type { FC } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
+import { Skeleton } from '@/ui/components/ui/skeleton'
 
 interface FileViewerLeftSidebarProps {
   projectId: string
@@ -13,6 +14,7 @@ interface FileViewerLeftSidebarProps {
   parentFolderId: string
   initialFiles: AssetInfo[]
   initialNextCursor: string | undefined
+  isLoading?: boolean
 }
 
 export const CarouselFilePreview = ({ item }: { item: AssetInfo }) => {
@@ -44,6 +46,7 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
   parentFolderId,
   initialFiles,
   initialNextCursor,
+  isLoading = false,
 }) => {
   const { ref, inView } = useInView({
     threshold: 0,
@@ -122,43 +125,51 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
   return (
     <div className="h-24 md:h-full w-full md:w-24 bg-gray-100 dark:bg-gray-950 flex flex-row md:flex-col flex-shrink-0 select-none">
       <div className="flex-1 overflow-x-auto overflow-y-hidden md:overflow-y-auto md:overflow-x-hidden px-4 md:px-0 py-2 md:py-4 flex flex-row md:flex-col items-center gap-3 no-scrollbar">
-        {files.map((file) => {
-          if (!file) return null
-          const isActive = file.id === currentAssetId
-          return (
-            <div
-              key={file.id}
-              ref={file.id === currentAssetId ? activeItemRef : null}
-              className="flex-shrink-0"
-            >
-              <Link
-                to="/projects/$projectId/files/$fileId"
-                params={{ projectId, fileId: file.id }}
-                search={{ version: undefined }}
-                className={cn(
-                  'rounded-lg border overflow-hidden flex items-center justify-center transition-all bg-muted/30 block relative',
-                  isActive
-                    ? 'w-[62px] h-[62px] opacity-100'
-                    : 'w-[52px] h-[52px] opacity-60 hover:opacity-100',
-                )}
-              >
-                <CarouselFilePreview item={file} />
-                {file.agent && (
-                  <span
-                    className="absolute top-1 right-1 z-10 pointer-events-none select-none rounded bg-black/60 px-1 py-0.5 text-[10px] font-medium leading-none text-white"
-                    title={file.agent.name}
-                    data-testid="carousel-agent-badge"
+        {isLoading && files.length === 0
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton
+                key={i}
+                className="w-[52px] h-[52px] rounded-lg shrink-0"
+                data-testid="carousel-skeleton-item"
+              />
+            ))
+          : files.map((file) => {
+              if (!file) return null
+              const isActive = file.id === currentAssetId
+              return (
+                <div
+                  key={file.id}
+                  ref={file.id === currentAssetId ? activeItemRef : null}
+                  className="flex-shrink-0"
+                >
+                  <Link
+                    to="/projects/$projectId/files/$fileId"
+                    params={{ projectId, fileId: file.id }}
+                    search={{ version: undefined }}
+                    className={cn(
+                      'rounded-lg border overflow-hidden flex items-center justify-center transition-all bg-muted/30 block relative',
+                      isActive
+                        ? 'w-[62px] h-[62px] opacity-100'
+                        : 'w-[52px] h-[52px] opacity-60 hover:opacity-100',
+                    )}
                   >
-                    AI
-                  </span>
-                )}
-              </Link>
-            </div>
-          )
-        })}
+                    <CarouselFilePreview item={file} />
+                    {file.agent && (
+                      <span
+                        className="absolute top-1 right-1 z-10 pointer-events-none select-none rounded bg-black/60 px-1 py-0.5 text-[10px] font-medium leading-none text-white"
+                        title={file.agent.name}
+                        data-testid="carousel-agent-badge"
+                      >
+                        AI
+                      </span>
+                    )}
+                  </Link>
+                </div>
+              )
+            })}
 
         {/* Infinite Scroll Trigger */}
-        {hasMore && (
+        {!isLoading && hasMore && (
           <div
             ref={ref}
             className="px-2 md:px-0 py-2 md:py-4 flex justify-center items-center h-full md:w-full flex-shrink-0"
