@@ -442,6 +442,10 @@ In multi-replica deployments (e.g., multiple transcode or agent worker instances
   - In Docker/container environments, `HOSTNAME` (container ID) is automatically used.
   - On bare metal/multi-process hosts, `process.pid` and an instance suffix are appended to guarantee uniqueness.
 
+### Durable Step File Exchange
+
+Intermediate files passed across steps must be saved to durable storage (S3) by the producing step, consuming steps must use `ensureLocalMediaFile` (or S3 fetch) rather than assuming local `/tmp` presence, and any purely temporary S3 scratch files must be cleaned up in a `finally` block.
+
 ## Import conventions
 
 - When importing across workspace packages, always use absolute workspace imports (e.g. `import { prisma } from '@shumai/db'`, `import { teamService } from '@shumai/core/src/team/team'`).

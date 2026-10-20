@@ -45,6 +45,7 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
 
     const spec = task.payload?.transcode || {}
     const mediaInfo = await getMediaInfoActivity({
+      assetKey: pdfProxy.pdfProxyKey,
       filePath: currentFilePath,
       assetId: asset.id,
       proxyType: 'pdf',
@@ -76,6 +77,7 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
 
       const spriteResult = await generateSpriteActivity({
         assetKey: key,
+        inputKey: pdfProxy.pdfProxyKey,
         filePath: currentFilePath,
         spriteSpec,
         posterSpec,

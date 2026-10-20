@@ -22,38 +22,19 @@ import {
   isMarkdownDocument,
   isOfficeDocument,
 } from '@shumai/core/src/utils/mime'
-import { logger } from '@shumai/core/src/logger'
-import { ApplicationFailure, defineStep, getLocalTaskAbortSignal } from '@shumai/workflow-core'
-
-function getActivityCancellationSignal(taskId?: string): AbortSignal | undefined {
-  return getLocalTaskAbortSignal(taskId)
-}
-
-export async function ensureLocalMediaFile(assetKey: string, filePath: string): Promise<string> {
-  if (fs.existsSync(filePath)) {
-    return filePath
-  }
-  const dir = path.dirname(filePath)
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true })
-  }
-  const bucket = process.env.S3_BUCKET || 'shumai'
-  await s3Service.downloadToFile(bucket, assetKey, filePath)
-  return filePath
-}
 import * as path from 'path'
 import * as fs from 'fs'
 import * as os from 'os'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { ulid } from 'ulid'
+import { logger } from '@shumai/core/src/logger'
+import { ApplicationFailure, defineStep, getLocalTaskAbortSignal } from '@shumai/workflow-core'
 
 const execFileAsync = promisify(execFile)
 
-export interface GetMediaInfoActivityParams {
-  assetId: string
-  assetKey: string
-  mediaType: string
+function getActivityCancellationSignal(taskId?: string): AbortSignal | undefined {
+  return getLocalTaskAbortSignal(taskId)
 }
 
 function getErrorDetails(err: unknown): { code?: string; message: string; name?: string } {
@@ -73,6 +54,44 @@ function getErrorDetails(err: unknown): { code?: string; message: string; name?:
   return {
     message: String(err),
   }
+}
+
+export async function ensureLocalMediaFile(assetKey: string, filePath: string): Promise<string> {
+  if (fs.existsSync(filePath)) {
+    return filePath
+  }
+  const dir = path.dirname(filePath)
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
+  const bucket = process.env.S3_BUCKET || 'shumai'
+  try {
+    await s3Service.downloadToFile(bucket, assetKey, filePath)
+  } catch (err) {
+    const { code, message } = getErrorDetails(err)
+    const lowerMsg = message.toLowerCase()
+    const lowerCode = (code || '').toLowerCase()
+    if (
+      lowerCode === 'enoent' ||
+      lowerCode === 'nosuchkey' ||
+      lowerMsg.includes('enoent') ||
+      lowerMsg.includes('nosuchkey')
+    ) {
+      throw ApplicationFailure.create({
+        message: `Failed to download media to local file: ${message}`,
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+    throw err
+  }
+  return filePath
+}
+
+export interface GetMediaInfoActivityParams {
+  assetId: string
+  assetKey: string
+  mediaType: string
 }
 
 async function ensureAssetNotPurging(assetKey: string): Promise<void> {
@@ -129,6 +148,8 @@ export const getMediaInfoActivity = defineStep(async function getMediaInfoActivi
           nonRetryable: true,
         })
       }
+    } else if (params.assetKey) {
+      mediaSource = await ensureLocalMediaFile(params.assetKey, mediaSource)
     }
 
     const fileType = isVideo
@@ -846,6 +867,7 @@ export const transcodeImageActivity = defineStep(async function transcodeImageAc
 export interface GenerateSpriteActivityParams {
   taskId?: string
   assetKey: string
+  inputKey?: string
   filePath: string
   mediaInfo: PrismaJson.MediaInfo
   spriteSpec: PrismaJson.SpriteInfo
@@ -872,7 +894,7 @@ export const generateSpriteActivity = defineStep(async function generateSpriteAc
     // Not found
   }
 
-  await ensureLocalMediaFile(params.assetKey, params.filePath)
+  await ensureLocalMediaFile(params.inputKey || params.assetKey, params.filePath)
   const tmpDir = path.dirname(params.filePath)
   const spriteFile = path.join(tmpDir, 'sprite.webp')
   const posterFile = path.join(tmpDir, 'poster.webp')
@@ -979,6 +1001,8 @@ export interface GeneratePdfProxyActivityParams {
 export const generatePdfProxyActivity = defineStep(async function generatePdfProxyActivity(
   params: GeneratePdfProxyActivityParams,
 ): Promise<{ pdfProxyKey: string; pdfFilePath: string }> {
+  await ensureLocalMediaFile(params.assetKey, params.filePath)
+
   const isOffice = isOfficeDocument(params.mediaType, params.filename)
   const isHtml = isHtmlDocument(params.mediaType, params.filename)
   const isMd = isMarkdownDocument(params.mediaType, params.filename)
@@ -1765,6 +1789,8 @@ export const start3dRenderActivity = defineStep(async function start3dRenderActi
     })
   }
 
+  await ensureLocalMediaFile(params.assetKey, params.filePath)
+
   const bucket = process.env.S3_BUCKET || 'shumai'
   const tmpDir = path.dirname(params.filePath)
   const posterFilePath = path.join(tmpDir, 'poster.webp')
@@ -1987,6 +2013,7 @@ export const render3dModelActivity = defineStep(async function render3dModelActi
 export interface Generate3dSpriteActivityParams {
   taskId: string
   assetKey: string
+  videoKey?: string
   videoFilePath: string
   spriteKey: string
 }
@@ -2001,6 +2028,9 @@ export const generate3dSpriteActivity = defineStep(async function generate3dSpri
       nonRetryable: true,
     })
   }
+
+  const downloadKey = params.videoKey || params.assetKey
+  await ensureLocalMediaFile(downloadKey, params.videoFilePath)
 
   const bucket = process.env.S3_BUCKET || 'shumai'
   const tmpDir = path.dirname(params.videoFilePath)
@@ -2035,6 +2065,7 @@ export const generate3dSpriteActivity = defineStep(async function generate3dSpri
 export interface Generate3dViewsActivityParams {
   taskId: string
   assetKey: string
+  videoKey?: string
   videoFilePath: string
   viewsKey: string
 }
@@ -2049,6 +2080,9 @@ export const generate3dViewsActivity = defineStep(async function generate3dViews
       nonRetryable: true,
     })
   }
+
+  const downloadKey = params.videoKey || params.assetKey
+  await ensureLocalMediaFile(downloadKey, params.videoFilePath)
 
   const bucket = process.env.S3_BUCKET || 'shumai'
   const tmpDir = path.dirname(params.videoFilePath)

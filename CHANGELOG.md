@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+* **transcode**: Fix an issue where PDF, 3D model, and image background transcode workflows could fail with missing temporary file errors if a worker restarted or recovered midway through processing
+
 ### Changed
 
 * **workflow**: Migrate the background workflow engine to DBOS, unifying all-in-one and dedicated worker deployments using the existing PostgreSQL database without requiring a separate Temporal cluster

@@ -128,8 +128,17 @@ describe('transcodePdfWorkflow', () => {
       status: AssetStatus.processing,
     })
 
+    expect(mockActivities.getMediaInfoActivity).toHaveBeenCalledWith({
+      assetKey: 'document.pdf',
+      filePath: '/tmp/doc.pdf',
+      assetId: 'asset-pdf',
+      proxyType: 'pdf',
+      mediaType: 'application/pdf',
+    })
+
     expect(mockActivities.generateSpriteActivity).toHaveBeenCalledWith({
       assetKey: 'document.pdf',
+      inputKey: 'document.pdf',
       filePath: '/tmp/doc.pdf',
       spriteSpec: expect.objectContaining({ key: 'sprite.webp' }),
       posterSpec: expect.objectContaining({ key: 'poster.webp' }),

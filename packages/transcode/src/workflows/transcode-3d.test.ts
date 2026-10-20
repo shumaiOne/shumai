@@ -165,6 +165,7 @@ describe('transcode3dWorkflow', () => {
     expect(mockActivities.generate3dSpriteActivity).toHaveBeenCalledWith({
       taskId: 'task-3d',
       assetKey: 'files/asset-3d/robot.glb',
+      videoKey: 'files/asset-3d/turntable.mp4',
       videoFilePath: '/tmp/turntable.mp4',
       spriteKey: 'files/asset-3d/sprite.webp',
     })
@@ -172,6 +173,7 @@ describe('transcode3dWorkflow', () => {
     expect(mockActivities.generate3dViewsActivity).toHaveBeenCalledWith({
       taskId: 'task-3d',
       assetKey: 'files/asset-3d/robot.glb',
+      videoKey: 'files/asset-3d/turntable.mp4',
       videoFilePath: '/tmp/turntable.mp4',
       viewsKey: 'files/asset-3d/views.webp',
     })

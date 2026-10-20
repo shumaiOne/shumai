@@ -99,6 +99,7 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
     await generate3dSpriteActivity({
       taskId: task.id,
       assetKey: key,
+      videoKey,
       videoFilePath: renderVideo.videoFilePath,
       spriteKey,
     })
@@ -113,6 +114,7 @@ export async function transcode3dWorkflow(task: WorkflowTask): Promise<void> {
     await generate3dViewsActivity({
       taskId: task.id,
       assetKey: key,
+      videoKey,
       videoFilePath: renderVideo.videoFilePath,
       viewsKey,
     })

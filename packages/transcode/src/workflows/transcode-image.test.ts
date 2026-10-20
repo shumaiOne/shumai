@@ -118,6 +118,13 @@ describe('transcodeImageWorkflow', () => {
 
     await transcodeImageWorkflow(task)
 
+    expect(mockActivities.getMediaInfoActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetKey: 'image.jpg',
+        filePath: '/tmp/image.jpg',
+      }),
+    )
+
     expect(mockActivities.updateAssetStatusActivity).toHaveBeenCalledWith({
       assetId: 'asset-image',
       status: AssetStatus.processing,

@@ -25,6 +25,7 @@ vi.mock('@shumai/core/src/turntable/turntable', () => ({
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
     putObject: vi.fn(),
+    downloadToFile: vi.fn(),
   },
 }))
 
@@ -118,6 +119,46 @@ describe('3D Transcode Activities', () => {
       expect(res.posterWidth).toBe(1080)
       expect(res.posterHeight).toBe(1080)
       expect(res.modelMetadata).toEqual({ format: 'glb', vertices: 120 })
+    })
+
+    it('recovers 3D model from S3 assetKey when local file is missing', async () => {
+      vi.mocked(turntableService.uploadFile).mockResolvedValue({
+        id: 'f_input',
+        name: 'model.glb',
+        size: 1024,
+      })
+
+      vi.mocked(turntableService.startRender).mockResolvedValue({
+        taskId: 'task_render_1',
+        status: 'queued',
+        poster: {
+          fileId: 'f_poster',
+          contentType: 'image/png',
+          width: 1080,
+          height: 1080,
+          size: 5000,
+        },
+        metadata: { format: 'glb', vertices: 120 },
+      })
+
+      vi.mocked(turntableService.downloadFile).mockResolvedValue(Buffer.from('poster-raw-bytes'))
+
+      const targetPath = `/tmp/test-3d-model-${Date.now()}.glb`
+      await start3dRenderActivity({
+        taskId: 'wf-task-1',
+        teamId: 'team-1',
+        assetId: 'asset-1',
+        assetKey: 'files/asset-1/model.glb',
+        filePath: targetPath,
+        filename: 'model.glb',
+        targetPosterKey: 'files/asset-1/poster.webp',
+      })
+
+      expect(s3Service.downloadToFile).toHaveBeenCalledWith(
+        'shumai',
+        'files/asset-1/model.glb',
+        targetPath,
+      )
     })
 
     it('throws ApplicationFailure when poster file ID is missing', async () => {
@@ -326,6 +367,24 @@ describe('3D Transcode Activities', () => {
       )
       expect(res.spriteKey).toBe('files/asset-1/sprite.webp')
     })
+
+    it('recovers turntable video from S3 videoKey when local file is missing', async () => {
+      const targetPath = `/tmp/test-turntable-${Date.now()}.mp4`
+      const res = await generate3dSpriteActivity({
+        taskId: 'wf-task-3',
+        assetKey: 'files/asset-1/model.glb',
+        videoKey: 'files/asset-1/turntable.mp4',
+        videoFilePath: targetPath,
+        spriteKey: 'files/asset-1/sprite.webp',
+      })
+
+      expect(s3Service.downloadToFile).toHaveBeenCalledWith(
+        'shumai',
+        'files/asset-1/turntable.mp4',
+        targetPath,
+      )
+      expect(res.spriteKey).toBe('files/asset-1/sprite.webp')
+    })
   })
 
   describe('generate3dViewsActivity', () => {
@@ -348,6 +407,24 @@ describe('3D Transcode Activities', () => {
         expect.any(Buffer),
         expect.any(Number),
         'image/webp',
+      )
+      expect(res.viewsKey).toBe('files/asset-1/views.webp')
+    })
+
+    it('recovers turntable video from S3 videoKey when local file is missing', async () => {
+      const targetPath = `/tmp/test-turntable-views-${Date.now()}.mp4`
+      const res = await generate3dViewsActivity({
+        taskId: 'wf-task-4',
+        assetKey: 'files/asset-1/model.glb',
+        videoKey: 'files/asset-1/turntable.mp4',
+        videoFilePath: targetPath,
+        viewsKey: 'files/asset-1/views.webp',
+      })
+
+      expect(s3Service.downloadToFile).toHaveBeenCalledWith(
+        'shumai',
+        'files/asset-1/turntable.mp4',
+        targetPath,
       )
       expect(res.viewsKey).toBe('files/asset-1/views.webp')
     })

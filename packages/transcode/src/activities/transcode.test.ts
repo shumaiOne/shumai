@@ -12,6 +12,7 @@ vi.mock('child_process', () => ({
   execFile: vi.fn(),
 }))
 import {
+  ensureLocalMediaFile,
   getMediaInfoActivity,
   overlayAnnotationsActivity,
   renderPdfPagesActivity,
@@ -107,6 +108,7 @@ describe('Transcode Activities', () => {
     vi.clearAllMocks()
     const fs = await import('fs')
     vi.mocked(fs.readFileSync).mockImplementation(() => Buffer.from('fake data') as never)
+    vi.mocked(fs.existsSync).mockReturnValue(true)
   })
 
   it('should convert CSV via Gotenberg in landscape mode when maxCols > 5', async () => {
@@ -952,6 +954,34 @@ describe('Transcode Activities', () => {
       )
     })
 
+    it('should throw non-retryable ApplicationFailure when ensureLocalMediaFile fails with ENOENT or NoSuchKey', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(false)
+      vi.mocked(s3Service.downloadToFile).mockRejectedValue({
+        code: 'NoSuchKey',
+        message: 'The specified key does not exist',
+      })
+
+      const targetPath = `/tmp/test-recovery-${Date.now()}.mp4`
+      await expect(ensureLocalMediaFile('missing.mp4', targetPath)).rejects.toMatchObject({
+        message: expect.stringMatching(/Failed to download media to local file/),
+        nonRetryable: true,
+      })
+    })
+
+    it('should recover missing local file from S3 via ensureLocalMediaFile', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(false)
+      vi.mocked(s3Service.downloadToFile).mockResolvedValue()
+      const targetPath = `/tmp/test-recovery-${Date.now()}.mp4`
+
+      const result = await ensureLocalMediaFile('asset.mp4', targetPath)
+      expect(result).toBe(targetPath)
+      expect(s3Service.downloadToFile).toHaveBeenCalledWith(
+        expect.any(String),
+        'asset.mp4',
+        targetPath,
+      )
+    })
+
     it('should throw non-retryable ApplicationFailure when getMediaInfoActivity fails with ENOENT', async () => {
       const asset = await prisma.asset.create({
         data: { name: 'missing.mp4', type: 'file', status: 'uploaded' },
@@ -1139,6 +1169,37 @@ describe('Transcode Activities', () => {
           colorTransfer: undefined,
         },
         1,
+      )
+    })
+
+    it('generateSpriteActivity recovers local file from inputKey when provided and missing on disk', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(false)
+      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+      vi.mocked(s3Service.downloadToFile).mockResolvedValue()
+      vi.mocked(transcodeService.generateSprite).mockImplementation(
+        async (_in, spriteOut, posterOut) => {
+          const fs = await import('fs')
+          fs.writeFileSync(spriteOut, 'fake-sprite')
+          fs.writeFileSync(posterOut, 'fake-poster')
+        },
+      )
+
+      const targetPath = `/tmp/test-sprite-${Date.now()}.pdf`
+      await generateSpriteActivity({
+        assetKey: 'files/asset-1/doc.docx',
+        inputKey: 'files/asset-1/proxy.pdf',
+        filePath: targetPath,
+        mediaInfo: {
+          duration: 10,
+        } as unknown as PrismaJson.MediaInfo,
+        spriteSpec: { key: 'files/asset-1/sprite.webp', frames: 100, tileX: 10, tileY: 10 },
+        posterSpec: { key: 'files/asset-1/poster.webp' },
+      })
+
+      expect(s3Service.downloadToFile).toHaveBeenCalledWith(
+        expect.any(String),
+        'files/asset-1/proxy.pdf',
+        targetPath,
       )
     })
 
