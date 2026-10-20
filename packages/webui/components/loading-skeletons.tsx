@@ -201,18 +201,30 @@ export function FileBrowserContentSkeleton({
 export function MobileFileBrowserContentSkeleton() {
   return (
     <div
-      className="p-3 space-y-3 max-w-lg mx-auto w-full"
+      className="p-3 pb-24 max-w-lg mx-auto w-full"
       data-testid="mobile-file-browser-loading-skeleton"
     >
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
-          <Skeleton className="h-10 w-10 rounded-md shrink-0" />
-          <div className="space-y-2 flex-1">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-3 w-1/3" />
+      <div className="flex items-center gap-2 mb-3">
+        <Skeleton className="h-4 w-4 rounded" />
+        <Skeleton className="h-4 w-28 rounded" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 w-full">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex flex-col overflow-hidden rounded-xl border border-border bg-card m-1"
+          >
+            <Skeleton className="aspect-square w-full rounded-none" />
+            <div className="p-3 space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <div className="flex justify-between items-center pt-1">
+                <Skeleton className="h-3 w-1/3" />
+                <Skeleton className="h-3 w-1/4" />
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }
