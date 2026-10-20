@@ -14,9 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 * **transcode**: Fix an issue where PDF, 3D model, and image background transcode workflows could fail with missing temporary file errors if a worker restarted or recovered midway through processing
-* **webui**: Fix loading skeleton layout mismatches on project file list and file detail pages, eliminating duplicate top bars and viewport overflow while ensuring mobile layouts match
-* **webui**: Keep the file detail sibling carousel permanently visible on desktop with loading card skeletons, preventing sudden layout shifts in the media viewer
-* **webui**: Soften low-resolution video poster images with a subtle blur effect prior to playback
+* **webui**: Improve file list and detail loading with matching skeleton layouts, a persistent sidebar carousel to eliminate layout shift, and smoothed video poster previews
 
 ### Changed
 
