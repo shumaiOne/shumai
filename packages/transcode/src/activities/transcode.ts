@@ -68,12 +68,14 @@ export async function ensureLocalMediaFile(assetKey: string, filePath: string): 
   try {
     await s3Service.downloadToFile(bucket, assetKey, filePath)
   } catch (err) {
-    const { code, message } = getErrorDetails(err)
+    const { code, message, name } = getErrorDetails(err)
     const lowerMsg = message.toLowerCase()
     const lowerCode = (code || '').toLowerCase()
+    const lowerName = (name || '').toLowerCase()
     if (
       lowerCode === 'enoent' ||
       lowerCode === 'nosuchkey' ||
+      lowerName === 'nosuchkey' ||
       lowerMsg.includes('enoent') ||
       lowerMsg.includes('nosuchkey')
     ) {
@@ -1131,9 +1133,17 @@ export const downloadMediaToTmpActivity = defineStep(
     try {
       await s3Service.downloadToFile(bucket, params.assetKey, filePath)
     } catch (err) {
-      const { code, message } = getErrorDetails(err)
+      const { code, message, name } = getErrorDetails(err)
       const lowerMsg = message.toLowerCase()
-      if (code === 'ENOENT' || lowerMsg.includes('enoent') || lowerMsg.includes('nosuchkey')) {
+      const lowerCode = (code || '').toLowerCase()
+      const lowerName = (name || '').toLowerCase()
+      if (
+        lowerCode === 'enoent' ||
+        lowerCode === 'nosuchkey' ||
+        lowerName === 'nosuchkey' ||
+        lowerMsg.includes('enoent') ||
+        lowerMsg.includes('nosuchkey')
+      ) {
         throw ApplicationFailure.create({
           message: `Failed to download media to tmp: ${message}`,
           nonRetryable: true,

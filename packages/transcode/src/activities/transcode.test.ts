@@ -943,22 +943,23 @@ describe('Transcode Activities', () => {
   })
 
   describe('Non-retryable Error Handling', () => {
-    it('should throw non-retryable ApplicationFailure when downloadMediaToTmpActivity fails with ENOENT', async () => {
+    it('should throw non-retryable ApplicationFailure when downloadMediaToTmpActivity fails with ENOENT or AWS SDK NoSuchKey', async () => {
       vi.mocked(s3Service.downloadToFile).mockRejectedValue({
-        code: 'ENOENT',
-        message: 'ENOENT: no such file or directory',
+        name: 'NoSuchKey',
+        message: 'The specified key does not exist.',
       })
 
-      await expect(downloadMediaToTmpActivity({ assetKey: 'missing.mp4' })).rejects.toThrowError(
-        /Failed to download media to tmp/,
-      )
+      await expect(downloadMediaToTmpActivity({ assetKey: 'missing.mp4' })).rejects.toMatchObject({
+        message: expect.stringMatching(/Failed to download media to tmp/),
+        nonRetryable: true,
+      })
     })
 
-    it('should throw non-retryable ApplicationFailure when ensureLocalMediaFile fails with ENOENT or NoSuchKey', async () => {
+    it('should throw non-retryable ApplicationFailure when ensureLocalMediaFile fails with ENOENT or AWS SDK NoSuchKey', async () => {
       vi.mocked(fs.existsSync).mockReturnValue(false)
       vi.mocked(s3Service.downloadToFile).mockRejectedValue({
-        code: 'NoSuchKey',
-        message: 'The specified key does not exist',
+        name: 'NoSuchKey',
+        message: 'The specified key does not exist.',
       })
 
       const targetPath = `/tmp/test-recovery-${Date.now()}.mp4`

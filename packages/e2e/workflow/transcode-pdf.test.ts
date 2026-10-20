@@ -4,6 +4,7 @@ import { setupTestDbHooks } from '@shumai/db/test'
 import { workflowService, TaskQueueTranscode } from '@shumai/workflow-core'
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import { fileURLToPath } from 'url'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -288,5 +289,138 @@ describe('Workflow E2E - transcodePdfWorkflow', () => {
     expect(mediaInfo.poster?.key).toContain('poster.webp')
     expect(mediaInfo.sprite?.key).toContain('sprite.webp')
     expect(mediaInfo.frames).toBeGreaterThan(0)
+  }, 50000)
+
+  it('should recover and complete workflow when intermediate local proxy is deleted before downstream steps', async () => {
+    // 1. Create Team, Project, Asset & StorageKey
+    const team = await prisma.team.create({
+      data: { name: 'E2E Recovery Transcode Team' },
+    })
+
+    const project = await prisma.project.create({
+      data: { name: 'E2E Recovery Transcode Project', teamId: team.id },
+    })
+
+    const storageKey = await prisma.storageKey.create({
+      data: {
+        key: 'projects/e2e/recovery-doc.md',
+        status: 'active',
+      },
+    })
+
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'recovery-doc.md',
+        type: 'file',
+        status: 'uploaded',
+        mediaType: 'text/markdown',
+        projectId: project.id,
+        storageKeyId: storageKey.id,
+      },
+    })
+
+    // 2. Seed S3 Storage with Markdown text
+    const mdText = '# Recovery Test\n\nVerifying that intermediate proxy.pdf recovers from S3.'
+    const mdBuffer = Buffer.from(mdText, 'utf-8')
+    await s3Service.putObject(
+      'shumai-e2e-test-bucket-transcode',
+      'projects/e2e/recovery-doc.md',
+      mdBuffer,
+      mdBuffer.length,
+      'text/markdown',
+    )
+
+    // 3. Spy on createTempDir and s3Service to intercept proxy.pdf upload and delete it locally
+    let capturedTmpDir: string | undefined
+    const origCreateTempDir = transcodeService.createTempDir.bind(transcodeService)
+    const createTempDirSpy = vi
+      .spyOn(transcodeService, 'createTempDir')
+      .mockImplementation((prefix: string) => {
+        const dir = origCreateTempDir(prefix)
+        if (prefix.startsWith('transcode-')) {
+          capturedTmpDir = dir
+        }
+        return dir
+      })
+
+    const origPutObject = s3Service.putObject.bind(s3Service)
+    const origDownloadToFile = s3Service.downloadToFile.bind(s3Service)
+    const downloadedKeys: string[] = []
+
+    const downloadSpy = vi
+      .spyOn(s3Service, 'downloadToFile')
+      .mockImplementation(async (bucket, key, localPath) => {
+        downloadedKeys.push(key)
+        return origDownloadToFile(bucket, key, localPath)
+      })
+
+    const putSpy = vi.spyOn(s3Service, 'putObject').mockImplementation(async (...args) => {
+      const result = await origPutObject(...args)
+      const key = String(args[1] || '')
+      if (key.endsWith('proxy.pdf') && capturedTmpDir) {
+        // Once proxy.pdf has been uploaded to S3 by generatePdfProxyActivity,
+        // delete the local file to simulate empty filesystem on a recovery/worker node.
+        const localProxyPath = path.join(capturedTmpDir, 'proxy.pdf')
+        if (fs.existsSync(localProxyPath)) {
+          fs.unlinkSync(localProxyPath)
+        }
+      }
+      return result
+    })
+
+    // 4. Create Workflow Task
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'transcode_pdf',
+        status: 'pending',
+        assetId: asset.id,
+        projectId: project.id,
+        teamId: team.id,
+        payload: {
+          projectId: project.id,
+          transcode: {
+            poster: true,
+            sprite: true,
+          },
+        },
+      },
+    })
+
+    try {
+      console.log(
+        `Submitted E2E Recovery Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
+      )
+      const completedTask = await workflowService.executeWait(task, 45000)
+
+      // 5. Verification
+      expect(completedTask.status).toBe('completed')
+
+      const updatedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(updatedAsset?.status).toBe(AssetStatus.processed)
+
+      const mediaInfo = updatedAsset?.media as unknown as {
+        proxyType?: string
+        pdfTranscode?: { key: string }
+        poster?: { key: string }
+        sprite?: { key: string }
+        frames?: number
+      }
+      expect(mediaInfo).toBeDefined()
+      expect(mediaInfo.proxyType).toBe('pdf')
+      expect(mediaInfo.pdfTranscode?.key).toBe('projects/e2e/proxy.pdf')
+      expect(mediaInfo.poster?.key).toContain('poster.webp')
+      expect(mediaInfo.sprite?.key).toContain('sprite.webp')
+      expect(mediaInfo.frames).toBeGreaterThan(0)
+
+      // Verify that proxy.pdf was re-downloaded from S3 via ensureLocalMediaFile
+      const proxyDownloadCall = downloadedKeys.find((k) => k.endsWith('proxy.pdf'))
+      expect(proxyDownloadCall).toBeDefined()
+    } finally {
+      createTempDirSpy.mockRestore()
+      downloadSpy.mockRestore()
+      putSpy.mockRestore()
+    }
   }, 50000)
 })
