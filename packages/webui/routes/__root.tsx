@@ -71,7 +71,7 @@ function RootComponent() {
       if (!res.ok) throw new Error('Failed to fetch me')
       return await res.json()
     },
-    enabled: !!storedTeamId,
+    enabled: !!storedTeamId && !!user,
   })
 
   if (!showSidebar) {

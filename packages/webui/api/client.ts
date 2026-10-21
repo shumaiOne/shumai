@@ -11,7 +11,9 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     if (
       !window.location.pathname.includes('/login') &&
       !window.location.pathname.includes('/signup') &&
+      !window.location.pathname.includes('/reset-password') &&
       !window.location.pathname.startsWith('/share/') &&
+      !url.includes('/api/auth') &&
       !url.includes('/api/authn')
     ) {
       useAuthStore.getState().clearAuth()
