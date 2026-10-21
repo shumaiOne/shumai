@@ -43,24 +43,30 @@ export function getNextOptionColor(existingOptions: PrismaJson.SelectOption[] = 
 export class MetadataService {
   constructor(private client: typeof prisma = prisma) {}
   async syncSystemFields(): Promise<void> {
-    await this.client.$transaction(async (tx) => {
-      for (const field of systemFields) {
-        await tx.metadataField.upsert({
-          where: { key: field.key },
-          update: {
-            scope: field.scope,
-            readOnly: field.readOnly,
-            config: field.config,
-          },
-          create: {
-            key: field.key,
-            scope: field.scope,
-            readOnly: field.readOnly ?? false,
-            config: field.config,
-          },
-        })
-      }
-    })
+    await this.client.$transaction(
+      async (tx) => {
+        for (const field of systemFields) {
+          await tx.metadataField.upsert({
+            where: { key: field.key },
+            update: {
+              scope: field.scope,
+              readOnly: field.readOnly,
+              config: field.config,
+            },
+            create: {
+              key: field.key,
+              scope: field.scope,
+              readOnly: field.readOnly ?? false,
+              config: field.config,
+            },
+          })
+        }
+      },
+      {
+        maxWait: 10000,
+        timeout: 30000,
+      },
+    )
   }
 
   async createTeamField(
@@ -312,9 +318,15 @@ export class MetadataService {
     reqs: UpdateAssetMetadataRequest[],
     allowReadOnly = false,
   ): Promise<void> {
-    await this.client.$transaction(async (tx) => {
-      await this.updateAssetMetadataInternal(tx, assetId, reqs, allowReadOnly)
-    })
+    await this.client.$transaction(
+      async (tx) => {
+        await this.updateAssetMetadataInternal(tx, assetId, reqs, allowReadOnly)
+      },
+      {
+        maxWait: 10000,
+        timeout: 30000,
+      },
+    )
   }
 
   /**

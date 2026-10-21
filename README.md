@@ -142,6 +142,38 @@ Docker Compose is the fastest way to get Shumai running. You do not need to clon
    ```
 6. Open your browser and access Shumai at `http://localhost:3000` (or `http://<your-server-ip>:3000` for remote deployments).
 
+#### **Scaling Transcode Workers (Parallel Processing)**
+
+By default, the Docker Compose deployment transcodes videos one-by-one. This is by design, as video transcoding is compute-intensive and can saturate available CPU or GPU resources.
+
+However, when uploading large batches (e.g., 100+ videos at once) or massive raw camera files that take hours to process and block subsequent uploads, you can scale transcoding throughput across additional machines. Each machine still processes tasks sequentially, but adding more worker instances increases overall parallel capacity.
+
+Shumai makes this seamless with a dedicated [`shumaione/shumai-transcode`](https://hub.docker.com/r/shumaione/shumai-transcode) Docker image:
+
+1. **Connect**: Launch a temporary machine and ensure network access to your PostgreSQL database and storage backend (e.g., S3 or shared storage).
+2. **Start the worker**: Run the container with matching database and storage credentials:
+
+   ```bash
+   docker run -d --name shumai_transcode_worker \
+     -e DATABASE_URL="postgres://shumai:shumai_password@<postgres-host>:5432/shumai_db?sslmode=disable" \
+     -e STORAGE_BACKEND="s3" \
+     -e S3_BUCKET="your-bucket-name" \
+     -e AWS_ENDPOINT_URL_S3="https://s3.us-east-1.amazonaws.com" \
+     -e S3_ACCESS_KEY_ID="your-access-key-id" \
+     -e S3_SECRET_ACCESS_KEY="your-secret-access-key" \
+     shumaione/shumai-transcode:latest
+   ```
+
+   The worker will automatically attach to the task queue and begin processing pending transcode jobs in parallel with your primary instance.
+
+3. **Stop anytime**: Once the transcoding backlog finishes (or whenever you no longer need the extra compute), simply stop or remove the worker:
+
+   ```bash
+   docker stop shumai_transcode_worker
+   ```
+
+   There is no downtime or impact on the main Shumai application.
+
 ### Option 2: Run from Source (Development)
 
 To set up Shumai locally for development:
