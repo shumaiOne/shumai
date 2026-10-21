@@ -8,7 +8,16 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute('/reset-password')({
   validateSearch: (search) => searchSchema.parse(search),
-  beforeLoad: () => {
+  beforeLoad: ({ search }) => {
+    // If a reset token is present in the URL, prioritize password recovery
+    // and clear any stale local auth state so the user can cleanly reset and log in
+    if (search.token) {
+      if (useAuthStore.getState().user) {
+        useAuthStore.getState().clearAuth()
+      }
+      return
+    }
+
     if (useAuthStore.getState().user) {
       throw redirect({
         to: '/',
