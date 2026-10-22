@@ -41,9 +41,7 @@ export interface ProxyServerInfo {
 }
 
 export type ConnectionOutcome =
-  | { status: 'connected' }
-  | { status: 'needs-auth' }
-  | { status: 'error'; message: string }
+  { status: 'connected' } | { status: 'needs-auth' } | { status: 'error'; message: string }
 
 export interface CallToolOutcome {
   ok: boolean

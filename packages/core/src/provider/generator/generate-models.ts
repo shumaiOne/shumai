@@ -1141,8 +1141,7 @@ async function loadModelsDevData(): Promise<Model<any>[]> {
           baseUrl: getBedrockBaseUrl(id),
           reasoning: m.reasoning === true,
           input: (m.modalities?.input?.includes('image') ? ['text', 'image'] : ['text']) as (
-            | 'text'
-            | 'image'
+            'text' | 'image'
           )[],
           cost: {
             input: m.cost?.input || 0,

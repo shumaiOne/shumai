@@ -355,8 +355,7 @@ export function createReadAssetTool(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- transcode screenshot output
           const output = completedTask.output as any
           const screenshots = output?.screenshots as
-            | Array<{ key: string; timestamp: number }>
-            | undefined
+            Array<{ key: string; timestamp: number }> | undefined
 
           if (!screenshots || screenshots.length === 0) {
             throw new Error(
@@ -620,8 +619,7 @@ export function createReadAssetTool(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- transcode screenshot output
         const output = completedTask.output as any
         const screenshots = output?.screenshots as
-          | Array<{ key: string; timestamp: number }>
-          | undefined
+          Array<{ key: string; timestamp: number }> | undefined
 
         if (!screenshots || screenshots.length === 0) {
           throw new Error('No screenshots were generated.')

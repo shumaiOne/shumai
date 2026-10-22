@@ -159,7 +159,7 @@ The project is a monorepo managed by **Bun Workspaces**. It follows a strictly d
 We follow Bun's monorepo conventions for dependency management:
 
 1.  **Self-Contained Packages**: Every workspace package MUST declare its own runtime `dependencies` in its local `package.json`. Do not rely on dependencies being available via the root.
-2.  **Shared DevDependencies**: Common development tools (e.g., `typescript`, `eslint`, `vitest`, `prettier`, `prisma`) MUST be declared in the root `package.json` to ensure version consistency across the workspace.
+2.  **Shared DevDependencies**: Common development tools (e.g., `typescript`, `eslint`, `vitest`, `prisma`) MUST be declared in the root `package.json` to ensure version consistency across the workspace.
 3.  **Local DevDependencies**: Tools specific to a single package (e.g., `@vitejs/plugin-react` for `webui`) should be declared in that package's local `package.json`.
 4.  **Workspace Imports**: Use `workspace:*` for internal package dependencies.
 5.  **Clean Root**: The root `package.json` must not contain runtime `dependencies`. It is reserved for shared `devDependencies` and workspace-wide `scripts`.

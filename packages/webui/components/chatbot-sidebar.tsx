@@ -243,8 +243,7 @@ export function ChatbotSidebar({
         const msgObj = msg as unknown as Record<string, unknown>
         if (msg.role === 'custom' && msgObj.customType === 'context_display_info') {
           const details = msgObj.details as
-            | { assets?: Array<{ id: string; name: string; type: string }> }
-            | undefined
+            { assets?: Array<{ id: string; name: string; type: string }> } | undefined
           const assets = details?.assets || []
           if (assets.length === 0) return null
           return (

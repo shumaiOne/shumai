@@ -62,8 +62,7 @@ function TeamPage() {
   const { metadata, setMetadata: setUserMetadata } = useUserMetadataStore()
   const sortKey = `team:${teamId}:projects:sort`
   const savedSort = metadata[sortKey] as
-    | { sortBy?: string; sortDirection?: 'asc' | 'desc' }
-    | undefined
+    { sortBy?: string; sortDirection?: 'asc' | 'desc' } | undefined
 
   const [sortBy, setSortBy] = useState<string>(() => savedSort?.sortBy || 'name')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(

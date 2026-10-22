@@ -9,3 +9,6 @@ packages/webui/paraglide
 *.md
 **/*.md
 docs/changelog.mdx
+packages/webui/public
+**/*.min.*
+

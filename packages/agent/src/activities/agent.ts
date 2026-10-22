@@ -859,13 +859,7 @@ export const initializeAgentSessionActivity = defineStep(
               name: att.asset.name,
               type: att.asset.type,
               mediaType: attProxyType as
-                | 'image'
-                | 'video'
-                | 'pdf'
-                | 'audio'
-                | '3d'
-                | 'other'
-                | undefined,
+                'image' | 'video' | 'pdf' | 'audio' | '3d' | 'other' | undefined,
               mimeType: att.asset.mediaType || undefined,
             })
           }

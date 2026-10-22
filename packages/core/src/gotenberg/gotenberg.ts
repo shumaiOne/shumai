@@ -90,9 +90,7 @@ export class GotenbergService {
         })
         if (versionRes.ok) {
           const vData = (await versionRes.json().catch(() => null)) as
-            | { version?: string }
-            | string
-            | null
+            { version?: string } | string | null
           if (vData && typeof vData === 'object' && 'version' in vData) {
             version = String(vData.version)
           } else if (typeof vData === 'string') {

@@ -34,8 +34,7 @@ export async function resolveAnnotationsById(
   })
   if (entry) {
     const details = (entry.data as Record<string, unknown> | null)?.details as
-      | ShumaiMessageContext
-      | undefined
+      ShumaiMessageContext | undefined
     const entryAssetId = entry.assetId || details?.currentAsset?.id
     if (entryAssetId && entryAssetId !== assetId) {
       throw new Error(

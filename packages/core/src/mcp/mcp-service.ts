@@ -351,8 +351,7 @@ export class McpService {
       instructions?: string | null
     } = {}
     const impl = connection.serverVersion as
-      | { name?: string; title?: string; description?: string }
-      | undefined
+      { name?: string; title?: string; description?: string } | undefined
     if (impl && typeof impl === 'object') {
       const reportedName = impl.title ?? impl.name
       if (typeof reportedName === 'string' && reportedName.trim() !== '') {

@@ -2408,12 +2408,7 @@ export class AssetService {
       }
 
       const proxyType = (media?.proxyType || null) as
-        | 'image'
-        | 'video'
-        | 'audio'
-        | 'pdf'
-        | '3d'
-        | null
+        'image' | 'video' | 'audio' | 'pdf' | '3d' | null
 
       result.push({
         id: a.id,
@@ -2780,12 +2775,7 @@ export class AssetService {
     if (!asset.media) return null
 
     const proxyType = (asset.media?.proxyType || null) as
-      | 'image'
-      | 'video'
-      | 'audio'
-      | 'pdf'
-      | '3d'
-      | null
+      'image' | 'video' | 'audio' | 'pdf' | '3d' | null
 
     let rawThumbKey: string | undefined
     if (proxyType === 'image' && asset.media.thumbnail?.key) {
@@ -2864,11 +2854,7 @@ export class AssetService {
             'GET',
           )
           const attachmentProxyType = (a.asset.media?.proxyType || null) as
-            | 'image'
-            | 'video'
-            | 'audio'
-            | 'pdf'
-            | null
+            'image' | 'video' | 'audio' | 'pdf' | null
           attachments.push({
             id: a.id,
             assetId: a.asset.id,

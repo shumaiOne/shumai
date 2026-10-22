@@ -1,6 +1,6 @@
 #syntax=docker/dockerfile:1.7-labs
 # Stage 1: Builder
-FROM oven/bun:1.4.2 AS builder
+FROM oven/bun:1.4.4 AS builder
 
 WORKDIR /app
 
@@ -28,7 +28,7 @@ RUN bun run build.ts
 RUN bun run scripts/extract-runtime-deps.ts
 
 # Stage 2: Runner
-FROM oven/bun:1.4.2 AS runner
+FROM oven/bun:1.4.4 AS runner
 
 # Install system dependencies and Jellyfin-FFmpeg (with VA-API support)
 RUN apt-get update && apt-get install -y --no-install-recommends \

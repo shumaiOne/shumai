@@ -68,8 +68,7 @@ export async function resolveIntegrationConfig<TKey extends keyof PrismaJson.Set
       })
       const teamSettings = team?.settings as PrismaJson.Settings | null
       const serviceSettings = teamSettings?.[def.settingsKey] as
-        | { url?: string; username?: string; password?: string }
-        | undefined
+        { url?: string; username?: string; password?: string } | undefined
 
       if (serviceSettings?.url?.trim()) {
         return {
