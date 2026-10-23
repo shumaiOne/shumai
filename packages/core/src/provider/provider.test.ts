@@ -8,6 +8,42 @@ import * as generateModelsModule from './generator/generate-models'
 import { ProviderConfigSerializable, providerModelSchema } from '@shumai/dtos'
 import { getBuiltinProvidersMap } from '@shumai/core/src/provider/builtin'
 import { z } from 'zod'
+import modelsDevFixture from './fixtures/models-dev.json'
+import openRouterFixture from './fixtures/openrouter.json'
+import nvidiaFixture from './fixtures/nvidia.json'
+
+const originalFetch = globalThis.fetch
+
+function setupCatalogFetchMock() {
+  return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: RequestInfo | URL) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    if (url.includes('models.dev')) {
+      return new Response(JSON.stringify(modelsDevFixture), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    if (url.includes('openrouter.ai')) {
+      return new Response(JSON.stringify(openRouterFixture), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    if (url.includes('nvidia')) {
+      return new Response(JSON.stringify(nvidiaFixture), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    if (url.includes('ai-gateway')) {
+      return new Response(JSON.stringify({ data: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    return originalFetch(input)
+  })
+}
 
 type ProviderModel = z.infer<typeof providerModelSchema>
 
@@ -349,10 +385,9 @@ describe('ProviderService', () => {
     expect((modelsAfterUpdate[1].config as { api: string }).api).toBe('anthropic-messages')
   })
 
-  it(
-    'should check for updates and correctly segregate new vs existing providers',
-    { timeout: 30000 },
-    async () => {
+  it('should check for updates and correctly segregate new vs existing providers', async () => {
+    const fetchSpy = setupCatalogFetchMock()
+    try {
       // 1. Check updates with empty team: all discovered providers are new
       const emptyTeam = await prisma.team.create({
         data: { name: 'Empty Provider Team' },
@@ -368,6 +403,7 @@ describe('ProviderService', () => {
       // 3. Check updates after init: existing providers should have isNewProvider: false
       const afterInitCheck = await providerService.checkUpdates(teamWithBuiltins.id)
       const existing = afterInitCheck.providers.find((p) => !p.isNewProvider)
+      expect(existing).toBeDefined()
       if (existing) {
         expect(existing.isNewProvider).toBe(false)
         const dbModels = await providerService.listModelsByProvider(
@@ -381,8 +417,10 @@ describe('ProviderService', () => {
           expect(dbModelIds.has(m.modelId)).toBe(false)
         }
       }
-    },
-  )
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
 
   it('should throw an error when upstream catalog fetch fails in checkUpdates', async () => {
     const team = await teamService.ensureDefaultTeam()

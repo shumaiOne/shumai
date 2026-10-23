@@ -1,0 +1,17 @@
+{
+  "data": [
+    {
+      "id": "meta-llama/llama-3.1-8b-instruct",
+      "name": "Meta: Llama 3.1 8B Instruct",
+      "context_length": 131072,
+      "pricing": {
+        "prompt": "0.00000005",
+        "completion": "0.00000008"
+      },
+      "top_provider": {
+        "max_completion_tokens": 8192
+      },
+      "supported_parameters": ["tools"]
+    }
+  ]
+}
