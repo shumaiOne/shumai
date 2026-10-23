@@ -28,30 +28,43 @@ export interface GetBatchWorkflowTaskStatusParams {
   taskIds: string[]
 }
 
-function mapToWorkflowTaskItem(task: {
-  id: string
-  uid: string
-  teamId: string | null
-  projectId: string | null
-  assetId: string
-  type: WorkflowTaskType | null
-  status: WorkflowTaskStatus | null
-  payload: unknown
-  output: unknown
-  heartbeat: Date | null
-  inputTokens: number
-  outputTokens: number
-  model: string | null
-  sessionId: string | null
-  createdAt: Date
-  updatedAt: Date
-}): WorkflowTaskItem {
+interface EnrichedMetadata {
+  fileName?: string | null
+  fileSize?: number | null
+  projectId?: string | null
+  projectName?: string | null
+}
+
+function mapToWorkflowTaskItem(
+  task: {
+    id: string
+    uid: string
+    teamId: string | null
+    projectId: string | null
+    assetId: string
+    type: WorkflowTaskType | null
+    status: WorkflowTaskStatus | null
+    payload: unknown
+    output: unknown
+    heartbeat: Date | null
+    inputTokens: number
+    outputTokens: number
+    model: string | null
+    sessionId: string | null
+    createdAt: Date
+    updatedAt: Date
+  },
+  extra?: EnrichedMetadata,
+): WorkflowTaskItem {
   return {
     id: task.id,
     uid: task.uid,
     teamId: task.teamId,
-    projectId: task.projectId,
+    projectId: extra?.projectId !== undefined ? extra.projectId : task.projectId,
+    projectName: extra?.projectName ?? null,
     assetId: task.assetId,
+    fileName: extra?.fileName ?? null,
+    fileSize: extra?.fileSize ?? null,
     type: task.type,
     status: task.status,
     payload: task.payload,
@@ -67,6 +80,75 @@ function mapToWorkflowTaskItem(task: {
 }
 
 export class WorkflowTaskService {
+  private async enrichWorkflowTasks<
+    T extends {
+      id: string
+      uid: string
+      teamId: string | null
+      projectId: string | null
+      assetId: string
+      type: WorkflowTaskType | null
+      status: WorkflowTaskStatus | null
+      payload: unknown
+      output: unknown
+      heartbeat: Date | null
+      inputTokens: number
+      outputTokens: number
+      model: string | null
+      sessionId: string | null
+      createdAt: Date
+      updatedAt: Date
+    },
+  >(tasks: T[]): Promise<WorkflowTaskItem[]> {
+    if (tasks.length === 0) {
+      return []
+    }
+
+    const assetIds = [...new Set(tasks.map((t) => t.assetId).filter(Boolean))]
+    const assets =
+      assetIds.length > 0
+        ? await prisma.asset.findMany({
+            where: { id: { in: assetIds } },
+            select: { id: true, name: true, sizeByte: true, projectId: true },
+          })
+        : []
+
+    const assetMap = new Map(assets.map((a) => [a.id, a]))
+
+    const allProjectIds = [
+      ...new Set(
+        [...tasks.map((t) => t.projectId), ...assets.map((a) => a.projectId)].filter(
+          (id): id is string => Boolean(id),
+        ),
+      ),
+    ]
+
+    const projects =
+      allProjectIds.length > 0
+        ? await prisma.project.findMany({
+            where: { id: { in: allProjectIds } },
+            select: { id: true, name: true },
+          })
+        : []
+
+    const projectMap = new Map(projects.map((p) => [p.id, p.name]))
+
+    return tasks.map((task) => {
+      const asset = assetMap.get(task.assetId)
+      const effectiveProjectId = task.projectId || asset?.projectId || null
+      const projectName = effectiveProjectId ? (projectMap.get(effectiveProjectId) ?? null) : null
+      const fileName = asset?.name ?? null
+      const fileSize = asset ? Number(asset.sizeByte) : null
+
+      return mapToWorkflowTaskItem(task, {
+        fileName,
+        fileSize,
+        projectId: effectiveProjectId,
+        projectName,
+      })
+    })
+  }
+
   async listWorkflowTasks(params: ListWorkflowTasksParams): Promise<ListWorkflowTasksResponse> {
     const teamProjects = await prisma.project.findMany({
       where: { teamId: params.teamId },
@@ -101,8 +183,10 @@ export class WorkflowTaskService {
       { first: params.first, after: params.after },
     )
 
+    const nodes = await this.enrichWorkflowTasks(result.data)
+
     return {
-      nodes: result.data.map(mapToWorkflowTaskItem),
+      nodes,
       pageInfo: {
         hasNextPage: !!result.pageInfo.cursor,
         endCursor: result.pageInfo.cursor || null,
@@ -135,7 +219,8 @@ export class WorkflowTaskService {
       orderBy: { id: 'desc' },
     })
 
-    return { tasks: tasks.map(mapToWorkflowTaskItem) }
+    const enriched = await this.enrichWorkflowTasks(tasks)
+    return { tasks: enriched }
   }
 
   async stopWorkflowTask(
@@ -233,9 +318,11 @@ export class WorkflowTaskService {
 
     logger.info({ taskId: task.id, teamId: params.teamId }, 'Workflow task stopped by user')
 
+    const [enriched] = await this.enrichWorkflowTasks([updated])
+
     return {
       success: true,
-      task: mapToWorkflowTaskItem(updated),
+      task: enriched,
     }
   }
 }

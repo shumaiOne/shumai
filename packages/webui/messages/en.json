@@ -1205,6 +1205,7 @@
   "task_status": "Status",
   "task_type": "Type",
   "asset_id": "Asset ID",
+  "file_name": "File Name",
   "payload": "Payload",
   "output": "Output",
   "input_tokens": "Input Tokens",

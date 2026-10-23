@@ -14,6 +14,7 @@ import { Button } from '@/ui/components/ui/button'
 import { Copy, Check, Clock, Cpu, FileText } from 'lucide-react'
 import { m } from '@/ui/paraglide/messages.js'
 import { formatTimeAgo } from '@/ui/lib/time'
+import { formatSize } from '@/ui/lib/format'
 
 interface WorkflowTaskDetailsDialogProps {
   task: WorkflowTaskItem | null
@@ -124,6 +125,32 @@ export function WorkflowTaskDetailsDialog({
 
         {/* Metadata Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 py-3 text-xs border-b border-border/40">
+          <div>
+            <div className="text-muted-foreground">{m.file_name()}</div>
+            <div
+              className="truncate font-medium text-foreground mt-0.5"
+              title={task.fileName || '-'}
+            >
+              {task.fileName || '-'}
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">{m.size()}</div>
+            <div className="font-mono truncate font-medium text-foreground mt-0.5">
+              {task.fileSize !== null && task.fileSize !== undefined
+                ? formatSize(task.fileSize)
+                : '-'}
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">{m.project_name()}</div>
+            <div
+              className="truncate font-medium text-foreground mt-0.5"
+              title={task.projectName || '-'}
+            >
+              {task.projectName || '-'}
+            </div>
+          </div>
           <div>
             <div className="text-muted-foreground">{m.asset_id()}</div>
             <div className="font-mono truncate font-medium text-foreground mt-0.5">

@@ -1205,6 +1205,7 @@
   "task_status": "状态",
   "task_type": "类型",
   "asset_id": "素材 ID",
+  "file_name": "文件名",
   "payload": "负载数据",
   "output": "输出结果",
   "input_tokens": "输入 Token",

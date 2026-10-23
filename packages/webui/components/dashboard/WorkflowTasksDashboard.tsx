@@ -38,18 +38,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
-import {
-  Loader2,
-  Filter,
-  Workflow,
-  Square,
-  Eye,
-  RotateCw,
-  Copy,
-  Check,
-  AlertTriangle,
-} from 'lucide-react'
+import { Loader2, Filter, Workflow, Square, Eye, RotateCw, AlertTriangle } from 'lucide-react'
 import { formatTimeAgo } from '@/ui/lib/time'
+import { formatSize } from '@/ui/lib/format'
 import { toast } from 'sonner'
 import { WorkflowTaskDetailsDialog } from './WorkflowTaskDetailsDialog'
 
@@ -66,7 +57,6 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
   const [selectedTypes, setSelectedTypes] = useState<WorkflowTaskType[]>([])
   const [taskToStop, setTaskToStop] = useState<WorkflowTaskItem | null>(null)
   const [detailsTask, setDetailsTask] = useState<WorkflowTaskItem | null>(null)
-  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const { ref: loadMoreRef, inView } = useInView()
 
@@ -204,12 +194,6 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
     setSelectedTypes((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     )
-  }
-
-  const copyId = (id: string) => {
-    navigator.clipboard.writeText(id)
-    setCopiedId(id)
-    setTimeout(() => setCopiedId(null), 2000)
   }
 
   const getStatusBadge = (status?: string | null) => {
@@ -444,21 +428,23 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/50">
-                  <TableHead className="w-[180px] pl-6 text-xs font-semibold">
+                  <TableHead className="w-[170px] pl-6 text-xs font-semibold">
                     {m.task_type()}
                   </TableHead>
-                  <TableHead className="w-[140px] px-4 text-xs font-semibold">
+                  <TableHead className="w-[130px] px-4 text-xs font-semibold">
                     {m.task_status()}
                   </TableHead>
-                  <TableHead className="w-[180px] px-4 text-xs font-semibold">
-                    {m.task_id()}
+                  <TableHead className="min-w-[180px] px-4 text-xs font-semibold">
+                    {m.file_name()}
                   </TableHead>
-                  <TableHead className="px-4 text-xs font-semibold">{m.asset_id()}</TableHead>
-                  <TableHead className="px-4 text-xs font-semibold">{m.project_id()}</TableHead>
-                  <TableHead className="w-[140px] px-4 text-right text-xs font-semibold">
+                  <TableHead className="w-[110px] px-4 text-xs font-semibold">{m.size()}</TableHead>
+                  <TableHead className="w-[160px] px-4 text-xs font-semibold">
+                    {m.project_name()}
+                  </TableHead>
+                  <TableHead className="w-[130px] px-4 text-right text-xs font-semibold">
                     {m.created_at()}
                   </TableHead>
-                  <TableHead className="w-[130px] pr-6 text-right text-xs font-semibold">
+                  <TableHead className="w-[120px] pr-6 text-right text-xs font-semibold">
                     {m.actions()}
                   </TableHead>
                 </TableRow>
@@ -475,32 +461,28 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
                       <TableCell className="py-3 px-4 font-medium">
                         {getStatusBadge(task.status)}
                       </TableCell>
-                      <TableCell className="py-3 px-4">
-                        <div className="flex items-center gap-1.5 font-mono text-xs text-foreground">
-                          <span className="truncate max-w-[120px]">{task.id}</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0"
-                            onClick={() => copyId(task.id)}
-                          >
-                            {copiedId === task.id ? (
-                              <Check className="h-3 w-3 text-emerald-500" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">
-                        <span className="truncate block max-w-[140px]">{task.assetId || '-'}</span>
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">
-                        <span className="truncate block max-w-[140px]">
-                          {task.projectId || '-'}
+                      <TableCell className="py-3 px-4 text-xs font-medium">
+                        <span
+                          className="truncate block max-w-[220px]"
+                          title={task.fileName || task.assetId || '-'}
+                        >
+                          {task.fileName || task.assetId || '-'}
                         </span>
                       </TableCell>
-                      <TableCell className="py-3 px-4 text-right text-xs text-muted-foreground">
+                      <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">
+                        {task.fileSize !== null && task.fileSize !== undefined
+                          ? formatSize(task.fileSize)
+                          : '-'}
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-xs text-muted-foreground">
+                        <span
+                          className="truncate block max-w-[160px]"
+                          title={task.projectName || task.projectId || '-'}
+                        >
+                          {task.projectName || task.projectId || '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-3 px-4 text-right text-xs text-muted-foreground whitespace-nowrap">
                         {formatTimeAgo(task.createdAt)}
                       </TableCell>
                       <TableCell className="py-3 pr-6 text-right">
@@ -560,20 +542,26 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
             </div>
             <AlertDialogDescription className="pt-2 text-sm text-muted-foreground">
               {m.stop_task_confirm_description()}
-              {taskToStop && (
-                <div className="mt-3 p-2.5 rounded-md bg-muted/50 border border-border/40 font-mono text-xs">
-                  <div>
-                    {m.task_id()}: {taskToStop.id}
-                  </div>
-                  <div>
-                    {m.task_type()}: {taskToStop.type || 'unknown'}
-                  </div>
-                  <div>
-                    {m.task_status()}: {taskToStop.status}
-                  </div>
-                </div>
-              )}
             </AlertDialogDescription>
+            {taskToStop && (
+              <div className="mt-3 p-2.5 rounded-md bg-muted/50 border border-border/40 font-mono text-xs space-y-1">
+                <div>
+                  {m.task_id()}: {taskToStop.id}
+                </div>
+                {taskToStop.fileName && (
+                  <div className="font-sans">
+                    {m.file_name()}:{' '}
+                    <span className="font-medium text-foreground">{taskToStop.fileName}</span>
+                  </div>
+                )}
+                <div>
+                  {m.task_type()}: {taskToStop.type || 'unknown'}
+                </div>
+                <div>
+                  {m.task_status()}: {taskToStop.status}
+                </div>
+              </div>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={stopTaskMutation.isPending}>

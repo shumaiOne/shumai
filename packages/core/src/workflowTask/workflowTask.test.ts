@@ -30,6 +30,7 @@ describe('WorkflowTaskService', () => {
       data: {
         name: 'video1.mp4',
         type: 'file',
+        sizeByte: 2048,
         status: 'uploaded',
         projectId: project1.id,
       },
@@ -74,6 +75,13 @@ describe('WorkflowTaskService', () => {
     expect(listAll.total).toBe(2)
     expect(listAll.nodes).toHaveLength(2)
     expect(listAll.nodes.map((n) => n.id)).toEqual([task2.id, task1.id]) // ordered by id desc
+    expect(listAll.nodes[0].fileName).toBe('video1.mp4')
+    expect(listAll.nodes[0].fileSize).toBe(2048)
+    expect(listAll.nodes[0].projectName).toBe('Project 1')
+    expect(listAll.nodes[0].projectId).toBe(project1.id)
+    expect(listAll.nodes[1].fileName).toBe('video1.mp4')
+    expect(listAll.nodes[1].fileSize).toBe(2048)
+    expect(listAll.nodes[1].projectName).toBe('Project 1')
 
     // 2. Filter by status
     const listPending = await workflowTaskService.listWorkflowTasks({
@@ -464,5 +472,79 @@ describe('WorkflowTaskService', () => {
     } finally {
       registerWorkflowCancel(async () => {})
     }
+  })
+
+  it('enriches tasks with fileName, fileSize, and projectName, and handles purged assets gracefully', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Enrich Team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'Enrich Project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'sample_audio.mp3',
+        type: 'file',
+        sizeByte: 5242880,
+        status: 'uploaded',
+        projectId: project.id,
+      },
+    })
+
+    const taskWithAsset = await prisma.workflowTask.create({
+      data: {
+        assetId: asset.id,
+        teamId: team.id,
+        projectId: project.id,
+        type: WorkflowTaskType.transcode_video,
+        status: WorkflowTaskStatus.pending,
+      },
+    })
+
+    const taskWithPurgedAsset = await prisma.workflowTask.create({
+      data: {
+        assetId: 'purged-asset-id',
+        teamId: team.id,
+        type: WorkflowTaskType.transcode_image,
+        status: WorkflowTaskStatus.completed,
+      },
+    })
+
+    const listRes = await workflowTaskService.listWorkflowTasks({ teamId: team.id })
+    expect(listRes.total).toBe(2)
+
+    const foundActive = listRes.nodes.find((n) => n.id === taskWithAsset.id)
+    expect(foundActive).toBeDefined()
+    expect(foundActive?.fileName).toBe('sample_audio.mp3')
+    expect(foundActive?.fileSize).toBe(5242880)
+    expect(foundActive?.projectName).toBe('Enrich Project')
+    expect(foundActive?.projectId).toBe(project.id)
+
+    const foundPurged = listRes.nodes.find((n) => n.id === taskWithPurgedAsset.id)
+    expect(foundPurged).toBeDefined()
+    expect(foundPurged?.fileName).toBeNull()
+    expect(foundPurged?.fileSize).toBeNull()
+    expect(foundPurged?.projectName).toBeNull()
+
+    // Test batch status enrichment
+    const batchRes = await workflowTaskService.getBatchWorkflowTaskStatus({
+      teamId: team.id,
+      taskIds: [taskWithAsset.id, taskWithPurgedAsset.id],
+    })
+    expect(batchRes.tasks).toHaveLength(2)
+    const batchActive = batchRes.tasks.find((t) => t.id === taskWithAsset.id)
+    expect(batchActive?.fileName).toBe('sample_audio.mp3')
+    expect(batchActive?.fileSize).toBe(5242880)
+    expect(batchActive?.projectName).toBe('Enrich Project')
+
+    // Test stopWorkflowTask enrichment
+    const stopRes = await workflowTaskService.stopWorkflowTask({
+      teamId: team.id,
+      taskId: taskWithAsset.id,
+    })
+    expect(stopRes.success).toBe(true)
+    expect(stopRes.task.fileName).toBe('sample_audio.mp3')
+    expect(stopRes.task.fileSize).toBe(5242880)
+    expect(stopRes.task.projectName).toBe('Enrich Project')
   })
 })
