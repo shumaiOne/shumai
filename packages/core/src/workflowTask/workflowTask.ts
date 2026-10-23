@@ -184,19 +184,37 @@ export class WorkflowTaskService {
       )
     }
 
+    const errorMsg = 'Task was stopped by user'
     const prevOutput =
       typeof task.output === 'object' && task.output !== null
         ? (task.output as Record<string, unknown>)
         : {}
-    const updated = await prisma.workflowTask.update({
-      where: { id: task.id },
-      data: {
-        status: WorkflowTaskStatus.failed,
-        output: {
-          ...prevOutput,
-          error: 'Task was stopped by user',
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const taskUpdated = await tx.workflowTask.update({
+        where: { id: task.id },
+        data: {
+          status: WorkflowTaskStatus.failed,
+          output: {
+            ...prevOutput,
+            error: errorMsg,
+          },
         },
-      },
+      })
+
+      if (task.assetId) {
+        await tx.$executeRaw`
+          UPDATE "assets"
+          SET
+            "status" = 'failed'::"AssetStatus",
+            "media" = COALESCE("media", '{}'::jsonb) || jsonb_build_object('error', ${errorMsg}::text)
+          WHERE "id" = ${task.assetId}
+            AND "is_deleted" = false
+            AND "status" != 'processed'::"AssetStatus"
+        `
+      }
+
+      return taskUpdated
     })
 
     logger.info({ taskId: task.id, teamId: params.teamId }, 'Workflow task stopped by user')

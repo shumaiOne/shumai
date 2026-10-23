@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { prisma, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
+import { prisma, WorkflowTaskStatus, WorkflowTaskType, AssetStatus } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { HTTPException } from 'hono/http-exception'
 import { workflowTaskService } from './workflowTask'
@@ -189,6 +189,105 @@ describe('WorkflowTaskService', () => {
     })
     expect(stopProcessingRes.success).toBe(true)
     expect(stopProcessingRes.task.status).toBe(WorkflowTaskStatus.failed)
+  })
+
+  it('updates associated asset status to failed atomically when task is stopped', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Asset Stop Team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'Asset Stop Project', teamId: team.id },
+    })
+
+    // Asset 1: currently uploaded (e.g. pending transcode)
+    const asset1 = await prisma.asset.create({
+      data: {
+        name: 'pending-video.mp4',
+        type: 'file',
+        status: AssetStatus.uploaded,
+        projectId: project.id,
+        media: {
+          duration: 120,
+          filesize: 1000,
+          frames: 3000,
+          imageTranscodes: [],
+          videoTranscodes: [],
+          finishedAt: '',
+          metadata: null,
+          original: null,
+        },
+      },
+    })
+
+    const task1 = await prisma.workflowTask.create({
+      data: {
+        assetId: asset1.id,
+        teamId: team.id,
+        projectId: project.id,
+        type: WorkflowTaskType.transcode_video,
+        status: WorkflowTaskStatus.pending,
+      },
+    })
+
+    // Asset 2: already processed (media finished)
+    const asset2 = await prisma.asset.create({
+      data: {
+        name: 'completed-video.mp4',
+        type: 'file',
+        status: AssetStatus.processed,
+        projectId: project.id,
+        media: {
+          duration: 60,
+          filesize: 500,
+          frames: 1500,
+          imageTranscodes: [],
+          videoTranscodes: [],
+          finishedAt: '2026-01-01',
+          metadata: null,
+          original: null,
+        },
+      },
+    })
+
+    const task2 = await prisma.workflowTask.create({
+      data: {
+        assetId: asset2.id,
+        teamId: team.id,
+        projectId: project.id,
+        type: WorkflowTaskType.ai_metadata_autofill,
+        status: WorkflowTaskStatus.processing,
+      },
+    })
+
+    // Stop task 1 (pending transcode)
+    await workflowTaskService.stopWorkflowTask({
+      teamId: team.id,
+      taskId: task1.id,
+    })
+
+    const updatedAsset1 = await prisma.asset.findUniqueOrThrow({
+      where: { id: asset1.id },
+    })
+    expect(updatedAsset1.status).toBe(AssetStatus.failed)
+    const media1 = updatedAsset1.media as PrismaJson.MediaInfo
+    expect(media1.duration).toBe(120) // preserved other json properties
+    expect(media1.filesize).toBe(1000)
+    expect(media1.error).toBe('Task was stopped by user')
+
+    // Stop task 2 (asset already processed)
+    await workflowTaskService.stopWorkflowTask({
+      teamId: team.id,
+      taskId: task2.id,
+    })
+
+    const updatedAsset2 = await prisma.asset.findUniqueOrThrow({
+      where: { id: asset2.id },
+    })
+    // Must NOT be overwritten to failed
+    expect(updatedAsset2.status).toBe(AssetStatus.processed)
+    const media2 = updatedAsset2.media as PrismaJson.MediaInfo
+    expect(media2.duration).toBe(60)
+    expect(media2.error).toBeUndefined()
   })
 
   it('throws 400 when attempting to stop completed or failed task', async () => {
