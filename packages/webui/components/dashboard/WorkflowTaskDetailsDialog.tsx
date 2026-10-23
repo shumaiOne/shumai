@@ -159,7 +159,7 @@ export function WorkflowTaskDetailsDialog({
           )}
           {task.model && (
             <div>
-              <div className="text-muted-foreground">Model</div>
+              <div className="text-muted-foreground">{m.model()}</div>
               <div className="font-mono truncate font-medium text-foreground mt-0.5">
                 {task.model}
               </div>
@@ -168,7 +168,7 @@ export function WorkflowTaskDetailsDialog({
           {(task.inputTokens > 0 || task.outputTokens > 0) && (
             <div>
               <div className="text-muted-foreground flex items-center gap-1">
-                <Cpu className="h-3 w-3" /> Tokens
+                <Cpu className="h-3 w-3" /> {m.tokens_label()}
               </div>
               <div className="font-medium text-foreground mt-0.5 font-mono">
                 {task.inputTokens.toLocaleString()} in / {task.outputTokens.toLocaleString()} out
@@ -177,7 +177,7 @@ export function WorkflowTaskDetailsDialog({
           )}
           {task.sessionId && (
             <div className="col-span-2">
-              <div className="text-muted-foreground">Session ID</div>
+              <div className="text-muted-foreground">{m.session_id()}</div>
               <div className="font-mono truncate font-medium text-foreground mt-0.5">
                 {task.sessionId}
               </div>

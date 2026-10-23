@@ -178,10 +178,10 @@ export class WorkflowTaskService {
     try {
       await cancelWorkflowTask(task.id)
     } catch (err) {
-      logger.warn(
-        { taskId: task.id, err },
-        'Failed to trigger cancelWorkflowTask in engine, proceeding with DB update',
-      )
+      logger.error({ taskId: task.id, err }, 'Failed to cancel workflow task in workflow engine')
+      throw new HTTPException(502, {
+        message: `Failed to cancel workflow task in engine: ${err instanceof Error ? err.message : String(err)}`,
+      })
     }
 
     const errorMsg = 'Task was stopped by user'
@@ -191,8 +191,11 @@ export class WorkflowTaskService {
         : {}
 
     const updated = await prisma.$transaction(async (tx) => {
-      const taskUpdated = await tx.workflowTask.update({
-        where: { id: task.id },
+      const updateResult = await tx.workflowTask.updateMany({
+        where: {
+          id: task.id,
+          status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
+        },
         data: {
           status: WorkflowTaskStatus.failed,
           output: {
@@ -201,6 +204,15 @@ export class WorkflowTaskService {
           },
         },
       })
+
+      if (updateResult.count === 0) {
+        const latestTask = await tx.workflowTask.findUniqueOrThrow({
+          where: { id: task.id },
+        })
+        throw new HTTPException(409, {
+          message: `Task is no longer active. Current status: ${latestTask.status}`,
+        })
+      }
 
       if (task.assetId) {
         await tx.$executeRaw`
@@ -214,7 +226,9 @@ export class WorkflowTaskService {
         `
       }
 
-      return taskUpdated
+      return await tx.workflowTask.findUniqueOrThrow({
+        where: { id: task.id },
+      })
     })
 
     logger.info({ taskId: task.id, teamId: params.teamId }, 'Workflow task stopped by user')

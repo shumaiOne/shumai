@@ -387,6 +387,7 @@ export class DbosExecutor extends EventEmitter {
       logger.info({ taskId }, '[DbosExecutor] Cancelled workflow task')
     } catch (err) {
       logger.warn({ taskId, err }, '[DbosExecutor] Failed to cancel workflow task in DBOS')
+      throw err
     }
   }
 

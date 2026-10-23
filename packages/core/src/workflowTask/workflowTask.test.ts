@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { prisma, WorkflowTaskStatus, WorkflowTaskType, AssetStatus } from '@shumai/db'
+import {
+  prisma,
+  WorkflowTaskStatus,
+  WorkflowTaskType,
+  AssetStatus,
+  registerWorkflowCancel,
+} from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { HTTPException } from 'hono/http-exception'
 import { workflowTaskService } from './workflowTask'
@@ -344,5 +350,119 @@ describe('WorkflowTaskService', () => {
         taskId: task2.id,
       }),
     ).rejects.toThrow(HTTPException)
+  })
+
+  it('throws 502 and does not modify task or asset when workflow cancellation fails', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Cancel Fail Team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'Cancel Fail Project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'fail-cancel.mp4',
+        type: 'file',
+        status: AssetStatus.processing,
+        projectId: project.id,
+      },
+    })
+    const task = await prisma.workflowTask.create({
+      data: {
+        assetId: asset.id,
+        teamId: team.id,
+        projectId: project.id,
+        type: WorkflowTaskType.transcode_video,
+        status: WorkflowTaskStatus.processing,
+      },
+    })
+
+    registerWorkflowCancel(async () => {
+      throw new Error('DBOS connection failure')
+    })
+
+    try {
+      await expect(
+        workflowTaskService.stopWorkflowTask({
+          teamId: team.id,
+          taskId: task.id,
+        }),
+      ).rejects.toMatchObject({ status: 502 })
+
+      // Verify task status was NOT changed to failed
+      const currentTask = await prisma.workflowTask.findUniqueOrThrow({
+        where: { id: task.id },
+      })
+      expect(currentTask.status).toBe(WorkflowTaskStatus.processing)
+
+      // Verify asset status was NOT changed to failed
+      const currentAsset = await prisma.asset.findUniqueOrThrow({
+        where: { id: asset.id },
+      })
+      expect(currentAsset.status).toBe(AssetStatus.processing)
+    } finally {
+      registerWorkflowCancel(async () => {})
+    }
+  })
+
+  it('throws 409 and does not overwrite status when task completes during cancellation', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Race Team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'Race Project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'race.mp4',
+        type: 'file',
+        status: AssetStatus.processing,
+        projectId: project.id,
+      },
+    })
+    const task = await prisma.workflowTask.create({
+      data: {
+        assetId: asset.id,
+        teamId: team.id,
+        projectId: project.id,
+        type: WorkflowTaskType.transcode_video,
+        status: WorkflowTaskStatus.processing,
+      },
+    })
+
+    // Simulate task completing in the background while cancelWorkflowTask is awaiting
+    registerWorkflowCancel(async () => {
+      await prisma.workflowTask.update({
+        where: { id: task.id },
+        data: { status: WorkflowTaskStatus.completed },
+      })
+      await prisma.asset.update({
+        where: { id: asset.id },
+        data: { status: AssetStatus.processed },
+      })
+    })
+
+    try {
+      await expect(
+        workflowTaskService.stopWorkflowTask({
+          teamId: team.id,
+          taskId: task.id,
+        }),
+      ).rejects.toMatchObject({ status: 409 })
+
+      // Verify task remains completed, not overwritten to failed
+      const currentTask = await prisma.workflowTask.findUniqueOrThrow({
+        where: { id: task.id },
+      })
+      expect(currentTask.status).toBe(WorkflowTaskStatus.completed)
+
+      // Verify asset remains processed, not overwritten to failed
+      const currentAsset = await prisma.asset.findUniqueOrThrow({
+        where: { id: asset.id },
+      })
+      expect(currentAsset.status).toBe(AssetStatus.processed)
+    } finally {
+      registerWorkflowCancel(async () => {})
+    }
   })
 })

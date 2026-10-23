@@ -310,6 +310,17 @@ describe('DbosExecutor Tests', () => {
 
       expect(heartbeats.has(taskId)).toBe(false)
     })
+
+    it('should propagate error if client.cancelWorkflow fails', async () => {
+      const taskId = 'test-failing-cancel'
+      const mockClient = {
+        cancelWorkflow: vi.fn().mockRejectedValue(new Error('DBOS connection failure')),
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(executor, 'getClient').mockResolvedValue(mockClient as any)
+
+      await expect(executor.cancel(taskId)).rejects.toThrow('DBOS connection failure')
+    })
   })
 
   describe('Submit', () => {

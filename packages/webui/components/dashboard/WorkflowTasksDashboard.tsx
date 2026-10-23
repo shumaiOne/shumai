@@ -421,7 +421,7 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
                   setSelectedTypes([])
                 }}
               >
-                Clear all
+                {m.clear_all()}
               </Button>
             )}
           </div>
@@ -434,7 +434,7 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
             </div>
           ) : isError ? (
             <div className="p-8 text-center text-sm text-destructive">
-              Failed to load workflow tasks.
+              {m.failed_to_load_workflow_tasks()}
             </div>
           ) : allTasks.length === 0 ? (
             <div className="p-12 text-center text-sm text-muted-foreground">
@@ -459,7 +459,7 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
                     {m.created_at()}
                   </TableHead>
                   <TableHead className="w-[130px] pr-6 text-right text-xs font-semibold">
-                    Actions
+                    {m.actions()}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -562,15 +562,23 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
               {m.stop_task_confirm_description()}
               {taskToStop && (
                 <div className="mt-3 p-2.5 rounded-md bg-muted/50 border border-border/40 font-mono text-xs">
-                  <div>Task ID: {taskToStop.id}</div>
-                  <div>Type: {taskToStop.type || 'unknown'}</div>
-                  <div>Status: {taskToStop.status}</div>
+                  <div>
+                    {m.task_id()}: {taskToStop.id}
+                  </div>
+                  <div>
+                    {m.task_type()}: {taskToStop.type || 'unknown'}
+                  </div>
+                  <div>
+                    {m.task_status()}: {taskToStop.status}
+                  </div>
                 </div>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={stopTaskMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={stopTaskMutation.isPending}>
+              {m.cancel()}
+            </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               disabled={stopTaskMutation.isPending}
@@ -583,7 +591,7 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
               {stopTaskMutation.isPending ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                  Stopping...
+                  {m.stopping()}
                 </>
               ) : (
                 m.stop_task()
