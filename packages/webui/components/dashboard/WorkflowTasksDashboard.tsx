@@ -444,17 +444,21 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/50">
-                  <TableHead className="w-[180px] text-xs font-semibold">{m.task_type()}</TableHead>
-                  <TableHead className="w-[140px] text-xs font-semibold">
+                  <TableHead className="w-[180px] pl-6 text-xs font-semibold">
+                    {m.task_type()}
+                  </TableHead>
+                  <TableHead className="w-[140px] px-4 text-xs font-semibold">
                     {m.task_status()}
                   </TableHead>
-                  <TableHead className="w-[180px] text-xs font-semibold">{m.task_id()}</TableHead>
-                  <TableHead className="text-xs font-semibold">{m.asset_id()}</TableHead>
-                  <TableHead className="text-xs font-semibold">{m.project_id()}</TableHead>
-                  <TableHead className="w-[140px] text-right text-xs font-semibold">
+                  <TableHead className="w-[180px] px-4 text-xs font-semibold">
+                    {m.task_id()}
+                  </TableHead>
+                  <TableHead className="px-4 text-xs font-semibold">{m.asset_id()}</TableHead>
+                  <TableHead className="px-4 text-xs font-semibold">{m.project_id()}</TableHead>
+                  <TableHead className="w-[140px] px-4 text-right text-xs font-semibold">
                     {m.created_at()}
                   </TableHead>
-                  <TableHead className="w-[130px] text-right text-xs font-semibold">
+                  <TableHead className="w-[130px] pr-6 text-right text-xs font-semibold">
                     Actions
                   </TableHead>
                 </TableRow>
@@ -465,11 +469,13 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
 
                   return (
                     <TableRow key={task.id} className="hover:bg-muted/40 transition-colors">
-                      <TableCell className="py-3 font-medium">{getTypeBadge(task.type)}</TableCell>
-                      <TableCell className="py-3 font-medium">
+                      <TableCell className="py-3 pl-6 font-medium">
+                        {getTypeBadge(task.type)}
+                      </TableCell>
+                      <TableCell className="py-3 px-4 font-medium">
                         {getStatusBadge(task.status)}
                       </TableCell>
-                      <TableCell className="py-3">
+                      <TableCell className="py-3 px-4">
                         <div className="flex items-center gap-1.5 font-mono text-xs text-foreground">
                           <span className="truncate max-w-[120px]">{task.id}</span>
                           <Button
@@ -486,18 +492,18 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell className="py-3 text-xs font-mono text-muted-foreground">
+                      <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">
                         <span className="truncate block max-w-[140px]">{task.assetId || '-'}</span>
                       </TableCell>
-                      <TableCell className="py-3 text-xs font-mono text-muted-foreground">
+                      <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">
                         <span className="truncate block max-w-[140px]">
                           {task.projectId || '-'}
                         </span>
                       </TableCell>
-                      <TableCell className="py-3 text-right text-xs text-muted-foreground">
+                      <TableCell className="py-3 px-4 text-right text-xs text-muted-foreground">
                         {formatTimeAgo(task.createdAt)}
                       </TableCell>
-                      <TableCell className="py-3 text-right">
+                      <TableCell className="py-3 pr-6 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"

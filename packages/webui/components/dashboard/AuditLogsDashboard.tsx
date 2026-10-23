@@ -325,11 +325,13 @@ export function AuditLogsDashboard({ teamId }: AuditLogsDashboardProps) {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/50">
-                  <TableHead className="w-[180px] text-xs font-semibold">{m.action()}</TableHead>
-                  <TableHead className="w-[200px] text-xs font-semibold">{m.user()}</TableHead>
-                  <TableHead className="text-xs font-semibold">{m.item_id()}</TableHead>
-                  <TableHead className="text-xs font-semibold">{m.project_id()}</TableHead>
-                  <TableHead className="w-[160px] text-right text-xs font-semibold">
+                  <TableHead className="w-[180px] pl-6 text-xs font-semibold">
+                    {m.action()}
+                  </TableHead>
+                  <TableHead className="w-[200px] px-4 text-xs font-semibold">{m.user()}</TableHead>
+                  <TableHead className="px-4 text-xs font-semibold">{m.item_id()}</TableHead>
+                  <TableHead className="px-4 text-xs font-semibold">{m.project_id()}</TableHead>
+                  <TableHead className="w-[160px] pr-6 text-right text-xs font-semibold">
                     {m.timestamp()}
                   </TableHead>
                 </TableRow>
@@ -342,10 +344,10 @@ export function AuditLogsDashboard({ teamId }: AuditLogsDashboardProps) {
 
                   return (
                     <TableRow key={log.id} className="hover:bg-muted/40 transition-colors">
-                      <TableCell className="py-3 font-medium">
+                      <TableCell className="py-3 pl-6 font-medium">
                         {getActionBadge(log.action)}
                       </TableCell>
-                      <TableCell className="py-3">
+                      <TableCell className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
                             <AvatarImage src={userImage || undefined} />
@@ -366,13 +368,13 @@ export function AuditLogsDashboard({ teamId }: AuditLogsDashboardProps) {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="py-3 text-xs font-mono text-muted-foreground">
+                      <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">
                         {log.itemId || '-'}
                       </TableCell>
-                      <TableCell className="py-3 text-xs font-mono text-muted-foreground">
+                      <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">
                         {log.projectId || '-'}
                       </TableCell>
-                      <TableCell className="py-3 text-right text-xs text-muted-foreground">
+                      <TableCell className="py-3 pr-6 text-right text-xs text-muted-foreground">
                         {formatTimeAgo(log.createdAt)}
                       </TableCell>
                     </TableRow>
