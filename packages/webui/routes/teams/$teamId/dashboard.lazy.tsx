@@ -8,9 +8,18 @@ import { AiUsageDashboard } from '@/ui/components/dashboard/AiUsageDashboard'
 import { AgentSessionsDashboard } from '@/ui/components/dashboard/AgentSessionsDashboard'
 import { QuotaUsageDashboard } from '@/ui/components/dashboard/QuotaUsageDashboard'
 import { AuditLogsDashboard } from '@/ui/components/dashboard/AuditLogsDashboard'
-import { Activity, BarChart2, Gauge, Loader2, MessagesSquare, ShieldAlert } from 'lucide-react'
+import { WorkflowTasksDashboard } from '@/ui/components/dashboard/WorkflowTasksDashboard'
+import {
+  Activity,
+  BarChart2,
+  Gauge,
+  Loader2,
+  MessagesSquare,
+  ShieldAlert,
+  Workflow,
+} from 'lucide-react'
 
-type DashboardTab = 'audit-logs' | 'ai-usage' | 'ai-sessions' | 'quotas'
+type DashboardTab = 'audit-logs' | 'workflow-tasks' | 'ai-usage' | 'ai-sessions' | 'quotas'
 
 function TeamDashboardPage() {
   const { teamId } = Route.useParams()
@@ -78,6 +87,22 @@ function TeamDashboardPage() {
             </button>
 
             <button
+              onClick={() => setActiveTab('workflow-tasks')}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                activeTab === 'workflow-tasks'
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+              )}
+            >
+              <Workflow className="w-5 h-5" />
+              {m.workflow_tasks()}
+              {activeTab === 'workflow-tasks' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+              )}
+            </button>
+
+            <button
               onClick={() => setActiveTab('quotas')}
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
@@ -136,6 +161,7 @@ function TeamDashboardPage() {
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-6xl mx-auto space-y-8">
             {activeTab === 'audit-logs' && <AuditLogsDashboard teamId={teamId} />}
+            {activeTab === 'workflow-tasks' && <WorkflowTasksDashboard teamId={teamId} />}
             {activeTab === 'ai-usage' && <AiUsageDashboard teamId={teamId} />}
             {activeTab === 'ai-sessions' && <AgentSessionsDashboard teamId={teamId} />}
             {activeTab === 'quotas' && <QuotaUsageDashboard teamId={teamId} />}

@@ -16,6 +16,8 @@ import {
   updateTeamMemberRoleRequestSchema,
   createApiTokenRequestSchema,
   listAuditLogsQuerySchema,
+  listWorkflowTasksQuerySchema,
+  batchWorkflowTaskStatusSchema,
 } from '@shumai/dtos'
 import {
   updateUserMetadataRequestSchema,
@@ -25,6 +27,7 @@ import {
 import { apiTokenService } from '@shumai/core/src/user/api-token'
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { workflowTaskService } from '@shumai/core/src/workflowTask/workflowTask'
 import { turntableService } from '@shumai/core/src/turntable/turntable'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { NotificationType } from '@shumai/db'
@@ -516,6 +519,74 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     return c.json(logs)
+  })
+  .get(
+    '/teams/:teamId/workflow-tasks',
+    zValidator('query', listWorkflowTasksQuerySchema),
+    async (c) => {
+      const user = c.get('user')
+      const teamId = c.req.param('teamId')
+      const query = c.req.valid('query')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
+      })
+
+      const tasks = await workflowTaskService.listWorkflowTasks({
+        teamId,
+        status: query.status,
+        types: query.types,
+        first: query.first,
+        after: query.after,
+      })
+
+      return c.json(tasks)
+    },
+  )
+  .post(
+    '/teams/:teamId/workflow-tasks/batch-status',
+    zValidator('json', batchWorkflowTaskStatusSchema),
+    async (c) => {
+      const user = c.get('user')
+      const teamId = c.req.param('teamId')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
+      })
+
+      const result = await workflowTaskService.getBatchWorkflowTaskStatus({
+        teamId,
+        taskIds: req.taskIds,
+      })
+
+      return c.json(result)
+    },
+  )
+  .post('/teams/:teamId/workflow-tasks/:taskId/stop', async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+    const taskId = c.req.param('taskId')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const result = await workflowTaskService.stopWorkflowTask({
+      teamId,
+      taskId,
+    })
+
+    return c.json(result)
   })
 
 export default route
