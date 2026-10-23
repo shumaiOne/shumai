@@ -3240,7 +3240,7 @@ describe('AssetService — natural sort by name', () => {
       await expect(assetService.emptyTrash(project.id)).resolves.not.toThrow()
     })
 
-    it('should purge trashed assets whose status was processed, cancel their in-flight tasks, and delete WorkflowTasks', async () => {
+    it('should purge trashed assets whose status was processed, cancel their in-flight tasks, and retain WorkflowTasks as failed', async () => {
       const cancelSpy = vi.spyOn(workflowService, 'cancel').mockResolvedValue(undefined)
 
       const team = await prisma.team.create({ data: { name: 'Purge Task Team' } })
@@ -3292,9 +3292,12 @@ describe('AssetService — natural sort by name', () => {
       // Task should be cancelled
       expect(cancelSpy).toHaveBeenCalledWith(task.id)
 
-      // WorkflowTask should be deleted from DB
+      // WorkflowTask should be retained in DB and marked as failed
       const taskInDb = await prisma.workflowTask.findUnique({ where: { id: task.id } })
-      expect(taskInDb).toBeNull()
+      expect(taskInDb).not.toBeNull()
+      expect(taskInDb?.status).toBe(WorkflowTaskStatus.failed)
+      const output = taskInDb?.output as { error?: string }
+      expect(output?.error).toBe('Asset was purged')
 
       cancelSpy.mockRestore()
     })

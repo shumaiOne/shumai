@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+* **asset**: Retain workflow task records for auditability when an asset is permanently purged, while cancelling any in-flight tasks and marking them as failed
+
 ## [0.6.0] - 2026-10-20
 
 ### Added

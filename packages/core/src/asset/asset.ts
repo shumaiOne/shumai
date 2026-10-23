@@ -1419,6 +1419,17 @@ export class AssetService {
           logger.warn({ taskId: task.id, err }, 'Failed to cancel workflow task during purge')
         }
       }
+
+      await this.prismaClient.workflowTask.updateMany({
+        where: {
+          assetId: { in: affectedIds },
+          status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
+        },
+        data: {
+          status: WorkflowTaskStatus.failed,
+          output: { error: 'Asset was purged' },
+        },
+      })
     }
   }
 
@@ -1518,8 +1529,15 @@ export class AssetService {
         }
       }
 
-      await this.prismaClient.workflowTask.deleteMany({
-        where: { assetId: { in: pendingAssetIds } },
+      await this.prismaClient.workflowTask.updateMany({
+        where: {
+          assetId: { in: pendingAssetIds },
+          status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
+        },
+        data: {
+          status: WorkflowTaskStatus.failed,
+          output: { error: 'Asset was purged' },
+        },
       })
     }
 
