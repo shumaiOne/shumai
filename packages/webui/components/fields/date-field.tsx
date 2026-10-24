@@ -12,16 +12,15 @@ import {
   isValid,
 } from 'date-fns'
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import type { FieldProps } from './field-types'
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
 
 const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOnly }) => {
   const dateConfig = config?.date
   const [isEditing, setIsEditing] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
 
   // Parse value or default to today
-  // Replaced parseISO with new Date() to avoid import errors
   const parsedDate = value ? new Date(value) : new Date()
   const safeDate = isValid(parsedDate) ? parsedDate : new Date()
 
@@ -35,23 +34,15 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
     }
   }, [isEditing, value])
 
-  // Click outside to close
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        if (isEditing) {
-          setIsEditing(false)
-        }
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isEditing])
-
   const handleStartEdit = () => {
     if (!readOnly) {
       setIsEditing(true)
     }
+  }
+
+  const handleOpenChange = (open: boolean) => {
+    if (readOnly) return
+    setIsEditing(open)
   }
 
   const getDisplayValue = (isoString: string) => {
@@ -81,17 +72,14 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
   }
 
   // Calendar Logic
-  // Replaced startOfMonth with native Date manipulation
   const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1)
   const monthEnd = endOfMonth(viewDate)
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd })
   const startDayOfWeek = getDay(monthStart) // 0 = Sunday
 
   const handleDateClick = (day: Date) => {
-    // Preserve time from current value if exists
     const newDate = new Date(day)
     if (dateConfig?.includeTime) {
-      // Replaced setHours/setMinutes with native methods
       newDate.setHours(getHours(safeDate))
       newDate.setMinutes(getMinutes(safeDate))
     }
@@ -116,23 +104,36 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const minutes = Array.from({ length: 12 }, (_, i) => i * 5) // 0, 5, 10...
 
-  if (isEditing) {
-    return (
-      <div className="relative w-full" ref={containerRef}>
-        <div className="w-full px-2 py-1 border border-ring rounded bg-background text-sm shadow-sm min-h-[28px] flex items-center">
-          {value ? (
-            getDisplayValue(value)
-          ) : (
-            <span className="text-muted-foreground">Select date...</span>
-          )}
-        </div>
+  return (
+    <div className="relative w-full" onClick={(e) => e.stopPropagation()}>
+      <Popover open={!readOnly && isEditing} onOpenChange={handleOpenChange}>
+        <PopoverTrigger asChild>
+          <div
+            onClick={handleStartEdit}
+            className={`w-full min-h-[28px] px-2 py-1 text-sm text-foreground rounded truncate border transition-colors ${
+              isEditing ? 'border-ring bg-background shadow-sm' : 'border-transparent'
+            } ${!readOnly ? 'cursor-pointer hover:bg-accent hover:border-border' : ''}`}
+          >
+            {value ? (
+              getDisplayValue(value)
+            ) : (
+              <span className="text-muted-foreground italic">Empty</span>
+            )}
+          </div>
+        </PopoverTrigger>
 
-        <div className="absolute z-50 top-full left-0 mt-1 bg-popover border border-border rounded-lg shadow-xl flex flex-col md:flex-row overflow-hidden min-w-[280px]">
+        <PopoverContent
+          side="bottom"
+          align="start"
+          sideOffset={4}
+          className="p-0 w-auto bg-popover border border-border rounded-lg shadow-xl flex flex-col md:flex-row overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Date Picker */}
           <div className="p-4 w-64">
             <div className="flex justify-between items-center mb-4">
-              {/* Replaced subMonths with addMonths(-1) */}
               <button
+                type="button"
                 onClick={() => setViewDate(addMonths(viewDate, -1))}
                 className="p-1 hover:bg-accent rounded"
               >
@@ -140,6 +141,7 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
               </button>
               <span className="font-semibold text-sm">{format(viewDate, 'MMMM yyyy')}</span>
               <button
+                type="button"
                 onClick={() => setViewDate(addMonths(viewDate, 1))}
                 className="p-1 hover:bg-accent rounded"
               >
@@ -168,6 +170,7 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
 
                 return (
                   <button
+                    type="button"
                     key={date.toString()}
                     onClick={() => handleDateClick(date)}
                     className={`w-8 h-8 rounded-full flex items-center justify-center hover:bg-accent transition-colors ${
@@ -194,6 +197,7 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
                   {hours.map((h) => (
                     <div
                       key={h}
+                      data-testid={`hour-${h}`}
                       onClick={() => handleTimeChange('hour', h)}
                       className={`px-2 py-1 text-center text-sm cursor-pointer hover:bg-accent ${getHours(safeDate) === h ? 'bg-primary/10 font-medium text-primary' : ''}`}
                     >
@@ -205,6 +209,7 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
                   {minutes.map((m) => (
                     <div
                       key={m}
+                      data-testid={`minute-${m}`}
                       onClick={() => handleTimeChange('minute', m)}
                       className={`px-2 py-1 text-center text-sm cursor-pointer hover:bg-accent ${getMinutes(safeDate) === m ? 'bg-primary/10 font-medium text-primary' : ''}`}
                     >
@@ -215,19 +220,8 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
               </div>
             </div>
           )}
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div
-      onClick={handleStartEdit}
-      className={`w-full min-h-[28px] px-2 py-1 text-sm text-foreground rounded border border-transparent transition-colors ${
-        !readOnly ? 'cursor-pointer hover:bg-accent hover:border-border' : ''
-      }`}
-    >
-      {value ? getDisplayValue(value) : <span className="text-muted-foreground italic">Empty</span>}
+        </PopoverContent>
+      </Popover>
     </div>
   )
 }

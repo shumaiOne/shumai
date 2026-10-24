@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 * **dashboard**: Add Workflow Tasks section to the Team Dashboard allowing team owners to monitor background workflow jobs, inspect execution payloads and outputs, and stop in-flight tasks
 
+### Fixed
+
+* **metadata**: Fix an issue where expanding a long text field or opening a date picker on a file card or list row was clipped by the container border
+
 ## [0.6.0] - 2026-10-20
 
 ### Added

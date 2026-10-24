@@ -39,4 +39,60 @@ describe('LongTextField Component', () => {
     const elements = screen.getAllByText(/Line 1/)
     expect(elements.length).toBe(2)
   })
+
+  it('switches to textarea when clicking the expanded overlay in non-readonly mode and saves on blur', () => {
+    const onSave = vi.fn()
+    render(<LongTextField value="Initial content" config={dummyConfig} onSave={onSave} />)
+
+    // First click: expand overlay
+    const collapsed = screen.getByTitle('Click to expand')
+    fireEvent.click(collapsed)
+
+    // Second click: click overlay to edit
+    const overlay = screen.getByTitle('Click to edit')
+    fireEvent.click(overlay)
+
+    // Textarea should now be rendered
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement
+    expect(textarea).toBeTruthy()
+    expect(textarea.value).toBe('Initial content')
+
+    // Change value and blur
+    fireEvent.change(textarea, { target: { value: 'Updated content' } })
+    fireEvent.blur(textarea)
+
+    expect(onSave).toHaveBeenCalledWith('Updated content')
+  })
+
+  it('blurs and saves when pressing Cmd+Enter in textarea', () => {
+    const onSave = vi.fn()
+    render(<LongTextField value="Initial content" config={dummyConfig} onSave={onSave} />)
+
+    fireEvent.click(screen.getByTitle('Click to expand'))
+    fireEvent.click(screen.getByTitle('Click to edit'))
+
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement
+    fireEvent.change(textarea, { target: { value: 'Content saved via shortcut' } })
+    fireEvent.keyDown(textarea, { key: 'Enter', metaKey: true })
+
+    expect(onSave).toHaveBeenCalledWith('Content saved via shortcut')
+  })
+
+  it('does not allow editing in readOnly mode', () => {
+    const onSave = vi.fn()
+    render(<LongTextField value="Readonly text" config={dummyConfig} onSave={onSave} readOnly />)
+
+    const collapsed = screen.getByTitle('Click to expand')
+    fireEvent.click(collapsed)
+
+    // Overlay is present, but should not have 'Click to edit' title
+    expect(screen.queryByTitle('Click to edit')).toBeNull()
+    const elements = screen.getAllByText('Readonly text')
+    expect(elements.length).toBe(2)
+
+    // Clicking the expanded text should not switch to textarea
+    fireEvent.click(elements[1])
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(onSave).not.toHaveBeenCalled()
+  })
 })

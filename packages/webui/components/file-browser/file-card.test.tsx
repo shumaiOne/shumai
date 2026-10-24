@@ -476,4 +476,42 @@ describe('FileCard', () => {
     expect(matchedDuration).toBeTruthy()
     expect(matchedDuration.textContent).toBe('01:05 - 02:05')
   })
+
+  it('renders custom fields and allows expanding longText in FileCard', () => {
+    const itemWithFields: AssetInfo = {
+      ...fileItem,
+      fieldValues: [
+        {
+          fieldId: 'field_long_text',
+          value: 'Line 1\nLine 2\nLine 3\nLine 4',
+        },
+      ],
+    } as AssetInfo
+
+    const fields = [
+      {
+        id: 'field_long_text',
+        name: 'Notes',
+        scope: 'project',
+        readOnly: false,
+        visible: true,
+        description: '',
+        config: {
+          type: 'longText' as const,
+          name: 'Notes',
+        },
+      },
+    ]
+
+    renderComponent({ item: itemWithFields, fields })
+
+    expect(screen.getByText('Notes')).toBeTruthy()
+    const collapsed = screen.getByTitle('Click to expand')
+    expect(collapsed).toBeTruthy()
+
+    // Expanding opens popover
+    fireEvent.click(collapsed)
+    const elements = screen.getAllByText(/Line 1/)
+    expect(elements.length).toBe(2)
+  })
 })
