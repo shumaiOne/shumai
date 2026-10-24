@@ -15,12 +15,12 @@ services:
       retries: 5
 
   embedding-server:
-    image: shumaione/embedding-server:latest
+    image: crpi-000nkafzu6xvpwsc.cn-hongkong.personal.cr.aliyuncs.com/shumai-one/embedding-server:latest
     container_name: shumai_embedding
     restart: unless-stopped
 
   turntable-renderer:
-    image: shumaione/turntable-renderer:latest
+    image: crpi-000nkafzu6xvpwsc.cn-hongkong.personal.cr.aliyuncs.com/shumai-one/turntable-renderer:latest
     container_name: shumai_turntable
     restart: unless-stopped
 

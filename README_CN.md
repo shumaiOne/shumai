@@ -165,6 +165,41 @@ https://gh-proxy.com/https://raw.githubusercontent.com/shumaiOne/shumai/main/REA
 
 5. 打开浏览器，访问 `http://localhost:3000` 即可开始使用（若是远程部署，请访问 `http://<您的服务器IP>:3000`）。
 
+#### **扩展转码 Worker（并行处理）**
+
+默认情况下，Docker Compose 部署会按顺序逐个处理视频转码任务。这是出于系统设计考虑，因为视频转码属于计算密集型任务，容易耗尽可用的 CPU 或 GPU 资源。
+
+但在批量上传（例如一次性上传 100+ 个视频）或处理需要耗费数小时的大型摄像机原始素材时，长时间的转码任务可能会阻塞后续文件的处理。此时，您可以通过增加额外的机器来横向扩展转码吞吐量。每台机器依然按顺序执行任务，但增加 worker 实例能够显著提升整体的并行处理能力。
+
+Shumai 提供了独立的转码 Worker 镜像（支持 Docker Hub 与阿里云镜像源）：
+
+1. **连接准备**：启动一台临时机器，确保其能够正常访问您的 PostgreSQL 数据库和存储后端（例如 S3 或共享存储）。
+2. **启动 Worker**：配置相同的数据库与存储连接凭据并运行容器：
+
+   **阿里云镜像（国内推荐）：**
+   ```bash
+   docker run -d --name shumai_transcode_worker \
+     -e DATABASE_URL="postgres://shumai:shumai_password@<postgres-host>:5432/shumai_db?sslmode=disable" \
+     -e STORAGE_BACKEND="s3" \
+     -e S3_BUCKET="your-bucket-name" \
+     -e AWS_ENDPOINT_URL_S3="https://s3.us-east-1.amazonaws.com" \
+     -e S3_ACCESS_KEY_ID="your-access-key-id" \
+     -e S3_SECRET_ACCESS_KEY="your-secret-access-key" \
+     crpi-000nkafzu6xvpwsc.cn-hongkong.personal.cr.aliyuncs.com/shumai-one/shumai-transcode:latest
+   ```
+
+   *如使用 Docker Hub，镜像为 [`shumaione/shumai-transcode:latest`](https://hub.docker.com/r/shumaione/shumai-transcode)。*
+
+   Worker 启动后会自动接入任务队列，并与主实例并行消费并处理积压的转码任务。
+
+3. **随时停止**：当转码队列处理完毕（或不再需要额外的算力）时，只需停止或移除 Worker 容器：
+
+   ```bash
+   docker stop shumai_transcode_worker
+   ```
+
+   主 Shumai 服务的运行不会受到任何影响，亦无停机时间。
+
 ### 方案二：源码编译运行（开发环境）
 
 如果您希望在本地参与 Shumai 的开发，请按以下步骤配置开发环境：
