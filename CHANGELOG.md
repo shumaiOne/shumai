@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-* **metadata**: Fix an issue where expanding a long text field or opening a date picker on a file card or list row was clipped by the container border
+* **metadata**: Fix an issue where expanding a long text field or opening a date picker on a file card or list row was clipped by container or screen borders
 
 ## [0.6.0] - 2026-10-20
 

@@ -332,6 +332,7 @@ export function FileBrowserListView({
       [items, folders, files],
     ),
     overscan: 10,
+    paddingEnd: 240,
   })
 
   const virtualItems = rowVirtualizer.getVirtualItems()

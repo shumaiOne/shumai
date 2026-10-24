@@ -182,6 +182,7 @@ export function FileBrowserGridView({
       [rows],
     ),
     overscan: 5,
+    paddingEnd: 240,
   })
 
   const virtualItems = rowVirtualizer.getVirtualItems()
