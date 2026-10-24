@@ -506,14 +506,14 @@ describe('FileCard', () => {
     renderComponent({ item: itemWithFields, fields })
 
     expect(screen.getByText('Notes')).toBeTruthy()
-    const collapsed = screen.getByTitle('Click to expand')
+    const collapsed = screen.getByTestId('long-text-placeholder')
     expect(collapsed).toBeTruthy()
 
-    // Expanding shows full text in-place
+    // Expanding directly enters editing mode on single click
     fireEvent.click(collapsed)
-    const expanded = screen.getByTitle('Click to edit')
-    expect(expanded).toBeTruthy()
-    expect(expanded.textContent).toContain('Line 1')
-    expect(expanded.textContent).toContain('Line 4')
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement
+    expect(textarea).toBeTruthy()
+    expect(textarea.value).toContain('Line 1')
+    expect(textarea.value).toContain('Line 4')
   })
 })

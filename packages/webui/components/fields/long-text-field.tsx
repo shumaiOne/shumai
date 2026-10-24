@@ -9,7 +9,6 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
   const containerRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDivElement | HTMLTextAreaElement | null>(null)
   const [expanded, setExpanded] = useState(false)
-  const [expandedHeight, setExpandedHeight] = useState<number | null>(null)
   const [coords, setCoords] = useState<{
     top: number
     left: number
@@ -39,31 +38,26 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
     }
   }, [expanded, isEditing])
 
-  useLayoutEffect(() => {
-    if (expanded && overlayRef.current) {
-      const h = overlayRef.current.offsetHeight
-      if (h > 0) {
-        setExpandedHeight(h)
-      }
-    }
-  }, [expanded])
-
   const adjustHeight = () => {
     if (textareaRef.current) {
-      const baseHeight =
-        expandedHeight && expandedHeight > 0 ? expandedHeight : Math.max(80, coords?.height || 0)
-      textareaRef.current.style.height = `${baseHeight}px`
+      textareaRef.current.style.height = 'auto'
+      const baseHeight = Math.max(80, coords?.height || 0)
       const newHeight = Math.min(240, Math.max(baseHeight, textareaRef.current.scrollHeight))
       textareaRef.current.style.height = `${newHeight}px`
     }
   }
+
+  useLayoutEffect(() => {
+    if (isEditing) {
+      adjustHeight()
+    }
+  }, [isEditing, localValue])
 
   useEffect(() => {
     if (isEditing && textareaRef.current) {
       textareaRef.current.focus()
       const len = textareaRef.current.value.length
       textareaRef.current.setSelectionRange(len, len)
-      adjustHeight()
     }
   }, [isEditing])
 
@@ -81,7 +75,6 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
           handleBlur()
         } else {
           setExpanded(false)
-          setExpandedHeight(null)
         }
       }
     }
@@ -90,12 +83,9 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
       if (event.key === 'Escape') {
         if (isEditing) {
           setIsEditing(false)
-          setExpanded(false)
-          setExpandedHeight(null)
           setLocalValue(value || '')
         } else {
           setExpanded(false)
-          setExpandedHeight(null)
         }
       }
     }
@@ -124,7 +114,6 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
   const handleBlur = () => {
     setIsEditing(false)
     setExpanded(false)
-    setExpandedHeight(null)
     if (localValue !== (value || '')) {
       onSave(localValue)
     }
@@ -133,25 +122,10 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
   const handlePlaceholderClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     updateCoords()
-    if (!value && !readOnly) {
-      setExpandedHeight(80)
+    if (!readOnly) {
       setIsEditing(true)
     } else {
       setExpanded(true)
-    }
-  }
-
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!readOnly) {
-      if (overlayRef.current) {
-        const h = overlayRef.current.offsetHeight
-        if (h > 0) {
-          setExpandedHeight(h)
-        }
-      }
-      setIsEditing(true)
-      setExpanded(false)
     }
   }
 
@@ -166,9 +140,6 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
     overlayRef.current = el
   }
 
-  const targetHeight =
-    expandedHeight && expandedHeight > 0 ? expandedHeight : Math.max(80, coords?.height || 0)
-
   return (
     <div
       ref={containerRef}
@@ -182,7 +153,9 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
         className={`w-full text-foreground rounded border border-transparent transition-all px-2 py-1 h-[48px] line-clamp-2 whitespace-pre-wrap overflow-hidden ${
           expanded || isEditing ? 'invisible pointer-events-none select-none' : ''
         } ${!readOnly ? 'cursor-pointer hover:bg-accent hover:border-border' : 'cursor-pointer'}`}
-        title={!expanded && !isEditing ? 'Click to expand' : undefined}
+        title={
+          !expanded && !isEditing ? (!readOnly ? 'Click to edit' : 'Click to expand') : undefined
+        }
       >
         {value ? value : <span className="text-muted-foreground italic">Empty</span>}
       </div>
@@ -209,8 +182,7 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
                 left: coords.left,
                 width: coords.width > 0 ? coords.width : 'auto',
                 minWidth: coords.width > 0 ? coords.width : 200,
-                height: targetHeight,
-                minHeight: targetHeight,
+                minHeight: Math.max(80, coords.height),
                 maxHeight: 240,
                 zIndex: 50,
               }}
@@ -222,7 +194,6 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
                 overlayRef.current = el
               }}
               data-testid="long-text-expanded-overlay"
-              onClick={handleOverlayClick}
               style={{
                 position: 'fixed',
                 top: coords.top,
@@ -233,10 +204,7 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
                 maxHeight: 240,
                 zIndex: 50,
               }}
-              className={`min-h-[80px] bg-background border border-ring rounded shadow-lg px-2 py-1 whitespace-pre-wrap overflow-y-auto text-sm ${
-                !readOnly ? 'cursor-text' : 'cursor-pointer'
-              }`}
-              title={!readOnly ? 'Click to edit' : undefined}
+              className="min-h-[80px] bg-background border border-ring rounded shadow-lg px-2 py-1 whitespace-pre-wrap overflow-y-auto text-sm cursor-pointer"
             >
               {value ? value : <span className="text-muted-foreground italic">Empty</span>}
             </div>
