@@ -516,4 +516,62 @@ describe('FileCard', () => {
     expect(textarea.value).toContain('Line 1')
     expect(textarea.value).toContain('Line 4')
   })
+
+  it('does not trigger onSelect when clicking a single line text field or number field to edit', () => {
+    const onSelect = vi.fn()
+    const itemWithFields: AssetInfo = {
+      ...fileItem,
+      fieldValues: [
+        {
+          fieldId: 'field_text',
+          value: 'Single line text',
+        },
+        {
+          fieldId: 'field_number',
+          value: 42,
+        },
+      ],
+    } as AssetInfo
+
+    const fields = [
+      {
+        id: 'field_text',
+        name: 'Title',
+        scope: 'project',
+        readOnly: false,
+        visible: true,
+        description: '',
+        config: {
+          type: 'text' as const,
+          name: 'Title',
+        },
+      },
+      {
+        id: 'field_number',
+        name: 'Score',
+        scope: 'project',
+        readOnly: false,
+        visible: true,
+        description: '',
+        config: {
+          type: 'number' as const,
+          name: 'Score',
+        },
+      },
+    ]
+
+    renderComponent({ item: itemWithFields, fields, onSelect })
+
+    // Click single line text field
+    const textField = screen.getByText('Single line text')
+    fireEvent.click(textField)
+    expect(screen.getByDisplayValue('Single line text')).toBeTruthy()
+    expect(onSelect).not.toHaveBeenCalled()
+
+    // Click number field
+    const numberField = screen.getByText('42')
+    fireEvent.click(numberField)
+    expect(screen.getByDisplayValue('42')).toBeTruthy()
+    expect(onSelect).not.toHaveBeenCalled()
+  })
 })

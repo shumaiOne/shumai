@@ -25,6 +25,7 @@ const RatingField: React.FC<FieldProps<number>> = ({ value, config, onSave, read
   return (
     <div
       className="flex items-center gap-1 h-[28px]"
+      onClick={(e) => e.stopPropagation()}
       onMouseLeave={() => !readOnly && setHoverValue(null)}
       onDoubleClick={(e) => e.stopPropagation()}
     >

@@ -617,7 +617,11 @@ export function FileCard({
         )}
       </div>
       {fields && fields.length > 0 && (
-        <div className="space-y-2 border-t p-1 pt-3 mx-2">
+        <div
+          className="space-y-2 border-t p-1 pt-3 mx-2"
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+        >
           {fields.map((field) => {
             const Icon = field.config?.type
               ? FIELD_TYPE_ICONS[field.config.type as FieldType]

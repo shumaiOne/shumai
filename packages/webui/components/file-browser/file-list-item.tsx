@@ -328,6 +328,8 @@ export function FileListItem({
         fields.map((field) => (
           <div
             key={field.id}
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
             className="px-4 py-2 truncate border-r shrink-0 flex items-center"
             style={{
               width: columnSizing?.[field.id!] || 150,

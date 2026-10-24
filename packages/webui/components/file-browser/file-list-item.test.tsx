@@ -147,4 +147,40 @@ describe('FileListItem', () => {
     expect(failedLabel).toBeTruthy()
     expect(failedLabel.textContent).toMatch(/Processing failed|处理失败/i)
   })
+
+  it('does not trigger onSelect when clicking a custom field in list view', () => {
+    const onSelect = vi.fn()
+    const itemWithFields: AssetInfo = {
+      ...mockItem,
+      fieldValues: [
+        {
+          fieldId: 'field_text',
+          value: 'List text value',
+        },
+      ],
+    } as AssetInfo
+
+    const fields = [
+      {
+        id: 'field_text',
+        name: 'Custom Column',
+        scope: 'project',
+        readOnly: false,
+        visible: true,
+        description: '',
+        config: {
+          type: 'text' as const,
+          name: 'Custom Column',
+        },
+      },
+    ]
+
+    renderComponent({ item: itemWithFields, fields, onSelect })
+
+    const textField = screen.getByText('List text value')
+    fireEvent.click(textField)
+
+    expect(screen.getByDisplayValue('List text value')).toBeTruthy()
+    expect(onSelect).not.toHaveBeenCalled()
+  })
 })

@@ -23,7 +23,8 @@ const NumberField: React.FC<FieldProps<number | undefined>> = ({
     }
   }, [isEditing])
 
-  const handleStartEdit = () => {
+  const handleStartEdit = (e: React.MouseEvent) => {
+    e.stopPropagation()
     if (!readOnly) {
       setIsEditing(true)
     }
@@ -44,6 +45,11 @@ const NumberField: React.FC<FieldProps<number | undefined>> = ({
       e.stopPropagation()
       inputRef.current?.blur()
     }
+    if (e.key === 'Escape') {
+      e.stopPropagation()
+      setIsEditing(false)
+      setLocalValue(value !== undefined && value !== null ? value.toString() : '')
+    }
   }
 
   const formatNumber = (val: number | undefined) => {
@@ -51,34 +57,37 @@ const NumberField: React.FC<FieldProps<number | undefined>> = ({
     return val.toFixed(numberConfig?.scale)
   }
 
-  if (isEditing) {
-    return (
-      <input
-        ref={inputRef}
-        type="number"
-        step={1 / Math.pow(10, numberConfig?.scale || 0)}
-        value={localValue}
-        onChange={(e) => setLocalValue(e.target.value)}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-        onDoubleClick={(e) => e.stopPropagation()}
-        className="w-full px-2 py-1 border border-ring rounded bg-background text-sm outline-none shadow-sm text-left font-mono"
-      />
-    )
-  }
-
   return (
     <div
-      onClick={handleStartEdit}
+      className="relative w-full"
+      onClick={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
-      className={`w-full min-h-[28px] px-2 py-1 text-sm text-foreground rounded border border-transparent transition-colors text-left font-mono ${
-        !readOnly ? 'cursor-pointer hover:bg-accent hover:border-border' : ''
-      }`}
     >
-      {value !== undefined && value !== null ? (
-        formatNumber(value)
+      {isEditing ? (
+        <input
+          ref={inputRef}
+          type="number"
+          step={1 / Math.pow(10, numberConfig?.scale || 0)}
+          value={localValue}
+          onChange={(e) => setLocalValue(e.target.value)}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full px-2 py-1 border border-ring rounded bg-background text-sm outline-none shadow-sm text-left font-mono"
+        />
       ) : (
-        <span className="text-muted-foreground italic font-sans text-left block">Empty</span>
+        <div
+          onClick={handleStartEdit}
+          className={`w-full min-h-[28px] px-2 py-1 text-sm text-foreground rounded border border-transparent transition-colors text-left font-mono ${
+            !readOnly ? 'cursor-pointer hover:bg-accent hover:border-border' : ''
+          }`}
+        >
+          {value !== undefined && value !== null ? (
+            formatNumber(value)
+          ) : (
+            <span className="text-muted-foreground italic font-sans text-left block">Empty</span>
+          )}
+        </div>
       )}
     </div>
   )
