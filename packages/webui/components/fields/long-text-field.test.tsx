@@ -31,26 +31,36 @@ describe('LongTextField Component', () => {
     expect(screen.getByText('Empty')).toBeTruthy()
   })
 
-  it('expands on click to show full content overlay', () => {
+  it('expands on click to show full content in-place without clipping', () => {
     render(<LongTextField value="Line 1\nLine 2\nLine 3" config={dummyConfig} onSave={vi.fn()} />)
     const collapsed = screen.getByTitle('Click to expand')
     fireEvent.click(collapsed)
 
-    const elements = screen.getAllByText(/Line 1/)
-    expect(elements.length).toBe(2)
+    const expanded = screen.getByTestId('long-text-expanded-overlay')
+    expect(expanded).toBeTruthy()
+    expect(expanded.textContent).toContain('Line 1')
+    expect(expanded.textContent).toContain('Line 3')
+    expect(expanded.className).toContain('min-h-[80px]')
+    expect(expanded.className).toContain('overflow-y-auto')
   })
 
-  it('switches to textarea when clicking the expanded overlay in non-readonly mode and saves on blur', () => {
+  it('enters editing mode directly when clicking empty placeholder in non-readonly mode', () => {
+    render(<LongTextField value="" config={dummyConfig} onSave={vi.fn()} />)
+    fireEvent.click(screen.getByTitle('Click to expand'))
+    expect(screen.getByRole('textbox')).toBeTruthy()
+  })
+
+  it('switches to textarea when clicking the expanded view in non-readonly mode and saves on blur', () => {
     const onSave = vi.fn()
     render(<LongTextField value="Initial content" config={dummyConfig} onSave={onSave} />)
 
-    // First click: expand overlay
+    // First click: expand in-place
     const collapsed = screen.getByTitle('Click to expand')
     fireEvent.click(collapsed)
 
-    // Second click: click overlay to edit
-    const overlay = screen.getByTitle('Click to edit')
-    fireEvent.click(overlay)
+    // Second click: click expanded view to edit
+    const expandedView = screen.getByTitle('Click to edit')
+    fireEvent.click(expandedView)
 
     // Textarea should now be rendered
     const textarea = screen.getByRole('textbox') as HTMLTextAreaElement
@@ -62,6 +72,24 @@ describe('LongTextField Component', () => {
     fireEvent.blur(textarea)
 
     expect(onSave).toHaveBeenCalledWith('Updated content')
+  })
+
+  it('preserves the expanded box height when entering edit mode', () => {
+    render(<LongTextField value="Multi-line content" config={dummyConfig} onSave={vi.fn()} />)
+
+    // Expand
+    fireEvent.click(screen.getByTitle('Click to expand'))
+    const expandedView = screen.getByTestId('long-text-expanded-overlay')
+
+    // Mock offsetHeight of expanded view to 150px
+    Object.defineProperty(expandedView, 'offsetHeight', { value: 150, configurable: true })
+
+    // Click to enter edit mode
+    fireEvent.click(expandedView)
+
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement
+    expect(textarea.style.height).toBe('150px')
+    expect(textarea.style.minHeight).toBe('150px')
   })
 
   it('blurs and saves when pressing Cmd+Enter in textarea', () => {
@@ -78,6 +106,15 @@ describe('LongTextField Component', () => {
     expect(onSave).toHaveBeenCalledWith('Content saved via shortcut')
   })
 
+  it('closes expanded overlay on Escape key', () => {
+    render(<LongTextField value="Line 1\nLine 2" config={dummyConfig} onSave={vi.fn()} />)
+    fireEvent.click(screen.getByTitle('Click to expand'))
+    expect(screen.getByTestId('long-text-expanded-overlay')).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByTestId('long-text-expanded-overlay')).toBeNull()
+  })
+
   it('does not allow editing in readOnly mode', () => {
     const onSave = vi.fn()
     render(<LongTextField value="Readonly text" config={dummyConfig} onSave={onSave} readOnly />)
@@ -85,13 +122,14 @@ describe('LongTextField Component', () => {
     const collapsed = screen.getByTitle('Click to expand')
     fireEvent.click(collapsed)
 
-    // Overlay is present, but should not have 'Click to edit' title
+    // Expanded view is present, but should not have 'Click to edit' title
     expect(screen.queryByTitle('Click to edit')).toBeNull()
-    const elements = screen.getAllByText('Readonly text')
-    expect(elements.length).toBe(2)
+    const expandedView = screen.getByTestId('long-text-expanded-overlay')
+    expect(expandedView).toBeTruthy()
+    expect(expandedView.textContent).toContain('Readonly text')
 
     // Clicking the expanded text should not switch to textarea
-    fireEvent.click(elements[1])
+    fireEvent.click(expandedView)
     expect(screen.queryByRole('textbox')).toBeNull()
     expect(onSave).not.toHaveBeenCalled()
   })

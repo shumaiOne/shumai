@@ -509,9 +509,11 @@ describe('FileCard', () => {
     const collapsed = screen.getByTitle('Click to expand')
     expect(collapsed).toBeTruthy()
 
-    // Expanding opens popover
+    // Expanding shows full text in-place
     fireEvent.click(collapsed)
-    const elements = screen.getAllByText(/Line 1/)
-    expect(elements.length).toBe(2)
+    const expanded = screen.getByTitle('Click to edit')
+    expect(expanded).toBeTruthy()
+    expect(expanded.textContent).toContain('Line 1')
+    expect(expanded.textContent).toContain('Line 4')
   })
 })
