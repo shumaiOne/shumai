@@ -8,10 +8,12 @@
   },
   "dependencies": {
     "@shumai/api": "workspace:*",
-    "@shumai/core": "workspace:*",
     "@shumai/dtos": "workspace:*",
+    "@shumai/operations": "workspace:*",
     "@shumai/tableprinter": "workspace:*",
+    "commander": "15.0.0",
     "hono": "4.13.5",
-    "ulid": "3.0.2"
+    "ulid": "3.0.2",
+    "zod": "4.5.4"
   }
 }

@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+* **cli**: `shumai-cli` has clearer help for every command (`shumai-cli <command> --help`), suggests the right command when you mistype one, and can print raw JSON with `--json`. `ls` can now filter by type and page through very large folders. Existing commands work as before; the npm package now needs Node.js 22.12 or later
 * **agent**: When the agent lists a folder's contents, large folders are now paged with a "next page" marker instead of page numbers, and items appear in the same order as in the file browser
 * **api-token**: API tokens are now stored securely, so they can no longer be read back from the database. A new token is shown only once when you create it, so copy it right away; the token list now shows just the last few characters. Existing tokens keep working without any changes.
 

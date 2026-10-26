@@ -20,7 +20,7 @@ export const listAssets = defineOperation({
       .min(1)
       .max(MAX_PAGE_SIZE)
       .optional()
-      .describe(`Maximum number of assets to return. Default is 20, maximum ${MAX_PAGE_SIZE}.`),
+      .describe(`Maximum number of assets to return (at most ${MAX_PAGE_SIZE}).`),
     after: z
       .string()
       .optional()
@@ -35,6 +35,9 @@ export const listAssets = defineOperation({
   annotations: { readOnly: true, destructive: false, idempotent: true },
   cli: {
     command: ['ls'],
+    description: 'List the files and folders inside a parent folder.',
     flags: { parent: ['-p', '--parent'] },
+    // The CLI shows up to the maximum page by default; agents use the smaller default.
+    defaults: { first: MAX_PAGE_SIZE },
   },
 })

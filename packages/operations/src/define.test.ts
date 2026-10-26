@@ -73,5 +73,12 @@ describe('defineOperation', () => {
         cli: { command: ['get'], flags: { ['other' as 'id']: ['-o'] } },
       }),
     ).toThrow('unknown input "other"')
+    expect(() =>
+      defineOperation({
+        ...baseDefinition(),
+        surfaces: ['cli'],
+        cli: { command: ['get'], defaults: { ['extra' as 'id']: 'x' } },
+      }),
+    ).toThrow('unknown input "extra"')
   })
 })

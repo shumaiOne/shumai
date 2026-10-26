@@ -8,7 +8,7 @@ The CLI allows you to view projects, list folder contents, create folders, uploa
 
 ## Installation
 
-The CLI package is bundled inside the Shumai workspace.
+The CLI package is bundled inside the Shumai workspace. The published npm package (`@shumai-one/shumai-cli`) requires Node.js 22.12 or later.
 
 ### Environment Setup
 
@@ -39,6 +39,14 @@ Run `shumai-cli` or query specific commands:
 shumai-cli <command> [arguments] [options]
 ```
 
+Run `shumai-cli --help` to list all commands, and `shumai-cli <command> --help` for a command's arguments and options.
+
+### Global Options
+
+- `--json`: Print the raw JSON result instead of human-friendly text, for scripts and tools like `jq`. Example: `shumai-cli ls -p <parentId> --json | jq '.data[].id'`.
+
+When the output is piped instead of shown in a terminal, tables are printed as tab-separated values without headers.
+
 ### Commands
 
 #### 1. List Projects
@@ -51,7 +59,7 @@ shumai-cli project ls
 
 #### 2. List Directory Contents
 
-List direct children (folders and files) of a parent folder.
+List direct children (folders and files) of a parent folder. Folders are listed first.
 
 ```bash
 shumai-cli ls -p <parentId>
@@ -59,6 +67,9 @@ shumai-cli ls -p <parentId>
 
 - **Options:**
   - `-p`, `--parent <id>`: The parent folder ID (required).
+  - `--type <type>`: Only list `file`, `folder`, or `all` (default).
+  - `--first <n>`: Maximum number of items to list (default and maximum: 200).
+  - `--after <cursor>`: Continue a long listing. When more items exist, `ls` prints the cursor to pass here.
 
 #### 3. Create a New Folder
 
@@ -133,3 +144,7 @@ To run the CLI in development mode inside the repository source code:
 ```bash
 bun run apps/cli/src/index.ts project ls
 ```
+
+### Adding Commands
+
+Most commands are generated from the shared Operation definitions in `packages/operations` (see "Operations" in `AGENTS.md`). An Operation with the `cli` surface and a `cli` spec becomes a command automatically, with arguments, options, and help text derived from its input schema. It is also available to Shumai's built-in agent and MCP server. Only commands that stream local files (`upload`, `create-version`) are written by hand in `src/program.ts`.

@@ -24,5 +24,6 @@ export const listProjects = defineOperation({
   annotations: { readOnly: true, destructive: false, idempotent: true },
   cli: {
     command: ['project', 'ls'],
+    description: 'List the projects you can access, with their root folder IDs.',
   },
 })

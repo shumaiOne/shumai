@@ -1,13 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { projectLs } from './project'
-import { ls } from './ls'
-import { mkdir } from './mkdir'
 import { getClient } from '../client'
 import { upload } from './upload'
 import { createVersion } from './create-version'
-import { rename } from './rename'
-import { move } from './move'
-import { deleteAsset } from './delete'
 import fs from 'node:fs'
 import http from 'node:http'
 
@@ -21,7 +15,7 @@ vi.mock('node:http', () => ({
   },
 }))
 
-describe('CLI Commands', () => {
+describe('CLI upload commands', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let logSpy: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -101,72 +95,6 @@ describe('CLI Commands', () => {
     } else {
       delete process.env.SHUMAI_ALLOW_DELETE
     }
-  })
-
-  describe('project ls', () => {
-    it('prints list of projects correctly', async () => {
-      mockClient.api.projects.$get.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          data: [
-            { id: 'p1', name: 'Proj 1', rootFolder: 'root1' },
-            { id: 'p2', name: 'Proj 2', rootFolder: 'root2' },
-          ],
-        }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any)
-
-      await projectLs()
-
-      expect(mockClient.api.projects.$get).toHaveBeenCalledWith({
-        query: { first: '200' },
-      })
-      expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('Proj 1'))
-      expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('Proj 2'))
-    })
-  })
-
-  describe('ls', () => {
-    it('queries folders and files and displays table', async () => {
-      mockClient.api.folders[':folderId'].children.$get
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            data: [{ id: 'subfolder1', name: 'Sub 1', type: 'folder', sizeByte: 0 }],
-          }),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            data: [{ id: 'file1', name: 'doc.pdf', type: 'file', sizeByte: 1024 }],
-          }),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any)
-
-      await ls('parentId123')
-
-      expect(mockClient.api.folders[':folderId'].children.$get).toHaveBeenCalledTimes(2)
-      expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('Sub 1'))
-      expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('doc.pdf'))
-    })
-  })
-
-  describe('mkdir', () => {
-    it('calls POST /folders and prints the folder ID', async () => {
-      mockClient.api.folders.$post.mockResolvedValue({
-        ok: true,
-        json: async () => ({ id: 'new_folder_ulid' }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any)
-
-      await mkdir('NewFolder', 'parent_ulid')
-
-      expect(mockClient.api.folders.$post).toHaveBeenCalledWith({
-        json: { name: 'NewFolder', parentId: 'parent_ulid' },
-      })
-      expect(logSpy).toHaveBeenCalledWith('Created folder with ID: new_folder_ulid')
-    })
   })
 
   describe('upload', () => {
@@ -381,194 +309,6 @@ describe('CLI Commands', () => {
       } catch {
         // Ignore
       }
-    })
-  })
-
-  describe('rename', () => {
-    it('exits with error when assetId or newName is missing', async () => {
-      await expect(rename('', 'new-name')).rejects.toThrow('process.exit(1)')
-      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Asset ID is required'))
-
-      await expect(rename('asset-1', '')).rejects.toThrow('process.exit(1)')
-      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('New name is required'))
-    })
-
-    it('renames a folder when asset type is folder', async () => {
-      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
-        ok: true,
-        json: async () => ({ id: 'f-1', type: 'folder' }),
-      } as unknown as Response)
-      mockClient.api.folders[':folderId'].$put.mockResolvedValue({
-        ok: true,
-        json: async () => ({ id: 'f-1', name: 'Renamed Folder' }),
-      } as unknown as Response)
-
-      await rename('f-1', 'Renamed Folder')
-
-      expect(mockClient.api.folders[':folderId'].$put).toHaveBeenCalledWith({
-        param: { folderId: 'f-1' },
-        json: { name: 'Renamed Folder' },
-      })
-      expect(logSpy).toHaveBeenCalledWith('Renamed asset f-1 to "Renamed Folder"')
-    })
-
-    it('renames a file when asset type is file', async () => {
-      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
-        ok: true,
-        json: async () => ({ id: 'file-1', type: 'file' }),
-      } as unknown as Response)
-      mockClient.api.files[':fileId'].$put.mockResolvedValue({
-        ok: true,
-        json: async () => ({ id: 'file-1', name: 'new.mp4' }),
-      } as unknown as Response)
-
-      await rename('file-1', 'new.mp4')
-
-      expect(mockClient.api.files[':fileId'].$put).toHaveBeenCalledWith({
-        param: { fileId: 'file-1' },
-        json: { name: 'new.mp4' },
-      })
-      expect(logSpy).toHaveBeenCalledWith('Renamed asset file-1 to "new.mp4"')
-    })
-
-    it('exits with error when asset fetch fails', async () => {
-      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Asset not found' }),
-      } as unknown as Response)
-
-      await expect(rename('unknown-id', 'name')).rejects.toThrow('process.exit(1)')
-      expect(errorSpy).toHaveBeenCalledWith('Error: Asset not found')
-    })
-  })
-
-  describe('move', () => {
-    it('exits with error when assetIds or parentId is missing', async () => {
-      await expect(move([], 'parent-1')).rejects.toThrow('process.exit(1)')
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('At least one asset ID is required'),
-      )
-
-      await expect(move(['a-1'], '')).rejects.toThrow('process.exit(1)')
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Option -p/--parent <parentId> is required'),
-      )
-    })
-
-    it('successfully moves assets', async () => {
-      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
-        ok: true,
-        json: async () => ({ id: 'parent-1', projectId: 'proj-1' }),
-      } as unknown as Response)
-      mockClient.api.projects[':projectId'].reparent.$post.mockResolvedValue({
-        ok: true,
-      } as unknown as Response)
-
-      await move(['a-1', 'a-2'], 'parent-1')
-
-      expect(mockClient.api.projects[':projectId'].reparent.$post).toHaveBeenCalledWith({
-        param: { projectId: 'proj-1' },
-        json: {
-          assetIds: ['a-1', 'a-2'],
-          newParentId: 'parent-1',
-        },
-      })
-      expect(logSpy).toHaveBeenCalledWith('Moved 2 asset(s) to parent parent-1')
-    })
-
-    it('exits with error when destination parent is not found', async () => {
-      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Folder not found' }),
-      } as unknown as Response)
-
-      await expect(move(['a-1'], 'missing-parent')).rejects.toThrow('process.exit(1)')
-      expect(errorSpy).toHaveBeenCalledWith('Error: Folder not found')
-    })
-  })
-
-  describe('deleteAsset', () => {
-    it('exits with error when SHUMAI_ALLOW_DELETE is not set or not true', async () => {
-      delete process.env.SHUMAI_ALLOW_DELETE
-      await expect(deleteAsset(['a-1'])).rejects.toThrow('process.exit(1)')
-      expect(errorSpy).toHaveBeenCalledWith(
-        'Error: Asset deletion is disabled in this environment.',
-      )
-    })
-
-    it('exits with error when assetIds is empty', async () => {
-      process.env.SHUMAI_ALLOW_DELETE = 'true'
-      await expect(deleteAsset([])).rejects.toThrow('process.exit(1)')
-      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Asset ID is required'))
-    })
-
-    it('exits with error when more than one asset ID is passed', async () => {
-      process.env.SHUMAI_ALLOW_DELETE = 'true'
-      await expect(deleteAsset(['a-1', 'a-2'])).rejects.toThrow('process.exit(1)')
-      expect(errorSpy).toHaveBeenCalledWith('Error: Can only delete one asset at a time.')
-    })
-
-    it('exits with error when asset is not found', async () => {
-      process.env.SHUMAI_ALLOW_DELETE = 'true'
-      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Asset not found' }),
-      } as unknown as Response)
-
-      await expect(deleteAsset(['a-1'])).rejects.toThrow('process.exit(1)')
-      expect(errorSpy).toHaveBeenCalledWith('Error: Asset not found')
-    })
-
-    it('successfully deletes a file when SHUMAI_ALLOW_DELETE is true', async () => {
-      process.env.SHUMAI_ALLOW_DELETE = 'true'
-      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
-        ok: true,
-        json: async () => ({ id: 'a-1', type: 'file' }),
-      } as unknown as Response)
-      mockClient.api.files.$delete.mockResolvedValue({
-        ok: true,
-      } as unknown as Response)
-
-      await deleteAsset(['a-1'])
-
-      expect(mockClient.api.files.$delete).toHaveBeenCalledWith({
-        json: { ids: ['a-1'] },
-      })
-      expect(mockClient.api.folders.$delete).not.toHaveBeenCalled()
-      expect(logSpy).toHaveBeenCalledWith('Deleted asset a-1')
-    })
-
-    it('successfully deletes a folder when SHUMAI_ALLOW_DELETE is 1', async () => {
-      process.env.SHUMAI_ALLOW_DELETE = '1'
-      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
-        ok: true,
-        json: async () => ({ id: 'folder-1', type: 'folder' }),
-      } as unknown as Response)
-      mockClient.api.folders.$delete.mockResolvedValue({
-        ok: true,
-      } as unknown as Response)
-
-      await deleteAsset(['folder-1'])
-
-      expect(mockClient.api.folders.$delete).toHaveBeenCalledWith({
-        json: { ids: ['folder-1'] },
-      })
-      expect(logSpy).toHaveBeenCalledWith('Deleted asset folder-1')
-    })
-
-    it('exits with error when delete API returns an error', async () => {
-      process.env.SHUMAI_ALLOW_DELETE = 'true'
-      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
-        ok: true,
-        json: async () => ({ id: 'a-1', type: 'file' }),
-      } as unknown as Response)
-      mockClient.api.files.$delete.mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Failed to delete' }),
-      } as unknown as Response)
-
-      await expect(deleteAsset(['a-1'])).rejects.toThrow('process.exit(1)')
-      expect(errorSpy).toHaveBeenCalledWith('Error: Failed to delete')
     })
   })
 })

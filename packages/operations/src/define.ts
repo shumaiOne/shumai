@@ -29,12 +29,16 @@ export interface OperationAnnotations {
 export interface CliSpec<TInput, TOutput> {
   /** Command path, e.g. `['mkdir']` or `['project', 'ls']`. */
   command: readonly string[]
+  /** Help text for the command; defaults to the Operation description (which is written for LLMs). */
+  description?: string
   /** Alternative names for the last command segment, e.g. `['mv']`. */
   aliases?: readonly string[]
   /** Input fields taken from positional arguments, in order. An array field must be last (variadic). */
   positional?: readonly (keyof TInput & string)[]
   /** Flag spellings for input fields, e.g. `{ parent: ['-p', '--parent'] }`. */
   flags?: { readonly [K in keyof TInput & string]?: readonly string[] }
+  /** Input values the CLI uses when the user does not pass them (e.g. a larger page size). */
+  defaults?: { readonly [K in keyof TInput & string]?: TInput[K] }
   /** Human-friendly rendering of the output; the CLI falls back to a generic renderer. */
   format?(output: TOutput): string
 }
@@ -93,7 +97,11 @@ export function defineOperation<
   }
   if (def.cli) {
     const fields = new Set(Object.keys(def.input.shape))
-    const referenced = [...(def.cli.positional ?? []), ...Object.keys(def.cli.flags ?? {})]
+    const referenced = [
+      ...(def.cli.positional ?? []),
+      ...Object.keys(def.cli.flags ?? {}),
+      ...Object.keys(def.cli.defaults ?? {}),
+    ]
     for (const field of referenced) {
       if (!fields.has(field)) {
         throw new Error(`Operation "${def.name}" cli spec references unknown input "${field}"`)
