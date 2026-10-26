@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+* **agent**: Fix an issue where an agent could read a comment thread from a project or team the user doesn't have access to by referencing its ID
+* **agent**: Fix an issue where an agent creating a file or a new version in a folder the user can't edit still uploaded the file to storage before the request was rejected
+
 ### Changed
 
 ## [0.6.1] - 2026-10-24

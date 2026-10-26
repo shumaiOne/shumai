@@ -1,6 +1,8 @@
-import { prisma } from '@shumai/db'
+import { prisma, type User } from '@shumai/db'
 import { Type } from 'typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { secondToDegree } from '@shumai/core/src/utils/model3d'
 import { getProxyType } from '@shumai/core/src/utils/mime'
 
@@ -32,10 +34,38 @@ function formatCommentMeta(
   return `(${parts.join(', ')})`
 }
 
-export const createReadThreadTool = (): AgentTool<
-  typeof readThreadSchema,
-  { threadId: string }
-> => ({
+export interface ReadThreadToolContext {
+  /** The user the agent acts for. When set, the user must be able to read the thread's asset. */
+  userId?: string
+  /** The agent's team. System agents without a user may only read threads in this team. */
+  teamId: string
+}
+
+/**
+ * Ensure the caller may read a thread on `assetId` before any thread content is
+ * returned: the acting user needs Read on the asset; a system agent (no user)
+ * is confined to its own team.
+ */
+async function assertCanReadThread(assetId: string, ctx: ReadThreadToolContext): Promise<void> {
+  if (ctx.userId) {
+    await authzService.hasPermission({
+      user: { id: ctx.userId } as User,
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: assetId,
+    })
+    return
+  }
+
+  const assetCtx = await assetService.getAssetContext(assetId).catch(() => null)
+  if (!assetCtx || assetCtx.teamId !== ctx.teamId) {
+    throw new Error('Access denied: this comment thread does not belong to your team.')
+  }
+}
+
+export const createReadThreadTool = (
+  ctx: ReadThreadToolContext,
+): AgentTool<typeof readThreadSchema, { threadId: string }> => ({
   name: 'read_thread',
   label: 'Read Comment Thread',
   description: 'Reads all comments and replies inside a specific comment thread.',
@@ -63,6 +93,8 @@ export const createReadThreadTool = (): AgentTool<
         details: { threadId: params.threadId },
       }
     }
+
+    await assertCanReadThread(rootComment.assetId, ctx)
 
     const replies = await prisma.assetComment.findMany({
       where: {

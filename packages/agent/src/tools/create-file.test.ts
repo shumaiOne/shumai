@@ -347,6 +347,42 @@ describe('createCreateFileTool', () => {
     expect((tool.parameters as any).properties.metadata).toBeUndefined()
   })
 
+  describe('when the user lacks Edit permission on the parent', () => {
+    const denied = new Error('User is not a member of the team')
+
+    beforeEach(() => {
+      vi.mocked(authzService.hasPermission).mockRejectedValueOnce(denied)
+    })
+
+    it('does not upload a local file to storage', async () => {
+      const filePath = createTempFile('# Not allowed', 'create-file-denied.md')
+
+      const tool = createCreateFileTool('user-1')
+      await expect(
+        tool.execute('call-1', { parent: 'folder-1', path: filePath, data: null }),
+      ).rejects.toThrow(denied.message)
+
+      expect(s3Service.uploadFileToKey).not.toHaveBeenCalled()
+      expect(s3Service.putObject).not.toHaveBeenCalled()
+      expect(assetService.createFile).not.toHaveBeenCalled()
+    })
+
+    it('does not write inline content to storage', async () => {
+      const tool = createCreateFileTool('user-1')
+      await expect(
+        tool.execute('call-1', {
+          parent: 'folder-1',
+          path: null,
+          data: { name: 'notes.md', content: 'hello' },
+        }),
+      ).rejects.toThrow(denied.message)
+
+      expect(s3Service.putObject).not.toHaveBeenCalled()
+      expect(s3Service.uploadFileToKey).not.toHaveBeenCalled()
+      expect(assetService.createFile).not.toHaveBeenCalled()
+    })
+  })
+
   it('should pass agentId and record audit log when agentContext is provided', async () => {
     const filePath = createTempFile('# Agent file', 'agent-file.md')
 

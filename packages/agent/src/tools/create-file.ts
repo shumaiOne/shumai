@@ -83,6 +83,14 @@ export function createCreateFileTool(
       const p = params as CreateFileToolParams
       const source = assertExactlyOneSource(p)
 
+      // Authorize before touching storage so a denied call leaves no orphaned object behind.
+      await authzService.hasPermission({
+        user: { id: userId } as User,
+        permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id: p.parent,
+      })
+
       let name: string
       let size: number
       let mimeType: string
@@ -112,13 +120,6 @@ export function createCreateFileTool(
         s3Key = `files/${ulid()}/${name}`
         await s3Service.putObject(process.env.S3_BUCKET || 'shumai', s3Key, content, size, mimeType)
       }
-
-      await authzService.hasPermission({
-        user: { id: userId } as User,
-        permission: Permission.Edit,
-        type: ResourceType.Asset,
-        id: p.parent,
-      })
 
       const asset = await assetService.createFile({
         parentId: p.parent,

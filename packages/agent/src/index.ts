@@ -352,7 +352,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     )
   }
 
-  const readThread = createReadThreadTool()
+  const readThread = createReadThreadTool({ userId, teamId })
   const rawTools = [
     ...mediaTools,
     readSkill,

@@ -62,6 +62,21 @@ describe('createCreateVersionTool', () => {
     return filePath
   }
 
+  it('should not upload to storage when the user lacks Edit permission on the parent', async () => {
+    vi.mocked(authzService.hasPermission).mockRejectedValueOnce(
+      new Error('User is not a member of the team'),
+    )
+    const filePath = createTempFile('# Not allowed', 'create-version-denied.md')
+
+    const tool = createCreateVersionTool('user-1')
+    await expect(tool.execute('call-1', { parent: 'file-1', path: filePath })).rejects.toThrow(
+      'User is not a member of the team',
+    )
+
+    expect(s3Service.uploadFileToKey).not.toHaveBeenCalled()
+    expect(assetService.createVersion).not.toHaveBeenCalled()
+  })
+
   it('should upload a local file and create a version via assetService.createVersion', async () => {
     const filePath = createTempFile('# Hello from disk', 'create-version-test.md')
 

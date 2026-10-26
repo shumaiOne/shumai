@@ -1,6 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createReadThreadTool } from './read-thread'
 import { prisma } from '@shumai/db'
+import { authzService } from '@shumai/core/src/authz/authz'
+
+vi.mock('@shumai/core/src/authz/authz', () => ({
+  authzService: {
+    hasPermission: vi.fn().mockResolvedValue(undefined),
+  },
+  Permission: { Read: 'read' },
+  ResourceType: { Asset: 'asset' },
+}))
 
 vi.mock('@shumai/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@shumai/db')>()
@@ -27,7 +36,7 @@ describe('createReadThreadTool', () => {
     vi.mocked(prisma.assetComment.findUnique).mockResolvedValue(null)
     vi.mocked(prisma.asset.findUnique).mockResolvedValue(null)
 
-    const tool = createReadThreadTool()
+    const tool = createReadThreadTool({ userId: 'user-1', teamId: 'team-1' })
     const result = await tool.execute('call-1', { threadId: 'non-existent' })
     const textContent = (result.content[0] as { text: string }).text
 
@@ -39,7 +48,7 @@ describe('createReadThreadTool', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock return
     vi.mocked(prisma.asset.findUnique).mockResolvedValue({ id: 'asset-1' } as any)
 
-    const tool = createReadThreadTool()
+    const tool = createReadThreadTool({ userId: 'user-1', teamId: 'team-1' })
     const result = await tool.execute('call-asset', { threadId: 'asset-1' })
     const textContent = (result.content[0] as { text: string }).text
 
@@ -49,6 +58,7 @@ describe('createReadThreadTool', () => {
   it('should return thread root message and notice when there are no replies', async () => {
     vi.mocked(prisma.assetComment.findUnique).mockResolvedValue({
       id: 'root-1',
+      assetId: 'asset-1',
       message: 'Initial top-level question',
       creator: { name: 'Alice' },
       second: 12.5,
@@ -57,10 +67,16 @@ describe('createReadThreadTool', () => {
     } as any)
     vi.mocked(prisma.assetComment.findMany).mockResolvedValue([])
 
-    const tool = createReadThreadTool()
+    const tool = createReadThreadTool({ userId: 'user-1', teamId: 'team-1' })
     const result = await tool.execute('call-2', { threadId: 'root-1' })
     const textContent = (result.content[0] as { text: string }).text
 
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user-1' },
+      permission: 'read',
+      type: 'asset',
+      id: 'asset-1',
+    })
     expect(textContent).toContain(
       'Thread Root [Alice] (id: root-1, time: 12.5s, has_markup: true): Initial top-level question',
     )
@@ -90,7 +106,7 @@ describe('createReadThreadTool', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ] as any)
 
-    const tool = createReadThreadTool()
+    const tool = createReadThreadTool({ userId: 'user-1', teamId: 'team-1' })
     const result = await tool.execute('call-3', { threadId: 'root-1' })
     const textContent = (result.content[0] as { text: string }).text
 
@@ -122,7 +138,7 @@ describe('createReadThreadTool', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ] as any)
 
-    const tool = createReadThreadTool()
+    const tool = createReadThreadTool({ userId: 'user-1', teamId: 'team-1' })
     const result = await tool.execute('call-agent', { threadId: 'root-1' })
     const textContent = (result.content[0] as { text: string }).text
 
@@ -153,7 +169,7 @@ describe('createReadThreadTool', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ] as any)
 
-    const tool = createReadThreadTool()
+    const tool = createReadThreadTool({ userId: 'user-1', teamId: 'team-1' })
     const result = await tool.execute('call-3d', { threadId: 'root-3d' })
     const textContent = (result.content[0] as { text: string }).text
 
@@ -166,7 +182,7 @@ describe('createReadThreadTool', () => {
   })
 
   it('should describe threadId parameter as referencing <thread id="..." /> in <context>', () => {
-    const tool = createReadThreadTool()
+    const tool = createReadThreadTool({ userId: 'user-1', teamId: 'team-1' })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const description = (tool.parameters as any).properties.threadId.description
     expect(description).toContain('<thread id="..." />')

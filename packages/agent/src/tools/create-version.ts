@@ -49,6 +49,15 @@ export function createCreateVersionTool(
       // The harness validates tool args against `createVersionSchema` before calling
       // execute, so `params` is guaranteed to match this shape.
       const p = params as CreateVersionToolParams
+
+      // Authorize before touching storage so a denied call leaves no orphaned object behind.
+      await authzService.hasPermission({
+        user: { id: userId } as User,
+        permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id: p.parent,
+      })
+
       const absolutePath = path.resolve(process.cwd(), p.path)
       if (!fs.existsSync(absolutePath)) {
         throw new Error(`Local file not found at path: ${p.path}`)
@@ -61,13 +70,6 @@ export function createCreateVersionTool(
       // Generate compliant S3 key matching normal file upload format
       const s3Key = `files/${ulid()}/${sanitizeFilename(name)}`
       await s3Service.uploadFileToKey(absolutePath, s3Key, mimeType)
-
-      await authzService.hasPermission({
-        user: { id: userId } as User,
-        permission: Permission.Edit,
-        type: ResourceType.Asset,
-        id: p.parent,
-      })
 
       const asset = await assetService.createVersion({
         parentId: p.parent,
