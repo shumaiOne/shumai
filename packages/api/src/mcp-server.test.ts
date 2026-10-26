@@ -85,6 +85,55 @@ describe('MCP server', () => {
     expect(annotations('list_assets')).toMatchObject({ readOnlyHint: true, idempotentHint: true })
   })
 
+  it('advertises input schemas without nullable types', async () => {
+    // Nullable types don't translate to every client's tool format (e.g. Gemini's)
+    for (const tool of (await client.listTools()).tools) {
+      const schema = JSON.stringify(tool.inputSchema)
+      expect(schema, tool.name).not.toMatch(/"type":\[/)
+      expect(schema, tool.name).not.toContain('"type":"null"')
+    }
+  })
+
+  it('treats null optional arguments as omitted, including nested ones', async () => {
+    vi.mocked(runOperation).mockResolvedValue({
+      status: 'pending',
+      summary: 'Rendering is still in progress for "deck.pdf".',
+      asset: { id: 'doc-1', name: 'deck.pdf', kind: 'document', mediaType: 'application/pdf' },
+      details: [],
+      images: [],
+      taskId: 'task-1',
+      retryAfterSeconds: 5,
+    })
+
+    const result = await client.callTool({
+      name: 'read_asset',
+      arguments: {
+        assetId: 'doc-1',
+        annotationId: null,
+        videoConfig: null,
+        docConfig: { mode: 'pages', startPage: 1, endPage: null },
+        inlineImages: null,
+      },
+    })
+
+    expect(result.isError).toBeFalsy()
+    expect(runOperation).toHaveBeenCalledWith(
+      readAssetOp,
+      { userId: 'user1', via: 'mcp' },
+      { assetId: 'doc-1', docConfig: { mode: 'pages', startPage: 1 } },
+    )
+  })
+
+  it('still rejects null for required arguments', async () => {
+    const result = await client.callTool({
+      name: 'create_folder',
+      arguments: { parent: null, name: 'Renders' },
+    })
+
+    expect(result.isError).toBe(true)
+    expect(runOperation).not.toHaveBeenCalled()
+  })
+
   it('does not expose agent-only capabilities', async () => {
     const names = (await client.listTools()).tools.map((t) => t.name)
     for (const agentOnly of ['bash', 'read_skill', 'download_asset', 'mcp']) {

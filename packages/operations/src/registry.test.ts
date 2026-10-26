@@ -70,6 +70,18 @@ describe('operation registry', () => {
     },
   )
 
+  it.each(operationDefinitions.map((d) => [d.name, d] as const))(
+    '%s input schema has no nullable types',
+    (_name, definition) => {
+      // Tool formats like Gemini's function declarations (an OpenAPI subset) can't express
+      // `type: [..., "null"]` or a `null` branch, so inputs use optional fields instead.
+      // Surfaces drop nulls that models send for optional fields (dropNullOptionals).
+      const schema = JSON.stringify(z.toJSONSchema(definition.input, { io: 'input' }))
+      expect(schema).not.toMatch(/"type":\[/)
+      expect(schema).not.toContain('"type":"null"')
+    },
+  )
+
   it('keeps legacy CLI invocations mapped', () => {
     const commands = operationDefinitions.map((d) => [
       d.name,

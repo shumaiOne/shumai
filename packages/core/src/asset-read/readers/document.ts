@@ -99,7 +99,7 @@ export const documentReader: AssetReader<'document'> = {
       }
       if (startPage !== null || endPage !== null) {
         throw badRequest(
-          'startPage and endPage must be null when docConfig mode is "text". To inspect specific page numbers, use mode: "pages".',
+          'startPage and endPage must be left out when docConfig mode is "text". To inspect specific page numbers, use mode: "pages".',
         )
       }
       if (!isPlainTextAsset(asset.mediaTypeLower, asset.filenameLower)) {

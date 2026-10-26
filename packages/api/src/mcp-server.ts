@@ -1,6 +1,8 @@
 import { Hono } from 'hono'
 import { createMcpHandler, McpServer, type CallToolResult } from '@modelcontextprotocol/server'
+import type { z } from 'zod'
 import type { Prisma } from '@shumai/db'
+import { dropNullOptionals } from '@shumai/operations'
 import { getOperationsForSurface, runOperation, type Operation } from '@shumai/core/src/operations'
 import { mcpExtensions, type McpToolExtension } from './mcp-extensions'
 import { assertWritableInDemoMode, describeOperationError } from './operation-support'
@@ -18,6 +20,21 @@ export const MCP_SERVER_INSTRUCTIONS = [
   'Use read_asset to look at a file (image, video frames, PDF pages, 3D views, or text);',
   'if it returns status "pending", call get_asset_render with its taskId.',
 ].join(' ')
+
+/**
+ * The tool's input schema, with `null` for optional arguments treated as omitted. The SDK
+ * validates arguments before calling the tool, so the nulls must be dropped here; the JSON
+ * Schema shown to clients is unchanged (optional, not nullable, which more clients support).
+ */
+function toolInputSchema(schema: z.ZodObject): Pick<z.ZodObject, '~standard'> {
+  const standard = schema['~standard']
+  return {
+    '~standard': {
+      ...standard,
+      validate: (value) => standard.validate(dropNullOptionals(schema, value)),
+    },
+  }
+}
 
 /** Separate MCP-only arguments (declared by an extension) from the Operation input. */
 function splitArgs(
@@ -78,9 +95,11 @@ export function buildMcpServer(userId: string): McpServer {
       {
         title: definition.title,
         description: definition.description,
-        inputSchema: extension?.extraInput
-          ? definition.input.extend(extension.extraInput.shape)
-          : definition.input,
+        inputSchema: toolInputSchema(
+          extension?.extraInput
+            ? definition.input.extend(extension.extraInput.shape)
+            : definition.input,
+        ),
         outputSchema: definition.output,
         annotations: {
           title: definition.title,

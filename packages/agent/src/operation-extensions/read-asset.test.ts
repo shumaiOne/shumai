@@ -752,7 +752,7 @@ describe('read_asset agent tool', () => {
           assetId: 'doc-md',
           docConfig: { mode: 'text', startPage: 1, endPage: 2 },
         }),
-      ).rejects.toThrow('startPage and endPage must be null when docConfig mode is "text"')
+      ).rejects.toThrow('startPage and endPage must be left out when docConfig mode is "text"')
     })
 
     it('reads raw text in mode "text"', async () => {

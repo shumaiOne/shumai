@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { TSchema } from 'typebox'
 import { Compile } from 'typebox/compile'
 import { type AgentTool, type AgentToolResult } from '@earendil-works/pi-agent-core'
+import { dropNullOptionals } from '@shumai/operations'
 import {
   getOperationsForSurface,
   runOperation,
@@ -53,27 +54,13 @@ export function toToolParameters(op: Operation, extension?: AgentToolExtension):
   return schema as unknown as TSchema
 }
 
-/**
- * Models sometimes send `null` for optional parameters they don't want to set. Drop those
- * so the input schema treats them as omitted; nulls for required fields still fail.
- */
-export function dropNullOptionalFields(schema: z.ZodObject, params: unknown): unknown {
-  if (!params || typeof params !== 'object' || Array.isArray(params)) return params
-  const shape = schema.shape
-  return Object.fromEntries(
-    Object.entries(params).filter(
-      ([key, value]) => !(value === null && shape[key]?.safeParse(undefined).success),
-    ),
-  )
-}
-
 /** Split agent-only parameters from the Operation input. */
 export function splitAgentParams(
   op: Operation,
   extension: AgentToolExtension | undefined,
   params: unknown,
 ): { input: unknown; extra: Record<string, unknown> } {
-  const cleaned = dropNullOptionalFields(toolInputSchema(op, extension), params)
+  const cleaned = dropNullOptionals(toolInputSchema(op, extension), params)
   if (!extension?.extraParameters || !cleaned || typeof cleaned !== 'object') {
     return { input: cleaned, extra: {} }
   }

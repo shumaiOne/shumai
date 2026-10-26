@@ -150,11 +150,9 @@ describe('model3dReader', () => {
     } as unknown as PrismaJson.MediaInfo,
   })
 
-  it('accepts null as "show the overview"', async () => {
-    expect(() =>
-      model3dReader.validate(model, { degree: null }, { hasAnnotation: false }),
-    ).not.toThrow()
-    const plan = await model3dReader.plan(model, { degree: null }, noAnnotation)
+  it('shows the overview when no degree is given', async () => {
+    expect(() => model3dReader.validate(model, {}, { hasAnnotation: false })).not.toThrow()
+    const plan = await model3dReader.plan(model, {}, noAnnotation)
     expect(plan.status).toBe('ready')
   })
 

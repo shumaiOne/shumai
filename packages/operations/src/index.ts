@@ -1,6 +1,7 @@
 export * from './define'
 export * from './schemas'
 export * from './registry'
+export { dropNullOptionals } from './null-optionals'
 export { createFolder } from './asset/create-folder'
 export { deleteAsset } from './asset/delete-asset'
 export { listAssets } from './asset/list-assets'

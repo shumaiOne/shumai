@@ -20,7 +20,6 @@ export const readerOptionSchemas = {
         degree: z
           .number()
           .int()
-          .nullable()
           .optional()
           .describe(
             'Turntable rotation degree (integer: 0, 15, 30, ..., 345 in 15° increments) to inspect a specific angle of a 3D model. Leave it out to view the 4-view composite overview.',
@@ -57,12 +56,10 @@ export const readerOptionSchemas = {
           ),
         startPage: z
           .number()
-          .nullable()
           .optional()
           .describe('Start page number (1-based, required when mode="pages"; omit for "text").'),
         endPage: z
           .number()
-          .nullable()
           .optional()
           .describe(
             `End page number (1-based, max ${MAX_RENDER_ITEMS} pages per call, required when mode="pages"; omit for "text").`,
