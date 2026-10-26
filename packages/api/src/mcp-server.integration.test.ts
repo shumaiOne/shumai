@@ -255,6 +255,43 @@ describe('MCP server and /api/ops (integration)', () => {
       expect(await render.json()).toEqual({ error: 'Render not found' })
     })
 
+    it('gives MCP and CLI callers a download link to the file', async () => {
+      const client = await connect(reviewerToken)
+      const result = await client.callTool({
+        name: 'download_asset',
+        arguments: { assetIds: [imageId] },
+      })
+      expect(result.isError).toBeFalsy()
+      const viaMcp = result.structuredContent as { files: Array<Record<string, unknown>> }
+      expect(viaMcp.files).toEqual([
+        {
+          assetId: imageId,
+          name: 'photo.png',
+          kind: 'original',
+          size: png.length,
+          mimeType: 'image/png',
+          url: expect.any(String),
+        },
+      ])
+
+      const res = await app.request('/api/ops/download_asset', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${reviewerToken}`,
+          'Content-Type': 'application/json',
+          'x-shumai-client': 'cli',
+        },
+        body: JSON.stringify({ assetIds: [imageId], proxy: false }),
+      })
+      expect(res.status).toBe(200)
+      const viaCli = (await res.json()) as { files: Array<{ url: string; key?: string }> }
+      expect(viaCli.files[0].key).toBeUndefined()
+      const link = new URL(viaCli.files[0].url)
+      const file = await app.request(link.pathname + link.search)
+      expect(file.status).toBe(200)
+      expect(Buffer.from(await file.arrayBuffer()).equals(png)).toBe(true)
+    })
+
     it('does not let users outside the project read', async () => {
       const outsider = await prisma.user.create({
         data: { name: 'Outsider', email: 'mcp-outsider@test.com', password: 'pw' },

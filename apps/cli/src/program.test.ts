@@ -3,6 +3,7 @@ import type { Command } from 'commander'
 import {
   createFolder,
   deleteAsset,
+  downloadAsset,
   getAssetRender,
   readAsset,
   listAssets,
@@ -352,7 +353,7 @@ describe('shumai-cli', () => {
       await cli.run('read', 'd-1', '--doc-mode', 'text')
 
       expect(cli.stdout()).toBe(
-        'Document "notes.md" (ID: d-1):\n\n# Notes\nhello\n\n[Content truncated: showing the first part of a 90000-byte file.]\n',
+        'Document "notes.md" (ID: d-1):\n\n# Notes\nhello\n\n[Content truncated: showing the first part of a 90000-byte file. Run `shumai-cli download vid-1` to get the whole file.]\n',
       )
     })
 
@@ -419,6 +420,36 @@ describe('shumai-cli', () => {
     })
   })
 
+  describe('download', () => {
+    it('downloads the web previews by default, or the originals with --original', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue({ files: [] })
+
+      await cli.run('download', 'a-1', 'a-2')
+      expect(cli.callOperation).toHaveBeenLastCalledWith(downloadAsset, {
+        assetIds: ['a-1', 'a-2'],
+      })
+
+      await cli.run('download', 'a-1', '--original')
+      expect(cli.callOperation).toHaveBeenLastCalledWith(downloadAsset, {
+        assetIds: ['a-1'],
+        proxy: false,
+      })
+    })
+
+    it('requires at least one asset ID and documents its options', async () => {
+      const cli = setup()
+
+      await expect(cli.run('download')).rejects.toThrow()
+      expect(cli.stderr()).toContain("missing required argument 'assetIds'")
+
+      await expect(cli.run('download', '--help')).rejects.toThrow()
+      expect(cli.stdout()).toContain('-o, --out <dir>')
+      expect(cli.stdout()).toContain('--original')
+      expect(cli.stdout()).not.toContain('--proxy')
+    })
+  })
+
   describe('--json', () => {
     it('prints the raw Operation output', async () => {
       const cli = setup()
@@ -482,6 +513,7 @@ describe('shumai-cli', () => {
         'delete|rm',
         'read',
         'render',
+        'download',
         'upload',
         'create-version',
       ]) {

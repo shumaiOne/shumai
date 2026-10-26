@@ -609,6 +609,8 @@
   "agent_tool_read_skill_desc": "允许智能体加载和读取技能定义以执行特定操作。",
   "agent_tool_read_asset_name": "读取资源",
   "agent_tool_read_asset_desc": "允许智能体查看和分析图片、视频画面和文档页面。",
+  "agent_tool_download_asset_name": "下载资源",
+  "agent_tool_download_asset_desc": "允许智能体将文件下载到其工作区，以便用脚本或终端命令处理。",
   "agent_tool_get_asset_render_name": "获取资源渲染结果",
   "agent_tool_get_asset_render_desc": "允许智能体获取渲染耗时较长的视频画面或文档页面。",
   "agent_tool_list_projects_name": "列出项目",

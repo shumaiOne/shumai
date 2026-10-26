@@ -113,6 +113,11 @@ const BUILTIN_TOOLS = [
     description: () => m.agent_tool_create_version_desc(),
   },
   {
+    id: 'download_asset',
+    name: () => m.agent_tool_download_asset_name(),
+    description: () => m.agent_tool_download_asset_desc(),
+  },
+  {
     id: 'generate_image',
     name: () => m.agent_tool_generate_image_name(),
     description: () => m.agent_tool_generate_image_desc(),

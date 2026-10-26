@@ -236,7 +236,7 @@ An **Operation** is a capability agents can use, defined once and exposed automa
 - **Tests**: real-database tests per Operation covering success, permission denial (no side effects), and audit entries.
 - **CLI spec**: object input fields must be listed in `cli.flatten` (one flag per sub-field, e.g. `{ videoConfig: 'video' }` → `--video-start`) or in `cli.omit` (optional fields the CLI doesn't expose).
 - **Surface presentation**: by default each surface shows the Operation output as JSON. To add surface-only parameters or render output differently, add an extension for that surface:
-  - agent: `AgentToolExtension` in `packages/agent/src/operation-extensions/` (e.g. image blocks);
+  - agent: `AgentToolExtension` in `packages/agent/src/operation-extensions/` (e.g. image blocks, saving downloads into the sandbox). `parameterOverrides` and `intercept` support agent-only modes, such as `download_asset` by storage key;
   - MCP: `McpToolExtension` in `packages/api/src/mcp-extensions/` (`structuredContent` must still match the output schema);
   - CLI: `CliCommandExtension` in `apps/cli/src/operations/extensions/` (local I/O such as downloads).
 

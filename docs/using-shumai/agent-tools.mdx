@@ -80,7 +80,7 @@ The following tools can be individually toggled in the agent configuration dialo
 
 ### 12. Download Asset (`download_asset`)
 
-- **Description:** Allows the agent to download a workspace asset or specific storage S3 key to the local `.pi` directory for processing with local scripts or bash commands.
+- **Description:** Allows the agent to download up to 50 workspace files, or a specific storage S3 key (such as a frame from `read_asset`), to the local `.pi` directory for processing with local scripts or bash commands. By default it downloads the web preview version when there is one (for example the transcoded video or the web image); the agent can ask for the original uploaded file instead. Folders are not supported.
 - **Why it matters:** Enables agents executing custom skill scripts to fetch files or intermediate transcode artifacts to local disk.
 
 ### 13. Rename Asset (`rename_asset`)

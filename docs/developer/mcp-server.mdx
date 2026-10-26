@@ -58,16 +58,17 @@ claude mcp add --transport http shumai https://<your-shumai-host>/api/mcp \
 
 ## Available Tools
 
-| Tool               | What it does                                                                                          |
-| ------------------ | ----------------------------------------------------------------------------------------------------- |
-| `list_projects`    | Lists the projects you can access, with each project's root folder.                                   |
-| `list_assets`      | Lists files and folders in a folder, page by page.                                                    |
-| `create_folder`    | Creates a folder.                                                                                     |
-| `rename_asset`     | Renames a file or folder.                                                                             |
-| `move_assets`      | Moves files or folders into another folder.                                                           |
-| `delete_asset`     | Moves a file or folder to the project trash. Marked as destructive so clients can ask you to confirm. |
-| `read_asset`       | Looks at a file: an image, video frames, PDF pages, a 3D model view, or the text of a text file.      |
-| `get_asset_render` | Gets the result of a `read_asset` call that was still rendering.                                      |
+| Tool               | What it does                                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `list_projects`    | Lists the projects you can access, with each project's root folder.                                              |
+| `list_assets`      | Lists files and folders in a folder, page by page.                                                               |
+| `create_folder`    | Creates a folder.                                                                                                |
+| `rename_asset`     | Renames a file or folder.                                                                                        |
+| `move_assets`      | Moves files or folders into another folder.                                                                      |
+| `delete_asset`     | Moves a file or folder to the project trash. Marked as destructive so clients can ask you to confirm.            |
+| `read_asset`       | Looks at a file: an image, video frames, PDF pages, a 3D model view, or the text of a text file.                 |
+| `get_asset_render` | Gets the result of a `read_asset` call that was still rendering.                                                 |
+| `download_asset`   | Gets download links for up to 50 files: the web preview version by default, or the original with `proxy: false`. |
 
 ### Reading Files
 

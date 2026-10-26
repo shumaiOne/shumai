@@ -55,6 +55,7 @@ describe('MCP server', () => {
     expect(tools.map((t) => t.name).sort()).toEqual([
       'create_folder',
       'delete_asset',
+      'download_asset',
       'get_asset_render',
       'list_assets',
       'list_projects',
@@ -136,7 +137,7 @@ describe('MCP server', () => {
 
   it('does not expose agent-only capabilities', async () => {
     const names = (await client.listTools()).tools.map((t) => t.name)
-    for (const agentOnly of ['bash', 'read_skill', 'download_asset', 'mcp']) {
+    for (const agentOnly of ['bash', 'read_skill', 'mcp']) {
       expect(names).not.toContain(agentOnly)
     }
   })

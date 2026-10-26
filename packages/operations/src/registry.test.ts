@@ -19,6 +19,7 @@ describe('operation registry', () => {
     expect(operationDefinitions.map((d) => d.name).sort()).toEqual([
       'create_folder',
       'delete_asset',
+      'download_asset',
       'get_asset_render',
       'list_assets',
       'list_projects',
@@ -47,6 +48,7 @@ describe('operation registry', () => {
     expect(destructive.map((d) => d.name)).toEqual(['delete_asset'])
     const readOnly = operationDefinitions.filter((d) => d.annotations.readOnly)
     expect(readOnly.map((d) => d.name).sort()).toEqual([
+      'download_asset',
       'get_asset_render',
       'list_assets',
       'list_projects',
@@ -96,6 +98,7 @@ describe('operation registry', () => {
       ['delete_asset', ['delete', 'rm']],
       ['read_asset', ['read']],
       ['get_asset_render', ['render']],
+      ['download_asset', ['download']],
     ])
   })
 

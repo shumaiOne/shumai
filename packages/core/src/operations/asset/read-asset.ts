@@ -1,5 +1,9 @@
 import { getAssetRender, readAsset, type Via } from '@shumai/operations'
-import { assetReadService, toAssetReadOutput } from '@shumai/core/src/asset-read'
+import {
+  assetReadService,
+  toAssetReadOutput,
+  UnsupportedAssetTypeError,
+} from '@shumai/core/src/asset-read'
 import { implementOperation } from '../implement'
 
 /**
@@ -31,9 +35,21 @@ export const readAssetOp = implementOperation(readAsset, {
   authz: () => [],
   execute: async (input, ctx) => {
     const { maxWaitSeconds, ...request } = input
-    const outcome = await assetReadService.read({ kind: 'user', userId: ctx.userId }, request, {
-      waitBudgetMs: waitBudgetMs(ctx.via, maxWaitSeconds),
-    })
+    const outcome = await assetReadService
+      .read({ kind: 'user', userId: ctx.userId }, request, {
+        waitBudgetMs: waitBudgetMs(ctx.via, maxWaitSeconds),
+      })
+      .catch((err: unknown) => {
+        // CLI users download with a command, not a tool.
+        if (err instanceof UnsupportedAssetTypeError && ctx.via === 'cli') {
+          throw new UnsupportedAssetTypeError(
+            err.assetId,
+            err.mediaType,
+            `Run \`shumai-cli download ${err.assetId}\` to download it.`,
+          )
+        }
+        throw err
+      })
     return toAssetReadOutput(outcome, { includeKeys: SERVER_PRESENTED.has(ctx.via) })
   },
 })

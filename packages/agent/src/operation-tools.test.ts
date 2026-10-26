@@ -61,7 +61,7 @@ describe('operation-backed agent tools', () => {
   })
 
   describe('tool definitions', () => {
-    it('keeps the existing tool names and adds list_projects and get_asset_render', () => {
+    it('keeps the existing tool names and adds the newer Operations', () => {
       expect(
         buildOperationTools(ctx)
           .map((t) => t.name)
@@ -69,6 +69,7 @@ describe('operation-backed agent tools', () => {
       ).toEqual([
         'create_folder',
         'delete_asset',
+        'download_asset',
         'get_asset_render',
         'list_assets',
         'list_projects',

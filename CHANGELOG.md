@@ -10,7 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 * **mcp**: Shumai now has a built-in MCP server, so external AI agents such as Claude Code, Cursor, or Kiro can browse projects and create, rename, move, or delete folders and files with your API token and permissions
 * **agent**: The built-in agent can now list the projects you have access to, so it can find a project's root folder on its own. Team owners can turn this off per agent like other tools
-* **mcp**: External AI agents connected to Shumai's MCP server can now look at your files: images, video frames, PDF pages, 3D model views, and text files. Images are attached so the AI can see them, along with links that stay valid for about an hour
+* **mcp**: External AI agents connected to Shumai's MCP server can now look at your files: images, video frames, PDF pages, 3D model views, and text files. Images are attached so the AI can see them, along with links that stay valid for about an hour. They can also get download links for files, as the web preview or the original upload
+* **cli**: New `shumai-cli download` command saves files to your computer, up to 50 at a time: the smaller web preview by default, or the original upload with `--original`
 * **cli**: New `shumai-cli read` command shows an image, video frames, PDF pages, a 3D model view, or the text of a file, and `--out` downloads the images into a folder. If rendering takes a while, `shumai-cli render <taskId>` picks up the result later
 
 ### Fixed
@@ -24,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 * **cli**: `shumai-cli` has clearer help for every command (`shumai-cli <command> --help`), suggests the right command when you mistype one, and can print raw JSON with `--json`. `ls` can now filter by type and page through very large folders. Existing commands work as before; the npm package now needs Node.js 22.12 or later
 * **agent**: When the agent lists a folder's contents, large folders are now paged with a "next page" marker instead of page numbers, and items appear in the same order as in the file browser
 * **agent**: When the agent looks at a long video or a large document that takes more than about a minute to render, it no longer fails with a timeout. The agent is told the render is still in progress and picks up the frames or pages when they're ready, using the new "Get Asset Render" tool. Each call can now read at most 20 video frames, the same limit as PDF pages
+* **agent**: The agent can now download several files at once (up to 50), and can get the original upload instead of the smaller web preview. Downloaded files keep the preview's file type in their name (e.g. `photo.webp`). Team owners can now turn the Download Asset tool on or off per agent in agent settings
 * **api-token**: API tokens are now stored securely, so they can no longer be read back from the database. A new token is shown only once when you create it, so copy it right away; the token list now shows just the last few characters. Existing tokens keep working without any changes.
 
 ## [0.6.1] - 2026-10-24

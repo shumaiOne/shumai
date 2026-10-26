@@ -1,5 +1,6 @@
 import { createFolder } from './asset/create-folder'
 import { deleteAsset } from './asset/delete-asset'
+import { downloadAsset } from './asset/download-asset'
 import { listAssets } from './asset/list-assets'
 import { moveAssets } from './asset/move-assets'
 import { getAssetRender, readAsset } from './asset/read-asset'
@@ -20,6 +21,7 @@ export const operationDefinitions = [
   deleteAsset,
   readAsset,
   getAssetRender,
+  downloadAsset,
 ] as const
 
 export type RegisteredOperationDefinition = (typeof operationDefinitions)[number]

@@ -22,7 +22,8 @@ type ExecutableTool = {
 
 /**
  * read_asset end to end: real render workflows (frames, PDF pages) through the reader
- * pipeline, the pending → get_asset_render path, and the agent tool in a chat workflow.
+ * pipeline, the pending → get_asset_render path, and the agent's read_asset and
+ * download_asset tools in a chat workflow.
  * Only the model call is mocked.
  */
 describe('Workflow E2E - read_asset', () => {
@@ -56,10 +57,20 @@ describe('Workflow E2E - read_asset', () => {
       })
       const text = result.content.find((c) => c.type === 'text')?.text ?? ''
       const images = result.content.filter((c) => c.type === 'image' && c.data)
+      // download_asset saves the original into the agent's sandbox (.pi)
+      const download = this.getTools().find((t) => t.name === 'download_asset') as unknown as
+        ExecutableTool | undefined
+      const downloaded = download
+        ? await download.execute('call-2', { assetIds: [videoAssetId], proxy: false })
+        : undefined
+      const savedPath = (
+        downloaded as unknown as { details?: { files?: Array<{ absolutePath: string }> } }
+      )?.details?.files?.[0]?.absolutePath
       const summary = [
         `images:${images.length}`,
         `frames:${(text.match(/- Frame at /g) ?? []).length}`,
         `render_tool:${hasRenderTool ? 'present' : 'absent'}`,
+        `downloaded:${savedPath ?? 'none'}`,
       ].join('|')
       return {
         content: [{ type: 'text', text: summary }],
@@ -283,6 +294,12 @@ describe('Workflow E2E - read_asset', () => {
     expect(reply?.message).toContain('images:2')
     expect(reply?.message).toContain('frames:2')
     expect(reply?.message).toContain('render_tool:present')
+    const savedPath = /downloaded:([^|]+)/.exec(reply?.message ?? '')?.[1] ?? 'none'
+    expect(savedPath).not.toBe('none')
+    expect(
+      fs.readFileSync(savedPath).equals(fs.readFileSync(path.join(fixturesDir, 'small.mp4'))),
+    ).toBe(true)
+    fs.rmSync(savedPath, { force: true })
 
     const render = await prisma.workflowTask.findFirstOrThrow({
       where: { assetId: video.id, type: 'transcode_screenshot' },

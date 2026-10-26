@@ -99,7 +99,7 @@ export async function presentReadForMcp(
   if (output.text) {
     text += `\n\n${output.text.content}`
     if (output.text.truncated) {
-      text += `\n\n[Content truncated: showing the first part of a ${output.text.size}-byte file.]`
+      text += `\n\n[Content truncated: showing the first part of a ${output.text.size}-byte file. Use download_asset to get the whole file.]`
     }
   }
   return { content: [{ type: 'text', text }, ...images], structuredContent }

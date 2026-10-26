@@ -167,6 +167,19 @@ Get the result of a `read` that was still rendering. Takes the same `--out`, `--
 shumai-cli render <taskId> --out frames
 ```
 
+#### 11. Download Files
+
+Download up to 50 files at once. By default it saves the web preview version when there is one (for example the transcoded video or the web image), which is smaller; use `--original` for the uploaded file. A version stack downloads its latest version. Folders aren't supported: download the files inside them. Files keep their names; if a name is taken, the new file gets a number, like `clip (2).mp4`.
+
+```bash
+shumai-cli download <assetId...> --out ./downloads
+shumai-cli download <assetId> --original
+```
+
+- **Options:**
+  - `-o`, `--out <dir>`: Folder to save the files in (default: the current folder). With `--json`, each file also gets a `path`.
+  - `--original`: Download the original uploaded files instead of the web previews.
+
 ---
 
 ## Development

@@ -91,6 +91,19 @@ export interface AssetReader<TKind extends ReaderKind = ReaderKind> {
   ): ReadResult
 }
 
+/** No reader handles this asset; the message points to download_asset. */
+export class UnsupportedAssetTypeError extends HTTPException {
+  constructor(
+    readonly assetId: string,
+    readonly mediaType: string,
+    hint = 'Use download_asset to download this file.',
+  ) {
+    super(400, {
+      message: `Unsupported asset type for read_asset. Asset ${assetId} has media type "${mediaType || 'unknown'}". ${hint}`,
+    })
+  }
+}
+
 export function badRequest(message: string): HTTPException {
   return new HTTPException(400, { message })
 }

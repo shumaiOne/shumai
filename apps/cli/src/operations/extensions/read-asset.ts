@@ -1,8 +1,9 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import * as path from 'node:path'
 import { Option } from 'commander'
 import type { AssetReadOutput } from '@shumai/operations'
 import { CliError } from '../errors'
+import { saveUrlToFile } from './save-url'
 import type { CliCommandExtension } from '../generate'
 import type { Output } from '../render'
 
@@ -41,19 +42,8 @@ export async function downloadImages(output: AssetReadOutput, dir: string): Prom
     if (!image.url) {
       throw new CliError(`No download link was returned for "${image.label}".`)
     }
-    let res: Response
-    try {
-      res = await fetch(image.url)
-    } catch (err) {
-      throw new CliError(
-        `Failed to download "${image.label}": ${err instanceof Error ? err.message : String(err)}`,
-      )
-    }
-    if (!res.ok) {
-      throw new CliError(`Failed to download "${image.label}" (status ${res.status}).`)
-    }
     const filePath = path.join(dir, imageFileName(output.asset.id, index, image))
-    await writeFile(filePath, Buffer.from(await res.arrayBuffer()))
+    await saveUrlToFile(image.url, filePath, image.label)
     saved.push(filePath)
   }
   return saved
@@ -75,7 +65,7 @@ function writeReady(output: AssetReadOutput, paths: string[] | null, o: Output):
     if (!output.text.content.endsWith('\n')) o.out.write('\n')
     if (output.text.truncated) {
       o.out.write(
-        `\n[Content truncated: showing the first part of a ${output.text.size}-byte file.]\n`,
+        `\n[Content truncated: showing the first part of a ${output.text.size}-byte file. Run \`shumai-cli download ${output.asset.id}\` to get the whole file.]\n`,
       )
     }
   }

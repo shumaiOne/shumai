@@ -590,6 +590,33 @@ describe('read_asset and get_asset_render Operations', () => {
     expect(waitFor).toHaveBeenLastCalledWith(expect.anything(), budget)
   })
 
+  it('points unsupported files to the download command of each surface', async () => {
+    const video = await prisma.asset.findUniqueOrThrow({ where: { id: videoId } })
+    const zip = await prisma.asset.create({
+      data: {
+        name: 'bundle.zip',
+        type: AssetType.file,
+        status: 'uploaded',
+        mediaType: 'application/zip',
+        projectId: video.projectId,
+        parentId: video.parentId,
+      },
+    })
+    const prefix = `Unsupported asset type for read_asset. Asset ${zip.id} has media type "application/zip".`
+
+    for (const via of ['agent', 'mcp', 'api'] as const) {
+      await expect(runOperation(readAssetOp, as(via), { assetId: zip.id })).rejects.toMatchObject({
+        status: 400,
+        message: `${prefix} Use download_asset to download this file.`,
+      })
+    }
+    // The CLI has no tools; it names the command instead.
+    await expect(runOperation(readAssetOp, as('cli'), { assetId: zip.id })).rejects.toMatchObject({
+      status: 400,
+      message: `${prefix} Run \`shumai-cli download ${zip.id}\` to download it.`,
+    })
+  })
+
   it('rejects invalid input before touching the asset', async () => {
     await expect(
       runOperation(readAssetOp, as('mcp'), {

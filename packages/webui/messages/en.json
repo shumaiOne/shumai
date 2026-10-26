@@ -609,6 +609,8 @@
   "agent_tool_read_skill_desc": "Allows the agent to load and read skill definitions to perform specialized actions.",
   "agent_tool_read_asset_name": "Read Asset",
   "agent_tool_read_asset_desc": "Allows the agent to view and inspect images, video frames, and document pages.",
+  "agent_tool_download_asset_name": "Download Asset",
+  "agent_tool_download_asset_desc": "Allows the agent to download files to its workspace to process them with scripts or terminal commands.",
   "agent_tool_get_asset_render_name": "Get Asset Render",
   "agent_tool_get_asset_render_desc": "Allows the agent to pick up video frames or document pages that took longer to render.",
   "agent_tool_list_projects_name": "List Projects",
