@@ -15,13 +15,23 @@ import {
 import { Loader2, Plus, Trash2, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { copyToClipboard } from '@/ui/lib/clipboard'
-import type { ApiTokenResponse } from '@shumai/dtos'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/ui/components/ui/dialog'
+import type { ApiTokenResponse, CreateApiTokenResponse } from '@shumai/dtos'
 import { m } from '@/ui/paraglide/messages.js'
 
 export function DeveloperSettings({ teamId }: { teamId: string }) {
   const queryClient = useQueryClient()
   const [tokenName, setTokenName] = useState('')
-  const [copiedId, setCopiedId] = useState<string | null>(null)
+  // Plaintext of a just-created token. It is only available in the create response.
+  const [createdToken, setCreatedToken] = useState<CreateApiTokenResponse | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const { data: tokens, isLoading } = useQuery<ApiTokenResponse[]>({
     queryKey: ['teams', teamId, 'api-tokens'],
@@ -41,11 +51,13 @@ export function DeveloperSettings({ teamId }: { teamId: string }) {
         json: { name },
       })
       if (!res.ok) throw new Error('Failed to create API token')
-      return (await res.json()) as ApiTokenResponse
+      return (await res.json()) as CreateApiTokenResponse
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'api-tokens'] })
       setTokenName('')
+      setCopied(false)
+      setCreatedToken(created)
       toast.success(m.api_token_generated_successfully())
     },
     onError: (err) => {
@@ -76,11 +88,11 @@ export function DeveloperSettings({ teamId }: { teamId: string }) {
     createToken(tokenName.trim())
   }
 
-  const handleCopy = async (id: string, token: string) => {
+  const handleCopy = async (token: string) => {
     await copyToClipboard(token)
-    setCopiedId(id)
+    setCopied(true)
     toast.success(m.copied_api_token_to_clipboard())
-    setTimeout(() => setCopiedId(null), 2000)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   if (isLoading) {
@@ -146,22 +158,8 @@ export function DeveloperSettings({ teamId }: { teamId: string }) {
                   tokens.map((token) => (
                     <TableRow key={token.id}>
                       <TableCell className="font-medium">{token.name}</TableCell>
-                      <TableCell className="font-mono text-sm max-w-[200px] truncate">
-                        <div className="flex items-center gap-2">
-                          <span>{token.token.substring(0, 8)}...</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleCopy(token.id, token.token)}
-                          >
-                            {copiedId === token.id ? (
-                              <Check className="h-3.5 w-3.5 text-green-500" />
-                            ) : (
-                              <Copy className="h-3.5 w-3.5" />
-                            )}
-                          </Button>
-                        </div>
+                      <TableCell className="font-mono text-sm text-muted-foreground">
+                        …{token.tokenHint}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(token.createdAt).toLocaleDateString()}
@@ -182,8 +180,45 @@ export function DeveloperSettings({ teamId }: { teamId: string }) {
               </TableBody>
             </Table>
           </div>
+          <p className="text-xs text-muted-foreground">{m.api_token_hidden_hint()}</p>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={createdToken !== null}
+        onOpenChange={(open) => {
+          if (!open) setCreatedToken(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{m.api_token_created_title()}</DialogTitle>
+            <DialogDescription>{m.api_token_created_description()}</DialogDescription>
+          </DialogHeader>
+          {createdToken && (
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={createdToken.token}
+                aria-label={m.token()}
+                className="font-mono text-sm"
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label={m.copy()}
+                onClick={() => handleCopy(createdToken.token)}
+              >
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setCreatedToken(null)}>{m.done()}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

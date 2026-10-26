@@ -12,7 +12,7 @@ export function getClient() {
 
   if (!apiKey) {
     console.error(
-      'Error: SHUMAI_API_KEY environment variable is not set. Please generate a token in the Settings -> Developer tab.',
+      'Error: SHUMAI_API_KEY environment variable is not set. Please generate a token in the Settings -> API Tokens tab.',
     )
     process.exit(1)
   }

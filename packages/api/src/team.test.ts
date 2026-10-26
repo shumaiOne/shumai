@@ -493,27 +493,27 @@ describe('team api', () => {
       vi.mocked(apiTokenService.listTokens).mockResolvedValue([
         {
           id: 'token1',
-          token: 'ulid1',
+          tokenHint: 'a1b2',
           name: 'cli-key',
           userId: 'user1',
           createdAt: mockDate,
           updatedAt: mockDate,
         },
-        // Mocking return value of listTokens is simpler with any casting
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ] as any)
+      ])
 
       const res = await app.request('/teams/t1/api-tokens')
 
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data).toHaveLength(1)
+      // The plaintext token is never returned when listing
       expect(data[0]).toEqual({
         id: 'token1',
-        token: 'ulid1',
+        tokenHint: 'a1b2',
         name: 'cli-key',
         createdAt: '2026-06-21T00:00:00.000Z',
       })
+      expect(data[0]).not.toHaveProperty('token')
       expect(apiTokenService.listTokens).toHaveBeenCalledWith('user1')
     })
 
@@ -521,15 +521,16 @@ describe('team api', () => {
       const { apiTokenService } = await import('@shumai/core/src/user/api-token')
       const mockDate = new Date('2026-06-21T00:00:00.000Z')
       vi.mocked(apiTokenService.createToken).mockResolvedValue({
-        id: 'token1',
-        token: 'ulid1',
-        name: 'cli-key',
-        userId: 'user1',
-        createdAt: mockDate,
-        updatedAt: mockDate,
-        // Mocking return value of createToken is simpler with any casting
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any)
+        record: {
+          id: 'token1',
+          tokenHint: 'a1b2',
+          name: 'cli-key',
+          userId: 'user1',
+          createdAt: mockDate,
+          updatedAt: mockDate,
+        },
+        token: 'shumai_plaintext-a1b2',
+      })
 
       const res = await app.request('/teams/t1/api-tokens', {
         method: 'POST',
@@ -539,9 +540,11 @@ describe('team api', () => {
 
       expect(res.status).toBe(200)
       const data = await res.json()
+      // The plaintext is returned exactly once, at creation
       expect(data).toEqual({
         id: 'token1',
-        token: 'ulid1',
+        token: 'shumai_plaintext-a1b2',
+        tokenHint: 'a1b2',
         name: 'cli-key',
         createdAt: '2026-06-21T00:00:00.000Z',
       })

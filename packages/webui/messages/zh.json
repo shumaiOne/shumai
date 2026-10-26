@@ -388,6 +388,9 @@
   "failed_to_revoke_token": "撤销令牌失败",
   "copied_to_clipboard": "已复制到剪贴板",
   "copied_api_token_to_clipboard": "已将 API 令牌复制到剪贴板",
+  "api_token_created_title": "保存您的 API 令牌",
+  "api_token_created_description": "请立即复制此令牌并妥善保存。出于安全考虑，它将不会再次显示。",
+  "api_token_hidden_hint": "令牌仅在创建时可见。",
   "copy_name_and_download_link": "复制名称和下载链接",
   "copied_name_and_download_link_to_clipboard": "已复制名称和下载链接到剪贴板",
 

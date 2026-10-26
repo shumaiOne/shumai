@@ -66,6 +66,7 @@ apps/web/e2e/
 | Owner removes a member via the members dialog; the membership is deleted from the DB | `tests/team/remove-member.spec.ts` |
 | Owner changes a team member role in the members dialog and permissions update | `tests/team/change-member-role.spec.ts` |
 | Owner manages resource quotas in settings and resets usage from the dashboard | `tests/team/quotas-settings.spec.ts` |
+| Owner creates an API token that is shown once, listed by hint, and authenticates API calls | `tests/team/api-tokens.spec.ts` |
 
 ### project
 | Test | File |

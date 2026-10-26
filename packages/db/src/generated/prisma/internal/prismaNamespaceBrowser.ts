@@ -706,7 +706,8 @@ export type CollectionScalarFieldEnum = (typeof CollectionScalarFieldEnum)[keyof
 
 export const ApiTokenScalarFieldEnum = {
   id: 'id',
-  token: 'token',
+  tokenHash: 'tokenHash',
+  tokenHint: 'tokenHint',
   name: 'name',
   userId: 'userId',
   createdAt: 'createdAt',

@@ -1089,7 +1089,10 @@ model Collection {
 
 model ApiToken {
   id        String   @id @default(ulid())
-  token     String   @unique @default(ulid())
+  /// SHA-256 hex digest of the plaintext token. The plaintext is never stored.
+  tokenHash String   @unique @map("token_hash")
+  /// Last characters of the plaintext token, shown in the UI to identify it.
+  tokenHint String   @map("token_hint")
   name      String
   userId    String   @map("user_id")
   user      User     @relation("UserToApiToken", fields: [userId], references: [id], onDelete: Cascade)

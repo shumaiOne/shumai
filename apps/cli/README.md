@@ -18,7 +18,8 @@ Before using the CLI, you must set the following environment variables to authen
 # The endpoint of your Shumai API server (e.g. http://localhost:3000)
 export SHUMAI_API_SERVER="http://localhost:3000"
 
-# Your personal API Token (Generate this in the WebUI via Settings -> Developer tab)
+# Your personal API Token (Generate this in the WebUI via Settings -> API Tokens tab).
+# The token is shown only once when it is created, so copy it right away.
 export SHUMAI_API_KEY="your-developer-api-token"
 
 # Optional: Enable asset deletion capability (disabled by default for safety)

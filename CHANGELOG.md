@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+* **api-token**: API tokens are now stored securely, so they can no longer be read back from the database. A new token is shown only once when you create it, so copy it right away; the token list now shows just the last few characters. Existing tokens keep working without any changes.
+
 ## [0.6.1] - 2026-10-24
 
 ### Added

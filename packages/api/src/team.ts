@@ -24,6 +24,7 @@ import {
   getTeamAiUsageQuerySchema,
   AuditAction,
 } from '@shumai/dtos'
+import type { ApiTokenResponse, CreateApiTokenResponse } from '@shumai/dtos'
 import { apiTokenService } from '@shumai/core/src/user/api-token'
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
@@ -433,10 +434,10 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     const tokens = await apiTokenService.listTokens(user.id)
     return c.json(
-      tokens.map((t) => ({
+      tokens.map((t): ApiTokenResponse => ({
         id: t.id,
-        token: t.token,
         name: t.name,
+        tokenHint: t.tokenHint,
         createdAt: t.createdAt.toISOString(),
       })),
     )
@@ -453,13 +454,15 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: teamId,
     })
 
-    const token = await apiTokenService.createToken(user.id, req.name)
-    return c.json({
-      id: token.id,
-      token: token.token,
-      name: token.name,
-      createdAt: token.createdAt.toISOString(),
-    })
+    const { record, token } = await apiTokenService.createToken(user.id, req.name)
+    const response: CreateApiTokenResponse = {
+      id: record.id,
+      name: record.name,
+      tokenHint: record.tokenHint,
+      createdAt: record.createdAt.toISOString(),
+      token,
+    }
+    return c.json(response)
   })
   .delete('/teams/:teamId/api-tokens/:tokenId', async (c) => {
     const user = c.get('user')
