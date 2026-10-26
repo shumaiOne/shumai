@@ -228,3 +228,7 @@ To set up Shumai locally for development:
 Shumai provides a Command Line Interface (CLI) tool to manage projects, folders, and assets, upload files/folders, and create new versions directly from your terminal.
 
 For more details on installation and usage, see the [CLI Readme](apps/cli/README.md).
+
+## MCP Server
+
+Shumai includes a built-in MCP server at `/api/mcp`, so external agents such as Claude Code, Cursor, or Kiro can browse and organize your projects with an API token. See the [MCP server guide](docs/developer/mcp-server.mdx) for setup.

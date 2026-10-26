@@ -259,3 +259,7 @@ Shumai 提供了独立的转码 Worker 镜像（支持 Docker Hub 与阿里云�
 Shumai 自带一个功能完备的命令行工具（CLI），支持您直接在终端里高效管理项目、文件夹、资产，批量上传文件/目录，以及快速创建新版本。
 
 关于 CLI 的安装与详细使用指南，请参阅 [CLI Readme](https://www.google.com/search?q=apps/cli/README.md)。
+
+## MCP 服务器
+
+Shumai 内置 MCP 服务器（地址为 `/api/mcp`），Claude Code、Cursor、Kiro 等外部智能体可以使用 API 令牌连接，浏览并整理您的项目。配置方法请参阅 [MCP 服务器指南](docs/developer/mcp-server.mdx)。

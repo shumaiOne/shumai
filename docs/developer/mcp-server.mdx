@@ -1,0 +1,77 @@
+---
+title: Shumai MCP Server
+description: Let external AI agents such as Claude Code, Cursor, or Kiro work with your Shumai projects.
+---
+
+Shumai includes a built-in [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server. Any MCP-compatible agent can connect to it and browse projects, create folders, and organize assets on your behalf, using the same tools as Shumai's built-in agent.
+
+<Note>
+  This page is about connecting **external agents to Shumai**. To connect Shumai's own agents to
+  other tools, see [MCP Servers](/using-shumai/mcp-servers).
+</Note>
+
+---
+
+## Connecting a Client
+
+The server uses the Streamable HTTP transport at:
+
+```
+https://<your-shumai-host>/api/mcp
+```
+
+It authenticates with an **API token**:
+
+1. In Shumai, open **Team Settings** → **API Tokens**.
+2. Enter a name (for example, `claude-code`) and click **Generate**.
+3. Copy the token from the dialog. It is only shown once.
+
+Then add the server to your client, sending the token as a Bearer header.
+
+**Claude Code**
+
+```bash
+claude mcp add --transport http shumai https://<your-shumai-host>/api/mcp \
+  --header "Authorization: Bearer <your-api-token>"
+```
+
+**Cursor, Kiro, and other clients with a JSON config**
+
+```json
+{
+  "mcpServers": {
+    "shumai": {
+      "url": "https://<your-shumai-host>/api/mcp",
+      "headers": { "Authorization": "Bearer <your-api-token>" }
+    }
+  }
+}
+```
+
+<Warning>
+  An API token acts as you: the agent can do anything your account can do in Shumai. Store it like a
+  password, use a separate token per client, and revoke tokens you no longer use from **API
+  Tokens**.
+</Warning>
+
+---
+
+## Available Tools
+
+| Tool            | What it does                                                                                          |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| `list_projects` | Lists the projects you can access, with each project's root folder.                                   |
+| `list_assets`   | Lists files and folders in a folder, page by page.                                                    |
+| `create_folder` | Creates a folder.                                                                                     |
+| `rename_asset`  | Renames a file or folder.                                                                             |
+| `move_assets`   | Moves files or folders into another folder.                                                           |
+| `delete_asset`  | Moves a file or folder to the project trash. Marked as destructive so clients can ask you to confirm. |
+
+Every call runs with your permissions: for example, a **Reviewer** can list assets but cannot create or rename them. Actions are recorded in the team audit log and attributed to you, marked as coming from MCP.
+
+---
+
+## Troubleshooting
+
+- **401 Unauthorized**: The token is missing, mistyped, or revoked. Generate a new token and update your client configuration.
+- **Permission errors on a tool call**: Your role in that team or project does not allow the action.

@@ -11,8 +11,10 @@ import inviteRoute from './invite'
 import metadataRoute from './metadata'
 import mcpRoute, { mcpOauthCallbackRoute } from './mcp'
 import { authMiddleware } from './middleware/auth'
-import { tokenAuthMiddleware } from './middleware/tokenAuth'
+import { requireApiTokenMiddleware, tokenAuthMiddleware } from './middleware/tokenAuth'
+import mcpServerRoute from './mcp-server'
 import notificationRoute from './notification'
+import operationsRoute from './operations'
 import projectRoute from './project'
 import providerRoute from './provider'
 import publicInviteRoute from './public-invite'
@@ -39,6 +41,12 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', publicShareRoute)
   .route('/', localUploadRoute)
   .route('/', mcpOauthCallbackRoute)
+
+  // Programmatic endpoints: API token required, session cookies not accepted
+  .use('/ops/*', requireApiTokenMiddleware)
+  .use('/mcp', requireApiTokenMiddleware)
+  .route('/', operationsRoute)
+  .route('/', mcpServerRoute)
 
   // Selected routes supporting API token authentication
   .use('/projects', tokenAuthMiddleware)

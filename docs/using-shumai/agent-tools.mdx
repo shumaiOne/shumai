@@ -37,52 +37,57 @@ The following tools can be individually toggled in the agent configuration dialo
 
 ### 4. Browse Shumai (`list_assets`)
 
-- **Description:** Allows the agent to list folders and browse files in Shumai.
+- **Description:** Allows the agent to list folders and browse files in Shumai. Large folders are returned page by page.
 - **Why it matters:** Gives the agent visual mapping of the project structure so it can search for other files or locate related assets.
 
-### 5. Create Folder (`create_folder`)
+### 5. List Projects (`list_projects`)
+
+- **Description:** Allows the agent to list the projects you have access to across your teams, including each project's root folder.
+- **Why it matters:** Lets the agent find the right project and its root folder on its own before browsing or creating files.
+
+### 6. Create Folder (`create_folder`)
 
 - **Description:** Allows the agent to create new folders in Shumai.
 - **Why it matters:** Needed if the agent organizes outputs or places files in custom subdirectory folders.
 
-### 6. Create File (`create_file`)
+### 7. Create File (`create_file`)
 
 - **Description:** Allows the agent to create and upload new files to Shumai.
 - **Why it matters:** Allows the agent to generate new assets (e.g. text logs, transcoded clips, reports) and save them directly back into your project.
 
-### 7. Create Version (`create_version`)
+### 8. Create Version (`create_version`)
 
 - **Description:** Allows the agent to upload and stack a new version of an existing file in Shumai.
 - **Why it matters:** Allows the agent to update files in a clean, non-destructive way by stacking revisions rather than creating duplicate files.
 
-### 8. Generate Image (`generate_image`)
+### 9. Generate Image (`generate_image`)
 
 - **Description:** Allows the agent to generate still images from text prompts and reference images using configured AI image models.
 - **Why it matters:** Enables agents to create concept art, mockups, textures, and illustrations directly inside Shumai.
 - **Prerequisite:** This tool requires at least one image model to be configured and enabled in [Image / Video Generation](/using-shumai/image-video-generation). If no image models are enabled under a configured provider, this tool is omitted from the agent session even if enabled in the agent settings dialog.
 
-### 9. Generate Video (`generate_video`)
+### 10. Generate Video (`generate_video`)
 
 - **Description:** Allows the agent to generate video clips from text prompts, image animation, or transition keyframes using configured AI video models.
 - **Why it matters:** Enables agents to produce short animated clips, camera motion shots, and video transitions.
 - **Prerequisite:** This tool requires at least one video model to be configured and enabled in [Image / Video Generation](/using-shumai/image-video-generation). If no video models are enabled under a configured provider, this tool is omitted from the agent session even if enabled in the agent settings dialog.
 
-### 10. Download Asset (`download_asset`)
+### 11. Download Asset (`download_asset`)
 
 - **Description:** Allows the agent to download a workspace asset or specific storage S3 key to the local `.pi` directory for processing with local scripts or bash commands.
 - **Why it matters:** Enables agents executing custom skill scripts to fetch files or intermediate transcode artifacts to local disk.
 
-### 11. Rename Asset (`rename_asset`)
+### 12. Rename Asset (`rename_asset`)
 
 - **Description:** Allows the agent to rename an existing file or folder in Shumai.
 - **Why it matters:** Enables agents to keep project files neatly named and organized according to workspace naming conventions. Enabled by default.
 
-### 12. Move Assets (`move_assets`)
+### 13. Move Assets (`move_assets`)
 
 - **Description:** Allows the agent to move one or more assets to a destination parent folder.
 - **Why it matters:** Enables agents to reorganize workspace structures, relocate generated outputs, or tidy up project folders. Enabled by default.
 
-### 13. Delete Asset (`delete_asset`)
+### 14. Delete Asset (`delete_asset`)
 
 - **Description:** Allows the agent to delete a single file or folder by moving it to the Trash bin.
 - **Why it matters:** Provides agents with the ability to clean up outdated or redundant assets. To prevent accidental data loss, this tool is **disabled by default** and strictly limited to deleting one asset at a time. Team Owners must explicitly enable this tool for an agent.

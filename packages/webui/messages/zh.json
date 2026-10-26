@@ -609,6 +609,8 @@
   "agent_tool_read_skill_desc": "允许智能体加载和读取技能定义以执行特定操作。",
   "agent_tool_read_asset_name": "读取资源",
   "agent_tool_read_asset_desc": "允许智能体查看和分析图片、视频画面和文档页面。",
+  "agent_tool_list_projects_name": "列出项目",
+  "agent_tool_list_projects_desc": "允许智能体列出您有权访问的项目并找到其根文件夹。",
   "agent_tool_list_assets_name": "浏览 Shumai",
   "agent_tool_list_assets_desc": "允许智能体列出文件夹并浏览 Shumai 中的文件。",
   "agent_tool_create_folder_name": "创建文件夹",

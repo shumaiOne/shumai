@@ -8,7 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-* **agent**: The built-in agent can now list the projects you have access to, so it can find a project's root folder on its own
+* **mcp**: Shumai now has a built-in MCP server, so external AI agents such as Claude Code, Cursor, or Kiro can browse projects and create, rename, move, or delete folders and files with your API token and permissions
+* **agent**: The built-in agent can now list the projects you have access to, so it can find a project's root folder on its own. Team owners can turn this off per agent like other tools
 
 ### Fixed
 

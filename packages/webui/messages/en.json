@@ -609,6 +609,8 @@
   "agent_tool_read_skill_desc": "Allows the agent to load and read skill definitions to perform specialized actions.",
   "agent_tool_read_asset_name": "Read Asset",
   "agent_tool_read_asset_desc": "Allows the agent to view and inspect images, video frames, and document pages.",
+  "agent_tool_list_projects_name": "List Projects",
+  "agent_tool_list_projects_desc": "Allows the agent to list the projects you have access to and find their root folders.",
   "agent_tool_list_assets_name": "Browse Shumai",
   "agent_tool_list_assets_desc": "Allows the agent to list folders and browse files in Shumai.",
   "agent_tool_create_folder_name": "Create Folder",

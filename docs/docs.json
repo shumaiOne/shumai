@@ -72,6 +72,10 @@
         ]
       },
       {
+        "group": "Developer",
+        "pages": ["developer/mcp-server"]
+      },
+      {
         "group": "Configuration",
         "pages": ["configuration/env-variables", "configuration/hardware-transcoding"]
       },

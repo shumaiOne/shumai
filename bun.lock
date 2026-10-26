@@ -172,6 +172,7 @@
       "version": "0.6.1",
       "dependencies": {
         "@hono/zod-validator": "0.7.6",
+        "@modelcontextprotocol/server": "2.0.0",
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
         "@shumai/dtos": "workspace:*",
@@ -180,6 +181,9 @@
         "pino": "10.3.1",
         "ulid": "3.0.2",
         "zod": "4.5.4",
+      },
+      "devDependencies": {
+        "@modelcontextprotocol/client": "2.0.0",
       },
     },
     "packages/core": {
