@@ -10,6 +10,7 @@
     "@shumai/core": "workspace:*",
     "@shumai/db": "workspace:*",
     "@shumai/dtos": "workspace:*",
+    "@shumai/operations": "workspace:*",
     "hono": "4.13.5",
     "pino": "10.3.1",
     "ulid": "3.0.2",

@@ -33,6 +33,7 @@
     "@modelcontextprotocol/client": "2.0.0",
     "@shumai/db": "workspace:*",
     "@shumai/dtos": "workspace:*",
+    "@shumai/operations": "workspace:*",
     "@sinclair/typebox": "0.34.52",
     "adm-zip": "0.6.0",
     "ai": "7.0.84",

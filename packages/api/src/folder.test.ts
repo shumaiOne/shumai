@@ -5,6 +5,8 @@ import { assetService } from '@shumai/core/src/asset/asset'
 import { searchService } from '@shumai/core/src/search/search'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
 import { authMiddleware } from './middleware/auth'
+import { HTTPException } from 'hono/http-exception'
+import { createFolderOp, renameAssetOp, runOperation } from '@shumai/core/src/operations'
 
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
@@ -34,6 +36,11 @@ vi.mock('./middleware/auth', () => ({
     c.set('user', { id: 'user1', name: 'Test User' })
     await next()
   },
+}))
+
+vi.mock('@shumai/core/src/operations', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@shumai/core/src/operations')>()),
+  runOperation: vi.fn(),
 }))
 
 describe('folder api', () => {
@@ -81,17 +88,9 @@ describe('folder api', () => {
     })
   })
 
-  it('PUT /folders/:folderId', async () => {
-    vi.mocked(assetService.updateAssetName).mockResolvedValue({
-      id: 'test-id',
-      name: 'new-name',
-      sizeByte: 10,
-      fileCount: 1,
-      type: 'folder',
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })
+  it('PUT /folders/:folderId runs rename_asset', async () => {
+    const summary = { id: 'test-id', name: 'new-name', type: 'folder', size: 10, projectId: 'p1' }
+    vi.mocked(runOperation).mockResolvedValue(summary)
 
     const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
     const res = await app.request('/folders/test-id', {
@@ -101,35 +100,17 @@ describe('folder api', () => {
     })
 
     expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(json.name).toBe('new-name')
-
-    expect(authzService.hasPermission).toHaveBeenCalledWith({
-      user: { id: 'user1', name: 'Test User' },
-      permission: Permission.Edit,
-      type: ResourceType.Asset,
-      id: 'test-id',
-    })
-    expect(auditLogService.logAction).toHaveBeenCalledWith({
-      action: 'folder_update',
-      teamId: 'test-team',
-      userId: 'user1',
-      projectId: undefined,
-      itemId: 'test-id',
-    })
+    expect(await res.json()).toEqual(summary)
+    expect(runOperation).toHaveBeenCalledWith(
+      renameAssetOp,
+      { userId: 'user1', via: 'api' },
+      { assetId: 'test-id', name: 'new-name' },
+    )
   })
 
-  it('POST /folders', async () => {
-    vi.mocked(assetService.createAsset).mockResolvedValue({
-      id: 'new-id',
-      name: 'new-folder',
-      sizeByte: 0,
-      fileCount: 0,
-      type: 'folder',
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })
+  it('POST /folders runs create_folder', async () => {
+    const summary = { id: 'new-id', name: 'new-folder', type: 'folder', size: 0, projectId: 'p1' }
+    vi.mocked(runOperation).mockResolvedValue(summary)
 
     const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
     const res = await app.request('/folders', {
@@ -139,22 +120,25 @@ describe('folder api', () => {
     })
 
     expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(json.name).toBe('new-folder')
+    expect(await res.json()).toEqual(summary)
+    expect(runOperation).toHaveBeenCalledWith(
+      createFolderOp,
+      { userId: 'user1', via: 'api' },
+      { parent: 'parent-id', name: 'new-folder' },
+    )
+  })
 
-    expect(authzService.hasPermission).toHaveBeenCalledWith({
-      user: { id: 'user1', name: 'Test User' },
-      permission: Permission.Edit,
-      type: ResourceType.Asset,
-      id: 'parent-id',
+  it('POST /folders surfaces Operation errors with their status', async () => {
+    vi.mocked(runOperation).mockRejectedValue(new HTTPException(403, { message: 'Forbidden' }))
+
+    const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
+    const res = await app.request('/folders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'new-folder', parentId: 'parent-id' }),
     })
-    expect(auditLogService.logAction).toHaveBeenCalledWith({
-      action: 'folder_create',
-      teamId: 'test-team',
-      userId: 'user1',
-      projectId: undefined,
-      itemId: 'new-id',
-    })
+
+    expect(res.status).toBe(403)
   })
 
   it('GET /folders/:folderId/children', async () => {

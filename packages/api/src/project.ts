@@ -18,6 +18,7 @@ import {
 import { listMembersQuerySchema, AuditAction } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { moveAssetsOp, runOperation } from '@shumai/core/src/operations'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -291,46 +292,13 @@ const route = new Hono<{ Variables: { user: User } }>()
     '/projects/:projectId/reparent',
     zValidator('json', reparentAssetsRequestSchema),
     async (c) => {
-      const projectId = c.req.param('projectId')
-      const user = c.get('user')
       const req = c.req.valid('json')
-
-      // Check Edit permission on target folder/project
-      await authzService.hasPermission({
-        user,
-        permission: Permission.Edit,
-        type: ResourceType.Asset,
-        id: req.newParentId,
-      })
-
-      // Check Edit permission on all source assets
-      for (const assetId of req.assetIds) {
-        await authzService.hasPermission({
-          user,
-          permission: Permission.Edit,
-          type: ResourceType.Asset,
-          id: assetId,
-        })
-      }
-
-      await assetService.reparentAssets({
-        ...req,
-        creatorId: user.id,
-      })
-
-      const teamId = await projectService.getProjectTeam(projectId).catch(() => null)
-      if (teamId) {
-        for (const assetId of req.assetIds) {
-          await auditLogService.logAction({
-            action: AuditAction.asset_reparent,
-            teamId,
-            userId: user.id,
-            projectId,
-            itemId: assetId,
-          })
-        }
-      }
-
+      // Team/project for authorization and audit come from the assets themselves, not the path.
+      await runOperation(
+        moveAssetsOp,
+        { userId: c.get('user').id, via: 'api' },
+        { assetIds: req.assetIds, newParentId: req.newParentId },
+      )
       return c.body(null, 204)
     },
   )

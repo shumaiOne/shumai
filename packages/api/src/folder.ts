@@ -14,37 +14,19 @@ import { listChildrenRequestSchema, updateAssetOrderRequestSchema, AuditAction }
 import { searchRequestSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { createFolderOp, renameAssetOp, runOperation } from '@shumai/core/src/operations'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
 const route = new Hono<{ Variables: { user: User } }>()
   .post('/folders', zValidator('json', createFolderRequestSchema), async (c) => {
-    const user = c.get('user')
     const req = c.req.valid('json')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Edit,
-      type: ResourceType.Asset,
-      id: req.parentId,
-    })
-
-    const newAsset = await assetService.createAsset({
-      name: req.name,
-      parentId: req.parentId,
-      type: 'folder',
-    })
-
-    const parentCtx = await assetService.getAssetContext(req.parentId)
-    await auditLogService.logAction({
-      action: AuditAction.folder_create,
-      teamId: parentCtx.teamId,
-      userId: user.id,
-      projectId: parentCtx.projectId,
-      itemId: newAsset.id,
-    })
-
-    return c.json(newAsset)
+    const folder = await runOperation(
+      createFolderOp,
+      { userId: c.get('user').id, via: 'api' },
+      { parent: req.parentId, name: req.name },
+    )
+    return c.json(folder)
   })
   .patch(
     '/folders/:folderId/order',
@@ -66,32 +48,13 @@ const route = new Hono<{ Variables: { user: User } }>()
     },
   )
   .put('/folders/:folderId', zValidator('json', updateFolderRequestSchema), async (c) => {
-    const folderId = c.req.param('folderId')
-    const user = c.get('user')
     const req = c.req.valid('json')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Edit,
-      type: ResourceType.Asset,
-      id: folderId,
-    })
-
-    const updatedAsset = await assetService.updateAssetName({
-      id: folderId,
-      name: req.name,
-    })
-
-    const ctx = await assetService.getAssetContext(folderId)
-    await auditLogService.logAction({
-      action: AuditAction.folder_update,
-      teamId: ctx.teamId,
-      userId: user.id,
-      projectId: ctx.projectId,
-      itemId: folderId,
-    })
-
-    return c.json(updatedAsset)
+    const folder = await runOperation(
+      renameAssetOp,
+      { userId: c.get('user').id, via: 'api' },
+      { assetId: c.req.param('folderId'), name: req.name },
+    )
+    return c.json(folder)
   })
   .get('/folders/:folderId', async (c) => {
     const folderId = c.req.param('folderId')

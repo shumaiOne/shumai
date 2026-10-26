@@ -1140,6 +1140,24 @@ export class AssetService {
     throw new Error(`Asset has no team context: ${assetId}`)
   }
 
+  /**
+   * Lightweight lookup of an asset's type and team/project, without building a full AssetInfo
+   * (no presigned URLs). Use it to capture context before a mutation such as a delete.
+   */
+  async getAssetMeta(
+    assetId: string,
+  ): Promise<{ id: string; name: string; type: AssetType; teamId: string; projectId?: string }> {
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: assetId },
+      select: { id: true, name: true, type: true },
+    })
+    if (!asset) {
+      throw new HTTPException(404, { message: 'Asset not found' })
+    }
+    const { teamId, projectId } = await this.getAssetContext(assetId)
+    return { ...asset, teamId, projectId }
+  }
+
   async resolveTargetAssetId(assetId: string): Promise<string> {
     const asset = await this.prismaClient.asset.findUnique({
       where: { id: assetId },

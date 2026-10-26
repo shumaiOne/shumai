@@ -8,6 +8,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core'
 import { authMiddleware } from './middleware/auth'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
+import { renameAssetOp, runOperation } from '@shumai/core/src/operations'
 
 vi.mock('fs', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>
@@ -53,6 +54,11 @@ vi.mock('./middleware/auth', () => ({
     c.set('user', { id: 'user1', name: 'Test User' })
     await next()
   },
+}))
+
+vi.mock('@shumai/core/src/operations', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@shumai/core/src/operations')>()),
+  runOperation: vi.fn(),
 }))
 
 describe('file api', () => {
@@ -114,18 +120,9 @@ describe('file api', () => {
     })
   })
 
-  it('PUT /files/:fileId', async () => {
-    vi.mocked(assetService.updateAssetName).mockResolvedValue({
-      id: 'test-id',
-      name: 'new-name',
-      sizeByte: 10,
-      fileCount: 1,
-      type: 'file',
-      status: 'active',
-      proxyType: 'image',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })
+  it('PUT /files/:fileId runs rename_asset', async () => {
+    const summary = { id: 'test-id', name: 'new-name', type: 'file', size: 10, projectId: 'p1' }
+    vi.mocked(runOperation).mockResolvedValue(summary)
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
     const res = await app.request('/files/test-id', {
@@ -135,22 +132,12 @@ describe('file api', () => {
     })
 
     expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(json.name).toBe('new-name')
-
-    expect(authzService.hasPermission).toHaveBeenCalledWith({
-      user: { id: 'user1', name: 'Test User' },
-      permission: Permission.Edit,
-      type: ResourceType.Asset,
-      id: 'test-id',
-    })
-    expect(auditLogService.logAction).toHaveBeenCalledWith({
-      action: 'file_update',
-      teamId: 'test-team',
-      userId: 'user1',
-      projectId: undefined,
-      itemId: 'test-id',
-    })
+    expect(await res.json()).toEqual(summary)
+    expect(runOperation).toHaveBeenCalledWith(
+      renameAssetOp,
+      { userId: 'user1', via: 'api' },
+      { assetId: 'test-id', name: 'new-name' },
+    )
   })
 
   it('DELETE /files', async () => {

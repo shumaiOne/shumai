@@ -93,6 +93,26 @@ export default tseslint.config(
     },
   },
   {
+    // Operations hold policy and orchestration only; data access belongs in core services.
+    files: ['packages/core/src/operations/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@shumai/db',
+              importNames: ['prisma'],
+              message: 'Operations must call core services instead of the Prisma client.',
+              allowTypeImports: true,
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.test.ts', '**/*.test.tsx'],
     rules: {
       '@typescript-eslint/naming-convention': baseNamingConvention.map((q) => {

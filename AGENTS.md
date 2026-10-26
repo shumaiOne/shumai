@@ -153,6 +153,7 @@ The project is a monorepo managed by **Bun Workspaces**. It follows a strictly d
 2.  **Core Layer** calls **Database Layer** and other Core services.
 3.  **DTO Layer** is imported by all layers to ensure end-to-end type safety.
 4.  **No Direct DB Leak**: Do not return Prisma objects directly from the API; always map them to DTOs.
+5.  **Operations First**: If an Operation exists for an action (see [Operations](#operations)), API routes must call it via `runOperation` instead of re-implementing its permission checks and audit logging. UI-only routes (ordering, recents, settings, multi-id variants, etc.) keep calling services directly.
 
 ## Dependency Management
 
@@ -207,6 +208,32 @@ We use a root-level `tsconfig.json` to manage path mappings for the entire works
   export default route
   ```
 - **Type Safety**: Use `zValidator` for request validation (query, json, form) to ensure full end-to-end type safety with the Hono RPC client.
+
+### Operations
+
+An **Operation** is a capability agents can use, defined once and exposed automatically on every surface: Shumai's built-in agent tools, the MCP server, and `shumai-cli`. Its implementation holds the policy (permission checks, audit logging) and orchestration; the work itself is done by core services.
+
+- **Definition** (`packages/operations/src/**`, package `@shumai/operations`): name (snake_case, used as the tool name), title, description written for an LLM, Zod `input`/`output` schemas with `.describe()` on every field, `surfaces`, `annotations` (`readOnly`, `destructive`, `idempotent`), and optional `cli` metadata. This package must stay free of server dependencies (no `@shumai/core`/`@shumai/db`) so clients like the CLI can import it.
+  ```typescript
+  export const createFolder = defineOperation({
+    name: 'create_folder',
+    title: 'Create Folder',
+    description: 'Create a new folder in a specified parent folder.',
+    input: z.object({ parent: z.string().describe('...'), name: z.string().describe('...') }),
+    output: assetSummarySchema,
+    surfaces: ['agent', 'mcp', 'cli'],
+    annotations: { readOnly: false, destructive: false },
+    cli: { command: ['mkdir'], positional: ['name'], flags: { parent: ['-p', '--parent'] } },
+  })
+  ```
+- **Implementation** (`packages/core/src/operations/**`): `implementOperation(definition, { authz, prepare?, execute, audit? })`.
+  - `authz` returns every permission the input requires; all are checked before any side effect.
+  - `execute` calls core services only. **Importing the `prisma` client in Operations is forbidden** (enforced by lint), which is stricter than DBOS activities. Add a service method if one is missing.
+  - `audit` returns entries; team/project are resolved from the affected asset, never trusted from the caller.
+  - Outputs are DTOs (validated against the output schema), never Prisma objects.
+- **Register** the definition in `packages/operations/src/registry.ts` and the implementation in `packages/core/src/operations/registry.ts`. A definition without an implementation fails typecheck.
+- **Run** Operations only through `runOperation(op, { userId, via, agentId? }, input)`. `via` (`api`, `agent`, `mcp`, `cli`) is recorded in audit logs.
+- **Tests**: real-database tests per Operation covering success, permission denial (no side effects), and audit entries.
 
 ## Frontend Architecture
 

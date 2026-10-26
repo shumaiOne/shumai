@@ -1132,6 +1132,8 @@ model AuditLog {
   agentId   String?     @map("agent_id")
   projectId String?     @map("project_id")
   itemId    String?     @map("item_id")
+  /// Surface the action came through: api, agent, mcp, or cli. Null for actions recorded outside Operations.
+  via       String?     @map("via")
   createdAt DateTime    @default(now()) @map("created_at")
 
   team    Team     @relation("TeamToAuditLog", fields: [teamId], references: [id], onDelete: Cascade)

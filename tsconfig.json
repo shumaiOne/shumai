@@ -20,6 +20,8 @@
       "@shumai/db/enums": ["./packages/db/src/generated/prisma/enums.ts"],
       "@shumai/db/test": ["./packages/db/src/test.ts"],
       "@shumai/dtos": ["./packages/dtos/src/index.ts"],
+      "@shumai/operations": ["./packages/operations/src/index.ts"],
+      "@shumai/operations/src/*": ["./packages/operations/src/*"],
       "@shumai/workflow-core": ["./packages/workflow-core/src/index.ts"],
       "@shumai/workflow-core/src/*": ["./packages/workflow-core/src/*"],
       "@shumai/agent": ["./packages/agent/src/index.ts"],

@@ -154,6 +154,7 @@
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
         "@shumai/dtos": "workspace:*",
+        "@shumai/operations": "workspace:*",
         "@shumai/workflow-core": "workspace:*",
         "adm-zip": "0.6.0",
         "jittered-fractional-indexing": "1.0.1",
@@ -174,6 +175,7 @@
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
         "@shumai/dtos": "workspace:*",
+        "@shumai/operations": "workspace:*",
         "hono": "4.13.5",
         "pino": "10.3.1",
         "ulid": "3.0.2",
@@ -211,6 +213,7 @@
         "@modelcontextprotocol/client": "2.0.0",
         "@shumai/db": "workspace:*",
         "@shumai/dtos": "workspace:*",
+        "@shumai/operations": "workspace:*",
         "@sinclair/typebox": "0.34.52",
         "adm-zip": "0.6.0",
         "ai": "7.0.84",
@@ -278,6 +281,13 @@
         "@shumai/transcode": "workspace:*",
         "@shumai/workflow-core": "workspace:*",
         "sharp": "0.35.4",
+      },
+    },
+    "packages/operations": {
+      "name": "@shumai/operations",
+      "version": "0.6.1",
+      "dependencies": {
+        "zod": "4.5.4",
       },
     },
     "packages/tableprinter": {
@@ -1108,6 +1118,8 @@
     "@shumai/dtos": ["@shumai/dtos@workspace:packages/dtos"],
 
     "@shumai/e2e": ["@shumai/e2e@workspace:packages/e2e"],
+
+    "@shumai/operations": ["@shumai/operations@workspace:packages/operations"],
 
     "@shumai/premiere-uxp": ["@shumai/premiere-uxp@workspace:apps/premiere-uxp"],
 

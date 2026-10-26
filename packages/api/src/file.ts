@@ -6,6 +6,7 @@ import { notificationService } from '@shumai/core/src/notification/notification'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { renameAssetOp, runOperation } from '@shumai/core/src/operations'
 import {
   createCommentRequestSchema,
   deleteFilesRequestSchema,
@@ -63,32 +64,13 @@ const route = new Hono<{ Variables: { user: User } }>()
     return c.json(updated)
   })
   .put('/files/:fileId', zValidator('json', updateFileRequestSchema), async (c) => {
-    const fileId = c.req.param('fileId')
-    const user = c.get('user')
     const req = c.req.valid('json')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Edit,
-      type: ResourceType.Asset,
-      id: fileId,
-    })
-
-    const updatedAsset = await assetService.updateAssetName({
-      id: fileId,
-      name: req.name,
-    })
-
-    const context = await assetService.getAssetContext(fileId)
-    await auditLogService.logAction({
-      action: AuditAction.file_update,
-      teamId: context.teamId,
-      userId: user.id,
-      projectId: context.projectId,
-      itemId: fileId,
-    })
-
-    return c.json(updatedAsset)
+    const file = await runOperation(
+      renameAssetOp,
+      { userId: c.get('user').id, via: 'api' },
+      { assetId: c.req.param('fileId'), name: req.name },
+    )
+    return c.json(file)
   })
   .delete('/files', zValidator('json', deleteFilesRequestSchema), async (c) => {
     const user = c.get('user')

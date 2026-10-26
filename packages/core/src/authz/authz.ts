@@ -30,7 +30,8 @@ export enum ResourceType {
 }
 
 export interface AuthzRequest {
-  user: User
+  /** Only the user's ID is used, so callers that only know the ID can pass `{ id }`. */
+  user: Pick<User, 'id'>
   permission: Permission
   type: ResourceType
   id: string

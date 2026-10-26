@@ -1,6 +1,7 @@
 import { prisma } from '@shumai/db'
 import type { Prisma } from '@shumai/db'
 import type { AuditAction } from '@shumai/dtos'
+import type { Via } from '@shumai/operations'
 import { paginateQuery } from '@shumai/core/src/pagination'
 import { logger } from '@shumai/core/src/logger'
 
@@ -11,6 +12,8 @@ export interface LogActionParams {
   agentId?: string
   projectId?: string
   itemId?: string
+  /** Surface the action came through. Set by Operations; omitted elsewhere. */
+  via?: Via
 }
 
 export interface ListAuditLogsParams {
@@ -34,6 +37,7 @@ export class AuditLogService {
           agentId: params.agentId,
           projectId: params.projectId,
           itemId: params.itemId,
+          via: params.via,
         },
       })
     } catch (err) {

@@ -1,0 +1,11 @@
+{
+  "name": "@shumai/operations",
+  "version": "0.6.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "zod": "4.5.4"
+  }
+}

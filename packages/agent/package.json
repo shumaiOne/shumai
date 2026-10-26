@@ -13,6 +13,7 @@
     "@shumai/core": "workspace:*",
     "@shumai/db": "workspace:*",
     "@shumai/dtos": "workspace:*",
+    "@shumai/operations": "workspace:*",
     "@shumai/workflow-core": "workspace:*",
     "adm-zip": "0.6.0",
     "jittered-fractional-indexing": "1.0.1",

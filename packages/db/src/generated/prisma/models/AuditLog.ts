@@ -34,6 +34,7 @@ export type AuditLogMinAggregateOutputType = {
   agentId: string | null
   projectId: string | null
   itemId: string | null
+  via: string | null
   createdAt: Date | null
 }
 
@@ -45,6 +46,7 @@ export type AuditLogMaxAggregateOutputType = {
   agentId: string | null
   projectId: string | null
   itemId: string | null
+  via: string | null
   createdAt: Date | null
 }
 
@@ -56,6 +58,7 @@ export type AuditLogCountAggregateOutputType = {
   agentId: number
   projectId: number
   itemId: number
+  via: number
   createdAt: number
   _all: number
 }
@@ -69,6 +72,7 @@ export type AuditLogMinAggregateInputType = {
   agentId?: true
   projectId?: true
   itemId?: true
+  via?: true
   createdAt?: true
 }
 
@@ -80,6 +84,7 @@ export type AuditLogMaxAggregateInputType = {
   agentId?: true
   projectId?: true
   itemId?: true
+  via?: true
   createdAt?: true
 }
 
@@ -91,6 +96,7 @@ export type AuditLogCountAggregateInputType = {
   agentId?: true
   projectId?: true
   itemId?: true
+  via?: true
   createdAt?: true
   _all?: true
 }
@@ -175,6 +181,7 @@ export type AuditLogGroupByOutputType = {
   agentId: string | null
   projectId: string | null
   itemId: string | null
+  via: string | null
   createdAt: Date
   _count: AuditLogCountAggregateOutputType | null
   _min: AuditLogMinAggregateOutputType | null
@@ -207,6 +214,7 @@ export type AuditLogWhereInput = {
   agentId?: Prisma.StringNullableFilter<"AuditLog"> | string | null
   projectId?: Prisma.StringNullableFilter<"AuditLog"> | string | null
   itemId?: Prisma.StringNullableFilter<"AuditLog"> | string | null
+  via?: Prisma.StringNullableFilter<"AuditLog"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AuditLog"> | Date | string
   team?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -222,6 +230,7 @@ export type AuditLogOrderByWithRelationInput = {
   agentId?: Prisma.SortOrderInput | Prisma.SortOrder
   projectId?: Prisma.SortOrderInput | Prisma.SortOrder
   itemId?: Prisma.SortOrderInput | Prisma.SortOrder
+  via?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   team?: Prisma.TeamOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
@@ -240,6 +249,7 @@ export type AuditLogWhereUniqueInput = Prisma.AtLeast<{
   agentId?: Prisma.StringNullableFilter<"AuditLog"> | string | null
   projectId?: Prisma.StringNullableFilter<"AuditLog"> | string | null
   itemId?: Prisma.StringNullableFilter<"AuditLog"> | string | null
+  via?: Prisma.StringNullableFilter<"AuditLog"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AuditLog"> | Date | string
   team?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -255,6 +265,7 @@ export type AuditLogOrderByWithAggregationInput = {
   agentId?: Prisma.SortOrderInput | Prisma.SortOrder
   projectId?: Prisma.SortOrderInput | Prisma.SortOrder
   itemId?: Prisma.SortOrderInput | Prisma.SortOrder
+  via?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.AuditLogCountOrderByAggregateInput
   _max?: Prisma.AuditLogMaxOrderByAggregateInput
@@ -272,6 +283,7 @@ export type AuditLogScalarWhereWithAggregatesInput = {
   agentId?: Prisma.StringNullableWithAggregatesFilter<"AuditLog"> | string | null
   projectId?: Prisma.StringNullableWithAggregatesFilter<"AuditLog"> | string | null
   itemId?: Prisma.StringNullableWithAggregatesFilter<"AuditLog"> | string | null
+  via?: Prisma.StringNullableWithAggregatesFilter<"AuditLog"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AuditLog"> | Date | string
 }
 
@@ -279,6 +291,7 @@ export type AuditLogCreateInput = {
   id?: string
   action: string
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
   team: Prisma.TeamCreateNestedOneWithoutAuditLogsInput
   user?: Prisma.UserCreateNestedOneWithoutAuditLogsInput
@@ -294,6 +307,7 @@ export type AuditLogUncheckedCreateInput = {
   agentId?: string | null
   projectId?: string | null
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
 }
 
@@ -301,6 +315,7 @@ export type AuditLogUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.StringFieldUpdateOperationsInput | string
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutAuditLogsNestedInput
   user?: Prisma.UserUpdateOneWithoutAuditLogsNestedInput
@@ -316,6 +331,7 @@ export type AuditLogUncheckedUpdateInput = {
   agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -327,6 +343,7 @@ export type AuditLogCreateManyInput = {
   agentId?: string | null
   projectId?: string | null
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
 }
 
@@ -334,6 +351,7 @@ export type AuditLogUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.StringFieldUpdateOperationsInput | string
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -345,6 +363,7 @@ export type AuditLogUncheckedUpdateManyInput = {
   agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -366,6 +385,7 @@ export type AuditLogCountOrderByAggregateInput = {
   agentId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   itemId?: Prisma.SortOrder
+  via?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -377,6 +397,7 @@ export type AuditLogMaxOrderByAggregateInput = {
   agentId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   itemId?: Prisma.SortOrder
+  via?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -388,6 +409,7 @@ export type AuditLogMinOrderByAggregateInput = {
   agentId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   itemId?: Prisma.SortOrder
+  via?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -563,6 +585,7 @@ export type AuditLogCreateWithoutUserInput = {
   id?: string
   action: string
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
   team: Prisma.TeamCreateNestedOneWithoutAuditLogsInput
   agent?: Prisma.AgentCreateNestedOneWithoutAuditLogsInput
@@ -576,6 +599,7 @@ export type AuditLogUncheckedCreateWithoutUserInput = {
   agentId?: string | null
   projectId?: string | null
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
 }
 
@@ -616,6 +640,7 @@ export type AuditLogScalarWhereInput = {
   agentId?: Prisma.StringNullableFilter<"AuditLog"> | string | null
   projectId?: Prisma.StringNullableFilter<"AuditLog"> | string | null
   itemId?: Prisma.StringNullableFilter<"AuditLog"> | string | null
+  via?: Prisma.StringNullableFilter<"AuditLog"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AuditLog"> | Date | string
 }
 
@@ -623,6 +648,7 @@ export type AuditLogCreateWithoutTeamInput = {
   id?: string
   action: string
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
   user?: Prisma.UserCreateNestedOneWithoutAuditLogsInput
   agent?: Prisma.AgentCreateNestedOneWithoutAuditLogsInput
@@ -636,6 +662,7 @@ export type AuditLogUncheckedCreateWithoutTeamInput = {
   agentId?: string | null
   projectId?: string | null
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
 }
 
@@ -669,6 +696,7 @@ export type AuditLogCreateWithoutProjectInput = {
   id?: string
   action: string
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
   team: Prisma.TeamCreateNestedOneWithoutAuditLogsInput
   user?: Prisma.UserCreateNestedOneWithoutAuditLogsInput
@@ -682,6 +710,7 @@ export type AuditLogUncheckedCreateWithoutProjectInput = {
   userId?: string | null
   agentId?: string | null
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
 }
 
@@ -715,6 +744,7 @@ export type AuditLogCreateWithoutAgentInput = {
   id?: string
   action: string
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
   team: Prisma.TeamCreateNestedOneWithoutAuditLogsInput
   user?: Prisma.UserCreateNestedOneWithoutAuditLogsInput
@@ -728,6 +758,7 @@ export type AuditLogUncheckedCreateWithoutAgentInput = {
   userId?: string | null
   projectId?: string | null
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
 }
 
@@ -764,6 +795,7 @@ export type AuditLogCreateManyUserInput = {
   agentId?: string | null
   projectId?: string | null
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
 }
 
@@ -771,6 +803,7 @@ export type AuditLogUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.StringFieldUpdateOperationsInput | string
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutAuditLogsNestedInput
   agent?: Prisma.AgentUpdateOneWithoutAuditLogsNestedInput
@@ -784,6 +817,7 @@ export type AuditLogUncheckedUpdateWithoutUserInput = {
   agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -794,6 +828,7 @@ export type AuditLogUncheckedUpdateManyWithoutUserInput = {
   agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -804,6 +839,7 @@ export type AuditLogCreateManyTeamInput = {
   agentId?: string | null
   projectId?: string | null
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
 }
 
@@ -811,6 +847,7 @@ export type AuditLogUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.StringFieldUpdateOperationsInput | string
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneWithoutAuditLogsNestedInput
   agent?: Prisma.AgentUpdateOneWithoutAuditLogsNestedInput
@@ -824,6 +861,7 @@ export type AuditLogUncheckedUpdateWithoutTeamInput = {
   agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -834,6 +872,7 @@ export type AuditLogUncheckedUpdateManyWithoutTeamInput = {
   agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -844,6 +883,7 @@ export type AuditLogCreateManyProjectInput = {
   userId?: string | null
   agentId?: string | null
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
 }
 
@@ -851,6 +891,7 @@ export type AuditLogUpdateWithoutProjectInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.StringFieldUpdateOperationsInput | string
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutAuditLogsNestedInput
   user?: Prisma.UserUpdateOneWithoutAuditLogsNestedInput
@@ -864,6 +905,7 @@ export type AuditLogUncheckedUpdateWithoutProjectInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -874,6 +916,7 @@ export type AuditLogUncheckedUpdateManyWithoutProjectInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -884,6 +927,7 @@ export type AuditLogCreateManyAgentInput = {
   userId?: string | null
   projectId?: string | null
   itemId?: string | null
+  via?: string | null
   createdAt?: Date | string
 }
 
@@ -891,6 +935,7 @@ export type AuditLogUpdateWithoutAgentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.StringFieldUpdateOperationsInput | string
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutAuditLogsNestedInput
   user?: Prisma.UserUpdateOneWithoutAuditLogsNestedInput
@@ -904,6 +949,7 @@ export type AuditLogUncheckedUpdateWithoutAgentInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -914,6 +960,7 @@ export type AuditLogUncheckedUpdateManyWithoutAgentInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  via?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -927,6 +974,7 @@ export type AuditLogSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   agentId?: boolean
   projectId?: boolean
   itemId?: boolean
+  via?: boolean
   createdAt?: boolean
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   user?: boolean | Prisma.AuditLog$userArgs<ExtArgs>
@@ -942,6 +990,7 @@ export type AuditLogSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   agentId?: boolean
   projectId?: boolean
   itemId?: boolean
+  via?: boolean
   createdAt?: boolean
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   user?: boolean | Prisma.AuditLog$userArgs<ExtArgs>
@@ -957,6 +1006,7 @@ export type AuditLogSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   agentId?: boolean
   projectId?: boolean
   itemId?: boolean
+  via?: boolean
   createdAt?: boolean
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   user?: boolean | Prisma.AuditLog$userArgs<ExtArgs>
@@ -972,10 +1022,11 @@ export type AuditLogSelectScalar = {
   agentId?: boolean
   projectId?: boolean
   itemId?: boolean
+  via?: boolean
   createdAt?: boolean
 }
 
-export type AuditLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "action" | "teamId" | "userId" | "agentId" | "projectId" | "itemId" | "createdAt", ExtArgs["result"]["auditLog"]>
+export type AuditLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "action" | "teamId" | "userId" | "agentId" | "projectId" | "itemId" | "via" | "createdAt", ExtArgs["result"]["auditLog"]>
 export type AuditLogInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   user?: boolean | Prisma.AuditLog$userArgs<ExtArgs>
@@ -1011,6 +1062,10 @@ export type $AuditLogPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     agentId: string | null
     projectId: string | null
     itemId: string | null
+    /**
+     * Surface the action came through: api, agent, mcp, or cli. Null for actions recorded outside Operations.
+     */
+    via: string | null
     createdAt: Date
   }, ExtArgs["result"]["auditLog"]>
   composites: {}
@@ -1446,6 +1501,7 @@ export interface AuditLogFieldRefs {
   readonly agentId: Prisma.FieldRef<"AuditLog", 'String'>
   readonly projectId: Prisma.FieldRef<"AuditLog", 'String'>
   readonly itemId: Prisma.FieldRef<"AuditLog", 'String'>
+  readonly via: Prisma.FieldRef<"AuditLog", 'String'>
   readonly createdAt: Prisma.FieldRef<"AuditLog", 'DateTime'>
 }
     

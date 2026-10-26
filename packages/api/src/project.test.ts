@@ -6,6 +6,7 @@ import { projectService } from '@shumai/core/src/project/project'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import type { ProjectInfo } from '@shumai/dtos'
+import { moveAssetsOp, runOperation } from '@shumai/core/src/operations'
 
 vi.mock('./middleware/auth', () => ({
   authMiddleware: async (
@@ -35,6 +36,10 @@ vi.mock('@shumai/core/src/project/project', () => ({
   },
 }))
 vi.mock('@shumai/core/src/asset/asset')
+vi.mock('@shumai/core/src/operations', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@shumai/core/src/operations')>()),
+  runOperation: vi.fn(),
+}))
 
 vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
   auditLogService: {
@@ -181,9 +186,11 @@ describe('project api', () => {
     })
   })
 
-  it('POST /projects/:projectId/reparent', async () => {
-    vi.mocked(projectService.getProjectTeam).mockResolvedValue('t1')
-    vi.mocked(assetService.reparentAssets).mockResolvedValue(undefined)
+  it('POST /projects/:projectId/reparent runs move_assets', async () => {
+    vi.mocked(runOperation).mockResolvedValue({
+      movedAssetIds: ['asset_1', 'asset_2'],
+      newParentId: 'new_parent_id',
+    })
 
     const res = await app.request('/projects/p/reparent', {
       method: 'POST',
@@ -195,43 +202,11 @@ describe('project api', () => {
     })
 
     expect(res.status).toBe(204)
-    expect(authzService.hasPermission).toHaveBeenCalledWith({
-      user: expect.anything(),
-      permission: Permission.Edit,
-      type: ResourceType.Asset,
-      id: 'new_parent_id',
-    })
-    expect(authzService.hasPermission).toHaveBeenCalledWith({
-      user: expect.anything(),
-      permission: Permission.Edit,
-      type: ResourceType.Asset,
-      id: 'asset_1',
-    })
-    expect(authzService.hasPermission).toHaveBeenCalledWith({
-      user: expect.anything(),
-      permission: Permission.Edit,
-      type: ResourceType.Asset,
-      id: 'asset_2',
-    })
-    expect(assetService.reparentAssets).toHaveBeenCalledWith({
-      newParentId: 'new_parent_id',
-      assetIds: ['asset_1', 'asset_2'],
-      creatorId: 'user1',
-    })
-    expect(auditLogService.logAction).toHaveBeenCalledWith({
-      action: 'asset_reparent',
-      teamId: 't1',
-      userId: 'user1',
-      projectId: 'p',
-      itemId: 'asset_1',
-    })
-    expect(auditLogService.logAction).toHaveBeenCalledWith({
-      action: 'asset_reparent',
-      teamId: 't1',
-      userId: 'user1',
-      projectId: 'p',
-      itemId: 'asset_2',
-    })
+    expect(runOperation).toHaveBeenCalledWith(
+      moveAssetsOp,
+      { userId: 'user1', via: 'api' },
+      { assetIds: ['asset_1', 'asset_2'], newParentId: 'new_parent_id' },
+    )
   })
 
   it('POST /projects/:projectId/copy', async () => {
