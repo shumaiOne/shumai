@@ -83,6 +83,11 @@ const BUILTIN_TOOLS = [
     description: () => m.agent_tool_read_asset_desc(),
   },
   {
+    id: 'get_asset_render',
+    name: () => m.agent_tool_get_asset_render_name(),
+    description: () => m.agent_tool_get_asset_render_desc(),
+  },
+  {
     id: 'list_projects',
     name: () => m.agent_tool_list_projects_name(),
     description: () => m.agent_tool_list_projects_desc(),

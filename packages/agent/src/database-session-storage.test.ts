@@ -7,7 +7,7 @@ import { DatabaseSessionStorage } from './database-session-storage'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { createAgentSession, type DbProviderInfo } from './index'
 import * as sandboxedBashModule from './tools/sandboxed-bash'
-import * as readAssetModule from './tools/read-asset'
+import * as operationToolsModule from './operation-tools'
 
 describe('DatabaseSessionStorage', () => {
   setupTestDbHooks()
@@ -450,8 +450,8 @@ describe('DatabaseSessionStorage', () => {
     })
     const sessionId = initialStorage.sessionId
 
-    // 2. Spy on media tool constructor
-    const createReadAssetToolSpy = vi.spyOn(readAssetModule, 'createReadAssetTool')
+    // 2. Spy on the Operation tools builder (read_asset comes from the Operation registry)
+    const buildOperationToolsSpy = vi.spyOn(operationToolsModule, 'buildOperationTools')
 
     // 3. Resume the session via createAgentSession with a NEW comment ID
     await createAgentSession({
@@ -468,8 +468,10 @@ describe('DatabaseSessionStorage', () => {
       providers: mockProviders,
     })
 
-    // 4. Assert that the tool was instantiated using user ID
-    expect(createReadAssetToolSpy).toHaveBeenCalledWith(user.id)
+    // 4. Assert that the tools were built for the user
+    expect(buildOperationToolsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: user.id }),
+    )
   })
 
   it('should instantiate media tools with user ID in subsequent turns (video)', async () => {
@@ -502,8 +504,8 @@ describe('DatabaseSessionStorage', () => {
     })
     const sessionId = initialStorage.sessionId
 
-    // 2. Spy on media tool constructor
-    const createReadAssetToolSpy = vi.spyOn(readAssetModule, 'createReadAssetTool')
+    // 2. Spy on the Operation tools builder (read_asset comes from the Operation registry)
+    const buildOperationToolsSpy = vi.spyOn(operationToolsModule, 'buildOperationTools')
 
     // 3. Resume the session via createAgentSession with a NEW comment ID
     await createAgentSession({
@@ -520,8 +522,10 @@ describe('DatabaseSessionStorage', () => {
       providers: mockProviders,
     })
 
-    // 4. Assert that the tool was instantiated using user ID
-    expect(createReadAssetToolSpy).toHaveBeenCalledWith(user.id)
+    // 4. Assert that the tools were built for the user
+    expect(buildOperationToolsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: user.id }),
+    )
   })
 
   describe('P1 Bug Reproductions', () => {

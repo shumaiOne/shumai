@@ -3,6 +3,7 @@ import { createFolderOp } from './asset/create-folder'
 import { deleteAssetOp } from './asset/delete-asset'
 import { listAssetsOp } from './asset/list-assets'
 import { moveAssetsOp } from './asset/move-assets'
+import { getAssetRenderOp, readAssetOp } from './asset/read-asset'
 import { renameAssetOp } from './asset/rename-asset'
 import type { Operation } from './implement'
 import { listProjectsOp } from './project/list-projects'
@@ -31,6 +32,8 @@ export const operations = defineRegistry([
   renameAssetOp,
   moveAssetsOp,
   deleteAssetOp,
+  readAssetOp,
+  getAssetRenderOp,
 ] as const)
 
 const operationsByName = new Map<string, Operation>()

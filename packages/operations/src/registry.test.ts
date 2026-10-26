@@ -15,13 +15,15 @@ describe('operation registry', () => {
     expect(new Set(names).size).toBe(names.length)
   })
 
-  it('contains the initial asset and project operations', () => {
+  it('contains the asset and project operations', () => {
     expect(operationDefinitions.map((d) => d.name).sort()).toEqual([
       'create_folder',
       'delete_asset',
+      'get_asset_render',
       'list_assets',
       'list_projects',
       'move_assets',
+      'read_asset',
       'rename_asset',
     ])
   })
@@ -40,7 +42,12 @@ describe('operation registry', () => {
     const destructive = operationDefinitions.filter((d) => d.annotations.destructive)
     expect(destructive.map((d) => d.name)).toEqual(['delete_asset'])
     const readOnly = operationDefinitions.filter((d) => d.annotations.readOnly)
-    expect(readOnly.map((d) => d.name).sort()).toEqual(['list_assets', 'list_projects'])
+    expect(readOnly.map((d) => d.name).sort()).toEqual([
+      'get_asset_render',
+      'list_assets',
+      'list_projects',
+      'read_asset',
+    ])
   })
 
   it.each(operationDefinitions.map((d) => [d.name, d] as const))(
@@ -71,6 +78,9 @@ describe('operation registry', () => {
       ['rename_asset', ['rename']],
       ['move_assets', ['move', 'mv']],
       ['delete_asset', ['delete', 'rm']],
+      // CLI commands for reading assets arrive with the CLI surface
+      ['read_asset', []],
+      ['get_asset_render', []],
     ])
   })
 

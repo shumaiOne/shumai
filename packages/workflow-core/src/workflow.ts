@@ -30,8 +30,24 @@ export class WorkflowService {
   }
 
   async executeWait(task: WorkflowTask, timeoutMs: number = 30000): Promise<WorkflowTask> {
+    const { task: finished, done } = await this.waitFor(task, timeoutMs)
+    if (!done) {
+      throw new Error('Workflow task timed out')
+    }
+    return finished
+  }
+
+  /**
+   * Wait up to `timeoutMs` for a task to finish. Unlike `executeWait`, running out of time is
+   * not an error: it resolves with the latest task state and `done: false`, so callers can hand
+   * the task ID back and complete the work later. Throws if the task failed or disappeared.
+   */
+  async waitFor(
+    task: WorkflowTask,
+    timeoutMs: number,
+  ): Promise<{ task: WorkflowTask; done: boolean }> {
     const start = Date.now()
-    while (Date.now() - start < timeoutMs) {
+    for (;;) {
       const updatedTask = await prisma.workflowTask.findUnique({
         where: { id: task.id },
       })
@@ -41,7 +57,7 @@ export class WorkflowService {
       }
 
       if (updatedTask.status === 'completed') {
-        return updatedTask
+        return { task: updatedTask, done: true }
       }
 
       if (updatedTask.status === 'failed') {
@@ -50,10 +66,12 @@ export class WorkflowService {
         throw new Error(error)
       }
 
+      if (Date.now() - start >= timeoutMs) {
+        return { task: updatedTask, done: false }
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 200))
     }
-
-    throw new Error('Workflow task timed out')
   }
 
   start(listenQueues?: string[]): void {

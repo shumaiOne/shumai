@@ -94,6 +94,43 @@ describe('S3Service implementations', () => {
       expect(getSignedUrlSpy).toHaveBeenCalledTimes(1)
     })
 
+    it('signs with an explicit lifetime and caches it separately from the default', async () => {
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+      getSignedUrlSpy.mockClear()
+      getSignedUrlSpy.mockResolvedValueOnce('http://default-url')
+      getSignedUrlSpy.mockResolvedValueOnce('http://short-url')
+
+      const defaultUrl = await s3.presign('bucket', 'expiry-key', 'GET')
+      const shortUrl = await s3.presign(
+        'bucket',
+        'expiry-key',
+        'GET',
+        false,
+        undefined,
+        false,
+        3600,
+      )
+      const shortAgain = await s3.presign(
+        'bucket',
+        'expiry-key',
+        'GET',
+        false,
+        undefined,
+        false,
+        3600,
+      )
+
+      expect(defaultUrl).toBe('http://default-url')
+      expect(shortUrl).toBe('http://short-url')
+      expect(shortAgain).toBe('http://short-url')
+      expect(getSignedUrlSpy).toHaveBeenCalledTimes(2)
+      expect(getSignedUrlSpy).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.any(GetObjectCommand),
+        expect.objectContaining({ expiresIn: 3600 }),
+      )
+    })
+
     it('should NOT cache PUT presign URLs', async () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
 

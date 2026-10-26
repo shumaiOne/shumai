@@ -112,6 +112,8 @@ export interface S3Service {
     download?: boolean,
     filename?: string,
     internal?: boolean,
+    /** URL lifetime; defaults to PRESIGNED_URL_EXPIRES_IN hours. Ignored by local storage. */
+    expiresInSeconds?: number,
   ) => Promise<string>
   presignMultipart: (
     bucket: string,
@@ -360,12 +362,15 @@ export class S3StorageService implements S3Service {
     download?: boolean,
     filename?: string,
     internal?: boolean,
+    expiresInSeconds?: number,
   ): Promise<string> {
     const expireHours = parseInt(process.env.PRESIGNED_URL_EXPIRES_IN || '5', 10)
-    const expiresInSeconds = expireHours * 3600
-    const cacheTtlMs = expiresInSeconds * 1000
+    const lifetimeSeconds = expiresInSeconds ?? expireHours * 3600
+    // With an explicit (usually short) lifetime, only reuse a cached URL while it has at
+    // least half of its lifetime left, so callers never receive a nearly expired link.
+    const cacheTtlMs = expiresInSeconds ? (lifetimeSeconds * 1000) / 2 : lifetimeSeconds * 1000
 
-    const cacheKey = `${bucket}/${key}?download=${download || false}&filename=${filename || ''}&internal=${internal || false}`
+    const cacheKey = `${bucket}/${key}?download=${download || false}&filename=${filename || ''}&internal=${internal || false}&expires=${expiresInSeconds ?? 'default'}`
     if (method === 'GET' && !download) {
       const cached = this.presignCache.get(cacheKey)
       if (cached) {
@@ -382,19 +387,19 @@ export class S3StorageService implements S3Service {
         Key: key,
         ResponseContentDisposition: download ? buildContentDisposition(filename) : undefined,
       })
-      url = await getSignedUrl(signingClient, command, { expiresIn: expiresInSeconds })
+      url = await getSignedUrl(signingClient, command, { expiresIn: lifetimeSeconds })
     } else if (method === 'PUT') {
       const command = new PutObjectCommand({
         Bucket: bucket,
         Key: key,
       })
-      url = await getSignedUrl(signingClient, command, { expiresIn: expiresInSeconds })
+      url = await getSignedUrl(signingClient, command, { expiresIn: lifetimeSeconds })
     } else if (method === 'DELETE') {
       const command = new DeleteObjectCommand({
         Bucket: bucket,
         Key: key,
       })
-      url = await getSignedUrl(signingClient, command, { expiresIn: expiresInSeconds })
+      url = await getSignedUrl(signingClient, command, { expiresIn: lifetimeSeconds })
     } else {
       throw new Error(`Unsupported method for presign: ${method}`)
     }

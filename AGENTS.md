@@ -234,6 +234,19 @@ An **Operation** is a capability agents can use, defined once and exposed automa
 - **Register** the definition in `packages/operations/src/registry.ts` and the implementation in `packages/core/src/operations/registry.ts`. A definition without an implementation fails typecheck.
 - **Run** Operations only through `runOperation(op, { userId, via, agentId? }, input)`. `via` (`api`, `agent`, `mcp`, `cli`) is recorded in audit logs.
 - **Tests**: real-database tests per Operation covering success, permission denial (no side effects), and audit entries.
+- **Agent presentation**: by default an agent tool returns the Operation output as JSON. To add agent-only parameters or render output differently (e.g. image blocks), register an `AgentToolExtension` in `packages/agent/src/operation-extensions/`.
+
+### Asset Readers
+
+`read_asset` is backed by a registry of readers in `packages/core/src/asset-read/readers/`, one per asset family (`model3d`, `image`, `video`, `document`). The shared pipeline (`assetReadService`) handles access checks, version stacks, annotations, render tasks, and waiting; a reader only contains type-specific logic.
+
+To add a reader:
+
+1. Add its kind to `READER_KINDS` and its options to `readerOptionSchemas` in `packages/operations/src/asset/read-asset.ts` (one optional `<name>Config` field on `read_asset`).
+2. Implement `AssetReader` (`matches`, synchronous `validate`, `plan`, and `collect` if `plan` can return `render`), and add it to `readers` in `packages/core/src/asset-read/registry.ts`. Order matters: the first matching reader wins. A declared kind without a reader fails typecheck.
+3. `plan` returns either `ready` with the result, or `render` with a workflow task spec and optional `context`. The pipeline stores the request on the task payload (`assetRead`), so `collect` and `get_asset_render` work across restarts and instances.
+4. Use `badRequest(...)` for invalid input. Return storage keys in `ReadResult`; the pipeline turns them into short-lived links (and only gives keys to Shumai's built-in agent).
+5. Add reader unit tests (`readers.test.ts`), pipeline cases in `asset-read.test.ts`, and a workflow E2E case if it renders.
 
 ## Frontend Architecture
 

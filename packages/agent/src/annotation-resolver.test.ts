@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { resolveAnnotationsById } from './annotation-resolver'
-import { DatabaseSessionStorage } from '../database-session-storage'
+import { resolveAnnotationsById } from '@shumai/core/src/asset-read/annotations'
+import { DatabaseSessionStorage } from './database-session-storage'
 import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
 import { degreeToSecond } from '@shumai/core/src/utils/model3d'
 

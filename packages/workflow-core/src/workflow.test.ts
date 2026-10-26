@@ -189,6 +189,61 @@ describe('WorkflowService', () => {
     submitSpy.mockRestore()
   })
 
+  describe('waitFor', () => {
+    async function createTask(status: WorkflowTaskStatus, output?: Record<string, unknown>) {
+      const submitSpy = vi.spyOn(workflowService, 'submit').mockImplementation(async () => 'id')
+      const task = await prisma.workflowTask.create({
+        data: { assetId: 'wait-asset', type: WorkflowTaskType.transcode_screenshot, status },
+      })
+      if (output) {
+        await prisma.workflowTask.update({ where: { id: task.id }, data: { output } })
+      }
+      submitSpy.mockRestore()
+      return task
+    }
+
+    it('returns done: true with the completed task', async () => {
+      const task = await createTask(WorkflowTaskStatus.completed, { screenshots: [] })
+
+      const result = await workflowService.waitFor(task, 1000)
+
+      expect(result.done).toBe(true)
+      expect(result.task.output).toEqual({ screenshots: [] })
+    })
+
+    it('returns done: false instead of throwing when the budget runs out', async () => {
+      const task = await createTask(WorkflowTaskStatus.processing)
+
+      const start = Date.now()
+      const result = await workflowService.waitFor(task, 300)
+
+      expect(result.done).toBe(false)
+      expect(result.task.status).toBe(WorkflowTaskStatus.processing)
+      expect(Date.now() - start).toBeLessThan(2000)
+    })
+
+    it('checks once and returns immediately with a zero budget', async () => {
+      const task = await createTask(WorkflowTaskStatus.pending)
+
+      const result = await workflowService.waitFor(task, 0)
+
+      expect(result.done).toBe(false)
+    })
+
+    it('throws the task error when the task failed', async () => {
+      const task = await createTask(WorkflowTaskStatus.failed, { error: 'ffmpeg exploded' })
+
+      await expect(workflowService.waitFor(task, 1000)).rejects.toThrow('ffmpeg exploded')
+    })
+
+    it('keeps executeWait throwing on timeout', async () => {
+      const task = await createTask(WorkflowTaskStatus.processing)
+
+      await expect(workflowService.executeWait(task, 200)).rejects.toThrow(
+        'Workflow task timed out',
+      )
+    })
+  })
   describe('Stale Task Recovery', () => {
     it('should resume stale pending workflow task in DBOS and increment recoveryAttempts', async () => {
       const task = await prisma.workflowTask.create({

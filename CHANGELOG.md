@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 * **cli**: `shumai-cli` has clearer help for every command (`shumai-cli <command> --help`), suggests the right command when you mistype one, and can print raw JSON with `--json`. `ls` can now filter by type and page through very large folders. Existing commands work as before; the npm package now needs Node.js 22.12 or later
 * **agent**: When the agent lists a folder's contents, large folders are now paged with a "next page" marker instead of page numbers, and items appear in the same order as in the file browser
+* **agent**: When the agent looks at a long video or a large document that takes more than about a minute to render, it no longer fails with a timeout. The agent is told the render is still in progress and picks up the frames or pages when they're ready, using the new "Get Asset Render" tool. Each call can now read at most 20 video frames, the same limit as PDF pages
 * **api-token**: API tokens are now stored securely, so they can no longer be read back from the database. A new token is shown only once when you create it, so copy it right away; the token list now shows just the last few characters. Existing tokens keep working without any changes.
 
 ## [0.6.1] - 2026-10-24
