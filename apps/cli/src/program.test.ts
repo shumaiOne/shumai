@@ -3,6 +3,8 @@ import type { Command } from 'commander'
 import {
   createFolder,
   deleteAsset,
+  getAssetRender,
+  readAsset,
   listAssets,
   listProjects,
   moveAssets,
@@ -38,6 +40,27 @@ function setup() {
 }
 
 const folder = { id: 'f-1', name: 'Renders', type: 'folder', size: 0, projectId: 'p-1' }
+
+const frames = {
+  status: 'ready',
+  summary: 'Extracted 2 frame(s) from "clip.mp4" (0s - 4s):',
+  asset: { id: 'vid-1', name: 'clip.mp4', kind: 'video', mediaType: 'video/mp4' },
+  details: [],
+  images: [
+    { label: 'Frame at 0s', mimeType: 'image/webp', url: 'https://files.example/0.webp' },
+    { label: 'Frame at 4s', mimeType: 'image/webp', url: 'https://files.example/4.webp' },
+  ],
+}
+
+const pendingRead = {
+  status: 'pending',
+  summary: 'Rendering is still in progress for "clip.mp4".',
+  asset: frames.asset,
+  details: [],
+  images: [],
+  taskId: 'task-1',
+  retryAfterSeconds: 5,
+}
 
 describe('shumai-cli', () => {
   const originalAllowDelete = process.env.SHUMAI_ALLOW_DELETE
@@ -251,6 +274,151 @@ describe('shumai-cli', () => {
     })
   })
 
+  describe('read', () => {
+    it('maps flattened reader flags onto the config objects and prints image links', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue(frames)
+
+      await cli.run(
+        'read',
+        'vid-1',
+        '--video-start',
+        '0',
+        '--video-end',
+        '4',
+        '--video-count',
+        '2',
+        '--annotation-id',
+        'c-1',
+      )
+
+      expect(cli.callOperation).toHaveBeenCalledWith(readAsset, {
+        assetId: 'vid-1',
+        annotationId: 'c-1',
+        videoConfig: { start: 0, end: 4, count: 2 },
+      })
+      expect(cli.stdout()).toBe(
+        [
+          'Extracted 2 frame(s) from "clip.mp4" (0s - 4s):',
+          '- Frame at 0s: https://files.example/0.webp',
+          '- Frame at 4s: https://files.example/4.webp',
+          '',
+        ].join('\n'),
+      )
+    })
+
+    it.each([
+      [
+        ['--doc-mode', 'pages', '--doc-start-page', '1', '--doc-end-page', '3'],
+        { docConfig: { mode: 'pages', startPage: 1, endPage: 3 } },
+      ],
+      [['--doc-mode', 'text'], { docConfig: { mode: 'text' } }],
+      [['--degree', '90'], { config3d: { degree: 90 } }],
+      [[], {}],
+    ])('reads with %j', async (flags, config) => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue({ ...frames, images: [] })
+
+      await cli.run('read', 'a-1', ...flags)
+
+      expect(cli.callOperation).toHaveBeenCalledWith(readAsset, { assetId: 'a-1', ...config })
+    })
+
+    it('names the flag that is missing from a reader config', async () => {
+      const cli = setup()
+
+      const error = await cli
+        .run('read', 'vid-1', '--video-start', '0', '--video-count', '2')
+        .catch((err: unknown) => err)
+
+      expect(formatCliError(error)).toContain('--video-end')
+      expect(cli.callOperation).not.toHaveBeenCalled()
+    })
+
+    it('prints text content after the summary', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue({
+        ...frames,
+        summary: 'Document "notes.md" (ID: d-1):',
+        images: [],
+        text: {
+          content: '# Notes\nhello',
+          truncated: true,
+          size: 90000,
+          mimeType: 'text/markdown',
+        },
+      })
+
+      await cli.run('read', 'd-1', '--doc-mode', 'text')
+
+      expect(cli.stdout()).toBe(
+        'Document "notes.md" (ID: d-1):\n\n# Notes\nhello\n\n[Content truncated: showing the first part of a 90000-byte file.]\n',
+      )
+    })
+
+    it('returns right away with --no-wait and prints the render command', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue(pendingRead)
+
+      await cli.run(
+        'read',
+        'vid-1',
+        '--video-start',
+        '0',
+        '--video-end',
+        '4',
+        '--video-count',
+        '2',
+        '--no-wait',
+        '--out',
+        'frames',
+      )
+
+      expect(cli.callOperation).toHaveBeenCalledWith(readAsset, {
+        assetId: 'vid-1',
+        videoConfig: { start: 0, end: 4, count: 2 },
+        maxWaitSeconds: 0,
+      })
+      expect(cli.stdout()).toBe(
+        'Rendering is still in progress for "clip.mp4".\nRun this to get the result: shumai-cli render task-1 --out "frames"\n',
+      )
+    })
+
+    it('prints the raw output with --json', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue(frames)
+
+      await cli.run('--json', 'read', 'vid-1')
+
+      expect(JSON.parse(cli.stdout())).toEqual(frames)
+    })
+  })
+
+  describe('render', () => {
+    it('fetches a pending render by task ID', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue(frames)
+
+      await cli.run('render', 'task-1')
+
+      expect(cli.callOperation).toHaveBeenCalledWith(getAssetRender, { taskId: 'task-1' })
+      expect(cli.stdout()).toContain('- Frame at 4s: https://files.example/4.webp')
+    })
+
+    it('checks once with --no-wait', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue(pendingRead)
+
+      await cli.run('render', 'task-1', '--no-wait')
+
+      expect(cli.callOperation).toHaveBeenCalledWith(getAssetRender, {
+        taskId: 'task-1',
+        maxWaitSeconds: 0,
+      })
+      expect(cli.stdout()).toContain('Run this to get the result: shumai-cli render task-1\n')
+    })
+  })
+
   describe('--json', () => {
     it('prints the raw Operation output', async () => {
       const cli = setup()
@@ -312,6 +480,8 @@ describe('shumai-cli', () => {
         'rename',
         'move|mv',
         'delete|rm',
+        'read',
+        'render',
         'upload',
         'create-version',
       ]) {
@@ -332,6 +502,30 @@ describe('shumai-cli', () => {
       expect(help).toContain('choices: "file", "folder", "all"')
       expect(help).toContain('(default: 200)')
       expect(help).toContain('List the files and folders inside a parent folder.')
+    })
+
+    it('documents flattened reader options for read', async () => {
+      const cli = setup()
+
+      await expect(cli.run('read', '--help')).rejects.toThrow()
+
+      const help = cli.stdout()
+      for (const flag of [
+        '--video-start <start>',
+        '--video-end <end>',
+        '--video-count <count>',
+        '--doc-mode <mode>',
+        '--doc-start-page <startPage>',
+        '--doc-end-page <endPage>',
+        '--degree <degree>',
+        '--annotation-id <annotationId>',
+        '-o, --out <dir>',
+        '--no-wait',
+      ]) {
+        expect(help).toContain(flag)
+      }
+      expect(help).not.toContain('--include-content')
+      expect(help).not.toContain('--image')
     })
   })
 })

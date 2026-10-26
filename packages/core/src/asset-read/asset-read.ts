@@ -265,8 +265,8 @@ export class AssetReadService {
 export const assetReadService = new AssetReadService()
 
 /**
- * Converts a read outcome into the Operation output. Storage keys are included only for
- * Shumai's built-in agent; every image gets a short-lived link.
+ * Converts a read outcome into the Operation output. Every image gets a short-lived link;
+ * storage keys (and the source file link) only when the result is presented server-side.
  */
 export async function toAssetReadOutput(
   outcome: ReadOutcome,

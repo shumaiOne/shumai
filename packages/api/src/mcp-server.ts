@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { createMcpHandler, McpServer, type CallToolResult } from '@modelcontextprotocol/server'
 import type { Prisma } from '@shumai/db'
 import { getOperationsForSurface, runOperation, type Operation } from '@shumai/core/src/operations'
+import { mcpExtensions, type McpToolExtension } from './mcp-extensions'
 import { assertWritableInDemoMode, describeOperationError } from './operation-support'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -14,16 +15,43 @@ export const MCP_SERVER_INSTRUCTIONS = [
   'Start with list_projects to find a project and its rootFolderId, then pass folder IDs as',
   '`parent` to list_assets and create_folder. list_assets is paginated: when',
   'pageInfo.hasNextPage is true, call it again with after = pageInfo.endCursor.',
+  'Use read_asset to look at a file (image, video frames, PDF pages, 3D views, or text);',
+  'if it returns status "pending", call get_asset_render with its taskId.',
 ].join(' ')
+
+/** Separate MCP-only arguments (declared by an extension) from the Operation input. */
+function splitArgs(
+  extension: McpToolExtension | undefined,
+  args: unknown,
+): { input: unknown; extra: Record<string, unknown> } {
+  if (!extension?.extraInput || !args || typeof args !== 'object') {
+    return { input: args, extra: {} }
+  }
+  const extraKeys = new Set(Object.keys(extension.extraInput.shape))
+  const input: Record<string, unknown> = {}
+  const extra: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(args)) {
+    ;(extraKeys.has(key) ? extra : input)[key] = value
+  }
+  return { input, extra }
+}
 
 async function callOperation(
   op: Operation,
   userId: string,
   args: unknown,
 ): Promise<CallToolResult> {
+  const extension = mcpExtensions.get(op.definition.name)
   try {
     await assertWritableInDemoMode(op, userId)
-    const output = (await runOperation(op, { userId, via: 'mcp' }, args)) as Record<string, unknown>
+    const { input, extra } = splitArgs(extension, args)
+    const output = (await runOperation(op, { userId, via: 'mcp' }, input)) as Record<
+      string,
+      unknown
+    >
+    if (extension) {
+      return await extension.present(output, extra)
+    }
     return {
       content: [{ type: 'text', text: JSON.stringify(output) }],
       structuredContent: output,
@@ -44,12 +72,15 @@ export function buildMcpServer(userId: string): McpServer {
   )
   for (const op of getOperationsForSurface('mcp')) {
     const { definition } = op
+    const extension = mcpExtensions.get(definition.name)
     server.registerTool(
       definition.name,
       {
         title: definition.title,
         description: definition.description,
-        inputSchema: definition.input,
+        inputSchema: extension?.extraInput
+          ? definition.input.extend(extension.extraInput.shape)
+          : definition.input,
         outputSchema: definition.output,
         annotations: {
           title: definition.title,

@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 * **mcp**: Shumai now has a built-in MCP server, so external AI agents such as Claude Code, Cursor, or Kiro can browse projects and create, rename, move, or delete folders and files with your API token and permissions
 * **agent**: The built-in agent can now list the projects you have access to, so it can find a project's root folder on its own. Team owners can turn this off per agent like other tools
+* **mcp**: External AI agents connected to Shumai's MCP server can now look at your files: images, video frames, PDF pages, 3D model views, and text files. Images are attached so the AI can see them, along with links that stay valid for about an hour
+* **cli**: New `shumai-cli read` command shows an image, video frames, PDF pages, a 3D model view, or the text of a file, and `--out` downloads the images into a folder. If rendering takes a while, `shumai-cli render <taskId>` picks up the result later
 
 ### Fixed
 

@@ -2,7 +2,7 @@
 
 A Command Line Interface (CLI) tool for interacting with your Shumai instance.
 
-The CLI allows you to view projects, list folder contents, create folders, upload files and directories, and create new versions of existing files directly from the terminal.
+The CLI allows you to view projects, list folder contents, create folders, upload files and directories, create new versions of existing files, and look at images, video frames, and document pages directly from the terminal.
 
 ---
 
@@ -135,6 +135,38 @@ shumai-cli delete <assetId>
 shumai-cli rm <assetId>
 ```
 
+#### 9. Read an Asset
+
+Look at a file: an image, video frames, PDF pages, a 3D model view, or the text of a text file. Prints a summary and a link to each image (links are valid for about an hour), or the file's text.
+
+```bash
+# An image, or the 4-view overview of a 3D model
+shumai-cli read <assetId>
+# 5 evenly spaced frames between 0s and 30s of a video, downloaded into ./frames
+shumai-cli read <assetId> --video-start 0 --video-end 30 --video-count 5 --out frames
+# Pages 1 to 3 of a PDF, or the text of a text file
+shumai-cli read <assetId> --doc-mode pages --doc-start-page 1 --doc-end-page 3
+shumai-cli read <assetId> --doc-mode text
+# A 3D model at 90°
+shumai-cli read <assetId> --degree 90
+```
+
+- **Options:**
+  - `--video-start <s>`, `--video-end <s>`, `--video-count <n>`: Video frames to extract (up to 20).
+  - `--doc-mode <pages|text>`, `--doc-start-page <n>`, `--doc-end-page <n>`: PDF pages to render (up to 20), or `text` to read a text file.
+  - `--degree <deg>`: 3D model angle (0, 15, 30, ..., 345).
+  - `--annotation-id <id>`: Draw a comment's markup on the image, frame, or page.
+  - `-o`, `--out <dir>`: Download the images into a folder and print their paths. With `--json`, each image also gets a `path`.
+  - `--max-wait-seconds <s>`, `--no-wait`: Rendering frames or pages can take a while. `read` waits up to 2 minutes; use these to wait less or return right away. If the render isn't done, `read` prints the `render` command to run next.
+
+#### 10. Get a Render
+
+Get the result of a `read` that was still rendering. Takes the same `--out`, `--max-wait-seconds`, and `--no-wait` options as `read`.
+
+```bash
+shumai-cli render <taskId> --out frames
+```
+
 ---
 
 ## Development
@@ -147,4 +179,4 @@ bun run apps/cli/src/index.ts project ls
 
 ### Adding Commands
 
-Most commands are generated from the shared Operation definitions in `packages/operations` (see "Operations" in `AGENTS.md`). An Operation with the `cli` surface and a `cli` spec becomes a command automatically, with arguments, options, and help text derived from its input schema. It is also available to Shumai's built-in agent and MCP server. Only commands that stream local files (`upload`, `create-version`) are written by hand in `src/program.ts`.
+Most commands are generated from the shared Operation definitions in `packages/operations` (see "Operations" in `AGENTS.md`). An Operation with the `cli` surface and a `cli` spec becomes a command automatically, with arguments, options, and help text derived from its input schema. It is also available to Shumai's built-in agent and MCP server. Behavior that needs the local machine, such as downloading files, goes in a CLI extension in `src/operations/extensions/` (extra options, input mapping, and output). Only commands that stream local files (`upload`, `create-version`) are written by hand in `src/program.ts`.

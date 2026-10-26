@@ -3,6 +3,7 @@ import { operationDefinitions } from '@shumai/operations'
 import { createVersion } from './commands/create-version'
 import { upload } from './commands/upload'
 import { callOperation, type CallOperation } from './operations/call-operation'
+import { cliExtensions } from './operations/extensions'
 import { registerOperationCommands } from './operations/generate'
 import type { Output } from './operations/render'
 
@@ -18,7 +19,7 @@ function isDeleteAllowed(): boolean {
 
 /**
  * Builds the `shumai-cli` program. Operation commands (ls, mkdir, rename, move, delete,
- * project ls, ...) are generated from `@shumai/operations`; upload and create-version stream
+ * read, render, project ls, ...) are generated from `@shumai/operations`; upload and create-version stream
  * local files and are defined here.
  */
 export function createProgram(options: ProgramOptions = {}): Command {
@@ -37,6 +38,7 @@ export function createProgram(options: ProgramOptions = {}): Command {
       columns: process.stdout.columns || 80,
     },
     allowDestructive: isDeleteAllowed,
+    extensions: cliExtensions,
   })
 
   program

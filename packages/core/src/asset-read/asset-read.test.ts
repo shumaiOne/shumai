@@ -547,7 +547,8 @@ describe('read_asset and get_asset_render Operations', () => {
 
   it.each([
     ['agent', true],
-    ['mcp', false],
+    // The MCP presenter attaches image bytes, then strips the keys (packages/api)
+    ['mcp', true],
     ['cli', false],
     ['api', false],
   ] as const)('via %s includes storage keys: %s', async (via, includesKey) => {

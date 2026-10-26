@@ -81,4 +81,24 @@ describe('defineOperation', () => {
       }),
     ).toThrow('unknown input "extra"')
   })
+
+  it('validates flattened and omitted cli fields', () => {
+    const input = z.object({
+      id: z.string(),
+      config: z.object({ size: z.number() }).optional(),
+      verbose: z.boolean().optional(),
+    })
+    const withCli = (cli: Record<string, unknown>) =>
+      defineOperation({
+        ...baseDefinition(),
+        input,
+        surfaces: ['cli'],
+        cli: { command: ['get'], ...cli },
+      } as OperationDefinition<string, typeof input>)
+
+    expect(() => withCli({ flatten: { config: 'config' }, omit: ['verbose'] })).not.toThrow()
+    expect(() => withCli({ flatten: { nope: 'n' } })).toThrow('unknown input "nope"')
+    expect(() => withCli({ omit: ['gone'] })).toThrow('unknown input "gone"')
+    expect(() => withCli({ omit: ['id'] })).toThrow('omits required input "id"')
+  })
 })

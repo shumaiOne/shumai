@@ -67,7 +67,8 @@ export const videoReader: AssetReader<'video'> = {
       details: [],
       images: screenshots.map((shot) => ({
         key: shot.key,
-        label: `Frame at ${shot.timestamp}s`,
+        // Evenly spaced timestamps can be long fractions (2.6666666666666665)
+        label: `Frame at ${Number(shot.timestamp.toFixed(3))}s`,
         mimeType: getFileMimeType(null, shot.key, 'image/webp'),
       })),
     }

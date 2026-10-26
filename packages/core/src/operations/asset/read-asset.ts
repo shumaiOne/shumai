@@ -13,6 +13,13 @@ export const READ_WAIT_BUDGET_MS: Record<Via, number> = {
   api: 20_000,
 }
 
+/**
+ * Surfaces whose results are presented on the server (agent tools, MCP tool results). They get
+ * storage keys so the presenter can attach image bytes; the MCP presenter strips the keys
+ * before anything leaves the server. CLI and REST callers only get links.
+ */
+const SERVER_PRESENTED: ReadonlySet<Via> = new Set(['agent', 'mcp'])
+
 /** `maxWaitSeconds` can only shorten the surface budget. */
 export function waitBudgetMs(via: Via, maxWaitSeconds: number | undefined): number {
   const budget = READ_WAIT_BUDGET_MS[via]
@@ -27,7 +34,7 @@ export const readAssetOp = implementOperation(readAsset, {
     const outcome = await assetReadService.read({ kind: 'user', userId: ctx.userId }, request, {
       waitBudgetMs: waitBudgetMs(ctx.via, maxWaitSeconds),
     })
-    return toAssetReadOutput(outcome, { includeKeys: ctx.via === 'agent' })
+    return toAssetReadOutput(outcome, { includeKeys: SERVER_PRESENTED.has(ctx.via) })
   },
 })
 
@@ -38,6 +45,6 @@ export const getAssetRenderOp = implementOperation(getAssetRender, {
     const outcome = await assetReadService.getRender(ctx.userId, input.taskId, {
       waitBudgetMs: waitBudgetMs(ctx.via, input.maxWaitSeconds),
     })
-    return toAssetReadOutput(outcome, { includeKeys: ctx.via === 'agent' })
+    return toAssetReadOutput(outcome, { includeKeys: SERVER_PRESENTED.has(ctx.via) })
   },
 })

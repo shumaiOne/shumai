@@ -10,4 +10,5 @@ export {
 export { resolveAnnotationsById } from './annotations'
 export { findReader, getReader, readers } from './registry'
 export { isPlainTextAsset, MAX_TEXT_BYTES, MAX_TEXT_LINES } from './readers/document'
+export { storageBucket } from './types'
 export type { AssetReader, ReadableAsset, ReadImage, ReadPlan, ReadResult } from './types'

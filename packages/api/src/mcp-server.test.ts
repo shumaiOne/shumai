@@ -3,7 +3,9 @@ import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { teamService } from '@shumai/core/src/team/team'
-import { createFolderOp, runOperation } from '@shumai/core/src/operations'
+import { s3Service } from '@shumai/core/src/s3/s3'
+import { createFolderOp, readAssetOp, runOperation } from '@shumai/core/src/operations'
+import { MAX_INLINE_IMAGE_BYTES, MAX_INLINE_IMAGES } from './mcp-extensions/read-asset'
 import mcpServerRoute, { MCP_SERVER_INSTRUCTIONS } from './mcp-server'
 
 vi.mock('@shumai/core/src/operations', async (importOriginal) => ({
@@ -53,9 +55,11 @@ describe('MCP server', () => {
     expect(tools.map((t) => t.name).sort()).toEqual([
       'create_folder',
       'delete_asset',
+      'get_asset_render',
       'list_assets',
       'list_projects',
       'move_assets',
+      'read_asset',
       'rename_asset',
     ])
 
@@ -83,7 +87,7 @@ describe('MCP server', () => {
 
   it('does not expose agent-only capabilities', async () => {
     const names = (await client.listTools()).tools.map((t) => t.name)
-    for (const agentOnly of ['bash', 'read_skill', 'read_asset', 'download_asset', 'mcp']) {
+    for (const agentOnly of ['bash', 'read_skill', 'download_asset', 'mcp']) {
       expect(names).not.toContain(agentOnly)
     }
   })
@@ -140,5 +144,196 @@ describe('MCP server', () => {
     expect(result.isError).toBe(true)
     expect(result.content).toEqual([{ type: 'text', text: 'System is in read-only mode' }])
     expect(runOperation).not.toHaveBeenCalled()
+  })
+
+  describe('read_asset', () => {
+    const frame = (n: number) => ({
+      label: `Frame at ${n}s`,
+      mimeType: 'image/webp',
+      url: `https://files.example/${n}.webp`,
+      key: `shots/${n}.webp`,
+    })
+    const ready = (count: number) => ({
+      status: 'ready',
+      summary: `Extracted ${count} frame(s) from "clip.mp4" (0s - 10s):`,
+      asset: { id: 'vid-1', name: 'clip.mp4', kind: 'video', mediaType: 'video/mp4' },
+      details: [],
+      images: Array.from({ length: count }, (_, i) => frame(i)),
+    })
+
+    beforeEach(() => {
+      vi.spyOn(s3Service, 'getObjectSize').mockResolvedValue(1000)
+      vi.spyOn(s3Service, 'getObject').mockImplementation(async (_bucket, key) => ({
+        buffer: Buffer.from(`bytes of ${key}`),
+        contentType: 'image/webp',
+      }))
+    })
+
+    it('advertises inlineImages and keeps it out of the Operation input', async () => {
+      const { tools } = await client.listTools()
+      const read = tools.find((t) => t.name === 'read_asset')!
+      expect(read.inputSchema.properties).toHaveProperty('inlineImages')
+      expect(read.inputSchema.properties).toHaveProperty('videoConfig')
+      expect(read.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false })
+      expect(
+        tools.find((t) => t.name === 'get_asset_render')!.inputSchema.properties,
+      ).toHaveProperty('inlineImages')
+
+      vi.mocked(runOperation).mockResolvedValue(ready(1))
+      await client.callTool({
+        name: 'read_asset',
+        arguments: {
+          assetId: 'vid-1',
+          videoConfig: { start: 0, end: 10, count: 1 },
+          inlineImages: true,
+        },
+      })
+      expect(runOperation).toHaveBeenCalledWith(
+        readAssetOp,
+        { userId: 'user1', via: 'mcp' },
+        { assetId: 'vid-1', videoConfig: { start: 0, end: 10, count: 1 } },
+      )
+    })
+
+    it('attaches images inline and returns links without storage keys', async () => {
+      vi.mocked(runOperation).mockResolvedValue(ready(2))
+
+      const result = await client.callTool({ name: 'read_asset', arguments: { assetId: 'vid-1' } })
+
+      expect(result.isError).toBeFalsy()
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: [
+            'Extracted 2 frame(s) from "clip.mp4" (0s - 10s):',
+            '- Frame at 0s (attached as image 1): https://files.example/0.webp',
+            '- Frame at 1s (attached as image 2): https://files.example/1.webp',
+            'Image links expire in about an hour.',
+          ].join('\n'),
+        },
+        {
+          type: 'image',
+          data: Buffer.from('bytes of shots/0.webp').toString('base64'),
+          mimeType: 'image/webp',
+        },
+        {
+          type: 'image',
+          data: Buffer.from('bytes of shots/1.webp').toString('base64'),
+          mimeType: 'image/webp',
+        },
+      ])
+      expect(result.structuredContent).toEqual({
+        ...ready(2),
+        images: [0, 1].map((n) => ({
+          label: `Frame at ${n}s`,
+          mimeType: 'image/webp',
+          url: `https://files.example/${n}.webp`,
+        })),
+      })
+      expect(JSON.stringify(result)).not.toContain('shots/0.webp"')
+    })
+
+    it(`attaches at most ${MAX_INLINE_IMAGES} images and skips large ones`, async () => {
+      vi.mocked(runOperation).mockResolvedValue(ready(10))
+      vi.mocked(s3Service.getObjectSize).mockImplementation(async (_bucket, key) =>
+        key === 'shots/2.webp' ? MAX_INLINE_IMAGE_BYTES + 1 : 1000,
+      )
+
+      const result = await client.callTool({ name: 'read_asset', arguments: { assetId: 'vid-1' } })
+
+      const content = result.content as Array<{ type: string; text?: string }>
+      expect(content.filter((c) => c.type === 'image')).toHaveLength(MAX_INLINE_IMAGES - 1)
+      const text = content[0].text!
+      expect(text).toContain(
+        '- Frame at 2s (not attached: larger than 2 MB): https://files.example/2.webp',
+      )
+      expect(text).toContain(
+        `- Frame at 8s (not attached: only the first ${MAX_INLINE_IMAGES} images are attached)`,
+      )
+      expect(s3Service.getObject).not.toHaveBeenCalledWith(expect.anything(), 'shots/2.webp')
+      expect(s3Service.getObject).not.toHaveBeenCalledWith(expect.anything(), 'shots/8.webp')
+    })
+
+    it('returns links only with inlineImages false', async () => {
+      vi.mocked(runOperation).mockResolvedValue(ready(2))
+
+      const result = await client.callTool({
+        name: 'read_asset',
+        arguments: { assetId: 'vid-1', inlineImages: false },
+      })
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: [
+            'Extracted 2 frame(s) from "clip.mp4" (0s - 10s):',
+            '- Frame at 0s: https://files.example/0.webp',
+            '- Frame at 1s: https://files.example/1.webp',
+            'Image links expire in about an hour.',
+          ].join('\n'),
+        },
+      ])
+      expect(s3Service.getObject).not.toHaveBeenCalled()
+    })
+
+    it('includes text content without the source storage key', async () => {
+      vi.mocked(runOperation).mockResolvedValue({
+        ...ready(0),
+        summary: 'Document "notes.md" (ID: d-1):',
+        text: {
+          content: '# Notes',
+          truncated: false,
+          size: 7,
+          mimeType: 'text/markdown',
+          key: 'raw/notes.md',
+          url: 'https://files.example/notes.md?download',
+        },
+      })
+
+      const result = await client.callTool({ name: 'read_asset', arguments: { assetId: 'd-1' } })
+
+      expect(result.content).toEqual([
+        { type: 'text', text: 'Document "notes.md" (ID: d-1):\n\n# Notes' },
+      ])
+      expect(result.structuredContent).toMatchObject({
+        text: { content: '# Notes', truncated: false, size: 7, mimeType: 'text/markdown' },
+      })
+      expect((result.structuredContent as { text: object }).text).not.toHaveProperty('key')
+      expect((result.structuredContent as { text: object }).text).not.toHaveProperty('url')
+    })
+
+    it('tells the model to call get_asset_render when rendering is pending', async () => {
+      vi.mocked(runOperation).mockResolvedValue({
+        ...ready(0),
+        status: 'pending',
+        summary: 'Rendering is still in progress for "clip.mp4".',
+        taskId: 'task-1',
+        retryAfterSeconds: 5,
+      })
+
+      const result = await client.callTool({
+        name: 'read_asset',
+        arguments: { assetId: 'vid-1', videoConfig: { start: 0, end: 10, count: 5 } },
+      })
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'Rendering is still in progress for "clip.mp4". Call get_asset_render with taskId "task-1" in about 5 seconds to get the result.',
+        },
+      ])
+      expect(result.structuredContent).toMatchObject({ status: 'pending', taskId: 'task-1' })
+    })
+
+    it('reports read errors as tool errors', async () => {
+      vi.mocked(runOperation).mockRejectedValue(
+        new HTTPException(400, { message: 'videoConfig with start, end, and count is required' }),
+      )
+      const result = await client.callTool({ name: 'read_asset', arguments: { assetId: 'vid-1' } })
+      expect(result.isError).toBe(true)
+      expect(result.content).toEqual([
+        { type: 'text', text: 'videoConfig with start, end, and count is required' },
+      ])
+    })
   })
 })

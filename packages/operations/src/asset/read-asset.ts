@@ -23,7 +23,7 @@ export const readerOptionSchemas = {
           .nullable()
           .optional()
           .describe(
-            'Turntable rotation degree (integer: 0, 15, 30, ..., 345 in 15° increments) to inspect a specific angle of a 3D model. Leave null/omitted to view the 4-view composite overview.',
+            'Turntable rotation degree (integer: 0, 15, 30, ..., 345 in 15° increments) to inspect a specific angle of a 3D model. Leave it out to view the 4-view composite overview.',
           ),
       })
       .describe(
@@ -156,8 +156,18 @@ export const readAsset = defineOperation({
     maxWaitSeconds,
   }),
   output: assetReadOutputSchema,
-  surfaces: ['agent'],
+  surfaces: ['agent', 'mcp', 'cli'],
   annotations: { readOnly: true, destructive: false },
+  cli: {
+    command: ['read'],
+    description:
+      'Read an asset: show an image, video frames, PDF pages, a 3D view, or the text of a text file. ' +
+      'Prints links to the images; use --out to download them.',
+    positional: ['assetId'],
+    flatten: { videoConfig: 'video', docConfig: 'doc', config3d: '', imageConfig: 'image' },
+    // Text content is cheap to print; describing without content is only useful to agents.
+    omit: ['includeContent'],
+  },
 })
 
 export const getAssetRender = defineOperation({
@@ -171,6 +181,11 @@ export const getAssetRender = defineOperation({
     maxWaitSeconds,
   }),
   output: assetReadOutputSchema,
-  surfaces: ['agent'],
+  surfaces: ['agent', 'mcp', 'cli'],
   annotations: { readOnly: true, destructive: false, idempotent: true },
+  cli: {
+    command: ['render'],
+    description: 'Get the result of a `read` that is still rendering, by its task ID.',
+    positional: ['taskId'],
+  },
 })

@@ -3,7 +3,7 @@ title: Shumai MCP Server
 description: Let external AI agents such as Claude Code, Cursor, or Kiro work with your Shumai projects.
 ---
 
-Shumai includes a built-in [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server. Any MCP-compatible agent can connect to it and browse projects, create folders, and organize assets on your behalf, using the same tools as Shumai's built-in agent.
+Shumai includes a built-in [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server. Any MCP-compatible agent can connect to it and browse projects, look at images, videos, and documents, create folders, and organize assets on your behalf, using the same tools as Shumai's built-in agent.
 
 <Note>
   This page is about connecting **external agents to Shumai**. To connect Shumai's own agents to
@@ -58,14 +58,22 @@ claude mcp add --transport http shumai https://<your-shumai-host>/api/mcp \
 
 ## Available Tools
 
-| Tool            | What it does                                                                                          |
-| --------------- | ----------------------------------------------------------------------------------------------------- |
-| `list_projects` | Lists the projects you can access, with each project's root folder.                                   |
-| `list_assets`   | Lists files and folders in a folder, page by page.                                                    |
-| `create_folder` | Creates a folder.                                                                                     |
-| `rename_asset`  | Renames a file or folder.                                                                             |
-| `move_assets`   | Moves files or folders into another folder.                                                           |
-| `delete_asset`  | Moves a file or folder to the project trash. Marked as destructive so clients can ask you to confirm. |
+| Tool               | What it does                                                                                          |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| `list_projects`    | Lists the projects you can access, with each project's root folder.                                   |
+| `list_assets`      | Lists files and folders in a folder, page by page.                                                    |
+| `create_folder`    | Creates a folder.                                                                                     |
+| `rename_asset`     | Renames a file or folder.                                                                             |
+| `move_assets`      | Moves files or folders into another folder.                                                           |
+| `delete_asset`     | Moves a file or folder to the project trash. Marked as destructive so clients can ask you to confirm. |
+| `read_asset`       | Looks at a file: an image, video frames, PDF pages, a 3D model view, or the text of a text file.      |
+| `get_asset_render` | Gets the result of a `read_asset` call that was still rendering.                                      |
+
+### Reading Files
+
+`read_asset` attaches the images to the result so the AI model can see them: up to 8 images per call, each up to 2 MB. Any other images are listed as links only. Every result also includes a link to each image, valid for about an hour. Pass `inlineImages: false` to get links only, for example when your client can't show images.
+
+Rendering video frames or PDF pages can take a while. If it takes longer than about 20 seconds, `read_asset` returns `status: "pending"` with a `taskId`, and the model calls `get_asset_render` with that `taskId` to get the result. Only the user who started the read can get its result.
 
 Every call runs with your permissions: for example, a **Reviewer** can list assets but cannot create or rename them. Actions are recorded in the team audit log and attributed to you, marked as coming from MCP.
 

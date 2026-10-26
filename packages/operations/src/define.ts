@@ -37,6 +37,14 @@ export interface CliSpec<TInput, TOutput> {
   positional?: readonly (keyof TInput & string)[]
   /** Flag spellings for input fields, e.g. `{ parent: ['-p', '--parent'] }`. */
   flags?: { readonly [K in keyof TInput & string]?: readonly string[] }
+  /**
+   * Object input fields exposed as one flag per sub-field, keyed by flag prefix: with
+   * `{ videoConfig: 'video' }`, `videoConfig.start` becomes `--video-start`. An empty prefix
+   * uses the sub-field name alone (`--degree`). Object fields must be flattened or omitted.
+   */
+  flatten?: { readonly [K in keyof TInput & string]?: string }
+  /** Input fields the CLI does not expose. They must be optional. */
+  omit?: readonly (keyof TInput & string)[]
   /** Input values the CLI uses when the user does not pass them (e.g. a larger page size). */
   defaults?: { readonly [K in keyof TInput & string]?: TInput[K] }
   /** Human-friendly rendering of the output; the CLI falls back to a generic renderer. */
@@ -101,10 +109,17 @@ export function defineOperation<
       ...(def.cli.positional ?? []),
       ...Object.keys(def.cli.flags ?? {}),
       ...Object.keys(def.cli.defaults ?? {}),
+      ...Object.keys(def.cli.flatten ?? {}),
+      ...(def.cli.omit ?? []),
     ]
     for (const field of referenced) {
       if (!fields.has(field)) {
         throw new Error(`Operation "${def.name}" cli spec references unknown input "${field}"`)
+      }
+    }
+    for (const field of def.cli.omit ?? []) {
+      if (!(def.input.shape[field] as z.ZodType).safeParse(undefined).success) {
+        throw new Error(`Operation "${def.name}" cli spec omits required input "${field}"`)
       }
     }
   }

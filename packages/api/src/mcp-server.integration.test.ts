@@ -1,8 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import * as fs from 'fs'
+import * as path from 'path'
+import { fileURLToPath } from 'url'
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { prisma, type User } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { projectService } from '@shumai/core/src/project/project'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { apiTokenService } from '@shumai/core/src/user/api-token'
 import app from './index'
 
@@ -157,5 +161,110 @@ describe('MCP server and /api/ops (integration)', () => {
     })
 
     expect(res.status).toBe(401)
+  })
+
+  describe('read_asset', () => {
+    const bucket = 'shumai-test-mcp-read'
+    const originalBucket = process.env.S3_BUCKET
+    const png = fs.readFileSync(
+      path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../e2e/fixtures/small.png'),
+    )
+    let imageId: string
+
+    beforeAll(() => {
+      process.env.S3_BUCKET = bucket
+    })
+
+    afterAll(async () => {
+      if (originalBucket === undefined) delete process.env.S3_BUCKET
+      else process.env.S3_BUCKET = originalBucket
+      await s3Service.deletePrefix(bucket, '').catch(() => undefined)
+    })
+
+    beforeEach(async () => {
+      const key = `projects/${projectId}/photo.png`
+      await s3Service.putObject(bucket, key, png, png.length, 'image/png')
+      const storageKey = await prisma.storageKey.create({ data: { key } })
+      imageId = (
+        await prisma.asset.create({
+          data: {
+            name: 'photo.png',
+            type: 'file',
+            status: 'uploaded',
+            mediaType: 'image/png',
+            projectId,
+            parentId: rootFolderId,
+            storageKeyId: storageKey.id,
+            media: { proxyType: 'image' } as unknown as PrismaJson.MediaInfo,
+          },
+        })
+      ).id
+    })
+
+    it('shows a reviewer the image inline, with links but no storage keys', async () => {
+      const client = await connect(reviewerToken)
+
+      const result = await client.callTool({ name: 'read_asset', arguments: { assetId: imageId } })
+
+      expect(result.isError).toBeFalsy()
+      const content = result.content as Array<{ type: string; data?: string; text?: string }>
+      expect(content[0].text).toContain(`Image asset "photo.png" (ID: ${imageId}):`)
+      expect(content[1]).toEqual({
+        type: 'image',
+        data: png.toString('base64'),
+        mimeType: 'image/png',
+      })
+      const output = result.structuredContent as { images: Array<Record<string, unknown>> }
+      expect(output.images).toEqual([
+        { label: 'Image', mimeType: 'image/png', url: expect.any(String) },
+      ])
+      expect(JSON.stringify(result)).not.toContain('"key"')
+    })
+
+    it('serves read and render to the CLI with links only', async () => {
+      const headers = {
+        Authorization: `Bearer ${reviewerToken}`,
+        'Content-Type': 'application/json',
+        'x-shumai-client': 'cli',
+      }
+
+      const read = await app.request('/api/ops/read_asset', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ assetId: imageId }),
+      })
+      expect(read.status).toBe(200)
+      const output = (await read.json()) as { status: string; images: Array<{ url: string }> }
+      expect(output.status).toBe('ready')
+      expect(output.images).toEqual([
+        { label: 'Image', mimeType: 'image/png', url: expect.any(String) },
+      ])
+
+      // The link is served by the API itself with local storage
+      const link = new URL(output.images[0].url)
+      const image = await app.request(link.pathname + link.search)
+      expect(image.status).toBe(200)
+      expect(Buffer.from(await image.arrayBuffer()).equals(png)).toBe(true)
+
+      const render = await app.request('/api/ops/get_asset_render', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ taskId: 'not-a-task' }),
+      })
+      expect(render.status).toBe(404)
+      expect(await render.json()).toEqual({ error: 'Render not found' })
+    })
+
+    it('does not let users outside the project read', async () => {
+      const outsider = await prisma.user.create({
+        data: { name: 'Outsider', email: 'mcp-outsider@test.com', password: 'pw' },
+      })
+      const token = (await apiTokenService.createToken(outsider.id, 'mcp')).token
+      const client = await connect(token)
+
+      const result = await client.callTool({ name: 'read_asset', arguments: { assetId: imageId } })
+
+      expect(result.isError).toBe(true)
+    })
   })
 })

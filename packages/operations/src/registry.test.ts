@@ -36,6 +36,10 @@ describe('operation registry', () => {
   it('filters definitions by surface', () => {
     const cli = getOperationDefinitionsForSurface('cli').map((d) => d.name)
     expect(cli).toContain('list_assets')
+    expect(cli).toContain('read_asset')
+    expect(getOperationDefinitionsForSurface('mcp').map((d) => d.name)).toContain(
+      'get_asset_render',
+    )
   })
 
   it('annotates only delete_asset as destructive', () => {
@@ -78,9 +82,8 @@ describe('operation registry', () => {
       ['rename_asset', ['rename']],
       ['move_assets', ['move', 'mv']],
       ['delete_asset', ['delete', 'rm']],
-      // CLI commands for reading assets arrive with the CLI surface
-      ['read_asset', []],
-      ['get_asset_render', []],
+      ['read_asset', ['read']],
+      ['get_asset_render', ['render']],
     ])
   })
 
