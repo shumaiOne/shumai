@@ -838,16 +838,19 @@ describe('SearchService', () => {
       expect(result.data[0].id).toBe(videoAssetA.id)
       expect(result.data[0].startTime).toBe(0)
       expect(result.data[0].endTime).toBe(10)
+      expect(result.data[0].similarity).toBeCloseTo(1.0, 4)
 
       // 2nd: Chunk B1
       expect(result.data[1].id).toBe(videoAssetB.id)
       expect(result.data[1].startTime).toBe(5)
       expect(result.data[1].endTime).toBe(15)
+      expect(result.data[1].similarity).toBeCloseTo(0.7071, 4)
 
       // 3rd: Chunk A2
       expect(result.data[2].id).toBe(videoAssetA.id)
       expect(result.data[2].startTime).toBe(10)
       expect(result.data[2].endTime).toBe(20)
+      expect(result.data[2].similarity).toBeCloseTo(0.0, 4)
 
       mockGenerateEmbedding.mockRestore()
     })
@@ -989,7 +992,9 @@ describe('SearchService', () => {
 
       expect(result.data.length).toBeGreaterThanOrEqual(2)
       expect(result.data[0].id).toBe(videoAssetA.id)
+      expect(result.data[0].similarity).toBeCloseTo(1.0, 4)
       expect(result.data[1].id).toBe(videoAssetB.id)
+      expect(result.data[1].similarity).toBeCloseTo(0.7071, 4)
 
       mockGenerateEmbedding.mockRestore()
     })

@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { prisma, type User } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { AuditAction } from '@shumai/dtos'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { projectService } from '@shumai/core/src/project/project'
+import { textEmbeddingService } from '@shumai/core/src/search/text-embedding'
 import {
   copyAssetsOp,
   createCommentOp,
@@ -145,6 +146,69 @@ describe('collaboration Operations', () => {
           conditions: [{ field: 'name', operator: 'gt', value: 'a' }],
         }),
       ).rejects.toMatchObject({ status: 400 })
+    })
+
+    it('returns similarity score when semantic is true', async () => {
+      const botUser = await prisma.user.create({
+        data: { name: 'Emb Bot', email: 'emb-bot@example.com', type: 'agent' },
+      })
+      const provider = await prisma.provider.create({
+        data: {
+          name: 'google',
+          teamId,
+          config: { api: 'google', apiKey: 'key' } as unknown as PrismaJson.ProviderConfig,
+        },
+      })
+      const model = await prisma.model.create({
+        data: {
+          modelId: 'gemini',
+          name: 'Gemini',
+          providerId: provider.id,
+          config: {
+            reasoning: false,
+            input: ['text'],
+            contextWindow: 1000,
+            maxTokens: 1000,
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          } as unknown as PrismaJson.ModelConfig,
+        },
+      })
+      await prisma.agent.create({
+        data: {
+          id: botUser.id,
+          teamId,
+          type: 'embedding',
+          enabled: true,
+          providerId: provider.id,
+          modelId: model.id,
+          config: { provider: 'google', model: 'gemini' },
+        },
+      })
+
+      const file = await createFile('cat.bin')
+      const vector = Array(768).fill(0)
+      vector[0] = 1.0
+      await prisma.$executeRaw`
+        INSERT INTO asset_embeddings (id, asset_id, embedding_768, created_at, updated_at)
+        VALUES ('emb-chunk-1', ${file}, ${JSON.stringify(vector)}::vector, NOW(), NOW())
+      `
+
+      const spy = vi.spyOn(textEmbeddingService, 'generateEmbedding').mockResolvedValue({
+        embedding: vector,
+      })
+
+      try {
+        const result = await runOperation(searchAssetsOp, as(owner), {
+          parent: rootFolderId,
+          query: 'cat',
+          semantic: true,
+        })
+        expect(result.data).toHaveLength(1)
+        expect(result.data[0].id).toBe(file)
+        expect(result.data[0].similarity).toBeCloseTo(1.0, 4)
+      } finally {
+        spy.mockRestore()
+      }
     })
 
     it('rejects a non-member', async () => {

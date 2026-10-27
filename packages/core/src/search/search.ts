@@ -163,6 +163,7 @@ export class SearchService {
             ...baseInfo,
             startTime: match.startTime,
             endTime: match.endTime,
+            similarity: match.distance != null ? Number((1 - match.distance).toFixed(4)) : null,
           })
         }
       }

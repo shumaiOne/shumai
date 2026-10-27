@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+* **search**: Semantic search results now include a cosine similarity score so AI agents and API clients can check match relevance directly without downloading or inspecting each file
 * **mcp**: Shumai now has a built-in MCP server at `https://<your-shumai-host>/mcp`, so external AI agents such as Claude Code, Cursor, or Kiro can browse projects and create, rename, move, or delete folders and files with your API token and permissions. Like other MCP servers, it can also be served from its own host name, such as `https://mcp.example.com/mcp`
 * **agent**: The built-in agent can now list the projects you have access to, so it can find a project's root folder on its own. Team owners can turn this off per agent like other tools
 * **mcp**: External AI agents connected to Shumai's MCP server can now look at your files: images, video frames, PDF pages, 3D model views, and text files. Images are attached so the AI can see them, along with links that stay valid for about an hour. They can also get download links for files, as the web preview or the original upload

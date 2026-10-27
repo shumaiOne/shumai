@@ -8,5 +8,6 @@ export function toAssetSummary(asset: AssetInfo): AssetSummary {
     type: asset.type,
     size: Number(asset.sizeByte),
     projectId: asset.projectId ?? null,
+    ...(asset.similarity != null ? { similarity: asset.similarity } : {}),
   }
 }
