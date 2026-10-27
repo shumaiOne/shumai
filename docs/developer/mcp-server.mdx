@@ -17,7 +17,7 @@ Shumai includes a built-in [Model Context Protocol](https://modelcontextprotocol
 The server uses the Streamable HTTP transport at:
 
 ```
-https://<your-shumai-host>/api/mcp
+https://<your-shumai-host>/mcp
 ```
 
 It authenticates with an **API token**:
@@ -31,7 +31,7 @@ Then add the server to your client, sending the token as a Bearer header.
 **Claude Code**
 
 ```bash
-claude mcp add --transport http shumai https://<your-shumai-host>/api/mcp \
+claude mcp add --transport http shumai https://<your-shumai-host>/mcp \
   --header "Authorization: Bearer <your-api-token>"
 ```
 
@@ -41,7 +41,7 @@ claude mcp add --transport http shumai https://<your-shumai-host>/api/mcp \
 {
   "mcpServers": {
     "shumai": {
-      "url": "https://<your-shumai-host>/api/mcp",
+      "url": "https://<your-shumai-host>/mcp",
       "headers": { "Authorization": "Bearer <your-api-token>" }
     }
   }
@@ -58,23 +58,49 @@ claude mcp add --transport http shumai https://<your-shumai-host>/api/mcp \
 
 ## Available Tools
 
-| Tool               | What it does                                                                                                     |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| `list_projects`    | Lists the projects you can access, with each project's root folder.                                              |
-| `list_assets`      | Lists files and folders in a folder, page by page.                                                               |
-| `create_folder`    | Creates a folder.                                                                                                |
-| `rename_asset`     | Renames a file or folder.                                                                                        |
-| `move_assets`      | Moves files or folders into another folder.                                                                      |
-| `delete_asset`     | Moves a file or folder to the project trash. Marked as destructive so clients can ask you to confirm.            |
-| `read_asset`       | Looks at a file: an image, video frames, PDF pages, a 3D model view, or the text of a text file.                 |
-| `get_asset_render` | Gets the result of a `read_asset` call that was still rendering.                                                 |
-| `download_asset`   | Gets download links for up to 50 files: the web preview version by default, or the original with `proxy: false`. |
+| Tool                      | What it does                                                                                                     |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `list_projects`           | Lists the projects you can access, with each project's root folder.                                              |
+| `list_assets`             | Lists files and folders in a folder, page by page.                                                               |
+| `search_assets`           | Searches a folder and its subfolders by name, by meaning (when AI search is enabled), or by metadata.            |
+| `create_folder`           | Creates a folder.                                                                                                |
+| `rename_asset`            | Renames a file or folder.                                                                                        |
+| `move_assets`             | Moves files or folders into another folder.                                                                      |
+| `copy_assets`             | Copies files or folders into another folder of the same team.                                                    |
+| `delete_asset`            | Moves a file or folder to the project trash. Marked as destructive so clients can ask you to confirm.            |
+| `read_asset`              | Looks at a file: an image, video frames, PDF pages, a 3D model view, or the text of a text file.                 |
+| `get_asset_render`        | Gets the result of a `read_asset` call that was still rendering.                                                 |
+| `download_asset`          | Gets download links for up to 50 files: the web preview version by default, or the original with `proxy: false`. |
+| `get_folder_instructions` | Reads a folder's instructions for AI agents (its AGENTS.md).                                                     |
+| `create_file`             | Starts uploading a new file into a folder (see [Uploading Files](#uploading-files)).                             |
+| `create_version`          | Starts uploading a new version of a file.                                                                        |
+| `complete_upload`         | Finishes an upload started with `create_file` or `create_version`.                                               |
+| `list_comments`           | Lists the review comments on a file, with their replies.                                                         |
+| `create_comment`          | Comments on a file (optionally at a timecode) or replies to a comment.                                           |
+| `resolve_comment`         | Marks a comment as resolved, or unresolved again.                                                                |
+| `list_metadata_fields`    | Lists a project's metadata fields, such as status, rating, and custom fields, with their choices.                |
+| `update_asset_metadata`   | Sets metadata values on a file.                                                                                  |
+| `create_version_stack`    | Stacks files in the same folder as versions of one asset.                                                        |
+| `list_versions`           | Lists the versions in a version stack, latest first.                                                             |
+| `remove_version`          | Takes a version out of its stack. The file is kept.                                                              |
 
 ### Reading Files
 
 `read_asset` attaches the images to the result so the AI model can see them: up to 8 images per call, each up to 2 MB. Any other images are listed as links only. Every result also includes a link to each image, valid for about an hour. Pass `inlineImages: false` to get links only, for example when your client can't show images.
 
 Rendering video frames or PDF pages can take a while. If it takes longer than about 20 seconds, `read_asset` returns `status: "pending"` with a `taskId`, and the model calls `get_asset_render` with that `taskId` to get the result. Only the user who started the read can get its result.
+
+### Uploading Files
+
+Uploading takes three steps, so large files never pass through the AI model:
+
+1. `create_file` (or `create_version`) returns an `uploadUrl` and an `uploadId`.
+2. The agent uploads the file's bytes to `uploadUrl` with an HTTP `PUT`, for example `curl -T video.mp4 "<uploadUrl>"`.
+3. `complete_upload` with the `uploadId` creates the file and starts processing it (previews, transcoding).
+
+The upload URL and ID are valid for about an hour, and only you can complete your upload. If the project has **Creation Context** metadata fields (for example, the prompt or model used to make a file), pass their values as `metadata` to `create_file` or `create_version`; `list_metadata_fields` shows which fields they are.
+
+The agent must be able to reach the upload URL. With Shumai's local storage, it points to your Shumai server; with S3 storage, to your S3 endpoint.
 
 Every call runs with your permissions: for example, a **Reviewer** can list assets but cannot create or rename them. Actions are recorded in the team audit log and attributed to you, marked as coming from MCP.
 

@@ -471,6 +471,7 @@ describe('DatabaseSessionStorage', () => {
     // 4. Assert that the tools were built for the user
     expect(buildOperationToolsSpy).toHaveBeenCalledWith(
       expect.objectContaining({ userId: user.id }),
+      expect.objectContaining({}),
     )
   })
 
@@ -525,6 +526,7 @@ describe('DatabaseSessionStorage', () => {
     // 4. Assert that the tools were built for the user
     expect(buildOperationToolsSpy).toHaveBeenCalledWith(
       expect.objectContaining({ userId: user.id }),
+      expect.objectContaining({}),
     )
   })
 

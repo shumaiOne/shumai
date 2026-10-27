@@ -18,8 +18,6 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
-import { createCreateFileTool } from './tools/create-file'
-import { createCreateVersionTool } from './tools/create-version'
 import { createReadSkillTool } from './tools/read-skill'
 import { createReadThreadTool } from './tools/read-thread'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
@@ -332,14 +330,11 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
   const systemTools: AgentTool[] = []
   if (userId) {
-    const metadataSchema = await buildProjectMetadataSchema(projectId)
-    const agentContext = { teamId, agentId }
+    const creationMetadataSchema = await buildProjectMetadataSchema(projectId)
     systemTools.push(
-      // Shared Operations (also exposed via MCP and the CLI): list/create/rename/move/delete,
-      // read_asset, get_asset_render, and download_asset
-      ...buildOperationTools({ userId, agentId, teamId, projectId }),
-      createCreateFileTool(userId, metadataSchema, agentContext),
-      createCreateVersionTool(userId, metadataSchema, agentContext),
+      // Shared Operations (also exposed via MCP and the CLI): browsing, searching, organizing,
+      // reading and downloading assets, creating files and versions, comments and metadata
+      ...buildOperationTools({ userId, agentId, teamId, projectId }, { creationMetadataSchema }),
     )
   }
 

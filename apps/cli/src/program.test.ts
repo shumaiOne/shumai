@@ -1,15 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Command } from 'commander'
 import {
+  copyAssets,
+  createComment,
   createFolder,
+  createVersionStack,
   deleteAsset,
   downloadAsset,
   getAssetRender,
+  getFolderInstructions,
   readAsset,
   listAssets,
+  listComments,
+  listMetadataFields,
   listProjects,
+  listVersions,
   moveAssets,
+  removeVersion,
   renameAsset,
+  resolveComment,
+  searchAssets,
+  updateAssetMetadata,
 } from '@shumai/operations'
 import type { CallOperation } from './operations/call-operation'
 import { CliError, formatCliError } from './operations/errors'
@@ -559,6 +570,264 @@ describe('shumai-cli', () => {
       expect(help).not.toContain('--include-content')
       expect(help).not.toContain('--image')
     })
+  })
+
+  describe('search', () => {
+    it('searches a folder by name with the maximum page size', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue({
+        data: [{ id: 'f1', name: 'sunset.png', type: 'file', size: 10, projectId: 'p' }],
+        pageInfo: { hasNextPage: false, endCursor: null },
+        total: 1,
+      })
+
+      await cli.run('search', 'sunset', '-p', 'root-1')
+
+      expect(cli.callOperation).toHaveBeenCalledWith(searchAssets, {
+        parent: 'root-1',
+        query: 'sunset',
+        first: 200,
+      })
+      expect(cli.stdout()).toContain('sunset.png')
+    })
+
+    it('searches by meaning with --semantic', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue({
+        data: [],
+        pageInfo: { hasNextPage: false, endCursor: null },
+        total: 0,
+      })
+
+      await cli.run('search', 'a calm beach', '-p', 'root-1', '--semantic')
+
+      expect(cli.callOperation).toHaveBeenCalledWith(
+        searchAssets,
+        expect.objectContaining({ query: 'a calm beach', semantic: true }),
+      )
+    })
+  })
+
+  describe('copy', () => {
+    it.each(['copy', 'cp'])('copies assets with %s', async (command) => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue({ copiedAssetIds: ['c-1', 'c-2'], newParentId: 'f-2' })
+
+      await cli.run(command, 'a-1', 'a-2', '-p', 'f-2', '--with-comments')
+
+      expect(cli.callOperation).toHaveBeenCalledWith(copyAssets, {
+        assetIds: ['a-1', 'a-2'],
+        newParentId: 'f-2',
+        withComments: true,
+      })
+      expect(cli.stdout()).toBe('Copied 2 asset(s) to parent f-2: c-1, c-2\n')
+    })
+  })
+
+  describe('comment', () => {
+    const thread = {
+      id: 'c-1',
+      message: 'Too dark here',
+      author: { id: 'u-1', name: 'Ana' },
+      second: 12.5,
+      hasMarkup: false,
+      attachmentCount: 0,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      resolved: true,
+      replies: [
+        {
+          id: 'c-2',
+          message: 'Fixed in v2',
+          author: { id: 'u-2', name: 'Bo' },
+          second: null,
+          hasMarkup: false,
+          attachmentCount: 0,
+          createdAt: '2026-01-02T00:00:00.000Z',
+        },
+      ],
+    }
+
+    it('lists threads with their replies', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue({
+        data: [thread],
+        pageInfo: { hasNextPage: false, endCursor: null },
+        total: 1,
+      })
+
+      await cli.run('comment', 'ls', 'vid-1')
+
+      expect(cli.callOperation).toHaveBeenCalledWith(listComments, {
+        assetId: 'vid-1',
+        first: 200,
+      })
+      expect(cli.stdout()).toBe(
+        'c-1 @12.5s [resolved] Ana: Too dark here\n  ↳ c-2 Bo: Fixed in v2\n',
+      )
+    })
+
+    it('posts a reply at a timecode', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue({ id: 'c-3', assetId: 'vid-1', replyToId: 'c-1' })
+
+      await cli.run('comment', 'add', 'vid-1', 'Looks good now', '--reply-to', 'c-1', '--at', '3')
+
+      expect(cli.callOperation).toHaveBeenCalledWith(createComment, {
+        assetId: 'vid-1',
+        message: 'Looks good now',
+        replyToId: 'c-1',
+        second: 3,
+      })
+      expect(cli.stdout()).toBe('Posted comment c-3\n')
+    })
+
+    it('resolves and reopens comments', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValueOnce({ commentId: 'c-1', resolved: true })
+      cli.callOperation.mockResolvedValueOnce({ commentId: 'c-1', resolved: false })
+
+      await cli.run('comment', 'resolve', 'c-1')
+      await cli.run('comment', 'resolve', 'c-1', '--reopen')
+
+      expect(cli.callOperation).toHaveBeenNthCalledWith(1, resolveComment, { commentId: 'c-1' })
+      expect(cli.callOperation).toHaveBeenNthCalledWith(2, resolveComment, {
+        commentId: 'c-1',
+        reopen: true,
+      })
+      expect(cli.stdout()).toBe('Comment c-1 is resolved\nComment c-1 is unresolved\n')
+    })
+  })
+
+  describe('meta set', () => {
+    it('passes --values as a JSON object', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue({ assetId: 'a-1', updatedKeys: ['status', 'rating'] })
+
+      await cli.run('meta', 'set', 'a-1', '--values', '{"status":"approved","rating":4}')
+
+      expect(cli.callOperation).toHaveBeenCalledWith(updateAssetMetadata, {
+        assetId: 'a-1',
+        values: { status: 'approved', rating: 4 },
+      })
+      expect(cli.stdout()).toBe('Updated status, rating on a-1\n')
+    })
+
+    it.each([
+      ['{not json', 'Not valid JSON.'],
+      ['["status"]', 'Expected a JSON object'],
+    ])('rejects --values %s', async (value, message) => {
+      const cli = setup()
+
+      await expect(cli.run('meta', 'set', 'a-1', '--values', value)).rejects.toThrow()
+      expect(cli.stderr()).toContain(message)
+      expect(cli.callOperation).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('field ls', () => {
+    it("lists a project's fields with their choices", async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue({
+        fields: [
+          {
+            key: 'status',
+            name: 'Status',
+            type: 'select',
+            description: '',
+            readOnly: false,
+            creationContext: false,
+            options: [{ id: 'approved', name: 'Approved' }],
+          },
+          {
+            key: 'prompt',
+            name: 'Prompt',
+            type: 'text',
+            description: '',
+            readOnly: false,
+            creationContext: true,
+          },
+        ],
+      })
+
+      await cli.run('field', 'ls', 'p-1')
+
+      expect(cli.callOperation).toHaveBeenCalledWith(listMetadataFields, { projectId: 'p-1' })
+      expect(cli.stdout()).toBe(
+        'status  Status (select) [approved=Approved]\nprompt  Prompt (text, creation)\n',
+      )
+    })
+  })
+
+  describe('version', () => {
+    it('stacks files, lists versions, and unstacks one', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValueOnce({
+        id: 's-1',
+        name: 'cut_v2.mp4',
+        type: 'version_stack',
+        size: 20,
+        projectId: 'p-1',
+      })
+      cli.callOperation.mockResolvedValueOnce({
+        versions: [
+          {
+            id: 'v-2',
+            version: 2,
+            name: 'cut_v2.mp4',
+            current: true,
+            createdAt: '2026-01-02T00:00:00.000Z',
+            creator: null,
+            agent: null,
+          },
+          {
+            id: 'v-1',
+            version: 1,
+            name: 'cut_v1.mp4',
+            current: false,
+            createdAt: '2026-01-01T00:00:00.000Z',
+            creator: null,
+            agent: null,
+          },
+        ],
+      })
+      cli.callOperation.mockResolvedValueOnce({ versionId: 'v-1', stackId: 's-1' })
+
+      await cli.run('version', 'stack', 'v-2', 'v-1')
+      await cli.run('version', 'ls', 's-1')
+      await cli.run('version', 'unstack', 'v-1')
+
+      expect(cli.callOperation).toHaveBeenNthCalledWith(1, createVersionStack, {
+        fileIds: ['v-2', 'v-1'],
+      })
+      expect(cli.callOperation).toHaveBeenNthCalledWith(2, listVersions, { stackId: 's-1' })
+      expect(cli.callOperation).toHaveBeenNthCalledWith(3, removeVersion, { versionId: 'v-1' })
+      expect(cli.stdout()).toBe(
+        'Created version stack s-1\n' +
+          'v2 (current)  v-2  cut_v2.mp4\nv1  v-1  cut_v1.mp4\n' +
+          'Removed v-1 from version stack s-1\n',
+      )
+    })
+  })
+
+  describe('instructions', () => {
+    it("prints a folder's instructions, or says it has none", async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValueOnce({ folderId: 'f-1', content: '# Rules' })
+      cli.callOperation.mockResolvedValueOnce({ folderId: 'f-2', content: null })
+
+      await cli.run('instructions', 'f-1')
+      await cli.run('instructions', 'f-2')
+
+      expect(cli.callOperation).toHaveBeenCalledWith(getFolderInstructions, { folderId: 'f-1' })
+      expect(cli.stdout()).toBe('# Rules\n(This folder has no instructions.)\n')
+    })
+  })
+
+  it('has no upload Operation commands: upload and create-version stream local files', () => {
+    const program = createProgram({ callOperation: vi.fn<CallOperation>() })
+    const names = program.commands.map((c) => c.name())
+    expect(names).not.toContain('complete-upload')
+    expect(names.filter((n) => n === 'create-version')).toHaveLength(1)
   })
 })
 

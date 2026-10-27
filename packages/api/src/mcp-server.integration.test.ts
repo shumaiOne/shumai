@@ -11,7 +11,7 @@ import { apiTokenService } from '@shumai/core/src/user/api-token'
 import app from './index'
 
 /**
- * End-to-end through the composed API app: API token auth → /api/mcp and /api/ops →
+ * End-to-end through the composed API app: API token auth → /mcp and /api/ops →
  * runOperation → core services → database. Nothing is mocked.
  */
 describe('MCP server and /api/ops (integration)', () => {
@@ -49,7 +49,7 @@ describe('MCP server and /api/ops (integration)', () => {
   })
 
   async function connect(token: string): Promise<Client> {
-    const transport = new StreamableHTTPClientTransport(new URL('http://shumai.test/api/mcp'), {
+    const transport = new StreamableHTTPClientTransport(new URL('http://shumai.test/mcp'), {
       requestInit: { headers: { Authorization: `Bearer ${token}` } },
       fetch: async (input, init) => app.request(String(input), init),
     })
@@ -110,11 +110,11 @@ describe('MCP server and /api/ops (integration)', () => {
       Accept: 'application/json, text/event-stream',
     }
 
-    const missing = await app.request('/api/mcp', { method: 'POST', headers, body: initialize })
+    const missing = await app.request('/mcp', { method: 'POST', headers, body: initialize })
     expect(missing.status).toBe(401)
     expect(missing.headers.get('WWW-Authenticate')).toContain('Bearer')
 
-    const invalid = await app.request('/api/mcp', {
+    const invalid = await app.request('/mcp', {
       method: 'POST',
       headers: { ...headers, Authorization: 'Bearer shumai_invalid' },
       body: initialize,
@@ -161,6 +161,21 @@ describe('MCP server and /api/ops (integration)', () => {
     })
 
     expect(res.status).toBe(401)
+  })
+
+  it('no longer serves the MCP server under /api', async () => {
+    const res = await app.request('/api/mcp', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${ownerToken}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+    })
+    // It falls through to the session-only API routes instead of answering as MCP.
+    expect(res.status).toBe(401)
+    expect(await res.text()).not.toContain('jsonrpc')
   })
 
   describe('read_asset', () => {
@@ -301,6 +316,54 @@ describe('MCP server and /api/ops (integration)', () => {
 
       const result = await client.callTool({ name: 'read_asset', arguments: { assetId: imageId } })
 
+      expect(result.isError).toBe(true)
+    })
+
+    it('lets an MCP client upload a file: create_file, PUT the bytes, complete_upload', async () => {
+      const client = await connect(ownerToken)
+
+      const started = await client.callTool({
+        name: 'create_file',
+        arguments: { parent: rootFolderId, name: 'upload.png' },
+      })
+      expect(started.isError).toBeFalsy()
+      const { uploadId, uploadUrl, method } = started.structuredContent as {
+        uploadId: string
+        uploadUrl: string
+        method: string
+        key?: string
+      }
+      expect(method).toBe('PUT')
+      expect(started.structuredContent).not.toHaveProperty('key')
+
+      // Upload the bytes the way an agent would with curl, to the API's local storage
+      const link = new URL(uploadUrl)
+      const put = await app.request(link.pathname + link.search, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'image/png', 'Content-Length': String(png.length) },
+        body: png,
+      })
+      expect(put.status).toBe(200)
+
+      const completed = await client.callTool({ name: 'complete_upload', arguments: { uploadId } })
+      expect(completed.isError).toBeFalsy()
+      const file = completed.structuredContent as { id: string; name: string; size: number }
+      expect(file).toMatchObject({ name: 'upload.png', size: png.length })
+
+      const row = await prisma.asset.findUniqueOrThrow({ where: { id: file.id } })
+      expect(row).toMatchObject({ parentId: rootFolderId, creatorId: owner.id })
+      const audit = await prisma.auditLog.findFirstOrThrow({
+        where: { action: 'file_create', itemId: file.id },
+      })
+      expect(audit).toMatchObject({ userId: owner.id, teamId, projectId, via: 'mcp' })
+    })
+
+    it('does not let a reviewer start an upload over MCP', async () => {
+      const client = await connect(reviewerToken)
+      const result = await client.callTool({
+        name: 'create_file',
+        arguments: { parent: rootFolderId, name: 'nope.png' },
+      })
       expect(result.isError).toBe(true)
     })
   })

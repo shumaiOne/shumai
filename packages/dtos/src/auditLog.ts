@@ -22,6 +22,8 @@ export enum AuditAction {
   folder_delete = 'folder_delete',
   asset_reparent = 'asset_reparent',
   asset_copy = 'asset_copy',
+  version_stack_create = 'version_stack_create',
+  version_stack_update = 'version_stack_update',
   share_create = 'share_create',
   share_update = 'share_update',
   share_delete = 'share_delete',

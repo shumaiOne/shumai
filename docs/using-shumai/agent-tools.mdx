@@ -98,6 +98,61 @@ The following tools can be individually toggled in the agent configuration dialo
 - **Description:** Allows the agent to delete a single file or folder by moving it to the Trash bin.
 - **Why it matters:** Provides agents with the ability to clean up outdated or redundant assets. To prevent accidental data loss, this tool is **disabled by default** and strictly limited to deleting one asset at a time. Team Owners must explicitly enable this tool for an agent.
 
+### 16. Search Assets (`search_assets`)
+
+- **Description:** Allows the agent to search a folder and its subfolders by name, by meaning (when AI search is enabled for the team), or by metadata such as status.
+- **Why it matters:** Lets the agent find the files a request is about without browsing folder by folder.
+
+### 17. Copy Assets (`copy_assets`)
+
+- **Description:** Allows the agent to copy files or folders, with everything inside them, into another folder of the same team.
+- **Why it matters:** Lets the agent reuse assets across projects or set up working copies while keeping the originals unchanged.
+
+### 18. Read Folder Instructions (`get_folder_instructions`)
+
+- **Description:** Allows the agent to read a folder's instructions for AI agents (its AGENTS.md).
+- **Why it matters:** Lets the agent follow the team's conventions, such as naming rules or deliverable specs, before adding files to a folder.
+
+### 19. Read Comments (`list_comments`)
+
+- **Description:** Allows the agent to read the review comments and replies on a file, including their timecodes.
+- **Why it matters:** Lets the agent act on review feedback, for example to summarize open notes or address them in a new version.
+
+### 20. Post Comment (`create_comment`)
+
+- **Description:** Allows the agent to comment on a file, optionally at a timecode, or reply to a comment. Comments are posted as the user the agent works for; the audit log records that the agent wrote them.
+- **Why it matters:** Lets the agent take part in reviews like a teammate. Mentions in the agent's comments don't start other agents.
+
+### 21. Resolve Comment (`resolve_comment`)
+
+- **Description:** Allows the agent to mark comments as resolved, or reopen them.
+- **Why it matters:** Lets the agent close the feedback it has addressed.
+
+### 22. List Metadata Fields (`list_metadata_fields`)
+
+- **Description:** Allows the agent to see a project's metadata fields, such as status, rating, and custom fields, with their choices.
+- **Why it matters:** Tells the agent which values it can search by or set.
+
+### 23. Update Metadata (`update_asset_metadata`)
+
+- **Description:** Allows the agent to set metadata values on a file, such as its status or tags. Read-only fields can't be changed.
+- **Why it matters:** Lets the agent keep a file's review status and other fields up to date.
+
+### 24. Create Version Stack (`create_version_stack`)
+
+- **Description:** Allows the agent to stack existing files in the same folder as versions of one asset.
+- **Why it matters:** Lets the agent tidy up loose revisions (for example `cut_v1.mp4` and `cut_v2.mp4`) into one versioned asset.
+
+### 25. List Versions (`list_versions`)
+
+- **Description:** Allows the agent to list the versions in a version stack, latest first.
+- **Why it matters:** Lets the agent compare a file with earlier versions.
+
+### 26. Remove Version (`remove_version`)
+
+- **Description:** Allows the agent to take a version out of its stack. The file isn't deleted; it goes back into the folder as a separate file.
+- **Why it matters:** Lets the agent fix a version that was stacked by mistake.
+
 ---
 
 ## Restricting Tools

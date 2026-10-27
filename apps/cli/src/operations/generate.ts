@@ -36,6 +36,8 @@ type FieldKind =
   | { type: 'boolean' }
   | { type: 'enum'; values: string[] }
   | { type: 'array' }
+  /** A key/value object (`z.record`), passed as a JSON object. */
+  | { type: 'json' }
 
 interface FieldInfo {
   name: string
@@ -73,6 +75,7 @@ function describeSchema(
   else if (base instanceof z.ZodEnum) kind = { type: 'enum', values: base.options.map(String) }
   else if (base instanceof z.ZodArray) kind = { type: 'array' }
   else if (base instanceof z.ZodString) kind = { type: 'string' }
+  else if (base instanceof z.ZodRecord) kind = { type: 'json' }
   else {
     throw new Error(`${definition.name}.${name}: unsupported input type for the CLI`)
   }
@@ -112,6 +115,19 @@ function parseNumber(value: string): number {
     throw new InvalidArgumentError('Not a number.')
   }
   return parsed
+}
+
+function parseJsonObject(value: string): Record<string, unknown> {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    throw new InvalidArgumentError('Not valid JSON.')
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new InvalidArgumentError('Expected a JSON object, e.g. \'{"key": "value"}\'.')
+  }
+  return parsed as Record<string, unknown>
 }
 
 function kebab(name: string): string {
@@ -166,9 +182,12 @@ export function registerOperationCommands(
           ? ''
           : field.kind.type === 'array'
             ? ` <${field.name}...>`
-            : ` <${field.name}>`
+            : field.kind.type === 'json'
+              ? ` <json>`
+              : ` <${field.name}>`
       const option = new Option(`${spellings.join(', ')}${valueHint}`, field.description)
       if (field.kind.type === 'number') option.argParser(parseNumber)
+      if (field.kind.type === 'json') option.argParser(parseJsonObject)
       if (field.kind.type === 'enum') option.choices(field.kind.values)
       if (field.required) option.makeOptionMandatory()
       cmd.addOption(option)

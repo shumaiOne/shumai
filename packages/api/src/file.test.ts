@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { Hono, type Context, type Next } from 'hono'
+import { HTTPException } from 'hono/http-exception'
 import fileRoute from './file'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
@@ -8,7 +9,12 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core'
 import { authMiddleware } from './middleware/auth'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
-import { renameAssetOp, runOperation } from '@shumai/core/src/operations'
+import {
+  renameAssetOp,
+  resolveCommentOp,
+  runOperation,
+  updateAssetMetadataOp,
+} from '@shumai/core/src/operations'
 
 vi.mock('fs', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>
@@ -450,8 +456,9 @@ describe('file api', () => {
     expect(resInvalidTz.status).toBe(400)
   })
 
-  it('POST /comments/:commentId/complete', async () => {
-    vi.mocked(assetService.completeComment).mockResolvedValue({
+  it('POST /comments/:commentId/complete runs resolve_comment and returns the comment', async () => {
+    vi.mocked(runOperation).mockResolvedValue({ commentId: 'comment-id', resolved: true })
+    vi.mocked(assetService.getComment).mockResolvedValue({
       id: 'comment-id',
       assetId: 'file-id',
       message: 'hello',
@@ -483,12 +490,33 @@ describe('file api', () => {
     expect(json.isCompleted).toBe(true)
     expect(json.completionLastChangedBy.id).toBe('user1')
 
-    expect(authzService.hasPermission).toHaveBeenCalledWith({
-      user: { id: 'user1', name: 'Test User' },
-      permission: Permission.Read,
-      type: ResourceType.Comment,
+    expect(runOperation).toHaveBeenCalledWith(
+      resolveCommentOp,
+      { userId: 'user1', via: 'api' },
+      { commentId: 'comment-id', reopen: false },
+    )
+    expect(assetService.getComment).toHaveBeenCalledWith('comment-id', 'user1')
+  })
+
+  it('POST /comments/:commentId/complete reopens with isCompleted false', async () => {
+    vi.mocked(runOperation).mockResolvedValue({ commentId: 'comment-id', resolved: false })
+    vi.mocked(assetService.getComment).mockResolvedValue({
       id: 'comment-id',
+      isCompleted: false,
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    await app.request('/comments/comment-id/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isCompleted: false }),
     })
+
+    expect(runOperation).toHaveBeenCalledWith(
+      resolveCommentOp,
+      { userId: 'user1', via: 'api' },
+      { commentId: 'comment-id', reopen: true },
+    )
   })
 
   it('DELETE /comments/:commentId', async () => {
@@ -625,41 +653,43 @@ describe('file api', () => {
     )
   })
 
-  it('PATCH /files/:fileId/metadata', async () => {
-    vi.mocked(metadataService.updateAssetMetadata).mockResolvedValue(undefined)
-    // Mock assetService.getAsset to return teamId for notification
-    vi.mocked(assetService.getAsset).mockResolvedValue({
-      id: 'test-id',
-      project: { teamId: 'test-team' },
-    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+  it('PATCH /files/:fileId/metadata runs update_asset_metadata', async () => {
+    vi.mocked(runOperation).mockResolvedValue({ assetId: 'test-id', updatedKeys: ['status'] })
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
     const res = await app.request('/files/test-id/metadata', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify([{ key: 'status', value: 'approved' }]),
+      body: JSON.stringify([
+        { key: 'status', value: 'approved' },
+        { key: 'rating', value: 4 },
+      ]),
     })
 
     expect(res.status).toBe(200)
+    expect(runOperation).toHaveBeenCalledWith(
+      updateAssetMetadataOp,
+      { userId: 'user1', via: 'api' },
+      { assetId: 'test-id', values: { status: 'approved', rating: 4 } },
+    )
+  })
 
-    expect(authzService.hasPermission).toHaveBeenCalledWith({
-      user: { id: 'user1', name: 'Test User' },
-      permission: Permission.Edit,
-      type: ResourceType.Asset,
-      id: 'test-id',
+  it('PATCH /files/:fileId/metadata does nothing for an empty list', async () => {
+    vi.mocked(runOperation).mockClear()
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/files/test-id/metadata', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([]),
     })
 
-    expect(notificationService.create).toHaveBeenCalledWith({
-      type: 'metadata_field_updated_status',
-      teamId: 'test-team',
-      creatorId: 'user1',
-      assetId: 'test-id',
-    })
+    expect(res.status).toBe(200)
+    expect(runOperation).not.toHaveBeenCalled()
   })
 
   it('PATCH /files/:fileId/metadata rejects readonly fields with 422', async () => {
-    vi.mocked(metadataService.updateAssetMetadata).mockRejectedValue(
-      new Error('Field some-key is read-only'),
+    vi.mocked(runOperation).mockRejectedValue(
+      new HTTPException(422, { message: 'Field some-key is read-only' }),
     )
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)

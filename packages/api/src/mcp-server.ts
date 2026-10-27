@@ -15,10 +15,15 @@ export const MCP_SERVER_VERSION = '1.0.0'
 export const MCP_SERVER_INSTRUCTIONS = [
   'Shumai is a media asset workspace organized as teams > projects > folders > files.',
   'Start with list_projects to find a project and its rootFolderId, then pass folder IDs as',
-  '`parent` to list_assets and create_folder. list_assets is paginated: when',
-  'pageInfo.hasNextPage is true, call it again with after = pageInfo.endCursor.',
+  '`parent` to list_assets, search_assets, and create_folder. List and search tools are',
+  'paginated: when pageInfo.hasNextPage is true, call them again with after = pageInfo.endCursor.',
   'Use read_asset to look at a file (image, video frames, PDF pages, 3D views, or text);',
   'if it returns status "pending", call get_asset_render with its taskId.',
+  'Review feedback lives in comments: list_comments, create_comment, and resolve_comment.',
+  'Files carry metadata (status, rating, custom fields): list_metadata_fields gives the keys for',
+  'update_asset_metadata. Before adding files to a folder, check get_folder_instructions.',
+  'To upload, call create_file (or create_version for a new version of a file), PUT the bytes',
+  'to the returned uploadUrl, then call complete_upload with the uploadId.',
 ].join(' ')
 
 /**
@@ -126,7 +131,7 @@ const mcpHandler = createMcpHandler(({ authInfo }) => {
   return buildMcpServer(userId)
 })
 
-/** Shumai's MCP server (Streamable HTTP). Mounted at `/api/mcp` behind API token auth. */
+/** Shumai's MCP server (Streamable HTTP). Mounted at `/mcp` behind API token auth. */
 const route = new Hono<{ Variables: { user: User } }>().all('/mcp', (c) => {
   const user = c.get('user')
   return mcpHandler.fetch(c.req.raw, {

@@ -42,11 +42,9 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', localUploadRoute)
   .route('/', mcpOauthCallbackRoute)
 
-  // Programmatic endpoints: API token required, session cookies not accepted
+  // Programmatic endpoint for the CLI: API token required, session cookies not accepted
   .use('/ops/*', requireApiTokenMiddleware)
-  .use('/mcp', requireApiTokenMiddleware)
   .route('/', operationsRoute)
-  .route('/', mcpServerRoute)
 
   // Selected routes supporting API token authentication
   .use('/projects', tokenAuthMiddleware)
@@ -81,6 +79,13 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', quotaRoute)
   .route('/', kanbanRoute)
   .route('/', mediaGenerationRoute)
+
+// Shumai's MCP server lives at the root (`/mcp`), next to the API rather than inside it, so
+// it can also be served from a dedicated host (e.g. `https://mcp.example.com/mcp`). It takes
+// API tokens only. The `/api/mcp/servers` routes are a separate feature: external MCP servers
+// that Shumai's own agent connects to.
+app.use('/mcp', requireApiTokenMiddleware)
+app.route('/', mcpServerRoute)
 
 app.route('/files', s3Route)
 

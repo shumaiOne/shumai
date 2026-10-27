@@ -1,12 +1,16 @@
 import { zValidator } from '@hono/zod-validator'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
-import { metadataService } from '@shumai/core/src/metadata/metadata'
-import { notificationService } from '@shumai/core/src/notification/notification'
+import { commentService } from '@shumai/core/src/comment/comment'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
-import { renameAssetOp, runOperation } from '@shumai/core/src/operations'
+import {
+  renameAssetOp,
+  resolveCommentOp,
+  runOperation,
+  updateAssetMetadataOp,
+} from '@shumai/core/src/operations'
 import {
   createCommentRequestSchema,
   deleteFilesRequestSchema,
@@ -26,6 +30,7 @@ import {
 import { transcodeService, buildContentDisposition } from '@shumai/core'
 import fs from 'fs'
 import { Hono } from 'hono'
+import { HTTPException } from 'hono/http-exception'
 import os from 'os'
 import path from 'path'
 import { ulid } from 'ulid'
@@ -106,37 +111,23 @@ const route = new Hono<{ Variables: { user: User } }>()
     '/files/:fileId/metadata',
     zValidator('json', z.array(updateAssetMetadataRequestSchema)),
     async (c) => {
-      const fileId = c.req.param('fileId')
-      const user = c.get('user')
       const req = c.req.valid('json')
-
-      await authzService.hasPermission({
-        user,
-        permission: Permission.Edit,
-        type: ResourceType.Asset,
-        id: fileId,
-      })
-
+      if (req.length === 0) return c.json('')
       try {
-        await metadataService.updateAssetMetadata(fileId, req)
+        await runOperation(
+          updateAssetMetadataOp,
+          { userId: c.get('user').id, via: 'api' },
+          {
+            assetId: c.req.param('fileId'),
+            values: Object.fromEntries(req.map((m) => [m.key, m.value])),
+          },
+        )
       } catch (err) {
-        if (err instanceof Error && err.message.includes('is read-only')) {
+        if (err instanceof HTTPException && err.status === 422) {
           return c.json({ error: err.message }, 422)
         }
         throw err
       }
-
-      const hasStatus = req.some((m) => m.key === 'status')
-      if (hasStatus) {
-        const context = await assetService.getAssetContext(fileId)
-        notificationService.create({
-          type: 'metadata_field_updated_status',
-          teamId: context.teamId,
-          creatorId: user.id,
-          assetId: fileId,
-        })
-      }
-
       return c.json('')
     },
   )
@@ -155,7 +146,9 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: fileId,
       })
 
-      const comment = await assetService.createComment({
+      // The web app can attach markup and files, which the create_comment Operation doesn't
+      // expose; both post through the same service, so notifications are the same.
+      const comment = await commentService.postComment({
         assetId: fileId,
         userId: user.id,
         replyToId: req.replyToId,
@@ -165,27 +158,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         attachmentIds: req.attachmentIds,
       })
 
-      const notifType = req.replyToId ? 'reply_created' : 'comment_created'
-
       const context = await assetService.getAssetContext(fileId)
-
-      let targetUserId: string | undefined
-      if (req.replyToId) {
-        const parentComment = await assetService.getComment(req.replyToId).catch(() => null)
-        if (parentComment?.creator?.id) {
-          targetUserId = parentComment.creator.id
-        }
-      }
-
-      notificationService.create({
-        type: notifType,
-        teamId: context.teamId,
-        creatorId: user.id,
-        assetId: fileId,
-        userId: targetUserId,
-        commentMessage: req.message,
-      })
-
       await auditLogService.logAction({
         action: AuditAction.comment_create,
         teamId: context.teamId,
@@ -282,29 +255,13 @@ const route = new Hono<{ Variables: { user: User } }>()
       const user = c.get('user')
       const req = c.req.valid('json')
 
-      await authzService.hasPermission({
-        user,
-        permission: Permission.Read,
-        type: ResourceType.Comment,
-        id: commentId,
-      })
-
-      const commentData = await assetService.getComment(commentId).catch(() => null)
-
-      const updated = await assetService.completeComment(commentId, req.isCompleted, user.id)
-
-      if (commentData?.assetId) {
-        const context = await assetService.getAssetContext(commentData.assetId)
-        await auditLogService.logAction({
-          action: AuditAction.comment_complete,
-          teamId: context.teamId,
-          userId: user.id,
-          projectId: context.projectId,
-          itemId: commentId,
-        })
-      }
-
-      return c.json(updated)
+      await runOperation(
+        resolveCommentOp,
+        { userId: user.id, via: 'api' },
+        { commentId, reopen: !req.isCompleted },
+      )
+      // The web app shows the whole comment, so respond with it rather than the summary.
+      return c.json(await assetService.getComment(commentId, user.id))
     },
   )
   .delete('/comments/:commentId', async (c) => {

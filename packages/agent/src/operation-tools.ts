@@ -13,6 +13,23 @@ import {
 /** Context for agent-invoked Operations; `via` is always `agent`. */
 export type AgentOperationContext = Omit<OperationContext, 'via'>
 
+/** Per-session settings for building tools, e.g. schemas that depend on the project. */
+export interface AgentToolOptions {
+  /**
+   * Schema of the conversation project's Creation Context fields, for the `metadata`
+   * parameter of tools that create files. Undefined when the project has none.
+   */
+  creationMetadataSchema?: TSchema
+}
+
+/** The JSON Schema of a tool's parameters (an object schema). */
+export interface ToolParametersSchema {
+  type?: string
+  properties: Record<string, unknown>
+  required?: string[]
+  [key: string]: unknown
+}
+
 /**
  * Agent-specific presentation for an Operation. By default a tool returns the Operation output
  * as JSON text; an extension can add agent-only parameters, map them into the Operation input,
@@ -29,6 +46,10 @@ export interface AgentToolExtension {
    * input when it runs.
    */
   parameterOverrides?: z.ZodObject
+  /** Operation input fields the agent doesn't see because `toInput` fills them in. */
+  hiddenParameters?: readonly string[]
+  /** Adjust the parameters' JSON Schema for this session (e.g. a project-specific field). */
+  adjustParameters?(schema: ToolParametersSchema, options: AgentToolOptions): void
   /** Adjust the Operation input using the extra parameters. */
   toInput?(input: Record<string, unknown>, extra: Record<string, unknown>): Record<string, unknown>
   /**
@@ -40,7 +61,11 @@ export interface AgentToolExtension {
     extra: Record<string, unknown>,
     ctx: AgentOperationContext,
   ): Promise<AgentToolResult<unknown> | undefined>
-  present(output: unknown, extra: Record<string, unknown>): Promise<AgentToolResult<unknown>>
+  present(
+    output: unknown,
+    extra: Record<string, unknown>,
+    ctx: AgentOperationContext,
+  ): Promise<AgentToolResult<unknown>>
 }
 
 const extensions = new Map<string, AgentToolExtension>()
@@ -62,12 +87,21 @@ function toolInputSchema(op: Operation, extension?: AgentToolExtension): z.ZodOb
  * TypeBox schemas are plain JSON Schema at runtime, so the converted schema is used as-is.
  * Throws when the schema cannot be compiled, so a bad definition fails loudly in tests.
  */
-export function toToolParameters(op: Operation, extension?: AgentToolExtension): TSchema {
-  const schema: Record<string, unknown> = z.toJSONSchema(toolInputSchema(op, extension), {
+export function toToolParameters(
+  op: Operation,
+  extension?: AgentToolExtension,
+  options: AgentToolOptions = {},
+): TSchema {
+  const schema = z.toJSONSchema(toolInputSchema(op, extension), {
     io: 'input',
-  })
+  }) as unknown as ToolParametersSchema
   // `$schema` is not understood by the harness validator or every model provider.
   delete schema.$schema
+  for (const name of extension?.hiddenParameters ?? []) {
+    delete schema.properties[name]
+    schema.required = schema.required?.filter((field) => field !== name)
+  }
+  extension?.adjustParameters?.(schema, options)
   Compile(schema)
   return schema as unknown as TSchema
 }
@@ -92,14 +126,18 @@ export function splitAgentParams(
 }
 
 /** Expose an Operation as a native agent tool that runs through `runOperation`. */
-export function toAgentTool(op: Operation, ctx: AgentOperationContext): AgentTool {
+export function toAgentTool(
+  op: Operation,
+  ctx: AgentOperationContext,
+  options: AgentToolOptions = {},
+): AgentTool {
   const { definition } = op
   const extension = extensions.get(definition.name)
   return {
     name: definition.name,
     label: definition.title,
     description: extension?.description ?? definition.description,
-    parameters: toToolParameters(op, extension),
+    parameters: toToolParameters(op, extension, options),
     execute: async (_toolCallId, params) => {
       const { input, extra } = splitAgentParams(op, extension, params)
       if (extension?.intercept) {
@@ -108,7 +146,7 @@ export function toAgentTool(op: Operation, ctx: AgentOperationContext): AgentToo
       }
       const output = await runOperation(op, { ...ctx, via: 'agent' }, input)
       if (extension) {
-        return extension.present(output, extra)
+        return extension.present(output, extra, ctx)
       }
       return {
         content: [{ type: 'text', text: JSON.stringify(output, null, 2) }],
@@ -119,6 +157,9 @@ export function toAgentTool(op: Operation, ctx: AgentOperationContext): AgentToo
 }
 
 /** Agent tools for every Operation with the `agent` surface. */
-export function buildOperationTools(ctx: AgentOperationContext): AgentTool[] {
-  return getOperationsForSurface('agent').map((op) => toAgentTool(op, ctx))
+export function buildOperationTools(
+  ctx: AgentOperationContext,
+  options: AgentToolOptions = {},
+): AgentTool[] {
+  return getOperationsForSurface('agent').map((op) => toAgentTool(op, ctx, options))
 }

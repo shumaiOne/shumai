@@ -79,6 +79,10 @@ const STANDARD_TOOLS = [
   { value: 'rename_asset', label: () => m.agent_tool_rename_asset_name() },
   { value: 'move_assets', label: () => m.agent_tool_move_assets_name() },
   { value: 'delete_asset', label: () => m.agent_tool_delete_asset_name() },
+  { value: 'search_assets', label: () => m.agent_tool_search_assets_name() },
+  { value: 'copy_assets', label: () => m.agent_tool_copy_assets_name() },
+  { value: 'create_comment', label: () => m.agent_tool_create_comment_name() },
+  { value: 'update_asset_metadata', label: () => m.agent_tool_update_asset_metadata_name() },
 ]
 
 /* eslint-disable @typescript-eslint/naming-convention */

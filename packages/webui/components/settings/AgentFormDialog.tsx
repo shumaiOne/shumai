@@ -142,6 +142,61 @@ const BUILTIN_TOOLS = [
     name: () => m.agent_tool_delete_asset_name(),
     description: () => m.agent_tool_delete_asset_desc(),
   },
+  {
+    id: 'search_assets',
+    name: () => m.agent_tool_search_assets_name(),
+    description: () => m.agent_tool_search_assets_desc(),
+  },
+  {
+    id: 'copy_assets',
+    name: () => m.agent_tool_copy_assets_name(),
+    description: () => m.agent_tool_copy_assets_desc(),
+  },
+  {
+    id: 'get_folder_instructions',
+    name: () => m.agent_tool_get_folder_instructions_name(),
+    description: () => m.agent_tool_get_folder_instructions_desc(),
+  },
+  {
+    id: 'list_comments',
+    name: () => m.agent_tool_list_comments_name(),
+    description: () => m.agent_tool_list_comments_desc(),
+  },
+  {
+    id: 'create_comment',
+    name: () => m.agent_tool_create_comment_name(),
+    description: () => m.agent_tool_create_comment_desc(),
+  },
+  {
+    id: 'resolve_comment',
+    name: () => m.agent_tool_resolve_comment_name(),
+    description: () => m.agent_tool_resolve_comment_desc(),
+  },
+  {
+    id: 'list_metadata_fields',
+    name: () => m.agent_tool_list_metadata_fields_name(),
+    description: () => m.agent_tool_list_metadata_fields_desc(),
+  },
+  {
+    id: 'update_asset_metadata',
+    name: () => m.agent_tool_update_asset_metadata_name(),
+    description: () => m.agent_tool_update_asset_metadata_desc(),
+  },
+  {
+    id: 'create_version_stack',
+    name: () => m.agent_tool_create_version_stack_name(),
+    description: () => m.agent_tool_create_version_stack_desc(),
+  },
+  {
+    id: 'list_versions',
+    name: () => m.agent_tool_list_versions_name(),
+    description: () => m.agent_tool_list_versions_desc(),
+  },
+  {
+    id: 'remove_version',
+    name: () => m.agent_tool_remove_version_name(),
+    description: () => m.agent_tool_remove_version_desc(),
+  },
 ]
 
 type AgentFormValues = z.infer<typeof agentFormSchema>

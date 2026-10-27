@@ -3,6 +3,7 @@ import { zValidator } from '@hono/zod-validator'
 import { versionStackService } from '@shumai/core/src/versionStack/versionStack'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { createVersionStackOp, removeVersionOp, runOperation } from '@shumai/core/src/operations'
 import { createVersionStackRequestSchema, changeStackFileVersionRequestSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
 
@@ -15,26 +16,14 @@ const route = app
     '/projects/:projectId/version_stacks',
     zValidator('json', createVersionStackRequestSchema),
     async (c) => {
-      const projectId = c.req.param('projectId')
-      const user = c.get('user')
       const req = c.req.valid('json')
-
-      await authzService.hasPermission({
-        user,
-        permission: Permission.Edit,
-        type: ResourceType.Project,
-        id: projectId,
-      })
-
-      const stack = await versionStackService.createVersionStack({
-        fileIds: req.fileIds,
-        projectId,
-        creatorId: user.id,
-      })
-
-      const stackInfo = await assetService.getAsset({ assetId: stack.id })
-
-      return c.json(stackInfo)
+      // Authorization and the stack's project come from the files, not the path.
+      const stack = await runOperation(
+        createVersionStackOp,
+        { userId: c.get('user').id, via: 'api' },
+        { fileIds: req.fileIds },
+      )
+      return c.json(await assetService.getAsset({ assetId: stack.id }))
     },
   )
   .post(
@@ -76,22 +65,12 @@ const route = app
     return c.json(versions)
   })
   .delete('/version_stacks/:stackId/versions/:versionId', async (c) => {
-    const stackId = c.req.param('stackId')
-    const versionId = c.req.param('versionId')
-    const user = c.get('user')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Edit,
-      type: ResourceType.Asset,
-      id: stackId,
-    })
-
-    await versionStackService.removeVersionFromStack({
-      stackId,
-      fileId: versionId,
-    })
-
+    // The stack is the version's parent; the path's stackId is not needed.
+    await runOperation(
+      removeVersionOp,
+      { userId: c.get('user').id, via: 'api' },
+      { versionId: c.req.param('versionId') },
+    )
     return new Response(null, { status: 200 })
   })
 

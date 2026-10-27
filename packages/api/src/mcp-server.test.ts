@@ -53,15 +53,29 @@ describe('MCP server', () => {
     const { tools } = await client.listTools()
 
     expect(tools.map((t) => t.name).sort()).toEqual([
+      'complete_upload',
+      'copy_assets',
+      'create_comment',
+      'create_file',
       'create_folder',
+      'create_version',
+      'create_version_stack',
       'delete_asset',
       'download_asset',
       'get_asset_render',
+      'get_folder_instructions',
       'list_assets',
+      'list_comments',
+      'list_metadata_fields',
       'list_projects',
+      'list_versions',
       'move_assets',
       'read_asset',
+      'remove_version',
       'rename_asset',
+      'resolve_comment',
+      'search_assets',
+      'update_asset_metadata',
     ])
 
     const createFolder = tools.find((t) => t.name === 'create_folder')!

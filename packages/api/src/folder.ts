@@ -14,7 +14,12 @@ import { listChildrenRequestSchema, updateAssetOrderRequestSchema, AuditAction }
 import { searchRequestSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
-import { createFolderOp, renameAssetOp, runOperation } from '@shumai/core/src/operations'
+import {
+  createFolderOp,
+  getFolderInstructionsOp,
+  renameAssetOp,
+  runOperation,
+} from '@shumai/core/src/operations'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -150,17 +155,11 @@ const route = new Hono<{ Variables: { user: User } }>()
     return c.json(result)
   })
   .get('/folders/:folderId/agentsmd', async (c) => {
-    const folderId = c.req.param('folderId')
-    const user = c.get('user')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Read,
-      type: ResourceType.Asset,
-      id: folderId,
-    })
-
-    const content = await assetService.getAgentsMd(folderId)
+    const { content } = await runOperation(
+      getFolderInstructionsOp,
+      { userId: c.get('user').id, via: 'api' },
+      { folderId: c.req.param('folderId') },
+    )
     return c.json({ content })
   })
   .patch(

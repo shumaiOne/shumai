@@ -5,6 +5,12 @@ import { authMiddleware } from './middleware/auth'
 import { versionStackService } from '@shumai/core/src/versionStack/versionStack'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
+import { createVersionStackOp, removeVersionOp, runOperation } from '@shumai/core/src/operations'
+
+vi.mock('@shumai/core/src/operations', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@shumai/core/src/operations')>()),
+  runOperation: vi.fn(),
+}))
 
 vi.mock('@shumai/core/src/authz/authz', () => ({
   authzService: {
@@ -50,11 +56,16 @@ describe('versionStack api', () => {
   })
 
   describe('POST /projects/:projectID/version_stacks', () => {
-    it('should create a version stack and return asset info', async () => {
-      const mockStack = { id: 'stack1' }
+    it('runs create_version_stack and returns the stack asset info', async () => {
       const mockAssetInfo = { id: 'stack1', type: 'version_stack', name: 'v1' }
 
-      mockCreateVersionStack.mockResolvedValue(mockStack)
+      vi.mocked(runOperation).mockResolvedValue({
+        id: 'stack1',
+        name: 'v1',
+        type: 'version_stack',
+        size: 0,
+        projectId: 'p1',
+      })
       mockGetAsset.mockResolvedValue(mockAssetInfo)
 
       const app = new Hono().use('*', authMiddleware).route('/', versionStackRoute)
@@ -69,18 +80,12 @@ describe('versionStack api', () => {
       const data = await res.json()
       expect(data).toEqual(mockAssetInfo)
 
-      expect(authzService.hasPermission).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: ResourceType.Project,
-          id: 'p1',
-          permission: Permission.Edit,
-        }),
+      expect(runOperation).toHaveBeenCalledWith(
+        createVersionStackOp,
+        { userId: 'user1', via: 'api' },
+        { fileIds: ['f1', 'f2'] },
       )
-      expect(mockCreateVersionStack).toHaveBeenCalledWith({
-        projectId: 'p1',
-        creatorId: 'user1',
-        fileIds: ['f1', 'f2'],
-      })
+      expect(mockCreateVersionStack).not.toHaveBeenCalled()
       expect(mockGetAsset).toHaveBeenCalledWith({ assetId: 'stack1' })
     })
   })
@@ -150,8 +155,8 @@ describe('versionStack api', () => {
   })
 
   describe('DELETE /version_stacks/:stackId/versions/:versionId', () => {
-    it('should remove version from stack and return 200', async () => {
-      mockRemoveVersionFromStack.mockResolvedValue()
+    it('runs remove_version and returns 200', async () => {
+      vi.mocked(runOperation).mockResolvedValue({ versionId: 'v1', stackId: 'stack1' })
 
       const app = new Hono().use('*', authMiddleware).route('/', versionStackRoute)
 
@@ -160,18 +165,12 @@ describe('versionStack api', () => {
       })
 
       expect(res.status).toBe(200)
-
-      expect(authzService.hasPermission).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: ResourceType.Asset,
-          id: 'stack1',
-          permission: Permission.Edit,
-        }),
+      expect(runOperation).toHaveBeenCalledWith(
+        removeVersionOp,
+        { userId: 'user1', via: 'api' },
+        { versionId: 'v1' },
       )
-      expect(mockRemoveVersionFromStack).toHaveBeenCalledWith({
-        stackId: 'stack1',
-        fileId: 'v1',
-      })
+      expect(mockRemoveVersionFromStack).not.toHaveBeenCalled()
     })
   })
 })

@@ -262,4 +262,4 @@ Shumai 自带一个功能完备的命令行工具（CLI），支持您直接在�
 
 ## MCP 服务器
 
-Shumai 内置 MCP 服务器（地址为 `/api/mcp`），Claude Code、Cursor、Kiro 等外部智能体可以使用 API 令牌连接，浏览并整理您的项目。配置方法请参阅 [MCP 服务器指南](docs/developer/mcp-server.mdx)。
+Shumai 内置 MCP 服务器（地址为 `/mcp`），Claude Code、Cursor、Kiro 等外部智能体可以使用 API 令牌连接，浏览并整理您的项目。配置方法请参阅 [MCP 服务器指南](docs/developer/mcp-server.mdx)。

@@ -134,6 +134,8 @@ async function run() {
   const routes: Record<string, any> = {
     '/api/*': app.fetch,
     '/files/*': app.fetch,
+    // Shumai's MCP server; without this entry the SPA catch-all (`/*`) would serve it HTML.
+    '/mcp': app.fetch,
   }
 
   if (isProd) {

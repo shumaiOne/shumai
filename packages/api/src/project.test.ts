@@ -4,9 +4,8 @@ import projectRoute from './project'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { projectService } from '@shumai/core/src/project/project'
 import { assetService } from '@shumai/core/src/asset/asset'
-import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import type { ProjectInfo } from '@shumai/dtos'
-import { moveAssetsOp, runOperation } from '@shumai/core/src/operations'
+import { copyAssetsOp, moveAssetsOp, runOperation } from '@shumai/core/src/operations'
 
 vi.mock('./middleware/auth', () => ({
   authMiddleware: async (
@@ -209,9 +208,11 @@ describe('project api', () => {
     )
   })
 
-  it('POST /projects/:projectId/copy', async () => {
-    vi.mocked(projectService.getProjectTeam).mockResolvedValue('t1')
-    vi.mocked(assetService.copyAssets).mockResolvedValue(undefined)
+  it('POST /projects/:projectId/copy runs copy_assets', async () => {
+    vi.mocked(runOperation).mockResolvedValue({
+      copiedAssetIds: ['copy_1'],
+      newParentId: 'new_parent_id',
+    })
 
     const res = await app.request('/projects/p/copy', {
       method: 'POST',
@@ -223,19 +224,11 @@ describe('project api', () => {
     })
 
     expect(res.status).toBe(204)
-    expect(assetService.copyAssets).toHaveBeenCalledWith({
-      newParentId: 'new_parent_id',
-      assetIds: ['asset_1'],
-      withComments: false,
-      creatorId: 'user1',
-    })
-    expect(auditLogService.logAction).toHaveBeenCalledWith({
-      action: 'asset_copy',
-      teamId: 't1',
-      userId: 'user1',
-      projectId: 'p',
-      itemId: 'asset_1',
-    })
+    expect(runOperation).toHaveBeenCalledWith(
+      copyAssetsOp,
+      { userId: 'user1', via: 'api' },
+      { assetIds: ['asset_1'], newParentId: 'new_parent_id', withComments: false },
+    )
   })
 
   it('POST /projects/:projectId/empty-trash', async () => {

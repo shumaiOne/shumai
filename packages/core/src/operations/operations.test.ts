@@ -285,6 +285,7 @@ describe('asset and project Operations', () => {
         id: folder.id,
         name: 'meta',
         type: 'folder',
+        parentId: rootFolderId,
         teamId,
         projectId,
       })
