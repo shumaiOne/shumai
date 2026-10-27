@@ -38,6 +38,7 @@ Shumai 是一个开源的 Frame.io 替代方案，专为创意团队打造，让
 * **基于 Gotenberg 的文档 PDF 转码代理**：通过集成 [Gotenberg](https://docs.shumai.one/using-shumai/gotenberg) 支持将 Word、PowerPoint、Excel、Markdown、HTML 和 CSV 文档高质量转换为 PDF 代理文件进行在线预览。
 * **语义搜索**：支持按画面内容或概念含义搜索素材，底层基于向量嵌入技术。详见[相关文档](https://docs.shumai.one/using-shumai/semantic-search)。
 * **非编剪辑导出与 Premiere 插件（实验性）**：支持将时间戳审阅评论导出至常用非编软件（Premiere Pro XML、DaVinci Resolve EDL、Final Cut Pro、Avid Media Composer），或使用实验性的 Premiere Pro 原生 UXP 插件导入媒体素材并将评论自动同步为时间轴标记。详见[相关文档](https://docs.shumai.one/using-shumai/nle-and-premiere)。
+* **内置 MCP 服务端与 CLI 工具**：支持通过 `/mcp` 将外部 AI Agent 接入 Shumai，或使用 `shumai-cli` 在终端中管理项目、素材、评论与元数据。
 
 但 Shumai 不仅仅只满足于 Frame.io 的开源替代。随着 GPT-Image-2、Seedance 2.5 这类强大模型的问世，AI已经生成产品级的图片/视频。很多时候，你只要给一句提示词，就能直接生成或修改图片和视频，而不用再打开 Photoshop、Premiere 或者 Houdini。也正因为这样，Shumai 才把 AI Agent 做成了核心能力：
 

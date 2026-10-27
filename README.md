@@ -38,6 +38,7 @@ Shumai is an open-source Frame.io alternative built for creative teams to collab
 * **Office & Document PDF Proxying via Gotenberg**: Convert Word, PowerPoint, Excel, Markdown, HTML, and CSV documents to high-quality PDF proxies for in-browser previewing using [Gotenberg](https://docs.shumai.one/using-shumai/gotenberg).
 * **Semantic Search**: Find assets by visual or conceptual meaning using vector embeddings. See [documentation](https://docs.shumai.one/using-shumai/semantic-search).
 * **NLE Export & Premiere Pro Plugin (Experimental)**: Export timestamped review comments to your favorite non-linear editor (Premiere Pro XML, DaVinci Resolve EDL, Final Cut Pro, Avid Media Composer) or use the experimental Premiere Pro UXP plugin to import media assets and auto-sync comments directly to sequence timeline markers. See [documentation](https://docs.shumai.one/using-shumai/nle-and-premiere).
+* **Built-in MCP Server & CLI**: Connect external AI agents to Shumai via `/mcp` or manage projects, assets, comments, and metadata from the terminal with `shumai-cli`.
 
 But Shumai goes beyond being a Frame.io alternative. With modern models like GPT-Image-2 and Seedance 2.5, AI can already handle a surprising amount of creative work. That means you can create or update videos and images from a simple prompt without having to jump back into Photoshop, Premiere or Houdini. That is why Shumai includes a powerful agent system:
 
