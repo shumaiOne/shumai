@@ -55,9 +55,9 @@ export const searchAssets = defineOperation({
     'meaning ("semantic": e.g. "sunset over the sea", when the team has AI search enabled), ' +
     'and/or by metadata conditions (e.g. status is "approved"). When semantic search is used, ' +
     'each result includes a `similarity` score representing Cosine Similarity (ranging from -1 ' +
-    'to 1). Higher values indicate greater similarity in embedding space, with 1 indicating ' +
-    'identical embeddings. Results are paginated: when ' +
-    'pageInfo.hasNextPage is true, call again with after set to pageInfo.endCursor.',
+    'to 1). Higher values indicate greater similarity in embedding space. Results are ' +
+    'paginated: when pageInfo.hasNextPage is true, call again with after set to ' +
+    'pageInfo.endCursor.',
   input: z.object({
     parent: z
       .string()

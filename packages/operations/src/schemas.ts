@@ -13,7 +13,7 @@ export const assetSummarySchema = z.object({
     .number()
     .optional()
     .describe(
-      'Cosine similarity (ranging from -1 to 1). Higher values indicate greater similarity in embedding space, with 1 indicating identical embeddings.',
+      'Cosine similarity (ranging from -1 to 1). Higher values indicate greater similarity in embedding space.',
     ),
 })
 export type AssetSummary = z.infer<typeof assetSummarySchema>
