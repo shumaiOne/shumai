@@ -10,14 +10,11 @@ Before starting any task, create and switch to a new feature branch:
 git checkout -b <branch-name>
 ```
 
-Complete the task on that branch.
-
 After finishing the work and verifying that all checks pass:
 
 1. Update `CHANGELOG.md` under `## [Unreleased]` for user-facing changes (see [Changelog Guidelines](#changelog-guidelines)).
-2. Stage and commit your changes.
-3. Push the branch to `origin`.
-4. Open a pull request using the GitHub CLI.
+2. Stage and commit your changes following [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#summary) (`<type>[optional scope]: <description>` in imperative mood, e.g., `feat(auth): add OAuth login support`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`, and `!` or `BREAKING CHANGE:` for breaking changes).
+3. Push the branch to `origin` and open a pull request using the GitHub CLI:
 
 ```bash
 git add .
@@ -26,54 +23,14 @@ git push origin <branch-name>
 gh pr create --title "<pull-request-title>" --body "<pull-request-body>"
 ```
 
----
-
-## Commit Messages
-
-We follow the Conventional Commits specification.
-
-Commit messages MUST be formatted as:
-
-```text
-<type>[optional scope]: <description>
-
-[optional body]
-
-[optional footer(s)]
-```
-
-Example:
-
-```text
-feat(auth): add OAuth login support
-```
-
-The commit contains the following structural elements, to communicate intent to the consumers of your library:
-
-1. `fix:` a commit of the type `fix` patches a bug in your codebase.
-2. `feat:` a commit of the type `feat` introduces a new feature to the codebase.
-3. `BREAKING CHANGE:` a footer or `!` after the type/scope introduces a breaking API change.
-4. Additional types are allowed (for example: `docs:`, `refactor:`, `test:`, `chore:`).
-
-Write commit messages in the imperative mood and keep descriptions concise and specific.
-
-Reference:
-https://www.conventionalcommits.org/en/v1.0.0/#summary
-
----
-
 ## Changelog Guidelines
 
-We maintain `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+We maintain `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Before opening a pull request, add an entry under `## [Unreleased]` for any user-facing changes:
 
-Before opening a pull request, add an entry under `## [Unreleased]` for any user-facing changes:
-
-- **End-User Friendly**: Make entries easy to understand for end users. For new features, explain what they actually do in plain language without heavy technical jargon. For bug fixes, describe what the bug was in a friendly, relatable way rather than focusing on internal code mechanics, file paths, or private symbols.
+- **End-User Friendly**: Write in plain language for end users without heavy technical jargon, internal file paths, or private symbols.
 - **Formatting**: `- **<scope>**: <Description>` (e.g. `- **asset**: Fix an issue where moving a video to trash while it was still transcoding could cause it to lose its trashed status`).
-- **No PR Numbers**: Do not include PR numbers or links; the release pipeline automatically appends the detailed PR list.
+- **No PR Numbers**: Do not include PR numbers or links; the release pipeline appends them automatically.
 - **Internal Changes**: Routine refactors, test additions, or internal chores without external behavior changes may omit changelog updates.
-
----
 
 ## Pull Request Template
 
@@ -106,7 +63,7 @@ Add any additional context, caveats, or follow-up work.
 
 ## Submission Rules
 
-- **Strict Requirement**: A submission is considered complete **only** when there is a single final code state in which **all** of the following pass **simultaneously**:
+- **Strict Requirement**: A submission is complete **only** when there is a single final code state in which **all** of the following pass **simultaneously** (do not submit intermediate states where some checks fail):
   - `bun run lint`
   - `bun run format`
   - `bun run typecheck`
@@ -114,447 +71,89 @@ Add any additional context, caveats, or follow-up work.
   - `bun run test:e2e:app`
   - `bun run test:e2e:webui`
   - `bun run test:e2e:workflow`
-
-- **Backend Testing Mandate**: Every backend feature, service method, workflow, and activity MUST be accompanied by comprehensive tests. Logic-heavy code without corresponding test coverage is considered incomplete.
-
-- Fixes must be iterated until **no check causes any other check to fail**.
-
-- **Type Safety**: The use of explicit `any` is strictly forbidden and will result in lint errors. You should use `unknown` instead when the type is not known. If you absolutely must use `any` due to a limitation (e.g. interacting with an untyped 3rd party library), you must add an eslint-disable comment (e.g., `// eslint-disable-next-line @typescript-eslint/no-explicit-any`) and include a comment directly above it clearly explaining _why_ we cannot be type-safe here.
-- Do **not** submit intermediate states where some checks pass and others fail, even temporarily.
-
-- **Cleanup Requirement**: Remove all verification related files (scripts, screenshots, `verification/` folder) before submit.
-
-## Backend Architecture
-
-The backend is built with:
-
-- **Runtime**: Bun
-- **Framework**: Hono
-- **ORM**: Prisma (with Pgvector18)
-- **Database**: Pgvector18
+- **Backend Testing Mandate**: Every backend feature, service method, workflow, and activity MUST have comprehensive tests.
+- **Type Safety**: Explicit `any` is strictly forbidden. Use `unknown` when the type is unknown. If `any` is unavoidable (e.g., untyped 3rd-party library), add `// eslint-disable-next-line @typescript-eslint/no-explicit-any` with a comment directly above explaining why.
+- **Cleanup Requirement**: Remove all temporary verification files, scripts, screenshots, and the `verification/` folder before submitting.
 
 ## Workspace Architecture
 
-The project is a monorepo managed by **Bun Workspaces**. It follows a strictly decoupled architecture where each domain or layer is its own package:
+The project is a Bun Workspaces monorepo (Bun runtime, Hono API, Prisma + Pgvector18 DB, React + Tailwind CSS + Shadcn UI frontend):
 
-- **WebUI (`packages/webui`)**: React-based frontend.
-- **API (`packages/api`)**: Hono-based HTTP entry point. Handles requests and calls Core services.
-- **Core (`packages/core`)**: Business logic, services, and infrastructure utilities.
-- **Database (`packages/db`)**: Prisma client, schema, and migrations.
-- **DTOs (`packages/dtos`)**: Shared type definitions and Zod schemas used by both API and WebUI.
-- **Workers**: Specialized packages for background task execution:
-  - `@shumai/workflow-core`: Common workflow engine logic.
-  - `@shumai/agent`: AI agent workflows and activities.
-  - `@shumai/transcode`: Media processing workflows and activities.
+- **`packages/webui`**: React frontend (`bun run dev` runs on port 3000).
+- **`packages/api`**: Hono HTTP entry point and MCP server.
+- **`packages/core`**: Business logic, services, operations, and asset readers.
+- **`packages/db`**: Prisma client, schema, and migrations.
+- **`packages/dtos`**: Shared Zod schemas and TypeScript types (do not append `Dto` suffix to type names).
+- **`packages/operations`**: Shared Operation definitions (`@shumai/operations`) used by agent tools, MCP, and `apps/cli`.
+- **Workers**: `@shumai/workflow-core` (DBOS engine), `@shumai/agent` (AI agent workflows/activities), and `@shumai/transcode` (media workflows/activities).
 
-### Layered Communication Rules
+### Layered Communication & Code Patterns
 
-1.  **API Layer** calls **Core Layer**. Do not access the database directly in the API layer.
-2.  **Core Layer** calls **Database Layer** and other Core services.
-3.  **DTO Layer** is imported by all layers to ensure end-to-end type safety.
-4.  **No Direct DB Leak**: Do not return Prisma objects directly from the API; always map them to DTOs.
-5.  **Operations First**: If an Operation exists for an action (see [Operations](#operations)), API routes must call it via `runOperation` instead of re-implementing its permission checks and audit logging. UI-only routes (ordering, recents, settings, multi-id variants, etc.) keep calling services directly.
+1. **API → Core → DB**: API routes (`packages/api/src/`) call Core services (`packages/core/src/`), which call `@shumai/db`. Never access `prisma` directly in the API layer, and never return raw Prisma objects from API routes (always map to DTOs).
+2. **Services**: Define service logic as instance methods on a class and export a singleton instance (check existing services in `packages/core/src/`).
+3. **Hono Routes**: Always chain `.get()` / `.post()` on a Hono instance using `zValidator` and export the chained route as default to preserve Hono RPC type inference (check `packages/api/src/`).
+4. **Operations First**: If an Operation exists for an action, API routes must call it via `runOperation` instead of re-implementing permission checks and audit logging. UI-only routes keep calling services directly.
+5. **Dependencies & Imports**:
+   - Declare runtime `dependencies` in each package's local `package.json` (`workspace:*` for internal packages). Keep root `package.json` strictly for shared `devDependencies` and scripts.
+   - Never edit `package.json` manually to add dependencies; run `bun add <package> --filter <workspace>` from the root without an explicit version.
+   - Use absolute workspace imports across packages (e.g., `@shumai/db`, `@shumai/core/src/...`). When adding a new package, add its path mappings to the root `tsconfig.json`.
 
-## Dependency Management
-
-We follow Bun's monorepo conventions for dependency management:
-
-1.  **Self-Contained Packages**: Every workspace package MUST declare its own runtime `dependencies` in its local `package.json`. Do not rely on dependencies being available via the root.
-2.  **Shared DevDependencies**: Common development tools (e.g., `typescript`, `eslint`, `vitest`, `prisma`) MUST be declared in the root `package.json` to ensure version consistency across the workspace.
-3.  **Local DevDependencies**: Tools specific to a single package (e.g., `@vitejs/plugin-react` for `webui`) should be declared in that package's local `package.json`.
-4.  **Workspace Imports**: Use `workspace:*` for internal package dependencies.
-5.  **Clean Root**: The root `package.json` must not contain runtime `dependencies`. It is reserved for shared `devDependencies` and workspace-wide `scripts`.
-6.  **Adding Packages**: Never edit `package.json` manually to add new dependencies. Always use `bun add` (e.g., `bun add <package> --filter <workspace>`) from the root without specifying an explicit version, letting Bun resolve the correct version.
-
-## TypeScript Configuration
-
-We use a root-level `tsconfig.json` to manage path mappings for the entire workspace. This ensures that imports across packages resolve correctly during typechecking and in the IDE.
-
-1.  **Path Mappings**: All workspace packages MUST have an entry in the `paths` object in the root `tsconfig.json`.
-    ```json
-    "paths": {
-      "@shumai/core": ["packages/core/src/index.ts"],
-      "@shumai/core/src/*": ["packages/core/src/*"]
-    }
-    ```
-2.  **Package tsconfig**: Each package should have its own `tsconfig.json` that extends the root configuration and defines its specific `include`/`exclude` rules.
-3.  **Cross-Package Resolution**: When adding a new package, you MUST update the root `tsconfig.json` path mappings to ensure it can be imported by other packages.
-
-### Service Layer Patterns
-
-- **Instance Methods**: Define service logic as instance methods on a class, not static methods.
-- **Singleton Export**: Export a singleton instance of the service class.
-  ```typescript
-  export class MyService {
-    async doSomething() { ... }
-  }
-  export const myService = new MyService()
-  ```
-- **Usage**: Import and use the exported instance.
-  ```typescript
-  import { myService } from '@shumai/core/src/services/myService'
-  await myService.doSomething()
-  ```
-
-### Hono API Definitions
-
-- **Route Chaining**: Always define API routes using method chaining on a Hono instance. This ensures that the type definitions for inputs and outputs are correctly inferred and preserved in the exported type.
-- **Export Pattern**: Export the chained route instance as the default export.
-  ```typescript
-  const app = new Hono()
-  const route = app
-    .get('/', ...)
-    .post('/', ...)
-  export default route
-  ```
-- **Type Safety**: Use `zValidator` for request validation (query, json, form) to ensure full end-to-end type safety with the Hono RPC client.
+## Operations & Asset Readers
 
 ### Operations
 
-An **Operation** is a capability agents can use, defined once and exposed automatically on every surface: Shumai's built-in agent tools, the MCP server, and `shumai-cli`. Its implementation holds the policy (permission checks, audit logging) and orchestration; the work itself is done by core services.
+An **Operation** is defined once and exposed across built-in agent tools, the MCP server, and `shumai-cli`. Check existing definitions in `packages/operations/src/` and implementations in `packages/core/src/operations/`.
 
-- **Definition** (`packages/operations/src/**`, package `@shumai/operations`): name (snake_case, used as the tool name), title, description written for an LLM, Zod `input`/`output` schemas with `.describe()` on every field, `surfaces`, `annotations` (`readOnly`, `destructive`, `idempotent`), and optional `cli` metadata. This package must stay free of server dependencies (no `@shumai/core`/`@shumai/db`) so clients like the CLI can import it.
-  ```typescript
-  export const createFolder = defineOperation({
-    name: 'create_folder',
-    title: 'Create Folder',
-    description: 'Create a new folder in a specified parent folder.',
-    input: z.object({ parent: z.string().describe('...'), name: z.string().describe('...') }),
-    output: assetSummarySchema,
-    surfaces: ['agent', 'mcp', 'cli'],
-    annotations: { readOnly: false, destructive: false },
-    cli: { command: ['mkdir'], positional: ['name'], flags: { parent: ['-p', '--parent'] } },
-  })
-  ```
-- **Implementation** (`packages/core/src/operations/**`): `implementOperation(definition, { authz, prepare?, execute, audit? })`.
-  - `authz` returns every permission the input requires; all are checked before any side effect.
-  - `execute` calls core services only. **Importing the `prisma` client in Operations is forbidden** (enforced by lint), which is stricter than DBOS activities. Add a service method if one is missing.
-  - `audit` returns entries; team/project are resolved from the affected asset, never trusted from the caller.
-  - Outputs are DTOs (validated against the output schema), never Prisma objects.
-- **Register** the definition in `packages/operations/src/registry.ts` and the implementation in `packages/core/src/operations/registry.ts`. A definition without an implementation fails typecheck.
-- **Run** Operations only through `runOperation(op, { userId, via, agentId? }, input)`. `via` (`api`, `agent`, `mcp`, `cli`) is recorded in audit logs.
-- **Tests**: real-database tests per Operation covering success, permission denial (no side effects), and audit entries.
-- **CLI spec**: object input fields must be listed in `cli.flatten` (one flag per sub-field, e.g. `{ videoConfig: 'video' }` → `--video-start`) or in `cli.omit` (optional fields the CLI doesn't expose).
-- **Surface presentation**: by default each surface shows the Operation output as JSON. To add surface-only parameters or render output differently, add an extension for that surface:
-  - agent: `AgentToolExtension` in `packages/agent/src/operation-extensions/` (e.g. image blocks, saving downloads into the sandbox). `parameterOverrides` and `intercept` support agent-only modes, such as `download_asset` by storage key; `hiddenParameters` and `adjustParameters` reshape the tool for a session, such as `create_file` taking a sandbox path and the project's Creation Context schema;
-  - MCP: `McpToolExtension` in `packages/api/src/mcp-extensions/` (`structuredContent` must still match the output schema);
-  - CLI: `CliCommandExtension` in `apps/cli/src/operations/extensions/` (local I/O such as downloads).
+- **Definition (`packages/operations/src/**`)**: Keep free of server dependencies (no `@shumai/core` or `@shumai/db`). Every Zod input/output field must have `.describe()`. Object input fields must be listed in `cli.flatten` or `cli.omit`.
+- **Implementation (`packages/core/src/operations/**`)**: Use `implementOperation(definition, { authz, prepare?, execute, audit? })`.
+  - `authz` returns all required permissions (checked before any side effect).
+  - `execute` calls Core services only (**importing `prisma` in Operations is forbidden by lint**).
+  - `audit` resolves team/project from the affected asset, never trusting caller input.
+  - Outputs must be DTOs matching the output schema.
+- **Register & Run**: Register in both `packages/operations/src/registry.ts` and `packages/core/src/operations/registry.ts`. Execute only via `runOperation(op, { userId, via, agentId? }, input)`.
+- **Surface Extensions**: For surface-specific parameters or rendering, check `packages/agent/src/operation-extensions/`, `packages/api/src/mcp-extensions/`, and `apps/cli/src/operations/extensions/`.
 
 ### Asset Readers
 
-`read_asset` is backed by a registry of readers in `packages/core/src/asset-read/readers/`, one per asset family (`model3d`, `image`, `video`, `document`). The shared pipeline (`assetReadService`) handles access checks, version stacks, annotations, render tasks, and waiting; a reader only contains type-specific logic.
+`read_asset` is backed by readers in `packages/core/src/asset-read/readers/` registered in `packages/core/src/asset-read/registry.ts` (order matters: first matching reader wins). To add or modify a reader, check existing readers in `packages/core/src/asset-read/readers/` and option schemas in `packages/operations/src/asset/read-asset.ts`. Use `badRequest(...)` for invalid input and return storage keys in `ReadResult`.
 
-To add a reader:
+## Frontend Rules (`packages/webui`)
 
-1. Add its kind to `READER_KINDS` and its options to `readerOptionSchemas` in `packages/operations/src/asset/read-asset.ts` (one optional `<name>Config` field on `read_asset`).
-2. Implement `AssetReader` (`matches`, synchronous `validate`, `plan`, and `collect` if `plan` can return `render`), and add it to `readers` in `packages/core/src/asset-read/registry.ts`. Order matters: the first matching reader wins. A declared kind without a reader fails typecheck.
-3. `plan` returns either `ready` with the result, or `render` with a workflow task spec and optional `context`. The pipeline stores the request on the task payload (`assetRead`), so `collect` and `get_asset_render` work across restarts and instances.
-4. Use `badRequest(...)` for invalid input. Return storage keys in `ReadResult`; the pipeline turns them into short-lived links. Keys only go to server-side presenters (agent, MCP), which must not pass them on to clients.
-5. Add reader unit tests (`readers.test.ts`), pipeline cases in `asset-read.test.ts`, and a workflow E2E case if it renders.
+- **System Colors**: Prefer semantic design tokens (`bg-background`, `text-foreground`, `text-muted-foreground`, etc.) over hardcoded Tailwind colors for light/dark theme support.
+- **Route Code-Splitting**: Split all routes into `[route].tsx` (route definition and loaders) and `[route].lazy.tsx` (UI component and heavy imports).
+- **Radix / Shadcn UI**: Set `modal={false}` on `<DropdownMenu>` when triggering a `Dialog` or `AlertDialog` from inside it to prevent focus-trap UI freezes. Use `ScrollArea` (`@/ui/components/ui/scroll-area`) for scrollable containers.
+- **Pagination & Infinite Scroll**: Use `useInfiniteQuery` + `react-intersection-observer` with default `limit: 20` and the API's `total` field. Backend list APIs use `paginateQuery` from `packages/core/src/pagination.ts` (default `limit: 20`).
+- **Internationalization (i18n)**: Hardcoded UI text is strictly forbidden. Add `snake_case` keys to both `packages/webui/messages/en.json` and `packages/webui/messages/zh.json`, run `bun run i18n:compile` (or `bun run i18n:watch`), and import `m` from `@/ui/paraglide/messages.js`.
 
-## Frontend Architecture
+## Database & Prisma (`packages/db`)
 
-The frontend is built with:
+- **Schema & Config**: Schema at `packages/db/prisma/schema.prisma`, config at `prisma.config.ts`, generated client at `packages/db/src/generated/prisma`.
+- **ULIDs & Sorting**: All models (except key-value stores like `Setting`) must use `@default(ulid())`. Do not manually generate DB IDs in application code. Order all list queries by `orderBy: { id: 'desc' }` (do not sort by unindexed `createdAt`).
+- **Strict JSON Typing**: Annotate `Json` columns with `/// [TypeName]` in `schema.prisma` and define the type under the global `PrismaJson` namespace in `packages/db/src/prisma-json-types.ts`. Use type guards/narrowing instead of `as any`.
+- **Migrations**:
+  - Commands: `bun --bun run prisma migrate dev`, `bun --bun run prisma migrate deploy`, `bun --bun run prisma generate`.
+  - Never hand-write DDL migration files; always generate them via `prisma migrate dev` (use `--create-only` for custom data migration SQL).
+  - **Never run `prisma migrate reset --force`** automatically. If migrations are out of sync or require a reset, stop and ask the user.
 
-- **Runtime**: Bun (Bundler & Runner)
-- **Framework**: React
-- **Styling**: Tailwind CSS + Shadcn UI (Components)
+## DBOS Workflows & Activities
 
-### UI Rules
+Check existing workflows and activities in `packages/agent/src/{workflows,activities}`, `packages/transcode/src/{workflows,activities}`, and `packages/workflow-core/src/`.
 
-- **Prefer System Colors**: Always prefer using semantic system color design tokens (e.g., `bg-background`, `text-foreground`, `text-sidebar-primary`, `text-muted-foreground`, etc.) over hardcoded color utilities (e.g., `bg-blue-50`, `text-emerald-600`, `bg-emerald-500`). This ensures seamless compatibility with light and dark themes.
-
-### Route Code-Splitting
-
-To optimize initial bundle size, all routes must be code-split into `[route].tsx` (lightweight route definition and loaders) and `[route].lazy.tsx` (UI component and heavy imports).
-
-### Development
-
-- **Run Dev**: `bun run dev` (Runs on port 3000)
-
-
-## Testing
-
-We use **Vitest** for testing (via `bun run test`). **Do not use `bun test`** as it uses Bun's native test runner which is not compatible with this project's test suite.
-
-### Bug Fixes
-
-- **Mandatory Reproduction**: When fixing a backend bug, you MUST first write a test case that reproduces the bug (demonstrates the failure) before applying the fix. This ensures the bug is truly understood and prevents future regressions.
-
-### Test Maintenance Rule
-
-- **Do not delete tests** unless the feature or code being tested is permanently removed from the codebase.
-- When refactoring code, you must also refactor the corresponding tests to ensure they pass with the new implementation.
-- This ensures we maintain regression coverage and do not silently break features.
-
-### Service Tests
-
-- Located in `packages/core/src/**/*.test.ts`.
-- For comprehensive testing against a real database instance, we use `Testcontainers` alongside a `PrismaTestingHelper` which wraps each test within an automatic PostgreSQL transaction rollback boundary.
-- All service tests must use `setupTestDbHooks()` from `@shumai/db` to initialize the database boundaries for each test suite inside the `describe` block. This automatically registers `beforeEach` and `afterEach` hooks to manage transaction state.
-- Import `prisma` from `@shumai/db` directly to interact with the database in tests. The testing helper automatically proxies it.
-
-```typescript
-import { describe, it, expect } from 'vitest'
-import { prisma, setupTestDbHooks } from '@shumai/db'
-import { teamService } from '@shumai/core/src/team/team'
-
-describe('TeamService', () => {
-  setupTestDbHooks()
-
-  it('works with db', async () => {
-    const user = await prisma.user.create({
-      data: { name: 'Test User', password: 'pw' },
-    })
-    const team = await teamService.ensureDefaultTeam()
-    expect(team).toBeDefined()
-    expect(team.name).toBe('Default Team')
-  })
-})
-```
-
-The `bunfig.toml` is configured to run `setup-tests.ts` automatically as a preload step. This initializes the `Testcontainers` PostgreSQL instance and applies migrations before the tests begin running.
-
-### API Tests
-
-- Located in `packages/api/src/**/*.test.ts`.
-- Mock the Service layer using `vi.spyOn(service, 'method')` or `vi.mock('@shumai/core/src/team/team')`.
-- Verify that the API calls the Service methods correctly.
-
-```typescript
-import { describe, it, expect, vi } from 'vitest'
-import { teamService } from '@shumai/core/src/team/team'
-import app from './team'
-
-describe('Team API', () => {
-  it('calls service', async () => {
-    const mockEnsureDefaultTeam = vi
-      .spyOn(teamService, 'ensureDefaultTeam')
-      .mockResolvedValue({ id: '1', name: 'Default Team' } as any)
-
-    // ... test logic ...
-
-    expect(mockEnsureDefaultTeam).toHaveBeenCalled()
-    mockEnsureDefaultTeam.mockRestore()
-  })
-})
-```
-
-### Workflow E2E Tests
-
-- Located in `packages/e2e/workflow/**/*.test.ts`.
-- Run via `bun run test:e2e:workflow`.
-- **Mandatory test coverage**: When creating or updating workflows or activities, you MUST create or update the corresponding E2E tests.
-- **Mocking**: Mock ONLY AI API calls. Do not mock S3, databases, or media/transcode extraction services.
-- Mock the AI response by spying on `AgentHarness.prototype.prompt`:
-
-### Web App E2E Tests
-
-- Located in `apps/web/e2e/**/*.spec.ts`, organized by domain under `tests/<domain>/` (e.g. `auth`, `project`).
-- Run via `bun run test:e2e:app`.
-- **Fixtures**: Use the `owner`, `project`, and `file` fixtures for setup — they seed data through API calls/DB (no slow UI setup). You can add more fixtures if necessary.
-- **Documentation**: Every test case MUST be documented in [`apps/web/e2e/README.md`](apps/web/e2e/README.md). Add or update the corresponding entry in the README whenever you add, rename, or remove a spec.
-
-## Prisma Configuration & Migrations
-
-- Schema: `packages/db/prisma/schema.prisma`
-- Generated Client: `packages/db/src/generated/prisma`
-- Config: `prisma.config.ts` (Required for Prisma 7+)
-
-### Strict JSON Typing
-
-We use `prisma-json-types-generator` to enforce strict type-safety for Prisma `Json` columns, rather than typing them as generic `JsonValue`.
-
-- **Defining Types**: In `packages/db/prisma/schema.prisma`, annotate the JSON column with a triple-slash comment specifying the type name from `packages/db/src/prisma-json-types.ts`:
-  ```prisma
-  model WorkflowTask {
-    /// [WorkflowTaskPayload]
-    payload Json?
-  }
-  ```
-- **Declaring Types**: All typed JSON shapes must be defined in `packages/db/src/prisma-json-types.ts` under the global `PrismaJson` namespace:
-  ```typescript
-  declare global {
-    namespace PrismaJson {
-      export type WorkflowTaskPayload = Record<string, unknown> | TaskSpec | AiTaskPayload
-    }
-  }
-  ```
-- **Usage**: When accessing these columns on the Prisma client (e.g. `task.payload`), the field will automatically be typed as the declared shape (e.g., `PrismaJson.WorkflowTaskPayload | null`).
-- **Accessing Properties**: When working with union types or custom structures in the JSON payload, use proper narrowing or type guards instead of casting to `any`. Direct `as any` casting should be avoided.
-
-### Migration Workflow
-
-- Development: Use `bun --bun run prisma migrate dev` to create and apply migrations during development.
-- Production: Use `bun --bun run prisma migrate deploy` to apply pending migrations in production environments.
-- **No Manual DDL Creation**: Never hand-write **schema (DDL) migration** files or directories. Always generate them with Prisma CLI (`bun --bun run prisma migrate dev --create-only` to create a template, then edit it if needed, or `bun --bun run prisma migrate dev` to apply) so Prisma correctly tracks migration metadata and checksums.
-- **Data Migrations Are Allowed**: Pure **data migration** SQL (no schema change) may be written by hand, but it MUST live inside a migration generated via `bun --bun run prisma migrate dev --create-only` so it is tracked and applied automatically.
-- **No Automatic Dev DB Reset**: Do not run `prisma migrate reset --force` or commands that force-reset the database automatically. If migrations become out of sync or a reset is required, stop executing, report the situation to the user, and present suggested manual cleanup/reset steps for the user to execute.
-
-### Commands
-
-- Generate Client: `bun --bun run prisma generate`
-- Apply Migrations (Dev): `bun --bun run prisma migrate dev`
-- Deploy Migrations (Prod): `bun --bun run prisma migrate deploy`
-
-## ID Generation & Sorting
-
-- **ULID Default**: All models (except key-value stores like `Setting`) must use `@default(ulid())` for the `id` field in `schema.prisma`.
-
-```prisma
-model Example {
- id String @id @default(ulid())
-}
-```
-
-- **No Manual Assignment**: Do not manually generate or assign ULIDs in application code (e.g., `packages/core/src/*.ts`) for creating database records. Let Prisma handle it via the schema default.
-  - Exception: File names generated by `FileService` may still use `ulid()` internally, but this is separate from the database ID.
-- **Sorting**: All list APIs must order results by `id` descending (`orderBy: { id: 'desc' }`) to ensure consistent, time-based sorting (since ULIDs are sortable). Do not sort by `createdAt` as it is not indexed.
-
-## Infinite Scroll & Pagination
-
-- **Frontend**: For paginated APIs (which contain `pageInfo` and `total` fields), the UI MUST use an auto infinite scroll style design using `useInfiniteQuery` from `@tanstack/react-query` and `react-intersection-observer`. Use the `total` count from the API response instead of counting the results locally.
-  - The default `limit` should be **20**.
-- **Backend**:
-  - Most list APIs support cursor pagination using opaque tokens (via `hyrumtoken` logic) using the `paginateQuery` helper function.
-  - Pass `PaginationParams` containing `first` (limit) and `after` (cursor).
-  - The default `limit` should be **20**.
-  - Always use the `paginateQuery` helper function from `packages/core/src/pagination.ts` for consistent cursor pagination.
-
-## DBOS Workflow & Activities
-
-We use **DBOS Transact** (`@dbos-inc/dbos-sdk`) as our unified workflow engine for reliable, distributed background execution.
-
-### Architecture
-
-1.  **Workflows**: Orchestrate multiple steps/activities reliably. Defined in worker packages (e.g., `@shumai/agent/src/workflows`, `@shumai/transcode/src/workflows`).
-2.  **Activities (Steps)**: Perform the actual work (DB updates, API calls, media processing). Grouped by domain in worker packages (e.g., `@shumai/agent/src/activities`, `@shumai/transcode/src/activities`).
-3.  **Executors**:
-    - `DbosExecutor` (in `@shumai/workflow-core`): Coordinates workflow and step dispatching via DBOS queues against PostgreSQL.
-4.  **Automatic Submission**: New `WorkflowTask` records are automatically enqueued to `WorkflowService` via a Prisma Client Extension defined in `@shumai/db`.
-
-### Dynamic Registration
-
-To avoid circular dependencies, workflows are dynamically registered onto the workflow registry at bootstrap time via initializer functions (e.g., `initAgentWorkflows()`, `initTranscodeWorkflows()`).
-
-### Non-Retryable Error Handling
-
-To prevent the engine from indefinitely retrying fatal, expected business validation failures (e.g., missing records, invalid configurations, missing parameters), **never throw standard `Error` objects from workflow or activity logic.** Instead, throw a non-retryable `ApplicationFailure` (alias of `WorkflowFailure`).
-
-**Mandatory Requirement**: You **MUST** set `nonRetryable: true` in the options object passed to `ApplicationFailure.create`. Standard errors or failure objects without `nonRetryable: true` will cause DBOS to retry the activity or workflow according to its retry policy.
-
-- **Import**: Import `ApplicationFailure` from `@shumai/workflow-core`:
-  ```typescript
-  import { ApplicationFailure } from '@shumai/workflow-core'
-  throw ApplicationFailure.create({ message: 'agentId missing in payload', nonRetryable: true })
-  ```
-
-### Workflow Patterns
-
-- **Definition**: Define workflows as exported async functions.
-  ```typescript
-  import { activityA, activityB } from '../activities/my-activities'
-
-  export async function myWorkflow(task: WorkflowTask): Promise<void> {
-    await activityA({ ... })
-    await activityB({ ... })
-  }
-  ```
-- **Activity Invocation**: Workflows import and call activities directly as standard async functions.
-- **Queues**: Workflows are dispatched to dedicated task queues (e.g. `TaskQueueTranscode`, `TaskQueueAgent`) managed by DBOS.
-
-### Activity Patterns
-
-- **Definition**: Wrap exported activity functions with `defineStep` from `@shumai/workflow-core`.
-  ```typescript
-  export const myActivity = defineStep(
-    async function myActivity(params: MyActivityParams): Promise<MyActivityResult> {
-      ...
-    },
-    { runOnCancel: false }, // optional: set runOnCancel: true for cleanup/status handlers
-  )
-  ```
-- **Implementation**: Activities _can_ and _should_ call other services (e.g., `aiService`, `transcodeService`) or interact with the database directly. Database (Prisma) queries or updates are allowed in all activity types (e.g., agent or transcode) for simplicity.
-
-### Worker Identity & Multi-Instance Deployments
-
-In multi-replica deployments (e.g., multiple transcode or agent worker instances), each worker instance MUST have a unique executor ID to prevent startup recovery from re-enqueueing workflows being actively processed by other live workers.
-
-- **Identity Derivation**: `DbosExecutor` automatically derives a unique per-instance ID:
-  - If `SHUMAI_WORKER_ID` or `DBOS__VMID` is set, it is used as the instance identifier.
-  - In Kubernetes, set `POD_NAME` (via Downward API: `fieldRef: { fieldPath: metadata.name }`) to provide stable, per-pod identity across StatefulSet restarts.
-  - In Docker/container environments, `HOSTNAME` (container ID) is automatically used.
-  - On bare metal/multi-process hosts, `process.pid` and an instance suffix are appended to guarantee uniqueness.
-
-### Durable Step File Exchange
-
-Intermediate files passed across steps must be saved to durable storage (S3) by the producing step, consuming steps must use `ensureLocalMediaFile` (or S3 fetch) rather than assuming local `/tmp` presence, and any purely temporary S3 scratch files must be cleaned up in a `finally` block.
-
-## Import conventions
-
-- When importing across workspace packages, always use absolute workspace imports (e.g. `import { prisma } from '@shumai/db'`, `import { teamService } from '@shumai/core/src/team/team'`).
-- **DTO Naming**: Do not append the `Dto` suffix to types or interfaces (e.g. use `JoinRequest` instead of `JoinRequestDto`).
-
-## Radix UI / Shadcn UI Patterns
-
-- **Modal Overlays**: When triggering a dialog (e.g., `Dialog`, `AlertDialog`) from inside a `DropdownMenu`, you must set `modal={false}` on the `<DropdownMenu>` component. Failing to do so will cause the UI to freeze due to conflicting focus management between the two modal components.
-- **Scrollable Content**: Always use the Shadcn `ScrollArea` component (`@/ui/components/ui/scroll-area`) for scrollable content containers to ensure consistent custom scrollbar UI across the application.
+- **Patterns**: Workflows are exported async functions registered at bootstrap (`initAgentWorkflows`, `initTranscodeWorkflows`) and auto-enqueued when `WorkflowTask` records are created. Wrap activity functions with `defineStep` from `@shumai/workflow-core` (activities may call services or query `prisma` directly).
+- **Non-Retryable Errors**: Never throw standard `Error` objects for fatal validation or business failures in workflows/activities. Always throw `ApplicationFailure.create({ message: '...', nonRetryable: true })` from `@shumai/workflow-core`.
+- **Durable Step File Exchange**: Save intermediate files passed across steps to S3, fetch them in consuming steps via `ensureLocalMediaFile` (never assume local `/tmp` persists across steps), and clean up temporary S3 files in a `finally` block.
 
 ## Logging
 
-We use **pino** for logging. Always use **structured logging** to ensure logs are easily searchable and machine-readable.
+Use structured **pino** logging via `import { logger } from '@shumai/core/src/logger'`. Pass metadata object first and message string second: `logger.info({ userId, projectId }, 'Project deleted')`.
 
-- **Import**: `import { logger } from '@shumai/core/src/logger'`
-- **Usage**: Pass an object as the first argument containing the metadata, and a string as the second argument for the descriptive message.
-  ```typescript
-  logger.info({ userId: user.id, projectId }, 'Project deleted successfully')
-  ```
-- **Levels**: Use appropriate levels: `debug`, `info`, `warn`, `error`.
+## Testing
 
-## Internationalization (i18n)
+Use **Vitest** via `bun run test` (**never** use `bun test`).
 
-All user-facing text in the WebUI (`packages/webui`) MUST be internationalized using **Paraglide JS**. Hardcoded text in UI components is strictly forbidden.
-
-### Message Definition
-
-1. Define your English message strings in [packages/webui/messages/en.json](packages/webui/messages/en.json).
-2. Define the corresponding Chinese translation strings in [packages/webui/messages/zh.json](packages/webui/messages/zh.json).
-3. Keys should use `snake_case`.
-
-Example (`en.json`):
-
-```json
-{
-  "my_key": "My English Text"
-}
-```
-
-### Compilation
-
-When you add or update translation keys, you must compile them to regenerate the type-safe functions:
-
-```bash
-# Compile once (generates type-safe TS/JS functions on disk)
-bun run i18n:compile
-
-# Watch and recompile on change during development
-bun run i18n:watch
-```
-
-### Usage in Components
-
-Import the compiled message namespace `m` and call it as a function:
-
-```typescript
-import { m } from '@/ui/paraglide/messages.js'
-
-export function MyComponent() {
-  return (
-    <div>
-      <h1>{m.my_key()}</h1>
-    </div>
-  )
-}
-```
-
-Always use the absolute workspace alias path `@/ui/paraglide/messages.js` (or `runtime.js` for runtime features) when importing Paraglide outputs.
+- **Bug Fixes**: Always write a test case that reproduces the bug (demonstrates failure) before applying a backend fix.
+- **Test Maintenance**: Never delete tests unless the tested feature is permanently removed; update existing tests when refactoring.
+- **Service & Operation Tests (`packages/core/src/**/*.test.ts`)**: Call `setupTestDbHooks()` from `@shumai/db` inside `describe` for per-test PostgreSQL transaction rollback, and use `prisma` from `@shumai/db`. Every Operation requires real-DB tests covering success, permission denial (no side effects), and audit entries.
+- **API Tests (`packages/api/src/**/*.test.ts`)**: Mock Core services using `vi.spyOn` or `vi.mock`.
+- **Workflow E2E Tests (`packages/e2e/workflow/**/*.test.ts`)**: Run via `bun run test:e2e:workflow`. Mandatory when adding/updating workflows or activities. Mock **only** AI API calls (spy on `AgentHarness.prototype.prompt`); do not mock S3, DB, or media/transcode services.
+- **Web App E2E Tests (`apps/web/e2e/**/*.spec.ts`)**: Run via `bun run test:e2e:app`. Use `owner`, `project`, and `file` fixtures for setup, and document every added, renamed, or removed spec in `apps/web/e2e/README.md`.
