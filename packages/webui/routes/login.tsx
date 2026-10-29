@@ -4,7 +4,7 @@ import { Button } from '@/ui/components/ui/button'
 import { ShumaiLogo } from '@/ui/components/ui/icons'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
-import { signIn } from '@/ui/lib/auth-client'
+import { getAuthSession, signIn } from '@/ui/lib/auth-client'
 import { useAuthStore } from '@/ui/stores/auth'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
@@ -75,11 +75,22 @@ function LoginPage() {
     }
 
     if (session) {
-      setUser(session.user)
       const redirectUrl = (session as { url?: string }).url
       if (redirectUrl) {
+        try {
+          const sessionData = await getAuthSession()
+          if (sessionData?.data?.user) {
+            setUser(sessionData.data.user)
+          }
+        } catch {
+          // Ignore and continue redirect
+        }
         window.location.href = redirectUrl
         return
+      }
+
+      if ('user' in session && session.user) {
+        setUser(session.user)
       }
       navigate({ to: '/' })
     }
@@ -104,11 +115,22 @@ function LoginPage() {
     }
 
     if (session) {
-      setUser(session.user)
       const redirectUrl = (session as { url?: string }).url
       if (redirectUrl) {
+        try {
+          const sessionData = await getAuthSession()
+          if (sessionData?.data?.user) {
+            setUser(sessionData.data.user)
+          }
+        } catch {
+          // Ignore and continue redirect
+        }
         window.location.href = redirectUrl
         return
+      }
+
+      if ('user' in session && session.user) {
+        setUser(session.user)
       }
       navigate({ to: '/' })
     }

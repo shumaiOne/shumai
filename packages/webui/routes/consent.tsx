@@ -1,4 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { getAuthSession } from '@/ui/lib/auth-client'
 import { useAuthStore } from '@/ui/stores/auth'
 import { z } from 'zod'
 
@@ -14,11 +15,21 @@ const searchSchema = z
 
 export const Route = createFileRoute('/consent')({
   validateSearch: (search) => searchSchema.parse(search),
-  beforeLoad: () => {
-    if (!useAuthStore.getState().user) {
-      if (typeof window !== 'undefined') {
-        window.location.href = `/login${window.location.search}`
+  beforeLoad: async () => {
+    let currentUser = useAuthStore.getState().user
+    if (!currentUser) {
+      try {
+        const sessionData = await getAuthSession()
+        if (sessionData?.data?.user) {
+          useAuthStore.getState().setUser(sessionData.data.user)
+          currentUser = sessionData.data.user
+        }
+      } catch {
+        // Fall through to redirect
       }
+    }
+
+    if (!currentUser) {
       throw redirect({
         to: '/login',
       })

@@ -283,4 +283,141 @@ describe('MCP server OAuth 2.1 & Dual Auth', () => {
     })
     expect(apiKeyCreated.isError).toBeFalsy()
   })
+
+  it('starts OAuth authorization without a session, redirects to login, signs in, and completes authorization', async () => {
+    // 1. Dynamic Client Registration
+    const registerRes = await app.request('/api/auth/oauth2/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        client_name: 'Test Logged-Out Client',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        redirect_uris: ['http://127.0.0.1:9999/callback'],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        grant_types: ['authorization_code'],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        response_types: ['code'],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        token_endpoint_auth_method: 'none',
+      }),
+    })
+    expect(registerRes.status).toBe(201)
+    const clientData = await registerRes.json()
+    const clientId = clientData.client_id
+
+    // 2. Initiate PKCE authorization without session cookie
+    const codeVerifier = base64url(randomBytes(32))
+    const codeChallenge = base64url(createHash('sha256').update(codeVerifier).digest())
+
+    const authUrl = new URL('/api/auth/oauth2/authorize', authBaseUrl)
+    authUrl.searchParams.set('response_type', 'code')
+    authUrl.searchParams.set('client_id', clientId)
+    authUrl.searchParams.set('redirect_uri', 'http://127.0.0.1:9999/callback')
+    authUrl.searchParams.set('scope', 'openid profile email offline_access mcp')
+    authUrl.searchParams.set('code_challenge', codeChallenge)
+    authUrl.searchParams.set('code_challenge_method', 'S256')
+    authUrl.searchParams.set('resource', mcpResource)
+
+    const unauthAuthorizeRes = await app.request(authUrl.pathname + authUrl.search, {
+      method: 'GET',
+      redirect: 'manual',
+    })
+
+    // Expect redirect to login page (/login)
+    expect(unauthAuthorizeRes.status).toBe(302)
+    const loginRedirect = unauthAuthorizeRes.headers.get('location')
+    expect(loginRedirect).toBeDefined()
+    expect(loginRedirect).toContain('/login')
+
+    // 3. User signs in on the login page
+    const signInRes = await app.request('/api/auth/sign-in/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'oauth-user@test.com', password: 'password123' }),
+    })
+    expect(signInRes.status).toBe(200)
+    const cookieHeader = signInRes.headers.get('set-cookie')
+    expect(cookieHeader).toBeDefined()
+
+    // 4. Verify server session is valid via /api/auth/get-session
+    const sessionRes = await app.request('/api/auth/get-session', {
+      headers: { Cookie: cookieHeader! },
+    })
+    expect(sessionRes.status).toBe(200)
+    const sessionData = await sessionRes.json()
+    expect(sessionData?.user?.id).toBe(user.id)
+
+    // 5. User accesses the consent page / resumes authorize with the session cookie
+    const authorizedRes = await app.request(authUrl.pathname + authUrl.search, {
+      method: 'GET',
+      headers: { Cookie: cookieHeader! },
+      redirect: 'manual',
+    })
+    const consentLocation = authorizedRes.headers.get('location')
+    expect(consentLocation).toBeDefined()
+
+    let code: string | null
+    if (consentLocation!.includes('/consent')) {
+      // Grant consent
+      const consentUrl = new URL(consentLocation!, authBaseUrl)
+      const consentRes = await app.request('/api/auth/oauth2/consent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: cookieHeader!,
+        },
+        body: JSON.stringify({
+          accept: true,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          oauth_query: consentUrl.search.replace(/^\?/, ''),
+        }),
+      })
+      expect(consentRes.status).toBe(200)
+      const consentData = await consentRes.json()
+      expect(consentData.redirect).toBe(true)
+      const redirectUrl = new URL(consentData.url)
+      code = redirectUrl.searchParams.get('code')
+    } else {
+      const cbUrl = new URL(consentLocation!)
+      code = cbUrl.searchParams.get('code')
+    }
+
+    expect(code).toBeDefined()
+
+    // 6. Exchange code for OAuth 2.1 access token
+    const tokenRes = await app.request('/api/auth/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        grant_type: 'authorization_code',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        client_id: clientId,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        redirect_uri: 'http://127.0.0.1:9999/callback',
+        code: code!,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        code_verifier: codeVerifier,
+        resource: mcpResource,
+      }).toString(),
+    })
+    expect(tokenRes.status).toBe(200)
+    const tokenData = await tokenRes.json()
+    expect(tokenData.access_token).toBeDefined()
+
+    // 7. Verify MCP access with the issued token
+    const oauthTransport = new StreamableHTTPClientTransport(new URL('http://localhost:3000/mcp'), {
+      requestInit: { headers: { Authorization: `Bearer ${tokenData.access_token}` } },
+      fetch: async (input, init) => app.request(String(input), init),
+    })
+    const oauthMcpClient = new Client({ name: 'oauth-logged-out-client', version: '1.0.0' })
+    await oauthMcpClient.connect(oauthTransport)
+    clients.push(oauthMcpClient)
+
+    const projects = await oauthMcpClient.callTool({ name: 'list_projects', arguments: {} })
+    expect(projects.structuredContent).toEqual({
+      data: [{ id: projectId, name: 'OAuth Project', teamId, rootFolderId }],
+    })
+  })
 })

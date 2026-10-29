@@ -8,8 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **mcp**: Support OAuth 2.1 authentication with Dynamic Client Registration and authorization consent alongside existing static API token Bearer authentication
-* **mcp**: Shumai now has a built-in MCP server at `https://<your-shumai-host>/mcp`, so external AI agents such as Claude Code, Cursor, or Kiro can browse projects and create, rename, move, or delete folders and files with your API token and permissions. Like other MCP servers, it can also be served from its own host name, such as `https://mcp.example.com/mcp`
+* **mcp**: Shumai now has a built-in MCP server at `https://<your-shumai-host>/mcp`, supporting both OAuth 2.1 with Dynamic Client Registration and API token authentication, so external AI agents such as Claude Code, Cursor, or Kiro can browse projects and create, rename, move, or delete folders and files with your permissions. Like other MCP servers, it can also be served from its own host name, such as `https://mcp.example.com/mcp`
 * **agent**: The built-in agent can now list the projects you have access to, so it can find a project's root folder on its own. Team owners can turn this off per agent like other tools
 * **mcp**: External AI agents connected to Shumai's MCP server can now look at your files: images, video frames, PDF pages, 3D model views, and text files. Images are attached so the AI can see them, along with links that stay valid for about an hour. They can also get download links for files, as the web preview or the original upload
 * **cli**: New `shumai-cli download` command saves files to your computer, up to 50 at a time: the smaller web preview by default, or the original upload with `--original`
