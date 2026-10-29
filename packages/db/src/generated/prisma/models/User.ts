@@ -256,6 +256,10 @@ export type UserWhereInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentListRelationFilter
   kanbanTaskEvents?: Prisma.KanbanTaskEventListRelationFilter
   recentFiles?: Prisma.RecentFileItemListRelationFilter
+  oauthClients?: Prisma.OauthClientListRelationFilter
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenListRelationFilter
+  oauthAccessTokens?: Prisma.OauthAccessTokenListRelationFilter
+  oauthConsents?: Prisma.OauthConsentListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -298,6 +302,10 @@ export type UserOrderByWithRelationInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentOrderByRelationAggregateInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventOrderByRelationAggregateInput
   recentFiles?: Prisma.RecentFileItemOrderByRelationAggregateInput
+  oauthClients?: Prisma.OauthClientOrderByRelationAggregateInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenOrderByRelationAggregateInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenOrderByRelationAggregateInput
+  oauthConsents?: Prisma.OauthConsentOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -343,6 +351,10 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   kanbanTaskComments?: Prisma.KanbanTaskCommentListRelationFilter
   kanbanTaskEvents?: Prisma.KanbanTaskEventListRelationFilter
   recentFiles?: Prisma.RecentFileItemListRelationFilter
+  oauthClients?: Prisma.OauthClientListRelationFilter
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenListRelationFilter
+  oauthAccessTokens?: Prisma.OauthAccessTokenListRelationFilter
+  oauthConsents?: Prisma.OauthConsentListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -419,6 +431,10 @@ export type UserCreateInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -461,6 +477,10 @@ export type UserUncheckedCreateInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -503,6 +523,10 @@ export type UserUpdateInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -545,6 +569,10 @@ export type UserUncheckedUpdateInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -1083,6 +1111,68 @@ export type UserUpdateOneRequiredWithoutRecentFilesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutRecentFilesInput, Prisma.UserUpdateWithoutRecentFilesInput>, Prisma.UserUncheckedUpdateWithoutRecentFilesInput>
 }
 
+export type UserCreateNestedOneWithoutOauthClientsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthClientsInput, Prisma.UserUncheckedCreateWithoutOauthClientsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthClientsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutOauthClientsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthClientsInput, Prisma.UserUncheckedCreateWithoutOauthClientsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthClientsInput
+  upsert?: Prisma.UserUpsertWithoutOauthClientsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutOauthClientsInput, Prisma.UserUpdateWithoutOauthClientsInput>, Prisma.UserUncheckedUpdateWithoutOauthClientsInput>
+}
+
+export type UserCreateNestedOneWithoutOauthRefreshTokensInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthRefreshTokensInput, Prisma.UserUncheckedCreateWithoutOauthRefreshTokensInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthRefreshTokensInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutOauthRefreshTokensNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthRefreshTokensInput, Prisma.UserUncheckedCreateWithoutOauthRefreshTokensInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthRefreshTokensInput
+  upsert?: Prisma.UserUpsertWithoutOauthRefreshTokensInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutOauthRefreshTokensInput, Prisma.UserUpdateWithoutOauthRefreshTokensInput>, Prisma.UserUncheckedUpdateWithoutOauthRefreshTokensInput>
+}
+
+export type UserCreateNestedOneWithoutOauthAccessTokensInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthAccessTokensInput, Prisma.UserUncheckedCreateWithoutOauthAccessTokensInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthAccessTokensInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutOauthAccessTokensNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthAccessTokensInput, Prisma.UserUncheckedCreateWithoutOauthAccessTokensInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthAccessTokensInput
+  upsert?: Prisma.UserUpsertWithoutOauthAccessTokensInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutOauthAccessTokensInput, Prisma.UserUpdateWithoutOauthAccessTokensInput>, Prisma.UserUncheckedUpdateWithoutOauthAccessTokensInput>
+}
+
+export type UserCreateNestedOneWithoutOauthConsentsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthConsentsInput, Prisma.UserUncheckedCreateWithoutOauthConsentsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthConsentsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutOauthConsentsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthConsentsInput, Prisma.UserUncheckedCreateWithoutOauthConsentsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthConsentsInput
+  upsert?: Prisma.UserUpsertWithoutOauthConsentsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutOauthConsentsInput, Prisma.UserUpdateWithoutOauthConsentsInput>, Prisma.UserUncheckedUpdateWithoutOauthConsentsInput>
+}
+
 export type UserCreateWithoutSessionsInput = {
   id?: string
   type?: $Enums.UserType
@@ -1122,6 +1212,10 @@ export type UserCreateWithoutSessionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -1163,6 +1257,10 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -1220,6 +1318,10 @@ export type UserUpdateWithoutSessionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -1261,6 +1363,10 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -1302,6 +1408,10 @@ export type UserCreateWithoutAccountsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -1343,6 +1453,10 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -1400,6 +1514,10 @@ export type UserUpdateWithoutAccountsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -1441,6 +1559,10 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAuthTokensInput = {
@@ -1482,6 +1604,10 @@ export type UserCreateWithoutAuthTokensInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAuthTokensInput = {
@@ -1523,6 +1649,10 @@ export type UserUncheckedCreateWithoutAuthTokensInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAuthTokensInput = {
@@ -1580,6 +1710,10 @@ export type UserUpdateWithoutAuthTokensInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuthTokensInput = {
@@ -1621,6 +1755,10 @@ export type UserUncheckedUpdateWithoutAuthTokensInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTeamMembersInput = {
@@ -1662,6 +1800,10 @@ export type UserCreateWithoutTeamMembersInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTeamMembersInput = {
@@ -1703,6 +1845,10 @@ export type UserUncheckedCreateWithoutTeamMembersInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTeamMembersInput = {
@@ -1760,6 +1906,10 @@ export type UserUpdateWithoutTeamMembersInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTeamMembersInput = {
@@ -1801,6 +1951,10 @@ export type UserUncheckedUpdateWithoutTeamMembersInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutShareLinksInput = {
@@ -1842,6 +1996,10 @@ export type UserCreateWithoutShareLinksInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutShareLinksInput = {
@@ -1883,6 +2041,10 @@ export type UserUncheckedCreateWithoutShareLinksInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutShareLinksInput = {
@@ -1940,6 +2102,10 @@ export type UserUpdateWithoutShareLinksInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutShareLinksInput = {
@@ -1981,6 +2147,10 @@ export type UserUncheckedUpdateWithoutShareLinksInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAssetsInput = {
@@ -2022,6 +2192,10 @@ export type UserCreateWithoutAssetsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAssetsInput = {
@@ -2063,6 +2237,10 @@ export type UserUncheckedCreateWithoutAssetsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAssetsInput = {
@@ -2120,6 +2298,10 @@ export type UserUpdateWithoutAssetsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssetsInput = {
@@ -2161,6 +2343,10 @@ export type UserUncheckedUpdateWithoutAssetsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCommentsInput = {
@@ -2202,6 +2388,10 @@ export type UserCreateWithoutCommentsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCommentsInput = {
@@ -2243,6 +2433,10 @@ export type UserUncheckedCreateWithoutCommentsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCommentsInput = {
@@ -2289,6 +2483,10 @@ export type UserCreateWithoutCompletionChangedCommentsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCompletionChangedCommentsInput = {
@@ -2330,6 +2528,10 @@ export type UserUncheckedCreateWithoutCompletionChangedCommentsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCompletionChangedCommentsInput = {
@@ -2387,6 +2589,10 @@ export type UserUpdateWithoutCommentsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCommentsInput = {
@@ -2428,6 +2634,10 @@ export type UserUncheckedUpdateWithoutCommentsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithoutCompletionChangedCommentsInput = {
@@ -2480,6 +2690,10 @@ export type UserUpdateWithoutCompletionChangedCommentsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCompletionChangedCommentsInput = {
@@ -2521,6 +2735,10 @@ export type UserUncheckedUpdateWithoutCompletionChangedCommentsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCommentReactionsInput = {
@@ -2562,6 +2780,10 @@ export type UserCreateWithoutCommentReactionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCommentReactionsInput = {
@@ -2603,6 +2825,10 @@ export type UserUncheckedCreateWithoutCommentReactionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCommentReactionsInput = {
@@ -2660,6 +2886,10 @@ export type UserUpdateWithoutCommentReactionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCommentReactionsInput = {
@@ -2701,6 +2931,10 @@ export type UserUncheckedUpdateWithoutCommentReactionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCreatedInvitesInput = {
@@ -2742,6 +2976,10 @@ export type UserCreateWithoutCreatedInvitesInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCreatedInvitesInput = {
@@ -2783,6 +3021,10 @@ export type UserUncheckedCreateWithoutCreatedInvitesInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCreatedInvitesInput = {
@@ -2840,6 +3082,10 @@ export type UserUpdateWithoutCreatedInvitesInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedInvitesInput = {
@@ -2881,6 +3127,10 @@ export type UserUncheckedUpdateWithoutCreatedInvitesInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCreatedNotificationsInput = {
@@ -2922,6 +3172,10 @@ export type UserCreateWithoutCreatedNotificationsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
@@ -2963,6 +3217,10 @@ export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCreatedNotificationsInput = {
@@ -3009,6 +3267,10 @@ export type UserCreateWithoutNotificationsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -3050,6 +3312,10 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -3107,6 +3373,10 @@ export type UserUpdateWithoutCreatedNotificationsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
@@ -3148,6 +3418,10 @@ export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithoutNotificationsInput = {
@@ -3200,6 +3474,10 @@ export type UserUpdateWithoutNotificationsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -3241,6 +3519,10 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTasksInput = {
@@ -3282,6 +3564,10 @@ export type UserCreateWithoutTasksInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTasksInput = {
@@ -3323,6 +3609,10 @@ export type UserUncheckedCreateWithoutTasksInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTasksInput = {
@@ -3380,6 +3670,10 @@ export type UserUpdateWithoutTasksInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTasksInput = {
@@ -3421,6 +3715,10 @@ export type UserUncheckedUpdateWithoutTasksInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAgentInput = {
@@ -3462,6 +3760,10 @@ export type UserCreateWithoutAgentInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAgentInput = {
@@ -3503,6 +3805,10 @@ export type UserUncheckedCreateWithoutAgentInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAgentInput = {
@@ -3560,6 +3866,10 @@ export type UserUpdateWithoutAgentInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAgentInput = {
@@ -3601,6 +3911,10 @@ export type UserUncheckedUpdateWithoutAgentInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAgentSessionsInput = {
@@ -3642,6 +3956,10 @@ export type UserCreateWithoutAgentSessionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAgentSessionsInput = {
@@ -3683,6 +4001,10 @@ export type UserUncheckedCreateWithoutAgentSessionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAgentSessionsInput = {
@@ -3740,6 +4062,10 @@ export type UserUpdateWithoutAgentSessionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAgentSessionsInput = {
@@ -3781,6 +4107,10 @@ export type UserUncheckedUpdateWithoutAgentSessionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutUserMetadataInput = {
@@ -3822,6 +4152,10 @@ export type UserCreateWithoutUserMetadataInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutUserMetadataInput = {
@@ -3863,6 +4197,10 @@ export type UserUncheckedCreateWithoutUserMetadataInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutUserMetadataInput = {
@@ -3920,6 +4258,10 @@ export type UserUpdateWithoutUserMetadataInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutUserMetadataInput = {
@@ -3961,6 +4303,10 @@ export type UserUncheckedUpdateWithoutUserMetadataInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCollectionsInput = {
@@ -4002,6 +4348,10 @@ export type UserCreateWithoutCollectionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCollectionsInput = {
@@ -4043,6 +4393,10 @@ export type UserUncheckedCreateWithoutCollectionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCollectionsInput = {
@@ -4100,6 +4454,10 @@ export type UserUpdateWithoutCollectionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCollectionsInput = {
@@ -4141,6 +4499,10 @@ export type UserUncheckedUpdateWithoutCollectionsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutApiTokensInput = {
@@ -4182,6 +4544,10 @@ export type UserCreateWithoutApiTokensInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutApiTokensInput = {
@@ -4223,6 +4589,10 @@ export type UserUncheckedCreateWithoutApiTokensInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutApiTokensInput = {
@@ -4280,6 +4650,10 @@ export type UserUpdateWithoutApiTokensInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutApiTokensInput = {
@@ -4321,6 +4695,10 @@ export type UserUncheckedUpdateWithoutApiTokensInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAiUsagesInput = {
@@ -4362,6 +4740,10 @@ export type UserCreateWithoutAiUsagesInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAiUsagesInput = {
@@ -4403,6 +4785,10 @@ export type UserUncheckedCreateWithoutAiUsagesInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAiUsagesInput = {
@@ -4460,6 +4846,10 @@ export type UserUpdateWithoutAiUsagesInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAiUsagesInput = {
@@ -4501,6 +4891,10 @@ export type UserUncheckedUpdateWithoutAiUsagesInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAuditLogsInput = {
@@ -4542,6 +4936,10 @@ export type UserCreateWithoutAuditLogsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -4583,6 +4981,10 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -4640,6 +5042,10 @@ export type UserUpdateWithoutAuditLogsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -4681,6 +5087,10 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutQuotaRecordsInput = {
@@ -4722,6 +5132,10 @@ export type UserCreateWithoutQuotaRecordsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutQuotaRecordsInput = {
@@ -4763,6 +5177,10 @@ export type UserUncheckedCreateWithoutQuotaRecordsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutQuotaRecordsInput = {
@@ -4820,6 +5238,10 @@ export type UserUpdateWithoutQuotaRecordsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutQuotaRecordsInput = {
@@ -4861,6 +5283,10 @@ export type UserUncheckedUpdateWithoutQuotaRecordsInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutKanbanGoalsCreatedInput = {
@@ -4902,6 +5328,10 @@ export type UserCreateWithoutKanbanGoalsCreatedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutKanbanGoalsCreatedInput = {
@@ -4943,6 +5373,10 @@ export type UserUncheckedCreateWithoutKanbanGoalsCreatedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutKanbanGoalsCreatedInput = {
@@ -5000,6 +5434,10 @@ export type UserUpdateWithoutKanbanGoalsCreatedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutKanbanGoalsCreatedInput = {
@@ -5041,6 +5479,10 @@ export type UserUncheckedUpdateWithoutKanbanGoalsCreatedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutKanbanTasksCreatedInput = {
@@ -5082,6 +5524,10 @@ export type UserCreateWithoutKanbanTasksCreatedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutKanbanTasksCreatedInput = {
@@ -5123,6 +5569,10 @@ export type UserUncheckedCreateWithoutKanbanTasksCreatedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutKanbanTasksCreatedInput = {
@@ -5169,6 +5619,10 @@ export type UserCreateWithoutKanbanTasksReportedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutKanbanTasksReportedInput = {
@@ -5210,6 +5664,10 @@ export type UserUncheckedCreateWithoutKanbanTasksReportedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutKanbanTasksReportedInput = {
@@ -5256,6 +5714,10 @@ export type UserCreateWithoutKanbanTasksAssignedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutKanbanTasksAssignedInput = {
@@ -5297,6 +5759,10 @@ export type UserUncheckedCreateWithoutKanbanTasksAssignedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutKanbanTasksAssignedInput = {
@@ -5354,6 +5820,10 @@ export type UserUpdateWithoutKanbanTasksCreatedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutKanbanTasksCreatedInput = {
@@ -5395,6 +5865,10 @@ export type UserUncheckedUpdateWithoutKanbanTasksCreatedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithoutKanbanTasksReportedInput = {
@@ -5447,6 +5921,10 @@ export type UserUpdateWithoutKanbanTasksReportedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutKanbanTasksReportedInput = {
@@ -5488,6 +5966,10 @@ export type UserUncheckedUpdateWithoutKanbanTasksReportedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithoutKanbanTasksAssignedInput = {
@@ -5540,6 +6022,10 @@ export type UserUpdateWithoutKanbanTasksAssignedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutKanbanTasksAssignedInput = {
@@ -5581,6 +6067,10 @@ export type UserUncheckedUpdateWithoutKanbanTasksAssignedInput = {
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutKanbanTaskCommentsInput = {
@@ -5622,6 +6112,10 @@ export type UserCreateWithoutKanbanTaskCommentsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutKanbanTaskCommentsInput = {
@@ -5663,6 +6157,10 @@ export type UserUncheckedCreateWithoutKanbanTaskCommentsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutKanbanTaskCommentsInput = {
@@ -5720,6 +6218,10 @@ export type UserUpdateWithoutKanbanTaskCommentsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutKanbanTaskCommentsInput = {
@@ -5761,6 +6263,10 @@ export type UserUncheckedUpdateWithoutKanbanTaskCommentsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutKanbanTaskEventsInput = {
@@ -5802,6 +6308,10 @@ export type UserCreateWithoutKanbanTaskEventsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutKanbanTaskEventsInput = {
@@ -5843,6 +6353,10 @@ export type UserUncheckedCreateWithoutKanbanTaskEventsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutKanbanTaskEventsInput = {
@@ -5900,6 +6414,10 @@ export type UserUpdateWithoutKanbanTaskEventsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutKanbanTaskEventsInput = {
@@ -5941,6 +6459,10 @@ export type UserUncheckedUpdateWithoutKanbanTaskEventsInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutRecentFilesInput = {
@@ -5982,6 +6504,10 @@ export type UserCreateWithoutRecentFilesInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutRecentFilesInput = {
@@ -6023,6 +6549,10 @@ export type UserUncheckedCreateWithoutRecentFilesInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutRecentFilesInput = {
@@ -6080,6 +6610,10 @@ export type UserUpdateWithoutRecentFilesInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRecentFilesInput = {
@@ -6121,6 +6655,794 @@ export type UserUncheckedUpdateWithoutRecentFilesInput = {
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutOauthClientsInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
+  commentReactions?: Prisma.AssetCommentReactionCreateNestedManyWithoutUserInput
+  createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
+  aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
+  kanbanTasksCreated?: Prisma.KanbanTaskCreateNestedManyWithoutCreatorInput
+  kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutOauthClientsInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenUncheckedCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
+  commentReactions?: Prisma.AssetCommentReactionUncheckedCreateNestedManyWithoutUserInput
+  createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
+  aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutCreatorInput
+  kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutOauthClientsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthClientsInput, Prisma.UserUncheckedCreateWithoutOauthClientsInput>
+}
+
+export type UserUpsertWithoutOauthClientsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutOauthClientsInput, Prisma.UserUncheckedUpdateWithoutOauthClientsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthClientsInput, Prisma.UserUncheckedCreateWithoutOauthClientsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutOauthClientsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutOauthClientsInput, Prisma.UserUncheckedUpdateWithoutOauthClientsInput>
+}
+
+export type UserUpdateWithoutOauthClientsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
+  commentReactions?: Prisma.AssetCommentReactionUpdateManyWithoutUserNestedInput
+  createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
+  aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUpdateManyWithoutCreatorNestedInput
+  kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutOauthClientsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUncheckedUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
+  commentReactions?: Prisma.AssetCommentReactionUncheckedUpdateManyWithoutUserNestedInput
+  createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
+  aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUncheckedUpdateManyWithoutCreatorNestedInput
+  kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutOauthRefreshTokensInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
+  commentReactions?: Prisma.AssetCommentReactionCreateNestedManyWithoutUserInput
+  createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
+  aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
+  kanbanTasksCreated?: Prisma.KanbanTaskCreateNestedManyWithoutCreatorInput
+  kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutOauthRefreshTokensInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenUncheckedCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
+  commentReactions?: Prisma.AssetCommentReactionUncheckedCreateNestedManyWithoutUserInput
+  createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
+  aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutCreatorInput
+  kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutOauthRefreshTokensInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthRefreshTokensInput, Prisma.UserUncheckedCreateWithoutOauthRefreshTokensInput>
+}
+
+export type UserUpsertWithoutOauthRefreshTokensInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutOauthRefreshTokensInput, Prisma.UserUncheckedUpdateWithoutOauthRefreshTokensInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthRefreshTokensInput, Prisma.UserUncheckedCreateWithoutOauthRefreshTokensInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutOauthRefreshTokensInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutOauthRefreshTokensInput, Prisma.UserUncheckedUpdateWithoutOauthRefreshTokensInput>
+}
+
+export type UserUpdateWithoutOauthRefreshTokensInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
+  commentReactions?: Prisma.AssetCommentReactionUpdateManyWithoutUserNestedInput
+  createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
+  aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUpdateManyWithoutCreatorNestedInput
+  kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutOauthRefreshTokensInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUncheckedUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
+  commentReactions?: Prisma.AssetCommentReactionUncheckedUpdateManyWithoutUserNestedInput
+  createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
+  aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUncheckedUpdateManyWithoutCreatorNestedInput
+  kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutOauthAccessTokensInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
+  commentReactions?: Prisma.AssetCommentReactionCreateNestedManyWithoutUserInput
+  createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
+  aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
+  kanbanTasksCreated?: Prisma.KanbanTaskCreateNestedManyWithoutCreatorInput
+  kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutOauthAccessTokensInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenUncheckedCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
+  commentReactions?: Prisma.AssetCommentReactionUncheckedCreateNestedManyWithoutUserInput
+  createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
+  aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutCreatorInput
+  kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthConsents?: Prisma.OauthConsentUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutOauthAccessTokensInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthAccessTokensInput, Prisma.UserUncheckedCreateWithoutOauthAccessTokensInput>
+}
+
+export type UserUpsertWithoutOauthAccessTokensInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutOauthAccessTokensInput, Prisma.UserUncheckedUpdateWithoutOauthAccessTokensInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthAccessTokensInput, Prisma.UserUncheckedCreateWithoutOauthAccessTokensInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutOauthAccessTokensInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutOauthAccessTokensInput, Prisma.UserUncheckedUpdateWithoutOauthAccessTokensInput>
+}
+
+export type UserUpdateWithoutOauthAccessTokensInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
+  commentReactions?: Prisma.AssetCommentReactionUpdateManyWithoutUserNestedInput
+  createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
+  aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUpdateManyWithoutCreatorNestedInput
+  kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutOauthAccessTokensInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUncheckedUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
+  commentReactions?: Prisma.AssetCommentReactionUncheckedUpdateManyWithoutUserNestedInput
+  createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
+  aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUncheckedUpdateManyWithoutCreatorNestedInput
+  kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthConsents?: Prisma.OauthConsentUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutOauthConsentsInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
+  commentReactions?: Prisma.AssetCommentReactionCreateNestedManyWithoutUserInput
+  createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
+  aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
+  kanbanTasksCreated?: Prisma.KanbanTaskCreateNestedManyWithoutCreatorInput
+  kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutOauthConsentsInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenUncheckedCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
+  commentReactions?: Prisma.AssetCommentReactionUncheckedCreateNestedManyWithoutUserInput
+  createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
+  aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutCreatorInput
+  kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutUserInput
+  oauthClients?: Prisma.OauthClientUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutOauthConsentsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthConsentsInput, Prisma.UserUncheckedCreateWithoutOauthConsentsInput>
+}
+
+export type UserUpsertWithoutOauthConsentsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutOauthConsentsInput, Prisma.UserUncheckedUpdateWithoutOauthConsentsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthConsentsInput, Prisma.UserUncheckedCreateWithoutOauthConsentsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutOauthConsentsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutOauthConsentsInput, Prisma.UserUncheckedUpdateWithoutOauthConsentsInput>
+}
+
+export type UserUpdateWithoutOauthConsentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
+  commentReactions?: Prisma.AssetCommentReactionUpdateManyWithoutUserNestedInput
+  createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
+  aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUpdateManyWithoutCreatorNestedInput
+  kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutOauthConsentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUncheckedUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
+  commentReactions?: Prisma.AssetCommentReactionUncheckedUpdateManyWithoutUserNestedInput
+  createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
+  aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
+  kanbanTasksCreated?: Prisma.KanbanTaskUncheckedUpdateManyWithoutCreatorNestedInput
+  kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
+  kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
+  kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
+  kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
+  kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutUserNestedInput
+  oauthClients?: Prisma.OauthClientUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OauthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccessTokens?: Prisma.OauthAccessTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -6156,6 +7478,10 @@ export type UserCountOutputType = {
   kanbanTaskComments: number
   kanbanTaskEvents: number
   recentFiles: number
+  oauthClients: number
+  oauthRefreshTokens: number
+  oauthAccessTokens: number
+  oauthConsents: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -6186,6 +7512,10 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   kanbanTaskComments?: boolean | UserCountOutputTypeCountKanbanTaskCommentsArgs
   kanbanTaskEvents?: boolean | UserCountOutputTypeCountKanbanTaskEventsArgs
   recentFiles?: boolean | UserCountOutputTypeCountRecentFilesArgs
+  oauthClients?: boolean | UserCountOutputTypeCountOauthClientsArgs
+  oauthRefreshTokens?: boolean | UserCountOutputTypeCountOauthRefreshTokensArgs
+  oauthAccessTokens?: boolean | UserCountOutputTypeCountOauthAccessTokensArgs
+  oauthConsents?: boolean | UserCountOutputTypeCountOauthConsentsArgs
 }
 
 /**
@@ -6387,6 +7717,34 @@ export type UserCountOutputTypeCountRecentFilesArgs<ExtArgs extends runtime.Type
   where?: Prisma.RecentFileItemWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountOauthClientsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OauthClientWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountOauthRefreshTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OauthRefreshTokenWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountOauthAccessTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OauthAccessTokenWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountOauthConsentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OauthConsentWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -6428,6 +7786,10 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   kanbanTaskComments?: boolean | Prisma.User$kanbanTaskCommentsArgs<ExtArgs>
   kanbanTaskEvents?: boolean | Prisma.User$kanbanTaskEventsArgs<ExtArgs>
   recentFiles?: boolean | Prisma.User$recentFilesArgs<ExtArgs>
+  oauthClients?: boolean | Prisma.User$oauthClientsArgs<ExtArgs>
+  oauthRefreshTokens?: boolean | Prisma.User$oauthRefreshTokensArgs<ExtArgs>
+  oauthAccessTokens?: boolean | Prisma.User$oauthAccessTokensArgs<ExtArgs>
+  oauthConsents?: boolean | Prisma.User$oauthConsentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -6503,6 +7865,10 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   kanbanTaskComments?: boolean | Prisma.User$kanbanTaskCommentsArgs<ExtArgs>
   kanbanTaskEvents?: boolean | Prisma.User$kanbanTaskEventsArgs<ExtArgs>
   recentFiles?: boolean | Prisma.User$recentFilesArgs<ExtArgs>
+  oauthClients?: boolean | Prisma.User$oauthClientsArgs<ExtArgs>
+  oauthRefreshTokens?: boolean | Prisma.User$oauthRefreshTokensArgs<ExtArgs>
+  oauthAccessTokens?: boolean | Prisma.User$oauthAccessTokensArgs<ExtArgs>
+  oauthConsents?: boolean | Prisma.User$oauthConsentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -6539,6 +7905,10 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     kanbanTaskComments: Prisma.$KanbanTaskCommentPayload<ExtArgs>[]
     kanbanTaskEvents: Prisma.$KanbanTaskEventPayload<ExtArgs>[]
     recentFiles: Prisma.$RecentFileItemPayload<ExtArgs>[]
+    oauthClients: Prisma.$OauthClientPayload<ExtArgs>[]
+    oauthRefreshTokens: Prisma.$OauthRefreshTokenPayload<ExtArgs>[]
+    oauthAccessTokens: Prisma.$OauthAccessTokenPayload<ExtArgs>[]
+    oauthConsents: Prisma.$OauthConsentPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -6977,6 +8347,10 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   kanbanTaskComments<T extends Prisma.User$kanbanTaskCommentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$kanbanTaskCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   kanbanTaskEvents<T extends Prisma.User$kanbanTaskEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$kanbanTaskEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   recentFiles<T extends Prisma.User$recentFilesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$recentFilesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RecentFileItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  oauthClients<T extends Prisma.User$oauthClientsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$oauthClientsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OauthClientPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  oauthRefreshTokens<T extends Prisma.User$oauthRefreshTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$oauthRefreshTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OauthRefreshTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  oauthAccessTokens<T extends Prisma.User$oauthAccessTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$oauthAccessTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OauthAccessTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  oauthConsents<T extends Prisma.User$oauthConsentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$oauthConsentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OauthConsentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -8074,6 +9448,102 @@ export type User$recentFilesArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.RecentFileItemScalarFieldEnum | Prisma.RecentFileItemScalarFieldEnum[]
+}
+
+/**
+ * User.oauthClients
+ */
+export type User$oauthClientsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OauthClient
+   */
+  select?: Prisma.OauthClientSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OauthClient
+   */
+  omit?: Prisma.OauthClientOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OauthClientInclude<ExtArgs> | null
+  where?: Prisma.OauthClientWhereInput
+  orderBy?: Prisma.OauthClientOrderByWithRelationInput | Prisma.OauthClientOrderByWithRelationInput[]
+  cursor?: Prisma.OauthClientWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.OauthClientScalarFieldEnum | Prisma.OauthClientScalarFieldEnum[]
+}
+
+/**
+ * User.oauthRefreshTokens
+ */
+export type User$oauthRefreshTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OauthRefreshToken
+   */
+  select?: Prisma.OauthRefreshTokenSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OauthRefreshToken
+   */
+  omit?: Prisma.OauthRefreshTokenOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OauthRefreshTokenInclude<ExtArgs> | null
+  where?: Prisma.OauthRefreshTokenWhereInput
+  orderBy?: Prisma.OauthRefreshTokenOrderByWithRelationInput | Prisma.OauthRefreshTokenOrderByWithRelationInput[]
+  cursor?: Prisma.OauthRefreshTokenWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.OauthRefreshTokenScalarFieldEnum | Prisma.OauthRefreshTokenScalarFieldEnum[]
+}
+
+/**
+ * User.oauthAccessTokens
+ */
+export type User$oauthAccessTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OauthAccessToken
+   */
+  select?: Prisma.OauthAccessTokenSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OauthAccessToken
+   */
+  omit?: Prisma.OauthAccessTokenOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OauthAccessTokenInclude<ExtArgs> | null
+  where?: Prisma.OauthAccessTokenWhereInput
+  orderBy?: Prisma.OauthAccessTokenOrderByWithRelationInput | Prisma.OauthAccessTokenOrderByWithRelationInput[]
+  cursor?: Prisma.OauthAccessTokenWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.OauthAccessTokenScalarFieldEnum | Prisma.OauthAccessTokenScalarFieldEnum[]
+}
+
+/**
+ * User.oauthConsents
+ */
+export type User$oauthConsentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OauthConsent
+   */
+  select?: Prisma.OauthConsentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OauthConsent
+   */
+  omit?: Prisma.OauthConsentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OauthConsentInclude<ExtArgs> | null
+  where?: Prisma.OauthConsentWhereInput
+  orderBy?: Prisma.OauthConsentOrderByWithRelationInput | Prisma.OauthConsentOrderByWithRelationInput[]
+  cursor?: Prisma.OauthConsentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.OauthConsentScalarFieldEnum | Prisma.OauthConsentScalarFieldEnum[]
 }
 
 /**

@@ -1593,5 +1593,16 @@
   "hide_agent": "隐藏 Agent",
   "hide_agent_description": "在整个团队中隐藏 AGENTS.md 按钮、Agent 聊天侧边栏和触发按钮。",
   "appearance_settings_updated": "外观设置已更新",
-  "failed_update_appearance_settings": "更新外观设置失败"
+  "failed_update_appearance_settings": "更新外观设置失败",
+  "authorize_application": "授权应用",
+  "authorize_application_subtitle": "某个应用正在请求访问您的 Shumai 账户及相关工具。",
+  "application_client_id": "客户端 ID",
+  "requested_permissions": "请求的权限",
+  "logged_in_as": "当前登录账号",
+  "authorize": "授权",
+  "authorizing": "授权中...",
+  "deny": "拒绝",
+  "denying": "拒绝中...",
+  "consent_failed": "处理授权失败",
+  "mcp_access_scope_desc": "以当前用户权限完全访问 Shumai 工作空间及 MCP 工具"
 }

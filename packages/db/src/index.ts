@@ -41,6 +41,29 @@ const globalForPrisma = globalThis as unknown as {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let prismaTestingHelper: PrismaTestingHelper<any> | null = null
 
+function sanitizeArrayFields<T>(data: T): T {
+  if (data && typeof data === 'object') {
+    const record = data as Record<string, unknown>
+    const arrayFields = [
+      'scopes',
+      'allowedScopes',
+      'resources',
+      'requestedUserInfoClaims',
+      'contacts',
+      'redirectUris',
+      'postLogoutRedirectUris',
+      'grantTypes',
+      'responseTypes',
+    ]
+    for (const field of arrayFields) {
+      if (record[field] === null) {
+        record[field] = []
+      }
+    }
+  }
+  return data
+}
+
 function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL
   const pool = new Pool({ connectionString })
@@ -49,6 +72,80 @@ function createPrismaClient() {
 
   return client.$extends({
     query: {
+      oauthResource: {
+        async create({ args, query }) {
+          sanitizeArrayFields(args.data)
+          try {
+            return await query(args)
+          } catch (e: unknown) {
+            if (
+              e &&
+              typeof e === 'object' &&
+              'code' in e &&
+              e.code === 'P2002' &&
+              args.data.identifier
+            ) {
+              const existing = await client.oauthResource.findUnique({
+                where: { identifier: args.data.identifier },
+              })
+              if (existing) return existing
+            }
+            throw e
+          }
+        },
+        async update({ args, query }) {
+          sanitizeArrayFields(args.data)
+          return query(args)
+        },
+        async upsert({ args, query }) {
+          sanitizeArrayFields(args.create)
+          sanitizeArrayFields(args.update)
+          return query(args)
+        },
+        async findUnique({ args, query }) {
+          const result = await query(args)
+          if (result && Array.isArray(result.allowedScopes) && result.allowedScopes.length === 0) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ;(result as any).allowedScopes = null
+          }
+          return result
+        },
+        async findFirst({ args, query }) {
+          const result = await query(args)
+          if (result && Array.isArray(result.allowedScopes) && result.allowedScopes.length === 0) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ;(result as any).allowedScopes = null
+          }
+          return result
+        },
+        async findMany({ args, query }) {
+          const results = await query(args)
+          if (Array.isArray(results)) {
+            for (const r of results) {
+              if (r && Array.isArray(r.allowedScopes) && r.allowedScopes.length === 0) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ;(r as any).allowedScopes = null
+              }
+            }
+          }
+          return results
+        },
+      },
+      oauthClient: {
+        async create({ args, query }) {
+          sanitizeArrayFields(args.data)
+          return query(args)
+        },
+        async update({ args, query }) {
+          sanitizeArrayFields(args.data)
+          return query(args)
+        },
+        async upsert({ args, query }) {
+          sanitizeArrayFields(args.create)
+          sanitizeArrayFields(args.update)
+          return query(args)
+        },
+      },
       workflowTask: {
         async create({ args, query }) {
           const result = await query(args)

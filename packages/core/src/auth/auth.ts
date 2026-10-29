@@ -1,5 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { betterAuth } from 'better-auth'
+import { jwt } from 'better-auth/plugins'
+import { mcp } from '@better-auth/mcp'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { prisma } from '@shumai/db'
 import { teamService } from '@shumai/core/src/team/team'
@@ -14,10 +16,28 @@ interface GeneratedResetLink {
 
 const resetLinkStorage = new AsyncLocalStorage<GeneratedResetLink>()
 
+export const authBaseUrl =
+  process.env.BETTER_AUTH_URL || `http://localhost:${process.env.SHUMAI_SERVER_PORT || '3000'}`
+export const mcpResource = `${authBaseUrl}/mcp`
+export { hashPassword } from 'better-auth/crypto'
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
+  plugins: [
+    jwt(),
+    mcp({
+      loginPage: '/login',
+      consentPage: '/consent',
+      resource: mcpResource,
+      resources: [{ identifier: mcpResource, allowedScopes: ['mcp'] }],
+      scopes: ['openid', 'profile', 'email', 'offline_access', 'mcp'],
+      allowDynamicClientRegistration: true,
+      allowUnauthenticatedClientRegistration: true,
+      clientRegistrationDefaultApplicationType: 'infer',
+    }),
+  ],
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 3,
@@ -33,8 +53,7 @@ export const auth = betterAuth({
   },
   secret: process.env.BETTER_AUTH_SECRET,
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  baseURL:
-    process.env.BETTER_AUTH_URL || `http://localhost:${process.env.SHUMAI_SERVER_PORT || '3000'}`,
+  baseURL: authBaseUrl,
   basePath: '/api/auth',
   trustedOrigins: [
     `http://localhost:${process.env.SHUMAI_SERVER_PORT || '3000'}`,

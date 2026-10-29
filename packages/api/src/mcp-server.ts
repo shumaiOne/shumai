@@ -1,9 +1,12 @@
 import { Hono } from 'hono'
 import { createMcpHandler, McpServer, type CallToolResult } from '@modelcontextprotocol/server'
+import { requireMcpAuth } from '@better-auth/mcp'
 import type { z } from 'zod'
 import type { Prisma } from '@shumai/db'
 import { dropNullOptionals } from '@shumai/operations'
 import { getOperationsForSurface, runOperation, type Operation } from '@shumai/core/src/operations'
+import { auth, authBaseUrl, mcpResource } from '@shumai/core/src/auth/auth'
+import { apiTokenService } from '@shumai/core/src/user/api-token'
 import { mcpExtensions, type McpToolExtension } from './mcp-extensions'
 import { assertWritableInDemoMode, describeOperationError } from './operation-support'
 
@@ -131,12 +134,80 @@ const mcpHandler = createMcpHandler(({ authInfo }) => {
   return buildMcpServer(userId)
 })
 
-/** Shumai's MCP server (Streamable HTTP). Mounted at `/mcp` behind API token auth. */
-const route = new Hono<{ Variables: { user: User } }>().all('/mcp', (c) => {
-  const user = c.get('user')
-  return mcpHandler.fetch(c.req.raw, {
-    authInfo: { token: '', clientId: user.id, scopes: [], extra: { userId: user.id } },
-  })
+const oauthHandler = requireMcpAuth(
+  auth,
+  (req, claims) => {
+    const userId = claims.sub
+    if (!userId) {
+      throw new Error('OAuth token has no sub claim')
+    }
+    const clientId = (claims.azp as string) ?? (claims.client_id as string) ?? ''
+    const scopes =
+      typeof claims.scope === 'string'
+        ? claims.scope.split(' ')
+        : ((claims.scopes as string[]) ?? [])
+    return mcpHandler.fetch(req, {
+      authInfo: {
+        token: '',
+        clientId,
+        scopes,
+        extra: { userId },
+      },
+    })
+  },
+  {
+    resource: mcpResource,
+    // In-process verification: avoids HTTP loopback round-trip and works even in test environments
+    // where no HTTP port is bound.
+    jwksUrl: (async () => {
+      const res = await auth.handler(new Request(`${authBaseUrl}/api/auth/jwks`))
+      if (!res.ok) {
+        throw new Error(`Failed to load JWKS in-process: ${res.statusText}`)
+      }
+      return await res.json()
+    }) as unknown as string,
+  },
+)
+
+/** Shumai's MCP server (Streamable HTTP). Mounted at `/mcp` with dual API token and OAuth 2.1 auth. */
+const route = new Hono<{ Variables: { user: User } }>().all('/mcp', async (c) => {
+  const existingUser = c.get('user')
+  if (existingUser?.id) {
+    return mcpHandler.fetch(c.req.raw, {
+      authInfo: {
+        token: '',
+        clientId: existingUser.id,
+        scopes: [],
+        extra: { userId: existingUser.id },
+      },
+    })
+  }
+
+  const authHeader = c.req.header('Authorization')
+  const apiKeyHeader = c.req.header('x-api-key')
+  let bearerToken: string | null = null
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    bearerToken = authHeader.substring(7).trim()
+  }
+  const candidateToken = bearerToken || apiKeyHeader || null
+
+  if (candidateToken && (candidateToken.startsWith('shumai_') || apiKeyHeader)) {
+    const user = await apiTokenService.validateToken(candidateToken)
+    if (!user) {
+      c.header('WWW-Authenticate', 'Bearer realm="shumai"')
+      return c.json({ error: 'Unauthorized: Invalid API Key' }, 401)
+    }
+    return mcpHandler.fetch(c.req.raw, {
+      authInfo: {
+        token: candidateToken,
+        clientId: user.id,
+        scopes: [],
+        extra: { userId: user.id },
+      },
+    })
+  }
+
+  return oauthHandler(c.req.raw)
 })
 
 export default route

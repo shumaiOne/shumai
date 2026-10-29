@@ -571,5 +571,12 @@ declare global {
       proxyType?: 'image' | 'video' | 'audio' | 'pdf' | '3d' | null
     }
     export type KanbanCommentAttachmentList = KanbanCommentAttachment[]
+
+    // ----------------------------------------------------------------------
+    // Better Auth OAuth
+    // ----------------------------------------------------------------------
+    export type OauthMetadata = Record<string, unknown>
+    export type OauthCustomClaims = Record<string, unknown>
+    export type OauthConfirmation = Record<string, unknown>
   }
 }

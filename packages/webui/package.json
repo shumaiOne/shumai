@@ -6,6 +6,7 @@
   "main": "./index.html",
   "dependencies": {
     "@base-ui/react": "1.7.0",
+    "@better-auth/oauth-provider": "1.7.12",
     "@dnd-kit/abstract": "0.5.0",
     "@dnd-kit/dom": "0.5.0",
     "@dnd-kit/react": "0.5.0",
@@ -57,7 +58,7 @@
     "@uppy/aws-s3": "6.0.0",
     "@uppy/core": "6.0.0",
     "@uppy/xhr-upload": "6.0.0",
-    "better-auth": "1.6.11",
+    "better-auth": "1.7.12",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cmdk": "1.1.1",

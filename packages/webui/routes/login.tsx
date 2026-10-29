@@ -44,6 +44,16 @@ function LoginPage() {
     }
   }, [signupInfo, navigate])
 
+  useEffect(() => {
+    const user = useAuthStore.getState().user
+    if (user && typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search)
+      if (searchParams.has('client_id')) {
+        window.location.href = `/api/auth/oauth2/authorize?${searchParams.toString()}`
+      }
+    }
+  }, [])
+
   const isDemoEnv = signupInfo?.demoMode === true
 
   const form = useForm<LoginSchema>({
@@ -66,6 +76,11 @@ function LoginPage() {
 
     if (session) {
       setUser(session.user)
+      const redirectUrl = (session as { url?: string }).url
+      if (redirectUrl) {
+        window.location.href = redirectUrl
+        return
+      }
       navigate({ to: '/' })
     }
   }
@@ -90,6 +105,11 @@ function LoginPage() {
 
     if (session) {
       setUser(session.user)
+      const redirectUrl = (session as { url?: string }).url
+      if (redirectUrl) {
+        window.location.href = redirectUrl
+        return
+      }
       navigate({ to: '/' })
     }
   }
@@ -245,6 +265,12 @@ function LoginPage() {
 export const Route = createFileRoute('/login')({
   component: LoginPage,
   beforeLoad: () => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search)
+      if (searchParams.has('client_id')) {
+        return
+      }
+    }
     if (useAuthStore.getState().user) {
       throw redirect({
         to: '/',

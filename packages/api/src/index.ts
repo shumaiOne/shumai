@@ -1,4 +1,5 @@
 import type { Prisma } from '@shumai/db'
+import { auth } from '@shumai/core/src/auth/auth'
 import { Hono } from 'hono'
 import agentRoute from './agent'
 import chatRoute from './chat'
@@ -80,11 +81,13 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', kanbanRoute)
   .route('/', mediaGenerationRoute)
 
+// RFC 8414 & RFC 9728 OAuth discovery endpoints
+app.on(['GET', 'HEAD', 'OPTIONS'], '/.well-known/*', (c) => auth.handler(c.req.raw))
+
 // Shumai's MCP server lives at the root (`/mcp`), next to the API rather than inside it, so
-// it can also be served from a dedicated host (e.g. `https://mcp.example.com/mcp`). It takes
-// API tokens only. The `/api/mcp/servers` routes are a separate feature: external MCP servers
-// that Shumai's own agent connects to.
-app.use('/mcp', requireApiTokenMiddleware)
+// it can also be served from a dedicated host (e.g. `https://mcp.example.com/mcp`). It supports
+// both static API tokens and OAuth 2.1 authentication. The `/api/mcp/servers` routes are a separate
+// feature: external MCP servers that Shumai's own agent connects to.
 app.route('/', mcpServerRoute)
 
 app.route('/files', s3Route)

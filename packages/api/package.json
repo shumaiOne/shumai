@@ -6,6 +6,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
+    "@better-auth/mcp": "1.7.12",
     "@hono/zod-validator": "0.7.6",
     "@modelcontextprotocol/server": "2.0.0",
     "@shumai/core": "workspace:*",

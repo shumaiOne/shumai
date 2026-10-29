@@ -1593,5 +1593,16 @@
   "hide_agent": "Hide Agent",
   "hide_agent_description": "Hide the AGENTS.md button, agent-chat sidebar, and chatbot trigger button across the entire team.",
   "appearance_settings_updated": "Appearance settings updated",
-  "failed_update_appearance_settings": "Failed to update appearance settings"
+  "failed_update_appearance_settings": "Failed to update appearance settings",
+  "authorize_application": "Authorize Application",
+  "authorize_application_subtitle": "An application is requesting access to your Shumai account and tools.",
+  "application_client_id": "Client ID",
+  "requested_permissions": "Requested Permissions",
+  "logged_in_as": "Logged in as",
+  "authorize": "Authorize",
+  "authorizing": "Authorizing...",
+  "deny": "Deny",
+  "denying": "Denying...",
+  "consent_failed": "Failed to process authorization",
+  "mcp_access_scope_desc": "Full user-level access to Shumai workspace and MCP tools"
 }
