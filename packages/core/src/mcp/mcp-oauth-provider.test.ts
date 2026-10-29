@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { McpDbStore } from './mcp-db-store'
-import { McpOauthProvider } from './mcp-oauth-provider'
+import { getDefaultOauthRedirectUri, McpOauthProvider } from './mcp-oauth-provider'
 
 /* eslint-disable @typescript-eslint/naming-convention */
 // The OAuth wire format (RFC 6749 / OAuth 2.1) uses snake_case field names
@@ -143,5 +143,21 @@ describe('McpOauthProvider SEP-2352 issuer stamping', () => {
     await provider.saveClientInformation({ client_id: 'c2' } as never)
     const info = await makeProvider().clientInformation()
     expect((info as { issuer?: string }).issuer).toBeUndefined()
+  })
+
+  it('normalizes redirect URI cleanly preserving path prefix when base URL has trailing slashes', () => {
+    const originalEnv = process.env.MCP_OAUTH_REDIRECT_BASE_URL
+    try {
+      process.env.MCP_OAUTH_REDIRECT_BASE_URL = 'https://staging.shumai.one/shumai///'
+      expect(getDefaultOauthRedirectUri()).toBe(
+        'https://staging.shumai.one/shumai/api/mcp/oauth/callback',
+      )
+    } finally {
+      if (originalEnv !== undefined) {
+        process.env.MCP_OAUTH_REDIRECT_BASE_URL = originalEnv
+      } else {
+        delete process.env.MCP_OAUTH_REDIRECT_BASE_URL
+      }
+    }
   })
 })

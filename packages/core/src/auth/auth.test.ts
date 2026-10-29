@@ -303,4 +303,26 @@ describe('AuthService Password Reset', () => {
     expect(resetResA.success).toBe(true)
     expect(resetResB.success).toBe(true)
   })
+
+  it('generates reset link cleanly preserving path prefix and without double slashes when BETTER_AUTH_URL has trailing slashes', async () => {
+    const originalEnv = process.env.BETTER_AUTH_URL
+    try {
+      process.env.BETTER_AUTH_URL = 'https://staging.shumai.one/shumai///'
+      const email = `slash-test-${Date.now()}@example.com`
+      await auth.api.signUpEmail({
+        headers: new Headers(),
+        body: { email, password: 'password123', name: 'Slash User' },
+      })
+
+      const link = await authService.generatePasswordResetLink(email)
+      expect(link).toMatch(/^https:\/\/staging\.shumai\.one\/shumai\/reset-password\?token=/)
+      expect(link).not.toContain('//reset-password')
+    } finally {
+      if (originalEnv !== undefined) {
+        process.env.BETTER_AUTH_URL = originalEnv
+      } else {
+        delete process.env.BETTER_AUTH_URL
+      }
+    }
+  })
 })

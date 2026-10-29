@@ -16,8 +16,9 @@ interface GeneratedResetLink {
 
 const resetLinkStorage = new AsyncLocalStorage<GeneratedResetLink>()
 
-export const authBaseUrl =
+export const authBaseUrl = (
   process.env.BETTER_AUTH_URL || `http://localhost:${process.env.SHUMAI_SERVER_PORT || '3000'}`
+).replace(/\/+$/, '')
 export const mcpResource = `${authBaseUrl}/mcp`
 export { hashPassword } from 'better-auth/crypto'
 
@@ -202,7 +203,7 @@ export class AuthService {
       const rawBaseUrl =
         process.env.BETTER_AUTH_URL ||
         `http://localhost:${process.env.SHUMAI_SERVER_PORT || '3000'}`
-      const baseUrl = rawBaseUrl.replace(/\/$/, '')
+      const baseUrl = rawBaseUrl.replace(/\/+$/, '')
       return `${baseUrl}/reset-password?token=${context.token}`
     }
 

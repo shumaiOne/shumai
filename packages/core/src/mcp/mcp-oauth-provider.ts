@@ -48,7 +48,7 @@ export function getOauthRedirectBaseUrl(): string {
 export function getDefaultOauthRedirectUri(): string | undefined {
   const base = getOauthRedirectBaseUrl()
   if (!base) return undefined
-  return `${base.replace(/\/$/, '')}/api/mcp/oauth/callback`
+  return `${base.replace(/\/+$/, '')}/api/mcp/oauth/callback`
 }
 
 /** Configuration options for OAuth. */

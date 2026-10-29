@@ -50,6 +50,10 @@ describe('MCP server OAuth 2.1 & Dual Auth', () => {
 
   it('serves RFC 8414 and RFC 9728 discovery endpoints', async () => {
     // RFC 9728 Protected Resource Metadata
+    expect(authBaseUrl.endsWith('/')).toBe(false)
+    expect(mcpResource).not.toContain('//mcp')
+    expect(mcpResource.endsWith('/mcp')).toBe(true)
+
     const resourceMetaRes = await app.request('/.well-known/oauth-protected-resource')
     expect(resourceMetaRes.status).toBe(200)
     const resourceMeta = await resourceMetaRes.json()
