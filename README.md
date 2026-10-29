@@ -106,8 +106,9 @@ Docker Compose is the fastest way to get Shumai running. You do not need to clon
 
    > [!NOTE]
    > By default, the Docker Compose setups use CPU software transcoding. If your server has a GPU (NVIDIA NVENC, Intel QuickSync, AMD/Intel VA-API, or Rockchip RKMPP) and you want to enable GPU hardware acceleration, check the [Hardware Transcoding Guide](https://docs.shumai.one/configuration/hardware-transcoding).
-3. Configure environment variables (optional):
+3. Configure environment variables:
 
+   * `BETTER_AUTH_URL`: The public base URL of your Shumai server (e.g., `https://shumai.example.com` or `http://12.34.56.78:3000`). This is required for remote servers and production deployments.
    * `SHUMAI_SERVER_PORT` controls the port the Shumai server listens on. The default is `3000`.
    * By default, Shumai uses the bundled local storage service in this Docker Compose setup. To use an external S3-compatible storage instead, configure the environment variables for your S3 provider. Here are examples for AWS S3 and Cloudflare R2:
 
@@ -139,11 +140,11 @@ Docker Compose is the fastest way to get Shumai running. You do not need to clon
 
      This value must be reachable from client browsers and should include the externally exposed port.
 
-5. Start the services in detached mode:
+4. Start the services in detached mode:
    ```bash
    docker compose up -d
    ```
-6. Open your browser and access Shumai at `http://localhost:3000` (or `http://<your-server-ip>:3000` for remote deployments).
+5. Open your browser and access Shumai at `http://localhost:3000` (or `http://<your-server-ip>:3000` for remote deployments).
 
 #### **Scaling Transcode Workers (Parallel Processing)**
 
@@ -200,6 +201,7 @@ To set up Shumai locally for development:
    ```env
    DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
    BETTER_AUTH_SECRET=ySxs7DxzHDZBbeeHNPEwBuspYwipBqz5Gk5XdBjNhWw=
+   BETTER_AUTH_URL=http://localhost:3000
    STORAGE_BACKEND=local
    SHUMAI_SERVER_PORT=3000
    AWS_ENDPOINT_URL_S3=http://localhost:3000

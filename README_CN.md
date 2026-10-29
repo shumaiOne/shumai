@@ -125,7 +125,8 @@ https://gh-proxy.com/https://raw.githubusercontent.com/shumaiOne/shumai/main/REA
    > 默认的 Docker Compose 配置使用基于 CPU 的软件转码。如果你的服务器支持硬件加速（NVIDIA NVENC、Intel QuickSync、AMD/Intel VA-API 或 Rockchip RKMPP），请参考 [硬件加速转码配置文档](https://docs.shumai.one/configuration/hardware-transcoding)。
 
 
-3. 配置环境变量（可选）：
+3. 配置环境变量：
+  * `BETTER_AUTH_URL`：Shumai 服务的外部公开访问地址（例如 `https://shumai.example.com` 或 `http://12.34.56.78:3000`）。在远程服务器或生产环境中部署时必须配置该变量。
   * `SHUMAI_SERVER_PORT` 用于控制 Shumai 服务监听的端口，默认值为 `3000`。
   * 默认情况下，该 Docker Compose 部署会自动启用集成的本地存储。若想切换至外部 S3 兼容存储，请在 `environment` 中配置 S3 提供商的环境变量。以下是 AWS S3 和 Cloudflare R2 的配置示例：
 
@@ -227,6 +228,7 @@ Shumai 提供了独立的转码 Worker 镜像（支持 Docker Hub 与阿里云�
    ```env
    DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
    BETTER_AUTH_SECRET=ySxs7DxzHDZBbeeHNPEwBuspYwipBqz5Gk5XdBjNhWw=
+   BETTER_AUTH_URL=http://localhost:3000
    STORAGE_BACKEND=local
    SHUMAI_SERVER_PORT=3000
    AWS_ENDPOINT_URL_S3=http://localhost:3000

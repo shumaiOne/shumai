@@ -9,23 +9,84 @@ We support three installation options. For most administrators, **Docker Compose
 
 ## Option 1: Docker Compose (Recommended)
 
-Docker Compose automatically configures and spins up all required services (the web application, a database, and local storage).
+Docker Compose is the fastest way to get Shumai running. You do not need to clone the repository or install packages manually. Ensure you have [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) installed, then follow these steps:
 
-1.  **Download the Configuration**:
+1.  **Create Directory**:
+    Create and navigate to a new directory for your configuration and data volumes:
 
     ```bash
-    curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
+    mkdir shumai && cd shumai
     ```
 
-    > [!TIP]
-    > **Hardware Acceleration:** By default, the standard Compose stack uses CPU-based software transcoding. If your server has a dedicated or integrated GPU (NVIDIA, Intel, AMD, or Rockchip), see the [Hardware Transcoding Guide](/configuration/hardware-transcoding) to enable GPU acceleration via the companion `hwaccel.transcoding.yaml`.
+2.  **Download the Configuration**:
+    Download your preferred `docker-compose.yaml` configuration based on your needs and available RAM:
 
-2.  **Start the Services**:
+    - **Lite (Suggested RAM: 2 GB+)**: Minimal deployment containing Shumai and PostgreSQL database.
+
+      ```bash
+      curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
+      ```
+
+    - **With Embedding Server (Suggested RAM: 4 GB+)**: Adds local multimodal semantic search powered by `shumaiOne/embedding-server` (`EmbeddingGemma 2 740M`).
+
+      ```bash
+      curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.embedding.yaml
+      ```
+
+    - **Full (Suggested RAM: 8 GB+)**: All-in-one setup including `embedding-server`, `turntable-renderer` (3D previews), and `Gotenberg` (document PDF proxying).
+      ```bash
+      curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.full.yaml
+      ```
+
+    > [!NOTE]
+    > By default, the Docker Compose setups use CPU software transcoding. If your server has a GPU (NVIDIA NVENC, Intel QuickSync, AMD/Intel VA-API, or Rockchip RKMPP) and you want to enable GPU hardware acceleration, check the [Hardware Transcoding Guide](/configuration/hardware-transcoding).
+
+3.  **Configure Environment Variables**:
+    Open `docker-compose.yaml` to adjust environment variables for your deployment:
+
+    - `BETTER_AUTH_URL`: The public base URL of your Shumai server (e.g., `https://shumai.example.com` or `http://12.34.56.78:3000`). This is required for remote servers and production deployments.
+    - `SHUMAI_SERVER_PORT`: Controls the port the Shumai server listens on. The default is `3000`.
+    - By default, Shumai uses the bundled local storage service in this Docker Compose setup. To use an external S3-compatible storage instead, configure the environment variables for your S3 provider. Here are examples for AWS S3 and Cloudflare R2:
+
+      **AWS S3 Example:**
+
+      ```yaml
+      STORAGE_BACKEND: s3
+      S3_BUCKET: your-bucket-name
+      S3_ACCESS_KEY_ID: your-access-key-id
+      S3_SECRET_ACCESS_KEY: your-secret-access-key
+      AWS_ENDPOINT_URL_S3: https://s3.us-east-1.amazonaws.com
+      ```
+
+      **Cloudflare R2 Example:**
+
+      ```yaml
+      STORAGE_BACKEND: s3
+      S3_BUCKET: your-bucket-name
+      S3_REGION: auto
+      S3_ACCESS_KEY_ID: your-access-key-id
+      S3_SECRET_ACCESS_KEY: your-secret-access-key
+      AWS_ENDPOINT_URL_S3: https://<account-id>.r2.cloudflarestorage.com
+      ```
+
+    - By default, `AWS_ENDPOINT_URL_S3` is set to `http://localhost:{SHUMAI_SERVER_PORT}`. If you use local storage and expose Shumai on a custom host/port combination, set `AWS_ENDPOINT_URL_S3` to the external URL that browsers will use to upload files.
+
+      For example, if you change the port mapping in `docker-compose.yaml` from `3000:3000` to `12345:3000` and deploy on a server with IP address `12.34.56.78`, set:
+
+      ```yaml
+      AWS_ENDPOINT_URL_S3: http://12.34.56.78:12345
+      ```
+
+      This value must be reachable from client browsers and should include the externally exposed port.
+
+4.  **Start the Services**:
+
     ```bash
     docker compose up -d
     ```
-3.  **Access the Dashboard**:
-    Open your browser and navigate to **`http://localhost:3000`** to access the Shumai Web UI.
+
+5.  **Access the Dashboard**:
+    Open your browser and navigate to **`http://localhost:3000`** (or `http://<your-server-ip>:3000` for remote deployments) to access the Shumai Web UI.
 
 ### Production Deployments (Distributed Workers)
 
@@ -79,12 +140,13 @@ To handle media processing and security isolation, the host machine must have th
     ```env
     DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
     BETTER_AUTH_SECRET=your-random-32-character-secret-key
+    BETTER_AUTH_URL=http://localhost:3000
     STORAGE_BACKEND=local
     AWS_ENDPOINT_URL_S3=http://localhost:3000
     ```
 
     > [!TIP]
-    > `AWS_ENDPOINT_URL_S3` must include the scheme and port (e.g. `http://localhost:3000`) where Shumai is publicly accessible. This URL is used directly by client browsers for file uploads.
+    > `BETTER_AUTH_URL` should be set to your public server address for remote or production deployments. `AWS_ENDPOINT_URL_S3` must include the scheme and port (e.g. `http://localhost:3000` or `http://12.34.56.78:3000`) where Shumai is publicly accessible, as client browsers use this URL directly for file uploads.
 
 4.  **Start Shumai**:
 
@@ -101,25 +163,46 @@ To handle media processing and security isolation, the host machine must have th
 
 ## Option 3: Run from Source (For Developers)
 
-If you wish to run Shumai locally to customize the platform or contribute:
+To set up Shumai locally for development:
 
-1.  **Clone the Repository**:
+1.  **Clone the Repository and Install Dependencies**:
     ```bash
     git clone https://github.com/shumaiOne/shumai.git
     cd shumai
-    ```
-2.  **Install Dependencies**:
-    ```bash
     bun install
     ```
-3.  **Start a Database**:
-    Launch a local database container (as described in the NPM section above).
-4.  **Run Migrations**:
-    Set up your `.env` file at the root, then apply database migrations:
+2.  **Start a Database**:
+    Launch a local database container (as described in the NPM section above):
+    ```bash
+    docker run --name shumai_postgres \
+      -e POSTGRES_USER=shumai \
+      -e POSTGRES_PASSWORD=shumai_password \
+      -e POSTGRES_DB=shumai_db \
+      -p 5432:5432 \
+      -d pgvector/pgvector:pg18
+    ```
+3.  **Create Environment File**:
+    Create a `.env` file at the root of the workspace:
+    ```env
+    DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
+    BETTER_AUTH_SECRET=ySxs7DxzHDZBbeeHNPEwBuspYwipBqz5Gk5XdBjNhWw=
+    BETTER_AUTH_URL=http://localhost:3000
+    STORAGE_BACKEND=local
+    SHUMAI_SERVER_PORT=3000
+    AWS_ENDPOINT_URL_S3=http://localhost:3000
+    ```
+4.  **Generate i18n Translations**:
+    ```bash
+    bun run i18n:compile
+    ```
+    > [!TIP]
+    > During frontend development, you can run `bun run i18n:watch` in a separate terminal to automatically recompile translation files whenever you edit strings in `packages/webui/messages/`.
+5.  **Run Migrations**:
+    Apply database schema migrations:
     ```bash
     bun run db:migrate
     ```
-5.  **Start the Dev Server**:
+6.  **Start the Dev Server**:
     ```bash
     bun run dev
     ```

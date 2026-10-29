@@ -44,6 +44,7 @@ services:
 
       # Better Auth
       BETTER_AUTH_SECRET: qSxs9DxzHDZBbeeTNPEwBuspYwipBqz5Gk5XdBjNhWw=
+      BETTER_AUTH_URL: http://localhost:3000
 
       # Sandbox Configuration
       ENABLE_WEAKER_NESTED_SANDBOX: 'true'
