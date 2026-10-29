@@ -82,6 +82,11 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', mediaGenerationRoute)
 
 // RFC 8414 & RFC 9728 OAuth discovery endpoints
+app.on(['GET', 'HEAD', 'OPTIONS'], '/.well-known/oauth-authorization-server', (c) => {
+  const url = new URL(c.req.raw.url)
+  url.pathname = '/.well-known/oauth-authorization-server/api/auth'
+  return auth.handler(new Request(url.toString(), c.req.raw))
+})
 app.on(['GET', 'HEAD', 'OPTIONS'], '/.well-known/*', (c) => auth.handler(c.req.raw))
 
 // Shumai's MCP server lives at the root (`/mcp`), next to the API rather than inside it, so

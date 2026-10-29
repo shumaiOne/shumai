@@ -62,7 +62,7 @@ describe('MCP server OAuth 2.1 & Dual Auth', () => {
     const resourcePathMeta = await resourcePathMetaRes.json()
     expect(resourcePathMeta.resource).toBe(mcpResource)
 
-    // RFC 8414 Authorization Server Metadata
+    // RFC 8414 Authorization Server Metadata (supports both standard path-inserted and bare root paths)
     const authServerMetaRes = await app.request('/.well-known/oauth-authorization-server/api/auth')
     expect(authServerMetaRes.status).toBe(200)
     const authServerMeta = await authServerMetaRes.json()
@@ -71,6 +71,12 @@ describe('MCP server OAuth 2.1 & Dual Auth', () => {
     expect(authServerMeta.token_endpoint).toBe(`${authBaseUrl}/api/auth/oauth2/token`)
     expect(authServerMeta.registration_endpoint).toBe(`${authBaseUrl}/api/auth/oauth2/register`)
     expect(authServerMeta.jwks_uri).toBe(`${authBaseUrl}/api/auth/jwks`)
+
+    const bareAuthServerMetaRes = await app.request('/.well-known/oauth-authorization-server')
+    expect(bareAuthServerMetaRes.status).toBe(200)
+    const bareAuthServerMeta = await bareAuthServerMetaRes.json()
+    expect(bareAuthServerMeta.issuer).toBe(authServerMeta.issuer)
+    expect(bareAuthServerMeta.authorization_endpoint).toBe(authServerMeta.authorization_endpoint)
 
     // JWKS
     const jwksRes = await app.request('/api/auth/jwks')
