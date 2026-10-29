@@ -127,38 +127,36 @@ https://gh-proxy.com/https://raw.githubusercontent.com/shumaiOne/shumai/main/REA
 
 3. 配置环境变量：
   * `BETTER_AUTH_URL`：Shumai 服务的外部公开访问地址（例如 `https://shumai.example.com` 或 `http://12.34.56.78:3000`）。在远程服务器或生产环境中部署时必须配置该变量。
+  * `AWS_ENDPOINT_URL_S3`：默认情况下指向 `http://localhost:{SHUMAI_SERVER_PORT}`。**注意：该变量同样适用于本地存储（`STORAGE_BACKEND: local`），而不仅限于 S3 存储。** 如果你在远程服务器、自定义域名或自定义端口上公开访问 Shumai，请务必将 `AWS_ENDPOINT_URL_S3` 修改为浏览器上传和下载文件时使用的外部 URL。
+
+    例如，如果你将 `docker-compose.yaml` 中的端口映射从 `3000:3000` 修改为了 `12345:3000`，且服务部署在 IP 为 `12.34.56.78` 的服务器上，请进行如下设置：
+
+    ```yaml
+    AWS_ENDPOINT_URL_S3: http://12.34.56.78:12345
+    ```
+
+    此地址必须能够从客户端浏览器正常访问，且必须包含对外暴露的实际端口号。
   * `SHUMAI_SERVER_PORT` 用于控制 Shumai 服务监听的端口，默认值为 `3000`。
-  * 默认情况下，该 Docker Compose 部署会自动启用集成的本地存储。若想切换至外部 S3 兼容存储，请在 `environment` 中配置 S3 提供商的环境变量。以下是 AWS S3 和 Cloudflare R2 的配置示例：
+  * **外部 S3 存储**：默认情况下，该 Docker Compose 部署会自动启用集成的本地存储。若想切换至外部 S3 兼容存储，请在 `environment` 中配置 S3 提供商的环境变量。以下是 AWS S3 和 Cloudflare R2 的配置示例：
 
-  **AWS S3 示例：**
-  ```yaml
-  STORAGE_BACKEND: s3
-  S3_BUCKET: your-bucket-name
-  S3_ACCESS_KEY_ID: your-access-key-id
-  S3_SECRET_ACCESS_KEY: your-secret-access-key
-  AWS_ENDPOINT_URL_S3: https://s3.us-east-1.amazonaws.com
-  ```
+    **AWS S3 示例：**
+    ```yaml
+    STORAGE_BACKEND: s3
+    S3_BUCKET: your-bucket-name
+    S3_ACCESS_KEY_ID: your-access-key-id
+    S3_SECRET_ACCESS_KEY: your-secret-access-key
+    AWS_ENDPOINT_URL_S3: https://s3.us-east-1.amazonaws.com
+    ```
 
-  **Cloudflare R2 示例：**
-  ```yaml
-  STORAGE_BACKEND: s3
-  S3_BUCKET: your-bucket-name
-  S3_REGION: auto
-  S3_ACCESS_KEY_ID: your-access-key-id
-  S3_SECRET_ACCESS_KEY: your-secret-access-key
-  AWS_ENDPOINT_URL_S3: https://<account-id>.r2.cloudflarestorage.com
-  ```
-
-
-* 默认情况下 `AWS_ENDPOINT_URL_S3` 指向 `http://localhost:{SHUMAI_SERVER_PORT}`。如果你使用本地存储，但希望在自定义的主机名或端口上公开访问 Shumai，请务必将 `AWS_ENDPOINT_URL_S3` 修改为浏览器访问该服务时所使用的外部 URL。注意就算不使用S3存储(STORAGE_BACKEND: local)也需要正确配置该环境变量。
-例如，如果你将 `docker-compose.yaml` 中的端口映射从 `3000:3000` 修改为了 `12345:3000`，且服务部署在 IP 为 `12.34.56.78` 的服务器上，请进行如下设置：
-   ```
-   AWS_ENDPOINT_URL_S3: http://12.34.56.78:12345
-
-   ```
-
-
-此地址必须能够从客户端浏览器正常访问，且必须包含对外暴露的实际端口号。
+    **Cloudflare R2 示例：**
+    ```yaml
+    STORAGE_BACKEND: s3
+    S3_BUCKET: your-bucket-name
+    S3_REGION: auto
+    S3_ACCESS_KEY_ID: your-access-key-id
+    S3_SECRET_ACCESS_KEY: your-secret-access-key
+    AWS_ENDPOINT_URL_S3: https://<account-id>.r2.cloudflarestorage.com
+    ```
 
 
 4. 在后台启动所有服务：
