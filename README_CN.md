@@ -127,7 +127,7 @@ https://gh-proxy.com/https://raw.githubusercontent.com/shumaiOne/shumai/main/REA
 
 3. 配置环境变量：
   * `BETTER_AUTH_URL`：Shumai 服务的外部公开访问地址（例如 `https://shumai.example.com` 或 `http://12.34.56.78:3000`）。在远程服务器或生产环境中部署时必须配置该变量。
-  * `AWS_ENDPOINT_URL_S3`：默认情况下指向 `http://localhost:{SHUMAI_SERVER_PORT}`。**注意：该变量同样适用于本地存储（`STORAGE_BACKEND: local`），而不仅限于 S3 存储。** 如果你在远程服务器、自定义域名或自定义端口上公开访问 Shumai，请务必将 `AWS_ENDPOINT_URL_S3` 修改为浏览器上传和下载文件时使用的外部 URL。
+  * `AWS_ENDPOINT_URL_S3`：默认情况下指向 `http://localhost:{SHUMAI_SERVER_PORT}`。当你使用本地存储（即默认配置 `STORAGE_BACKEND: local`）并在远程服务器、自定义域名或自定义端口上公开访问 Shumai 时，请将 `AWS_ENDPOINT_URL_S3` 设置为客户端浏览器上传和下载文件所使用的外部 URL。
 
     例如，如果你将 `docker-compose.yaml` 中的端口映射从 `3000:3000` 修改为了 `12345:3000`，且服务部署在 IP 为 `12.34.56.78` 的服务器上，请进行如下设置：
 
