@@ -195,9 +195,12 @@ describe('FileBrowser', () => {
   })
 
   it('renders empty state when there are no folders and files and not loading', () => {
-    renderComponent({ folders: [], files: [], isLoading: false })
+    const { container } = renderComponent({ folders: [], files: [], isLoading: false })
 
     expect(screen.getByText(/This folder is empty|此文件夹为空/i)).toBeDefined()
+    const emptyArea = container.querySelector('.empty-area')
+    expect(emptyArea).not.toBeNull()
+    expect(emptyArea?.classList.contains('flex-1')).toBe(true)
   })
 
   it('renders loading skeleton and does not render empty state when isLoading is true (card view)', () => {

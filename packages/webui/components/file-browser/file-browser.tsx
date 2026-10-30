@@ -1010,6 +1010,27 @@ export function FileBrowser({
             >
               {isLoading && folders.length === 0 && displayedFiles.length === 0 ? (
                 <FileBrowserContentSkeleton displayStyle={displayStyle} />
+              ) : !isLoading &&
+                folders.length === 0 &&
+                displayedFiles.length === 0 &&
+                !isFetchingNextFoldersPage &&
+                !isFetchingNextFilesPage ? (
+                <div
+                  className="empty-area flex-1 flex items-center justify-center text-sm text-muted-foreground"
+                  onClick={handleEmptyAreaClick}
+                >
+                  {isRecents ? (
+                    <div className="flex flex-col items-center gap-2 p-8 text-center animate-in fade-in duration-300">
+                      <FolderClock className="h-10 w-10 text-muted-foreground/50 mb-1" />
+                      <p className="font-medium text-foreground">{m.no_recent_files()}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {m.no_recent_files_description()}
+                      </p>
+                    </div>
+                  ) : (
+                    <span>{m.this_folder_is_empty()}</span>
+                  )}
+                </div>
               ) : displayStyle === 'list' ? (
                 <FileBrowserListView
                   folders={folders}
@@ -1082,26 +1103,6 @@ export function FileBrowser({
                   <p>{m.loading_more()}</p>
                 </div>
               )}
-
-              {!isLoading &&
-                folders.length === 0 &&
-                displayedFiles.length === 0 &&
-                !isFetchingNextFoldersPage &&
-                !isFetchingNextFilesPage && (
-                  <div className="empty-area flex h-full items-center justify-center text-sm text-muted-foreground">
-                    {isRecents ? (
-                      <div className="flex flex-col items-center gap-2 p-8 text-center animate-in fade-in duration-300">
-                        <FolderClock className="h-10 w-10 text-muted-foreground/50 mb-1" />
-                        <p className="font-medium text-foreground">{m.no_recent_files()}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {m.no_recent_files_description()}
-                        </p>
-                      </div>
-                    ) : (
-                      <span>{m.this_folder_is_empty()}</span>
-                    )}
-                  </div>
-                )}
             </div>
 
             {selectedCount > 0 && (
