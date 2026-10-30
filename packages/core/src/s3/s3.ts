@@ -112,7 +112,7 @@ export interface S3Service {
     download?: boolean,
     filename?: string,
     internal?: boolean,
-    /** URL lifetime; defaults to PRESIGNED_URL_EXPIRES_IN hours. Ignored by local storage. */
+    /** URL lifetime; defaults to PRESIGNED_UPLOAD_URL_EXPIRES_IN (12h) for PUT, or PRESIGNED_URL_EXPIRES_IN (5h) for GET. Ignored by local storage. */
     expiresInSeconds?: number,
   ) => Promise<string>
   presignMultipart: (

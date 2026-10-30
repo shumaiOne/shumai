@@ -291,7 +291,7 @@ describe('Uploader', () => {
 
       const delay10 = calculateBackoffDelay(10)
       expect(delay10).toBeGreaterThanOrEqual(Math.round(MAX_RETRY_DELAY_MS * 0.85))
-      expect(delay10).toBeLessThanOrEqual(Math.round(MAX_RETRY_DELAY_MS * 1.15))
+      expect(delay10).toBeLessThanOrEqual(MAX_RETRY_DELAY_MS)
     })
 
     it('never returns less than baseDelayMs', () => {

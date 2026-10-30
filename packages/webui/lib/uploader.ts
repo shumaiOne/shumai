@@ -77,7 +77,7 @@ export function calculateBackoffDelay(
 ): number {
   const exponentialDelay = Math.min(Math.pow(2, attempts) * baseDelayMs, maxDelayMs)
   const jitter = exponentialDelay * (Math.random() * 0.3 - 0.15) // ±15%
-  return Math.max(baseDelayMs, Math.round(exponentialDelay + jitter))
+  return Math.min(maxDelayMs, Math.max(baseDelayMs, Math.round(exponentialDelay + jitter)))
 }
 
 export function isLocalhostStorageMismatch(uploadUrlString?: string): boolean {
