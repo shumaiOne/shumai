@@ -8,6 +8,8 @@ import {
   calculateBackoffDelay,
   MAX_RETRY_DELAY_MS,
   BASE_RETRY_DELAY_MS,
+  UploadNetworkError,
+  UploadHttpError,
 } from './uploader'
 import { acquireWakeLock, releaseWakeLock } from './wake-lock'
 import { useUploadStore } from '@/ui/stores/upload'
@@ -209,6 +211,36 @@ describe('Uploader', () => {
 
       Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
       expect(isNetworkIssue(new Error('Failed to fetch'))).toBe(true)
+      expect(isNetworkIssue(new TypeError('Failed to fetch'))).toBe(true)
+      expect(isNetworkIssue('Failed to fetch')).toBe(true)
+      expect(isNetworkIssue('net::ERR_NETWORK_CHANGED')).toBe(true)
+      expect(isNetworkIssue(new UploadNetworkError('Network error while signing request'))).toBe(
+        true,
+      )
+      expect(
+        isNetworkIssue(new UploadHttpError('Bad Gateway', { status: 502, isTransient: true })),
+      ).toBe(true)
+      expect(
+        isNetworkIssue(
+          new UploadHttpError('Service Unavailable', { status: 503, isTransient: true }),
+        ),
+      ).toBe(true)
+      expect(
+        isNetworkIssue(new UploadHttpError('Gateway Timeout', { status: 504, isTransient: true })),
+      ).toBe(true)
+      expect(
+        isNetworkIssue(new UploadHttpError('Rate Limited', { status: 429, isTransient: true })),
+      ).toBe(true)
+      expect(
+        isNetworkIssue(
+          new UploadHttpError('Internal Server Error', { status: 500, isTransient: false }),
+        ),
+      ).toBe(false)
+      expect(
+        isNetworkIssue(new UploadHttpError('Forbidden', { status: 403, isTransient: false })),
+      ).toBe(false)
+      expect(isNetworkIssue({ status: 502 })).toBe(true)
+      expect(isNetworkIssue({ status: 500 })).toBe(false)
       expect(isNetworkIssue(new Error('NetworkError when attempting to fetch resource.'))).toBe(
         true,
       )
@@ -584,6 +616,169 @@ describe('Uploader', () => {
     })
     expect(toast.error).toHaveBeenCalledWith(
       m.failed_upload_file_with_name({ name: 'expired.mp4' }),
+    )
+    expect(useUploadStore.getState().tasks['task-1']?.files['file-1']?.status).toBe('failed')
+    expect(activeUploads.size).toBe(0)
+
+    addFileSpy.mockRestore()
+  })
+
+  it('keeps upload active and retries when socket drops with TypeError: Failed to fetch while navigator.onLine is still true', async () => {
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
+    useUploadStore
+      .getState()
+      .startTask('task-1', 'task-1', [{ fileId: 'file-1', name: 'socket-drop.mp4', size: 100 }])
+
+    const addFileSpy = vi.spyOn(Uppy.prototype, 'addFile').mockReturnValue('f1')
+    const retryAllSpy = vi.spyOn(Uppy.prototype, 'retryAll').mockResolvedValue(undefined as never)
+
+    const uploadPromise = uploadFilesWithUppy({
+      files: [
+        { id: 'temp-1', file: new File(['content'], 'socket-drop.mp4', { type: 'video/mp4' }) },
+      ],
+      taskId: 'task-1',
+      teamId: 'team-1',
+      storageBackend: 's3',
+      createdAssets: [{ tempId: 'temp-1', assetId: 'file-1', key: 'files/socket-drop.mp4' }],
+    })
+
+    await new Promise((r) => setTimeout(r, 10))
+    const capturedUppy = addFileSpy.mock.contexts[0] as Uppy
+    const mockFile = {
+      id: 'f1',
+      name: 'socket-drop.mp4',
+      meta: { fileId: 'file-1' },
+    } as unknown as UppyFile<Meta, Record<string, never>>
+
+    // Socket drops: navigator.onLine is STILL TRUE at this exact moment
+    const fetchError = new TypeError('Failed to fetch')
+    capturedUppy.emit('upload-error', mockFile, fetchError)
+    // Uppy emits complete with stripped error string
+    capturedUppy.emit('complete', {
+      successful: [],
+      failed: [{ ...mockFile, error: 'Failed to fetch' }],
+    })
+
+    await new Promise((r) => setTimeout(r, 20))
+
+    // Must NOT be marked failed, activeUploads must retain file, no error toast
+    expect(useUploadStore.getState().tasks['task-1']?.files['file-1']?.status).toBe('uploading')
+    expect(activeUploads.has('file-1')).toBe(true)
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(client.api.teams[':teamId'].upload.tasks[':taskId'].$patch).not.toHaveBeenCalled()
+
+    // Simulate recovery on retry
+    capturedUppy.emit('upload-success', mockFile, { status: 200 })
+    capturedUppy.emit('complete', { successful: [mockFile], failed: [] })
+
+    await uploadPromise
+
+    expect(useUploadStore.getState().tasks['task-1']?.files['file-1']?.status).toBe('completed')
+    expect(activeUploads.size).toBe(0)
+
+    addFileSpy.mockRestore()
+    retryAllSpy.mockRestore()
+  })
+
+  it('retries continuously on 502 Bad Gateway and recovers on subsequent attempt', async () => {
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
+    useUploadStore
+      .getState()
+      .startTask('task-1', 'task-1', [{ fileId: 'file-1', name: 'gateway.mp4', size: 100 }])
+
+    const addFileSpy = vi.spyOn(Uppy.prototype, 'addFile').mockReturnValue('f1')
+    const retryAllSpy = vi.spyOn(Uppy.prototype, 'retryAll').mockResolvedValue(undefined as never)
+
+    const uploadPromise = uploadFilesWithUppy({
+      files: [{ id: 'temp-1', file: new File(['content'], 'gateway.mp4', { type: 'video/mp4' }) }],
+      taskId: 'task-1',
+      teamId: 'team-1',
+      storageBackend: 's3',
+      createdAssets: [{ tempId: 'temp-1', assetId: 'file-1', key: 'files/gateway.mp4' }],
+    })
+
+    await new Promise((r) => setTimeout(r, 10))
+    const capturedUppy = addFileSpy.mock.contexts[0] as Uppy
+    const mockFile = {
+      id: 'f1',
+      name: 'gateway.mp4',
+      meta: { fileId: 'file-1' },
+    } as unknown as UppyFile<Meta, Record<string, never>>
+
+    const gatewayError = new UploadHttpError('Failed to sign request: Bad Gateway', {
+      status: 502,
+      isTransient: true,
+    })
+    capturedUppy.emit('upload-error', mockFile, gatewayError)
+    capturedUppy.emit('complete', {
+      successful: [],
+      failed: [{ ...mockFile, error: 'Failed to sign request: Bad Gateway' }],
+    })
+
+    await new Promise((r) => setTimeout(r, 20))
+
+    // Must NOT be marked failed, activeUploads must retain file, no error toast
+    expect(useUploadStore.getState().tasks['task-1']?.files['file-1']?.status).toBe('uploading')
+    expect(activeUploads.has('file-1')).toBe(true)
+    expect(toast.error).not.toHaveBeenCalled()
+
+    // Simulate recovery on retry
+    capturedUppy.emit('upload-success', mockFile, { status: 200 })
+    capturedUppy.emit('complete', { successful: [mockFile], failed: [] })
+
+    await uploadPromise
+
+    expect(useUploadStore.getState().tasks['task-1']?.files['file-1']?.status).toBe('completed')
+    expect(activeUploads.size).toBe(0)
+
+    addFileSpy.mockRestore()
+    retryAllSpy.mockRestore()
+  })
+
+  it('fails permanently on 500 Internal Server Error without retrying', async () => {
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
+    useUploadStore
+      .getState()
+      .startTask('task-1', 'task-1', [{ fileId: 'file-1', name: 'server-err.mp4', size: 100 }])
+
+    const addFileSpy = vi.spyOn(Uppy.prototype, 'addFile').mockReturnValue('f1')
+
+    const uploadPromise = uploadFilesWithUppy({
+      files: [
+        { id: 'temp-1', file: new File(['content'], 'server-err.mp4', { type: 'video/mp4' }) },
+      ],
+      taskId: 'task-1',
+      teamId: 'team-1',
+      storageBackend: 's3',
+      createdAssets: [{ tempId: 'temp-1', assetId: 'file-1', key: 'files/server-err.mp4' }],
+    })
+
+    await new Promise((r) => setTimeout(r, 10))
+    const capturedUppy = addFileSpy.mock.contexts[0] as Uppy
+    const mockFile = {
+      id: 'f1',
+      name: 'server-err.mp4',
+      meta: { fileId: 'file-1' },
+    } as unknown as UppyFile<Meta, Record<string, never>>
+
+    const serverError = new UploadHttpError('Internal Server Error', {
+      status: 500,
+      isTransient: false,
+    })
+    capturedUppy.emit('upload-error', mockFile, serverError)
+    capturedUppy.emit('complete', {
+      successful: [],
+      failed: [{ ...mockFile, error: 'Internal Server Error' }],
+    })
+
+    await uploadPromise
+
+    expect(client.api.teams[':teamId'].upload.tasks[':taskId'].$patch).toHaveBeenCalledWith({
+      param: { teamId: 'team-1', taskId: 'task-1' },
+      json: { fileId: 'file-1', errorMessage: 'Internal Server Error' },
+    })
+    expect(toast.error).toHaveBeenCalledWith(
+      m.failed_upload_file_with_name({ name: 'server-err.mp4' }),
     )
     expect(useUploadStore.getState().tasks['task-1']?.files['file-1']?.status).toBe('failed')
     expect(activeUploads.size).toBe(0)

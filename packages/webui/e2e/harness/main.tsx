@@ -1,10 +1,13 @@
-import { type ReactElement, useCallback, useRef, useState } from 'react'
+import { type ReactElement, useCallback, useEffect, useRef, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import type { MediaController } from '@/ui/components/viewers/types'
 import VideoPlayer from '@/ui/components/viewers/video/video-viewer'
 import ModelViewer from '@/ui/components/viewers/model/model-viewer'
 import { calculateFrameCenterTime } from '@/ui/components/viewers/video/utils'
 import { useUiStore } from '@/ui/stores/ui'
+import { uploadFilesWithUppy } from '@/ui/lib/uploader'
+import { useUploadStore } from '@/ui/stores/upload'
+import { Toaster } from 'sonner'
 import {
   SAMPLE_FRAME_RATE,
   sampleVideoAsset,
@@ -185,9 +188,95 @@ function Harness(): ReactElement {
   )
 }
 
+function UploaderHarness(): ReactElement {
+  const [status, setStatus] = useState<'idle' | 'uploading' | 'completed' | 'failed'>('idle')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const taskState = useUploadStore((state) => state.tasks['e2e-task-1'])
+
+  useEffect(() => {
+    ;(window as unknown as Record<string, number>)['__SHUMAI_UPLOAD_BASE_DELAY__'] = 100
+  }, [])
+
+  const startUpload = async (file: File) => {
+    setStatus('uploading')
+    setErrorMessage(null)
+
+    const taskId = 'e2e-task-1'
+    const teamId = 'e2e-team-1'
+    const fileId = 'e2e-file-1'
+
+    useUploadStore
+      .getState()
+      .startTask(taskId, 'e2e-task', [{ fileId, name: file.name, size: file.size }])
+
+    try {
+      await uploadFilesWithUppy({
+        files: [{ id: 'temp-1', file }],
+        taskId,
+        teamId,
+        storageBackend: 's3',
+        createdAssets: [{ tempId: 'temp-1', assetId: fileId, key: `files/${file.name}` }],
+      })
+      setStatus('completed')
+    } catch (err) {
+      setStatus('failed')
+      setErrorMessage(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      void startUpload(file)
+    }
+  }
+
+  const handleSimulatedStart = () => {
+    const mockFile = new File(['mock content for test'], 'test-file.mp4', {
+      type: 'video/mp4',
+    })
+    void startUpload(mockFile)
+  }
+
+  const derivedStatus = taskState?.files['e2e-file-1']?.status ?? status
+
+  return (
+    <div style={{ padding: 24, fontFamily: 'sans-serif' }}>
+      <Toaster position="top-right" />
+      <h2>Uploader Resilience E2E Harness</h2>
+      <div style={{ marginBottom: 16 }}>
+        <input data-testid="uploader-file-input" type="file" onChange={handleFileChange} />
+        <button
+          data-testid="start-upload-btn"
+          onClick={handleSimulatedStart}
+          style={{ marginLeft: 8 }}
+        >
+          Start Simulated Upload
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+        <div>
+          Status: <span data-testid="upload-status">{derivedStatus}</span>
+        </div>
+        <div>
+          Progress:{' '}
+          <span data-testid="upload-progress">{taskState?.files['e2e-file-1']?.loaded ?? 0}</span>
+        </div>
+        {errorMessage && <div data-testid="upload-error">{errorMessage}</div>}
+      </div>
+    </div>
+  )
+}
+
 const rootElement = document.getElementById('root')
 if (!rootElement) {
   throw new Error('Harness root element not found')
 }
 
-ReactDOM.createRoot(rootElement).render(<Harness />)
+const currentView =
+  typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('view') : null
+
+ReactDOM.createRoot(rootElement).render(
+  currentView === 'uploader' ? <UploaderHarness /> : <Harness />,
+)

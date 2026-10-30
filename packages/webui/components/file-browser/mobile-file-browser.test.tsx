@@ -358,7 +358,7 @@ describe('MobileFileBrowser', () => {
     window.XMLHttpRequest = originalXhr
   })
 
-  it('fails upload and confirms with error on network failure', async () => {
+  it('keeps upload active and does not fail task on network failure', async () => {
     const originalXhr = window.XMLHttpRequest
     const patchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
 
@@ -409,16 +409,12 @@ describe('MobileFileBrowser', () => {
     fireEvent.change(fileInput, { target: { files: [testFile] } })
 
     await vi.waitFor(() => {
-      expect(patchMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          param: { teamId: 'team-1', taskId: 'task-3' },
-          json: expect.objectContaining({
-            fileId: 'server-file-3',
-            errorMessage: expect.any(String),
-          }),
-        }),
-      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((client.api.teams[':teamId'].upload.tasks as any)['$post']).toHaveBeenCalled()
     })
+
+    // Network failures are retried automatically with backoff and do not fail task on server
+    expect(patchMock).not.toHaveBeenCalled()
 
     window.XMLHttpRequest = originalXhr
   })
