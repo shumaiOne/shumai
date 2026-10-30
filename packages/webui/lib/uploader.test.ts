@@ -1,8 +1,14 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { activeUploads, uploadFilesWithUppy, isNetworkIssue } from './uploader'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  activeUploads,
+  uploadFilesWithUppy,
+  isNetworkIssue,
+  isLocalhostStorageMismatch,
+} from './uploader'
 import { acquireWakeLock, releaseWakeLock } from './wake-lock'
 import { useUploadStore } from '@/ui/stores/upload'
+import { m } from '@/ui/paraglide/messages.js'
 
 vi.mock('sonner', () => ({
   toast: {
@@ -37,6 +43,16 @@ import { client } from '@/ui/api/client'
 import { toast } from 'sonner'
 
 describe('Uploader', () => {
+  const initialLocation = window.location
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      value: initialLocation,
+      configurable: true,
+      writable: true,
+    })
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     activeUploads.clear()
@@ -206,6 +222,56 @@ describe('Uploader', () => {
     })
   })
 
+  describe('isLocalhostStorageMismatch', () => {
+    it('detects mismatch when upload URL is localhost and window location is remote', () => {
+      // In happy-dom window.location defaults to localhost:3000
+      Object.defineProperty(window, 'location', {
+        value: {
+          hostname: '192.168.1.100',
+          origin: 'http://192.168.1.100:3000',
+        },
+        configurable: true,
+        writable: true,
+      })
+
+      expect(isLocalhostStorageMismatch('http://localhost:3000/files/shumai/files/1.png')).toBe(
+        true,
+      )
+      expect(isLocalhostStorageMismatch('http://127.0.0.1:3000/files/shumai/files/1.png')).toBe(
+        true,
+      )
+      expect(isLocalhostStorageMismatch('http://[::1]:3000/files/shumai/files/1.png')).toBe(true)
+      expect(isLocalhostStorageMismatch('http://0.0.0.0:3000/files/shumai/files/1.png')).toBe(true)
+
+      // Remote upload URL with remote window -> no mismatch
+      expect(isLocalhostStorageMismatch('http://192.168.1.100:3000/files/shumai/files/1.png')).toBe(
+        false,
+      )
+      expect(isLocalhostStorageMismatch('https://s3.amazonaws.com/bucket/files/1.png')).toBe(false)
+      expect(isLocalhostStorageMismatch('/files/shumai/files/1.png')).toBe(false)
+      expect(isLocalhostStorageMismatch(undefined)).toBe(false)
+      expect(isLocalhostStorageMismatch('')).toBe(false)
+    })
+
+    it('returns false when window location itself is localhost', () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          hostname: 'localhost',
+          origin: 'http://localhost:3000',
+        },
+        configurable: true,
+        writable: true,
+      })
+
+      expect(isLocalhostStorageMismatch('http://localhost:3000/files/shumai/files/1.png')).toBe(
+        false,
+      )
+      expect(isLocalhostStorageMismatch('http://127.0.0.1:3000/files/shumai/files/1.png')).toBe(
+        false,
+      )
+    })
+  })
+
   it('pauses on network disconnect, does not report terminal failure, and resumes on back-online', async () => {
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
     useUploadStore
@@ -315,9 +381,85 @@ describe('Uploader', () => {
       param: { teamId: 'team-1', taskId: 'task-1' },
       json: { fileId: 'file-1', errorMessage: '403 Forbidden' },
     })
+    expect(toast.error).toHaveBeenCalledWith(m.failed_upload_file_with_name({ name: 'test.mp4' }))
     expect(useUploadStore.getState().tasks['task-1']?.files['file-1']?.status).toBe('failed')
     expect(activeUploads.size).toBe(0)
 
     addFileSpy.mockRestore()
+  })
+
+  it('shows S3 endpoint localhost error toast without retrying when remote user encounters localhost upload URL', async () => {
+    Object.defineProperty(window, 'location', {
+      value: {
+        hostname: '192.168.1.100',
+        origin: 'http://192.168.1.100:3000',
+      },
+      configurable: true,
+      writable: true,
+    })
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
+
+    useUploadStore
+      .getState()
+      .startTask('task-1', 'task-1', [{ fileId: 'file-1', name: 'remote.mp4', size: 100 }])
+
+    const addFileSpy = vi.spyOn(Uppy.prototype, 'addFile').mockReturnValue('f1')
+    const retryAllSpy = vi.spyOn(Uppy.prototype, 'retryAll')
+
+    const uploadPromise = uploadFilesWithUppy({
+      files: [{ id: 'temp-1', file: new File(['content'], 'remote.mp4', { type: 'video/mp4' }) }],
+      taskId: 'task-1',
+      teamId: 'team-1',
+      storageBackend: 'local',
+      createdAssets: [{ tempId: 'temp-1', assetId: 'file-1', key: 'files/remote.mp4' }],
+      presignedUrls: [
+        {
+          id: 'temp-1',
+          fileId: 'file-1',
+          url: 'http://localhost:3000/files/shumai/files/remote.mp4',
+        },
+      ],
+    })
+
+    await new Promise((r) => setTimeout(r, 10))
+    const capturedUppy = addFileSpy.mock.contexts[0] as Uppy
+    expect(capturedUppy).toBeDefined()
+
+    const mockFile = {
+      id: 'f1',
+      name: 'remote.mp4',
+      meta: {
+        fileId: 'file-1',
+        url: 'http://localhost:3000/files/shumai/files/remote.mp4',
+      },
+    } as unknown as UppyFile<Meta, Record<string, never>>
+
+    const networkError = new Error('Failed to fetch')
+    capturedUppy.emit('upload-error', mockFile, networkError)
+    capturedUppy.emit('complete', {
+      successful: [],
+      failed: [{ ...mockFile, error: networkError.message }],
+    })
+
+    await uploadPromise
+
+    // Should NOT retry when localhost mismatch is detected
+    expect(retryAllSpy).not.toHaveBeenCalled()
+
+    // Must show specific AWS_ENDPOINT_URL_S3 toast
+    expect(toast.error).toHaveBeenCalledWith(m.upload_failed_s3_endpoint_localhost(), {
+      id: 's3-endpoint-localhost-mismatch',
+      duration: 10000,
+    })
+
+    expect(client.api.teams[':teamId'].upload.tasks[':taskId'].$patch).toHaveBeenCalledWith({
+      param: { teamId: 'team-1', taskId: 'task-1' },
+      json: { fileId: 'file-1', errorMessage: 'Failed to fetch' },
+    })
+    expect(useUploadStore.getState().tasks['task-1']?.files['file-1']?.status).toBe('failed')
+    expect(activeUploads.size).toBe(0)
+
+    addFileSpy.mockRestore()
+    retryAllSpy.mockRestore()
   })
 })

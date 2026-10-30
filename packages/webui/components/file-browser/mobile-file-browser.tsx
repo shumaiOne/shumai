@@ -215,6 +215,9 @@ export function MobileFileBrowser({
     onMutate: () => {
       return { files: [...pendingFilesToUpload] }
     },
+    onError: () => {
+      toast.error(m.failed_upload_file())
+    },
     onSuccess: async (data, _variables, context) => {
       const currentFiles = context?.files || []
       const filesProgressInfo = currentFiles

@@ -545,6 +545,9 @@ export function FileBrowser({
     onMutate: () => {
       return { files: [...filesToUpload] }
     },
+    onError: () => {
+      toast.error(m.failed_upload_file())
+    },
     onSuccess: async (data, variables, context) => {
       const currentFiles = context?.files || []
       const isCurrentFolderUpload = variables.json.parentId === assetId

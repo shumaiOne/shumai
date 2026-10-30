@@ -1124,6 +1124,9 @@
   "n_folders_singular": "{count} 个文件夹",
   "n_folders_plural": "{count} 个文件夹",
   "failed_upload_file": "上传文件失败",
+  "failed_upload_file_with_name": "上传文件失败: {name}",
+  "failed_confirm_upload_with_name": "确认上传失败: {name}",
+  "upload_failed_s3_endpoint_localhost": "上传失败：服务器存储端点配置为 localhost，但当前通过远程地址访问 Shumai。请在服务器上将 AWS_ENDPOINT_URL_S3 环境变量配置为外部访问地址。",
 
   "failed_fetch_share_link": "获取分享链接失败",
   "failed_fetch_folders": "获取文件夹失败",

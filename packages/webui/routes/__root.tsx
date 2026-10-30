@@ -75,7 +75,12 @@ function RootComponent() {
   })
 
   if (!showSidebar) {
-    return <Outlet />
+    return (
+      <>
+        <Toaster />
+        <Outlet />
+      </>
+    )
   }
 
   const unreadCount = me?.unreadNotificationCount ?? 0
