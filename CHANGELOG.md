@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **upload**: Improve upload resilience during network drops and device sleep by adding continuous exponential backoff retries and extending upload link expiration to 12 hours
+
 ### Fixed
 
 - **upload**: Display a clear diagnostic error toast when remote file uploads fail due to an unconfigured or localhost S3 storage endpoint

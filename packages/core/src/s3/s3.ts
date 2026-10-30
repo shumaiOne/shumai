@@ -364,8 +364,16 @@ export class S3StorageService implements S3Service {
     internal?: boolean,
     expiresInSeconds?: number,
   ): Promise<string> {
-    const expireHours = parseInt(process.env.PRESIGNED_URL_EXPIRES_IN || '5', 10)
-    const lifetimeSeconds = expiresInSeconds ?? expireHours * 3600
+    const defaultExpireHours =
+      method === 'PUT'
+        ? parseInt(
+            process.env.PRESIGNED_UPLOAD_URL_EXPIRES_IN ||
+              process.env.PRESIGNED_URL_EXPIRES_IN ||
+              '12',
+            10,
+          )
+        : parseInt(process.env.PRESIGNED_URL_EXPIRES_IN || '5', 10)
+    const lifetimeSeconds = expiresInSeconds ?? defaultExpireHours * 3600
     // With an explicit (usually short) lifetime, only reuse a cached URL while it has at
     // least half of its lifetime left, so callers never receive a nearly expired link.
     const cacheTtlMs = expiresInSeconds ? (lifetimeSeconds * 1000) / 2 : lifetimeSeconds * 1000
@@ -416,7 +424,10 @@ export class S3StorageService implements S3Service {
     key: string,
     request: S3SignRequest,
   ): Promise<{ url: string }> {
-    const expireHours = parseInt(process.env.PRESIGNED_URL_EXPIRES_IN || '5', 10)
+    const expireHours = parseInt(
+      process.env.PRESIGNED_UPLOAD_URL_EXPIRES_IN || process.env.PRESIGNED_URL_EXPIRES_IN || '12',
+      10,
+    )
     const expiresInSeconds = expireHours * 3600
 
     let url: string

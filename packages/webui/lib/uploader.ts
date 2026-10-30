@@ -67,6 +67,19 @@ if (typeof window !== 'undefined') {
 
 const LOCALHOST_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0'])
 
+export const MAX_RETRY_DELAY_MS = 60000
+export const BASE_RETRY_DELAY_MS = 1000
+
+export function calculateBackoffDelay(
+  attempts: number,
+  maxDelayMs = MAX_RETRY_DELAY_MS,
+  baseDelayMs = BASE_RETRY_DELAY_MS,
+): number {
+  const exponentialDelay = Math.min(Math.pow(2, attempts) * baseDelayMs, maxDelayMs)
+  const jitter = exponentialDelay * (Math.random() * 0.3 - 0.15) // ±15%
+  return Math.max(baseDelayMs, Math.round(exponentialDelay + jitter))
+}
+
 export function isLocalhostStorageMismatch(uploadUrlString?: string): boolean {
   if (!uploadUrlString || typeof window === 'undefined') return false
   try {
@@ -222,7 +235,6 @@ export async function uploadFilesWithUppy({
 
   const confirmationPromises = new Map<string, Promise<void>>()
   const retryCounts = new Map<string, number>()
-  const MAX_ONLINE_RETRIES = 3
   let retryTimeout: ReturnType<typeof setTimeout> | null = null
 
   const triggerRetry = () => {
@@ -248,6 +260,11 @@ export async function uploadFilesWithUppy({
   const handleBackOnline = () => {
     const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
     console.log(`[Uploader] Network 'online' event received! navigator.onLine = ${isOnline}`)
+    retryCounts.clear()
+    if (retryTimeout) {
+      clearTimeout(retryTimeout)
+      retryTimeout = null
+    }
     triggerRetry()
   }
 
@@ -364,22 +381,17 @@ export async function uploadFilesWithUppy({
       )
 
       if (typeof navigator !== 'undefined' && navigator.onLine) {
-        const fileId = file.meta.fileId as string
-        const attempts = (retryCounts.get(fileId) || 0) + 1
-        retryCounts.set(fileId, attempts)
-
-        if (attempts > MAX_ONLINE_RETRIES) {
-          console.error(
-            `[Uploader] Exceeded max online retries (${MAX_ONLINE_RETRIES}) for ${file.name}. Failing permanently.`,
-          )
-          handlePermanentError(file, error)
-          return
+        const fileId = file.meta?.fileId as string | undefined
+        const attempts = (fileId ? retryCounts.get(fileId) || 0 : 0) + 1
+        if (fileId) {
+          retryCounts.set(fileId, attempts)
         }
 
+        const delayMs = calculateBackoffDelay(attempts)
         console.log(
-          `[Uploader] Scheduling retry for ${file.name} (attempt ${attempts}/${MAX_ONLINE_RETRIES})...`,
+          `[Uploader] Scheduling retry for ${file.name} (attempt ${attempts}, delay ${delayMs}ms)...`,
         )
-        scheduleRetry(2000)
+        scheduleRetry(delayMs)
       }
       return
     }
