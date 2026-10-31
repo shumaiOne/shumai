@@ -13,6 +13,7 @@ import type {
   AssetInfo,
   CollectionInfo,
   CreateUploadTaskRequest,
+  FileNode,
   SearchCondition,
   SearchSort,
   ShareLinkInfo,
@@ -57,6 +58,7 @@ import { FileBrowserGridView } from './grid-view'
 import { FileBrowserListView } from './list-view'
 import { FileBrowserToolbar } from './toolbar'
 import { useFileActions } from './use-file-actions'
+import { useBatchFileStatus } from '@/ui/hooks/use-batch-file-status'
 
 interface FileBrowserProps {
   teamId: string
@@ -259,6 +261,8 @@ export function FileBrowser({
       .filter((f) => fileProgress[f.id!]?.status !== 'failed')
     return [...filteredLocal, ...files]
   }, [files, localUploadingFiles, fileProgress])
+
+  useBatchFileStatus({ teamId, items: displayedFiles })
 
   const activePreviewItem = useMemo(() => {
     if (selectedIds.size === 0) return null
@@ -533,6 +537,47 @@ export function FileBrowser({
     },
   })
 
+  const throttledInvalidateSearch = useMemo(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let lastRun = 0
+    const THROTTLE_MS = 2500
+
+    const run = () => {
+      const now = Date.now()
+      if (now - lastRun >= THROTTLE_MS) {
+        lastRun = now
+        queryClient.invalidateQueries({
+          queryKey: ['search', teamId, assetId],
+        })
+      } else if (!timer) {
+        timer = setTimeout(
+          () => {
+            timer = null
+            lastRun = Date.now()
+            queryClient.invalidateQueries({
+              queryKey: ['search', teamId, assetId],
+            })
+          },
+          THROTTLE_MS - (now - lastRun),
+        )
+      }
+    }
+
+    const cancel = () => {
+      if (timer) {
+        clearTimeout(timer)
+        timer = null
+      }
+    }
+
+    const reset = () => {
+      cancel()
+      lastRun = Date.now()
+    }
+
+    return Object.assign(run, { cancel, reset })
+  }, [queryClient, teamId, assetId])
+
   const $createUploadTask = client.api.teams[':teamId'].upload.tasks.$post
   const { mutate: createUploadTaskMutation } = useMutation<
     InferResponseType<typeof $createUploadTask>,
@@ -623,13 +668,19 @@ export function FileBrowser({
         setLocalUploadingFiles((prev) => [...newLocalFiles, ...prev])
       }
 
-      // Invalidate queries immediately so any newly created folders appear
-      queryClient.invalidateQueries({
-        queryKey: ['search', teamId, assetId],
-      })
+      // Invalidate queries immediately only if newly created folders appear
+      const hasCreatedFolders = (variables.json.files as FileNode[]).some(
+        (f) => f.children && f.children.length > 0,
+      )
+      if (hasCreatedFolders) {
+        queryClient.invalidateQueries({
+          queryKey: ['search', teamId, assetId],
+        })
+      }
       queryClient.invalidateQueries({
         queryKey: ['teams', teamId, 'upload', 'tasks'],
       })
+      throttledInvalidateSearch.reset()
 
       try {
         await uploadFilesWithUppy({
@@ -639,14 +690,13 @@ export function FileBrowser({
           storageBackend: (data.storageBackend as 's3' | 'local') || 'local',
           createdAssets: data.createdAssets,
           presignedUrls: data.presignedUrls,
-          onFileFinished: async (fileId) => {
-            await queryClient.invalidateQueries({
-              queryKey: ['search', teamId, assetId],
-            })
+          onFileFinished: (fileId) => {
             setLocalUploadingFiles((prev) => prev.filter((f) => f.id !== fileId))
+            throttledInvalidateSearch()
           },
         })
       } finally {
+        throttledInvalidateSearch.cancel()
         if (batchIds) {
           setLocalUploadingFiles((prev) => prev.filter((f) => !batchIds!.has(f.id!)))
         }

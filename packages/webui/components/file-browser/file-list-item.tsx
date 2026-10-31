@@ -74,11 +74,6 @@ export function FileListItem({
       : 0
     : 0
 
-  const shouldPoll =
-    (item.type === 'file' || item.type === 'version_stack') &&
-    !!teamId &&
-    (item.status === 'uploading' || item.status === 'uploaded' || item.status === 'processing')
-
   const { data: polledItem } = useQuery({
     queryKey: ['file', teamId, item.id],
     queryFn: async () => {
@@ -88,13 +83,7 @@ export function FileListItem({
       if (!res.ok) throw new Error('failed to fetch file')
       return (await res.json()) as unknown as AssetInfo
     },
-    enabled: shouldPoll,
-    refetchInterval: (query: unknown) => {
-      const data = (query as { state: { data: { status?: string } } }).state.data
-      return data?.status === 'processed' || data?.status === 'failed' || data?.status === 'error'
-        ? false
-        : 1000
-    },
+    enabled: false,
   })
 
   const displayItem = useMemo(() => {
@@ -110,6 +99,9 @@ export function FileListItem({
     }
     return polledItem || item
   }, [item, polledItem])
+
+  const isUploadDone = fileUploadState?.status === 'completed' || uploadPercent >= 100
+  const isUploading = displayItem.status === 'uploading' && !isUploadDone
 
   // dnd-kit hooks
   const { ref: setDraggableRef, isDragging: isDraggableDragging } = useDraggable({
@@ -220,7 +212,7 @@ export function FileListItem({
             className="h-4 w-4 shrink-0 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
           <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-muted rounded overflow-hidden">
-            {displayItem.status === 'uploading' ? (
+            {isUploading ? (
               <ProgressCircle progress={uploadPercent} className="w-7 h-7" />
             ) : displayItem.status === 'failed' && !displayItem.preview?.thumbnailUrl ? (
               <AlertCircle className="h-4 w-4 text-destructive" />

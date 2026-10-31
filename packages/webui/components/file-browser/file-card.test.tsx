@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FileCard } from './file-card'
 import type { AssetInfo } from '@shumai/dtos'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useUploadStore } from '@/ui/stores/upload'
 
 vi.mock('@dnd-kit/react', () => ({
   useDraggable: () => ({
@@ -338,6 +339,35 @@ describe('FileCard', () => {
     renderComponent({ item: uploadingItem })
 
     expect(screen.getByText(/Uploading|上传中/i)).toBeTruthy()
+    expect(screen.queryByText(/Alice/i)).toBeNull()
+  })
+
+  it('transitions from uploading to preparing circle when upload store marks file completed', () => {
+    useUploadStore.setState({
+      fileProgress: {
+        'file-uploading': {
+          fileId: 'file-uploading',
+          name: 'clip.mp4',
+          loaded: 1000,
+          total: 1000,
+          status: 'completed',
+        },
+      },
+    })
+
+    const uploadingItem: AssetInfo = {
+      ...fileItem,
+      id: 'file-uploading',
+      status: 'uploading',
+      creator: { id: 'u1', name: 'Alice' },
+    } as AssetInfo
+
+    renderComponent({ item: uploadingItem })
+
+    expect(screen.queryByTestId('file-card-preview-media')).toBeNull()
+    const circle = screen.getByTestId('file-card-preparing-circle')
+    expect(circle.tagName.toLowerCase()).toBe('svg')
+    expect(screen.getByText(/Preparing|准备中/i)).toBeTruthy()
     expect(screen.queryByText(/Alice/i)).toBeNull()
   })
 
