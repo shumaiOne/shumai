@@ -74,11 +74,6 @@ export function FileListItem({
       : 0
     : 0
 
-  const shouldPoll =
-    (item.type === 'file' || item.type === 'version_stack') &&
-    !!teamId &&
-    (item.status === 'uploading' || item.status === 'uploaded' || item.status === 'processing')
-
   const { data: polledItem } = useQuery({
     queryKey: ['file', teamId, item.id],
     queryFn: async () => {
@@ -88,13 +83,7 @@ export function FileListItem({
       if (!res.ok) throw new Error('failed to fetch file')
       return (await res.json()) as unknown as AssetInfo
     },
-    enabled: shouldPoll,
-    refetchInterval: (query: unknown) => {
-      const data = (query as { state: { data: { status?: string } } }).state.data
-      return data?.status === 'processed' || data?.status === 'failed' || data?.status === 'error'
-        ? false
-        : 1000
-    },
+    enabled: false,
   })
 
   const displayItem = useMemo(() => {

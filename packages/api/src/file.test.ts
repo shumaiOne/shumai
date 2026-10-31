@@ -9,6 +9,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core'
 import { authMiddleware } from './middleware/auth'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
+import type { AssetInfo } from '@shumai/dtos'
 import {
   renameAssetOp,
   resolveCommentOp,
@@ -72,6 +73,7 @@ describe('file api', () => {
     vi.mocked(authzService.hasPermission).mockClear()
 
     vi.spyOn(assetService, 'getAsset').mockImplementation(vi.fn())
+    vi.spyOn(assetService, 'listAssetsByIds').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'getAssetContext').mockResolvedValue({ teamId: 'test-team' })
     vi.spyOn(assetService, 'updateAssetName').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'deleteAssets').mockImplementation(vi.fn())
@@ -123,6 +125,78 @@ describe('file api', () => {
       permission: Permission.Read,
       type: ResourceType.Asset,
       id: 'test-id',
+    })
+  })
+
+  describe('POST /files/batch', () => {
+    it('returns empty array when ids is empty', async () => {
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [] }),
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json).toEqual([])
+      expect(assetService.listAssetsByIds).not.toHaveBeenCalled()
+    })
+
+    it('returns asset list for accessible IDs', async () => {
+      const assets = [
+        { id: 'f1', name: 'file-1.mp4', status: 'processing' },
+        { id: 'f2', name: 'file-2.mp4', status: 'processed' },
+      ]
+      vi.mocked(assetService.listAssetsByIds).mockResolvedValue(assets as unknown as AssetInfo[])
+
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: ['f1', 'f2'] }),
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json).toEqual(assets)
+      expect(assetService.listAssetsByIds).toHaveBeenCalledWith(['f1', 'f2'])
+    })
+
+    it('gracefully omits unauthorized or missing assets without failing the batch', async () => {
+      vi.mocked(authzService.hasPermission).mockImplementation(async (req) => {
+        if (req.id === 'unauthorized-id') {
+          throw new HTTPException(403, { message: 'Permission denied' })
+        }
+      })
+      const accessibleAssets = [{ id: 'f1', name: 'file-1.mp4', status: 'processing' }]
+      vi.mocked(assetService.listAssetsByIds).mockResolvedValue(
+        accessibleAssets as unknown as AssetInfo[],
+      )
+
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: ['f1', 'unauthorized-id'] }),
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json).toEqual(accessibleAssets)
+      expect(assetService.listAssetsByIds).toHaveBeenCalledWith(['f1'])
+    })
+
+    it('rejects with 400 when more than 100 IDs are requested', async () => {
+      const tooManyIds = Array.from({ length: 101 }, (_, i) => `id-${i}`)
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: tooManyIds }),
+      })
+
+      expect(res.status).toBe(400)
     })
   })
 

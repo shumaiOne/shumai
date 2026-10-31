@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **upload**: Optimize file status polling during upload and transcoding by eliminating redundant polling during active uploads and batching transcoding status checks across multiple files
 - **agent**: ⚠️ **Important Behavior Change**: Autofill and Embedding agents will no longer post completion comments when finishing successfully to prevent clutter in asset comment feeds. Comments are now only posted if a task encounters an error.
 
 ## [0.6.2] - 2026-10-29

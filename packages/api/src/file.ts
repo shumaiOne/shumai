@@ -14,6 +14,7 @@ import {
 import {
   createCommentRequestSchema,
   deleteFilesRequestSchema,
+  batchGetFilesRequestSchema,
   paginationParamsSchema,
   restoreFilesRequestSchema,
   updateAssetMetadataRequestSchema,
@@ -39,6 +40,40 @@ import { z } from 'zod'
 type User = Prisma.UserGetPayload<Record<string, never>>
 
 const route = new Hono<{ Variables: { user: User } }>()
+  .post('/files/batch', zValidator('json', batchGetFilesRequestSchema), async (c) => {
+    const user = c.get('user')
+    const req = c.req.valid('json')
+
+    if (req.ids.length === 0) {
+      return c.json([])
+    }
+
+    const accessibleIds: string[] = []
+    await Promise.all(
+      req.ids.map(async (id) => {
+        try {
+          await authzService.hasPermission({
+            user,
+            permission: Permission.Read,
+            type: ResourceType.Asset,
+            id,
+          })
+          accessibleIds.push(id)
+        } catch {
+          // Permissive: silently ignore missing or unauthorized IDs
+        }
+      }),
+    )
+
+    if (accessibleIds.length === 0) {
+      return c.json([])
+    }
+
+    const accessibleSet = new Set(accessibleIds)
+    const orderedAccessibleIds = req.ids.filter((id) => accessibleSet.has(id))
+    const assets = await assetService.listAssetsByIds(orderedAccessibleIds)
+    return c.json(assets)
+  })
   .get('/files/:fileId', async (c) => {
     const fileId = c.req.param('fileId')
     const user = c.get('user')

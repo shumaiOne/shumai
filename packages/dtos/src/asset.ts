@@ -329,6 +329,11 @@ export const deleteFilesRequestSchema = z.object({
 })
 export type DeleteFilesRequest = z.infer<typeof deleteFilesRequestSchema>
 
+export const batchGetFilesRequestSchema = z.object({
+  ids: z.array(z.string()).max(100),
+})
+export type BatchGetFilesRequest = z.infer<typeof batchGetFilesRequestSchema>
+
 export const restoreFilesRequestSchema = z.object({
   ids: z.array(z.string()),
 })

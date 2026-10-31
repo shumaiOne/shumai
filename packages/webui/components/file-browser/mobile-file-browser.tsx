@@ -54,6 +54,7 @@ import { FileCard } from './file-card'
 import { FolderCard } from './folder-card'
 import { useFileActions } from './use-file-actions'
 import { MobileFileBrowserContentSkeleton } from '../loading-skeletons'
+import { useBatchFileStatus } from '@/ui/hooks/use-batch-file-status'
 
 export interface MobileFileBrowserProps {
   teamId: string
@@ -125,6 +126,7 @@ export function MobileFileBrowser({
   allowDownload = true,
 }: MobileFileBrowserProps) {
   const queryClient = useQueryClient()
+  useBatchFileStatus({ teamId, items: files })
   const { canEdit, canAdmin } = usePermissions(projectId)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)

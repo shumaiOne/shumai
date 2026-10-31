@@ -57,6 +57,7 @@ import { FileBrowserGridView } from './grid-view'
 import { FileBrowserListView } from './list-view'
 import { FileBrowserToolbar } from './toolbar'
 import { useFileActions } from './use-file-actions'
+import { useBatchFileStatus } from '@/ui/hooks/use-batch-file-status'
 
 interface FileBrowserProps {
   teamId: string
@@ -259,6 +260,8 @@ export function FileBrowser({
       .filter((f) => fileProgress[f.id!]?.status !== 'failed')
     return [...filteredLocal, ...files]
   }, [files, localUploadingFiles, fileProgress])
+
+  useBatchFileStatus({ teamId, items: displayedFiles })
 
   const activePreviewItem = useMemo(() => {
     if (selectedIds.size === 0) return null
