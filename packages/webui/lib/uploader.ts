@@ -70,14 +70,38 @@ const LOCALHOST_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]', '0.0.
 export const MAX_RETRY_DELAY_MS = 60000
 export const BASE_RETRY_DELAY_MS = 1000
 
+export class UploadNetworkError extends Error {
+  readonly code = 'NETWORK_ERROR' as const
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'UploadNetworkError'
+  }
+}
+
+export class UploadHttpError extends Error {
+  readonly code = 'HTTP_ERROR' as const
+  readonly status: number
+  readonly isTransient: boolean
+  constructor(message: string, options: { status: number; isTransient: boolean; cause?: unknown }) {
+    super(message, { cause: options.cause })
+    this.name = 'UploadHttpError'
+    this.status = options.status
+    this.isTransient = options.isTransient
+  }
+}
+
 export function calculateBackoffDelay(
   attempts: number,
   maxDelayMs = MAX_RETRY_DELAY_MS,
   baseDelayMs = BASE_RETRY_DELAY_MS,
 ): number {
-  const exponentialDelay = Math.min(Math.pow(2, attempts) * baseDelayMs, maxDelayMs)
+  const effectiveBaseDelay =
+    (typeof window !== 'undefined' &&
+      (window as unknown as Record<string, number | undefined>)['__SHUMAI_UPLOAD_BASE_DELAY__']) ||
+    baseDelayMs
+  const exponentialDelay = Math.min(Math.pow(2, attempts) * effectiveBaseDelay, maxDelayMs)
   const jitter = exponentialDelay * (Math.random() * 0.3 - 0.15) // ±15%
-  return Math.min(maxDelayMs, Math.max(baseDelayMs, Math.round(exponentialDelay + jitter)))
+  return Math.min(maxDelayMs, Math.max(effectiveBaseDelay, Math.round(exponentialDelay + jitter)))
 }
 
 export function isLocalhostStorageMismatch(uploadUrlString?: string): boolean {
@@ -94,25 +118,98 @@ export function isLocalhostStorageMismatch(uploadUrlString?: string): boolean {
 }
 
 export function isNetworkIssue(error?: unknown): boolean {
+  if (!error) {
+    return typeof navigator !== 'undefined' && !navigator.onLine
+  }
+
+  // 1. Structured typed errors
+  if (error instanceof UploadHttpError) {
+    return error.isTransient
+  }
+  if (error instanceof UploadNetworkError) {
+    return true
+  }
+
+  const err = (typeof error === 'object' && error !== null ? error : {}) as Record<string, unknown>
+
+  // 2. HTTP status inspection (check first before generic offline or NetworkError flags,
+  // so non-retryable HTTP 500 / 4xx responses delivered as the browser transitions offline
+  // fail immediately instead of being treated as network drops)
+  const status =
+    typeof err.status === 'number'
+      ? err.status
+      : typeof (err.request as Record<string, unknown> | undefined)?.status === 'number'
+        ? ((err.request as Record<string, unknown>).status as number)
+        : undefined
+
+  if (status !== undefined) {
+    if (status === 0 || status === 429 || status === 502 || status === 503 || status === 504) {
+      return true
+    }
+    // Explicitly non-retryable statuses (500 Internal Server Error, 4xx except 429)
+    if (status === 500 || (status >= 400 && status < 500)) {
+      return false
+    }
+    if (status >= 500 && status < 600) {
+      return true
+    }
+  }
+
+  // 3. Fallback string matching for explicit non-retryable HTTP status messages
+  const rawMsg =
+    typeof error === 'string' ? error : typeof err.message === 'string' ? err.message : ''
+  if (rawMsg) {
+    const msg = rawMsg.toLowerCase()
+    // Explicit non-retryable status codes in string messages
+    if (
+      msg.includes('status: 500') ||
+      msg.includes('status: 400') ||
+      msg.includes('status: 401') ||
+      msg.includes('status: 403') ||
+      msg.includes('status: 404')
+    ) {
+      return false
+    }
+    if (
+      msg.includes('network error') ||
+      msg.includes('failed to fetch') ||
+      msg.includes('networkerror') ||
+      msg.includes('network changed') ||
+      msg.includes('err_network_changed') ||
+      msg.includes('err_internet_disconnected') ||
+      msg.includes('err_connection_') ||
+      msg.includes('err_name_not_resolved') ||
+      msg.includes('the network connection was lost') ||
+      msg.includes('the internet connection appears to be offline') ||
+      (msg.includes('load failed') && !msg.includes('upload failed')) ||
+      msg.includes('timed out') ||
+      msg.includes('timeout') ||
+      msg.includes('bad gateway') ||
+      msg.includes('gateway timeout') ||
+      msg.includes('service unavailable')
+    ) {
+      return true
+    }
+  }
+
+  // 4. Generic offline state (only when the error does not carry a non-retryable status code)
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     return true
   }
-  if (!error) return false
-  const err = error as Record<string, unknown>
-  if (err.isNetworkError === true) return true
-  if (err.name === 'S3NetworkError' || err.name === 'NetworkError') return true
-  const msg = (typeof err.message === 'string' ? err.message : '').toLowerCase()
-  if (
-    msg.includes('network error') ||
-    msg.includes('failed to fetch') ||
-    msg.includes('networkerror') ||
-    (msg.includes('load failed') && !msg.includes('upload failed')) ||
-    msg.includes('err_internet_disconnected')
-  ) {
+
+  if (err.code === 'NETWORK' || err.code === 'NETWORK_ERROR') return true
+  if (err.name === 'S3NetworkError' || err.name === 'UploadNetworkError') {
     return true
   }
-  const req = err.request as Record<string, unknown> | undefined
-  if (req && req.status === 0) return true
+
+  // Standard fetch network failure
+  if (error instanceof TypeError) {
+    return true
+  }
+
+  // If there was no HTTP status attached, check generic Uppy NetworkError flag
+  if (err.name === 'NetworkError' || err.isNetworkError === true) return true
+
   return false
 }
 
@@ -183,21 +280,34 @@ export async function uploadFilesWithUppy({
           }
         }
 
-        const res = await fetch(`/api/teams/${teamId}/upload/sign`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            key: req.key,
-            method: req.method,
-            uploadId,
-            partNumber,
-            fileId,
-          }),
-          credentials: 'include',
-        })
+        let res: Response
+        try {
+          res = await fetch(`/api/teams/${teamId}/upload/sign`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              key: req.key,
+              method: req.method,
+              uploadId,
+              partNumber,
+              fileId,
+            }),
+            credentials: 'include',
+          })
+        } catch (err) {
+          if (err instanceof TypeError) {
+            throw new UploadNetworkError('Network error while signing request', { cause: err })
+          }
+          throw err
+        }
 
         if (!res.ok) {
-          throw new Error(`Failed to sign request: ${res.statusText}`)
+          const isTransient =
+            res.status === 429 || res.status === 502 || res.status === 503 || res.status === 504
+          throw new UploadHttpError(`Failed to sign request: ${res.statusText}`, {
+            status: res.status,
+            isTransient,
+          })
         }
 
         const data = (await res.json()) as { url: string }
@@ -235,6 +345,7 @@ export async function uploadFilesWithUppy({
 
   const confirmationPromises = new Map<string, Promise<void>>()
   const retryCounts = new Map<string, number>()
+  const pendingNetworkRetries = new Set<string>()
   let retryTimeout: ReturnType<typeof setTimeout> | null = null
 
   const triggerRetry = () => {
@@ -290,6 +401,10 @@ export async function uploadFilesWithUppy({
   uppy.on('upload-success', (file) => {
     if (!file) return
     const fileId = file.meta.fileId as string
+    if (fileId) {
+      pendingNetworkRetries.delete(fileId)
+      retryCounts.delete(fileId)
+    }
     activeUploads.delete(fileId)
 
     const confirmPromise = (async () => {
@@ -371,6 +486,9 @@ export async function uploadFilesWithUppy({
       console.warn(
         `[Uploader] Localhost storage endpoint mismatch detected for ${file.name}. Failing permanently without retry.`,
       )
+      if (fileId) {
+        pendingNetworkRetries.delete(fileId)
+      }
       handlePermanentError(file, error)
       return
     }
@@ -380,8 +498,11 @@ export async function uploadFilesWithUppy({
         `[Uploader] Network error detected for ${file.name}. Keeping upload active to resume when connection is restored.`,
       )
 
+      if (fileId) {
+        pendingNetworkRetries.add(fileId)
+      }
+
       if (typeof navigator !== 'undefined' && navigator.onLine) {
-        const fileId = file.meta?.fileId as string | undefined
         const attempts = (fileId ? retryCounts.get(fileId) || 0 : 0) + 1
         if (fileId) {
           retryCounts.set(fileId, attempts)
@@ -396,6 +517,9 @@ export async function uploadFilesWithUppy({
       return
     }
 
+    if (fileId) {
+      pendingNetworkRetries.delete(fileId)
+    }
     handlePermanentError(file, error)
   })
 
@@ -443,32 +567,24 @@ export async function uploadFilesWithUppy({
         }
 
         const failedFiles = result?.failed || []
-        const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
-        const hasNetworkFailures =
-          isOffline ||
-          failedFiles.some((f) => {
-            const err = (f as { error?: unknown })?.error
-            const fileMeta = (f as { meta?: Record<string, unknown> })?.meta
-            const fId = fileMeta?.fileId as string | undefined
-            const uUrl =
-              (fileMeta?.url as string | undefined) ||
-              (fId ? activeUploads.get(fId)?.url : undefined)
-            if (isLocalhostStorageMismatch(uUrl)) {
-              return false
-            }
-            return isNetworkIssue(err)
-          })
-
-        if (hasNetworkFailures) {
-          console.log(
-            '[Uploader] Batch completed with network issues; waiting for reconnection to resume...',
-          )
-          return
-        }
-
         for (const f of failedFiles) {
           const file = f as { name: string; meta: Record<string, unknown> }
-          handlePermanentError(file, (f as { error?: unknown })?.error)
+          const fId = file.meta?.fileId as string | undefined
+          if (fId && !pendingNetworkRetries.has(fId)) {
+            const err = (f as { error?: unknown })?.error
+            if (isNetworkIssue(err)) {
+              pendingNetworkRetries.add(fId)
+              continue
+            }
+            handlePermanentError(file, err)
+          }
+        }
+
+        if (pendingNetworkRetries.size > 0) {
+          console.log(
+            `[Uploader] Batch completed with ${pendingNetworkRetries.size} retrying file(s); waiting for reconnection or backoff to resume...`,
+          )
+          return
         }
 
         if (activeUploads.size === 0) {
