@@ -250,11 +250,7 @@ export function FileBrowser({
     }
   }
 
-  const fileProgress = useUploadStore((state) => state.fileProgress)
-
-  const displayedFiles = useMemo(() => {
-    return files.filter((f) => fileProgress[f.id!]?.status !== 'failed')
-  }, [files, fileProgress])
+  const displayedFiles = files
 
   useBatchFileStatus({ teamId, items: displayedFiles })
 

@@ -395,6 +395,32 @@ describe('FileCard', () => {
     expect(screen.getByText(/8m.*(left|剩余).*409\.6 KB\/s/i)).toBeTruthy()
   })
 
+  it('shows failed state when fileProgress marks upload as failed', () => {
+    useUploadStore.setState({
+      fileProgress: {
+        'file-1': {
+          fileId: 'file-1',
+          name: 'photo.jpg',
+          loaded: 100,
+          total: 1000,
+          status: 'failed',
+        },
+      },
+    })
+
+    const uploadingItem: AssetInfo = {
+      ...fileItem,
+      id: 'file-1',
+      status: 'uploading',
+      creator: { id: 'u1', name: 'Alice' },
+    } as AssetInfo
+
+    renderComponent({ item: uploadingItem })
+
+    expect(screen.getAllByText(/Failed to upload|上传失败/i).length).toBeGreaterThan(0)
+    expect(screen.queryByTestId('file-card-remote-uploading-circle')).toBeNull()
+  })
+
   it('transitions from uploading to preparing circle when upload store marks file completed', () => {
     useUploadStore.setState({
       fileProgress: {

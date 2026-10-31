@@ -102,8 +102,9 @@ export function FileListItem({
   }, [item, polledItem])
 
   const isLocalUploader = Boolean(fileUploadState)
+  const isUploadFailed = fileUploadState?.status === 'failed'
   const isUploadDone = fileUploadState?.status === 'completed' || uploadPercent >= 100
-  const isUploading = displayItem.status === 'uploading' && !isUploadDone
+  const isUploading = displayItem.status === 'uploading' && !isUploadDone && !isUploadFailed
 
   let uploadingText: string | null = null
   if (isUploading) {
@@ -284,7 +285,7 @@ export function FileListItem({
               {uploadingText}
             </span>
           )}
-          {displayItem.status === 'error' && (
+          {(displayItem.status === 'error' || isUploadFailed) && (
             <span className="text-xs text-destructive font-semibold shrink-0">
               {m.failed_to_upload_parenthesized()}
             </span>

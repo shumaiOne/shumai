@@ -268,17 +268,20 @@ export function FileCard({
   const hasPreview = Boolean(displayItem.preview?.thumbnailUrl || displayItem.preview?.spriteUrl)
   const isFailed = displayItem.status === 'failed'
   const isLocalUploader = Boolean(fileUploadState)
+  const isUploadFailed = fileUploadState?.status === 'failed'
   const isUploadDone = fileUploadState?.status === 'completed' || uploadPercent >= 100
-  const isUploading = displayItem.status === 'uploading' && !isUploadDone
+  const isUploading = displayItem.status === 'uploading' && !isUploadDone && !isUploadFailed
   const isProcessing =
     displayItem.status === 'processing' ||
     displayItem.status === 'uploaded' ||
     (displayItem.status === 'uploading' && isUploadDone)
 
-  // While uploading/transcoding, the creator row is replaced by a status label so the real
+  // While uploading/transcoding/error, the creator row is replaced by a status label so the real
   // date/author only appears once the asset is ready or failed.
   let statusText: string | null = null
-  if (isUploading) {
+  if (isUploadFailed || displayItem.status === 'error') {
+    statusText = m.failed_to_upload()
+  } else if (isUploading) {
     if (isLocalUploader) {
       if (fileUploadState?.speed && fileUploadState?.eta != null) {
         statusText = m.upload_eta_speed({
@@ -441,7 +444,7 @@ export function FileCard({
             </div>
             {previewBadges}
           </>
-        ) : displayItem.status === 'error' ? (
+        ) : displayItem.status === 'error' || isUploadFailed ? (
           <div className="flex h-full w-full items-center justify-center bg-background/50">
             <span className="z-10 font-medium px-2 text-center text-sm text-destructive font-semibold">
               {m.failed_to_upload()}
