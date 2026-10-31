@@ -3,6 +3,7 @@ import { agentAutofillMedia } from './agent-autofill'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import * as workflowCore from '@shumai/workflow-core'
+import { DBOSError } from '@shumai/workflow-core'
 import * as agentActivities from '../activities/agent'
 
 vi.mock('@shumai/workflow-core', async () => {
@@ -231,6 +232,33 @@ describe('Agent Autofill Workflow', () => {
       taskId: task.id,
       status: 'failed',
       output: { error: 'DB failure' },
+    })
+  })
+
+  it('should post an error comment when workflow is cancelled with DBOSWorkflowCancelledError', async () => {
+    const cancelErr = new DBOSError.DBOSWorkflowCancelledError('wf-cancel')
+    mockActivities.getProjectAutofillFieldsActivity.mockRejectedValue(cancelErr)
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_metadata_autofill',
+        status: 'pending',
+        assetId: 'a1',
+      },
+    })
+
+    await expect(agentAutofillMedia(task)).rejects.toThrow()
+
+    expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
+      assetId: 'a1',
+      message: expect.stringContaining('Autofill failed:'),
+      sessionId: task.id,
+      agentId: 'default',
+    })
+    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
+      taskId: task.id,
+      status: 'failed',
+      output: { error: expect.stringContaining('wf-cancel') },
     })
   })
 

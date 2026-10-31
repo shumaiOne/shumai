@@ -401,11 +401,11 @@ describe('Workflow E2E - agentAutofillMedia', () => {
         projectId: project.id,
         mediaType: 'video/mp4',
         status: 'uploaded',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- partial MediaInfo mock for testing
         media: {
           proxyType: 'video',
           duration: 12.0,
           videoTranscodes: [{ key: 'files/fail-sample.mp4', width: 1280, height: 720 }],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- partial MediaInfo mock for testing
         } as any,
       },
     })

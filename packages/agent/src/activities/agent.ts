@@ -969,78 +969,86 @@ export const deleteCommentActivity = defineStep(async function deleteCommentActi
   })
 })
 
-export const createCommentActivity = defineStep(async function createCommentActivity(params: {
-  assetId: string
-  message: string
-  sessionId?: string | null
-  agentId?: string | null
-  replyToId?: string | null
-}) {
-  if (params.sessionId) {
-    const agentId = params.agentId && params.agentId !== 'default' ? params.agentId : 'default'
+export const createCommentActivity = defineStep(
+  async function createCommentActivity(params: {
+    assetId: string
+    message: string
+    sessionId?: string | null
+    agentId?: string | null
+    replyToId?: string | null
+  }) {
+    if (params.sessionId) {
+      const agentId = params.agentId && params.agentId !== 'default' ? params.agentId : 'default'
 
-    // Fetch teamId from asset
-    const asset = await prisma.asset.findUnique({
-      where: { id: params.assetId },
-      include: { project: true },
-    })
-    if (!asset || !asset.project) {
-      throw ApplicationFailure.create({ message: 'asset or project not found', nonRetryable: true })
-    }
-    const teamId = asset.project.teamId
-
-    // Ensure user exists for agent
-    const userExists = await prisma.user.findUnique({ where: { id: agentId } })
-    if (!userExists) {
-      await prisma.user.create({
-        data: {
-          id: agentId,
-          name: 'Ai Agent',
-          email: `${agentId}@shumai.ai`,
-          type: 'agent',
-        },
+      // Fetch teamId from asset
+      const asset = await prisma.asset.findUnique({
+        where: { id: params.assetId },
+        include: { project: true },
       })
-    }
+      if (!asset || !asset.project) {
+        throw ApplicationFailure.create({
+          message: 'asset or project not found',
+          nonRetryable: true,
+        })
+      }
+      const teamId = asset.project.teamId
 
-    // Ensure agent exists
-    const agentExists = await prisma.agent.findUnique({ where: { id: agentId } })
-    if (!agentExists) {
-      await prisma.agent.create({
-        data: {
-          id: agentId,
-          teamId,
-          type: 'chat',
-          config: {
-            provider: 'openai',
-            model: 'gpt-4',
+      // Ensure user exists for agent
+      const userExists = await prisma.user.findUnique({ where: { id: agentId } })
+      if (!userExists) {
+        await prisma.user.create({
+          data: {
+            id: agentId,
+            name: 'Ai Agent',
+            email: `${agentId}@shumai.ai`,
+            type: 'agent',
           },
-        },
+        })
+      }
+
+      // Ensure agent exists
+      const agentExists = await prisma.agent.findUnique({ where: { id: agentId } })
+      if (!agentExists) {
+        await prisma.agent.create({
+          data: {
+            id: agentId,
+            teamId,
+            type: 'chat',
+            config: {
+              provider: 'openai',
+              model: 'gpt-4',
+            },
+          },
+        })
+      }
+
+      // Ensure agent session exists
+      const sessionExists = await prisma.agentSession.findUnique({
+        where: { id: params.sessionId },
       })
+      if (!sessionExists) {
+        await prisma.agentSession.create({
+          data: {
+            id: params.sessionId,
+            agentId: agentId,
+            cwd: process.cwd(),
+          },
+        })
+      }
     }
 
-    // Ensure agent session exists
-    const sessionExists = await prisma.agentSession.findUnique({ where: { id: params.sessionId } })
-    if (!sessionExists) {
-      await prisma.agentSession.create({
-        data: {
-          id: params.sessionId,
-          agentId: agentId,
-          cwd: process.cwd(),
-        },
-      })
-    }
-  }
-
-  return prisma.assetComment.create({
-    data: {
-      assetId: params.assetId,
-      message: params.message,
-      sessionId: params.sessionId ?? null,
-      creatorId: params.agentId && params.agentId !== 'default' ? params.agentId : null,
-      replyToId: params.replyToId,
-    },
-  })
-})
+    return prisma.assetComment.create({
+      data: {
+        assetId: params.assetId,
+        message: params.message,
+        sessionId: params.sessionId ?? null,
+        creatorId: params.agentId && params.agentId !== 'default' ? params.agentId : null,
+        replyToId: params.replyToId,
+      },
+    })
+  },
+  { runOnCancel: true },
+)
 
 export const updateCommentActivity = defineStep(
   async function updateCommentActivity(params: {

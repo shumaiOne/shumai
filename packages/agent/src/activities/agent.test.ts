@@ -23,7 +23,7 @@ import {
 import * as piAgent from '../index'
 import { type AgentHarness, type Session } from '@earendil-works/pi-agent-core'
 import { DatabaseSessionStorage, type DatabaseSessionMetadata } from '../database-session-storage'
-import { triggerLocalCancel, runInLocalTaskContext } from '@shumai/workflow-core'
+import { triggerLocalCancel, runInLocalTaskContext, DBOS, DBOSError } from '@shumai/workflow-core'
 import { logger } from '@shumai/core/src/logger'
 
 import {
@@ -1239,6 +1239,28 @@ describe('Agent Database Activities Integration', () => {
       await deleteCommentActivity(comment.id)
       const deleted = await prisma.assetComment.findUnique({ where: { id: comment.id } })
       expect(deleted).toBeNull()
+    })
+
+    it('should create comment even if cancelled with DBOSWorkflowCancelledError (runOnCancel: true)', async () => {
+      const realCancelErr = new DBOSError.DBOSWorkflowCancelledError('test-workflow-id')
+      const isWithinWorkflowSpy = vi.spyOn(DBOS, 'isWithinWorkflow').mockReturnValue(true)
+      const runStepSpy = vi.spyOn(DBOS, 'runStep').mockRejectedValue(realCancelErr)
+
+      const comment = await createCommentActivity({
+        assetId: asset.id,
+        message: 'Autofill failed: workflow cancelled',
+        agentId: 'default',
+      })
+
+      expect(comment.id).toBeDefined()
+      expect(comment.message).toBe('Autofill failed: workflow cancelled')
+
+      const savedComment = await prisma.assetComment.findUnique({ where: { id: comment.id } })
+      expect(savedComment).not.toBeNull()
+      expect(savedComment?.message).toBe('Autofill failed: workflow cancelled')
+
+      isWithinWorkflowSpy.mockRestore()
+      runStepSpy.mockRestore()
     })
   })
 

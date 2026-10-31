@@ -1,5 +1,7 @@
 import { DBOS, Error as DBOSError } from '@dbos-inc/dbos-sdk'
 
+export { DBOS, DBOSError }
+
 /**
  * Task queue constants.
  */
