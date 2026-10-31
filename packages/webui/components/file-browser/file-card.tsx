@@ -21,7 +21,8 @@ import {
   TooltipTrigger,
 } from '@/ui/components/ui/tooltip'
 import { ProgressCircle } from '@/ui/components/ui/progress-circle'
-import { formatTimeAgo, getTrashDaysLeft } from '@/ui/lib/time'
+import { formatRemainingTimeSeconds, formatTimeAgo, getTrashDaysLeft } from '@/ui/lib/time'
+import { formatSize } from '@/ui/lib/format'
 import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
 import { cn } from '@/ui/lib/utils'
 import { useUploadStore } from '@/ui/stores/upload'
@@ -266,6 +267,7 @@ export function FileCard({
   // since the poster/sprite are generated and persisted ahead of the proxy transcodes.
   const hasPreview = Boolean(displayItem.preview?.thumbnailUrl || displayItem.preview?.spriteUrl)
   const isFailed = displayItem.status === 'failed'
+  const isLocalUploader = Boolean(fileUploadState)
   const isUploadDone = fileUploadState?.status === 'completed' || uploadPercent >= 100
   const isUploading = displayItem.status === 'uploading' && !isUploadDone
   const isProcessing =
@@ -273,9 +275,27 @@ export function FileCard({
     displayItem.status === 'uploaded' ||
     (displayItem.status === 'uploading' && isUploadDone)
 
-  // While uploading/transcoding, the creator row is replaced by a short status label so the real
+  // While uploading/transcoding, the creator row is replaced by a status label so the real
   // date/author only appears once the asset is ready or failed.
-  const statusText = isUploading ? m.uploading() : isProcessing ? m.preparing() : null
+  let statusText: string | null = null
+  if (isUploading) {
+    if (isLocalUploader) {
+      if (fileUploadState?.speed && fileUploadState?.eta != null) {
+        statusText = m.upload_eta_speed({
+          eta: formatRemainingTimeSeconds(fileUploadState.eta),
+          speed: `${formatSize(fileUploadState.speed)}/s`,
+        })
+      } else {
+        statusText = m.uploading()
+      }
+    } else {
+      statusText = m.user_is_uploading({
+        user: displayItem.creator?.name || m.someone(),
+      })
+    }
+  } else if (isProcessing) {
+    statusText = m.preparing()
+  }
 
   const failedErrorMessage = displayItem.media?.error || m.processing_failed()
 
@@ -384,7 +404,24 @@ export function FileCard({
       <div className="relative aspect-square overflow-hidden bg-muted/30">
         {isUploading ? (
           <div className="flex h-full w-full items-center justify-center bg-background/50">
-            <ProgressCircle progress={uploadPercent} className="w-16 h-16 z-10" />
+            {isLocalUploader ? (
+              <ProgressCircle progress={uploadPercent} className="w-16 h-16 z-10" />
+            ) : (
+              <svg
+                viewBox="0 0 50 50"
+                data-testid="file-card-remote-uploading-circle"
+                className="h-16 w-16 opacity-60 animate-preparing-breathe z-10"
+              >
+                <circle
+                  cx="25"
+                  cy="25"
+                  r="20"
+                  className="stroke-muted-foreground"
+                  strokeWidth="4"
+                  fill="transparent"
+                />
+              </svg>
+            )}
           </div>
         ) : hasPreview ? (
           <>

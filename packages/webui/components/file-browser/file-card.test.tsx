@@ -329,7 +329,7 @@ describe('FileCard', () => {
     expect(screen.queryByText('00:10')).toBeNull()
   })
 
-  it('shows "Uploading..." in place of the creator while uploading', () => {
+  it('shows "[User] is uploading..." and indeterminate circle for remote viewer', () => {
     const uploadingItem: AssetInfo = {
       ...fileItem,
       status: 'uploading',
@@ -338,8 +338,61 @@ describe('FileCard', () => {
 
     renderComponent({ item: uploadingItem })
 
+    expect(screen.getByText(/Alice.*(is uploading|正在上传)/i)).toBeTruthy()
+    expect(screen.getByTestId('file-card-remote-uploading-circle')).toBeTruthy()
+  })
+
+  it('shows "Uploading..." during local warm-up and progress circle for local uploader', () => {
+    useUploadStore.setState({
+      fileProgress: {
+        'file-1': {
+          fileId: 'file-1',
+          name: 'photo.jpg',
+          loaded: 100,
+          total: 1000,
+          status: 'uploading',
+        },
+      },
+    })
+
+    const uploadingItem: AssetInfo = {
+      ...fileItem,
+      id: 'file-1',
+      status: 'uploading',
+      creator: { id: 'u1', name: 'Alice' },
+    } as AssetInfo
+
+    renderComponent({ item: uploadingItem })
+
     expect(screen.getByText(/Uploading|上传中/i)).toBeTruthy()
-    expect(screen.queryByText(/Alice/i)).toBeNull()
+    expect(screen.queryByTestId('file-card-remote-uploading-circle')).toBeNull()
+  })
+
+  it('shows dynamic ETA and speed for local uploader when available', () => {
+    useUploadStore.setState({
+      fileProgress: {
+        'file-1': {
+          fileId: 'file-1',
+          name: 'photo.jpg',
+          loaded: 500,
+          total: 1000,
+          status: 'uploading',
+          speed: 400 * 1024,
+          eta: 480, // 8 minutes
+        },
+      },
+    })
+
+    const uploadingItem: AssetInfo = {
+      ...fileItem,
+      id: 'file-1',
+      status: 'uploading',
+      creator: { id: 'u1', name: 'Alice' },
+    } as AssetInfo
+
+    renderComponent({ item: uploadingItem })
+
+    expect(screen.getByText(/8m.*(left|剩余).*409\.6 KB\/s/i)).toBeTruthy()
   })
 
   it('transitions from uploading to preparing circle when upload store marks file completed', () => {

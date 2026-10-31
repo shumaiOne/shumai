@@ -31,9 +31,11 @@ describe('useUploadStore', () => {
       { fileId: 'f2', name: 'video2.mp4', size: 2000 },
     ])
 
-    useUploadStore.getState().updateFileProgress('task-1', 'f1', 500)
+    useUploadStore.getState().updateFileProgress('task-1', 'f1', 500, 250, 2)
     expect(useUploadStore.getState().tasks['task-1'].loaded).toBe(500)
     expect(useUploadStore.getState().fileProgress['f1'].loaded).toBe(500)
+    expect(useUploadStore.getState().fileProgress['f1'].speed).toBe(250)
+    expect(useUploadStore.getState().fileProgress['f1'].eta).toBe(2)
 
     useUploadStore.getState().completeFile('task-1', 'f1')
     expect(useUploadStore.getState().tasks['task-1'].files['f1'].status).toBe('completed')
