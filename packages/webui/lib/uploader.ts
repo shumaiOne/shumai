@@ -118,21 +118,23 @@ export function isLocalhostStorageMismatch(uploadUrlString?: string): boolean {
 }
 
 export function isNetworkIssue(error?: unknown): boolean {
-  if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    return true
+  if (!error) {
+    return typeof navigator !== 'undefined' && !navigator.onLine
   }
-  if (!error) return false
 
-  // Structured typed errors
-  if (error instanceof UploadNetworkError) return true
+  // 1. Structured typed errors
   if (error instanceof UploadHttpError) {
     return error.isTransient
   }
+  if (error instanceof UploadNetworkError) {
+    return true
+  }
 
-  const err = error as Record<string, unknown>
+  const err = (typeof error === 'object' && error !== null ? error : {}) as Record<string, unknown>
 
-  // HTTP status inspection must precede generic NetworkError/message matching,
-  // because Uppy's fetcher/XHRUpload wraps HTTP 500 into a NetworkError with err.request.status === 500
+  // 2. HTTP status inspection (check first before generic offline or NetworkError flags,
+  // so non-retryable HTTP 500 / 4xx responses delivered as the browser transitions offline
+  // fail immediately instead of being treated as network drops)
   const status =
     typeof err.status === 'number'
       ? err.status
@@ -153,17 +155,7 @@ export function isNetworkIssue(error?: unknown): boolean {
     }
   }
 
-  if (err.code === 'NETWORK' || err.code === 'NETWORK_ERROR') return true
-  if (err.name === 'S3NetworkError' || err.name === 'UploadNetworkError') {
-    return true
-  }
-
-  // Standard fetch network failure
-  if (error instanceof TypeError) {
-    return true
-  }
-
-  // Fallback string matching (supports string primitive and error.message)
+  // 3. Fallback string matching for explicit non-retryable HTTP status messages
   const rawMsg =
     typeof error === 'string' ? error : typeof err.message === 'string' ? err.message : ''
   if (rawMsg) {
@@ -198,6 +190,21 @@ export function isNetworkIssue(error?: unknown): boolean {
     ) {
       return true
     }
+  }
+
+  // 4. Generic offline state (only when the error does not carry a non-retryable status code)
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return true
+  }
+
+  if (err.code === 'NETWORK' || err.code === 'NETWORK_ERROR') return true
+  if (err.name === 'S3NetworkError' || err.name === 'UploadNetworkError') {
+    return true
+  }
+
+  // Standard fetch network failure
+  if (error instanceof TypeError) {
+    return true
   }
 
   // If there was no HTTP status attached, check generic Uppy NetworkError flag
@@ -559,21 +566,25 @@ export async function uploadFilesWithUppy({
           return
         }
 
-        const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
-        if (pendingNetworkRetries.size > 0 || isOffline) {
-          console.log(
-            `[Uploader] Batch completed with ${pendingNetworkRetries.size} retrying file(s); waiting for reconnection or backoff to resume...`,
-          )
-          return
-        }
-
         const failedFiles = result?.failed || []
         for (const f of failedFiles) {
           const file = f as { name: string; meta: Record<string, unknown> }
           const fId = file.meta?.fileId as string | undefined
           if (fId && !pendingNetworkRetries.has(fId)) {
-            handlePermanentError(file, (f as { error?: unknown })?.error)
+            const err = (f as { error?: unknown })?.error
+            if (isNetworkIssue(err)) {
+              pendingNetworkRetries.add(fId)
+              continue
+            }
+            handlePermanentError(file, err)
           }
+        }
+
+        if (pendingNetworkRetries.size > 0) {
+          console.log(
+            `[Uploader] Batch completed with ${pendingNetworkRetries.size} retrying file(s); waiting for reconnection or backoff to resume...`,
+          )
+          return
         }
 
         if (activeUploads.size === 0) {

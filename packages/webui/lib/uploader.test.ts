@@ -208,6 +208,26 @@ describe('Uploader', () => {
       Object.defineProperty(navigator, 'onLine', { value: false, configurable: true })
       expect(isNetworkIssue(new Error('Any error'))).toBe(true)
       expect(isNetworkIssue()).toBe(true)
+      // Non-retryable statuses must return false even while offline
+      expect(
+        isNetworkIssue(
+          new UploadHttpError('Internal Server Error', { status: 500, isTransient: false }),
+        ),
+      ).toBe(false)
+      expect(
+        isNetworkIssue(new UploadHttpError('Forbidden', { status: 403, isTransient: false })),
+      ).toBe(false)
+      expect(isNetworkIssue({ status: 500 })).toBe(false)
+      expect(isNetworkIssue({ status: 403 })).toBe(false)
+      expect(isNetworkIssue({ request: { status: 500 } })).toBe(false)
+      expect(isNetworkIssue({ request: { status: 403 } })).toBe(false)
+      expect(isNetworkIssue('upload failed with status: 500')).toBe(false)
+      expect(isNetworkIssue('upload failed with status: 403')).toBe(false)
+      // Transient statuses while offline return true
+      expect(
+        isNetworkIssue(new UploadHttpError('Bad Gateway', { status: 502, isTransient: true })),
+      ).toBe(true)
+      expect(isNetworkIssue({ status: 502 })).toBe(true)
 
       Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
       expect(isNetworkIssue(new Error('Failed to fetch'))).toBe(true)
@@ -779,6 +799,57 @@ describe('Uploader', () => {
     })
     expect(toast.error).toHaveBeenCalledWith(
       m.failed_upload_file_with_name({ name: 'server-err.mp4' }),
+    )
+    expect(useUploadStore.getState().tasks['task-1']?.files['file-1']?.status).toBe('failed')
+    expect(activeUploads.size).toBe(0)
+
+    addFileSpy.mockRestore()
+  })
+
+  it('fails permanently on 500/403 status even while navigator.onLine is false', async () => {
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true })
+    useUploadStore
+      .getState()
+      .startTask('task-1', 'task-1', [{ fileId: 'file-1', name: 'offline-500.mp4', size: 100 }])
+
+    const addFileSpy = vi.spyOn(Uppy.prototype, 'addFile').mockReturnValue('f1')
+
+    const uploadPromise = uploadFilesWithUppy({
+      files: [
+        { id: 'temp-1', file: new File(['content'], 'offline-500.mp4', { type: 'video/mp4' }) },
+      ],
+      taskId: 'task-1',
+      teamId: 'team-1',
+      storageBackend: 's3',
+      createdAssets: [{ tempId: 'temp-1', assetId: 'file-1', key: 'files/offline-500.mp4' }],
+    })
+
+    await new Promise((r) => setTimeout(r, 10))
+    const capturedUppy = addFileSpy.mock.contexts[0] as Uppy
+    const mockFile = {
+      id: 'f1',
+      name: 'offline-500.mp4',
+      meta: { fileId: 'file-1' },
+    } as unknown as UppyFile<Meta, Record<string, never>>
+
+    const serverError = new UploadHttpError('Internal Server Error', {
+      status: 500,
+      isTransient: false,
+    })
+    capturedUppy.emit('upload-error', mockFile, serverError)
+    capturedUppy.emit('complete', {
+      successful: [],
+      failed: [{ ...mockFile, error: 'Internal Server Error' }],
+    })
+
+    await uploadPromise
+
+    expect(client.api.teams[':teamId'].upload.tasks[':taskId'].$patch).toHaveBeenCalledWith({
+      param: { teamId: 'team-1', taskId: 'task-1' },
+      json: { fileId: 'file-1', errorMessage: 'Internal Server Error' },
+    })
+    expect(toast.error).toHaveBeenCalledWith(
+      m.failed_upload_file_with_name({ name: 'offline-500.mp4' }),
     )
     expect(useUploadStore.getState().tasks['task-1']?.files['file-1']?.status).toBe('failed')
     expect(activeUploads.size).toBe(0)
