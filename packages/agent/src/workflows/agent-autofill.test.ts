@@ -95,13 +95,9 @@ describe('Agent Autofill Workflow', () => {
     // Verify asset fetched
     expect(mockActivities.getAssetActivity).toHaveBeenCalledWith('a1')
 
-    // Verify placeholder comment created
-    expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
-      assetId: 'a1',
-      message: '__AUTOFILL__',
-      sessionId: 's1',
-      agentId: 'agent-1',
-    })
+    // Verify no success or placeholder comments created
+    expect(mockActivities.createCommentActivity).not.toHaveBeenCalled()
+    expect(mockActivities.updateCommentActivity).not.toHaveBeenCalled()
 
     // Verify fields and context fetched
     expect(mockActivities.getProjectAutofillFieldsActivity).toHaveBeenCalledWith('p1')
@@ -145,13 +141,6 @@ describe('Agent Autofill Workflow', () => {
           value: 'Extracted Title',
         },
       ],
-    })
-
-    // Verify placeholder comment updated
-    expect(mockActivities.updateCommentActivity).toHaveBeenCalledWith({
-      commentId: 'comment-placeholder-id',
-      message: 'Autofill completed successfully.',
-      sessionId: 'session-123',
     })
 
     // Verify completed task status
@@ -205,11 +194,8 @@ describe('Agent Autofill Workflow', () => {
 
     await agentAutofillMedia(task)
 
-    expect(mockActivities.updateCommentActivity).toHaveBeenCalledWith({
-      commentId: 'comment-placeholder-id',
-      message: 'Autofill completed: No autofill fields defined in project.',
-    })
-
+    expect(mockActivities.createCommentActivity).not.toHaveBeenCalled()
+    expect(mockActivities.updateCommentActivity).not.toHaveBeenCalled()
     expect(mockActivities.autofillAiActivity).not.toHaveBeenCalled()
     expect(mockActivities.updateAssetMetadataActivity).not.toHaveBeenCalled()
 
@@ -219,7 +205,7 @@ describe('Agent Autofill Workflow', () => {
     })
   })
 
-  it('should handle failures, update placeholder with error, and set status to failed', async () => {
+  it('should handle failures, create comment with error, and set status to failed', async () => {
     mockActivities.getProjectAutofillFieldsActivity.mockRejectedValue(new Error('DB failure'))
 
     const task = await prisma.workflowTask.create({
@@ -232,10 +218,12 @@ describe('Agent Autofill Workflow', () => {
 
     await expect(agentAutofillMedia(task)).rejects.toThrow('DB failure')
 
-    // Verify placeholder updated with error
-    expect(mockActivities.updateCommentActivity).toHaveBeenCalledWith({
-      commentId: 'comment-placeholder-id',
+    // Verify error comment created
+    expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
+      assetId: 'a1',
       message: 'Autofill failed: DB failure',
+      sessionId: task.id,
+      agentId: 'default',
     })
 
     // Verify task failed status

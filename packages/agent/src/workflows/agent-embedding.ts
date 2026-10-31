@@ -4,7 +4,7 @@ import {
   updateTaskStatusActivity,
   updateTaskUsageActivity,
 } from '@shumai/workflow-core'
-import { createCommentActivity, updateCommentActivity } from '../activities/agent'
+import { createCommentActivity } from '../activities/agent'
 import {
   deleteAssetEmbeddingsActivity,
   deleteS3ObjectActivity,
@@ -25,24 +25,12 @@ export interface GeneratedEmbedding {
 export type { ExistingAssetEmbeddingInfo }
 
 export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
-  let placeholderCommentId: string | undefined
-
   try {
     // Update status to processing
     await updateTaskStatusActivity({
       taskId: task.id,
       status: 'processing',
     })
-
-    // 0. Create Placeholder Comment
-    const payload = task.payload
-    const placeholder = await createCommentActivity({
-      assetId: task.assetId,
-      message: '__EMBEDDING__',
-      sessionId: payload?.agent?.sessionId || task.id,
-      agentId: payload?.agent?.agentId || 'default',
-    })
-    placeholderCommentId = placeholder.id
 
     if (!task.teamId) {
       throw ApplicationFailure.create({ message: 'Task has no teamId', nonRetryable: true })
@@ -238,14 +226,6 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       model: usage.model,
     })
 
-    // 7. Update Placeholder Comment
-    if (placeholderCommentId) {
-      await updateCommentActivity({
-        commentId: placeholderCommentId,
-        message: 'Embedding completed successfully.',
-      })
-    }
-
     // Update status to completed
     await updateTaskStatusActivity({
       taskId: task.id,
@@ -254,16 +234,17 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
   } catch (err) {
     console.error(`AgentEmbeddingMedia failed for task ${task.id}:`, err)
 
-    // Update placeholder comment with error message
-    if (placeholderCommentId) {
-      try {
-        await updateCommentActivity({
-          commentId: placeholderCommentId,
-          message: `Embedding failed: ${err instanceof Error ? err.message : String(err)}`,
-        })
-      } catch (commentErr) {
-        console.error('Failed to update error comment:', commentErr)
-      }
+    // Create error comment
+    try {
+      const payload = task.payload
+      await createCommentActivity({
+        assetId: task.assetId,
+        message: `Embedding failed: ${err instanceof Error ? err.message : String(err)}`,
+        sessionId: payload?.agent?.sessionId || task.id,
+        agentId: payload?.agent?.agentId || 'default',
+      })
+    } catch (commentErr) {
+      console.error('Failed to create error comment:', commentErr)
     }
 
     // Update status to failed

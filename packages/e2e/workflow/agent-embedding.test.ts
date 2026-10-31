@@ -178,14 +178,12 @@ describe('Workflow E2E - agentEmbeddingMedia', () => {
     // 5. Verification
     expect(completedTask.status).toBe('completed')
 
-    // Verify AssetComment indicates success
+    // Verify no comments created on successful embedding
     const comments = await prisma.assetComment.findMany({
       where: { assetId: asset.id },
       orderBy: { createdAt: 'asc' },
     })
-    expect(comments.length).toBeGreaterThan(0)
-    const finalComment = comments[comments.length - 1]
-    expect(finalComment.message).toBe('Embedding completed successfully.')
+    expect(comments.length).toBe(0)
 
     // Verify raw embedding is saved in DB
     const dbEmbeddings = (await prisma.$queryRaw`
@@ -445,5 +443,15 @@ describe('Workflow E2E - agentEmbeddingMedia', () => {
       where: { id: task.id },
     })
     expect(dbTask?.status).toBe(WorkflowTaskStatus.failed)
+
+    // Verify failure comment was posted to the asset
+    const comments = await prisma.assetComment.findMany({
+      where: { assetId: asset.id },
+      orderBy: { createdAt: 'asc' },
+    })
+    expect(comments.length).toBe(1)
+    expect(comments[0].message).toContain(
+      'Embedding failed: unsupported media type for embeddings: audio/wav',
+    )
   }, 50000)
 })

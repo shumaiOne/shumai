@@ -12,28 +12,15 @@ import {
   getAssetActivity,
   getProjectAutofillFieldsActivity,
   updateAssetMetadataActivity,
-  updateCommentActivity,
 } from '../activities/agent'
 
 export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
-  let placeholderCommentId: string | undefined
-
   try {
     // Update status to processing
     await updateTaskStatusActivity({
       taskId: task.id,
       status: 'processing',
     })
-
-    // 0. Create Placeholder Comment
-    const payload = task.payload
-    const placeholder = await createCommentActivity({
-      assetId: task.assetId,
-      message: '__AUTOFILL__',
-      sessionId: payload?.agent?.sessionId || task.id,
-      agentId: payload?.agent?.agentId || 'default',
-    })
-    placeholderCommentId = placeholder.id
 
     // 1. Get Asset
     const asset = await getAssetActivity(task.assetId)
@@ -46,12 +33,6 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     // 2. Get Project Autofill Fields
     const fields = await getProjectAutofillFieldsActivity(projectId)
     if (fields.length === 0) {
-      if (placeholderCommentId) {
-        await updateCommentActivity({
-          commentId: placeholderCommentId,
-          message: 'Autofill completed: No autofill fields defined in project.',
-        })
-      }
       await updateTaskStatusActivity({
         taskId: task.id,
         status: 'completed',
@@ -124,15 +105,6 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
       })
     }
 
-    // 7. Update Placeholder Comment
-    if (placeholderCommentId) {
-      await updateCommentActivity({
-        commentId: placeholderCommentId,
-        message: 'Autofill completed successfully.',
-        sessionId: aiResult.sessionId,
-      })
-    }
-
     // Update status to completed
     await updateTaskStatusActivity({
       taskId: task.id,
@@ -141,16 +113,17 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
   } catch (err) {
     console.error(`AgentAutofillMedia failed for task ${task.id}:`, err)
 
-    // Update placeholder comment with error message
-    if (placeholderCommentId) {
-      try {
-        await updateCommentActivity({
-          commentId: placeholderCommentId,
-          message: `Autofill failed: ${err instanceof Error ? err.message : String(err)}`,
-        })
-      } catch (commentErr) {
-        console.error('Failed to update error comment:', commentErr)
-      }
+    // Create error comment
+    try {
+      const payload = task.payload
+      await createCommentActivity({
+        assetId: task.assetId,
+        message: `Autofill failed: ${err instanceof Error ? err.message : String(err)}`,
+        sessionId: payload?.agent?.sessionId || task.id,
+        agentId: payload?.agent?.agentId || 'default',
+      })
+    } catch (commentErr) {
+      console.error('Failed to create error comment:', commentErr)
     }
 
     // Update status to failed
