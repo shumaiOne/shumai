@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **upload**: Fix search query flooding during bulk uploads by throttling search list invalidation, and ensure file cards immediately transition from the 100% upload progress ring to the preparing state
 - **upload**: Display a clear diagnostic error toast when remote file uploads fail due to an unconfigured or localhost S3 storage endpoint
 
 ### Changed

@@ -20,7 +20,7 @@ import {
   Plus,
   Upload,
 } from 'lucide-react'
-import React, { useRef, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
 import { ulid } from 'ulid'
@@ -202,6 +202,33 @@ export function MobileFileBrowser({
   // Upload actions
   const startTask = useUploadStore((state) => state.startTask)
 
+  const throttledInvalidateSearch = useMemo(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let lastRun = 0
+    const THROTTLE_MS = 2500
+
+    return () => {
+      const now = Date.now()
+      if (now - lastRun >= THROTTLE_MS) {
+        lastRun = now
+        queryClient.invalidateQueries({
+          queryKey: ['search', teamId, assetId],
+        })
+      } else if (!timer) {
+        timer = setTimeout(
+          () => {
+            timer = null
+            lastRun = Date.now()
+            queryClient.invalidateQueries({
+              queryKey: ['search', teamId, assetId],
+            })
+          },
+          THROTTLE_MS - (now - lastRun),
+        )
+      }
+    }
+  }, [queryClient, teamId, assetId])
+
   const $createUploadTask = client.api.teams[':teamId'].upload.tasks.$post
   const { mutate: createUploadTaskMutation } = useMutation<
     InferResponseType<typeof $createUploadTask>,
@@ -252,8 +279,8 @@ export function MobileFileBrowser({
         storageBackend: (data.storageBackend as 's3' | 'local') || 'local',
         createdAssets: data.createdAssets,
         presignedUrls: data.presignedUrls,
-        onFileFinished: async () => {
-          await queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })
+        onFileFinished: () => {
+          throttledInvalidateSearch()
         },
       })
       queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })

@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import type { AssetInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
+import { useUploadStore } from '@/ui/stores/upload'
 
 export const BATCH_SIZE = 100
 export const BATCH_POLL_INTERVAL_MS = 2000
@@ -13,18 +14,23 @@ export interface UseBatchFileStatusOptions {
 
 export function useBatchFileStatus({ teamId, items }: UseBatchFileStatusOptions): void {
   const queryClient = useQueryClient()
+  const fileProgress = useUploadStore((state) => state.fileProgress)
 
   const processingIds = useMemo(() => {
     if (!teamId) return []
     return items
-      .filter(
-        (item) =>
-          item.id &&
-          (item.type === 'file' || item.type === 'version_stack') &&
-          (item.status === 'uploaded' || item.status === 'processing'),
-      )
+      .filter((item) => {
+        if (!item.id || (item.type !== 'file' && item.type !== 'version_stack')) return false
+        const isUploadedOrProcessing = item.status === 'uploaded' || item.status === 'processing'
+        const progress = fileProgress[item.id]
+        const isUploadCompleted =
+          item.status === 'uploading' &&
+          (progress?.status === 'completed' ||
+            (progress?.total != null && progress.total > 0 && progress.loaded >= progress.total))
+        return isUploadedOrProcessing || isUploadCompleted
+      })
       .map((item) => item.id!)
-  }, [items, teamId])
+  }, [items, teamId, fileProgress])
 
   const queryKey = useMemo(() => {
     return ['files', 'batch', teamId, [...processingIds].sort().join(',')]
@@ -58,10 +64,16 @@ export function useBatchFileStatus({ teamId, items }: UseBatchFileStatusOptions)
         }
       }
 
-      const hasFinished = assets.some(
-        (a) => a.status === 'processed' || a.status === 'failed' || a.status === 'error',
-      )
-      if (hasFinished) {
+      const hasStatusAdvanced = assets.some((a) => {
+        const currentItem = items.find((i) => i.id === a.id)
+        return (
+          a.status === 'processed' ||
+          a.status === 'failed' ||
+          a.status === 'error' ||
+          (currentItem?.status === 'uploading' && a.status !== 'uploading')
+        )
+      })
+      if (hasStatusAdvanced) {
         queryClient.invalidateQueries({ queryKey: ['search', teamId] })
       }
 

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { AssetInfo } from '@shumai/dtos'
 import { useBatchFileStatus } from './use-batch-file-status'
 import { client } from '@/ui/api/client'
+import { useUploadStore } from '@/ui/stores/upload'
 
 vi.mock('@/ui/api/client', () => ({
   client: {
@@ -23,6 +24,7 @@ describe('useBatchFileStatus', () => {
   let queryClient: QueryClient
 
   beforeEach(() => {
+    useUploadStore.setState({ fileProgress: {} })
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -49,7 +51,7 @@ describe('useBatchFileStatus', () => {
     expect(client.api.files.batch.$post).not.toHaveBeenCalled()
   })
 
-  it('does NOT poll when files are in "uploading" status', () => {
+  it('does NOT poll when files are in "uploading" status and upload is in progress', () => {
     const items: AssetInfo[] = [
       { id: 'f1', type: 'file', status: 'uploading' } as AssetInfo,
       { id: 'f2', type: 'file', status: 'uploading' } as AssetInfo,
@@ -58,6 +60,42 @@ describe('useBatchFileStatus', () => {
     renderHook(() => useBatchFileStatus({ teamId: 'team-1', items }), { wrapper })
 
     expect(client.api.files.batch.$post).not.toHaveBeenCalled()
+  })
+
+  it('polls batch API when file has status "uploading" but upload is completed in store', async () => {
+    useUploadStore.setState({
+      fileProgress: {
+        f1: { fileId: 'f1', name: 'f1.mp4', loaded: 1000, total: 1000, status: 'completed' },
+      },
+    })
+
+    const items: AssetInfo[] = [
+      { id: 'f1', type: 'file', status: 'uploading' } as AssetInfo,
+      { id: 'f2', type: 'file', status: 'uploading' } as AssetInfo,
+    ]
+
+    const updatedAssets: AssetInfo[] = [
+      { id: 'f1', type: 'file', status: 'uploaded', name: 'f1.mp4' } as AssetInfo,
+    ]
+
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+
+    vi.mocked(client.api.files.batch.$post).mockResolvedValue({
+      ok: true,
+      json: async () => updatedAssets,
+    } as unknown as Awaited<ReturnType<typeof client.api.files.batch.$post>>)
+
+    renderHook(() => useBatchFileStatus({ teamId: 'team-1', items }), { wrapper })
+
+    await waitFor(() => {
+      expect(client.api.files.batch.$post).toHaveBeenCalledWith({
+        json: { ids: ['f1'] },
+      })
+    })
+
+    expect(queryClient.getQueryData(['file', 'team-1', 'f1'])).toEqual(updatedAssets[0])
+    // Should invalidate search query because f1 advanced from uploading to uploaded
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['search', 'team-1'] })
   })
 
   it('polls batch API when files are in "uploaded" or "processing" status and updates cache', async () => {

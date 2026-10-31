@@ -536,6 +536,33 @@ export function FileBrowser({
     },
   })
 
+  const throttledInvalidateSearch = useMemo(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let lastRun = 0
+    const THROTTLE_MS = 2500
+
+    return () => {
+      const now = Date.now()
+      if (now - lastRun >= THROTTLE_MS) {
+        lastRun = now
+        queryClient.invalidateQueries({
+          queryKey: ['search', teamId, assetId],
+        })
+      } else if (!timer) {
+        timer = setTimeout(
+          () => {
+            timer = null
+            lastRun = Date.now()
+            queryClient.invalidateQueries({
+              queryKey: ['search', teamId, assetId],
+            })
+          },
+          THROTTLE_MS - (now - lastRun),
+        )
+      }
+    }
+  }, [queryClient, teamId, assetId])
+
   const $createUploadTask = client.api.teams[':teamId'].upload.tasks.$post
   const { mutate: createUploadTaskMutation } = useMutation<
     InferResponseType<typeof $createUploadTask>,
@@ -642,11 +669,9 @@ export function FileBrowser({
           storageBackend: (data.storageBackend as 's3' | 'local') || 'local',
           createdAssets: data.createdAssets,
           presignedUrls: data.presignedUrls,
-          onFileFinished: async (fileId) => {
-            await queryClient.invalidateQueries({
-              queryKey: ['search', teamId, assetId],
-            })
+          onFileFinished: (fileId) => {
             setLocalUploadingFiles((prev) => prev.filter((f) => f.id !== fileId))
+            throttledInvalidateSearch()
           },
         })
       } finally {

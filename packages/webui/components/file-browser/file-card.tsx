@@ -266,16 +266,16 @@ export function FileCard({
   // since the poster/sprite are generated and persisted ahead of the proxy transcodes.
   const hasPreview = Boolean(displayItem.preview?.thumbnailUrl || displayItem.preview?.spriteUrl)
   const isFailed = displayItem.status === 'failed'
-  const isProcessing = displayItem.status === 'processing' || displayItem.status === 'uploaded'
+  const isUploadDone = fileUploadState?.status === 'completed' || uploadPercent >= 100
+  const isUploading = displayItem.status === 'uploading' && !isUploadDone
+  const isProcessing =
+    displayItem.status === 'processing' ||
+    displayItem.status === 'uploaded' ||
+    (displayItem.status === 'uploading' && isUploadDone)
 
   // While uploading/transcoding, the creator row is replaced by a short status label so the real
   // date/author only appears once the asset is ready or failed.
-  const statusText =
-    displayItem.status === 'uploading'
-      ? m.uploading()
-      : displayItem.status === 'uploaded' || displayItem.status === 'processing'
-        ? m.preparing()
-        : null
+  const statusText = isUploading ? m.uploading() : isProcessing ? m.preparing() : null
 
   const failedErrorMessage = displayItem.media?.error || m.processing_failed()
 
@@ -382,7 +382,7 @@ export function FileCard({
       </div>
 
       <div className="relative aspect-square overflow-hidden bg-muted/30">
-        {displayItem.status === 'uploading' ? (
+        {isUploading ? (
           <div className="flex h-full w-full items-center justify-center bg-background/50">
             <ProgressCircle progress={uploadPercent} className="w-16 h-16 z-10" />
           </div>

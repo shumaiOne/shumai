@@ -100,6 +100,9 @@ export function FileListItem({
     return polledItem || item
   }, [item, polledItem])
 
+  const isUploadDone = fileUploadState?.status === 'completed' || uploadPercent >= 100
+  const isUploading = displayItem.status === 'uploading' && !isUploadDone
+
   // dnd-kit hooks
   const { ref: setDraggableRef, isDragging: isDraggableDragging } = useDraggable({
     id: `browser:${displayItem.id!}`,
@@ -209,7 +212,7 @@ export function FileListItem({
             className="h-4 w-4 shrink-0 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
           <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-muted rounded overflow-hidden">
-            {displayItem.status === 'uploading' ? (
+            {isUploading ? (
               <ProgressCircle progress={uploadPercent} className="w-7 h-7" />
             ) : displayItem.status === 'failed' && !displayItem.preview?.thumbnailUrl ? (
               <AlertCircle className="h-4 w-4 text-destructive" />
