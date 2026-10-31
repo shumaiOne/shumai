@@ -49,9 +49,9 @@ describe('useUploadStore', () => {
       { fileId: 'f3', name: 'stuck2.mp4', size: 3000 },
     ])
 
-    // f1 completes
+    // f1 completes (automatically decrements uploading from 3 to 2)
     useUploadStore.getState().completeFile('task-1', 'f1')
-    useUploadStore.setState({ uploading: 2 })
+    expect(useUploadStore.getState().uploading).toBe(2)
 
     // cancelTask is called
     useUploadStore.getState().cancelTask('task-1')
@@ -62,6 +62,27 @@ describe('useUploadStore', () => {
     expect(task.files['f3'].status).toBe('failed')
     expect(useUploadStore.getState().fileProgress['f2'].status).toBe('failed')
     expect(useUploadStore.getState().fileProgress['f3'].status).toBe('failed')
+    expect(useUploadStore.getState().uploading).toBe(0)
+  })
+
+  it('does not decrement uploading count twice if completeFile or failFile is called after cancelTask', () => {
+    useUploadStore.setState({ uploading: 2 })
+    useUploadStore.getState().startTask('task-1', 'My Task', [
+      { fileId: 'f1', name: 'in-flight.mp4', size: 1000 },
+      { fileId: 'f2', name: 'waiting.mp4', size: 2000 },
+    ])
+
+    // Cancel task while f1 confirmation was in-flight
+    useUploadStore.getState().cancelTask('task-1')
+    expect(useUploadStore.getState().uploading).toBe(0)
+    expect(useUploadStore.getState().tasks['task-1'].files['f1'].status).toBe('failed')
+
+    // In-flight confirmation settles late
+    useUploadStore.getState().completeFile('task-1', 'f1')
+    expect(useUploadStore.getState().uploading).toBe(0)
+
+    // Another late error settles
+    useUploadStore.getState().failFile('task-1', 'f2')
     expect(useUploadStore.getState().uploading).toBe(0)
   })
 

@@ -255,7 +255,7 @@ export async function uploadFilesWithUppy({
   await acquireWakeLock()
 
   const store = useUploadStore.getState()
-  const { increment, decrement, updateFileProgress, completeFile, failFile } = store
+  const { increment, updateFileProgress, completeFile, failFile } = store
 
   // Build lookup maps
   const assetByTempId = new Map<string, { assetId: string; key?: string }>()
@@ -436,12 +436,10 @@ export async function uploadFilesWithUppy({
           throw new Error(`Failed to confirm upload: ${res.statusText}`)
         }
         completeFile(taskId, fileId)
-        decrement()
         await onFileFinished?.(fileId)
       } catch (err) {
         console.error('Failed to confirm upload:', err)
         failFile(taskId, fileId)
-        decrement()
         toast.error(m.failed_confirm_upload_with_name({ name: file.name }))
         await onFileFinished?.(fileId)
         throw err
@@ -462,7 +460,6 @@ export async function uploadFilesWithUppy({
 
     activeUploads.delete(fileId)
     failFile(taskId, fileId)
-    decrement()
 
     if (isLocalhostStorageMismatch(uploadUrl)) {
       toast.error(m.upload_failed_s3_endpoint_localhost(), {

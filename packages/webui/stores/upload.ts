@@ -115,12 +115,14 @@ export const useUploadStore = create<UploadStore>((set) => ({
       const file = task.files[fileId]
       if (!file) return {}
 
+      const wasUploading = file.status === 'uploading'
       const updatedFile: FileUploadState = { ...file, status: 'completed', loaded: file.total }
       const updatedFiles = { ...task.files, [fileId]: updatedFile }
 
       const loadedBytes = Object.values(updatedFiles).reduce((sum, f) => sum + f.loaded, 0)
 
       return {
+        uploading: wasUploading ? Math.max(0, state.uploading - 1) : state.uploading,
         tasks: {
           ...state.tasks,
           [taskId]: {
@@ -144,12 +146,14 @@ export const useUploadStore = create<UploadStore>((set) => ({
       const file = task.files[fileId]
       if (!file) return {}
 
+      const wasUploading = file.status === 'uploading'
       const updatedFile: FileUploadState = { ...file, status: 'failed' }
       const updatedFiles = { ...task.files, [fileId]: updatedFile }
 
       const loadedBytes = Object.values(updatedFiles).reduce((sum, f) => sum + f.loaded, 0)
 
       return {
+        uploading: wasUploading ? Math.max(0, state.uploading - 1) : state.uploading,
         tasks: {
           ...state.tasks,
           [taskId]: {

@@ -1286,5 +1286,97 @@ describe('UploadService', () => {
         'Task does not belong to specified team',
       )
     })
+
+    it('throws when task is already completed and preserves completed status', async () => {
+      const task = await prisma.task.create({
+        data: {
+          creatorId: userId,
+          type: 'upload',
+          name: 'completed-task',
+          total: 1,
+          uploaded: 1,
+          status: TaskStatus.completed,
+        },
+      })
+
+      await expect(uploadService.cancelUploadTask(teamId, userId, task.id)).rejects.toThrow(
+        'Cannot cancel a completed upload task',
+      )
+
+      const refreshed = await prisma.task.findUnique({ where: { id: task.id } })
+      expect(refreshed?.status).toBe(TaskStatus.completed)
+    })
+
+    it('preserves an asset and its storage if it was confirmed uploaded concurrently', async () => {
+      const task = await prisma.task.create({
+        data: {
+          creatorId: userId,
+          type: 'upload',
+          name: 'race-task',
+          total: 2,
+          uploaded: 0,
+          status: TaskStatus.uploading,
+        },
+      })
+
+      const confirmedAsset = await prisma.asset.create({
+        data: {
+          name: 'race-confirmed.mp4',
+          type: AssetType.file,
+          project: { connect: { id: projectId } },
+          task: { connect: { id: task.id } },
+          status: AssetStatus.uploading,
+          storageKey: {
+            create: { key: 'files/test/race-confirmed.mp4' },
+          },
+        },
+        include: { storageKey: true },
+      })
+
+      const cancelledAsset = await prisma.asset.create({
+        data: {
+          name: 'race-cancelled.mp4',
+          type: AssetType.file,
+          project: { connect: { id: projectId } },
+          task: { connect: { id: task.id } },
+          status: AssetStatus.uploading,
+          storageKey: {
+            create: { key: 'files/test/race-cancelled.mp4' },
+          },
+        },
+        include: { storageKey: true },
+      })
+
+      // Simulate concurrent confirm: update status to uploaded
+      await prisma.asset.update({
+        where: { id: confirmedAsset.id },
+        data: { status: AssetStatus.uploaded },
+      })
+
+      const deleteObjectSpy = vi.spyOn(s3Service, 'deleteObject').mockResolvedValue(1)
+
+      await uploadService.cancelUploadTask(teamId, userId, task.id)
+
+      // Confirmed asset must still exist in DB
+      const dbConfirmed = await prisma.asset.findUnique({ where: { id: confirmedAsset.id } })
+      expect(dbConfirmed).not.toBeNull()
+      expect(dbConfirmed?.status).toBe(AssetStatus.uploaded)
+
+      // Cancelled asset must be deleted
+      const dbCancelled = await prisma.asset.findUnique({ where: { id: cancelledAsset.id } })
+      expect(dbCancelled).toBeNull()
+
+      // S3 deleteObject was called for the cancelled asset, but NOT for the confirmed asset
+      expect(deleteObjectSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        'files/test/race-cancelled.mp4',
+      )
+      expect(deleteObjectSpy).not.toHaveBeenCalledWith(
+        expect.anything(),
+        'files/test/race-confirmed.mp4',
+      )
+
+      deleteObjectSpy.mockRestore()
+    })
   })
 })
