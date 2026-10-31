@@ -30,6 +30,7 @@ type UploadStore = {
   updateFileProgress: (taskId: string, fileId: string, loaded: number) => void
   completeFile: (taskId: string, fileId: string) => void
   failFile: (taskId: string, fileId: string) => void
+  cancelTask: (taskId: string) => void
 }
 
 export const useUploadStore = create<UploadStore>((set) => ({
@@ -161,6 +162,36 @@ export const useUploadStore = create<UploadStore>((set) => ({
           ...state.fileProgress,
           [fileId]: updatedFile,
         },
+      }
+    }),
+
+  cancelTask: (taskId) =>
+    set((state) => {
+      const task = state.tasks[taskId]
+      if (!task) return {}
+
+      let decrements = 0
+      const updatedFiles = { ...task.files }
+      const updatedFileProgress = { ...state.fileProgress }
+
+      for (const [fileId, file] of Object.entries(task.files)) {
+        if (file.status === 'uploading') {
+          updatedFiles[fileId] = { ...file, status: 'failed' }
+          updatedFileProgress[fileId] = { ...file, status: 'failed' }
+          decrements++
+        }
+      }
+
+      return {
+        uploading: Math.max(0, state.uploading - decrements),
+        tasks: {
+          ...state.tasks,
+          [taskId]: {
+            ...task,
+            files: updatedFiles,
+          },
+        },
+        fileProgress: updatedFileProgress,
       }
     }),
 }))

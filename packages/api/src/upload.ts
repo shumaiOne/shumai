@@ -163,5 +163,20 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.json(resp)
     },
   )
+  .post('/teams/:teamId/upload/tasks/:taskId/cancel', async (c) => {
+    const teamId = c.req.param('teamId')
+    const taskId = c.req.param('taskId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Edit,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const resp = await uploadService.cancelUploadTask(teamId, user.id, taskId)
+    return c.json(resp)
+  })
 
 export default route

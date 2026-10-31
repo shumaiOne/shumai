@@ -797,6 +797,7 @@ describe('UploadService', () => {
     expect(result.data).toHaveLength(1)
     expect(result.data[0].id).toBe(task.id)
     expect(result.data[0].name).toBe('test-upload-task')
+    expect(result.data[0].status).toBe(TaskStatus.pending)
   })
 
   it('should correct the mediaType for .wma files that browser incorrectly reports as video', async () => {
@@ -1118,6 +1119,172 @@ describe('UploadService', () => {
         where: { id: asset.id },
       })
       expect(deletedAsset).toBeNull()
+    })
+  })
+
+  describe('cancelUploadTask', () => {
+    it('cancels uploading assets, leaves uploaded assets and folders intact, and marks task failed', async () => {
+      const task = await prisma.task.create({
+        data: {
+          creatorId: userId,
+          type: 'upload',
+          name: 'multi-file-task',
+          total: 3,
+          uploaded: 1,
+          status: TaskStatus.pending,
+        },
+      })
+
+      // 1. A folder created by the task
+      const folder = await prisma.asset.create({
+        data: {
+          name: 'subfolder',
+          type: AssetType.folder,
+          projectId,
+          parentId,
+          taskId: task.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      // 2. An asset already finished uploading
+      const finishedKey = await prisma.storageKey.create({ data: { key: 'files/test/done.mp4' } })
+      const finishedAsset = await prisma.asset.create({
+        data: {
+          name: 'done.mp4',
+          type: AssetType.file,
+          projectId,
+          parentId: folder.id,
+          storageKeyId: finishedKey.id,
+          taskId: task.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      // 3. An incomplete multipart asset
+      const multipartKey = await prisma.storageKey.create({
+        data: { key: 'files/test/part.mp4' },
+      })
+      const multipartAsset = await prisma.asset.create({
+        data: {
+          name: 'part.mp4',
+          type: AssetType.file,
+          projectId,
+          parentId: folder.id,
+          storageKeyId: multipartKey.id,
+          taskId: task.id,
+          uploadId: 'upload-multipart-cancel',
+          status: AssetStatus.uploading,
+        },
+      })
+
+      // 4. An incomplete single PUT asset
+      const singleKey = await prisma.storageKey.create({
+        data: { key: 'files/test/single.mp4' },
+      })
+      const singleAsset = await prisma.asset.create({
+        data: {
+          name: 'single.mp4',
+          type: AssetType.file,
+          projectId,
+          parentId: folder.id,
+          storageKeyId: singleKey.id,
+          taskId: task.id,
+          status: AssetStatus.uploading,
+        },
+      })
+
+      const res = await uploadService.cancelUploadTask(teamId, userId, task.id)
+      expect(res).toEqual({ success: true })
+
+      // Incomplete assets deleted
+      expect(await prisma.asset.findUnique({ where: { id: multipartAsset.id } })).toBeNull()
+      expect(await prisma.storageKey.findUnique({ where: { id: multipartKey.id } })).toBeNull()
+      expect(await prisma.asset.findUnique({ where: { id: singleAsset.id } })).toBeNull()
+      expect(await prisma.storageKey.findUnique({ where: { id: singleKey.id } })).toBeNull()
+
+      // S3 cleanup called
+      expect(s3Service.abortMultipartUpload).toHaveBeenCalledWith(
+        expect.anything(),
+        'files/test/part.mp4',
+        'upload-multipart-cancel',
+      )
+      expect(s3Service.deleteObject).toHaveBeenCalledWith(
+        expect.anything(),
+        'files/test/single.mp4',
+      )
+
+      // Completed asset and folder remain intact
+      expect(await prisma.asset.findUnique({ where: { id: finishedAsset.id } })).not.toBeNull()
+      expect(await prisma.storageKey.findUnique({ where: { id: finishedKey.id } })).not.toBeNull()
+      expect(await prisma.asset.findUnique({ where: { id: folder.id } })).not.toBeNull()
+
+      // Task status updated to failed
+      const updatedTask = await prisma.task.findUnique({ where: { id: task.id } })
+      expect(updatedTask?.status).toBe(TaskStatus.failed)
+      expect(updatedTask?.uploaded).toBe(1)
+    })
+
+    it('rejects cancellation if the caller is not the task creator', async () => {
+      const otherUser = await prisma.user.create({
+        data: {
+          email: 'other@example.com',
+          name: 'Other User',
+        },
+      })
+
+      const task = await prisma.task.create({
+        data: {
+          creatorId: otherUser.id,
+          type: 'upload',
+          name: 'other-task',
+          total: 1,
+          status: TaskStatus.pending,
+        },
+      })
+
+      await expect(uploadService.cancelUploadTask(teamId, userId, task.id)).rejects.toThrow(
+        'Unauthorized to cancel this upload task',
+      )
+    })
+
+    it('throws when task does not exist', async () => {
+      await expect(
+        uploadService.cancelUploadTask(teamId, userId, 'non-existent-task'),
+      ).rejects.toThrow('Upload task not found')
+    })
+
+    it('throws when task assets belong to a different team', async () => {
+      const otherTeam = await prisma.team.create({
+        data: { name: 'Other Team' },
+      })
+      const otherProject = await prisma.project.create({
+        data: { name: 'Other Project', teamId: otherTeam.id },
+      })
+
+      const task = await prisma.task.create({
+        data: {
+          creatorId: userId,
+          type: 'upload',
+          name: 'wrong-team-task',
+          total: 1,
+          status: TaskStatus.pending,
+        },
+      })
+
+      await prisma.asset.create({
+        data: {
+          name: 'wrong-team-file.mp4',
+          type: AssetType.file,
+          projectId: otherProject.id,
+          taskId: task.id,
+          status: AssetStatus.uploading,
+        },
+      })
+
+      await expect(uploadService.cancelUploadTask(teamId, userId, task.id)).rejects.toThrow(
+        'Task does not belong to specified team',
+      )
     })
   })
 })

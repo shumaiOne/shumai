@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **upload**: Allow users to cancel running upload tasks directly from the upload tasks sidebar with a confirmation dialog, preserving already completed files while discarding incomplete assets
 - **upload**: Improve upload resilience during network drops, device sleep, and transient gateway errors by adding state-based exponential backoff retries and extending upload link expiration to 12 hours
 
 ### Fixed

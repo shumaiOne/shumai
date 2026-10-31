@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   activeUploads,
+  cancelActiveUploadTask,
   uploadFilesWithUppy,
   isNetworkIssue,
   isLocalhostStorageMismatch,
@@ -855,5 +856,34 @@ describe('Uploader', () => {
     expect(activeUploads.size).toBe(0)
 
     addFileSpy.mockRestore()
+  })
+
+  it('cancelActiveUploadTask cancels in-flight uppy upload and cleans up activeUploads', async () => {
+    useUploadStore
+      .getState()
+      .startTask('task-cancel', 'Task Cancel', [
+        { fileId: 'file-c1', name: 'cancel.mp4', size: 1000 },
+      ])
+
+    const uploadPromise = uploadFilesWithUppy({
+      files: [
+        {
+          id: 'temp-c1',
+          file: new File(['data'], 'cancel.mp4', { type: 'video/mp4' }),
+        },
+      ],
+      taskId: 'task-cancel',
+      teamId: 'team-1',
+      storageBackend: 's3',
+      createdAssets: [{ tempId: 'temp-c1', assetId: 'file-c1', key: 'files/cancel.mp4' }],
+    })
+
+    await new Promise((r) => setTimeout(r, 10))
+    expect(activeUploads.has('file-c1')).toBe(true)
+
+    cancelActiveUploadTask('task-cancel')
+
+    expect(activeUploads.has('file-c1')).toBe(false)
+    await expect(uploadPromise).resolves.toBeUndefined()
   })
 })

@@ -23,6 +23,24 @@ export interface ActiveUploadFile {
 }
 
 export const activeUploads = new Map<string, ActiveUploadFile>()
+export const activeUppyByTaskId = new Map<string, Uppy>()
+
+export function cancelActiveUploadTask(taskId: string): void {
+  const uppy = activeUppyByTaskId.get(taskId)
+  if (uppy) {
+    try {
+      uppy.cancelAll()
+    } catch (err) {
+      console.warn('Failed to cancel uppy uploads:', err)
+    }
+  }
+
+  for (const [fileId, item] of activeUploads.entries()) {
+    if (item.taskId === taskId) {
+      activeUploads.delete(fileId)
+    }
+  }
+}
 
 // Setup beforeunload and pagehide listeners once
 if (typeof window !== 'undefined') {
@@ -258,6 +276,7 @@ export async function uploadFilesWithUppy({
     autoProceed: true,
     allowMultipleUploadBatches: false,
   })
+  activeUppyByTaskId.set(taskId, uppy)
 
   if (storageBackend === 's3') {
     uppy.use(AwsS3, {
@@ -600,6 +619,7 @@ export async function uploadFilesWithUppy({
 
     await Promise.allSettled(Array.from(confirmationPromises.values()))
   } finally {
+    activeUppyByTaskId.delete(taskId)
     if (retryTimeout) {
       clearTimeout(retryTimeout)
     }

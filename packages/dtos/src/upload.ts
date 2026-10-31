@@ -75,6 +75,11 @@ export const abortUploadResponseSchema = z.object({
 })
 export type AbortUploadResponse = z.infer<typeof abortUploadResponseSchema>
 
+export const cancelUploadTaskResponseSchema = z.object({
+  success: z.boolean(),
+})
+export type CancelUploadTaskResponse = z.infer<typeof cancelUploadTaskResponseSchema>
+
 export const confirmFileUploadRequestSchema = z.object({
   fileId: z.string(),
   errorMessage: z.string().optional(),
@@ -87,6 +92,7 @@ export const taskInfoSchema = z.object({
   total: z.number(),
   uploaded: z.number(),
   createdAt: z.string(),
+  status: z.enum(['pending', 'uploading', 'completed', 'failed']).optional(),
 })
 export type TaskInfo = z.infer<typeof taskInfoSchema>
 
