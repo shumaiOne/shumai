@@ -1607,5 +1607,10 @@
   "deny": "Deny",
   "denying": "Denying...",
   "consent_failed": "Failed to process authorization",
-  "mcp_access_scope_desc": "Full user-level access to Shumai workspace and MCP tools"
+  "mcp_access_scope_desc": "Full user-level access to Shumai workspace and MCP tools",
+  "cancel_upload_task": "Cancel upload",
+  "cancel_upload_task_confirm_title": "Cancel upload task?",
+  "cancel_upload_task_confirm_description": "Files that have already finished uploading will be kept in your project. Any incomplete or pending uploads will be canceled and removed.",
+  "upload_task_canceled": "Upload task canceled",
+  "failed_to_cancel_upload_task": "Failed to cancel upload task"
 }

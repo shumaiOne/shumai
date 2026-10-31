@@ -1607,5 +1607,10 @@
   "deny": "拒绝",
   "denying": "拒绝中...",
   "consent_failed": "处理授权失败",
-  "mcp_access_scope_desc": "以当前用户权限完全访问 Shumai 工作空间及 MCP 工具"
+  "mcp_access_scope_desc": "以当前用户权限完全访问 Shumai 工作空间及 MCP 工具",
+  "cancel_upload_task": "取消上传",
+  "cancel_upload_task_confirm_title": "取消上传任务？",
+  "cancel_upload_task_confirm_description": "已完成上传的文件将保留在项目中。任何未完成或等待中的上传将被取消并移除。",
+  "upload_task_canceled": "上传任务已取消",
+  "failed_to_cancel_upload_task": "取消上传任务失败"
 }

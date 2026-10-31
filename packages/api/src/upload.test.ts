@@ -220,4 +220,27 @@ describe('Upload API', () => {
       key: 'files/test.mp4',
     })
   })
+
+  it('POST /teams/:teamId/upload/tasks/:taskId/cancel', async () => {
+    vi.spyOn(uploadService, 'cancelUploadTask').mockResolvedValue({
+      success: true,
+    })
+
+    const res = await app.request('/teams/team1/upload/tasks/task1/cancel', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer test' },
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ success: true })
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Team,
+        id: 'team1',
+        permission: Permission.Edit,
+      }),
+    )
+    expect(uploadService.cancelUploadTask).toHaveBeenCalledWith('team1', 'user1', 'task1')
+  })
 })

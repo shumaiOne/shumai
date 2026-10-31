@@ -5,6 +5,7 @@ import { AssetStatus, AssetType, Prisma, TaskStatus, prisma } from '@shumai/db'
 import {
   AbortUploadRequest,
   AbortUploadResponse,
+  CancelUploadTaskResponse,
   ConfirmFileUploadRequest,
   CreateUploadTaskRequest,
   CreateUploadTaskResponse,
@@ -210,30 +211,7 @@ export class UploadService {
     if (!key) throw new Error('Asset has no key')
 
     if (req.errorMessage) {
-      const bucket = process.env.S3_BUCKET || 'shumai'
-      if (asset.uploadId && key) {
-        try {
-          await s3Service.abortMultipartUpload(bucket, key, asset.uploadId)
-        } catch (err) {
-          logger.warn(
-            { err, key, uploadId: asset.uploadId },
-            'Failed to abort multipart upload on confirm error',
-          )
-        }
-      } else if (key) {
-        try {
-          await s3Service.deleteObject(bucket, key)
-        } catch (err) {
-          logger.warn({ err, key }, 'Failed to delete storage object on confirm error')
-        }
-      }
-
-      await this.prismaClient.asset.delete({ where: { id: asset.id } }).catch(() => {})
-      if (asset.storageKeyId) {
-        await this.prismaClient.storageKey
-          .delete({ where: { id: asset.storageKeyId } })
-          .catch(() => {})
-      }
+      await this.discardUploadingAsset(asset)
       const t = await this.prismaClient.task.findUnique({ where: { id: taskId } })
       if (t) {
         const updatedTask = await this.prismaClient.task.update({
@@ -248,6 +226,10 @@ export class UploadService {
         }
       }
       return
+    }
+
+    if (asset.status !== AssetStatus.uploading) {
+      throw new Error('Asset is not in uploading status')
     }
 
     const size = await s3Service.getObjectSize(process.env.S3_BUCKET || 'shumai', key)
@@ -425,6 +407,7 @@ export class UploadService {
       total: t.total || 0,
       uploaded: t.uploaded,
       createdAt: t.createdAt.toISOString(),
+      status: t.status,
     }))
 
     return { data: infos, pageInfo }
@@ -490,7 +473,6 @@ export class UploadService {
     taskId: string,
     req: AbortUploadRequest,
   ): Promise<AbortUploadResponse> {
-    const bucket = process.env.S3_BUCKET || 'shumai'
     const asset = await this.prismaClient.asset.findUnique({
       where: { id: req.fileId },
       include: {
@@ -520,10 +502,52 @@ export class UploadService {
       throw new Error('Provided key does not match asset storage key')
     }
 
-    const uploadId = asset.uploadId || req.uploadId
     if (asset.uploadId && req.uploadId && asset.uploadId !== req.uploadId) {
       throw new Error('Provided uploadId does not match asset uploadId')
     }
+
+    await this.discardUploadingAsset(asset, req.uploadId)
+
+    if (taskId) {
+      const remaining = await this.prismaClient.asset.count({
+        where: { taskId, status: AssetStatus.uploading },
+      })
+      if (remaining === 0) {
+        await this.prismaClient.task
+          .update({
+            where: { id: taskId },
+            data: { status: TaskStatus.failed },
+          })
+          .catch(() => {})
+      }
+    }
+
+    return { success: true }
+  }
+
+  private async discardUploadingAsset(
+    asset: {
+      id: string
+      uploadId: string | null
+      storageKeyId: string | null
+      storageKey: { key: string } | null
+    },
+    requestedUploadId?: string,
+  ): Promise<void> {
+    const deleteResult = await this.prismaClient.asset.deleteMany({
+      where: {
+        id: asset.id,
+        status: AssetStatus.uploading,
+      },
+    })
+
+    if (deleteResult.count === 0) {
+      return
+    }
+
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const key = asset.storageKey?.key
+    const uploadId = asset.uploadId || requestedUploadId
 
     if (uploadId && key) {
       try {
@@ -539,28 +563,62 @@ export class UploadService {
       }
     }
 
-    await this.prismaClient.asset.delete({ where: { id: asset.id } }).catch((err) => {
-      logger.warn({ err, assetId: asset.id }, 'Failed to delete asset on upload abort')
-    })
     if (asset.storageKeyId) {
       await this.prismaClient.storageKey
         .delete({ where: { id: asset.storageKeyId } })
         .catch(() => {})
     }
+  }
 
-    if (taskId) {
-      const remaining = await this.prismaClient.asset.count({
-        where: { taskId, status: AssetStatus.uploading },
-      })
-      if (remaining === 0) {
-        await this.prismaClient.task
-          .update({
-            where: { id: taskId },
-            data: { status: TaskStatus.failed },
-          })
-          .catch(() => {})
-      }
+  async cancelUploadTask(
+    teamId: string,
+    userId: string,
+    taskId: string,
+  ): Promise<CancelUploadTaskResponse> {
+    const task = await this.prismaClient.task.findUnique({
+      where: { id: taskId },
+      include: {
+        assets: {
+          include: {
+            storageKey: true,
+            project: true,
+          },
+        },
+      },
+    })
+
+    if (!task) {
+      throw new Error('Upload task not found')
     }
+
+    if (task.creatorId !== userId) {
+      throw new Error('Unauthorized to cancel this upload task')
+    }
+
+    if (task.status === TaskStatus.completed) {
+      throw new Error('Cannot cancel a completed upload task')
+    }
+
+    const invalidTeamAsset = task.assets.find(
+      (a) => a.project?.teamId && a.project.teamId !== teamId,
+    )
+    if (invalidTeamAsset) {
+      throw new Error('Task does not belong to specified team')
+    }
+
+    const uploadingAssets = task.assets.filter((a) => a.status === AssetStatus.uploading)
+
+    for (const asset of uploadingAssets) {
+      await this.discardUploadingAsset(asset)
+    }
+
+    await this.prismaClient.task.updateMany({
+      where: {
+        id: taskId,
+        status: { not: TaskStatus.completed },
+      },
+      data: { status: TaskStatus.failed },
+    })
 
     return { success: true }
   }

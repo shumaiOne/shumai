@@ -250,12 +250,15 @@ export function FileBrowser({
   }
 
   const [localUploadingFiles, setLocalUploadingFiles] = useState<AssetInfo[]>([])
+  const fileProgress = useUploadStore((state) => state.fileProgress)
 
   const displayedFiles = useMemo(() => {
     const existingIds = new Set(files.map((f) => f.id))
-    const filteredLocal = localUploadingFiles.filter((f) => !existingIds.has(f.id))
+    const filteredLocal = localUploadingFiles
+      .filter((f) => !existingIds.has(f.id))
+      .filter((f) => fileProgress[f.id!]?.status !== 'failed')
     return [...filteredLocal, ...files]
-  }, [files, localUploadingFiles])
+  }, [files, localUploadingFiles, fileProgress])
 
   const activePreviewItem = useMemo(() => {
     if (selectedIds.size === 0) return null
@@ -575,6 +578,7 @@ export function FileBrowser({
         startTask(data.taskId, taskName, filesProgressInfo)
       }
 
+      let batchIds: Set<string> | null = null
       if (isCurrentFolderUpload) {
         const newLocalFiles: AssetInfo[] = currentFiles
           .filter((f) => {
@@ -615,6 +619,7 @@ export function FileBrowser({
               updatedAt: new Date().toISOString(),
             }
           })
+        batchIds = new Set(newLocalFiles.map((f) => f.id!))
         setLocalUploadingFiles((prev) => [...newLocalFiles, ...prev])
       }
 
@@ -626,26 +631,32 @@ export function FileBrowser({
         queryKey: ['teams', teamId, 'upload', 'tasks'],
       })
 
-      await uploadFilesWithUppy({
-        files: currentFiles,
-        taskId: data.taskId!,
-        teamId: teamId!,
-        storageBackend: (data.storageBackend as 's3' | 'local') || 'local',
-        createdAssets: data.createdAssets,
-        presignedUrls: data.presignedUrls,
-        onFileFinished: async (fileId) => {
-          await queryClient.invalidateQueries({
-            queryKey: ['search', teamId, assetId],
-          })
-          setLocalUploadingFiles((prev) => prev.filter((f) => f.id !== fileId))
-        },
-      })
-      queryClient.invalidateQueries({
-        queryKey: ['search', teamId, assetId],
-      })
-      queryClient.invalidateQueries({
-        queryKey: ['teams', teamId, 'upload', 'tasks'],
-      })
+      try {
+        await uploadFilesWithUppy({
+          files: currentFiles,
+          taskId: data.taskId!,
+          teamId: teamId!,
+          storageBackend: (data.storageBackend as 's3' | 'local') || 'local',
+          createdAssets: data.createdAssets,
+          presignedUrls: data.presignedUrls,
+          onFileFinished: async (fileId) => {
+            await queryClient.invalidateQueries({
+              queryKey: ['search', teamId, assetId],
+            })
+            setLocalUploadingFiles((prev) => prev.filter((f) => f.id !== fileId))
+          },
+        })
+      } finally {
+        if (batchIds) {
+          setLocalUploadingFiles((prev) => prev.filter((f) => !batchIds!.has(f.id!)))
+        }
+        queryClient.invalidateQueries({
+          queryKey: ['search', teamId, assetId],
+        })
+        queryClient.invalidateQueries({
+          queryKey: ['teams', teamId, 'upload', 'tasks'],
+        })
+      }
     },
   })
 
