@@ -3,6 +3,7 @@ import { agentAutofillMedia } from './agent-autofill'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import * as workflowCore from '@shumai/workflow-core'
+import { DBOSError } from '@shumai/workflow-core'
 import * as agentActivities from '../activities/agent'
 
 vi.mock('@shumai/workflow-core', async () => {
@@ -95,13 +96,9 @@ describe('Agent Autofill Workflow', () => {
     // Verify asset fetched
     expect(mockActivities.getAssetActivity).toHaveBeenCalledWith('a1')
 
-    // Verify placeholder comment created
-    expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
-      assetId: 'a1',
-      message: '__AUTOFILL__',
-      sessionId: 's1',
-      agentId: 'agent-1',
-    })
+    // Verify no success or placeholder comments created
+    expect(mockActivities.createCommentActivity).not.toHaveBeenCalled()
+    expect(mockActivities.updateCommentActivity).not.toHaveBeenCalled()
 
     // Verify fields and context fetched
     expect(mockActivities.getProjectAutofillFieldsActivity).toHaveBeenCalledWith('p1')
@@ -145,13 +142,6 @@ describe('Agent Autofill Workflow', () => {
           value: 'Extracted Title',
         },
       ],
-    })
-
-    // Verify placeholder comment updated
-    expect(mockActivities.updateCommentActivity).toHaveBeenCalledWith({
-      commentId: 'comment-placeholder-id',
-      message: 'Autofill completed successfully.',
-      sessionId: 'session-123',
     })
 
     // Verify completed task status
@@ -205,11 +195,8 @@ describe('Agent Autofill Workflow', () => {
 
     await agentAutofillMedia(task)
 
-    expect(mockActivities.updateCommentActivity).toHaveBeenCalledWith({
-      commentId: 'comment-placeholder-id',
-      message: 'Autofill completed: No autofill fields defined in project.',
-    })
-
+    expect(mockActivities.createCommentActivity).not.toHaveBeenCalled()
+    expect(mockActivities.updateCommentActivity).not.toHaveBeenCalled()
     expect(mockActivities.autofillAiActivity).not.toHaveBeenCalled()
     expect(mockActivities.updateAssetMetadataActivity).not.toHaveBeenCalled()
 
@@ -219,7 +206,7 @@ describe('Agent Autofill Workflow', () => {
     })
   })
 
-  it('should handle failures, update placeholder with error, and set status to failed', async () => {
+  it('should handle failures, create comment with error, and set status to failed', async () => {
     mockActivities.getProjectAutofillFieldsActivity.mockRejectedValue(new Error('DB failure'))
 
     const task = await prisma.workflowTask.create({
@@ -232,10 +219,12 @@ describe('Agent Autofill Workflow', () => {
 
     await expect(agentAutofillMedia(task)).rejects.toThrow('DB failure')
 
-    // Verify placeholder updated with error
-    expect(mockActivities.updateCommentActivity).toHaveBeenCalledWith({
-      commentId: 'comment-placeholder-id',
+    // Verify error comment created
+    expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
+      assetId: 'a1',
       message: 'Autofill failed: DB failure',
+      sessionId: task.id,
+      agentId: 'default',
     })
 
     // Verify task failed status
@@ -243,6 +232,33 @@ describe('Agent Autofill Workflow', () => {
       taskId: task.id,
       status: 'failed',
       output: { error: 'DB failure' },
+    })
+  })
+
+  it('should post an error comment when workflow is cancelled with DBOSWorkflowCancelledError', async () => {
+    const cancelErr = new DBOSError.DBOSWorkflowCancelledError('wf-cancel')
+    mockActivities.getProjectAutofillFieldsActivity.mockRejectedValue(cancelErr)
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_metadata_autofill',
+        status: 'pending',
+        assetId: 'a1',
+      },
+    })
+
+    await expect(agentAutofillMedia(task)).rejects.toThrow()
+
+    expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
+      assetId: 'a1',
+      message: expect.stringContaining('Autofill failed:'),
+      sessionId: task.id,
+      agentId: 'default',
+    })
+    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
+      taskId: task.id,
+      status: 'failed',
+      output: { error: expect.stringContaining('wf-cancel') },
     })
   })
 

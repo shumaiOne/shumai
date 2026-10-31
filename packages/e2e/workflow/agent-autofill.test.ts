@@ -263,15 +263,12 @@ describe('Workflow E2E - agentAutofillMedia', () => {
     // 5. Verification
     expect(completedTask.status).toBe('completed')
 
-    // Verify placeholder comment is updated correctly
+    // Verify no comments created on successful autofill
     const comments = await prisma.assetComment.findMany({
       where: { assetId: asset.id },
       orderBy: { createdAt: 'asc' },
     })
-    expect(comments.length).toBeGreaterThan(0)
-    // The last updated message of placeholder comment should indicate success
-    const finalComment = comments[comments.length - 1]
-    expect(finalComment.message).toBe('Autofill completed successfully.')
+    expect(comments.length).toBe(0)
 
     // Verify AssetMetadataValue contains the AI-extracted title
     const titleVal = await prisma.assetMetadataValue.findUnique({
@@ -323,5 +320,124 @@ describe('Workflow E2E - agentAutofillMedia', () => {
       },
     })
     expect(manualNotesVal).toBeNull()
+  }, 50000)
+
+  it('should post an error comment when agent autofill workflow fails', async () => {
+    // 1. Seed Database
+    const team = await prisma.team.create({
+      data: { name: 'E2E Autofill Fail Team' },
+    })
+
+    const project = await prisma.project.create({
+      data: { name: 'E2E Autofill Fail Project', teamId: team.id },
+    })
+
+    await prisma.metadataField.create({
+      data: {
+        key: 'title_fail_field',
+        scope: 'PROJECT',
+        projectId: project.id,
+        teamId: team.id,
+        config: { name: 'Title', type: 'text', autofillSource: 'CONTENT' },
+        description: 'AI-extracted document title',
+      },
+    })
+
+    const user = await prisma.user.create({
+      data: {
+        name: 'Autofill Fail Agent User',
+        email: 'failautofill@shumai.ai',
+        type: 'agent',
+      },
+    })
+
+    await prisma.teamMember.create({
+      data: {
+        teamId: team.id,
+        userId: user.id,
+        role: 'editor',
+      },
+    })
+
+    const provider = await prisma.provider.create({
+      data: {
+        name: 'google-fail',
+        teamId: team.id,
+        config: { api: 'google-generative-ai', apiKey: 'dummy-google-api-key' },
+      },
+    })
+
+    const model = await prisma.model.create({
+      data: {
+        modelId: 'gemini-fail',
+        name: 'Gemini Fail',
+        providerId: provider.id,
+        config: {
+          input: ['text', 'image'],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: 8192,
+          maxTokens: 2048,
+          reasoning: false,
+        },
+      },
+    })
+
+    const agent = await prisma.agent.create({
+      data: {
+        id: user.id,
+        type: 'autofill',
+        enabled: true,
+        teamId: team.id,
+        providerId: provider.id,
+        modelId: model.id,
+        config: { provider: 'google', model: 'gemini-fail' },
+      },
+    })
+
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'fail-sample.mp4',
+        type: 'file',
+        projectId: project.id,
+        mediaType: 'video/mp4',
+        status: 'uploaded',
+        media: {
+          proxyType: 'video',
+          duration: 12.0,
+          videoTranscodes: [{ key: 'files/fail-sample.mp4', width: 1280, height: 720 }],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- partial MediaInfo mock for testing
+        } as any,
+      },
+    })
+
+    // Mock prompt to fail
+    vi.spyOn(AgentHarness.prototype, 'prompt').mockRejectedValueOnce(
+      new Error('LLM rate limit reached'),
+    )
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_metadata_autofill',
+        status: 'pending',
+        assetId: asset.id,
+        projectId: project.id,
+        teamId: team.id,
+        payload: {
+          projectId: project.id,
+          agent: { sessionId: 'mock-session-fail', agentId: agent.id },
+        },
+      },
+    })
+
+    await expect(workflowService.executeWait(task, 45000)).rejects.toThrow()
+
+    // Verify error comment was created on the asset
+    const comments = await prisma.assetComment.findMany({
+      where: { assetId: asset.id },
+      orderBy: { createdAt: 'asc' },
+    })
+    expect(comments.length).toBe(1)
+    expect(comments[0].message).toContain('Autofill failed:')
+    expect(comments[0].message).toContain('LLM rate limit reached')
   }, 50000)
 })

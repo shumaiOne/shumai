@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 import React from 'react'
 import { cleanup, render, fireEvent } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { CommentInfo } from '@shumai/dtos'
+import { useTeamContextStore } from '@/ui/stores/team-context'
 import { ChatInput } from './message-input'
 
 function createWrapper() {
@@ -16,6 +17,13 @@ function createWrapper() {
 }
 
 describe('ChatInput auto-mention on reply', () => {
+  beforeEach(() => {
+    useTeamContextStore.setState({
+      teamId: 'team-123',
+      projectTeamMap: { 'proj-1': 'team-123' },
+    })
+  })
+
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()

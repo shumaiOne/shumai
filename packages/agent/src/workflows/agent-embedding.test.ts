@@ -3,6 +3,7 @@ import { agentEmbeddingMedia } from './agent-embedding'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import * as workflowCore from '@shumai/workflow-core'
+import { DBOSError } from '@shumai/workflow-core'
 import * as agentActivities from '../activities/agent'
 import * as aiActivities from '../activities/ai'
 
@@ -122,13 +123,9 @@ describe('Agent Embedding Workflow', () => {
       status: 'processing',
     })
 
-    // Verify placeholder comment created
-    expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
-      assetId: 'a1',
-      message: '__EMBEDDING__',
-      sessionId: 's1',
-      agentId: 'agent-1',
-    })
+    // Verify no comments created on success
+    expect(mockActivities.createCommentActivity).not.toHaveBeenCalled()
+    expect(mockActivities.updateCommentActivity).not.toHaveBeenCalled()
 
     // Verify context fetching
     expect(mockActivities.getEmbeddingContextActivity).toHaveBeenCalledWith({
@@ -155,12 +152,6 @@ describe('Agent Embedding Workflow', () => {
       inputTokens: 5,
       outputTokens: 5,
       model: 'gemini-embedding-2',
-    })
-
-    // Verify placeholder comment updated
-    expect(mockActivities.updateCommentActivity).toHaveBeenCalledWith({
-      commentId: 'comment-placeholder-id',
-      message: 'Embedding completed successfully.',
     })
 
     // Verify completed task status
@@ -417,7 +408,7 @@ describe('Agent Embedding Workflow', () => {
     })
   })
 
-  it('should handle failures, update placeholder with error, and set status to failed', async () => {
+  it('should handle failures, create comment with error, and set status to failed', async () => {
     mockActivities.generateImageEmbeddingActivity.mockRejectedValue(
       new Error('AI Service Unavailable'),
     )
@@ -433,17 +424,48 @@ describe('Agent Embedding Workflow', () => {
 
     await expect(agentEmbeddingMedia(task)).rejects.toThrow('AI Service Unavailable')
 
-    // Verify placeholder updated with error
-    expect(mockActivities.updateCommentActivity).toHaveBeenCalledWith({
-      commentId: 'comment-placeholder-id',
+    // Verify error comment created
+    expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
+      assetId: 'a1',
       message: 'Embedding failed: AI Service Unavailable',
+      sessionId: task.id,
+      agentId: 'default',
     })
+    expect(mockActivities.updateCommentActivity).not.toHaveBeenCalled()
 
     // Verify status updated to failed
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
       taskId: task.id,
       status: 'failed',
       output: { error: 'AI Service Unavailable' },
+    })
+  })
+
+  it('should post an error comment when workflow is cancelled with DBOSWorkflowCancelledError', async () => {
+    const cancelErr = new DBOSError.DBOSWorkflowCancelledError('wf-cancel')
+    mockActivities.generateImageEmbeddingActivity.mockRejectedValue(cancelErr)
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_embedding',
+        status: 'pending',
+        assetId: 'a1',
+        teamId: 't1',
+      },
+    })
+
+    await expect(agentEmbeddingMedia(task)).rejects.toThrow()
+
+    expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
+      assetId: 'a1',
+      message: expect.stringContaining('Embedding failed:'),
+      sessionId: task.id,
+      agentId: 'default',
+    })
+    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
+      taskId: task.id,
+      status: 'failed',
+      output: { error: expect.stringContaining('wf-cancel') },
     })
   })
 
