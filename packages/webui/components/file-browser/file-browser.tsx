@@ -13,7 +13,6 @@ import type {
   AssetInfo,
   CollectionInfo,
   CreateUploadTaskRequest,
-  FileNode,
   SearchCondition,
   SearchSort,
   ShareLinkInfo,
@@ -251,16 +250,7 @@ export function FileBrowser({
     }
   }
 
-  const [localUploadingFiles, setLocalUploadingFiles] = useState<AssetInfo[]>([])
-  const fileProgress = useUploadStore((state) => state.fileProgress)
-
-  const displayedFiles = useMemo(() => {
-    const existingIds = new Set(files.map((f) => f.id))
-    const filteredLocal = localUploadingFiles
-      .filter((f) => !existingIds.has(f.id))
-      .filter((f) => fileProgress[f.id!]?.status !== 'failed')
-    return [...filteredLocal, ...files]
-  }, [files, localUploadingFiles, fileProgress])
+  const displayedFiles = files
 
   useBatchFileStatus({ teamId, items: displayedFiles })
 
@@ -598,7 +588,6 @@ export function FileBrowser({
     },
     onSuccess: async (data, variables, context) => {
       const currentFiles = context?.files || []
-      const isCurrentFolderUpload = variables.json.parentId === assetId
 
       // Register task and files in the store for real-time progress tracking
       const filesProgressInfo = currentFiles
@@ -623,60 +612,10 @@ export function FileBrowser({
         startTask(data.taskId, taskName, filesProgressInfo)
       }
 
-      let batchIds: Set<string> | null = null
-      if (isCurrentFolderUpload) {
-        const newLocalFiles: AssetInfo[] = currentFiles
-          .filter((f) => {
-            const path = (f.file.webkitRelativePath || f.file.name).split('/')
-            return path.length === 1
-          })
-          .map((f) => {
-            const assetInfo = data.createdAssets?.find((a) => a.tempId === f.id)
-            const urlInfo = (
-              data.presignedUrls as { id?: string; url?: string; fileId?: string }[] | undefined
-            )?.find((p) => p.id === f.id)
-            const fileId = assetInfo?.assetId || urlInfo?.fileId || f.id
-            const hasUrl = !!urlInfo && !!urlInfo.url
-            return {
-              id: fileId,
-              name: f.file.name,
-              sizeByte: f.file.size,
-              fileCount: 0,
-              type: 'file',
-              status: hasUrl ? 'uploading' : 'error',
-              proxyType:
-                f.file.name.toLowerCase().endsWith('.wma') && f.file.type?.startsWith('video/')
-                  ? 'audio'
-                  : f.file.type?.startsWith('image/')
-                    ? 'image'
-                    : f.file.type?.startsWith('video/')
-                      ? 'video'
-                      : f.file.type?.startsWith('audio/')
-                        ? 'audio'
-                        : f.file.name.endsWith('.pdf') ||
-                            f.file.name.endsWith('.txt') ||
-                            f.file.name.endsWith('.csv') ||
-                            f.file.name.endsWith('.md') ||
-                            f.file.name.endsWith('.markdown')
-                          ? 'pdf'
-                          : null,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }
-          })
-        batchIds = new Set(newLocalFiles.map((f) => f.id!))
-        setLocalUploadingFiles((prev) => [...newLocalFiles, ...prev])
-      }
-
-      // Invalidate queries immediately only if newly created folders appear
-      const hasCreatedFolders = (variables.json.files as FileNode[]).some(
-        (f) => f.children && f.children.length > 0,
-      )
-      if (hasCreatedFolders) {
-        queryClient.invalidateQueries({
-          queryKey: ['search', teamId, assetId],
-        })
-      }
+      // Invalidate queries immediately so newly created assets (and folders) appear
+      queryClient.invalidateQueries({
+        queryKey: ['search', teamId, assetId],
+      })
       queryClient.invalidateQueries({
         queryKey: ['teams', teamId, 'upload', 'tasks'],
       })
@@ -690,16 +629,12 @@ export function FileBrowser({
           storageBackend: (data.storageBackend as 's3' | 'local') || 'local',
           createdAssets: data.createdAssets,
           presignedUrls: data.presignedUrls,
-          onFileFinished: (fileId) => {
-            setLocalUploadingFiles((prev) => prev.filter((f) => f.id !== fileId))
+          onFileFinished: () => {
             throttledInvalidateSearch()
           },
         })
       } finally {
         throttledInvalidateSearch.cancel()
-        if (batchIds) {
-          setLocalUploadingFiles((prev) => prev.filter((f) => !batchIds!.has(f.id!)))
-        }
         queryClient.invalidateQueries({
           queryKey: ['search', teamId, assetId],
         })
