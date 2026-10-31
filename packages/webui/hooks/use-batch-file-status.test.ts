@@ -94,8 +94,8 @@ describe('useBatchFileStatus', () => {
     })
 
     expect(queryClient.getQueryData(['file', 'team-1', 'f1'])).toEqual(updatedAssets[0])
-    // Should invalidate search query because f1 advanced from uploading to uploaded
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['search', 'team-1'] })
+    // Should NOT invalidate search query for intermediate 'uploaded' state; card updates via setQueryData
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ['search', 'team-1'] })
   })
 
   it('polls batch API when files are in "uploaded" or "processing" status and updates cache', async () => {

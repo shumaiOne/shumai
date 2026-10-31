@@ -5,7 +5,7 @@ import { usePermissions } from '@/ui/hooks/use-permissions'
 import { m } from '@/ui/paraglide/messages.js'
 import { useUploadStore } from '@/ui/stores/upload'
 import { uploadFilesWithUppy } from '@/ui/lib/uploader'
-import type { AssetInfo, CreateUploadTaskRequest } from '@shumai/dtos'
+import type { AssetInfo, CreateUploadTaskRequest, FileNode } from '@shumai/dtos'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { formatSize } from '@/ui/lib/format'
@@ -207,7 +207,7 @@ export function MobileFileBrowser({
     let lastRun = 0
     const THROTTLE_MS = 2500
 
-    return () => {
+    const run = () => {
       const now = Date.now()
       if (now - lastRun >= THROTTLE_MS) {
         lastRun = now
@@ -227,6 +227,20 @@ export function MobileFileBrowser({
         )
       }
     }
+
+    const cancel = () => {
+      if (timer) {
+        clearTimeout(timer)
+        timer = null
+      }
+    }
+
+    const reset = () => {
+      cancel()
+      lastRun = Date.now()
+    }
+
+    return Object.assign(run, { cancel, reset })
   }, [queryClient, teamId, assetId])
 
   const $createUploadTask = client.api.teams[':teamId'].upload.tasks.$post
@@ -247,7 +261,7 @@ export function MobileFileBrowser({
     onError: () => {
       toast.error(m.failed_upload_file())
     },
-    onSuccess: async (data, _variables, context) => {
+    onSuccess: async (data, variables, context) => {
       const currentFiles = context?.files || []
       const filesProgressInfo = currentFiles
         .map((f) => {
@@ -269,22 +283,32 @@ export function MobileFileBrowser({
         startTask(data.taskId, taskName, filesProgressInfo)
       }
 
-      queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })
+      const hasCreatedFolders = (variables.json.files as FileNode[]).some(
+        (f) => f.children && f.children.length > 0,
+      )
+      if (hasCreatedFolders) {
+        queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })
+      }
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'upload', 'tasks'] })
+      throttledInvalidateSearch.reset()
 
-      await uploadFilesWithUppy({
-        files: currentFiles,
-        taskId: data.taskId!,
-        teamId: teamId!,
-        storageBackend: (data.storageBackend as 's3' | 'local') || 'local',
-        createdAssets: data.createdAssets,
-        presignedUrls: data.presignedUrls,
-        onFileFinished: () => {
-          throttledInvalidateSearch()
-        },
-      })
-      queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'upload', 'tasks'] })
+      try {
+        await uploadFilesWithUppy({
+          files: currentFiles,
+          taskId: data.taskId!,
+          teamId: teamId!,
+          storageBackend: (data.storageBackend as 's3' | 'local') || 'local',
+          createdAssets: data.createdAssets,
+          presignedUrls: data.presignedUrls,
+          onFileFinished: () => {
+            throttledInvalidateSearch()
+          },
+        })
+      } finally {
+        throttledInvalidateSearch.cancel()
+        queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })
+        queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'upload', 'tasks'] })
+      }
     },
   })
 

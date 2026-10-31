@@ -13,6 +13,7 @@ import type {
   AssetInfo,
   CollectionInfo,
   CreateUploadTaskRequest,
+  FileNode,
   SearchCondition,
   SearchSort,
   ShareLinkInfo,
@@ -541,7 +542,7 @@ export function FileBrowser({
     let lastRun = 0
     const THROTTLE_MS = 2500
 
-    return () => {
+    const run = () => {
       const now = Date.now()
       if (now - lastRun >= THROTTLE_MS) {
         lastRun = now
@@ -561,6 +562,20 @@ export function FileBrowser({
         )
       }
     }
+
+    const cancel = () => {
+      if (timer) {
+        clearTimeout(timer)
+        timer = null
+      }
+    }
+
+    const reset = () => {
+      cancel()
+      lastRun = Date.now()
+    }
+
+    return Object.assign(run, { cancel, reset })
   }, [queryClient, teamId, assetId])
 
   const $createUploadTask = client.api.teams[':teamId'].upload.tasks.$post
@@ -653,13 +668,19 @@ export function FileBrowser({
         setLocalUploadingFiles((prev) => [...newLocalFiles, ...prev])
       }
 
-      // Invalidate queries immediately so any newly created folders appear
-      queryClient.invalidateQueries({
-        queryKey: ['search', teamId, assetId],
-      })
+      // Invalidate queries immediately only if newly created folders appear
+      const hasCreatedFolders = (variables.json.files as FileNode[]).some(
+        (f) => f.children && f.children.length > 0,
+      )
+      if (hasCreatedFolders) {
+        queryClient.invalidateQueries({
+          queryKey: ['search', teamId, assetId],
+        })
+      }
       queryClient.invalidateQueries({
         queryKey: ['teams', teamId, 'upload', 'tasks'],
       })
+      throttledInvalidateSearch.reset()
 
       try {
         await uploadFilesWithUppy({
@@ -675,6 +696,7 @@ export function FileBrowser({
           },
         })
       } finally {
+        throttledInvalidateSearch.cancel()
         if (batchIds) {
           setLocalUploadingFiles((prev) => prev.filter((f) => !batchIds!.has(f.id!)))
         }
