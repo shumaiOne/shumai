@@ -32,7 +32,7 @@
     },
     "apps/agent": {
       "name": "@shumai/agent-app",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "bin": {
         "shumai-agent": "./src/index.ts",
       },
@@ -44,7 +44,7 @@
     },
     "apps/cli": {
       "name": "@shumai/cli",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "bin": {
         "shumai-cli": "./src/index.ts",
       },
@@ -61,7 +61,7 @@
     },
     "apps/premiere-uxp": {
       "name": "@shumai/premiere-uxp",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "dependencies": {
         "@shumai/api": "workspace:*",
         "@shumai/dtos": "workspace:*",
@@ -115,7 +115,7 @@
     },
     "apps/transcode": {
       "name": "@shumai/transcode-app",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "bin": {
         "shumai-transcode": "./src/index.ts",
       },
@@ -127,7 +127,7 @@
     },
     "apps/web": {
       "name": "@shumai/web-app",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "dependencies": {
         "@shumai/agent": "workspace:*",
         "@shumai/api": "workspace:*",
@@ -147,7 +147,7 @@
     },
     "packages/agent": {
       "name": "@shumai/agent",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "dependencies": {
         "@anthropic-ai/sandbox-runtime": "0.0.74",
         "@earendil-works/pi-agent-core": "0.82.1",
@@ -171,7 +171,7 @@
     },
     "packages/api": {
       "name": "@shumai/api",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "dependencies": {
         "@better-auth/mcp": "1.7.12",
         "@hono/zod-validator": "0.7.6",
@@ -191,7 +191,7 @@
     },
     "packages/core": {
       "name": "@shumai/core",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "dependencies": {
         "@ai-sdk/alibaba": "2.0.38",
         "@ai-sdk/amazon-bedrock": "5.0.67",
@@ -255,7 +255,7 @@
     },
     "packages/db": {
       "name": "@shumai/db",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.82.1",
         "@prisma/adapter-pg": "7.10.0",
@@ -271,7 +271,7 @@
     },
     "packages/dtos": {
       "name": "@shumai/dtos",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.82.1",
         "zod": "4.5.4",
@@ -279,7 +279,7 @@
     },
     "packages/e2e": {
       "name": "@shumai/e2e",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.82.1",
         "@google/genai": "2.28.0",
@@ -294,18 +294,18 @@
     },
     "packages/operations": {
       "name": "@shumai/operations",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "dependencies": {
         "zod": "4.5.4",
       },
     },
     "packages/tableprinter": {
       "name": "@shumai/tableprinter",
-      "version": "0.6.2",
+      "version": "0.6.3",
     },
     "packages/transcode": {
       "name": "@shumai/transcode",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "dependencies": {
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
@@ -316,7 +316,7 @@
     },
     "packages/webui": {
       "name": "@shumai/webui",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "dependencies": {
         "@base-ui/react": "1.7.0",
         "@better-auth/oauth-provider": "1.7.12",
@@ -419,7 +419,7 @@
     },
     "packages/workflow-core": {
       "name": "@shumai/workflow-core",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "dependencies": {
         "@dbos-inc/dbos-sdk": "5.2.11",
         "@shumai/core": "workspace:*",

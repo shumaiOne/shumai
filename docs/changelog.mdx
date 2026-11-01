@@ -3,6 +3,24 @@ title: "Changelog"
 description: "Recent updates, new features, and improvements in Shumai"
 ---
 
+<Update label="v0.6.3" description="November 1, 2026">
+
+### Added
+
+- **upload**: Allow users to cancel running upload tasks directly from the upload tasks sidebar with a confirmation dialog, preserving already completed files while discarding incomplete assets
+- **upload**: Improve upload resilience during network drops, device sleep, and transient gateway errors by adding state-based exponential backoff retries and extending upload link expiration to 12 hours
+
+### Fixed
+
+- **upload**: Display a clear diagnostic error toast when remote file uploads fail due to an unconfigured or localhost S3 storage endpoint
+
+### Changed
+
+- **upload**: ⚠️ **Important Behavior Change**: Uploading files now appear in their correct sorted position in the file list, following the current sort setting, instead of being pinned to the top and jumping into place after the upload finishes. Cards no longer move when an upload completes. Note that if you sort by name, an uploading file may land outside your current view. Local uploads also show remaining time and transfer speed (e.g. `8m left (390.88 KB/s)`), and other users viewing the folder see `[User] is uploading...`.
+- **agent**: ⚠️ **Important Behavior Change**: Autofill and Embedding agents will no longer post completion comments when finishing successfully to prevent clutter in asset comment feeds. Comments are now only posted if a task encounters an error.
+
+</Update>
+
 <Update label="v0.6.2" description="October 29, 2026">
 
 ### Added
