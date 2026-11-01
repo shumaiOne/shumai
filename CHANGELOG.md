@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **upload**: Display file cards directly in their sorted position during upload with live transfer rate and remaining time, while showing uploader attribution for other viewers
+- **upload**: ⚠️ **Important Behavior Change**: Uploading files now appear in their correct sorted position in the file list, following the current sort setting, instead of being pinned to the top and jumping into place after the upload finishes. Cards no longer move when an upload completes. Note that if you sort by name, an uploading file may land outside your current view. Local uploads also show remaining time and transfer speed (e.g. `8m left (390.88 KB/s)`), and other users viewing the folder see `[User] is uploading...`.
 - **agent**: ⚠️ **Important Behavior Change**: Autofill and Embedding agents will no longer post completion comments when finishing successfully to prevent clutter in asset comment feeds. Comments are now only posted if a task encounters an error.
 
 ## [0.6.2] - 2026-10-29
