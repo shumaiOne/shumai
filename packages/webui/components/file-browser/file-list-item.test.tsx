@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FileListItem } from './file-list-item'
 import type { AssetInfo } from '@shumai/dtos'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useUploadStore } from '@/ui/stores/upload'
 
 vi.mock('@dnd-kit/react', () => ({
   useDraggable: () => ({
@@ -35,6 +36,7 @@ describe('FileListItem', () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     })
+    useUploadStore.setState({ fileProgress: {} })
     vi.useFakeTimers()
   })
 
@@ -182,5 +184,70 @@ describe('FileListItem', () => {
 
     expect(screen.getByDisplayValue('List text value')).toBeTruthy()
     expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('renders dynamic ETA and speed for local uploader', () => {
+    useUploadStore.setState({
+      fileProgress: {
+        'file-123': {
+          fileId: 'file-123',
+          name: 'very_long_file_name_for_testing_purposes.mov',
+          loaded: 500,
+          total: 1000,
+          status: 'uploading',
+          speed: 400 * 1024,
+          eta: 480,
+        },
+      },
+    })
+
+    const uploadingItem: AssetInfo = {
+      ...mockItem,
+      status: 'uploading',
+    } as AssetInfo
+
+    renderComponent({ item: uploadingItem })
+
+    const statusBadge = screen.getByTestId('file-list-item-uploading-status')
+    expect(statusBadge.textContent).toMatch(/8m.*(left|剩余).*409\.6 KB\/s/i)
+    expect(screen.queryByTestId('file-list-item-remote-uploading-circle')).toBeNull()
+  })
+
+  it('renders "Uploading..." fallback during local warm-up', () => {
+    useUploadStore.setState({
+      fileProgress: {
+        'file-123': {
+          fileId: 'file-123',
+          name: 'very_long_file_name_for_testing_purposes.mov',
+          loaded: 100,
+          total: 1000,
+          status: 'uploading',
+        },
+      },
+    })
+
+    const uploadingItem: AssetInfo = {
+      ...mockItem,
+      status: 'uploading',
+    } as AssetInfo
+
+    renderComponent({ item: uploadingItem })
+
+    const statusBadge = screen.getByTestId('file-list-item-uploading-status')
+    expect(statusBadge.textContent).toMatch(/Uploading|上传中/i)
+  })
+
+  it('renders "[User] is uploading..." and indeterminate circle for remote viewer', () => {
+    const uploadingItem: AssetInfo = {
+      ...mockItem,
+      status: 'uploading',
+      creator: { id: 'u1', name: 'Alice' },
+    } as AssetInfo
+
+    renderComponent({ item: uploadingItem })
+
+    const statusBadge = screen.getByTestId('file-list-item-uploading-status')
+    expect(statusBadge.textContent).toMatch(/Alice.*(is uploading|正在上传)/i)
+    expect(screen.getByTestId('file-list-item-remote-uploading-circle')).toBeTruthy()
   })
 })

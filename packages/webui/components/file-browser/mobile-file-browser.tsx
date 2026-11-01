@@ -5,7 +5,7 @@ import { usePermissions } from '@/ui/hooks/use-permissions'
 import { m } from '@/ui/paraglide/messages.js'
 import { useUploadStore } from '@/ui/stores/upload'
 import { uploadFilesWithUppy } from '@/ui/lib/uploader'
-import type { AssetInfo, CreateUploadTaskRequest, FileNode } from '@shumai/dtos'
+import type { AssetInfo, CreateUploadTaskRequest } from '@shumai/dtos'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { formatSize } from '@/ui/lib/format'
@@ -283,12 +283,7 @@ export function MobileFileBrowser({
         startTask(data.taskId, taskName, filesProgressInfo)
       }
 
-      const hasCreatedFolders = (variables.json.files as FileNode[]).some(
-        (f) => f.children && f.children.length > 0,
-      )
-      if (hasCreatedFolders) {
-        queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })
-      }
+      queryClient.invalidateQueries({ queryKey: ['search', teamId, assetId] })
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'upload', 'tasks'] })
       throttledInvalidateSearch.reset()
 

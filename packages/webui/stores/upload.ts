@@ -6,6 +6,8 @@ export interface FileUploadState {
   loaded: number
   total: number
   status: 'uploading' | 'completed' | 'failed'
+  speed?: number
+  eta?: number
 }
 
 export interface TaskUploadState {
@@ -27,7 +29,13 @@ type UploadStore = {
     taskName: string,
     files: Array<{ fileId: string; name: string; size: number }>,
   ) => void
-  updateFileProgress: (taskId: string, fileId: string, loaded: number) => void
+  updateFileProgress: (
+    taskId: string,
+    fileId: string,
+    loaded: number,
+    speed?: number,
+    eta?: number,
+  ) => void
   completeFile: (taskId: string, fileId: string) => void
   failFile: (taskId: string, fileId: string) => void
   cancelTask: (taskId: string) => void
@@ -78,7 +86,7 @@ export const useUploadStore = create<UploadStore>((set) => ({
       }
     }),
 
-  updateFileProgress: (taskId, fileId, loaded) =>
+  updateFileProgress: (taskId, fileId, loaded, speed, eta) =>
     set((state) => {
       const task = state.tasks[taskId]
       if (!task) return {}
@@ -86,7 +94,12 @@ export const useUploadStore = create<UploadStore>((set) => ({
       const file = task.files[fileId]
       if (!file) return {}
 
-      const updatedFile = { ...file, loaded }
+      const updatedFile: FileUploadState = {
+        ...file,
+        loaded,
+        ...(speed !== undefined ? { speed } : {}),
+        ...(eta !== undefined ? { eta } : {}),
+      }
       const updatedFiles = { ...task.files, [fileId]: updatedFile }
 
       const loadedBytes = Object.values(updatedFiles).reduce((sum, f) => sum + f.loaded, 0)

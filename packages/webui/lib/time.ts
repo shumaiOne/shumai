@@ -75,6 +75,28 @@ export const formatRemainingTime = (targetDate: string | Date, now: Date = new D
   return minutes > 0 ? `${minutes}m` : '< 1m'
 }
 
+export const formatRemainingTimeSeconds = (totalSeconds: number): string => {
+  if (!isFinite(totalSeconds) || totalSeconds <= 0) {
+    return '< 1s'
+  }
+  const total = Math.round(totalSeconds)
+  const days = Math.floor(total / 86400)
+  const hours = Math.floor((total % 86400) / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const seconds = total % 60
+
+  if (days > 0) {
+    return hours > 0 ? `${days}d ${hours}h` : `${days}d`
+  }
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
+  }
+  if (minutes > 0) {
+    return `${minutes}m`
+  }
+  return `${seconds}s`
+}
+
 /**
  * Whole days remaining before a soft-deleted asset is permanently purged.
  * Returns `null` when there is no valid `deletedAt` timestamp, and `0` once the

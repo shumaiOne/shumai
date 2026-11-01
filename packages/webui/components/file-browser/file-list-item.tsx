@@ -8,6 +8,7 @@ import { AlertCircle, File, Folder, MoreVertical, AudioLines } from 'lucide-reac
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/ui/lib/utils'
 import { formatSize } from '@/ui/lib/format'
+import { formatRemainingTimeSeconds } from '@/ui/lib/time'
 import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
 import type { DragState } from '../dnd-types'
 import FieldRenderer from '../field-renderer'
@@ -100,8 +101,28 @@ export function FileListItem({
     return polledItem || item
   }, [item, polledItem])
 
+  const isLocalUploader = Boolean(fileUploadState)
+  const isUploadFailed = fileUploadState?.status === 'failed'
   const isUploadDone = fileUploadState?.status === 'completed' || uploadPercent >= 100
-  const isUploading = displayItem.status === 'uploading' && !isUploadDone
+  const isUploading = displayItem.status === 'uploading' && !isUploadDone && !isUploadFailed
+
+  let uploadingText: string | null = null
+  if (isUploading) {
+    if (isLocalUploader) {
+      if (fileUploadState?.speed && fileUploadState?.eta != null) {
+        uploadingText = m.upload_eta_speed({
+          eta: formatRemainingTimeSeconds(fileUploadState.eta),
+          speed: `${formatSize(fileUploadState.speed)}/s`,
+        })
+      } else {
+        uploadingText = m.uploading()
+      }
+    } else {
+      uploadingText = m.user_is_uploading({
+        user: displayItem.creator?.name || m.someone(),
+      })
+    }
+  }
 
   // dnd-kit hooks
   const { ref: setDraggableRef, isDragging: isDraggableDragging } = useDraggable({
@@ -213,7 +234,24 @@ export function FileListItem({
           />
           <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-muted rounded overflow-hidden">
             {isUploading ? (
-              <ProgressCircle progress={uploadPercent} className="w-7 h-7" />
+              isLocalUploader ? (
+                <ProgressCircle progress={uploadPercent} className="w-7 h-7" />
+              ) : (
+                <svg
+                  viewBox="0 0 50 50"
+                  data-testid="file-list-item-remote-uploading-circle"
+                  className="w-7 h-7 opacity-60 animate-preparing-breathe"
+                >
+                  <circle
+                    cx="25"
+                    cy="25"
+                    r="20"
+                    className="stroke-muted-foreground"
+                    strokeWidth="4"
+                    fill="transparent"
+                  />
+                </svg>
+              )
             ) : displayItem.status === 'failed' && !displayItem.preview?.thumbnailUrl ? (
               <AlertCircle className="h-4 w-4 text-destructive" />
             ) : displayItem.preview?.thumbnailUrl ? (
@@ -239,7 +277,15 @@ export function FileListItem({
             disabled={!isEditing}
             className="h-auto p-0 text-sm font-medium text-foreground truncate min-w-0 flex-1"
           />
-          {displayItem.status === 'error' && (
+          {uploadingText && (
+            <span
+              data-testid="file-list-item-uploading-status"
+              className="text-xs text-muted-foreground font-medium shrink-0"
+            >
+              {uploadingText}
+            </span>
+          )}
+          {(displayItem.status === 'error' || isUploadFailed) && (
             <span className="text-xs text-destructive font-semibold shrink-0">
               {m.failed_to_upload_parenthesized()}
             </span>

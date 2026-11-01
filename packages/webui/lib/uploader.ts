@@ -409,12 +409,53 @@ export async function uploadFilesWithUppy({
     window.addEventListener('offline', handleOffline)
   }
 
+  const fileSpeedTrackers = new Map<
+    string,
+    { lastBytes: number; lastTime: number; smoothedSpeed?: number }
+  >()
+
   uppy.on('upload-progress', (file, progress) => {
     if (!file) return
     const fileId = file.meta.fileId as string
-    if (fileId && progress.bytesUploaded != null) {
-      updateFileProgress(taskId, fileId, progress.bytesUploaded)
+    if (!fileId || progress.bytesUploaded == null) return
+
+    const now = Date.now()
+    const tracker = fileSpeedTrackers.get(fileId)
+    let speed: number | undefined
+    let eta: number | undefined
+
+    if (tracker) {
+      const timeDelta = (now - tracker.lastTime) / 1000
+      const bytesDelta = progress.bytesUploaded - tracker.lastBytes
+      if (timeDelta >= 0.5 && bytesDelta >= 0) {
+        const instantSpeed = bytesDelta / timeDelta
+        speed =
+          tracker.smoothedSpeed !== undefined
+            ? tracker.smoothedSpeed * 0.7 + instantSpeed * 0.3
+            : instantSpeed
+        tracker.smoothedSpeed = speed
+        tracker.lastBytes = progress.bytesUploaded
+        tracker.lastTime = now
+
+        const remainingBytes = (progress.bytesTotal ?? 0) - progress.bytesUploaded
+        if (speed > 0 && remainingBytes > 0) {
+          eta = Math.round(remainingBytes / speed)
+        }
+      } else {
+        speed = tracker.smoothedSpeed
+        if (speed && speed > 0) {
+          const remainingBytes = (progress.bytesTotal ?? 0) - progress.bytesUploaded
+          eta = Math.round(remainingBytes / speed)
+        }
+      }
+    } else {
+      fileSpeedTrackers.set(fileId, {
+        lastBytes: progress.bytesUploaded,
+        lastTime: now,
+      })
     }
+
+    updateFileProgress(taskId, fileId, progress.bytesUploaded, speed, eta)
   })
 
   uppy.on('upload-success', (file) => {
@@ -423,6 +464,7 @@ export async function uploadFilesWithUppy({
     if (fileId) {
       pendingNetworkRetries.delete(fileId)
       retryCounts.delete(fileId)
+      fileSpeedTrackers.delete(fileId)
     }
     activeUploads.delete(fileId)
 
@@ -459,6 +501,7 @@ export async function uploadFilesWithUppy({
     const uploadUrl = (file.meta?.url as string | undefined) || active?.url
 
     activeUploads.delete(fileId)
+    fileSpeedTrackers.delete(fileId)
     failFile(taskId, fileId)
 
     if (isLocalhostStorageMismatch(uploadUrl)) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatRemainingTime, getTrashDaysLeft } from './time'
+import { formatRemainingTime, formatRemainingTimeSeconds, getTrashDaysLeft } from './time'
 
 describe('formatRemainingTime', () => {
   const baseNow = new Date('2026-08-17T12:00:00Z')
@@ -42,6 +42,33 @@ describe('formatRemainingTime', () => {
 
   it('accepts ISO strings', () => {
     expect(formatRemainingTime('2026-08-17T15:18:00Z', baseNow)).toBe('3h 18m')
+  })
+})
+
+describe('formatRemainingTimeSeconds', () => {
+  it('formats hours and minutes', () => {
+    expect(formatRemainingTimeSeconds(3 * 3600 + 18 * 60)).toBe('3h 18m')
+  })
+
+  it('formats exact hours', () => {
+    expect(formatRemainingTimeSeconds(3 * 3600)).toBe('3h')
+  })
+
+  it('formats minutes', () => {
+    expect(formatRemainingTimeSeconds(8 * 60)).toBe('8m')
+    expect(formatRemainingTimeSeconds(45 * 60 + 20)).toBe('45m')
+  })
+
+  it('formats seconds', () => {
+    expect(formatRemainingTimeSeconds(45)).toBe('45s')
+    expect(formatRemainingTimeSeconds(1)).toBe('1s')
+  })
+
+  it('handles zero, negative, or invalid numbers', () => {
+    expect(formatRemainingTimeSeconds(0)).toBe('< 1s')
+    expect(formatRemainingTimeSeconds(-5)).toBe('< 1s')
+    expect(formatRemainingTimeSeconds(NaN)).toBe('< 1s')
+    expect(formatRemainingTimeSeconds(Infinity)).toBe('< 1s')
   })
 })
 
