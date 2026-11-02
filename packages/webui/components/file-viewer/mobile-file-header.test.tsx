@@ -184,4 +184,20 @@ describe('MobileFileHeader', () => {
     expect(items.some((i) => i.textContent?.includes('1080p'))).toBe(true)
     expect(items.some((i) => i.textContent?.includes('1920p'))).toBe(false)
   })
+
+  it('renders archive icon in front of file name without archived text when status is archived', () => {
+    render(
+      <MobileFileHeader
+        fileName="video.mp4"
+        activeFileId="file-archived"
+        status="archived"
+        onBack={vi.fn()}
+      />,
+    )
+
+    const archiveIcon = screen.getByTestId('detail-header-archived-badge')
+    expect(archiveIcon).toBeDefined()
+    expect(screen.queryByText('Archived')).toBeNull()
+    expect(screen.queryByText('已归档')).toBeNull()
+  })
 })

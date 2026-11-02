@@ -269,23 +269,22 @@ export function BreadcrumbNav({
       return (
         <DropdownMenu modal={false} open={isFileMenuOpen} onOpenChange={setIsFileMenuOpen}>
           <div
-            className="flex items-center gap-1 truncate rounded px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer select-none"
+            className="flex items-center gap-1.5 truncate rounded px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer select-none"
             onClick={() => setIsFileMenuOpen((prev) => !prev)}
           >
+            {currentAsset.status === 'archived' && (
+              <span
+                data-testid="detail-header-archived-badge"
+                title={m.archived_status()}
+                className="inline-flex items-center shrink-0"
+              >
+                <Archive className="h-3.5 w-3.5 text-muted-foreground" />
+              </span>
+            )}
             <span className="truncate">{currentAsset.name}</span>
             {currentAsset.version !== undefined && (
               <Badge variant="outline" className="px-1 py-0 text-xs shrink-0">
                 v{currentAsset.version}
-              </Badge>
-            )}
-            {currentAsset.status === 'archived' && (
-              <Badge
-                variant="secondary"
-                data-testid="detail-header-archived-badge"
-                className="gap-1 px-1.5 py-0 text-xs shrink-0"
-              >
-                <Archive className="h-3 w-3" />
-                <span>{m.archived_status()}</span>
               </Badge>
             )}
             {currentAsset.status === 'archiving' && (

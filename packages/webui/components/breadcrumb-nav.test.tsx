@@ -304,4 +304,27 @@ describe('BreadcrumbNav component', () => {
     expect(items.some((i) => i.textContent?.includes('1080p'))).toBe(true)
     expect(items.some((i) => i.textContent?.includes('480p'))).toBe(false)
   })
+
+  it('renders archive icon in front of file name without archived text when status is archived', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          fileId="file-archived"
+          currentAsset={{
+            id: 'file-archived',
+            name: 'video.mp4',
+            type: 'file',
+            status: 'archived',
+            version: 1,
+          }}
+        />
+      </QueryClientProvider>,
+    )
+
+    const archiveIcon = screen.getByTestId('detail-header-archived-badge')
+    expect(archiveIcon).toBeDefined()
+    expect(screen.queryByText('Archived')).toBeNull()
+    expect(screen.queryByText('已归档')).toBeNull()
+  })
 })
