@@ -1,0 +1,201 @@
+---
+title: Archive Storage
+description: Configure secondary cold storage to offload raw media files while preserving in-browser proxy playback and previews.
+---
+
+High-resolution camera footage, RAW image sequences, master audio stems, and large 3D assets quickly consume primary storage. Shumai's **Archive Storage** feature enables creative teams to offload heavy master original files to cost-effective cold storage (such as a local NAS, AWS S3 Glacier, or Google Cloud Storage Coldline) while keeping all proxy media, preview images, waveform files, and metadata in primary storage.
+
+Team members can continue to browse, search, scrub, and review archived assets in the web browser without interruption. When the original raw file is needed for mastering or color grading, it can be restored back to primary storage with a single click.
+
+---
+
+## How It Works
+
+1. **Original-Only Archiving**: Only the original raw file is moved to archive storage. Previews, thumbnails, and transcoded proxies (e.g., 180p scrubbing proxies, 1080p streamable MP4s, WebP posters) remain in primary storage.
+2. **Durable Asynchronous Workflows**: Moving and restoring files is handled by background worker tasks on a dedicated queue (`archive_queue`) managed by DBOS. Tasks automatically survive network interruptions, slow S3 transfers, and server restarts.
+3. **Transparent Asset Lifecycle**:
+   - When an asset is being archived, its status transitions to `archiving` and settles at `archived`.
+   - When an asset is being restored, its status transitions to `restoring` and returns to `ready` (or `processed`) once the original file is back in primary storage.
+   - Trashed assets that are permanently purged automatically delete their original file from archive storage as well.
+4. **Folder & Version Stack Support**: Archiving a folder or version stack recursively archives all contained file assets. Restoring a folder or version stack restores all archived files inside it.
+
+---
+
+## Storage Topologies
+
+Shumai supports flexible storage configurations where primary storage and archive storage can use different backends or storage providers:
+
+| Topology                              | Main Storage | Archive Storage | Description                                                                                                                                          |
+| :------------------------------------ | :----------- | :-------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Local NAS / Directory**             | Local or S3  | `local`         | Offload files to a mounted network folder (NFS / SMB) or a secondary cold disk array.                                                                |
+| **Separate S3 Bucket / Provider**     | S3 or Local  | `s3`            | Stream files to a dedicated archive bucket on AWS S3, Wasabi, Backblaze B2, or Google Cloud Storage.                                                 |
+| **Same S3 Bucket (In-Place Tiering)** | AWS S3       | `s3`            | Re-tier objects in-place on AWS S3 using cold storage classes (`GLACIER`, `GLACIER_IR`, `DEEP_ARCHIVE`) without re-uploading bytes over the network. |
+
+---
+
+## Configuration Variables
+
+Configure archive storage by adding the following environment variables to your `.env` file or Docker Compose configuration.
+
+### General Configuration
+
+| Variable                  | Description                                                                                                | Required | Default          |
+| :------------------------ | :--------------------------------------------------------------------------------------------------------- | :------- | :--------------- |
+| `ARCHIVE_STORAGE_BACKEND` | Storage backend for archives: `local` or `s3`. When unset, archive functionality is disabled in the WebUI. | No       | Unset (Disabled) |
+| `CONCURRENCY_ARCHIVE`     | Maximum concurrent archive and restore tasks executed by background workers.                               | No       | `5`              |
+| `SHUMAI_WORKERS`          | Queues listened to by the application server. Set to `all` or include `archive`.                           | No       | `all`            |
+
+### Local Archive Storage
+
+Used when `ARCHIVE_STORAGE_BACKEND=local`:
+
+| Variable                     | Description                                                                                                             | Required | Default             |
+| :--------------------------- | :---------------------------------------------------------------------------------------------------------------------- | :------- | :------------------ |
+| `ARCHIVE_LOCAL_STORAGE_PATH` | Host filesystem directory path for storing archived original files. Useful for mounting a secondary disk or NAS volume. | No       | `./storage-archive` |
+
+### S3 Archive Storage
+
+Used when `ARCHIVE_STORAGE_BACKEND=s3`:
+
+| Variable                           | Description                                                                                                                           | Required | Default                               |
+| :--------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------ | :------- | :------------------------------------ |
+| `ARCHIVE_S3_BUCKET`                | The destination S3 bucket for archived files. Defaults to `S3_BUCKET` if unset.                                                       | No       | Falls back to `S3_BUCKET`             |
+| `ARCHIVE_AWS_ENDPOINT_URL_S3`      | S3 endpoint URL for archive storage. Defaults to `AWS_ENDPOINT_URL_S3` if unset.                                                      | No       | Falls back to `AWS_ENDPOINT_URL_S3`   |
+| `ARCHIVE_S3_REGION`                | S3 region for the archive bucket. Defaults to `S3_REGION` if unset.                                                                   | No       | Falls back to `S3_REGION`             |
+| `ARCHIVE_S3_ACCESS_KEY_ID`         | Access key ID for the archive S3 service. Defaults to `S3_ACCESS_KEY_ID` if unset.                                                    | No       | Falls back to `S3_ACCESS_KEY_ID`      |
+| `ARCHIVE_S3_SECRET_ACCESS_KEY`     | Secret access key for the archive S3 service. Defaults to `S3_SECRET_ACCESS_KEY` if unset.                                            | No       | Falls back to `S3_SECRET_ACCESS_KEY`  |
+| `ARCHIVE_S3_FORCE_PATH_STYLE`      | Set to `true` for MinIO or path-style S3 storage endpoints.                                                                           | No       | `false`                               |
+| `ARCHIVE_S3_STORAGE_CLASS`         | S3 storage class to apply to archived objects (e.g. `GLACIER`, `GLACIER_IR`, `DEEP_ARCHIVE`, `COLDLINE`).                             | No       | `STANDARD`                            |
+| `ARCHIVE_S3_RESTORE_DAYS`          | Number of days a restored temporary copy remains readable in S3 for asynchronous Glacier restores.                                    | No       | `7`                                   |
+| `ARCHIVE_S3_RESTORE_TIER`          | S3 Glacier retrieval tier (`Expedited`, `Standard`, or `Bulk`). Omit when using providers that do not require asynchronous retrieval. | No       | Unset                                 |
+| `ARCHIVE_RESTORE_POLL_INTERVAL_MS` | Milliseconds between status checks while waiting for an asynchronous cold storage restore.                                            | No       | `60000` (1 min initial, 5 min steady) |
+
+---
+
+## Configuration Examples
+
+### 1. Local NAS / Mounted Path
+
+Ideal for self-hosted teams with on-premises Network Attached Storage (Synology, QNAP, TrueNAS, or an NFS/SMB share mounted to the host machine):
+
+```env
+# Main storage on local disk or S3
+STORAGE_BACKEND=local
+LOCAL_STORAGE_PATH=./storage
+
+# Archive storage pointing to your mounted NAS directory
+ARCHIVE_STORAGE_BACKEND=local
+ARCHIVE_LOCAL_STORAGE_PATH=/mnt/nas/shumai-archive
+```
+
+In `docker-compose.yaml`, mount the host NAS volume into the container:
+
+```yaml
+services:
+  shumai:
+    volumes:
+      - /mnt/nas/shumai-archive:/mnt/nas/shumai-archive
+    environment:
+      ARCHIVE_STORAGE_BACKEND: local
+      ARCHIVE_LOCAL_STORAGE_PATH: /mnt/nas/shumai-archive
+```
+
+---
+
+### 2. AWS S3 Glacier Instant Retrieval (Archive)
+
+AWS S3 Glacier Instant Retrieval (`GLACIER_IR`) offers cold storage pricing with **millisecond retrieval latency**. Because objects in `GLACIER_IR` do not require an asynchronous `RestoreObject` request, restoring an asset to main storage is instantaneous.
+
+#### Same-Bucket In-Place Tiering (Fast Path)
+
+If your main storage is AWS S3, you can tier files into `GLACIER_IR` within the **same bucket** without re-uploading bytes over the network:
+
+```env
+# Main Storage
+STORAGE_BACKEND=s3
+S3_BUCKET=my-shumai-production
+S3_REGION=us-east-1
+S3_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+S3_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+AWS_ENDPOINT_URL_S3=https://s3.us-east-1.amazonaws.com
+
+# Archive Storage (re-uses main bucket & credentials automatically)
+ARCHIVE_STORAGE_BACKEND=s3
+ARCHIVE_S3_STORAGE_CLASS=GLACIER_IR
+```
+
+#### Dedicated Archive Bucket
+
+If you prefer keeping archived media in a separate S3 bucket:
+
+```env
+# Archive Storage in a separate bucket
+ARCHIVE_STORAGE_BACKEND=s3
+ARCHIVE_S3_BUCKET=my-shumai-archive-glacier-ir
+ARCHIVE_S3_REGION=us-east-1
+ARCHIVE_S3_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+ARCHIVE_S3_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+ARCHIVE_AWS_ENDPOINT_URL_S3=https://s3.us-east-1.amazonaws.com
+ARCHIVE_S3_STORAGE_CLASS=GLACIER_IR
+```
+
+---
+
+### 3. AWS S3 Glacier Flexible Archive (Cold Storage)
+
+For maximum cost savings on rarely accessed footage, AWS S3 Flexible Archive (`GLACIER`) or Deep Archive (`DEEP_ARCHIVE`) stores data at the lowest storage rates.
+
+When a user restores an asset from Glacier, Shumai initiates a `RestoreObject` request, puts the background workflow into durable DBOS sleep, and periodically checks until AWS completes the retrieval:
+
+```env
+ARCHIVE_STORAGE_BACKEND=s3
+ARCHIVE_S3_BUCKET=my-shumai-cold-archive
+ARCHIVE_S3_REGION=us-east-1
+ARCHIVE_S3_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+ARCHIVE_S3_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+ARCHIVE_AWS_ENDPOINT_URL_S3=https://s3.us-east-1.amazonaws.com
+ARCHIVE_S3_STORAGE_CLASS=GLACIER
+
+# Keep the restored temporary copy accessible for 7 days
+ARCHIVE_S3_RESTORE_DAYS=7
+
+# Glacier retrieval tier: Standard (3-5 hours), Expedited (1-5 min), or Bulk (5-12 hours)
+ARCHIVE_S3_RESTORE_TIER=Standard
+```
+
+> [!NOTE]
+> During a Glacier restore, DBOS schedules durable sleep timers in PostgreSQL. The worker thread is completely freed and does not consume concurrency slots while waiting for AWS to thaw the file.
+
+---
+
+### 4. Google Cloud Storage Coldline (Archive)
+
+Google Cloud Storage (GCS) provides S3-compatible XML APIs and low-cost storage classes such as `COLDLINE` and `ARCHIVE`. Like Glacier Instant Retrieval, GCS Coldline provides **immediate access** without requiring an asynchronous thaw step:
+
+```env
+# Main storage (e.g. Cloudflare R2, MinIO, or standard GCS)
+STORAGE_BACKEND=s3
+S3_BUCKET=shumai-main
+...
+
+# Archive storage on GCS Coldline
+ARCHIVE_STORAGE_BACKEND=s3
+ARCHIVE_S3_BUCKET=shumai-coldline-archive
+ARCHIVE_S3_ACCESS_KEY_ID=GOOG1EXAMPLETOCKENKEY
+ARCHIVE_S3_SECRET_ACCESS_KEY=your-gcs-hmac-secret-access-key
+ARCHIVE_AWS_ENDPOINT_URL_S3=https://storage.googleapis.com
+ARCHIVE_S3_STORAGE_CLASS=COLDLINE
+```
+
+> [!TIP]
+> Do not set `ARCHIVE_S3_RESTORE_TIER` when using Google Cloud Storage, as GCS objects are readable immediately and do not accept AWS Glacier retrieval parameters.
+
+---
+
+## WebUI Behavior & Permissions
+
+- **Permissions**: Only team **Owners** and **Editors** can archive or restore assets.
+- **Context Menus**: Right-click any file, folder, or version stack in the file browser to select **Archive** or **Restore from Archive**.
+- **Visual Badges**: Archived items display an `Archived` badge on grid cards and list rows. Inside the file viewer, an archive icon is displayed in front of the file name in the breadcrumb bar.
+- **Playback & Previews**: Video streaming, scrubbers, waveform audio, PDF rendering, and image viewing remain fully functional using cached proxies.
+- **Download Restrictions**: The download button for the original raw file is disabled with a tooltip explaining that the raw file is archived. Transcoded proxy downloads (e.g. 1080p MP4) remain available.

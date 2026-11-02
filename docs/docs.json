@@ -77,7 +77,11 @@
       },
       {
         "group": "Configuration",
-        "pages": ["configuration/env-variables", "configuration/hardware-transcoding"]
+        "pages": [
+          "configuration/env-variables",
+          "configuration/hardware-transcoding",
+          "configuration/archive-storage"
+        ]
       },
       {
         "group": "Distributed Deployment",
