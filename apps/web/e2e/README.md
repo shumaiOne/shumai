@@ -97,6 +97,7 @@ apps/web/e2e/
 | Image share with watermark + download disabled: no download buttons on public list/detail pages, watermarked proxy served, download-url rejected | `tests/project/share-watermark-no-download.spec.ts` |
 | Video share with watermark + download disabled: no download buttons on public list/detail pages, watermarked proxy served, download-url rejected | `tests/project/share-watermark-no-download.spec.ts` |
 | Owner views a file and it appears in recents | `tests/project/recents.spec.ts` |
+| Owner archives a file to archive storage and restores it back to main storage | `tests/project/archive-restore.spec.ts` |
 
 ### file
 | Test | File |

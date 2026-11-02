@@ -193,6 +193,35 @@ export class WorkflowService {
               where: { id: task.assetId, status: AssetStatus.processing },
               data: { status: AssetStatus.failed },
             })
+          } else if (task.type === 'archive_asset' || task.type === 'restore_asset') {
+            const payload = currentTask.payload as PrismaJson.WorkflowTaskPayload | null
+            let storageKeyId = payload?.archive?.storageKeyId
+            if (!storageKeyId && task.assetId) {
+              const asset = await prisma.asset.findUnique({
+                where: { id: task.assetId },
+                select: { storageKeyId: true },
+              })
+              storageKeyId = asset?.storageKeyId ?? undefined
+            }
+            if (storageKeyId) {
+              const sk = await prisma.storageKey.findUnique({
+                where: { id: storageKeyId },
+                select: { isArchived: true },
+              })
+              if (sk) {
+                await prisma.asset.updateMany({
+                  where: {
+                    storageKeyId,
+                    deletedAt: null,
+                    type: 'file',
+                    status: { in: [AssetStatus.archiving, AssetStatus.restoring] },
+                  },
+                  data: {
+                    status: sk.isArchived ? AssetStatus.archived : AssetStatus.processed,
+                  },
+                })
+              }
+            }
           }
           recoveredCount++
           continue

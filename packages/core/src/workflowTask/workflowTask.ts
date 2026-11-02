@@ -300,15 +300,43 @@ export class WorkflowTaskService {
       }
 
       if (task.assetId) {
-        await tx.$executeRaw`
-          UPDATE "assets"
-          SET
-            "status" = 'failed'::"AssetStatus",
-            "media" = COALESCE("media", '{}'::jsonb) || jsonb_build_object('error', ${errorMsg}::text)
-          WHERE "id" = ${task.assetId}
-            AND "is_deleted" = false
-            AND "status" != 'processed'::"AssetStatus"
-        `
+        if (task.type === 'archive_asset' || task.type === 'restore_asset') {
+          const payload = task.payload as PrismaJson.WorkflowTaskPayload | null
+          let storageKeyId = payload?.archive?.storageKeyId
+          if (!storageKeyId) {
+            const targetAsset = await tx.asset.findUnique({
+              where: { id: task.assetId },
+              select: { storageKeyId: true },
+            })
+            storageKeyId = targetAsset?.storageKeyId ?? undefined
+          }
+          if (storageKeyId) {
+            const sk = await tx.storageKey.findUnique({
+              where: { id: storageKeyId },
+              select: { isArchived: true },
+            })
+            const fallbackStatus = sk?.isArchived ? 'archived' : 'processed'
+            await tx.asset.updateMany({
+              where: {
+                storageKeyId,
+                isDeleted: false,
+                type: 'file',
+                status: { in: ['archiving', 'restoring'] },
+              },
+              data: { status: fallbackStatus },
+            })
+          }
+        } else {
+          await tx.$executeRaw`
+            UPDATE "assets"
+            SET
+              "status" = 'failed'::"AssetStatus",
+              "media" = COALESCE("media", '{}'::jsonb) || jsonb_build_object('error', ${errorMsg}::text)
+            WHERE "id" = ${task.assetId}
+              AND "is_deleted" = false
+              AND "status" NOT IN ('processed'::"AssetStatus", 'archived'::"AssetStatus", 'archiving'::"AssetStatus", 'restoring'::"AssetStatus")
+          `
+        }
       }
 
       return await tx.workflowTask.findUniqueOrThrow({

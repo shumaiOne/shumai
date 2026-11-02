@@ -32,6 +32,7 @@ export const stackVersionInfoSchema = z.object({
   id: z.string(),
   version: z.number(),
   name: z.string().optional().nullable(),
+  status: z.string().optional().nullable(),
   previewUrl: z.string().optional().nullable(),
   createdAt: z.string().optional().nullable(),
   creator: z

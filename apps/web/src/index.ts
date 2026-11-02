@@ -8,6 +8,7 @@ import index from '@shumai/webui/index.html'
 import { initAgentWorkflows } from '@shumai/agent'
 import { app } from '@shumai/api'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { validateArchiveStorageConfig } from '@shumai/core/src/s3/archive-storage'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { workflowService } from '@shumai/workflow-core'
@@ -76,6 +77,7 @@ if (regenCmdIndex !== -1) {
 }
 
 async function run() {
+  validateArchiveStorageConfig()
   // Initialize workflows and activities for local executor mode
   initAgentWorkflows()
   initTranscodeWorkflows()
@@ -99,13 +101,15 @@ async function run() {
     }
   }
 
-  let listenQueues: string[] = ['agent_queue', 'transcode_queue']
+  let listenQueues: string[] = ['agent_queue', 'transcode_queue', 'archive_queue']
   if (workersOption === 'none') {
     listenQueues = []
   } else if (workersOption === 'agent' || workersOption === 'ai') {
-    listenQueues = ['agent_queue']
+    listenQueues = ['agent_queue', 'archive_queue']
   } else if (workersOption === 'transcode') {
     listenQueues = ['transcode_queue']
+  } else if (workersOption === 'archive') {
+    listenQueues = ['archive_queue']
   }
 
   workflowService.start(listenQueues)

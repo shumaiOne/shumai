@@ -14,6 +14,7 @@ import {
   ListPartsCommand,
   CompleteMultipartUploadCommand,
   AbortMultipartUploadCommand,
+  StorageClass,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import * as crypto from 'crypto'
@@ -82,6 +83,196 @@ export interface S3Object {
   contentType: string
 }
 
+export interface S3StreamObject {
+  stream: ReadableStream<Uint8Array>
+  contentLength?: number
+  contentType?: string
+}
+
+export interface UploadStreamParams {
+  bucket: string
+  key: string
+  stream: ReadableStream<Uint8Array>
+  contentLength?: number
+  contentType?: string
+  storageClass?: string
+}
+
+const SINGLE_PUT_MAX_BYTES = 64 * 1024 * 1024 // 64 MB
+const MULTIPART_PART_SIZE_BYTES = 16 * 1024 * 1024 // 16 MB
+
+export function bodyToWebReadableStream(body: unknown): ReadableStream<Uint8Array> {
+  if (!body) {
+    throw new Error('NoSuchKey: The specified key returned an empty body.')
+  }
+  if (
+    typeof body === 'object' &&
+    'transformToWebStream' in body &&
+    typeof (body as { transformToWebStream: unknown }).transformToWebStream === 'function'
+  ) {
+    return (
+      body as { transformToWebStream: () => ReadableStream<Uint8Array> }
+    ).transformToWebStream()
+  }
+  if (typeof body === 'object' && 'getReader' in body) {
+    return body as ReadableStream<Uint8Array>
+  }
+  // Convert Node.js Readable or AsyncIterable to Web ReadableStream
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const nodeReadable = 'pipe' in (body as any) ? (body as Readable) : Readable.from(body as any)
+  return Readable.toWeb(nodeReadable) as unknown as ReadableStream<Uint8Array>
+}
+
+export async function uploadStreamToS3Client(
+  client: S3Client,
+  params: UploadStreamParams,
+  partSizeBytes: number = MULTIPART_PART_SIZE_BYTES,
+  singlePutMaxBytes: number = SINGLE_PUT_MAX_BYTES,
+): Promise<void> {
+  const { bucket, key, stream, contentLength, contentType, storageClass } = params
+  // AWS SDK v3 StorageClass is an open string union at runtime; cast safely for arbitrary S3-compatible classes
+  const s3StorageClass = storageClass ? (storageClass as StorageClass) : undefined
+
+  if (contentLength !== undefined && contentLength <= singlePutMaxBytes) {
+    if (contentLength === 0) {
+      await stream.cancel().catch(() => {})
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: Buffer.alloc(0),
+          ContentLength: 0,
+          ContentType: contentType,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          StorageClass: s3StorageClass,
+        }),
+      )
+      return
+    }
+    // Convert Web ReadableStream to Node stream without buffering into memory
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nodeStream = Readable.fromWeb(stream as any)
+    await client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Body: nodeStream as any,
+        ContentLength: contentLength,
+        ContentType: contentType,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        StorageClass: s3StorageClass,
+      }),
+    )
+    return
+  }
+
+  // Multipart streaming upload for > 64 MB or unknown contentLength
+  const createRes = await client.send(
+    new CreateMultipartUploadCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: contentType,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      StorageClass: s3StorageClass,
+    }),
+  )
+  const uploadId = createRes.UploadId
+  if (!uploadId) {
+    throw new Error(`Failed to initiate multipart upload for ${bucket}/${key}`)
+  }
+
+  const reader = stream.getReader()
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const completedParts: Array<{ ETag?: string; PartNumber: number }> = []
+  let partNumber = 1
+  const pendingChunks: Uint8Array[] = []
+  let pendingLength = 0
+
+  const flushPart = async (sizeToFlush: number) => {
+    const partBuffer = Buffer.allocUnsafe(sizeToFlush)
+    let offset = 0
+    while (offset < sizeToFlush && pendingChunks.length > 0) {
+      const chunk = pendingChunks[0]
+      const remaining = sizeToFlush - offset
+      if (chunk.byteLength <= remaining) {
+        partBuffer.set(chunk, offset)
+        offset += chunk.byteLength
+        pendingLength -= chunk.byteLength
+        pendingChunks.shift()
+      } else {
+        partBuffer.set(chunk.subarray(0, remaining), offset)
+        pendingChunks[0] = chunk.subarray(remaining)
+        offset += remaining
+        pendingLength -= remaining
+      }
+    }
+    const currentPartNumber = partNumber++
+    const partRes = await client.send(
+      new UploadPartCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        PartNumber: currentPartNumber,
+        Body: partBuffer,
+        ContentLength: partBuffer.byteLength,
+      }),
+    )
+    completedParts.push({
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      ETag: partRes.ETag,
+      PartNumber: currentPartNumber,
+    })
+  }
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) {
+        break
+      }
+      if (value && value.byteLength > 0) {
+        pendingChunks.push(value)
+        pendingLength += value.byteLength
+        while (pendingLength >= partSizeBytes) {
+          await flushPart(partSizeBytes)
+        }
+      }
+    }
+
+    if (pendingLength > 0 || completedParts.length === 0) {
+      await flushPart(pendingLength)
+    }
+
+    await client.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        /* eslint-disable @typescript-eslint/naming-convention */
+        MultipartUpload: {
+          Parts: completedParts,
+        },
+        /* eslint-enable @typescript-eslint/naming-convention */
+      }),
+    )
+  } catch (err) {
+    await reader.cancel().catch(() => {})
+    await client
+      .send(
+        new AbortMultipartUploadCommand({
+          Bucket: bucket,
+          Key: key,
+          UploadId: uploadId,
+        }),
+      )
+      .catch(() => {})
+    throw err
+  } finally {
+    reader.releaseLock()
+  }
+}
+
 export interface S3Service {
   getObjectSize: (bucket: string, key: string) => Promise<number>
   putObject: (
@@ -92,6 +283,8 @@ export interface S3Service {
     contentType?: string,
   ) => Promise<void>
   getObject: (bucket: string, key: string) => Promise<S3Object>
+  getObjectStream: (bucket: string, key: string) => Promise<S3StreamObject>
+  uploadStream: (params: UploadStreamParams) => Promise<void>
   copyObject: (
     sourceBucket: string,
     sourceKey: string,
@@ -223,6 +416,19 @@ export class S3StorageService implements S3Service {
       buffer,
       contentType: contentType || 'application/octet-stream',
     }
+  }
+
+  async getObjectStream(bucket: string, key: string): Promise<S3StreamObject> {
+    const res = await this.client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
+    return {
+      stream: bodyToWebReadableStream(res.Body),
+      contentLength: res.ContentLength,
+      contentType: res.ContentType || Bun.file(key).type || 'application/octet-stream',
+    }
+  }
+
+  async uploadStream(params: UploadStreamParams): Promise<void> {
+    await uploadStreamToS3Client(this.client, params)
   }
 
   async copyObject(
@@ -580,6 +786,42 @@ export class LocalStorageService implements S3Service {
         throw new Error(`NoSuchKey: The specified key does not exist.`, { cause: e })
       }
       throw e
+    }
+  }
+
+  async getObjectStream(bucket: string, key: string): Promise<S3StreamObject> {
+    const filePath = this.getFilePath(bucket, key)
+    try {
+      const stats = await fs.promises.stat(filePath)
+      const nodeStream = fs.createReadStream(filePath)
+      return {
+        stream: Readable.toWeb(nodeStream) as unknown as ReadableStream<Uint8Array>,
+        contentLength: stats.size,
+        contentType: Bun.file(filePath).type || 'application/octet-stream',
+      }
+    } catch (e: unknown) {
+      if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw new Error(`NoSuchKey: The specified key does not exist.`, { cause: e })
+      }
+      throw e
+    }
+  }
+
+  async uploadStream(params: UploadStreamParams): Promise<void> {
+    const filePath = this.getFilePath(params.bucket, params.key)
+    const dir = path.dirname(filePath)
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+    }
+    const tempPath = `${filePath}.tmp-${ulid()}`
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const nodeStream = Readable.fromWeb(params.stream as any)
+      await pipeline(nodeStream, fs.createWriteStream(tempPath))
+      await fs.promises.rename(tempPath, filePath)
+    } catch (err) {
+      await fs.promises.unlink(tempPath).catch(() => {})
+      throw err
     }
   }
 

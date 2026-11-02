@@ -33,6 +33,7 @@ import type { AncestorFolder } from '@shumai/dtos'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import {
+  Archive,
   Bot,
   Check,
   ChevronDown,
@@ -41,6 +42,7 @@ import {
   History,
   LayoutGrid,
   List,
+  Loader2,
   Menu,
   SquareKanban,
 } from 'lucide-react'
@@ -49,6 +51,7 @@ import { useDualSidebarStore } from '@/ui/stores/dual-sidebar'
 import { ManageVersionsDialog } from './manage-versions-dialog'
 import { AssetLinkedTasksDialog } from './kanban/asset-linked-tasks-dialog'
 import { getVideoResolutionLabel } from '@/ui/lib/media'
+import { useArchiveConfig } from '@/ui/hooks/use-archive-config'
 
 interface BreadcrumbNavProps {
   teamId: string
@@ -60,6 +63,7 @@ interface BreadcrumbNavProps {
     name?: string
     type: 'file' | 'folder'
     version?: number
+    status?: string
     proxyType?: 'image' | 'video' | 'audio' | 'pdf' | '3d' | null
   }
   isRootFolder: boolean
@@ -78,6 +82,8 @@ interface BreadcrumbNavProps {
   onFolderClick?: (folderId: string) => void
   onRename?: () => void
   onDelete?: () => void
+  onArchive?: () => void
+  onRestoreArchive?: () => void
   fileId?: string
   downloadInfo?: {
     originalKey?: string
@@ -93,6 +99,7 @@ interface BreadcrumbNavProps {
     id: string
     version: number
     name?: string | null
+    status?: string | null
     previewUrl?: string | null
     creator?: { id: string; name: string | null } | null
     agent?: { id: string; name: string } | null
@@ -122,6 +129,8 @@ export function BreadcrumbNav({
   onFolderClick,
   onRename,
   onDelete,
+  onArchive,
+  onRestoreArchive,
   fileId,
   shareId,
   allowDownload = true,
@@ -133,6 +142,7 @@ export function BreadcrumbNav({
 }: BreadcrumbNavProps) {
   const navigate = useNavigate()
   const { canEdit } = usePermissions(projectId)
+  const { archiveStorageEnabled } = useArchiveConfig()
   const { openMobileMenu } = useDualSidebarStore()
   const [isManageVersionsOpen, setIsManageVersionsOpen] = useState(false)
   const [isLinkedTasksOpen, setIsLinkedTasksOpen] = useState(false)
@@ -210,6 +220,10 @@ export function BreadcrumbNav({
 
   const isAudio = currentAsset.proxyType === 'audio'
   const hasVideoTranscodes = !isAudio && (downloadInfo?.videoTranscodes?.length ?? 0) > 0
+  const isOriginalUnavailable =
+    currentAsset.status === 'archived' ||
+    currentAsset.status === 'archiving' ||
+    currentAsset.status === 'restoring'
 
   const hasTerminal = Boolean(customTerminalBreadcrumb || (!isRootFolder && !compareMode))
 
@@ -264,6 +278,36 @@ export function BreadcrumbNav({
                 v{currentAsset.version}
               </Badge>
             )}
+            {currentAsset.status === 'archived' && (
+              <Badge
+                variant="secondary"
+                data-testid="detail-header-archived-badge"
+                className="gap-1 px-1.5 py-0 text-xs shrink-0"
+              >
+                <Archive className="h-3 w-3" />
+                <span>{m.archived_status()}</span>
+              </Badge>
+            )}
+            {currentAsset.status === 'archiving' && (
+              <Badge
+                variant="secondary"
+                data-testid="detail-header-archiving-badge"
+                className="gap-1 px-1.5 py-0 text-xs shrink-0"
+              >
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>{m.archiving_status()}</span>
+              </Badge>
+            )}
+            {currentAsset.status === 'restoring' && (
+              <Badge
+                variant="secondary"
+                data-testid="detail-header-restoring-badge"
+                className="gap-1 px-1.5 py-0 text-xs shrink-0"
+              >
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>{m.restoring_status()}</span>
+              </Badge>
+            )}
             <DropdownMenuTrigger
               asChild
               onClick={(e) => e.stopPropagation()}
@@ -306,7 +350,13 @@ export function BreadcrumbNav({
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleDownload(downloadInfo.originalKey!)}
+                            disabled={isOriginalUnavailable}
+                            title={
+                              isOriginalUnavailable ? m.original_archived_tooltip() : undefined
+                            }
+                            onClick={() =>
+                              !isOriginalUnavailable && handleDownload(downloadInfo.originalKey!)
+                            }
                             className="flex items-center justify-between"
                           >
                             <span>Original</span>
@@ -322,9 +372,12 @@ export function BreadcrumbNav({
               ) : (
                 <DropdownMenuItem
                   onClick={() =>
-                    downloadInfo?.originalKey && handleDownload(downloadInfo.originalKey)
+                    downloadInfo?.originalKey &&
+                    !isOriginalUnavailable &&
+                    handleDownload(downloadInfo.originalKey)
                   }
-                  disabled={!downloadInfo?.originalKey}
+                  disabled={!downloadInfo?.originalKey || isOriginalUnavailable}
+                  title={isOriginalUnavailable ? m.original_archived_tooltip() : undefined}
                 >
                   {m.download()}
                 </DropdownMenuItem>
@@ -332,6 +385,27 @@ export function BreadcrumbNav({
             {canEdit && onRename && (
               <DropdownMenuItem onClick={onRename}>{m.rename()}</DropdownMenuItem>
             )}
+            {canEdit &&
+              archiveStorageEnabled &&
+              !isPublic &&
+              (!currentAsset.status || currentAsset.status === 'processed') &&
+              onArchive && (
+                <DropdownMenuItem data-testid="detail-header-archive-action" onClick={onArchive}>
+                  {m.archive()}
+                </DropdownMenuItem>
+              )}
+            {canEdit &&
+              archiveStorageEnabled &&
+              !isPublic &&
+              currentAsset.status === 'archived' &&
+              onRestoreArchive && (
+                <DropdownMenuItem
+                  data-testid="detail-header-restore-archive-action"
+                  onClick={onRestoreArchive}
+                >
+                  {m.restore_from_archive()}
+                </DropdownMenuItem>
+              )}
             {canEdit && onDelete && (
               <DropdownMenuItem
                 onClick={onDelete}
@@ -387,9 +461,35 @@ export function BreadcrumbNav({
                               </div>
 
                               <div className="flex flex-col flex-1 min-w-0 text-left">
-                                <span className="truncate text-sm font-semibold text-foreground">
-                                  {v.name}
-                                </span>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="truncate text-sm font-semibold text-foreground">
+                                    {v.name}
+                                  </span>
+                                  {v.status === 'archived' && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="gap-0.5 px-1 py-0 text-[10px] shrink-0"
+                                    >
+                                      {m.archived_status()}
+                                    </Badge>
+                                  )}
+                                  {v.status === 'archiving' && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="gap-0.5 px-1 py-0 text-[10px] shrink-0"
+                                    >
+                                      {m.archiving_status()}
+                                    </Badge>
+                                  )}
+                                  {v.status === 'restoring' && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="gap-0.5 px-1 py-0 text-[10px] shrink-0"
+                                    >
+                                      {m.restoring_status()}
+                                    </Badge>
+                                  )}
+                                </div>
                                 <span className="truncate text-xs text-muted-foreground flex items-center gap-1">
                                   {v.agent ? (
                                     <>

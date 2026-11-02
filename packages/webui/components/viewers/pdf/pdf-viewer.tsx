@@ -1,6 +1,8 @@
 import { client } from '@/ui/api/client'
 import DrawingCanvas from '@/ui/components/drawing-canvas'
+import { m } from '@/ui/paraglide/messages.js'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
+import { Archive } from 'lucide-react'
 import * as pdfjsLib from 'pdfjs-dist'
 import React, { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { FileViewerProps, MediaController } from '../types'
@@ -166,6 +168,9 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
     }, [])
 
     const fileUrl = file.media?.pdfTranscode?.url
+    const isOriginalUnavailable =
+      file.status === 'archived' || file.status === 'archiving' || file.status === 'restoring'
+    const isNativePdfArchived = !fileUrl && isOriginalUnavailable
 
     // Load PDF Document
     useEffect(() => {
@@ -409,6 +414,16 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
                 <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
               </div>
+            ) : isNativePdfArchived ? (
+              <div
+                data-testid="pdf-viewer-archived-state"
+                className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center text-muted-foreground"
+              >
+                <Archive className="h-12 w-12 text-muted-foreground/70" />
+                <p className="text-sm font-medium text-foreground">
+                  {m.pdf_archived_placeholder()}
+                </p>
+              </div>
             ) : error ? (
               <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">
                 {error}
@@ -465,7 +480,7 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
           onZoomOut={() => handleZoom(0.8)}
           onFit={handleFit}
           onDownload={handleDownload}
-          canDownload={!!file.media?.original?.key}
+          canDownload={!!file.media?.original?.key && !isOriginalUnavailable}
           allowDownload={allowDownload}
         />
       </div>

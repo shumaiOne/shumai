@@ -53,6 +53,7 @@ describe('MCP server', () => {
     const { tools } = await client.listTools()
 
     expect(tools.map((t) => t.name).sort()).toEqual([
+      'archive_assets',
       'complete_upload',
       'copy_assets',
       'create_comment',
@@ -74,6 +75,7 @@ describe('MCP server', () => {
       'remove_version',
       'rename_asset',
       'resolve_comment',
+      'restore_archived_assets',
       'search_assets',
       'update_asset_metadata',
     ])

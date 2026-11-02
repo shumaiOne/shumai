@@ -798,5 +798,72 @@ describe('Watermark Activities', () => {
       expect(row?.status).toBe(WatermarkFileStatus.completed)
       expect(row?.media).toBeDefined()
     })
+
+    it('falls back to highest-resolution proxy when original video is archived', async () => {
+      vi.mocked(transcodeService.getVideoInfo).mockResolvedValue({
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 5,
+        bitRate: 4000000,
+        frameRate: 30,
+        totalFrames: 150,
+        hasAudio: false,
+        mimeType: 'video/mp4',
+      })
+
+      const sk = await prisma.storageKey.create({
+        data: { key: 'files/arch/raw.mp4', isArchived: true },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'raw.mp4',
+          type: 'file',
+          status: 'archived',
+          mediaType: 'video/mp4',
+          storageKeyId: sk.id,
+          media: {
+            duration: 5,
+            filesize: 1000,
+            frames: 150,
+            finishedAt: '2026-01-01T00:00:00Z',
+            proxyType: 'video',
+            imageTranscodes: [],
+            videoTranscodes: [
+              {
+                key: 'files/arch/raw-720p.mp4',
+                width: 1280,
+                height: 720,
+                resolution: '720p',
+              },
+              {
+                key: 'files/arch/raw-1080p.mp4',
+                width: 1920,
+                height: 1080,
+                resolution: '1080p',
+              },
+            ],
+            metadata: null,
+            original: { key: 'files/arch/raw.mp4', filesizeInBytes: 10000, codec: 'h264' },
+          },
+        },
+      })
+      const config = await prisma.watermarkConfig.create({
+        data: {
+          hash: 'arch-wm-hash-' + Math.random(),
+          config: { blocks: [] },
+        },
+      })
+
+      await transcodeWatermarkMediaActivity({
+        assetId: asset.id,
+        watermarkConfigId: config.id,
+      })
+
+      expect(s3Service.downloadToFile).toHaveBeenCalledWith(
+        expect.any(String),
+        'files/arch/raw-1080p.mp4',
+        expect.any(String),
+      )
+    })
   })
 })

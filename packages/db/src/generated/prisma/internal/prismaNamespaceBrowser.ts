@@ -375,6 +375,7 @@ export const StorageKeyScalarFieldEnum = {
   id: 'id',
   key: 'key',
   status: 'status',
+  isArchived: 'isArchived',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

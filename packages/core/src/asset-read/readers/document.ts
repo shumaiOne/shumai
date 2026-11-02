@@ -107,7 +107,21 @@ export const documentReader: AssetReader<'document'> = {
           `Asset "${asset.name}" is a binary PDF/document and cannot be read as raw text. Please call read_asset with docConfig: { mode: "pages", startPage: 1, endPage: ... } to view its visual pages.`,
         )
       }
+      if (asset.isArchived) {
+        throw badRequest(
+          `Asset "${asset.name}" is archived in cold storage and cannot be read as raw text. Restore the asset first, or use docConfig: { mode: "pages", startPage: 1, endPage: ... } if it has a generated PDF proxy.`,
+        )
+      }
       return
+    }
+
+    if (
+      asset.isArchived &&
+      (!asset.media?.pdfTranscode?.key || asset.media.pdfTranscode.key === asset.storageKey)
+    ) {
+      throw badRequest(
+        `Asset "${asset.name}" is a native PDF whose original file is archived in cold storage. Restore the asset first to render its pages.`,
+      )
     }
 
     if (startPage === null || endPage === null) {

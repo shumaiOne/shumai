@@ -34,6 +34,14 @@ export async function takeVideoScreenshotsWorkflow(task: WorkflowTask): Promise<
       }
     }
 
+    if (targetKey === key && (asset.storageKey?.isArchived || asset.status === 'archived')) {
+      throw ApplicationFailure.create({
+        message:
+          'Original video file is archived and no proxy is available. Restore the asset to take screenshots.',
+        nonRetryable: true,
+      })
+    }
+
     const screenshots = await takeScreenshotsActivity({
       taskId: task.id,
       assetKey: targetKey,

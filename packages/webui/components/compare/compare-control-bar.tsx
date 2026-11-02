@@ -115,7 +115,12 @@ export function CompareControlBar({
         onZoomOut={onZoomOut}
         onFit={onFit}
         onDownload={() => onDownload()}
-        canDownload={!!activeAsset?.media?.original?.key}
+        canDownload={
+          !!activeAsset?.media?.original?.key &&
+          activeAsset.status !== 'archived' &&
+          activeAsset.status !== 'archiving' &&
+          activeAsset.status !== 'restoring'
+        }
         fullscreen={{ isFullScreen, onToggle: onToggleFullScreen }}
         allowDownload={allowDownload}
       />

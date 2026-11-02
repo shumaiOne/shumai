@@ -28,6 +28,7 @@ describe('authn api', () => {
     expect(await res.json()).toEqual({
       initialized: true,
       demoMode: false,
+      archiveStorageEnabled: false,
     })
   })
 })

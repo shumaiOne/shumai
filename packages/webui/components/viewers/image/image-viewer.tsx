@@ -213,7 +213,12 @@ export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
           onZoomOut={() => handleZoom(0.8)}
           onFit={handleFit}
           onDownload={handleDownload}
-          canDownload={!!file.media?.original?.key}
+          canDownload={
+            !!file.media?.original?.key &&
+            file.status !== 'archived' &&
+            file.status !== 'archiving' &&
+            file.status !== 'restoring'
+          }
           onCopy={handleCopy}
           copied={copied}
           canCopy={!!bestUrl}

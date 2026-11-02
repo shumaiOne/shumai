@@ -17,6 +17,7 @@ describe('operation registry', () => {
 
   it('contains the asset, project, comment, metadata, version, and upload operations', () => {
     expect(operationDefinitions.map((d) => d.name).sort()).toEqual([
+      'archive_assets',
       'complete_upload',
       'copy_assets',
       'create_comment',
@@ -38,6 +39,7 @@ describe('operation registry', () => {
       'remove_version',
       'rename_asset',
       'resolve_comment',
+      'restore_archived_assets',
       'search_assets',
       'update_asset_metadata',
     ])
@@ -128,6 +130,8 @@ describe('operation registry', () => {
       ['move_assets', ['move', 'mv']],
       ['copy_assets', ['copy', 'cp']],
       ['delete_asset', ['delete', 'rm']],
+      ['archive_assets', ['archive']],
+      ['restore_archived_assets', ['unarchive', 'restore-archive']],
       ['read_asset', ['read']],
       ['get_asset_render', ['render']],
       ['download_asset', ['download']],

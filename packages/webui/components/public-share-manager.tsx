@@ -427,6 +427,7 @@ export function PublicShareManager({
         currentAsset: {
           name: viewingFileData?.name || currentFolderName,
           type: viewingFileId ? 'file' : 'folder',
+          status: viewingFileData?.status,
           version: stackFileData?.versionStack
             ? (stackFileData.versionStack.versions.find((v) => v.id === activeFileId)?.version ??
               stackFileData.versionStack.versions.length)

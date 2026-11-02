@@ -55,6 +55,11 @@ function toReadable(asset: AssetRecord): ReadableAsset {
     filenameLower: asset.name?.toLowerCase() || '',
     storageKey: asset.storageKey?.key ?? null,
     media: asset.media as PrismaJson.MediaInfo | null,
+    isArchived:
+      asset.status === 'archiving' ||
+      asset.status === 'archived' ||
+      asset.status === 'restoring' ||
+      Boolean(asset.storageKey?.isArchived),
   }
 }
 

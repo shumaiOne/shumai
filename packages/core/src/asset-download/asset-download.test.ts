@@ -217,6 +217,51 @@ describe('download_asset Operation', () => {
     })
   })
 
+  it('rejects downloading original of an archived asset with 409, while allowing proxy: true when a proxy exists', async () => {
+    const clip = await createFile('archived.mov', {
+      key: 'files/up-arch/archived.mov',
+      media: {
+        duration: 5,
+        filesize: 512,
+        frames: 150,
+        finishedAt: '2026-01-01T00:00:00Z',
+        metadata: null,
+        original: null,
+        imageTranscodes: [],
+        proxyType: 'video',
+        videoTranscodes: [
+          {
+            resolution: '720p',
+            key: 'files/up-arch/archived-720p.mp4',
+            width: 1280,
+            height: 720,
+          },
+        ],
+      },
+    })
+    await prisma.asset.update({
+      where: { id: clip.id },
+      data: { status: 'archived' },
+    })
+
+    // proxy: false is blocked with 409
+    await expect(
+      runOperation(downloadAssetOp, as(owner), { assetIds: [clip.id], proxy: false }),
+    ).rejects.toMatchObject({ status: 409 })
+
+    // proxy: true succeeds using the MP4 proxy in main storage
+    const { files } = await runOperation(downloadAssetOp, as(owner), {
+      assetIds: [clip.id],
+      proxy: true,
+    })
+    expect(files).toHaveLength(1)
+    expect(files[0]).toMatchObject({
+      assetId: clip.id,
+      kind: 'proxy',
+      name: 'archived.mp4',
+    })
+  })
+
   it.each([[[]], [Array.from({ length: 51 }, (_, i) => `a-${i}`)]])(
     'rejects %# asset ID lists outside 1 to 50',
     async (assetIds) => {

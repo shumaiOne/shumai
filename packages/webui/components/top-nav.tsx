@@ -64,6 +64,8 @@ export function TopNav() {
     onFolderClick,
     onRename,
     onDelete,
+    onArchive,
+    onRestoreArchive,
     compareMode,
     canCompareVersions,
     onCompareVersions,
@@ -162,6 +164,8 @@ export function TopNav() {
       onFolderClick={onFolderClick}
       onRename={onRename}
       onDelete={onDelete}
+      onArchive={onArchive}
+      onRestoreArchive={onRestoreArchive}
       compareMode={compareMode}
       canCompareVersions={canCompareVersions}
       onCompareVersions={onCompareVersions}

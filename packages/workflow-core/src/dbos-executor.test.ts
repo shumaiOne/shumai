@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { DbosExecutor, getDbosDatabaseUrl, getQueueForTaskType } from './dbos-executor'
-import { TaskQueueAgent, TaskQueueTranscode } from './workflow-utils'
+import { TaskQueueAgent, TaskQueueArchive, TaskQueueTranscode } from './workflow-utils'
 import { WorkflowTaskStatus, WorkflowTaskType, WorkflowTask, prisma } from '@shumai/db'
 import { DBOS } from '@dbos-inc/dbos-sdk'
 
@@ -44,6 +44,8 @@ describe('DbosExecutor Tests', () => {
       expect(getQueueForTaskType(WorkflowTaskType.transcode_image)).toBe(TaskQueueTranscode)
       expect(getQueueForTaskType(WorkflowTaskType.ai_embedding)).toBe(TaskQueueAgent)
       expect(getQueueForTaskType(WorkflowTaskType.chat)).toBe(TaskQueueAgent)
+      expect(getQueueForTaskType(WorkflowTaskType.archive_asset)).toBe(TaskQueueArchive)
+      expect(getQueueForTaskType(WorkflowTaskType.restore_asset)).toBe(TaskQueueArchive)
       expect(getQueueForTaskType('unknown_type')).toBe(TaskQueueAgent)
     })
 

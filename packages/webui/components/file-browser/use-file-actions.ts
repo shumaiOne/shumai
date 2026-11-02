@@ -38,6 +38,12 @@ export function useFileActions({
   const [resolvedFiles, setResolvedFiles] = useState<
     Array<{ id: string; name: string; url: string }>
   >([])
+  const [skippedArchivedCount, setSkippedArchivedCount] = useState(0)
+  const [archiveConfirmState, setArchiveConfirmState] = useState<{
+    open: boolean
+    mode: 'archive' | 'restore'
+    items: AssetInfo[]
+  }>({ open: false, mode: 'archive', items: [] })
   const queryClient = useQueryClient()
 
   const $createFolder = client.api.folders.$post
@@ -136,6 +142,32 @@ export function useFileActions({
     },
   })
 
+  type ArchiveFilesPost = typeof client.api.files.archive.$post
+  const { mutate: archiveFiles, isPending: isArchiving } = useMutation<
+    InferResponseType<ArchiveFilesPost, 200>,
+    Error,
+    InferRequestType<ArchiveFilesPost>
+  >({
+    mutationFn: async (request) => {
+      const res = await client.api.files.archive.$post(request)
+      if (!res.ok) throw new Error(m.archive_failed_toast())
+      return (await res.json()) as unknown as InferResponseType<ArchiveFilesPost, 200>
+    },
+  })
+
+  type RestoreArchiveFilesPost = (typeof client.api.files)['restore-archive']['$post']
+  const { mutate: restoreArchiveFiles, isPending: isRestoringArchive } = useMutation<
+    InferResponseType<RestoreArchiveFilesPost, 200>,
+    Error,
+    InferRequestType<RestoreArchiveFilesPost>
+  >({
+    mutationFn: async (request) => {
+      const res = await client.api.files['restore-archive'].$post(request)
+      if (!res.ok) throw new Error(m.restore_archive_failed_toast())
+      return (await res.json()) as unknown as InferResponseType<RestoreArchiveFilesPost, 200>
+    },
+  })
+
   const handleRename = (item: AssetInfo) => {
     setEditingItemId(item.id!)
   }
@@ -222,11 +254,21 @@ export function useFileActions({
     setIsDownloadDialogOpen(true)
     setIsLoadingLinks(true)
     setResolvedFiles([])
+    setSkippedArchivedCount(0)
     try {
       if (isPublic && shareId) {
         const password = localStorage.getItem(`share_pwd_${shareId}`) || ''
         const links: Array<{ id: string; name: string; url: string }> = []
+        let skipped = 0
         for (const item of items) {
+          if (
+            item.status === 'archived' ||
+            item.status === 'archiving' ||
+            item.status === 'restoring'
+          ) {
+            skipped++
+            continue
+          }
           const key = item.media?.original?.key
           if (!key || !item.id) continue
           const res = await client.api.shares[':shareId'].files[':fileId']['download-url'].$post(
@@ -245,11 +287,24 @@ export function useFileActions({
             links.push({ id: item.id, name: item.name || 'download', url })
           }
         }
+        setSkippedArchivedCount(skipped)
+        if (links.length === 0 && skipped > 0) {
+          setIsDownloadDialogOpen(false)
+          toast.error(m.download_all_archived_error())
+          return
+        }
         setResolvedFiles(links)
       } else {
         const res = await getDownloadLinks({
           json: { ids: items.map((i) => i.id!) },
         })
+        const skipped = res.skippedArchivedCount ?? 0
+        setSkippedArchivedCount(skipped)
+        if (res.files.length === 0 && skipped > 0) {
+          setIsDownloadDialogOpen(false)
+          toast.error(m.download_all_archived_error())
+          return
+        }
         setResolvedFiles(res.files)
       }
     } catch (error) {
@@ -268,7 +323,12 @@ export function useFileActions({
         json: { ids: items.map((i) => i.id!) },
       })
       const files = res.files
-      if (files.length === 0) return
+      if (files.length === 0) {
+        if ((res.skippedArchivedCount ?? 0) > 0) {
+          toast.error(m.download_all_archived_error())
+        }
+        return
+      }
 
       let text = ''
       if (files.length === 1) {
@@ -284,6 +344,73 @@ export function useFileActions({
     } catch (error) {
       toast.error('Failed to copy name and download link')
       console.error(error)
+    }
+  }
+
+  const handleArchive = (items: AssetInfo[]) => {
+    if (items.length === 0) return
+    setArchiveConfirmState({
+      open: true,
+      mode: 'archive',
+      items,
+    })
+  }
+
+  const handleRestoreArchive = (items: AssetInfo[]) => {
+    if (items.length === 0) return
+    setArchiveConfirmState({
+      open: true,
+      mode: 'restore',
+      items,
+    })
+  }
+
+  const confirmArchiveOrRestore = () => {
+    const ids = archiveConfirmState.items.map((i) => i.id!).filter(Boolean)
+    if (ids.length === 0) {
+      setArchiveConfirmState((prev) => ({ ...prev, open: false, items: [] }))
+      return
+    }
+    if (archiveConfirmState.mode === 'archive') {
+      archiveFiles(
+        { json: { ids } },
+        {
+          onSuccess: (data) => {
+            if (data.archivedAssetIds.length > 0) {
+              toast.success(m.archive_started_toast({ count: data.archivedAssetIds.length }))
+            } else {
+              toast.info(m.archive_no_eligible_assets_toast())
+            }
+            queryClient.removeQueries({ queryKey: ['file', teamId] })
+            queryClient.invalidateQueries({ queryKey: ['search', teamId] })
+            setArchiveConfirmState((prev) => ({ ...prev, open: false, items: [] }))
+          },
+          onError: () => {
+            toast.error(m.archive_failed_toast())
+          },
+        },
+      )
+    } else {
+      restoreArchiveFiles(
+        { json: { ids } },
+        {
+          onSuccess: (data) => {
+            if (data.restoredAssetIds.length > 0) {
+              toast.success(
+                m.restore_archive_started_toast({ count: data.restoredAssetIds.length }),
+              )
+            } else {
+              toast.info(m.restore_archive_no_eligible_assets_toast())
+            }
+            queryClient.removeQueries({ queryKey: ['file', teamId] })
+            queryClient.invalidateQueries({ queryKey: ['search', teamId] })
+            setArchiveConfirmState((prev) => ({ ...prev, open: false, items: [] }))
+          },
+          onError: () => {
+            toast.error(m.restore_archive_failed_toast())
+          },
+        },
+      )
     }
   }
 
@@ -387,7 +514,14 @@ export function useFileActions({
   }
 
   const handleAction = (
-    action: 'rename' | 'delete' | 'download' | 'restore' | 'copy-name-and-download-link',
+    action:
+      | 'rename'
+      | 'delete'
+      | 'download'
+      | 'restore'
+      | 'copy-name-and-download-link'
+      | 'archive'
+      | 'restore-archive',
     item: AssetInfo,
   ) => {
     const isSelected = selectedIds.has(item.id!)
@@ -411,6 +545,12 @@ export function useFileActions({
       case 'copy-name-and-download-link':
         handleCopyNameAndDownloadLink(targetItems)
         break
+      case 'archive':
+        handleArchive(targetItems)
+        break
+      case 'restore-archive':
+        handleRestoreArchive(targetItems)
+        break
     }
   }
 
@@ -422,6 +562,8 @@ export function useFileActions({
     handleRestore,
     handleDownload,
     handleCopyNameAndDownloadLink,
+    handleArchive,
+    handleRestoreArchive,
     handleNewFolder,
     handleAction,
     onRenameSubmit,
@@ -433,6 +575,12 @@ export function useFileActions({
     setIsDownloadDialogOpen,
     isLoadingLinks,
     resolvedFiles,
+    skippedArchivedCount,
     startDownload,
+    archiveConfirmState,
+    setArchiveConfirmState,
+    confirmArchiveOrRestore,
+    isArchiving,
+    isRestoringArchive,
   }
 }

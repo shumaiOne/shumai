@@ -1,6 +1,6 @@
 import { WorkflowTaskType } from '@shumai/db'
 import { getFileMimeType } from '@shumai/core/src/utils/file-mime'
-import type { AssetReader } from '../types'
+import { badRequest, type AssetReader } from '../types'
 
 /** Images (including PSD): the web proxy, or a copy with the annotation drawn on top. */
 export const imageReader: AssetReader<'image'> = {
@@ -16,7 +16,13 @@ export const imageReader: AssetReader<'image'> = {
   validate() {},
 
   async plan(asset, _options, { annotation }) {
-    const key = asset.media?.imageTranscodes?.[0]?.key || asset.storageKey
+    const proxyKey = asset.media?.imageTranscodes?.[0]?.key
+    if (!proxyKey && asset.isArchived) {
+      throw badRequest(
+        `Asset "${asset.name}" is archived in cold storage and has no web image proxy. Restore the asset first.`,
+      )
+    }
+    const key = proxyKey || asset.storageKey
     if (!key) {
       throw new Error('No media content found for this asset.')
     }

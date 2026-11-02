@@ -29,11 +29,14 @@ import { useUploadStore } from '@/ui/stores/upload'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
 import {
   AlertCircle,
+  Archive,
+  ArchiveRestore,
   Clock,
   Download,
   Edit,
   History,
   Layers,
+  Loader2,
   MessageCircleMore,
   MoreHorizontal,
   Trash2,
@@ -64,7 +67,15 @@ interface FileCardProps {
   dragState?: DragState
   disabled?: boolean
   onAction?: (
-    action: 'rename' | 'delete' | 'download' | 'restore' | 'remove-from-share' | 'manage-versions',
+    action:
+      | 'rename'
+      | 'delete'
+      | 'download'
+      | 'restore'
+      | 'remove-from-share'
+      | 'manage-versions'
+      | 'archive'
+      | 'restore-archive',
     item: AssetInfo,
   ) => void
   isRecentlyDeleted?: boolean
@@ -73,6 +84,7 @@ interface FileCardProps {
   fields?: MetadataFieldInfo[]
   isShareView?: boolean
   canEdit?: boolean
+  archiveStorageEnabled?: boolean
   /** When false, hides the download action. Defaults to true. */
   allowDownload?: boolean
   hideCheckbox?: boolean
@@ -104,6 +116,7 @@ export function FileCard({
   fields = [],
   isShareView,
   canEdit = true,
+  archiveStorageEnabled = false,
   allowDownload = true,
   hideCheckbox = false,
   hideActions = false,
@@ -133,11 +146,23 @@ export function FileCard({
   })
 
   const displayItem = useMemo(() => {
-    if (item.status === 'processed' || item.status === 'error' || item.status === 'failed') {
+    if (
+      item.status === 'processed' ||
+      item.status === 'archived' ||
+      item.status === 'error' ||
+      item.status === 'failed'
+    ) {
+      return item
+    }
+    if (item.status === 'archiving' && polledItem?.status === 'processed') {
+      return item
+    }
+    if (item.status === 'restoring' && polledItem?.status === 'archived') {
       return item
     }
     if (
       polledItem?.status === 'processed' ||
+      polledItem?.status === 'archived' ||
       polledItem?.status === 'error' ||
       polledItem?.status === 'failed'
     ) {
@@ -301,6 +326,21 @@ export function FileCard({
   }
 
   const failedErrorMessage = displayItem.media?.error || m.processing_failed()
+  const isOriginalUnavailable =
+    displayItem.status === 'archived' ||
+    displayItem.status === 'archiving' ||
+    displayItem.status === 'restoring'
+  const canArchiveItem =
+    displayItem.type === 'version_stack'
+      ? displayItem.status === 'processed' ||
+        (displayItem.versionStack?.versions.some((v) => !v.status || v.status === 'processed') ??
+          false)
+      : displayItem.status === 'processed'
+  const canRestoreArchiveItem =
+    displayItem.type === 'version_stack'
+      ? displayItem.status === 'archived' ||
+        (displayItem.versionStack?.versions.some((v) => v.status === 'archived') ?? false)
+      : displayItem.status === 'archived'
 
   const previewBadges =
     daysLeft !== null ||
@@ -380,6 +420,33 @@ export function FileCard({
             {displayItem.versionStack.versions.find((v) => v.id === displayItem.id)?.version ??
               displayItem.versionStack.versions.length}
           </Badge>
+        )}
+        {displayItem.status === 'archived' && (
+          <span
+            data-testid="file-card-archived-badge"
+            className="flex select-none items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-xs font-medium text-white shadow-sm"
+          >
+            <Archive className="h-3 w-3" />
+            <span>{m.archived_status()}</span>
+          </span>
+        )}
+        {displayItem.status === 'archiving' && (
+          <span
+            data-testid="file-card-archiving-badge"
+            className="flex select-none items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-xs font-medium text-white shadow-sm"
+          >
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>{m.archiving_status()}</span>
+          </span>
+        )}
+        {displayItem.status === 'restoring' && (
+          <span
+            data-testid="file-card-restoring-badge"
+            className="flex select-none items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-xs font-medium text-white shadow-sm"
+          >
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>{m.restoring_status()}</span>
+          </span>
         )}
         {isFailed && (
           <TooltipProvider delayDuration={100}>
@@ -557,6 +624,7 @@ export function FileCard({
                 <>
                   {allowDownload && (
                     <DropdownMenuItem
+                      disabled={displayItem.type !== 'version_stack' && isOriginalUnavailable}
                       onClick={(e) => {
                         e.stopPropagation()
                         onAction?.('download', item)
@@ -615,6 +683,7 @@ export function FileCard({
                   )}
                   {allowDownload && (
                     <DropdownMenuItem
+                      disabled={displayItem.type !== 'version_stack' && isOriginalUnavailable}
                       onClick={(e) => {
                         e.stopPropagation()
                         onAction?.('download', item)
@@ -622,6 +691,30 @@ export function FileCard({
                     >
                       <Download className="mr-2 h-4 w-4" />
                       <span>{m.download()}</span>
+                    </DropdownMenuItem>
+                  )}
+                  {canEdit && archiveStorageEnabled && canArchiveItem && (
+                    <DropdownMenuItem
+                      data-testid="file-card-archive-action"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onAction?.('archive', item)
+                      }}
+                    >
+                      <Archive className="mr-2 h-4 w-4" />
+                      <span>{m.archive()}</span>
+                    </DropdownMenuItem>
+                  )}
+                  {canEdit && archiveStorageEnabled && canRestoreArchiveItem && (
+                    <DropdownMenuItem
+                      data-testid="file-card-restore-archive-action"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onAction?.('restore-archive', item)
+                      }}
+                    >
+                      <ArchiveRestore className="mr-2 h-4 w-4" />
+                      <span>{m.restore_from_archive()}</span>
                     </DropdownMenuItem>
                   )}
                   {canEdit && (

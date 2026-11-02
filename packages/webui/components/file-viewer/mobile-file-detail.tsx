@@ -45,6 +45,7 @@ export interface MobileFileDetailProps {
     id: string
     version: number
     name?: string | null
+    status?: string | null
     previewUrl?: string | null
   }>
   activeFileId: string
@@ -58,6 +59,8 @@ export interface MobileFileDetailProps {
   onNavigateBack: () => void
   onRenameFile?: (newName: string) => Promise<void>
   onDeleteFile?: () => Promise<void>
+  onArchiveFile?: () => void
+  onRestoreArchiveFile?: () => void
   onSaveField: (fieldId: string, value: unknown) => void
   onSelectVersion?: (versionId: string) => void
 }
@@ -81,6 +84,8 @@ export function MobileFileDetail({
   onNavigateBack,
   onRenameFile,
   onDeleteFile,
+  onArchiveFile,
+  onRestoreArchiveFile,
   onSaveField,
   onSelectVersion,
 }: MobileFileDetailProps) {
@@ -214,6 +219,7 @@ export function MobileFileDetail({
         fileName={file.name}
         folderName={folderName}
         version={versionNumber}
+        status={file.status}
         versions={versions}
         activeFileId={activeFileId}
         isPublic={isPublic}
@@ -232,6 +238,8 @@ export function MobileFileDetail({
           setIsRenameDialogOpen(true)
         }}
         onDelete={() => setIsDeleteDialogOpen(true)}
+        onArchive={onArchiveFile}
+        onRestoreArchive={onRestoreArchiveFile}
         onLinkedTasks={!isPublic ? () => setIsLinkedTasksOpen(true) : undefined}
         linkedTaskCount={linkedTaskCount}
       />

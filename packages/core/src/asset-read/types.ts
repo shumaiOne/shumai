@@ -15,6 +15,8 @@ export interface ReadableAsset {
   filenameLower: string
   storageKey: string | null
   media: PrismaJson.MediaInfo | null
+  /** True when the original raw file is archived, archiving, or restoring. */
+  isArchived?: boolean
 }
 
 export interface ReadAnnotation {

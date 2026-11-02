@@ -28,7 +28,7 @@ const conditionSchema = z.object({
     .min(1)
     .describe(
       'Metadata field key from list_metadata_fields (e.g. "status"), or one of "name", ' +
-        '"sizeByte", "createdAt", "updatedAt".',
+        '"sizeByte", "createdAt", "updatedAt", "isArchived".',
     ),
   operator: z
     .enum(SEARCH_CONDITION_OPERATORS)

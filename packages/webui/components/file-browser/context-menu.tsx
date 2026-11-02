@@ -11,6 +11,8 @@ import {
   ContextMenuPortal,
 } from '@/ui/components/ui/context-menu'
 import {
+  Archive,
+  ArchiveRestore,
   Download,
   Edit,
   FolderPlus,
@@ -33,6 +35,9 @@ interface FileBrowserContextMenuProps {
   onDownload: (items: AssetInfo[]) => void
   onCopyNameAndDownloadLink?: (items: AssetInfo[]) => void
   onRestore: (items: AssetInfo[]) => void
+  onArchive?: (items: AssetInfo[]) => void
+  onRestoreArchive?: (items: AssetInfo[]) => void
+  archiveStorageEnabled?: boolean
   onNewFolder: (name: string) => void
   onUploadFile: () => void
   onUploadFolder: () => void
@@ -61,6 +66,9 @@ export function FileBrowserContextMenu({
   onDownload,
   onCopyNameAndDownloadLink,
   onRestore,
+  onArchive,
+  onRestoreArchive,
+  archiveStorageEnabled = false,
   onNewFolder,
   onUploadFile,
   onUploadFolder,
@@ -116,6 +124,36 @@ export function FileBrowserContextMenu({
   const handleRestore = () => {
     onRestore(itemsToRestore)
   }
+
+  const canArchiveSelection = itemsToModify.some((i) => {
+    if (i.type === 'folder') return true
+    if (i.type === 'version_stack') {
+      return (
+        i.status === 'processed' ||
+        (i.versionStack?.versions.some((v) => !v.status || v.status === 'processed') ?? false)
+      )
+    }
+    return i.status === 'processed'
+  })
+
+  const canRestoreArchiveSelection = itemsToModify.some((i) => {
+    if (i.type === 'folder') return true
+    if (i.type === 'version_stack') {
+      return (
+        i.status === 'archived' ||
+        (i.versionStack?.versions.some((v) => v.status === 'archived') ?? false)
+      )
+    }
+    return i.status === 'archived'
+  })
+
+  const isDownloadUnavailable =
+    itemsToModify.length > 0 &&
+    itemsToModify.every(
+      (i) =>
+        i.type === 'file' &&
+        (i.status === 'archived' || i.status === 'archiving' || i.status === 'restoring'),
+    )
 
   if (isRecents) {
     return null
@@ -196,11 +234,11 @@ export function FileBrowserContextMenu({
           e.preventDefault()
         }}
       >
-        <ContextMenuItem onSelect={handleDownload}>
+        <ContextMenuItem onSelect={handleDownload} disabled={isDownloadUnavailable}>
           <Download className="mr-2 h-4 w-4" />
           <span>{m.download()}</span>
         </ContextMenuItem>
-        <ContextMenuItem onSelect={handleCopyNameAndDownloadLink}>
+        <ContextMenuItem onSelect={handleCopyNameAndDownloadLink} disabled={isDownloadUnavailable}>
           <Copy className="mr-2 h-4 w-4" />
           <span>{m.copy_name_and_download_link()}</span>
         </ContextMenuItem>
@@ -214,6 +252,24 @@ export function FileBrowserContextMenu({
           <ContextMenuItem onSelect={() => onCopyTo(itemsToModify)}>
             <Copy className="mr-2 h-4 w-4" />
             <span>{m.copy_to()}</span>
+          </ContextMenuItem>
+        )}
+        {canEdit && archiveStorageEnabled && canArchiveSelection && (
+          <ContextMenuItem
+            data-testid="context-menu-archive"
+            onSelect={() => onArchive?.(itemsToModify)}
+          >
+            <Archive className="mr-2 h-4 w-4" />
+            <span>{m.archive()}</span>
+          </ContextMenuItem>
+        )}
+        {canEdit && archiveStorageEnabled && canRestoreArchiveSelection && (
+          <ContextMenuItem
+            data-testid="context-menu-restore-archive"
+            onSelect={() => onRestoreArchive?.(itemsToModify)}
+          >
+            <ArchiveRestore className="mr-2 h-4 w-4" />
+            <span>{m.restore_from_archive()}</span>
           </ContextMenuItem>
         )}
         {canEdit && (
@@ -270,11 +326,11 @@ export function FileBrowserContextMenu({
             <span>{m.rename()}</span>
           </ContextMenuItem>
         )}
-        <ContextMenuItem onSelect={handleDownload}>
+        <ContextMenuItem onSelect={handleDownload} disabled={isDownloadUnavailable}>
           <Download className="mr-2 h-4 w-4" />
           <span>{m.download()}</span>
         </ContextMenuItem>
-        <ContextMenuItem onSelect={handleCopyNameAndDownloadLink}>
+        <ContextMenuItem onSelect={handleCopyNameAndDownloadLink} disabled={isDownloadUnavailable}>
           <Copy className="mr-2 h-4 w-4" />
           <span>{m.copy_name_and_download_link()}</span>
         </ContextMenuItem>
@@ -303,6 +359,25 @@ export function FileBrowserContextMenu({
           <ContextMenuItem onSelect={() => onManageVersions?.(item)}>
             <Layers className="mr-2 h-4 w-4" />
             <span>{m.manage_versions()}</span>
+          </ContextMenuItem>
+        )}
+
+        {canEdit && archiveStorageEnabled && canArchiveSelection && (
+          <ContextMenuItem
+            data-testid="context-menu-archive"
+            onSelect={() => onArchive?.(itemsToModify)}
+          >
+            <Archive className="mr-2 h-4 w-4" />
+            <span>{m.archive()}</span>
+          </ContextMenuItem>
+        )}
+        {canEdit && archiveStorageEnabled && canRestoreArchiveSelection && (
+          <ContextMenuItem
+            data-testid="context-menu-restore-archive"
+            onSelect={() => onRestoreArchive?.(itemsToModify)}
+          >
+            <ArchiveRestore className="mr-2 h-4 w-4" />
+            <span>{m.restore_from_archive()}</span>
           </ContextMenuItem>
         )}
 

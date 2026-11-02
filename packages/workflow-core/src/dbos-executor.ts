@@ -8,6 +8,7 @@ import {
   registerLocalTaskAbortController,
   runInLocalTaskContext,
   TaskQueueAgent,
+  TaskQueueArchive,
   TaskQueueTranscode,
   triggerLocalCancel,
   unregisterLocalTaskAbortController,
@@ -69,6 +70,9 @@ export function getQueueForTaskType(type: string | null | undefined): string {
     case WorkflowTaskType.transcode_watermark:
     case WorkflowTaskType.transcode_3d:
       return TaskQueueTranscode
+    case WorkflowTaskType.archive_asset:
+    case WorkflowTaskType.restore_asset:
+      return TaskQueueArchive
     default:
       if (type && type.startsWith('transcode')) {
         return TaskQueueTranscode
@@ -84,7 +88,7 @@ export class DbosExecutor extends EventEmitter {
   private launchPromise: Promise<void> | null = null
   private started = false
   private client: DBOSClient | null = null
-  private listenQueues: string[] = [TaskQueueAgent, TaskQueueTranscode]
+  private listenQueues: string[] = [TaskQueueAgent, TaskQueueTranscode, TaskQueueArchive]
   private heartbeatIntervals = new Map<string, Timer>()
   private inFlightSubmits = new Set<Promise<string>>()
   private executorId?: string
@@ -114,6 +118,10 @@ export class DbosExecutor extends EventEmitter {
 
   getAgentConcurrencyLimit(): number {
     return getConcurrencyLimit(process.env.CONCURRENCY_AGENT, 5)
+  }
+
+  getArchiveConcurrencyLimit(): number {
+    return getConcurrencyLimit(process.env.CONCURRENCY_ARCHIVE, 5)
   }
 
   private registerAllWorkflowsWithDbos(): void {
@@ -219,6 +227,7 @@ export class DbosExecutor extends EventEmitter {
     if (this.listenQueues.length === 1) {
       if (this.listenQueues[0] === TaskQueueTranscode) return 'shumai-transcode'
       if (this.listenQueues[0] === TaskQueueAgent) return 'shumai-agent'
+      if (this.listenQueues[0] === TaskQueueArchive) return 'shumai-archive'
     }
     return 'shumai-all'
   }
@@ -299,6 +308,12 @@ export class DbosExecutor extends EventEmitter {
         } else if (queueName === TaskQueueAgent) {
           await DBOS.registerQueue(TaskQueueAgent, {
             workerConcurrency: this.getAgentConcurrencyLimit(),
+            minPollingIntervalMs,
+            onConflict: 'always_update',
+          })
+        } else if (queueName === TaskQueueArchive) {
+          await DBOS.registerQueue(TaskQueueArchive, {
+            workerConcurrency: this.getArchiveConcurrencyLimit(),
             minPollingIntervalMs,
             onConflict: 'always_update',
           })

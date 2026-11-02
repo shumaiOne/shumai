@@ -10,6 +10,7 @@ export {
 } from './implement'
 export { runOperation } from './run'
 export { getOperation, getOperationsForSurface, operations } from './registry'
+export { archiveAssetsOp } from './asset/archive-assets'
 export { copyAssetsOp } from './asset/copy-assets'
 export { createFolderOp } from './asset/create-folder'
 export { deleteAssetOp } from './asset/delete-asset'
@@ -24,6 +25,7 @@ export {
   waitBudgetMs,
 } from './asset/read-asset'
 export { renameAssetOp } from './asset/rename-asset'
+export { restoreArchivedAssetsOp } from './asset/restore-archived-assets'
 export { searchAssetsOp } from './asset/search-assets'
 export { createCommentOp } from './comment/create-comment'
 export { listCommentsOp } from './comment/list-comments'

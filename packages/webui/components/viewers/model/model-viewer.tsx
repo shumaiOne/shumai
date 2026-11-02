@@ -514,7 +514,14 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
           zoom={zoom}
           isFullScreen={isFullScreen}
           allowDownload={allowDownload}
-          onDownload={data.media?.original?.key ? handleDownload : undefined}
+          onDownload={
+            data.media?.original?.key &&
+            data.status !== 'archived' &&
+            data.status !== 'archiving' &&
+            data.status !== 'restoring'
+              ? handleDownload
+              : undefined
+          }
           togglePlay={togglePlay}
           onSeekDegree={seekToDegree}
           onZoomChange={handleZoomChange}

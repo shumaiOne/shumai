@@ -58,6 +58,8 @@ import { FileBrowserListView } from './list-view'
 import { FileBrowserToolbar } from './toolbar'
 import { useFileActions } from './use-file-actions'
 import { useBatchFileStatus } from '@/ui/hooks/use-batch-file-status'
+import { useArchiveConfig } from '@/ui/hooks/use-archive-config'
+import { ArchiveConfirmDialog } from '../archive-confirm-dialog'
 
 interface FileBrowserProps {
   teamId: string
@@ -484,6 +486,8 @@ export function FileBrowser({
     handleRestore,
     handleDownload,
     handleCopyNameAndDownloadLink,
+    handleArchive,
+    handleRestoreArchive,
     handleAction,
     onRenameSubmit,
     isDeleteDialogOpen,
@@ -493,7 +497,13 @@ export function FileBrowser({
     setIsDownloadDialogOpen,
     isLoadingLinks,
     resolvedFiles,
+    skippedArchivedCount,
     startDownload,
+    archiveConfirmState,
+    setArchiveConfirmState,
+    confirmArchiveOrRestore,
+    isArchiving,
+    isRestoringArchive,
   } = useFileActions({
     teamId,
     projectId,
@@ -504,6 +514,7 @@ export function FileBrowser({
     isPublic,
     shareId,
   })
+  const { archiveStorageEnabled } = useArchiveConfig()
 
   const [isEmptyTrashDialogOpen, setIsEmptyTrashDialogOpen] = useState(false)
   const { mutate: emptyTrash, isPending: isEmptyingTrash } = useMutation({
@@ -758,7 +769,10 @@ export function FileBrowser({
           }
           return
         }
-        handleAction(action as 'rename' | 'delete' | 'download' | 'restore', item)
+        handleAction(
+          action as 'rename' | 'delete' | 'download' | 'restore' | 'archive' | 'restore-archive',
+          item,
+        )
       },
       isRecentlyDeleted,
       isRecents,
@@ -767,6 +781,7 @@ export function FileBrowser({
       allowDownload,
       fields: displayedFields,
       canEdit,
+      archiveStorageEnabled,
       isExternalDragging,
       externalOverFolderId,
       setExternalOverFolderId,
@@ -1172,6 +1187,9 @@ export function FileBrowser({
             setMoveCopyMode('copy')
           }}
           onRestore={handleRestore}
+          onArchive={handleArchive}
+          onRestoreArchive={handleRestoreArchive}
+          archiveStorageEnabled={archiveStorageEnabled}
           isRecentlyDeleted={isRecentlyDeleted}
           isRecents={isRecents}
           shareLinks={shareLinksData?.data ?? []}
@@ -1296,6 +1314,14 @@ export function FileBrowser({
                 <span className="font-semibold text-foreground">{resolvedFiles.length}</span>{' '}
                 file(s).
               </div>
+              {skippedArchivedCount > 0 && (
+                <div
+                  data-testid="download-skipped-archived-notice"
+                  className="text-sm text-amber-600 dark:text-amber-400"
+                >
+                  {m.download_skipped_archived_notice({ count: skippedArchivedCount })}
+                </div>
+              )}
               <div className="flex items-start gap-3 p-3 text-sm rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/30">
                 <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
                 <div>
@@ -1355,6 +1381,14 @@ export function FileBrowser({
         shareId={shareId}
         sharePassword={sharePassword}
         isPublic={isPublic}
+      />
+
+      <ArchiveConfirmDialog
+        open={archiveConfirmState.open}
+        onOpenChange={(open) => setArchiveConfirmState((prev) => ({ ...prev, open }))}
+        mode={archiveConfirmState.mode}
+        onConfirm={confirmArchiveOrRestore}
+        isPending={isArchiving || isRestoringArchive}
       />
     </>
   )

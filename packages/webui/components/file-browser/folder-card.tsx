@@ -12,7 +12,16 @@ import { useDraggable, useDroppable } from '@dnd-kit/react'
 import type { AssetInfo, ChildPreview } from '@shumai/dtos'
 import { m } from '@/ui/paraglide/messages.js'
 import { getTrashDaysLeft } from '@/ui/lib/time'
-import { Clock, Download, Edit, History, MoreHorizontal, Trash2 } from 'lucide-react'
+import {
+  Archive,
+  ArchiveRestore,
+  Clock,
+  Download,
+  Edit,
+  History,
+  MoreHorizontal,
+  Trash2,
+} from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
 import { FilePreview } from './file-preview'
@@ -34,13 +43,21 @@ interface FolderCardProps {
   dragState?: DragState
   disabled?: boolean
   onAction?: (
-    action: 'rename' | 'delete' | 'download' | 'restore' | 'remove-from-share',
+    action:
+      | 'rename'
+      | 'delete'
+      | 'download'
+      | 'restore'
+      | 'remove-from-share'
+      | 'archive'
+      | 'restore-archive',
     item: AssetInfo,
   ) => void
   isRecentlyDeleted?: boolean
   isRecents?: boolean
   selectedCount?: number
   canEdit?: boolean
+  archiveStorageEnabled?: boolean
   isShareView?: boolean
   isExternalDragging?: boolean
   externalOverFolderId?: string | null
@@ -127,6 +144,7 @@ export function FolderCard({
   isRecents,
   selectedCount,
   canEdit = true,
+  archiveStorageEnabled = false,
   isShareView,
   isExternalDragging,
   externalOverFolderId,
@@ -454,6 +472,30 @@ export function FolderCard({
                           <Download className="mr-2 h-4 w-4" />
                           <span>{m.download()}</span>
                         </DropdownMenuItem>
+                      )}
+                      {canEdit && archiveStorageEnabled && (
+                        <>
+                          <DropdownMenuItem
+                            data-testid="folder-card-archive-action"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onAction?.('archive', item)
+                            }}
+                          >
+                            <Archive className="mr-2 h-4 w-4" />
+                            <span>{m.archive()}</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            data-testid="folder-card-restore-archive-action"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onAction?.('restore-archive', item)
+                            }}
+                          >
+                            <ArchiveRestore className="mr-2 h-4 w-4" />
+                            <span>{m.restore_from_archive()}</span>
+                          </DropdownMenuItem>
+                        </>
                       )}
                       {canEdit && (
                         <>

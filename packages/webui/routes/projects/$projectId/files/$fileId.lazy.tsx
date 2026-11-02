@@ -6,6 +6,8 @@ import { FileViewer } from '@/ui/components/file-viewer'
 import { FileViewerLeftSidebar } from '@/ui/components/file-viewer-left-sidebar'
 import { FileViewerRightSidebar } from '@/ui/components/file-viewer-right-sidebar'
 import { MobileFileDetail } from '@/ui/components/file-viewer/mobile-file-detail'
+import { ArchiveConfirmDialog } from '@/ui/components/archive-confirm-dialog'
+import { useArchiveConfig } from '@/ui/hooks/use-archive-config'
 import { useIsMobile } from '@/ui/hooks/use-mobile'
 import { FileDetailSkeleton } from '@/ui/components/loading-skeletons'
 import { ResizeHandle } from '@/ui/components/resize-handle'
@@ -68,6 +70,7 @@ function FileViewPage() {
   const isCompareMode = !!search.compare && !!compareLeftId && !!compareRightId
 
   const mediaControllerRef = useRef<MediaController | null>(null)
+  const { archiveStorageEnabled } = useArchiveConfig()
   const { teamId, ensureTeamIdForProject } = useTeamContextStore()
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
@@ -142,6 +145,10 @@ function FileViewPage() {
     },
     enabled: !!teamId,
     placeholderData: keepPreviousData,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      return status === 'archiving' || status === 'restoring' ? 2000 : false
+    },
   })
 
   const {
@@ -160,6 +167,10 @@ function FileViewPage() {
     },
     enabled: !!teamId && !!versionAssetId,
     placeholderData: keepPreviousData,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      return status === 'archiving' || status === 'restoring' ? 2000 : false
+    },
   })
 
   const { data: versionsList } = useQuery({
@@ -201,6 +212,60 @@ function FileViewPage() {
   const renameInputRef = useRef<HTMLInputElement>(null)
   const renameSettledRef = useRef(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [archiveConfirmState, setArchiveConfirmState] = useState<{
+    open: boolean
+    mode: 'archive' | 'restore'
+  }>({ open: false, mode: 'archive' })
+
+  const { mutate: archiveFile, isPending: isArchivingFile } = useMutation({
+    mutationFn: async (targetId: string) => {
+      const res = await client.api.files.archive.$post({
+        json: { ids: [targetId] },
+      })
+      if (!res.ok) throw new Error(m.archive_failed_toast())
+      return await res.json()
+    },
+    onSuccess: (data) => {
+      if (data.archivedAssetIds.length > 0) {
+        toast.success(m.archive_started_toast({ count: data.archivedAssetIds.length }))
+      } else {
+        toast.info(m.archive_no_eligible_assets_toast())
+      }
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      queryClient.removeQueries({ queryKey: ['file', teamId] })
+      queryClient.invalidateQueries({ queryKey: ['version_stacks'] })
+      queryClient.invalidateQueries({ queryKey: ['search', teamId] })
+      setArchiveConfirmState((prev) => ({ ...prev, open: false }))
+    },
+    onError: () => {
+      toast.error(m.archive_failed_toast())
+    },
+  })
+
+  const { mutate: restoreArchiveFile, isPending: isRestoringArchiveFile } = useMutation({
+    mutationFn: async (targetId: string) => {
+      const res = await client.api.files['restore-archive'].$post({
+        json: { ids: [targetId] },
+      })
+      if (!res.ok) throw new Error(m.restore_archive_failed_toast())
+      return await res.json()
+    },
+    onSuccess: (data) => {
+      if (data.restoredAssetIds.length > 0) {
+        toast.success(m.restore_archive_started_toast({ count: data.restoredAssetIds.length }))
+      } else {
+        toast.info(m.restore_archive_no_eligible_assets_toast())
+      }
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      queryClient.removeQueries({ queryKey: ['file', teamId] })
+      queryClient.invalidateQueries({ queryKey: ['version_stacks'] })
+      queryClient.invalidateQueries({ queryKey: ['search', teamId] })
+      setArchiveConfirmState((prev) => ({ ...prev, open: false }))
+    },
+    onError: () => {
+      toast.error(m.restore_archive_failed_toast())
+    },
+  })
 
   const $renameFile = client.api.files[':fileId'].$put
   const {
@@ -287,6 +352,7 @@ function FileViewPage() {
           id: activeFileId || fileId,
           name: fileData.name,
           type: 'file',
+          status: fileData.status,
           version: versionsDataList
             ? (versionsDataList.find((v: { id: string }) => v.id === activeFileId)?.version ??
               versionsDataList.length)
@@ -337,6 +403,12 @@ function FileViewPage() {
         },
         onDelete: () => {
           setIsDeleteDialogOpen(true)
+        },
+        onArchive: () => {
+          setArchiveConfirmState({ open: true, mode: 'archive' })
+        },
+        onRestoreArchive: () => {
+          setArchiveConfirmState({ open: true, mode: 'restore' })
         },
       })
     }
@@ -617,60 +689,86 @@ function FileViewPage() {
 
   if (isMobile && !isCompareMode) {
     return (
-      <MobileFileDetail
-        projectId={projectId}
-        teamId={teamId}
-        fileId={fileId}
-        file={fileData as unknown as AssetInfo}
-        projectInfo={projectInfo}
-        ancestorFolders={fileData.ancestorFolders ?? []}
-        parentFolderId={parentFolderId}
-        versions={versionsDataList}
-        activeFileId={activeFileId}
-        startTime={startTime}
-        siblingFiles={carouselState.files}
-        onNavigateToFile={(targetId) => {
-          navigate({
-            to: '/projects/$projectId/files/$fileId',
-            params: { projectId, fileId: targetId },
-          })
-        }}
-        onNavigateBack={() => {
-          if (parentFolderId && parentFolderId !== projectInfo?.rootFolder) {
+      <>
+        <MobileFileDetail
+          projectId={projectId}
+          teamId={teamId}
+          fileId={fileId}
+          file={fileData as unknown as AssetInfo}
+          projectInfo={projectInfo}
+          ancestorFolders={fileData.ancestorFolders ?? []}
+          parentFolderId={parentFolderId}
+          versions={versionsDataList}
+          activeFileId={activeFileId}
+          startTime={startTime}
+          siblingFiles={carouselState.files}
+          onNavigateToFile={(targetId) => {
             navigate({
-              to: '/projects/$projectId/folders/$folderId',
-              params: { projectId, folderId: parentFolderId },
+              to: '/projects/$projectId/files/$fileId',
+              params: { projectId, fileId: targetId },
             })
-          } else {
+          }}
+          onNavigateBack={() => {
+            if (parentFolderId && parentFolderId !== projectInfo?.rootFolder) {
+              navigate({
+                to: '/projects/$projectId/folders/$folderId',
+                params: { projectId, folderId: parentFolderId },
+              })
+            } else {
+              navigate({
+                to: '/projects/$projectId',
+                params: { projectId },
+              })
+            }
+          }}
+          onSelectVersion={(versionId) => {
             navigate({
-              to: '/projects/$projectId',
-              params: { projectId },
+              to: '/projects/$projectId/files/$fileId',
+              params: { projectId, fileId },
+              search: (prev: Record<string, unknown>) => ({
+                ...prev,
+                version: versionId,
+              }),
             })
+          }}
+          onRenameFile={async (newName) => {
+            await renameFileAsync({
+              param: { fileId: activeFileId },
+              json: { name: newName },
+            })
+          }}
+          onDeleteFile={async () => {
+            await deleteFilesAsync({
+              json: { ids: [activeFileId] },
+            })
+          }}
+          onArchiveFile={
+            archiveStorageEnabled
+              ? () => setArchiveConfirmState({ open: true, mode: 'archive' })
+              : undefined
           }
-        }}
-        onSelectVersion={(versionId) => {
-          navigate({
-            to: '/projects/$projectId/files/$fileId',
-            params: { projectId, fileId },
-            search: (prev: Record<string, unknown>) => ({
-              ...prev,
-              version: versionId,
-            }),
-          })
-        }}
-        onRenameFile={async (newName) => {
-          await renameFileAsync({
-            param: { fileId: activeFileId },
-            json: { name: newName },
-          })
-        }}
-        onDeleteFile={async () => {
-          await deleteFilesAsync({
-            json: { ids: [activeFileId] },
-          })
-        }}
-        onSaveField={handleSaveField}
-      />
+          onRestoreArchiveFile={
+            archiveStorageEnabled
+              ? () => setArchiveConfirmState({ open: true, mode: 'restore' })
+              : undefined
+          }
+          onSaveField={handleSaveField}
+        />
+        <ArchiveConfirmDialog
+          open={archiveConfirmState.open}
+          onOpenChange={(open) => setArchiveConfirmState((prev) => ({ ...prev, open }))}
+          mode={archiveConfirmState.mode}
+          onConfirm={() => {
+            if (!activeFileId) return
+            if (archiveConfirmState.mode === 'archive') {
+              archiveFile(activeFileId)
+            } else {
+              restoreArchiveFile(activeFileId)
+            }
+          }}
+          isPending={isArchivingFile || isRestoringArchiveFile}
+        />
+      </>
     )
   }
 
@@ -823,6 +921,21 @@ function FileViewPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ArchiveConfirmDialog
+        open={archiveConfirmState.open}
+        onOpenChange={(open) => setArchiveConfirmState((prev) => ({ ...prev, open }))}
+        mode={archiveConfirmState.mode}
+        onConfirm={() => {
+          if (!activeFileId) return
+          if (archiveConfirmState.mode === 'archive') {
+            archiveFile(activeFileId)
+          } else {
+            restoreArchiveFile(activeFileId)
+          }
+        }}
+        isPending={isArchivingFile || isRestoringArchiveFile}
+      />
     </div>
   )
 }

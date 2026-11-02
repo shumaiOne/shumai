@@ -1,4 +1,5 @@
 import { client } from '@/ui/api/client'
+import { Badge } from '@/ui/components/ui/badge'
 import { Button } from '@/ui/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
 import {
@@ -8,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
+import { useArchiveConfig } from '@/ui/hooks/use-archive-config'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { PointerActivationConstraints } from '@dnd-kit/dom'
@@ -16,9 +18,19 @@ import { isSortable, useSortable } from '@dnd-kit/react/sortable'
 import type { StackVersionInfo } from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
-import { Bot, FileIcon, GripVertical, MoreVertical, Trash2 } from 'lucide-react'
+import {
+  Archive,
+  ArchiveRestore,
+  Bot,
+  FileIcon,
+  GripVertical,
+  Loader2,
+  MoreVertical,
+  Trash2,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { ArchiveConfirmDialog } from './archive-confirm-dialog'
 
 interface ManageVersionsDialogProps {
   open: boolean
@@ -34,7 +46,10 @@ interface SortableVersionRowProps {
   displayVersionNumber: number
   index: number
   canEdit: boolean
+  archiveStorageEnabled?: boolean
   onRemove: (versionId: string) => void
+  onArchive?: (versionId: string) => void
+  onRestoreArchive?: (versionId: string) => void
 }
 
 function formatVersionDate(dateString?: string | null): string | null {
@@ -53,7 +68,10 @@ function SortableVersionRow({
   displayVersionNumber,
   index,
   canEdit,
+  archiveStorageEnabled = false,
   onRemove,
+  onArchive,
+  onRestoreArchive,
 }: SortableVersionRowProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const { ref, handleRef } = useSortable({
@@ -102,9 +120,41 @@ function SortableVersionRow({
       {/* 4. Name / Creator / Create Date (2 rows) */}
       <div className="flex flex-col flex-1 min-w-0 text-left">
         {/* Row 1: Name */}
-        <span className="truncate text-sm font-medium text-foreground" title={version.name || ''}>
-          {version.name || 'Untitled'}
-        </span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="truncate text-sm font-medium text-foreground" title={version.name || ''}>
+            {version.name || 'Untitled'}
+          </span>
+          {version.status === 'archived' && (
+            <Badge
+              variant="secondary"
+              data-testid="version-row-archived-badge"
+              className="gap-1 px-1.5 py-0 text-xs shrink-0"
+            >
+              <Archive className="h-3 w-3" />
+              <span>{m.archived_status()}</span>
+            </Badge>
+          )}
+          {version.status === 'archiving' && (
+            <Badge
+              variant="secondary"
+              data-testid="version-row-archiving-badge"
+              className="gap-1 px-1.5 py-0 text-xs shrink-0"
+            >
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>{m.archiving_status()}</span>
+            </Badge>
+          )}
+          {version.status === 'restoring' && (
+            <Badge
+              variant="secondary"
+              data-testid="version-row-restoring-badge"
+              className="gap-1 px-1.5 py-0 text-xs shrink-0"
+            >
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>{m.restoring_status()}</span>
+            </Badge>
+          )}
+        </div>
         {/* Row 2: Creator & Create Date */}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
           {version.agent ? (
@@ -148,6 +198,26 @@ function SortableVersionRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {archiveStorageEnabled && (!version.status || version.status === 'processed') && (
+              <DropdownMenuItem
+                data-testid="version-row-archive-action"
+                onClick={() => onArchive?.(version.id)}
+                className="cursor-pointer"
+              >
+                <Archive className="h-4 w-4 mr-2" />
+                <span>{m.archive()}</span>
+              </DropdownMenuItem>
+            )}
+            {archiveStorageEnabled && version.status === 'archived' && (
+              <DropdownMenuItem
+                data-testid="version-row-restore-archive-action"
+                onClick={() => onRestoreArchive?.(version.id)}
+                className="cursor-pointer"
+              >
+                <ArchiveRestore className="h-4 w-4 mr-2" />
+                <span>{m.restore_from_archive()}</span>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={() => onRemove(version.id)}
               className="text-destructive focus:text-destructive cursor-pointer"
@@ -171,7 +241,17 @@ export function ManageVersionsDialog({
   onStackDissolved,
 }: ManageVersionsDialogProps) {
   const queryClient = useQueryClient()
+  const { archiveStorageEnabled } = useArchiveConfig()
   const [localVersions, setLocalVersions] = useState<StackVersionInfo[]>([])
+  const [archiveConfirmState, setArchiveConfirmState] = useState<{
+    open: boolean
+    mode: 'archive' | 'restore'
+    versionId: string | null
+  }>({ open: false, mode: 'archive', versionId: null })
+
+  const hasTransitioningVersions = localVersions.some(
+    (v) => v.status === 'archiving' || v.status === 'restoring',
+  )
 
   const { data: fetchedVersions, isLoading } = useQuery({
     queryKey: ['version_stacks', stackId, 'versions'],
@@ -183,6 +263,57 @@ export function ManageVersionsDialog({
       return (await res.json()) as StackVersionInfo[]
     },
     enabled: open && !!stackId,
+    refetchInterval: hasTransitioningVersions ? 2000 : false,
+  })
+
+  const { mutate: archiveVersion, isPending: isArchivingVersion } = useMutation({
+    mutationFn: async (versionId: string) => {
+      const res = await client.api.files.archive.$post({
+        json: { ids: [versionId] },
+      })
+      if (!res.ok) throw new Error(m.archive_failed_toast())
+      return await res.json()
+    },
+    onSuccess: (data) => {
+      if (data.archivedAssetIds.length > 0) {
+        toast.success(m.archive_started_toast({ count: data.archivedAssetIds.length }))
+      } else {
+        toast.info(m.archive_no_eligible_assets_toast())
+      }
+      queryClient.invalidateQueries({ queryKey: ['version_stacks', stackId, 'versions'] })
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      queryClient.removeQueries({ queryKey: ['file'] })
+      queryClient.invalidateQueries({ queryKey: ['search'] })
+      setArchiveConfirmState((prev) => ({ ...prev, open: false, versionId: null }))
+    },
+    onError: () => {
+      toast.error(m.archive_failed_toast())
+    },
+  })
+
+  const { mutate: restoreArchiveVersion, isPending: isRestoringArchiveVersion } = useMutation({
+    mutationFn: async (versionId: string) => {
+      const res = await client.api.files['restore-archive'].$post({
+        json: { ids: [versionId] },
+      })
+      if (!res.ok) throw new Error(m.restore_archive_failed_toast())
+      return await res.json()
+    },
+    onSuccess: (data) => {
+      if (data.restoredAssetIds.length > 0) {
+        toast.success(m.restore_archive_started_toast({ count: data.restoredAssetIds.length }))
+      } else {
+        toast.info(m.restore_archive_no_eligible_assets_toast())
+      }
+      queryClient.invalidateQueries({ queryKey: ['version_stacks', stackId, 'versions'] })
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      queryClient.removeQueries({ queryKey: ['file'] })
+      queryClient.invalidateQueries({ queryKey: ['search'] })
+      setArchiveConfirmState((prev) => ({ ...prev, open: false, versionId: null }))
+    },
+    onError: () => {
+      toast.error(m.restore_archive_failed_toast())
+    },
   })
 
   useEffect(() => {
@@ -318,7 +449,14 @@ export function ManageVersionsDialog({
                     displayVersionNumber={localVersions.length - index}
                     index={index}
                     canEdit={canEdit}
+                    archiveStorageEnabled={archiveStorageEnabled}
                     onRemove={handleRemove}
+                    onArchive={(versionId) =>
+                      setArchiveConfirmState({ open: true, mode: 'archive', versionId })
+                    }
+                    onRestoreArchive={(versionId) =>
+                      setArchiveConfirmState({ open: true, mode: 'restore', versionId })
+                    }
                   />
                 ))}
               </DragDropProvider>
@@ -326,6 +464,20 @@ export function ManageVersionsDialog({
           )}
         </ScrollArea>
       </DialogContent>
+      <ArchiveConfirmDialog
+        open={archiveConfirmState.open}
+        onOpenChange={(nextOpen) => setArchiveConfirmState((prev) => ({ ...prev, open: nextOpen }))}
+        mode={archiveConfirmState.mode}
+        onConfirm={() => {
+          if (!archiveConfirmState.versionId) return
+          if (archiveConfirmState.mode === 'archive') {
+            archiveVersion(archiveConfirmState.versionId)
+          } else {
+            restoreArchiveVersion(archiveConfirmState.versionId)
+          }
+        }}
+        isPending={isArchivingVersion || isRestoringArchiveVersion}
+      />
     </Dialog>
   )
 }

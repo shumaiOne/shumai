@@ -30,6 +30,9 @@ export function proxyKeyOf(media: PrismaJson.MediaInfo | null): string | undefin
   if (media.proxyType === 'video' || media.videoTranscodes?.length || media.videoPreview?.key) {
     return media.videoTranscodes?.[0]?.key || media.videoPreview?.key || undefined
   }
+  if (media.pdfTranscode?.key && media.pdfTranscode.key !== media.original?.key) {
+    return media.pdfTranscode.key
+  }
   return media.original?.key || undefined
 }
 
@@ -66,6 +69,19 @@ export class AssetDownloadService {
         })
       }
       const isOriginal = key === originalKey
+      const isArchived =
+        asset.status === 'archiving' ||
+        asset.status === 'archived' ||
+        asset.status === 'restoring' ||
+        Boolean(asset.storageKey?.isArchived)
+
+      if (isArchived && (!opts.proxy || isOriginal)) {
+        throw new HTTPException(409, {
+          message: opts.proxy
+            ? `Asset ${assetId} ("${asset.name}") is archived and has no proxy file to download. Restore the asset first.`
+            : `Original file for asset ${assetId} ("${asset.name}") is archived. Restore the asset or request proxy: true to download its proxy.`,
+        })
+      }
       const name = nameForKey(asset.name || 'file', key, isOriginal)
 
       const bucket = storageBucket()

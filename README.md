@@ -25,7 +25,7 @@
 
 Shumai is an open-source Frame.io alternative built for creative teams to collaborate and share media with ease:
 
-* **S3-Compatible & Local Storage**: Store and serve creative assets securely using the local filesystem or any S3-compatible storage service, including AWS S3, Cloudflare R2, and MinIO.
+* **S3-Compatible, Local & Cold Archive Storage**: Store and serve creative assets securely using the local filesystem or any S3-compatible storage service (AWS S3, Cloudflare R2, MinIO), with optional cold archive storage (`local` NAS or `s3` Glacier/storage classes) to offload original raw files while keeping previews and proxies hot.
 * **Frame-by-Frame Annotations & Comments**: Leave precise feedback with frame-specific drawing tools and timestamped comments on both video and image assets.
 * **Secure Sharing & Collections**: Create private share links and curated media collections for clients, stakeholders, and collaborators.
 * **Granular Access Control**: Manage workspace permissions with team-level and project-level role-based access control.

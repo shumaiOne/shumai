@@ -23,7 +23,11 @@ export function useBatchFileStatus({ teamId, items }: UseBatchFileStatusOptions)
     return items
       .filter((item) => {
         if (!item.id || (item.type !== 'file' && item.type !== 'version_stack')) return false
-        const isUploadedOrProcessing = item.status === 'uploaded' || item.status === 'processing'
+        const isUploadedOrProcessing =
+          item.status === 'uploaded' ||
+          item.status === 'processing' ||
+          item.status === 'archiving' ||
+          item.status === 'restoring'
         const progress = fileProgress[item.id]
         const isUploadCompleted =
           item.status === 'uploading' &&
@@ -71,12 +75,20 @@ export function useBatchFileStatus({ teamId, items }: UseBatchFileStatusOptions)
       }
 
       const anyFinished = assets.some(
-        (a) => a.status === 'processed' || a.status === 'failed' || a.status === 'error',
+        (a) =>
+          a.status === 'processed' ||
+          a.status === 'archived' ||
+          a.status === 'failed' ||
+          a.status === 'error',
       )
       const allFinished =
         assets.length > 0 &&
         assets.every(
-          (a) => a.status === 'processed' || a.status === 'failed' || a.status === 'error',
+          (a) =>
+            a.status === 'processed' ||
+            a.status === 'archived' ||
+            a.status === 'failed' ||
+            a.status === 'error',
         )
 
       const now = Date.now()

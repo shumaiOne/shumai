@@ -57,7 +57,7 @@ export class EmbeddingService {
     const candidateAssets = await prisma.asset.findMany({
       where: {
         isDeleted: false,
-        status: 'processed',
+        status: { in: ['processed', 'archived'] },
         type: { in: ['file', 'version_stack'] },
         project: { teamId: { in: activeTeamIds } },
       },

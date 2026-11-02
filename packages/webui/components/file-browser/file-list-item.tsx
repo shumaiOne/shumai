@@ -4,7 +4,7 @@ import { m } from '@/ui/paraglide/messages.js'
 import { useQuery } from '@tanstack/react-query'
 
 import { useDraggable } from '@dnd-kit/react'
-import { AlertCircle, File, Folder, MoreVertical, AudioLines } from 'lucide-react'
+import { AlertCircle, Archive, AudioLines, File, Folder, Loader2, MoreVertical } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/ui/lib/utils'
 import { formatSize } from '@/ui/lib/format'
@@ -88,11 +88,23 @@ export function FileListItem({
   })
 
   const displayItem = useMemo(() => {
-    if (item.status === 'processed' || item.status === 'error' || item.status === 'failed') {
+    if (
+      item.status === 'processed' ||
+      item.status === 'archived' ||
+      item.status === 'error' ||
+      item.status === 'failed'
+    ) {
+      return item
+    }
+    if (item.status === 'archiving' && polledItem?.status === 'processed') {
+      return item
+    }
+    if (item.status === 'restoring' && polledItem?.status === 'archived') {
       return item
     }
     if (
       polledItem?.status === 'processed' ||
+      polledItem?.status === 'archived' ||
       polledItem?.status === 'error' ||
       polledItem?.status === 'failed'
     ) {
@@ -314,6 +326,36 @@ export function FileListItem({
               v
               {displayItem.versionStack.versions.find((v) => v.id === displayItem.id)?.version ??
                 displayItem.versionStack.versions.length}
+            </Badge>
+          )}
+          {displayItem.status === 'archived' && (
+            <Badge
+              variant="secondary"
+              data-testid="file-list-item-archived-badge"
+              className="gap-1 px-1.5 py-0 text-xs shrink-0"
+            >
+              <Archive className="h-3 w-3" />
+              <span>{m.archived_status()}</span>
+            </Badge>
+          )}
+          {displayItem.status === 'archiving' && (
+            <Badge
+              variant="secondary"
+              data-testid="file-list-item-archiving-badge"
+              className="gap-1 px-1.5 py-0 text-xs shrink-0"
+            >
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>{m.archiving_status()}</span>
+            </Badge>
+          )}
+          {displayItem.status === 'restoring' && (
+            <Badge
+              variant="secondary"
+              data-testid="file-list-item-restoring-badge"
+              className="gap-1 px-1.5 py-0 text-xs shrink-0"
+            >
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>{m.restoring_status()}</span>
             </Badge>
           )}
         </div>

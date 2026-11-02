@@ -11,8 +11,10 @@ import { authMiddleware } from './middleware/auth'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
 import type { AssetInfo } from '@shumai/dtos'
 import {
+  archiveAssetsOp,
   renameAssetOp,
   resolveCommentOp,
+  restoreArchivedAssetsOp,
   runOperation,
   updateAssetMetadataOp,
 } from '@shumai/core/src/operations'
@@ -906,6 +908,66 @@ describe('file api', () => {
       expect(text).toContain('http://presigned/init.mp4')
       expect(mockVariant).toHaveBeenCalledWith({ assetId: 'asset-1', resolution: '1080p' })
       mockVariant.mockRestore()
+    })
+  })
+
+  describe('POST /files/archive and POST /files/restore-archive routes', () => {
+    const validUlid = '01ARZ3NDEKTSV4RRFFQ69G5FAV'
+
+    it('archives assets via archiveAssetsOp', async () => {
+      vi.mocked(runOperation).mockResolvedValueOnce({
+        archivedAssetIds: [validUlid],
+        taskIds: ['task-arch-1'],
+        skippedCount: 0,
+      })
+
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [validUlid] }),
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json).toEqual({
+        archivedAssetIds: [validUlid],
+        taskIds: ['task-arch-1'],
+        skippedCount: 0,
+      })
+      expect(runOperation).toHaveBeenCalledWith(
+        archiveAssetsOp,
+        { userId: 'user1', via: 'api' },
+        { assetIds: [validUlid] },
+      )
+    })
+
+    it('restores archived assets via restoreArchivedAssetsOp', async () => {
+      vi.mocked(runOperation).mockResolvedValueOnce({
+        restoredAssetIds: [validUlid],
+        taskIds: ['task-rest-1'],
+        skippedCount: 0,
+      })
+
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/restore-archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [validUlid] }),
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json).toEqual({
+        restoredAssetIds: [validUlid],
+        taskIds: ['task-rest-1'],
+        skippedCount: 0,
+      })
+      expect(runOperation).toHaveBeenCalledWith(
+        restoreArchivedAssetsOp,
+        { userId: 'user1', via: 'api' },
+        { assetIds: [validUlid] },
+      )
     })
   })
 })

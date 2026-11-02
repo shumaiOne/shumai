@@ -362,6 +362,9 @@ declare global {
       /** Render that produced this result, if any (set by the read_asset pipeline). */
       assetRead?: AssetReadRequest
       watermark?: WatermarkTaskPayload
+      archive?: {
+        storageKeyId: string
+      }
       recoveryAttempts?: number
     }
 
