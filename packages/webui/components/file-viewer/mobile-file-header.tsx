@@ -189,8 +189,11 @@ export function MobileFileHeader({
                     )}
                   >
                     <span>v{v.version}</span>
-                    <span className="text-[11px] text-muted-foreground truncate max-w-[120px]">
-                      {v.name || fileName}
+                    <span className="text-[11px] text-muted-foreground truncate max-w-[120px] flex items-center gap-1">
+                      {(v.status === 'archived' || v.status === 'restoring') && (
+                        <Archive className="h-2.5 w-2.5 shrink-0 text-muted-foreground" />
+                      )}
+                      <span className="truncate">{v.name || fileName}</span>
                     </span>
                   </DropdownMenuItem>
                 ))}

@@ -457,31 +457,28 @@ export function BreadcrumbNav({
 
                               <div className="flex flex-col flex-1 min-w-0 text-left">
                                 <div className="flex items-center gap-1.5 min-w-0">
+                                  {(v.status === 'archived' || v.status === 'restoring') && (
+                                    <span
+                                      title={
+                                        v.status === 'restoring'
+                                          ? m.restoring_status()
+                                          : m.archived_status()
+                                      }
+                                      className="inline-flex items-center shrink-0"
+                                    >
+                                      <Archive className="h-3.5 w-3.5 text-muted-foreground" />
+                                    </span>
+                                  )}
                                   <span className="truncate text-sm font-semibold text-foreground">
                                     {v.name}
                                   </span>
-                                  {v.status === 'archived' && (
-                                    <Badge
-                                      variant="secondary"
-                                      className="gap-0.5 px-1 py-0 text-[10px] shrink-0"
-                                    >
-                                      {m.archived_status()}
-                                    </Badge>
-                                  )}
                                   {v.status === 'archiving' && (
                                     <Badge
                                       variant="secondary"
                                       className="gap-0.5 px-1 py-0 text-[10px] shrink-0"
                                     >
-                                      {m.archiving_status()}
-                                    </Badge>
-                                  )}
-                                  {v.status === 'restoring' && (
-                                    <Badge
-                                      variant="secondary"
-                                      className="gap-0.5 px-1 py-0 text-[10px] shrink-0"
-                                    >
-                                      {m.restoring_status()}
+                                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                                      <span>{m.archiving_status()}</span>
                                     </Badge>
                                   )}
                                 </div>

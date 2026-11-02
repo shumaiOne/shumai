@@ -85,7 +85,7 @@ function SortableVersionRow({
   return (
     <div
       ref={ref}
-      className="group flex items-center gap-3 p-2.5 rounded-lg border border-border bg-card hover:bg-accent/40 transition-colors"
+      className="group flex items-center gap-3 p-2.5 rounded-lg border border-border bg-card hover:bg-accent/40 transition-colors min-w-0 overflow-hidden"
     >
       {/* 1. Version Label */}
       <div className="flex-shrink-0 flex items-center justify-center bg-muted text-muted-foreground rounded-full px-2.5 py-0.5 text-xs font-semibold select-none min-w-[2.25rem]">
@@ -96,12 +96,12 @@ function SortableVersionRow({
       {canEdit ? (
         <div
           ref={handleRef}
-          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1 -m-1 rounded touch-none flex items-center justify-center"
+          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1 -m-1 rounded touch-none flex items-center justify-center flex-shrink-0"
         >
           <GripVertical className="h-4 w-4" />
         </div>
       ) : (
-        <div className="w-4" />
+        <div className="w-4 flex-shrink-0" />
       )}
 
       {/* 3. Thumbnail Preview */}
@@ -118,22 +118,28 @@ function SortableVersionRow({
       </div>
 
       {/* 4. Name / Creator / Create Date (2 rows) */}
-      <div className="flex flex-col flex-1 min-w-0 text-left">
+      <div className="flex flex-col flex-1 min-w-0 text-left overflow-hidden">
         {/* Row 1: Name */}
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="truncate text-sm font-medium text-foreground" title={version.name || ''}>
+        <div className="flex items-center gap-1.5 min-w-0 max-w-full">
+          {(version.status === 'archived' || version.status === 'restoring') && (
+            <span
+              data-testid={
+                version.status === 'restoring'
+                  ? 'version-row-restoring-badge'
+                  : 'version-row-archived-badge'
+              }
+              title={version.status === 'restoring' ? m.restoring_status() : m.archived_status()}
+              className="inline-flex items-center shrink-0"
+            >
+              <Archive className="h-3.5 w-3.5 text-muted-foreground" />
+            </span>
+          )}
+          <span
+            className="truncate text-sm font-medium text-foreground min-w-0 flex-1"
+            title={version.name || ''}
+          >
             {version.name || 'Untitled'}
           </span>
-          {version.status === 'archived' && (
-            <Badge
-              variant="secondary"
-              data-testid="version-row-archived-badge"
-              className="gap-1 px-1.5 py-0 text-xs shrink-0"
-            >
-              <Archive className="h-3 w-3" />
-              <span>{m.archived_status()}</span>
-            </Badge>
-          )}
           {version.status === 'archiving' && (
             <Badge
               variant="secondary"
@@ -144,21 +150,11 @@ function SortableVersionRow({
               <span>{m.archiving_status()}</span>
             </Badge>
           )}
-          {version.status === 'restoring' && (
-            <Badge
-              variant="secondary"
-              data-testid="version-row-restoring-badge"
-              className="gap-1 px-1.5 py-0 text-xs shrink-0"
-            >
-              <Loader2 className="h-3 w-3 animate-spin" />
-              <span>{m.restoring_status()}</span>
-            </Badge>
-          )}
         </div>
         {/* Row 2: Creator & Create Date */}
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 truncate">
           {version.agent ? (
-            <span className="flex items-center gap-1 truncate">
+            <span className="flex items-center gap-1 min-w-0 truncate">
               <Bot className="h-3 w-3 shrink-0" />
               <span className="truncate">
                 {m.user_via_agent({
@@ -168,12 +164,12 @@ function SortableVersionRow({
               </span>
             </span>
           ) : (
-            <span>{version.creator?.name || m.unknown()}</span>
+            <span className="truncate">{version.creator?.name || m.unknown()}</span>
           )}
           {formattedDate && (
             <>
-              <span>•</span>
-              <span>{formattedDate}</span>
+              <span className="shrink-0">•</span>
+              <span className="shrink-0">{formattedDate}</span>
             </>
           )}
         </div>
