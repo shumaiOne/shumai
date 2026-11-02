@@ -231,3 +231,76 @@ test('moving a shared file into a shared version stack leaves only 1 stack card 
   const updatedShareRoot = await prisma.asset.findUnique({ where: { id: share.rootFolderId } })
   expect(updatedShareRoot?.fileCount).toBe(1)
 })
+
+test('manage versions dialog constrains card width and truncates long file names without dialog overflow', async ({
+  project,
+  prisma,
+}) => {
+  const { page, projectId, rootFolderId } = project
+
+  const longName =
+    'super-extremely-long-asset-name-for-testing-manage-versions-dialog-card-overflow-issue-that-keeps-expanding-without-truncating-properly.mp4'
+  const fileA = await seedFile(prisma, projectId, rootFolderId, longName)
+  const fileB = await seedFile(prisma, projectId, rootFolderId, `short-${Date.now()}.mp4`)
+
+  await page.goto(`/projects/${projectId}`)
+  await expect(fileCard(page, fileA.name)).toBeVisible()
+  await expect(fileCard(page, fileB.name)).toBeVisible()
+
+  // Create version stack: drag B on A
+  await dragCard(page, fileCard(page, fileB.name), fileCard(page, fileA.name))
+  await expect(page.getByText('v2', { exact: true })).toBeVisible()
+
+  const stack = await prisma.asset.findFirstOrThrow({
+    where: { projectId, parentId: rootFolderId, type: 'version_stack' },
+  })
+
+  // Navigate to file viewer for the stack
+  await page.goto(`/projects/${projectId}/files/${stack.id}`)
+
+  // Open breadcrumb menu and click "Manage versions..."
+  await page.getByRole('button', { name: new RegExp(fileB.name) }).click()
+  await page.getByRole('menuitem', { name: 'Versions', exact: true }).hover()
+  await page.getByRole('button', { name: /manage versions$/i }).click()
+
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+
+  const rowA = dialog.locator('div.group', { hasText: longName })
+  await expect(rowA).toBeVisible()
+
+  // Measure the dialog and version row
+  const metrics = await page.evaluate(() => {
+    const dialogEl = document.querySelector('[role="dialog"]') as HTMLElement | null
+    if (!dialogEl) return null
+    const row = dialogEl.querySelector('div.group') as HTMLElement | null
+    return {
+      dialogScrollWidth: dialogEl.scrollWidth,
+      dialogClientWidth: dialogEl.clientWidth,
+      dialogOffsetWidth: dialogEl.offsetWidth,
+      rowScrollWidth: row?.scrollWidth,
+      rowClientWidth: row?.clientWidth,
+    }
+  })
+
+  expect(metrics).not.toBeNull()
+  // Dialog should not horizontally scroll or overflow
+  expect(metrics!.dialogScrollWidth).toBeLessThanOrEqual(metrics!.dialogClientWidth)
+  // Row clientWidth should be bounded within the dialog
+  expect(metrics!.rowClientWidth).toBeLessThanOrEqual(metrics!.dialogClientWidth)
+  expect(metrics!.rowScrollWidth).toBeLessThanOrEqual(metrics!.rowClientWidth!)
+
+  // Hover over the row and verify the more-options button is visible and within bounds
+  await rowA.hover()
+  const moreButton = rowA.getByRole('button', { name: 'More options' })
+  await expect(moreButton).toBeVisible()
+  const moreBtnBox = await moreButton.boundingBox()
+  const dialogBox = await dialog.boundingBox()
+  expect(moreBtnBox).not.toBeNull()
+  expect(dialogBox).not.toBeNull()
+  expect(moreBtnBox!.x + moreBtnBox!.width).toBeLessThanOrEqual(dialogBox!.x + dialogBox!.width)
+
+  // Click more options button and verify menu opens
+  await moreButton.click()
+  await expect(page.getByRole('menuitem', { name: /remove from stack/i })).toBeVisible()
+})

@@ -90,6 +90,7 @@ apps/web/e2e/
 | Owner removes version from 2-version stack which dissolves into standalone files | `tests/project/version-stack-manage.spec.ts` |
 | Dissolving a shared version stack renders the remaining standalone file name on the share page | `tests/project/version-stack-manage.spec.ts` |
 | Moving a shared file into a shared version stack leaves only 1 stack card on the share page | `tests/project/version-stack-manage.spec.ts` |
+| Manage versions dialog constrains card width and truncates long file names without dialog overflow | `tests/project/version-stack-manage.spec.ts` |
 | Owner searches the file list by an English name keyword | `tests/project/search-file-list.spec.ts` |
 | Owner searches the file list by Chinese, Japanese, and Korean name keywords | `tests/project/search-file-list.spec.ts` |
 | Owner searches the file list with a keyword and a filter condition | `tests/project/search-file-list.spec.ts` |

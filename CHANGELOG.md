@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **asset**: Fix an issue where version cards in the manage versions dialog horizontally overflowed when containing long file names
+
 ### Changed
 
 ## [0.6.3] - 2026-11-01

@@ -411,12 +411,12 @@ export function ManageVersionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden">
-        <DialogHeader className="p-4 pb-3 border-b border-border">
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden grid-cols-1">
+        <DialogHeader className="p-4 pb-3 border-b border-border min-w-0">
           <DialogTitle className="text-base font-semibold">{m.manage_versions_title()}</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] p-4 w-full [&>div>div]:!block">
+        <ScrollArea className="max-h-[60vh] p-4 w-full min-w-0 [&>div>div]:!block">
           {isLoading ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               {m.loading?.() || 'Loading...'}
