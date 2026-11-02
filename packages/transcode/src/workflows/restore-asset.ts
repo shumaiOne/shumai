@@ -48,48 +48,33 @@ export async function restoreAssetWorkflow(task: WorkflowTask): Promise<void> {
     let elapsedWaitMs = 0
     let pollAttempt = 0
 
-    for (;;) {
+    while (elapsedWaitMs < MAX_RESTORE_WAIT_MS) {
       const restoreCheck = await checkOrInitiateColdRestoreActivity({ key: prep.key })
-      while (restoreCheck.status === 'restoring') {
-        if (elapsedWaitMs >= MAX_RESTORE_WAIT_MS) {
-          throw ApplicationFailure.create({
-            message: `Cold storage restore timed out after 48 hours for key: ${prep.key}`,
-            nonRetryable: true,
-          })
-        }
-        const waitMs = pollAttempt < 10 ? initialPollMs : steadyPollMs
-        await sleep(waitMs)
-        elapsedWaitMs += waitMs
-        pollAttempt++
 
-        const nextCheck = await checkOrInitiateColdRestoreActivity({ key: prep.key })
-        if (nextCheck.status === 'ready') {
+      if (restoreCheck.status === 'ready') {
+        const copyResult = await copyOriginalFromArchiveToMainActivity({
+          storageKeyId: prep.storageKeyId,
+          key: prep.key,
+          expectedSize: prep.expectedSize,
+          contentType: prep.contentType,
+        })
+
+        if (copyResult.status === 'copied') {
           break
         }
       }
 
-      const copyResult = await copyOriginalFromArchiveToMainActivity({
-        storageKeyId: prep.storageKeyId,
-        key: prep.key,
-        expectedSize: prep.expectedSize,
-        contentType: prep.contentType,
-      })
-
-      if (copyResult.status === 'copied') {
-        break
-      }
-
-      // Reactive fallback: copy encountered InvalidObjectState and initiated RestoreObject
-      if (elapsedWaitMs >= MAX_RESTORE_WAIT_MS) {
-        throw ApplicationFailure.create({
-          message: `Cold storage restore timed out after 48 hours for key: ${prep.key}`,
-          nonRetryable: true,
-        })
-      }
       const waitMs = pollAttempt < 10 ? initialPollMs : steadyPollMs
       await sleep(waitMs)
       elapsedWaitMs += waitMs
       pollAttempt++
+    }
+
+    if (elapsedWaitMs >= MAX_RESTORE_WAIT_MS) {
+      throw ApplicationFailure.create({
+        message: `Cold storage restore timed out after 48 hours for key: ${prep.key}`,
+        nonRetryable: true,
+      })
     }
 
     await commitRestoreDbStateActivity({
