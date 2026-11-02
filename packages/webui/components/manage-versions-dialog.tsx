@@ -85,7 +85,7 @@ function SortableVersionRow({
   return (
     <div
       ref={ref}
-      className="group flex items-center gap-3 p-2.5 rounded-lg border border-border bg-card hover:bg-accent/40 transition-colors min-w-0 overflow-hidden"
+      className="group flex items-center gap-3 p-2.5 rounded-lg border border-border bg-card hover:bg-accent/40 transition-colors w-full min-w-0 overflow-hidden"
     >
       {/* 1. Version Label */}
       <div className="flex-shrink-0 flex items-center justify-center bg-muted text-muted-foreground rounded-full px-2.5 py-0.5 text-xs font-semibold select-none min-w-[2.25rem]">
@@ -120,7 +120,7 @@ function SortableVersionRow({
       {/* 4. Name / Creator / Create Date (2 rows) */}
       <div className="flex flex-col flex-1 min-w-0 text-left overflow-hidden">
         {/* Row 1: Name */}
-        <div className="flex items-center gap-1.5 min-w-0 max-w-full">
+        <div className="flex items-center gap-1.5 min-w-0 w-full overflow-hidden">
           {(version.status === 'archived' || version.status === 'restoring') && (
             <span
               data-testid={
@@ -135,7 +135,7 @@ function SortableVersionRow({
             </span>
           )}
           <span
-            className="truncate text-sm font-medium text-foreground min-w-0 flex-1"
+            className="truncate text-sm font-medium text-foreground min-w-0 flex-1 block"
             title={version.name || ''}
           >
             {version.name || 'Untitled'}
@@ -152,7 +152,7 @@ function SortableVersionRow({
           )}
         </div>
         {/* Row 2: Creator & Create Date */}
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 truncate">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 w-full overflow-hidden">
           {version.agent ? (
             <span className="flex items-center gap-1 min-w-0 truncate">
               <Bot className="h-3 w-3 shrink-0" />
@@ -164,7 +164,7 @@ function SortableVersionRow({
               </span>
             </span>
           ) : (
-            <span className="truncate">{version.creator?.name || m.unknown()}</span>
+            <span className="truncate min-w-0">{version.creator?.name || m.unknown()}</span>
           )}
           {formattedDate && (
             <>
@@ -416,7 +416,7 @@ export function ManageVersionsDialog({
           <DialogTitle className="text-base font-semibold">{m.manage_versions_title()}</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] p-4">
+        <ScrollArea className="max-h-[60vh] p-4 w-full [&>div>div]:!block">
           {isLoading ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               {m.loading?.() || 'Loading...'}
@@ -426,7 +426,7 @@ export function ManageVersionsDialog({
               {m.no_versions_found()}
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 w-full min-w-0">
               <DragDropProvider
                 sensors={[
                   PointerSensor.configure({
