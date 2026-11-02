@@ -272,10 +272,16 @@ export function BreadcrumbNav({
             className="flex items-center gap-1.5 truncate rounded px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer select-none"
             onClick={() => setIsFileMenuOpen((prev) => !prev)}
           >
-            {currentAsset.status === 'archived' && (
+            {(currentAsset.status === 'archived' || currentAsset.status === 'restoring') && (
               <span
-                data-testid="detail-header-archived-badge"
-                title={m.archived_status()}
+                data-testid={
+                  currentAsset.status === 'restoring'
+                    ? 'detail-header-restoring-badge'
+                    : 'detail-header-archived-badge'
+                }
+                title={
+                  currentAsset.status === 'restoring' ? m.restoring_status() : m.archived_status()
+                }
                 className="inline-flex items-center shrink-0"
               >
                 <Archive className="h-3.5 w-3.5 text-muted-foreground" />
@@ -295,16 +301,6 @@ export function BreadcrumbNav({
               >
                 <Loader2 className="h-3 w-3 animate-spin" />
                 <span>{m.archiving_status()}</span>
-              </Badge>
-            )}
-            {currentAsset.status === 'restoring' && (
-              <Badge
-                variant="secondary"
-                data-testid="detail-header-restoring-badge"
-                className="gap-1 px-1.5 py-0 text-xs shrink-0"
-              >
-                <Loader2 className="h-3 w-3 animate-spin" />
-                <span>{m.restoring_status()}</span>
               </Badge>
             )}
             <DropdownMenuTrigger

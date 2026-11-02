@@ -200,4 +200,20 @@ describe('MobileFileHeader', () => {
     expect(screen.queryByText('Archived')).toBeNull()
     expect(screen.queryByText('已归档')).toBeNull()
   })
+
+  it('renders archive icon in front of file name without restoring text when status is restoring', () => {
+    render(
+      <MobileFileHeader
+        fileName="restoring-video.mp4"
+        activeFileId="file-restoring"
+        status="restoring"
+        onBack={vi.fn()}
+      />,
+    )
+
+    const archiveIcon = screen.getByTestId('detail-header-restoring-badge')
+    expect(archiveIcon).toBeDefined()
+    expect(screen.queryByText('Restoring...')).toBeNull()
+    expect(screen.queryByText('恢复中...')).toBeNull()
+  })
 })

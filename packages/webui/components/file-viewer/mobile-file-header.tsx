@@ -155,10 +155,14 @@ export function MobileFileHeader({
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-1 min-w-0 truncate text-xs font-medium text-foreground hover:bg-accent rounded px-1 py-0.5 transition-colors cursor-pointer">
-                  {status === 'archived' && (
+                  {(status === 'archived' || status === 'restoring') && (
                     <span
-                      data-testid="detail-header-archived-badge"
-                      title={m.archived_status()}
+                      data-testid={
+                        status === 'restoring'
+                          ? 'detail-header-restoring-badge'
+                          : 'detail-header-archived-badge'
+                      }
+                      title={status === 'restoring' ? m.restoring_status() : m.archived_status()}
                       className="inline-flex items-center shrink-0"
                     >
                       <Archive className="h-3 w-3 text-muted-foreground" />
@@ -194,10 +198,14 @@ export function MobileFileHeader({
             </DropdownMenu>
           ) : (
             <div className="flex items-center gap-1 min-w-0 truncate">
-              {status === 'archived' && (
+              {(status === 'archived' || status === 'restoring') && (
                 <span
-                  data-testid="detail-header-archived-badge"
-                  title={m.archived_status()}
+                  data-testid={
+                    status === 'restoring'
+                      ? 'detail-header-restoring-badge'
+                      : 'detail-header-archived-badge'
+                  }
+                  title={status === 'restoring' ? m.restoring_status() : m.archived_status()}
                   className="inline-flex items-center shrink-0"
                 >
                   <Archive className="h-3 w-3 text-muted-foreground" />
@@ -221,16 +229,6 @@ export function MobileFileHeader({
             >
               <Loader2 className="h-2.5 w-2.5 animate-spin" />
               <span>{m.archiving_status()}</span>
-            </Badge>
-          )}
-          {status === 'restoring' && (
-            <Badge
-              variant="secondary"
-              data-testid="detail-header-restoring-badge"
-              className="ml-1 gap-0.5 px-1 py-0 text-[10px] shrink-0"
-            >
-              <Loader2 className="h-2.5 w-2.5 animate-spin" />
-              <span>{m.restoring_status()}</span>
             </Badge>
           )}
         </div>

@@ -327,4 +327,27 @@ describe('BreadcrumbNav component', () => {
     expect(screen.queryByText('Archived')).toBeNull()
     expect(screen.queryByText('已归档')).toBeNull()
   })
+
+  it('renders archive icon in front of file name without restoring text when status is restoring', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          fileId="file-restoring"
+          currentAsset={{
+            id: 'file-restoring',
+            name: 'restoring-video.mp4',
+            type: 'file',
+            status: 'restoring',
+            version: 1,
+          }}
+        />
+      </QueryClientProvider>,
+    )
+
+    const archiveIcon = screen.getByTestId('detail-header-restoring-badge')
+    expect(archiveIcon).toBeDefined()
+    expect(screen.queryByText('Restoring...')).toBeNull()
+    expect(screen.queryByText('恢复中...')).toBeNull()
+  })
 })
