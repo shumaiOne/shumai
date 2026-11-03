@@ -123,6 +123,45 @@ export function bodyToWebReadableStream(body: unknown): ReadableStream<Uint8Arra
   return Readable.toWeb(nodeReadable) as unknown as ReadableStream<Uint8Array>
 }
 
+export function isS3NotFoundError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const r = err as Record<string, unknown>
+  const name = typeof r.name === 'string' ? r.name : ''
+  const code = typeof r.code === 'string' ? r.code : ''
+  const msg = typeof r.message === 'string' ? r.message : ''
+  const metadata = r.$metadata as { httpStatusCode?: number } | undefined
+  return (
+    name === 'NotFound' ||
+    name === 'NoSuchKey' ||
+    code === 'NotFound' ||
+    code === 'NoSuchKey' ||
+    code === 'ENOENT' ||
+    metadata?.httpStatusCode === 404 ||
+    msg.includes('NoSuchKey') ||
+    msg.includes('NotFound')
+  )
+}
+
+export async function writeStreamToLocalFile(
+  targetPath: string,
+  stream: ReadableStream<Uint8Array>,
+): Promise<void> {
+  const dir = path.dirname(targetPath)
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
+  const tempPath = `${targetPath}.tmp-${ulid()}`
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nodeStream = Readable.fromWeb(stream as any)
+    await pipeline(nodeStream, fs.createWriteStream(tempPath))
+    await fs.promises.rename(tempPath, targetPath)
+  } catch (err) {
+    await fs.promises.unlink(tempPath).catch(() => {})
+    throw err
+  }
+}
+
 export async function uploadStreamToS3Client(
   client: S3Client,
   params: UploadStreamParams,
@@ -132,6 +171,12 @@ export async function uploadStreamToS3Client(
   const { bucket, key, stream, contentLength, contentType, storageClass } = params
   // AWS SDK v3 StorageClass is an open string union at runtime; cast safely for arbitrary S3-compatible classes
   const s3StorageClass = storageClass ? (storageClass as StorageClass) : undefined
+
+  const MAX_S3_PARTS = 10000
+  const effectivePartSize =
+    contentLength !== undefined && contentLength > MAX_S3_PARTS * partSizeBytes
+      ? Math.max(partSizeBytes, Math.ceil(contentLength / 9900))
+      : partSizeBytes
 
   if (contentLength !== undefined && contentLength <= singlePutMaxBytes) {
     if (contentLength === 0) {
@@ -234,8 +279,8 @@ export async function uploadStreamToS3Client(
       if (value && value.byteLength > 0) {
         pendingChunks.push(value)
         pendingLength += value.byteLength
-        while (pendingLength >= partSizeBytes) {
-          await flushPart(partSizeBytes)
+        while (pendingLength >= effectivePartSize) {
+          await flushPart(effectivePartSize)
         }
       }
     }
@@ -473,8 +518,11 @@ export class S3StorageService implements S3Service {
     try {
       await this.client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
       return 1
-    } catch {
-      return 0
+    } catch (err: unknown) {
+      if (isS3NotFoundError(err)) {
+        return 0
+      }
+      throw err
     }
   }
 
@@ -508,7 +556,10 @@ export class S3StorageService implements S3Service {
         eTag: res.ETag || '',
       }
     } catch (err: unknown) {
-      throw new Error(`NoSuchKey: The specified key does not exist.`, { cause: err })
+      if (isS3NotFoundError(err)) {
+        throw new Error(`NoSuchKey: The specified key does not exist.`, { cause: err })
+      }
+      throw err
     }
   }
 
@@ -809,20 +860,7 @@ export class LocalStorageService implements S3Service {
 
   async uploadStream(params: UploadStreamParams): Promise<void> {
     const filePath = this.getFilePath(params.bucket, params.key)
-    const dir = path.dirname(filePath)
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true })
-    }
-    const tempPath = `${filePath}.tmp-${ulid()}`
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nodeStream = Readable.fromWeb(params.stream as any)
-      await pipeline(nodeStream, fs.createWriteStream(tempPath))
-      await fs.promises.rename(tempPath, filePath)
-    } catch (err) {
-      await fs.promises.unlink(tempPath).catch(() => {})
-      throw err
-    }
+    await writeStreamToLocalFile(filePath, params.stream)
   }
 
   async copyObject(

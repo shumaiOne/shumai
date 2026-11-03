@@ -8,6 +8,7 @@ import {
 import type { WorkflowTaskItem, ListWorkflowTasksResponse } from '@shumai/dtos'
 import { paginateQuery } from '@shumai/core/src/pagination'
 import { logger } from '@shumai/core/src/logger'
+import { revertArchiveStateForStorageKey } from '@shumai/core/src/asset/asset-archive'
 import { HTTPException } from 'hono/http-exception'
 
 export interface ListWorkflowTasksParams {
@@ -311,20 +312,7 @@ export class WorkflowTaskService {
             storageKeyId = targetAsset?.storageKeyId ?? undefined
           }
           if (storageKeyId) {
-            const sk = await tx.storageKey.findUnique({
-              where: { id: storageKeyId },
-              select: { isArchived: true },
-            })
-            const fallbackStatus = sk?.isArchived ? 'archived' : 'processed'
-            await tx.asset.updateMany({
-              where: {
-                storageKeyId,
-                isDeleted: false,
-                type: 'file',
-                status: { in: ['archiving', 'restoring'] },
-              },
-              data: { status: fallbackStatus },
-            })
+            await revertArchiveStateForStorageKey(storageKeyId, tx)
           }
         } else {
           await tx.$executeRaw`

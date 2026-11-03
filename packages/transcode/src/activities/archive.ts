@@ -1,5 +1,6 @@
 import { AssetStatus, prisma, WorkflowTaskStatus } from '@shumai/db'
 import { logger } from '@shumai/core/src/logger'
+import { revertArchiveStateForStorageKey } from '@shumai/core/src/asset/asset-archive'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import {
   getArchiveStorageService,
@@ -258,17 +259,7 @@ export const copyOriginalToArchiveStorageActivity = defineStep(
       return { copiedSize: verifyHead.size ?? objectSize }
     }
 
-    // Separate bucket or local archive storage: check if already uploaded in a prior attempt
-    const existingArchiveHead = await tryHeadArchiveObject(archiveStorage, params.key)
-    if (
-      existingArchiveHead.exists &&
-      existingArchiveHead.size !== undefined &&
-      ((params.expectedSize > 0 && existingArchiveHead.size === params.expectedSize) ||
-        (params.expectedSize === 0 && existingArchiveHead.size > 0))
-    ) {
-      return { copiedSize: existingArchiveHead.size }
-    }
-
+    // Separate bucket or local archive storage:
     const mainHead = await tryHeadMainObject(bucket, params.key)
     if (!mainHead.exists) {
       throw ApplicationFailure.create({
@@ -327,7 +318,7 @@ export const commitArchiveDbStateActivity = defineStep(
           storageKeyId: params.storageKeyId,
           deletedAt: null,
           type: 'file',
-          status: { notIn: [AssetStatus.trashed, AssetStatus.pending_purge] },
+          status: AssetStatus.archiving,
         },
         data: { status: AssetStatus.archived },
       }),
@@ -338,7 +329,7 @@ export const commitArchiveDbStateActivity = defineStep(
 export const deleteMainOriginalAfterArchiveActivity = defineStep(
   async function deleteMainOriginalAfterArchiveActivity(params: { key: string }): Promise<void> {
     const archiveStorage = getArchiveStorageService()
-    if (archiveStorage?.isSameS3Target) {
+    if (archiveStorage.isSameS3Target) {
       return
     }
     const bucket = process.env.S3_BUCKET || 'shumai'
@@ -425,17 +416,7 @@ export const copyOriginalFromArchiveToMainActivity = defineStep(
         return { status: 'copied', copiedSize: verifyHead.size ?? objectSize }
       }
 
-      // Separate bucket or local archive storage: check if already restored to main storage
-      const existingMainHead = await tryHeadMainObject(bucket, params.key)
-      if (
-        existingMainHead.exists &&
-        existingMainHead.size !== undefined &&
-        ((params.expectedSize > 0 && existingMainHead.size === params.expectedSize) ||
-          (params.expectedSize === 0 && existingMainHead.size > 0))
-      ) {
-        return { status: 'copied', copiedSize: existingMainHead.size }
-      }
-
+      // Separate bucket or local archive storage:
       const archiveHead = await tryHeadArchiveObject(archiveStorage, params.key)
       if (!archiveHead.exists) {
         throw ApplicationFailure.create({
@@ -506,7 +487,7 @@ export const commitRestoreDbStateActivity = defineStep(
           storageKeyId: params.storageKeyId,
           deletedAt: null,
           type: 'file',
-          status: { notIn: [AssetStatus.trashed, AssetStatus.pending_purge] },
+          status: AssetStatus.restoring,
         },
         data: { status: AssetStatus.processed },
       }),
@@ -517,7 +498,7 @@ export const commitRestoreDbStateActivity = defineStep(
 export const deleteArchiveOriginalAfterRestoreActivity = defineStep(
   async function deleteArchiveOriginalAfterRestoreActivity(params: { key: string }): Promise<void> {
     const archiveStorage = getArchiveStorageService()
-    if (!archiveStorage || archiveStorage.isSameS3Target) {
+    if (archiveStorage.isSameS3Target) {
       return
     }
     await archiveStorage.deleteObject(params.key)
@@ -541,23 +522,7 @@ export const revertArchiveOrRestoreStatusOnFailureActivity = defineStep(
     }
 
     if (storageKeyId) {
-      const sk = await prisma.storageKey.findUnique({
-        where: { id: storageKeyId },
-        select: { isArchived: true },
-      })
-      if (sk) {
-        await prisma.asset.updateMany({
-          where: {
-            storageKeyId,
-            deletedAt: null,
-            type: 'file',
-            status: { in: [AssetStatus.archiving, AssetStatus.restoring] },
-          },
-          data: {
-            status: sk.isArchived ? AssetStatus.archived : AssetStatus.processed,
-          },
-        })
-      }
+      await revertArchiveStateForStorageKey(storageKeyId)
     }
 
     await prisma.workflowTask.update({

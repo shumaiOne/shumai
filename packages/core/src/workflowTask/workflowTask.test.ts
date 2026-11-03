@@ -547,4 +547,41 @@ describe('WorkflowTaskService', () => {
     expect(stopRes.task.fileSize).toBe(5242880)
     expect(stopRes.task.projectName).toBe('Enrich Project')
   })
+
+  it('reverts archiving and restoring asset status back to baseline on stopWorkflowTask', async () => {
+    const team = await prisma.team.create({ data: { name: 'Stop Task Team' } })
+    const project = await prisma.project.create({
+      data: { name: 'Stop Project', teamId: team.id },
+    })
+    const sk = await prisma.storageKey.create({
+      data: { key: 'keys/stop-test.mp4', isArchived: false },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'stop-test.mp4',
+        type: 'file',
+        status: AssetStatus.archiving,
+        storageKeyId: sk.id,
+        projectId: project.id,
+      },
+    })
+    const task = await prisma.workflowTask.create({
+      data: {
+        assetId: asset.id,
+        teamId: team.id,
+        projectId: project.id,
+        type: WorkflowTaskType.archive_asset,
+        status: WorkflowTaskStatus.processing,
+        payload: { projectId: project.id, archive: { storageKeyId: sk.id } },
+      },
+    })
+
+    await workflowTaskService.stopWorkflowTask({ teamId: team.id, taskId: task.id })
+
+    const updatedAsset = await prisma.asset.findUniqueOrThrow({ where: { id: asset.id } })
+    expect(updatedAsset.status).toBe(AssetStatus.processed)
+
+    const updatedTask = await prisma.workflowTask.findUniqueOrThrow({ where: { id: task.id } })
+    expect(updatedTask.status).toBe(WorkflowTaskStatus.failed)
+  })
 })

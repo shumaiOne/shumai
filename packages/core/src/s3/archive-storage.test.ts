@@ -541,5 +541,28 @@ describe('Archive Storage', () => {
       ).toBe(true)
       expect(isColdStorageRestoreError(new Error('NetworkingError'))).toBe(false)
     })
+
+    it('headObject maps 404/NotFound to NoSuchKey, but rethrows 500 and other transient errors', async () => {
+      const service = new S3ArchiveStorageService(baseS3Config)
+
+      s3SendSpy.mockRejectedValueOnce({ name: 'NotFound', $metadata: { httpStatusCode: 404 } })
+      await expect(service.headObject('missing.mp4')).rejects.toThrow('NoSuchKey')
+
+      const internalErr = new Error('Internal S3 500')
+      s3SendSpy.mockRejectedValueOnce(internalErr)
+      await expect(service.headObject('error.mp4')).rejects.toThrow('Internal S3 500')
+    })
+
+    it('deleteObject returns 0 on 404/NotFound, but rethrows non-404 errors', async () => {
+      const service = new S3ArchiveStorageService(baseS3Config)
+
+      s3SendSpy.mockRejectedValueOnce({ name: 'NotFound', $metadata: { httpStatusCode: 404 } })
+      const res404 = await service.deleteObject('missing.mp4')
+      expect(res404).toBe(0)
+
+      const permErr = new Error('AccessDenied')
+      s3SendSpy.mockRejectedValueOnce(permErr)
+      await expect(service.deleteObject('forbidden.mp4')).rejects.toThrow('AccessDenied')
+    })
   })
 })

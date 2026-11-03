@@ -3010,7 +3010,7 @@ describe('AssetService — natural sort by name', () => {
       // 4. file1.txt (from symlinkToFile target resolution, deduplicated)
       // 5. version2.txt (from symlinkToStack target resolution, deduplicated)
 
-      const fileNames = result.map((r) => r.name)
+      const fileNames = result.files.map((r) => r.name)
       expect(fileNames).toHaveLength(3) // 3 unique files
       expect(fileNames).toContain('file1.txt')
       expect(fileNames).toContain('file2.txt')
@@ -3021,7 +3021,7 @@ describe('AssetService — natural sort by name', () => {
       expect(fileNames).not.toContain('stack')
 
       // Check urls are returned correctly (mock s3 presign resolves to 'http://mock-s3-url')
-      for (const item of result) {
+      for (const item of result.files) {
         expect(item.url).toBe('http://mock-s3-url')
       }
 
@@ -3070,9 +3070,9 @@ describe('AssetService — natural sort by name', () => {
       })
 
       const result = await assetService.getDownloadLinks([symlink.id])
-      expect(result).toHaveLength(1)
-      expect(result[0].name).toBe('file1.txt')
-      expect(result[0].id).toBe(file1.id)
+      expect(result.files).toHaveLength(1)
+      expect(result.files[0].name).toBe('file1.txt')
+      expect(result.files[0].id).toBe(file1.id)
     })
   })
 

@@ -450,11 +450,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     // 4. Generate download links
-    const files = await assetService.getDownloadLinks(req.ids)
-    const skippedArchivedCount = files.skippedArchivedCount
+    const { files, skippedArchivedCount } = await assetService.getDownloadLinks(req.ids)
     return c.json({
       files,
-      ...(skippedArchivedCount !== undefined ? { skippedArchivedCount } : {}),
+      ...(skippedArchivedCount > 0 ? { skippedArchivedCount } : {}),
     })
   })
   .post(

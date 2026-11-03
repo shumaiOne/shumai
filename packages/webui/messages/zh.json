@@ -1618,7 +1618,6 @@
   "failed_to_cancel_upload_task": "取消上传任务失败",
   "archive": "归档",
   "restore_from_archive": "从归档恢复",
-  "archived": "已归档",
   "archiving": "归档中...",
   "restoring": "恢复中...",
   "archived_status": "已归档",

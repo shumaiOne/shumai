@@ -17,9 +17,13 @@ import * as crypto from 'crypto'
 import * as fs from 'fs'
 import * as path from 'path'
 import { Readable } from 'stream'
-import { pipeline } from 'stream/promises'
-import { ulid } from 'ulid'
-import { bodyToWebReadableStream, S3StreamObject, uploadStreamToS3Client } from './s3'
+import {
+  bodyToWebReadableStream,
+  isS3NotFoundError,
+  S3StreamObject,
+  uploadStreamToS3Client,
+  writeStreamToLocalFile,
+} from './s3'
 
 export type ArchiveStorageBackend = 'local' | 's3'
 export type ArchiveRestoreObjectMode = 'auto' | 'true' | 'false'
@@ -333,21 +337,7 @@ export class LocalArchiveStorageService implements ArchiveStorageService {
     _contentType?: string,
   ): Promise<void> {
     const filePath = this.getFilePath(key)
-    const dir = path.dirname(filePath)
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true })
-    }
-
-    const tempPath = `${filePath}.tmp-${ulid()}`
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nodeStream = Readable.fromWeb(stream as any)
-      await pipeline(nodeStream, fs.createWriteStream(tempPath))
-      await fs.promises.rename(tempPath, filePath)
-    } catch (err) {
-      await fs.promises.unlink(tempPath).catch(() => {})
-      throw err
-    }
+    await writeStreamToLocalFile(filePath, stream)
   }
 
   async getObjectStream(key: string): Promise<S3StreamObject> {
@@ -503,7 +493,10 @@ export class S3ArchiveStorageService implements ArchiveStorageService {
         restoreHeader: res.Restore,
       }
     } catch (err: unknown) {
-      throw new Error('NoSuchKey: The specified key does not exist.', { cause: err })
+      if (isS3NotFoundError(err)) {
+        throw new Error('NoSuchKey: The specified key does not exist.', { cause: err })
+      }
+      throw err
     }
   }
 
@@ -511,8 +504,11 @@ export class S3ArchiveStorageService implements ArchiveStorageService {
     try {
       await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }))
       return 1
-    } catch {
-      return 0
+    } catch (err: unknown) {
+      if (isS3NotFoundError(err)) {
+        return 0
+      }
+      throw err
     }
   }
 

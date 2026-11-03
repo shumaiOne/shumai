@@ -1,4 +1,5 @@
 import { logger } from '@shumai/core/src/logger'
+import { revertArchiveStateForStorageKey } from '@shumai/core/src/asset/asset-archive'
 import {
   AssetStatus,
   prisma,
@@ -204,23 +205,7 @@ export class WorkflowService {
               storageKeyId = asset?.storageKeyId ?? undefined
             }
             if (storageKeyId) {
-              const sk = await prisma.storageKey.findUnique({
-                where: { id: storageKeyId },
-                select: { isArchived: true },
-              })
-              if (sk) {
-                await prisma.asset.updateMany({
-                  where: {
-                    storageKeyId,
-                    deletedAt: null,
-                    type: 'file',
-                    status: { in: [AssetStatus.archiving, AssetStatus.restoring] },
-                  },
-                  data: {
-                    status: sk.isArchived ? AssetStatus.archived : AssetStatus.processed,
-                  },
-                })
-              }
+              await revertArchiveStateForStorageKey(storageKeyId)
             }
           }
           recoveredCount++

@@ -180,4 +180,45 @@ describe('archive_assets and restore_archived_assets Operations', () => {
       await prisma.auditLog.count({ where: { action: AuditAction.asset_restore_archive } }),
     ).toBe(0)
   })
+
+  it('rejects symlinks directly with 400 and causes no side effects', async () => {
+    const file = await assetService.createAsset({
+      name: 'real.mov',
+      type: 'file',
+      parentId: rootFolderId,
+      projectId,
+      key: 'files/01REAL/real.mov',
+      sizeByte: 2048,
+      contentType: 'video/quicktime',
+      creatorId: owner.id,
+    })
+    await prisma.asset.update({
+      where: { id: file.id },
+      data: { status: AssetStatus.processed },
+    })
+
+    const symlink = await prisma.asset.create({
+      data: {
+        name: 'symlink.mov',
+        type: 'symlink',
+        parentId: rootFolderId,
+        projectId,
+        targetId: file.id,
+        status: AssetStatus.processed,
+        creatorId: owner.id,
+      },
+    })
+
+    await expect(
+      runOperation(archiveAssetsOp, as(owner), { assetIds: [symlink.id] }),
+    ).rejects.toMatchObject({ status: 400, message: 'Symlinks cannot be archived or restored' })
+
+    const unchangedFile = await prisma.asset.findUniqueOrThrow({ where: { id: file.id } })
+    expect(unchangedFile.status).toBe(AssetStatus.processed)
+    expect(await prisma.auditLog.count({ where: { action: AuditAction.asset_archive } })).toBe(0)
+
+    await expect(
+      runOperation(restoreArchivedAssetsOp, as(owner), { assetIds: [symlink.id] }),
+    ).rejects.toMatchObject({ status: 400, message: 'Symlinks cannot be archived or restored' })
+  })
 })

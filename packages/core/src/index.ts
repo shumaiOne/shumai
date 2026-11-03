@@ -1,5 +1,6 @@
 export * from './agent/agent'
 export * from './asset/asset'
+export * from './asset/asset-archive'
 export * from './auth/auth'
 export * from './authz/authz'
 export * from './collection/collection'

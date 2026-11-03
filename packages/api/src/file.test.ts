@@ -819,10 +819,13 @@ describe('file api', () => {
       .spyOn(assetService, 'getProjectIds')
       .mockResolvedValue(['project-id-1'])
 
-    const mockGetDownloadLinks = vi.spyOn(assetService, 'getDownloadLinks').mockResolvedValue([
-      { id: 'file1', name: 'file1.txt', url: 'http://link1' },
-      { id: 'file2', name: 'file2.txt', url: 'http://link2' },
-    ])
+    const mockGetDownloadLinks = vi.spyOn(assetService, 'getDownloadLinks').mockResolvedValue({
+      files: [
+        { id: 'file1', name: 'file1.txt', url: 'http://link1' },
+        { id: 'file2', name: 'file2.txt', url: 'http://link2' },
+      ],
+      skippedArchivedCount: 0,
+    })
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
     const res = await app.request('/files/download-links', {

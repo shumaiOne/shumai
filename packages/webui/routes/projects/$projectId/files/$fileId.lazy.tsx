@@ -147,7 +147,7 @@ function FileViewPage() {
     placeholderData: keepPreviousData,
     refetchInterval: (query) => {
       const status = query.state.data?.status
-      return status === 'archiving' || status === 'restoring' ? 2000 : false
+      return status === 'archiving' || status === 'restoring' ? 15000 : false
     },
   })
 
@@ -169,7 +169,7 @@ function FileViewPage() {
     placeholderData: keepPreviousData,
     refetchInterval: (query) => {
       const status = query.state.data?.status
-      return status === 'archiving' || status === 'restoring' ? 2000 : false
+      return status === 'archiving' || status === 'restoring' ? 15000 : false
     },
   })
 

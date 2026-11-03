@@ -1618,7 +1618,6 @@
   "failed_to_cancel_upload_task": "Failed to cancel upload task",
   "archive": "Archive",
   "restore_from_archive": "Restore from archive",
-  "archived": "Archived",
   "archiving": "Archiving...",
   "restoring": "Restoring...",
   "archived_status": "Archived",

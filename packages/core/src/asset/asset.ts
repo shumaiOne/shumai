@@ -48,6 +48,7 @@ import {
   getArchiveStorageService,
   isArchiveStorageEnabled,
 } from '@shumai/core/src/s3/archive-storage'
+import { assetArchiveService } from './asset-archive'
 import {
   ensureJpegInStorage,
   getJpegKeyForWebp,
@@ -2701,10 +2702,11 @@ export class AssetService {
     return Array.from(projectIds)
   }
 
-  async getDownloadLinks(
-    ids: string[],
-  ): Promise<Array<{ id: string; name: string; url: string }> & { skippedArchivedCount?: number }> {
-    if (ids.length === 0) return []
+  async getDownloadLinks(ids: string[]): Promise<{
+    files: Array<{ id: string; name: string; url: string }>
+    skippedArchivedCount: number
+  }> {
+    if (ids.length === 0) return { files: [], skippedArchivedCount: 0 }
 
     // Resolve starting IDs (dereference top-level symlinks)
     const assets = await this.prismaClient.asset.findMany({
@@ -2723,7 +2725,7 @@ export class AssetService {
       return asset.id
     })
 
-    if (startingIds.length === 0) return []
+    if (startingIds.length === 0) return { files: [], skippedArchivedCount: 0 }
 
     const descendants = await this.prismaClient.$queryRaw<
       Array<{
@@ -2876,15 +2878,12 @@ export class AssetService {
 
     const filteredLinks = downloadLinks.filter(
       (link): link is { id: string; name: string; url: string } => !!link,
-    ) as Array<{ id: string; name: string; url: string }> & { skippedArchivedCount?: number }
+    )
 
-    Object.defineProperty(filteredLinks, 'skippedArchivedCount', {
-      value: skippedArchivedCount,
-      enumerable: false,
-      configurable: true,
-    })
-
-    return filteredLinks
+    return {
+      files: filteredLinks,
+      skippedArchivedCount,
+    }
   }
 
   /**
@@ -2992,347 +2991,12 @@ export class AssetService {
     return s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET', true, downloadFilename)
   }
 
-  private async resolveCandidateFileAssetsForArchiveOrRestore(assetIds: string[]) {
-    if (assetIds.length === 0) return []
-
-    const topAssets = await this.prismaClient.asset.findMany({
-      where: { id: { in: assetIds }, isDeleted: false },
-      select: { id: true, type: true, targetId: true },
-    })
-
-    const foundIds = new Set(topAssets.map((a) => a.id))
-    const uniqueRequested = Array.from(new Set(assetIds))
-    if (foundIds.size !== uniqueRequested.length) {
-      throw new HTTPException(404, { message: 'Asset not found' })
-    }
-
-    const startingIds = topAssets.map((a) =>
-      a.type === AssetType.symlink && a.targetId ? a.targetId : a.id,
-    )
-
-    const expandIdsRecursively = async (rootIds: string[]) => {
-      if (rootIds.length === 0) return []
-      return this.prismaClient.$queryRaw<
-        Array<{
-          id: string
-          type: string
-          targetId: string | null
-        }>
-      >`
-        WITH RECURSIVE descendant AS (
-          SELECT id, type::text AS type, target_id, is_deleted
-          FROM assets
-          WHERE id IN (${Prisma.join(rootIds)}) AND is_deleted = false
-          UNION ALL
-          SELECT a.id, a.type::text AS type, a.target_id, a.is_deleted
-          FROM assets a
-          INNER JOIN descendant d ON a.parent_id = d.id
-          WHERE a.is_deleted = false
-        )
-        SELECT id, type, target_id AS "targetId" FROM descendant;
-      `
-    }
-
-    const firstPass = await expandIdsRecursively(startingIds)
-    const nestedSymlinkTargets = firstPass
-      .filter((r) => r.type === AssetType.symlink && r.targetId)
-      .map((r) => r.targetId!)
-    const secondPass =
-      nestedSymlinkTargets.length > 0 ? await expandIdsRecursively(nestedSymlinkTargets) : []
-
-    const fileIds = Array.from(
-      new Set(
-        [...firstPass, ...secondPass].filter((r) => r.type === AssetType.file).map((r) => r.id),
-      ),
-    )
-
-    if (fileIds.length === 0) {
-      return []
-    }
-
-    return this.prismaClient.asset.findMany({
-      where: {
-        id: { in: fileIds },
-        isDeleted: false,
-        type: AssetType.file,
-        status: {
-          notIn: [AssetStatus.trashed, AssetStatus.pending_purge],
-        },
-      },
-      include: {
-        storageKey: true,
-        project: { select: { id: true, teamId: true } },
-      },
-      orderBy: { id: 'asc' },
-    })
-  }
-
   async archiveAssets(assetIds: string[]): Promise<ArchiveAssetsResponse> {
-    if (!isArchiveStorageEnabled()) {
-      throw new HTTPException(400, { message: 'Archive storage is not configured' })
-    }
-    if (assetIds.length === 0) {
-      return { archivedAssetIds: [], taskIds: [], skippedCount: 0 }
-    }
-
-    const candidateFiles = await this.resolveCandidateFileAssetsForArchiveOrRestore(assetIds)
-    if (candidateFiles.length === 0) {
-      return { archivedAssetIds: [], taskIds: [], skippedCount: 0 }
-    }
-
-    // Check active transcode/watermark tasks on candidate files
-    const activeTasks = await this.prismaClient.workflowTask.findMany({
-      where: {
-        assetId: { in: candidateFiles.map((f) => f.id) },
-        status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
-        type: {
-          in: [
-            WorkflowTaskType.transcode,
-            WorkflowTaskType.transcode_video,
-            WorkflowTaskType.transcode_image,
-            WorkflowTaskType.transcode_pdf,
-            WorkflowTaskType.transcode_pdf_pages,
-            WorkflowTaskType.transcode_screenshot,
-            WorkflowTaskType.transcode_image_annotation,
-            WorkflowTaskType.transcode_watermark,
-          ],
-        },
-      },
-      select: { assetId: true },
-    })
-    const busyAssetIds = new Set(activeTasks.map((t) => t.assetId))
-
-    const eligibleByStorageKey = new Map<string, typeof candidateFiles>()
-    let skippedCount = 0
-    let alreadyArchivedCount = 0
-    let invalidStateCount = 0
-    let busyCount = 0
-
-    for (const file of candidateFiles) {
-      if (!file.storageKeyId || !file.storageKey || !file.projectId || !file.project?.teamId) {
-        skippedCount++
-        continue
-      }
-      if (
-        file.status === AssetStatus.archiving ||
-        file.status === AssetStatus.archived ||
-        file.storageKey.isArchived
-      ) {
-        skippedCount++
-        alreadyArchivedCount++
-        continue
-      }
-      if (busyAssetIds.has(file.id)) {
-        skippedCount++
-        busyCount++
-        continue
-      }
-      if (file.status !== AssetStatus.processed) {
-        skippedCount++
-        invalidStateCount++
-        continue
-      }
-
-      const list = eligibleByStorageKey.get(file.storageKeyId) || []
-      list.push(file)
-      eligibleByStorageKey.set(file.storageKeyId, list)
-    }
-
-    if (eligibleByStorageKey.size === 0) {
-      if (alreadyArchivedCount === 0 && busyCount > 0) {
-        throw new HTTPException(409, {
-          message: 'Cannot archive asset while a workflow task is in progress',
-        })
-      }
-      if (alreadyArchivedCount === 0 && invalidStateCount > 0) {
-        throw new HTTPException(409, {
-          message: 'Only processed assets can be archived',
-        })
-      }
-      return { archivedAssetIds: [], taskIds: [], skippedCount }
-    }
-
-    const archivedAssetIdsSet = new Set<string>()
-    const taskIds: string[] = []
-
-    for (const [storageKeyId, filesForKey] of eligibleByStorageKey.entries()) {
-      const primaryFile = filesForKey[0]
-      await this.prismaClient.$transaction(async (tx) => {
-        const sharedAssets = await tx.asset.findMany({
-          where: {
-            storageKeyId,
-            isDeleted: false,
-            type: AssetType.file,
-            status: {
-              notIn: [AssetStatus.trashed, AssetStatus.pending_purge],
-            },
-          },
-          select: { id: true },
-        })
-        const sharedAssetIds = sharedAssets.map((a) => a.id)
-
-        await tx.asset.updateMany({
-          where: { id: { in: sharedAssetIds } },
-          data: { status: AssetStatus.archiving },
-        })
-
-        for (const id of sharedAssetIds) {
-          archivedAssetIdsSet.add(id)
-        }
-
-        const existingTask = await tx.workflowTask.findFirst({
-          where: {
-            assetId: { in: sharedAssetIds },
-            type: WorkflowTaskType.archive_asset,
-            status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
-          },
-          select: { id: true },
-        })
-
-        if (existingTask) {
-          taskIds.push(existingTask.id)
-        } else {
-          const createdTask = await tx.workflowTask.create({
-            data: {
-              assetId: primaryFile.id,
-              type: WorkflowTaskType.archive_asset,
-              status: WorkflowTaskStatus.pending,
-              teamId: primaryFile.project!.teamId,
-              projectId: primaryFile.projectId!,
-              payload: {
-                projectId: primaryFile.projectId!,
-                archive: { storageKeyId },
-              },
-            },
-          })
-          taskIds.push(createdTask.id)
-        }
-      })
-    }
-
-    return {
-      archivedAssetIds: Array.from(archivedAssetIdsSet),
-      taskIds,
-      skippedCount,
-    }
+    return assetArchiveService.archiveAssets(assetIds)
   }
 
   async restoreArchivedAssets(assetIds: string[]): Promise<RestoreArchivedAssetsResponse> {
-    if (!isArchiveStorageEnabled()) {
-      throw new HTTPException(400, { message: 'Archive storage is not configured' })
-    }
-    if (assetIds.length === 0) {
-      return { restoredAssetIds: [], taskIds: [], skippedCount: 0 }
-    }
-
-    const candidateFiles = await this.resolveCandidateFileAssetsForArchiveOrRestore(assetIds)
-    if (candidateFiles.length === 0) {
-      return { restoredAssetIds: [], taskIds: [], skippedCount: 0 }
-    }
-
-    const eligibleByStorageKey = new Map<string, typeof candidateFiles>()
-    let skippedCount = 0
-    let alreadyRestoringOrHotCount = 0
-    let currentlyArchivingCount = 0
-
-    for (const file of candidateFiles) {
-      if (!file.storageKeyId || !file.storageKey || !file.projectId || !file.project?.teamId) {
-        skippedCount++
-        continue
-      }
-      if (file.status === AssetStatus.archiving) {
-        skippedCount++
-        currentlyArchivingCount++
-        continue
-      }
-      if (file.status === AssetStatus.restoring) {
-        skippedCount++
-        alreadyRestoringOrHotCount++
-        continue
-      }
-      if (file.status !== AssetStatus.archived && !file.storageKey.isArchived) {
-        skippedCount++
-        alreadyRestoringOrHotCount++
-        continue
-      }
-
-      const list = eligibleByStorageKey.get(file.storageKeyId) || []
-      list.push(file)
-      eligibleByStorageKey.set(file.storageKeyId, list)
-    }
-
-    if (eligibleByStorageKey.size === 0) {
-      if (alreadyRestoringOrHotCount === 0 && currentlyArchivingCount > 0) {
-        throw new HTTPException(409, {
-          message: 'Cannot restore asset while it is currently archiving',
-        })
-      }
-      return { restoredAssetIds: [], taskIds: [], skippedCount }
-    }
-
-    const restoredAssetIdsSet = new Set<string>()
-    const taskIds: string[] = []
-
-    for (const [storageKeyId, filesForKey] of eligibleByStorageKey.entries()) {
-      const primaryFile = filesForKey[0]
-      await this.prismaClient.$transaction(async (tx) => {
-        const sharedAssets = await tx.asset.findMany({
-          where: {
-            storageKeyId,
-            isDeleted: false,
-            type: AssetType.file,
-            status: {
-              notIn: [AssetStatus.trashed, AssetStatus.pending_purge],
-            },
-          },
-          select: { id: true },
-        })
-        const sharedAssetIds = sharedAssets.map((a) => a.id)
-
-        await tx.asset.updateMany({
-          where: { id: { in: sharedAssetIds } },
-          data: { status: AssetStatus.restoring },
-        })
-
-        for (const id of sharedAssetIds) {
-          restoredAssetIdsSet.add(id)
-        }
-
-        const existingTask = await tx.workflowTask.findFirst({
-          where: {
-            assetId: { in: sharedAssetIds },
-            type: WorkflowTaskType.restore_asset,
-            status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
-          },
-          select: { id: true },
-        })
-
-        if (existingTask) {
-          taskIds.push(existingTask.id)
-        } else {
-          const createdTask = await tx.workflowTask.create({
-            data: {
-              assetId: primaryFile.id,
-              type: WorkflowTaskType.restore_asset,
-              status: WorkflowTaskStatus.pending,
-              teamId: primaryFile.project!.teamId,
-              projectId: primaryFile.projectId!,
-              payload: {
-                projectId: primaryFile.projectId!,
-                archive: { storageKeyId },
-              },
-            },
-          })
-          taskIds.push(createdTask.id)
-        }
-      })
-    }
-
-    return {
-      restoredAssetIds: Array.from(restoredAssetIdsSet),
-      taskIds,
-      skippedCount,
-    }
+    return assetArchiveService.restoreArchivedAssets(assetIds)
   }
 
   async toPreviewInfo(

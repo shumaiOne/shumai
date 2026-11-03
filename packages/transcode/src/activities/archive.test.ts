@@ -1,6 +1,7 @@
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
+import { Readable } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AssetStatus, prisma, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
@@ -11,6 +12,7 @@ import {
 } from '@shumai/core/src/s3/archive-storage'
 import { archiveAssetWorkflow } from '../workflows/archive-asset'
 import { restoreAssetWorkflow } from '../workflows/restore-asset'
+import { copyOriginalToArchiveStorageActivity } from './archive'
 
 describe('Archive & Restore Workflows and Activities', () => {
   setupTestDbHooks()
@@ -197,5 +199,60 @@ describe('Archive & Restore Workflows and Activities', () => {
 
     const updatedTask = await prisma.workflowTask.findUniqueOrThrow({ where: { id: task.id } })
     expect(updatedTask.status).toBe(WorkflowTaskStatus.failed)
+  })
+
+  it('freshly overwrites destination even if a file of matching size already exists in archive storage', async () => {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const key = 'files/wf-test/overwrite-test.mp4'
+    const originalContent = 'fresh-content-12345'
+    const staleContent = 'stale-content-99999'
+    expect(originalContent.length).toBe(staleContent.length)
+
+    // Put stale content into archive storage directly
+    const archiveStorage = getArchiveStorageService()
+    await archiveStorage.uploadStream(
+      key,
+      Readable.toWeb(
+        Readable.from(Buffer.from(staleContent)),
+      ) as unknown as ReadableStream<Uint8Array>,
+      staleContent.length,
+      'video/mp4',
+    )
+
+    // Put fresh content into main storage
+    await s3Service.uploadStream({
+      bucket,
+      key,
+      stream: Readable.toWeb(
+        Readable.from(Buffer.from(originalContent)),
+      ) as unknown as ReadableStream<Uint8Array>,
+      contentLength: originalContent.length,
+      contentType: 'video/mp4',
+    })
+
+    const sk = await prisma.storageKey.create({
+      data: { key, isArchived: false },
+    })
+
+    await copyOriginalToArchiveStorageActivity({
+      storageKeyId: sk.id,
+      key,
+      expectedSize: originalContent.length,
+      contentType: 'video/mp4',
+    })
+
+    const { stream } = await archiveStorage.getObjectStream(key)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const readStream = Readable.fromWeb(stream as any)
+    const chunks: Buffer[] = []
+    for await (const chunk of readStream) {
+      chunks.push(Buffer.from(chunk))
+    }
+    const finalArchivedContent = Buffer.concat(chunks).toString('utf-8')
+    expect(finalArchivedContent).toBe(originalContent)
+
+    // Clean up
+    await s3Service.deleteObject(bucket, key)
+    await archiveStorage.deleteObject(key)
   })
 })

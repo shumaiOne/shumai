@@ -332,8 +332,8 @@ describe('AssetService Archive & Restore', () => {
 
     // Batch getDownloadLinks skips archivedVideo and returns hotVideo + skippedArchivedCount = 1
     const links = await assetService.getDownloadLinks([archivedVideo.id, hotVideo.id])
-    expect(links).toHaveLength(1)
-    expect(links[0].id).toBe(hotVideo.id)
+    expect(links.files).toHaveLength(1)
+    expect(links.files[0].id).toBe(hotVideo.id)
     expect(links.skippedArchivedCount).toBe(1)
   })
 
@@ -416,5 +416,102 @@ describe('AssetService Archive & Restore', () => {
       where: { id: archivedFile.storageKeyId! },
     })
     expect(skAfter).toBeNull()
+  })
+
+  it('refuses to archive when a sibling copy sharing storageKeyId is processing or has an active task', async () => {
+    const originalFile = await createProcessedFile({
+      name: 'original.mp4',
+      key: 'files/01SIB/original.mp4',
+    })
+
+    // Sibling copy sharing the same storageKeyId
+    const siblingFile = await prisma.asset.create({
+      data: {
+        name: 'sibling.mp4',
+        type: AssetType.file,
+        status: AssetStatus.processing,
+        storageKeyId: originalFile.storageKeyId,
+        projectId,
+        parentId: rootFolderId,
+        creatorId: owner.id,
+      },
+    })
+
+    // Trying to archive originalFile when siblingFile is processing throws 409
+    await expect(assetService.archiveAssets([originalFile.id])).rejects.toMatchObject({
+      status: 409,
+      message: 'Only processed assets can be archived',
+    })
+
+    // Now set sibling to processed, but give it an active workflowTask
+    await prisma.asset.update({
+      where: { id: siblingFile.id },
+      data: { status: AssetStatus.processed },
+    })
+    const activeTask = await prisma.workflowTask.create({
+      data: {
+        assetId: siblingFile.id,
+        type: WorkflowTaskType.transcode,
+        status: WorkflowTaskStatus.processing,
+        projectId,
+        teamId,
+      },
+    })
+
+    await expect(assetService.archiveAssets([originalFile.id])).rejects.toMatchObject({
+      status: 409,
+      message: 'Cannot archive asset while a workflow task is in progress',
+    })
+
+    // Once task completes, archive succeeds
+    await prisma.workflowTask.update({
+      where: { id: activeTask.id },
+      data: { status: WorkflowTaskStatus.completed },
+    })
+    const res = await assetService.archiveAssets([originalFile.id])
+    expect(res.archivedAssetIds.sort()).toEqual([originalFile.id, siblingFile.id].sort())
+  })
+
+  it('ignores symlinks inside folders during recursive folder archiving', async () => {
+    const folder = await assetService.createAsset({
+      name: 'archive-folder',
+      type: 'folder',
+      parentId: rootFolderId,
+      projectId,
+      creatorId: owner.id,
+    })
+
+    const realFile = await createProcessedFile({
+      name: 'nested-real.mp4',
+      key: 'files/01NEST/nested-real.mp4',
+      parentId: folder.id,
+    })
+
+    // External target file
+    const externalFile = await createProcessedFile({
+      name: 'external.mp4',
+      key: 'files/01EXT/external.mp4',
+      parentId: rootFolderId,
+    })
+
+    // Create a symlink inside the folder pointing to externalFile
+    await prisma.asset.create({
+      data: {
+        name: 'symlink-inside.mp4',
+        type: AssetType.symlink,
+        status: AssetStatus.processed,
+        projectId,
+        parentId: folder.id,
+        targetId: externalFile.id,
+        creatorId: owner.id,
+      },
+    })
+
+    const res = await assetService.archiveAssets([folder.id])
+    // Only realFile should be archived, NOT externalFile
+    expect(res.archivedAssetIds).toEqual([realFile.id])
+
+    const extRow = await prisma.asset.findUniqueOrThrow({ where: { id: externalFile.id } })
+    expect(extRow.status).toBe(AssetStatus.processed)
   })
 })

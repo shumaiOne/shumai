@@ -262,6 +262,46 @@ describe('download_asset Operation', () => {
     })
   })
 
+  it('downloads PDF rendition when proxy: true is requested for Office documents with a pdfTranscode', async () => {
+    const doc = await createFile('presentation.pptx', {
+      key: 'files/up-office/presentation.pptx',
+      media: {
+        duration: 0,
+        filesize: 1024,
+        frames: 0,
+        finishedAt: '2026-01-01T00:00:00Z',
+        metadata: null,
+        original: null,
+        imageTranscodes: [],
+        videoTranscodes: [],
+        proxyType: 'pdf',
+        pdfTranscode: {
+          key: 'files/up-office/presentation.pdf',
+        },
+      },
+    })
+
+    const originalDownload = await runOperation(downloadAssetOp, as(owner), {
+      assetIds: [doc.id],
+      proxy: false,
+    })
+    expect(originalDownload.files[0]).toMatchObject({
+      assetId: doc.id,
+      kind: 'original',
+      name: 'presentation.pptx',
+    })
+
+    const proxyDownload = await runOperation(downloadAssetOp, as(owner), {
+      assetIds: [doc.id],
+      proxy: true,
+    })
+    expect(proxyDownload.files[0]).toMatchObject({
+      assetId: doc.id,
+      kind: 'proxy',
+      name: 'presentation.pdf',
+    })
+  })
+
   it.each([[[]], [Array.from({ length: 51 }, (_, i) => `a-${i}`)]])(
     'rejects %# asset ID lists outside 1 to 50',
     async (assetIds) => {
