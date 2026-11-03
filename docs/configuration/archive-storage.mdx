@@ -15,7 +15,7 @@ Team members can continue to browse, search, scrub, and review archived assets i
 2. **Durable Asynchronous Workflows**: Moving and restoring files is handled by background worker tasks on a dedicated queue (`archive_queue`) managed by DBOS. Tasks automatically survive network interruptions, slow S3 transfers, and server restarts.
 3. **Transparent Asset Lifecycle**:
    - When an asset is being archived, its status transitions to `archiving` and settles at `archived`.
-   - When an asset is being restored, its status transitions to `restoring` and returns to `ready` (or `processed`) once the original file is back in primary storage.
+   - When an asset is being restored, its status transitions to `restoring` and returns to `processed` once the original file is back in primary storage.
    - Trashed assets that are permanently purged automatically delete their original file from archive storage as well.
 4. **Folder & Version Stack Support**: Archiving a folder or version stack recursively archives all contained file assets. Restoring a folder or version stack restores all archived files inside it.
 
@@ -39,36 +39,37 @@ Configure archive storage by adding the following environment variables to your 
 
 ### General Configuration
 
-| Variable                  | Description                                                                                                | Required | Default          |
-| :------------------------ | :--------------------------------------------------------------------------------------------------------- | :------- | :--------------- |
-| `ARCHIVE_STORAGE_BACKEND` | Storage backend for archives: `local` or `s3`. When unset, archive functionality is disabled in the WebUI. | No       | Unset (Disabled) |
-| `CONCURRENCY_ARCHIVE`     | Maximum concurrent archive and restore tasks executed by background workers.                               | No       | `5`              |
-| `SHUMAI_WORKERS`          | Queues listened to by the application server. Set to `all` or include `archive`.                           | No       | `all`            |
+| Variable                  | Description                                                                                                                                                          | Required | Default          |
+| :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------- | :--------------- |
+| `ARCHIVE_STORAGE_BACKEND` | Storage backend for archives: `local` or `s3`. When unset, archive functionality is disabled in the WebUI.                                                           | No       | Unset (Disabled) |
+| `CONCURRENCY_ARCHIVE`     | Maximum concurrent archive and restore tasks executed by background workers.                                                                                         | No       | `5`              |
+| `SHUMAI_WORKERS`          | Worker queues listened to by the application server: `all` (default), `none`, `agent` (or `ai`), `transcode`, `archive`. Set to `all` or `archive` to process tasks. | No       | `all`            |
 
 ### Local Archive Storage
 
 Used when `ARCHIVE_STORAGE_BACKEND=local`:
 
-| Variable                     | Description                                                                                                             | Required | Default             |
-| :--------------------------- | :---------------------------------------------------------------------------------------------------------------------- | :------- | :------------------ |
-| `ARCHIVE_LOCAL_STORAGE_PATH` | Host filesystem directory path for storing archived original files. Useful for mounting a secondary disk or NAS volume. | No       | `./storage-archive` |
+| Variable             | Description                                                                                                                                            | Required | Default          |
+| :------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- | :------- | :--------------- |
+| `ARCHIVE_LOCAL_ROOT` | Host filesystem directory path where archived files are stored. Must not overlap with main local storage directory (`./data` or `./data/<S3_BUCKET>`). | Yes      | Unset (Required) |
 
 ### S3 Archive Storage
 
-Used when `ARCHIVE_STORAGE_BACKEND=s3`:
+Used when `ARCHIVE_STORAGE_BACKEND=s3`. Note that archive storage maintains its own configuration and **never falls back** to the primary `S3_*` environment variables:
 
-| Variable                           | Description                                                                                                                           | Required | Default                               |
-| :--------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------ | :------- | :------------------------------------ |
-| `ARCHIVE_S3_BUCKET`                | The destination S3 bucket for archived files. Defaults to `S3_BUCKET` if unset.                                                       | No       | Falls back to `S3_BUCKET`             |
-| `ARCHIVE_AWS_ENDPOINT_URL_S3`      | S3 endpoint URL for archive storage. Defaults to `AWS_ENDPOINT_URL_S3` if unset.                                                      | No       | Falls back to `AWS_ENDPOINT_URL_S3`   |
-| `ARCHIVE_S3_REGION`                | S3 region for the archive bucket. Defaults to `S3_REGION` if unset.                                                                   | No       | Falls back to `S3_REGION`             |
-| `ARCHIVE_S3_ACCESS_KEY_ID`         | Access key ID for the archive S3 service. Defaults to `S3_ACCESS_KEY_ID` if unset.                                                    | No       | Falls back to `S3_ACCESS_KEY_ID`      |
-| `ARCHIVE_S3_SECRET_ACCESS_KEY`     | Secret access key for the archive S3 service. Defaults to `S3_SECRET_ACCESS_KEY` if unset.                                            | No       | Falls back to `S3_SECRET_ACCESS_KEY`  |
-| `ARCHIVE_S3_FORCE_PATH_STYLE`      | Set to `true` for MinIO or path-style S3 storage endpoints.                                                                           | No       | `false`                               |
-| `ARCHIVE_S3_STORAGE_CLASS`         | S3 storage class to apply to archived objects (e.g. `GLACIER`, `GLACIER_IR`, `DEEP_ARCHIVE`, `COLDLINE`).                             | No       | `STANDARD`                            |
-| `ARCHIVE_S3_RESTORE_DAYS`          | Number of days a restored temporary copy remains readable in S3 for asynchronous Glacier restores.                                    | No       | `7`                                   |
-| `ARCHIVE_S3_RESTORE_TIER`          | S3 Glacier retrieval tier (`Expedited`, `Standard`, or `Bulk`). Omit when using providers that do not require asynchronous retrieval. | No       | Unset                                 |
-| `ARCHIVE_RESTORE_POLL_INTERVAL_MS` | Milliseconds between status checks while waiting for an asynchronous cold storage restore.                                            | No       | `60000` (1 min initial, 5 min steady) |
+| Variable                           | Description                                                                                                                                                                         | Required | Default                               |
+| :--------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------- | :------------------------------------ |
+| `ARCHIVE_S3_BUCKET`                | Destination S3 bucket for archived files (can be a dedicated bucket or the same bucket as `S3_BUCKET` for in-place tiering).                                                        | Yes      | Unset (Required)                      |
+| `ARCHIVE_S3_ACCESS_KEY_ID`         | Access key ID for the archive S3 service.                                                                                                                                           | Yes      | Unset (Required)                      |
+| `ARCHIVE_S3_SECRET_ACCESS_KEY`     | Secret access key for the archive S3 service.                                                                                                                                       | Yes      | Unset (Required)                      |
+| `ARCHIVE_AWS_ENDPOINT_URL_S3`      | S3 endpoint URL for archive storage (e.g. MinIO, Cloudflare R2, Google Cloud Storage).                                                                                              | No       | Unset (AWS standard endpoint)         |
+| `ARCHIVE_S3_REGION`                | S3 region for the archive bucket.                                                                                                                                                   | No       | `auto`                                |
+| `ARCHIVE_S3_FORCE_PATH_STYLE`      | Use path-style S3 URLs (`true` for MinIO/path-style, `false` for virtual-hosted style).                                                                                             | No       | `true`                                |
+| `ARCHIVE_S3_STORAGE_CLASS`         | S3 storage class to apply to archived objects (e.g. `GLACIER`, `GLACIER_IR`, `DEEP_ARCHIVE`, `COLDLINE`). Required and must not be `STANDARD` when archiving to the same S3 bucket. | No       | Unset                                 |
+| `ARCHIVE_S3_USE_RESTORE_OBJECT`    | Controls whether S3 `RestoreObject` is called before reading archived objects (`auto`, `true`, or `false`).                                                                         | No       | `auto`                                |
+| `ARCHIVE_S3_RESTORE_DAYS`          | Number of days a restored temporary copy remains readable in S3 for asynchronous Glacier restores.                                                                                  | No       | `1`                                   |
+| `ARCHIVE_S3_RESTORE_TIER`          | S3 Glacier retrieval tier (`Expedited`, `Standard`, or `Bulk`). Omit when using providers that do not require asynchronous retrieval.                                               | No       | Unset                                 |
+| `ARCHIVE_RESTORE_POLL_INTERVAL_MS` | Milliseconds between status checks while waiting for an asynchronous cold storage restore.                                                                                          | No       | `60000` (1 min initial, 5 min steady) |
 
 ---
 
@@ -85,7 +86,7 @@ LOCAL_STORAGE_PATH=./storage
 
 # Archive storage pointing to your mounted NAS directory
 ARCHIVE_STORAGE_BACKEND=local
-ARCHIVE_LOCAL_STORAGE_PATH=/mnt/nas/shumai-archive
+ARCHIVE_LOCAL_ROOT=/mnt/nas/shumai-archive
 ```
 
 In `docker-compose.yaml`, mount the host NAS volume into the container:
@@ -97,7 +98,7 @@ services:
       - /mnt/nas/shumai-archive:/mnt/nas/shumai-archive
     environment:
       ARCHIVE_STORAGE_BACKEND: local
-      ARCHIVE_LOCAL_STORAGE_PATH: /mnt/nas/shumai-archive
+      ARCHIVE_LOCAL_ROOT: /mnt/nas/shumai-archive
 ```
 
 ---
@@ -119,8 +120,13 @@ S3_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 S3_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 AWS_ENDPOINT_URL_S3=https://s3.us-east-1.amazonaws.com
 
-# Archive Storage (re-uses main bucket & credentials automatically)
+# Archive Storage (same bucket & credentials with cold storage class)
 ARCHIVE_STORAGE_BACKEND=s3
+ARCHIVE_S3_BUCKET=my-shumai-production
+ARCHIVE_S3_REGION=us-east-1
+ARCHIVE_S3_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+ARCHIVE_S3_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+ARCHIVE_AWS_ENDPOINT_URL_S3=https://s3.us-east-1.amazonaws.com
 ARCHIVE_S3_STORAGE_CLASS=GLACIER_IR
 ```
 
@@ -188,7 +194,7 @@ ARCHIVE_S3_STORAGE_CLASS=COLDLINE
 ```
 
 > [!TIP]
-> Do not set `ARCHIVE_S3_RESTORE_TIER` when using Google Cloud Storage, as GCS objects are readable immediately and do not accept AWS Glacier retrieval parameters.
+> Google Cloud Storage objects are readable immediately and do not accept AWS Glacier retrieval parameters. Do not set `ARCHIVE_S3_RESTORE_TIER`. If using GCS's `ARCHIVE` storage class, set `ARCHIVE_S3_USE_RESTORE_OBJECT=false` to bypass S3 `RestoreObject` calls.
 
 ---
 
