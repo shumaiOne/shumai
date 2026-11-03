@@ -158,6 +158,7 @@ export const assetInfoSchema = z.object({
           current: z.boolean(),
           id: z.string(),
           name: z.string().optional().nullable(),
+          status: z.string().optional().nullable(),
           previewUrl: z.string().optional().nullable(),
           createdAt: z.string().optional().nullable(),
           creator: z
@@ -395,8 +396,33 @@ export type DownloadLinkItem = z.infer<typeof downloadLinkItemSchema>
 
 export const getDownloadLinksResponseSchema = z.object({
   files: z.array(downloadLinkItemSchema),
+  skippedArchivedCount: z.number().optional(),
 })
 export type GetDownloadLinksResponse = z.infer<typeof getDownloadLinksResponseSchema>
+
+export const archiveAssetsRequestSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1),
+})
+export type ArchiveAssetsRequest = z.infer<typeof archiveAssetsRequestSchema>
+
+export const archiveAssetsResponseSchema = z.object({
+  archivedAssetIds: z.array(z.string()),
+  taskIds: z.array(z.string()),
+  skippedCount: z.number(),
+})
+export type ArchiveAssetsResponse = z.infer<typeof archiveAssetsResponseSchema>
+
+export const restoreArchivedAssetsRequestSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1),
+})
+export type RestoreArchivedAssetsRequest = z.infer<typeof restoreArchivedAssetsRequestSchema>
+
+export const restoreArchivedAssetsResponseSchema = z.object({
+  restoredAssetIds: z.array(z.string()),
+  taskIds: z.array(z.string()),
+  skippedCount: z.number(),
+})
+export type RestoreArchivedAssetsResponse = z.infer<typeof restoreArchivedAssetsResponseSchema>
 
 export const commentExportFormatSchema = z.enum([
   'fcp-fiojson',

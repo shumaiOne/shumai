@@ -36,6 +36,9 @@ export const AssetStatus = {
   uploaded: 'uploaded',
   processing: 'processing',
   processed: 'processed',
+  archiving: 'archiving',
+  archived: 'archived',
+  restoring: 'restoring',
   failed: 'failed',
   trashed: 'trashed',
   pending_purge: 'pending_purge'
@@ -156,7 +159,9 @@ export const WorkflowTaskType = {
   ai_embedding: 'ai_embedding',
   query_embedding_for_search: 'query_embedding_for_search',
   agent_tool_call: 'agent_tool_call',
-  kanban_agent_run: 'kanban_agent_run'
+  kanban_agent_run: 'kanban_agent_run',
+  archive_asset: 'archive_asset',
+  restore_asset: 'restore_asset'
 } as const
 
 export type WorkflowTaskType = (typeof WorkflowTaskType)[keyof typeof WorkflowTaskType]

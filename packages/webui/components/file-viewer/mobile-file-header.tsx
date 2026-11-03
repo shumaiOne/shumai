@@ -16,10 +16,13 @@ import {
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import {
+  Archive,
+  ArchiveRestore,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
+  Loader2,
   MoreVertical,
   Pencil,
   SquareKanban,
@@ -32,10 +35,12 @@ export interface MobileFileHeaderProps {
   fileName: string
   folderName?: string
   version?: number
+  status?: string
   versions?: Array<{
     id: string
     version: number
     name?: string | null
+    status?: string | null
   }>
   activeFileId: string
   isPublic?: boolean
@@ -60,6 +65,8 @@ export interface MobileFileHeaderProps {
   onSelectVersion?: (versionId: string) => void
   onRename?: () => void
   onDelete?: () => void
+  onArchive?: () => void
+  onRestoreArchive?: () => void
   onLinkedTasks?: () => void
   linkedTaskCount?: number
 }
@@ -68,6 +75,7 @@ export function MobileFileHeader({
   fileName,
   folderName,
   version,
+  status,
   versions,
   activeFileId,
   isPublic = false,
@@ -83,9 +91,13 @@ export function MobileFileHeader({
   onSelectVersion,
   onRename,
   onDelete,
+  onArchive,
+  onRestoreArchive,
   onLinkedTasks,
   linkedTaskCount = 0,
 }: MobileFileHeaderProps) {
+  const isOriginalUnavailable =
+    status === 'archived' || status === 'archiving' || status === 'restoring'
   const handleDownload = async (key: string) => {
     try {
       const res =
@@ -143,6 +155,19 @@ export function MobileFileHeader({
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-1 min-w-0 truncate text-xs font-medium text-foreground hover:bg-accent rounded px-1 py-0.5 transition-colors cursor-pointer">
+                  {(status === 'archived' || status === 'restoring') && (
+                    <span
+                      data-testid={
+                        status === 'restoring'
+                          ? 'detail-header-restoring-badge'
+                          : 'detail-header-archived-badge'
+                      }
+                      title={status === 'restoring' ? m.restoring_status() : m.archived_status()}
+                      className="inline-flex items-center shrink-0"
+                    >
+                      <Archive className="h-3 w-3 text-muted-foreground" />
+                    </span>
+                  )}
                   <span className="truncate max-w-[120px] font-semibold">{fileName}</span>
                   {version !== undefined && (
                     <Badge variant="outline" className="px-1 py-0 text-[10px] shrink-0 font-normal">
@@ -164,8 +189,11 @@ export function MobileFileHeader({
                     )}
                   >
                     <span>v{v.version}</span>
-                    <span className="text-[11px] text-muted-foreground truncate max-w-[120px]">
-                      {v.name || fileName}
+                    <span className="text-[11px] text-muted-foreground truncate max-w-[120px] flex items-center gap-1">
+                      {(v.status === 'archived' || v.status === 'restoring') && (
+                        <Archive className="h-2.5 w-2.5 shrink-0 text-muted-foreground" />
+                      )}
+                      <span className="truncate">{v.name || fileName}</span>
                     </span>
                   </DropdownMenuItem>
                 ))}
@@ -173,6 +201,19 @@ export function MobileFileHeader({
             </DropdownMenu>
           ) : (
             <div className="flex items-center gap-1 min-w-0 truncate">
+              {(status === 'archived' || status === 'restoring') && (
+                <span
+                  data-testid={
+                    status === 'restoring'
+                      ? 'detail-header-restoring-badge'
+                      : 'detail-header-archived-badge'
+                  }
+                  title={status === 'restoring' ? m.restoring_status() : m.archived_status()}
+                  className="inline-flex items-center shrink-0"
+                >
+                  <Archive className="h-3 w-3 text-muted-foreground" />
+                </span>
+              )}
               <span className="truncate text-xs font-semibold text-foreground max-w-[140px]">
                 {fileName}
               </span>
@@ -182,6 +223,16 @@ export function MobileFileHeader({
                 </Badge>
               )}
             </div>
+          )}
+          {status === 'archiving' && (
+            <Badge
+              variant="secondary"
+              data-testid="detail-header-archiving-badge"
+              className="ml-1 gap-0.5 px-1 py-0 text-[10px] shrink-0"
+            >
+              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+              <span>{m.archiving_status()}</span>
+            </Badge>
           )}
         </div>
 
@@ -257,7 +308,10 @@ export function MobileFileHeader({
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleDownload(downloadInfo.originalKey!)}
+                            disabled={isOriginalUnavailable}
+                            onClick={() =>
+                              !isOriginalUnavailable && handleDownload(downloadInfo.originalKey!)
+                            }
                             className="flex items-center justify-between text-xs cursor-pointer"
                           >
                             <span>{m.original?.() || 'Original'}</span>
@@ -273,9 +327,11 @@ export function MobileFileHeader({
               ) : (
                 <DropdownMenuItem
                   onClick={() =>
-                    downloadInfo?.originalKey && handleDownload(downloadInfo.originalKey)
+                    downloadInfo?.originalKey &&
+                    !isOriginalUnavailable &&
+                    handleDownload(downloadInfo.originalKey)
                   }
-                  disabled={!downloadInfo?.originalKey}
+                  disabled={!downloadInfo?.originalKey || isOriginalUnavailable}
                   className="flex items-center gap-2 text-xs cursor-pointer"
                 >
                   <Download className="h-3.5 w-3.5" />
@@ -342,6 +398,28 @@ export function MobileFileHeader({
               >
                 <Pencil className="h-3.5 w-3.5" />
                 <span>{m.rename()}</span>
+              </DropdownMenuItem>
+            )}
+
+            {/* Archive / Restore */}
+            {canEdit && !isPublic && (!status || status === 'processed') && onArchive && (
+              <DropdownMenuItem
+                data-testid="detail-header-archive-action"
+                onClick={onArchive}
+                className="flex items-center gap-2 text-xs cursor-pointer"
+              >
+                <Archive className="h-3.5 w-3.5" />
+                <span>{m.archive()}</span>
+              </DropdownMenuItem>
+            )}
+            {canEdit && !isPublic && status === 'archived' && onRestoreArchive && (
+              <DropdownMenuItem
+                data-testid="detail-header-restore-archive-action"
+                onClick={onRestoreArchive}
+                className="flex items-center gap-2 text-xs cursor-pointer"
+              >
+                <ArchiveRestore className="h-3.5 w-3.5" />
+                <span>{m.restore_from_archive()}</span>
               </DropdownMenuItem>
             )}
 

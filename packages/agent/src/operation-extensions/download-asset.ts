@@ -5,6 +5,7 @@ import type { AgentToolResult } from '@earendil-works/pi-agent-core'
 import { downloadAsset, MAX_DOWNLOAD_ASSETS, type DownloadAssetOutput } from '@shumai/operations'
 import type { User } from '@shumai/db'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { assertStorageKeyNotArchived } from '@shumai/core/src/asset/asset-archive'
 import { storageBucket } from '@shumai/core/src/asset-read'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
@@ -54,6 +55,7 @@ async function downloadKey(key: string, userId: string): Promise<AgentToolResult
     type: ResourceType.Asset,
     id: owningAssetId,
   })
+  await assertStorageKeyNotArchived(key)
   const filename = sanitizeFilename(path.basename(key)) || 'downloaded_file'
   const saved = await saveToSandbox(key, filename)
   return {

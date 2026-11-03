@@ -285,6 +285,42 @@ export class SqlQueryBuilder {
       }
     }
 
+    if (field === 'isArchived' || field === 'is_archived') {
+      if (operator !== 'eq' && operator !== 'neq') {
+        throw new Error(`Unsupported operator for isArchived field: ${operator}`)
+      }
+      const rawBool = value === true || value === 'true' || value === 1 || value === '1'
+      const wantArchived = operator === 'neq' ? !rawBool : rawBool
+      if (wantArchived) {
+        return Prisma.sql`(
+          (a."type" = 'file'::"AssetType" AND a."status" = 'archived'::"AssetStatus")
+          OR (
+            a."type" = 'version_stack'::"AssetType"
+            AND (
+              SELECT v."status" FROM assets v
+              WHERE v."parent_id" = a."id" AND v."is_deleted" = false
+              ORDER BY v."sort_index" ASC LIMIT 1
+            ) = 'archived'::"AssetStatus"
+          )
+        )`
+      }
+      return Prisma.sql`(
+        (a."type" = 'file'::"AssetType" AND a."status" != 'archived'::"AssetStatus")
+        OR (
+          a."type" = 'version_stack'::"AssetType"
+          AND COALESCE(
+            (
+              SELECT v."status"::text FROM assets v
+              WHERE v."parent_id" = a."id" AND v."is_deleted" = false
+              ORDER BY v."sort_index" ASC LIMIT 1
+            ),
+            ''
+          ) != 'archived'
+        )
+        OR a."type" NOT IN ('file'::"AssetType", 'version_stack'::"AssetType")
+      )`
+    }
+
     if (
       field === 'createdAt' ||
       field === 'updatedAt' ||

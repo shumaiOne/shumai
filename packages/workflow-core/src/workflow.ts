@@ -1,4 +1,5 @@
 import { logger } from '@shumai/core/src/logger'
+import { revertArchiveStateForStorageKey } from '@shumai/core/src/asset/asset-archive'
 import {
   AssetStatus,
   prisma,
@@ -193,6 +194,19 @@ export class WorkflowService {
               where: { id: task.assetId, status: AssetStatus.processing },
               data: { status: AssetStatus.failed },
             })
+          } else if (task.type === 'archive_asset' || task.type === 'restore_asset') {
+            const payload = currentTask.payload as PrismaJson.WorkflowTaskPayload | null
+            let storageKeyId = payload?.archive?.storageKeyId
+            if (!storageKeyId && task.assetId) {
+              const asset = await prisma.asset.findUnique({
+                where: { id: task.assetId },
+                select: { storageKeyId: true },
+              })
+              storageKeyId = asset?.storageKeyId ?? undefined
+            }
+            if (storageKeyId) {
+              await revertArchiveStateForStorageKey(storageKeyId)
+            }
           }
           recoveredCount++
           continue

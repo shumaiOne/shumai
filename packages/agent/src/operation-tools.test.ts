@@ -67,6 +67,7 @@ describe('operation-backed agent tools', () => {
           .map((t) => t.name)
           .sort(),
       ).toEqual([
+        'archive_assets',
         'copy_assets',
         'create_comment',
         'create_file',
@@ -87,6 +88,7 @@ describe('operation-backed agent tools', () => {
         'remove_version',
         'rename_asset',
         'resolve_comment',
+        'restore_archived_assets',
         'search_assets',
         'update_asset_metadata',
       ])

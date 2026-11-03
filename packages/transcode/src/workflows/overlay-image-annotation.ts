@@ -32,6 +32,17 @@ export async function overlayImageAnnotationWorkflow(task: WorkflowTask): Promis
       })
     }
 
+    if (
+      key === asset.storageKey?.key &&
+      (asset.storageKey?.isArchived || asset.status === 'archived')
+    ) {
+      throw ApplicationFailure.create({
+        message:
+          'Original image file is archived and no proxy is available. Restore the asset to overlay annotations.',
+        nonRetryable: true,
+      })
+    }
+
     const keyWithOverlay = await overlayAnnotationsActivity({
       assetKey: key,
       assetId: asset.id,

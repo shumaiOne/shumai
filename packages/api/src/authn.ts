@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { teamService } from '@shumai/core/src/team/team'
 import { userService } from '@shumai/core/src/user/user'
 import { auth } from '@shumai/core/src/auth/auth'
+import { isArchiveStorageEnabled } from '@shumai/core/src/s3/archive-storage'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import { ulid } from 'ulid'
@@ -19,6 +20,7 @@ const route = app
     return c.json({
       initialized: info.initialized,
       demoMode: info.demoMode,
+      archiveStorageEnabled: isArchiveStorageEnabled(),
     })
   })
   .get('/me', async (c) => {

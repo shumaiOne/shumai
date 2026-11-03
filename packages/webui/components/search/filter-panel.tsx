@@ -18,6 +18,7 @@ import RatingField from '../fields/rating-field'
 import { useEffect, useMemo } from 'react'
 import { useMemberStore } from '@/ui/stores/members'
 import { useTeamId } from '@/ui/hooks/use-team-id'
+import { useArchiveConfig } from '@/ui/hooks/use-archive-config'
 import { m } from '@/ui/paraglide/messages.js'
 
 interface FilterPanelProps {
@@ -39,6 +40,7 @@ export function FilterPanel({
 }: FilterPanelProps) {
   const teamId = useTeamId()
   const { members, fetchMembers } = useMemberStore()
+  const { archiveStorageEnabled } = useArchiveConfig()
 
   useEffect(() => {
     if (teamId) {
@@ -60,6 +62,9 @@ export function FilterPanel({
       { id: 'createdAt', label: m.field_created_at(), type: 'date' },
       { id: 'updatedAt', label: m.field_updated_at(), type: 'date' },
       { id: 'sizeByte', label: m.field_size(), type: 'number' },
+      ...(archiveStorageEnabled
+        ? [{ id: 'isArchived', label: m.filter_archived(), type: 'toggle' }]
+        : []),
     ]
     const custom = fields.map((f) => ({
       id: f.id!,
@@ -72,7 +77,7 @@ export function FilterPanel({
       config: f.config,
     }))
     return [...sys, ...custom].filter((f) => !excludeFields?.includes(f.id))
-  }, [fields, memberOptions, excludeFields])
+  }, [fields, memberOptions, excludeFields, archiveStorageEnabled])
 
   const handleAddCondition = () => {
     onChange([
@@ -100,7 +105,7 @@ export function FilterPanel({
       const field = allFields.find((f) => f.id === value)
       if (field) {
         newConditions[index].operator = getDefaultOperator(field.type)
-        newConditions[index].value = ''
+        newConditions[index].value = field.type === 'toggle' ? true : ''
       }
     }
 
@@ -518,6 +523,7 @@ function ConditionValueInput({
   }
 
   if (field.type === 'toggle') {
+    const isArchivedField = field.id === 'isArchived'
     return (
       <Select
         value={value === true ? 'true' : 'false'}
@@ -527,8 +533,12 @@ function ConditionValueInput({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="true">{m.toggle_checked()}</SelectItem>
-          <SelectItem value="false">{m.toggle_unchecked()}</SelectItem>
+          <SelectItem value="true">
+            {isArchivedField ? m.filter_archived_only() : m.toggle_checked()}
+          </SelectItem>
+          <SelectItem value="false">
+            {isArchivedField ? m.filter_not_archived() : m.toggle_unchecked()}
+          </SelectItem>
         </SelectContent>
       </Select>
     )

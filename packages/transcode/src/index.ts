@@ -9,6 +9,8 @@ import { overlayImageAnnotationWorkflow } from './workflows/overlay-image-annota
 import { transcodeWatermarkWorkflow } from './workflows/transcode-watermark'
 import { transcode3dWorkflow } from './workflows/transcode-3d'
 import { transcodeMedia } from './workflows/transcode'
+import { archiveAssetWorkflow } from './workflows/archive-asset'
+import { restoreAssetWorkflow } from './workflows/restore-asset'
 
 export function initTranscodeWorkflows() {
   registerWorkflow(WorkflowTaskType.transcode, transcodeMedia)
@@ -20,11 +22,16 @@ export function initTranscodeWorkflows() {
   registerWorkflow(WorkflowTaskType.transcode_screenshot, takeVideoScreenshotsWorkflow)
   registerWorkflow(WorkflowTaskType.transcode_image_annotation, overlayImageAnnotationWorkflow)
   registerWorkflow(WorkflowTaskType.transcode_watermark, transcodeWatermarkWorkflow)
+  registerWorkflow(WorkflowTaskType.archive_asset, archiveAssetWorkflow)
+  registerWorkflow(WorkflowTaskType.restore_asset, restoreAssetWorkflow)
 }
 
 export * from './transcoder'
 export * from './workflows/transcode'
 export * from './workflows/transcode-3d'
 export * from './workflows/transcode-watermark'
+export * from './workflows/archive-asset'
+export * from './workflows/restore-asset'
 export * from './activities/transcode'
 export * from './activities/watermark'
+export * from './activities/archive'

@@ -13,8 +13,11 @@ async function start() {
   // Generate a random S3 bucket name
   const randomSuffix = randomBytes(4).toString('hex')
   const bucketName = `shumai-e2e-${randomSuffix}`
+  const archiveRoot = path.resolve('data', `shumai-e2e-archive-${randomSuffix}`)
 
   process.env.S3_BUCKET = bucketName
+  process.env.ARCHIVE_STORAGE_BACKEND = 'local'
+  process.env.ARCHIVE_LOCAL_ROOT = archiveRoot
   process.env.SHUMAI_SERVER_PORT = '5200'
   process.env.BETTER_AUTH_URL = 'http://localhost:5200'
   process.env.NODE_ENV = 'development'
@@ -22,9 +25,12 @@ async function start() {
   process.env.ENABLE_EMBEDDING_AGENT = 'false'
 
   // Write variables to .env.e2e file so the teardown can load them
-  const envContent = [`DATABASE_URL=${process.env.DATABASE_URL}`, `S3_BUCKET=${bucketName}`].join(
-    '\n',
-  )
+  const envContent = [
+    `DATABASE_URL=${process.env.DATABASE_URL}`,
+    `S3_BUCKET=${bucketName}`,
+    `ARCHIVE_STORAGE_BACKEND=local`,
+    `ARCHIVE_LOCAL_ROOT=${archiveRoot}`,
+  ].join('\n')
 
   fs.writeFileSync(path.resolve(currentDir, '.env.e2e'), envContent)
   console.log(`E2E env file written. Starting Web App...`)

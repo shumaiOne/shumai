@@ -683,4 +683,93 @@ describe('FileCard', () => {
     expect(screen.getByDisplayValue('42')).toBeTruthy()
     expect(onSelect).not.toHaveBeenCalled()
   })
+
+  it('renders Archived, Archiving, and Restoring badges and Archive / Restore menu actions when archiveStorageEnabled is true', () => {
+    const onAction = vi.fn()
+    const archivedItem: AssetInfo = {
+      ...fileItem,
+      status: 'archived',
+    } as AssetInfo
+
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <FileCard
+          item={archivedItem}
+          isSelected={false}
+          isChecked={false}
+          isEditing={false}
+          onSelect={vi.fn()}
+          onDoubleClick={vi.fn()}
+          onContextMenu={vi.fn()}
+          onDragStart={vi.fn()}
+          onDrop={vi.fn()}
+          onRename={vi.fn()}
+          onFinishEditing={vi.fn()}
+          onSaveField={vi.fn()}
+          onAction={onAction}
+          fields={[]}
+          canEdit={true}
+          archiveStorageEnabled={true}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getByTestId('file-card-archived-badge')).toBeTruthy()
+
+    const moreBtn = screen.getByRole('button', { name: '' })
+    fireEvent.keyDown(moreBtn, { key: 'ArrowDown', code: 'ArrowDown' })
+
+    const restoreItem = screen.getByTestId('file-card-restore-archive-action')
+    expect(restoreItem).toBeTruthy()
+    fireEvent.click(restoreItem)
+    expect(onAction).toHaveBeenCalledWith('restore-archive', archivedItem)
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <FileCard
+          item={{ ...fileItem, status: 'archiving' } as AssetInfo}
+          isSelected={false}
+          isChecked={false}
+          isEditing={false}
+          onSelect={vi.fn()}
+          onDoubleClick={vi.fn()}
+          onContextMenu={vi.fn()}
+          onDragStart={vi.fn()}
+          onDrop={vi.fn()}
+          onRename={vi.fn()}
+          onFinishEditing={vi.fn()}
+          onSaveField={vi.fn()}
+          onAction={onAction}
+          fields={[]}
+          canEdit={true}
+          archiveStorageEnabled={true}
+        />
+      </QueryClientProvider>,
+    )
+    expect(screen.getByTestId('file-card-archiving-badge')).toBeTruthy()
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <FileCard
+          item={{ ...fileItem, status: 'restoring' } as AssetInfo}
+          isSelected={false}
+          isChecked={false}
+          isEditing={false}
+          onSelect={vi.fn()}
+          onDoubleClick={vi.fn()}
+          onContextMenu={vi.fn()}
+          onDragStart={vi.fn()}
+          onDrop={vi.fn()}
+          onRename={vi.fn()}
+          onFinishEditing={vi.fn()}
+          onSaveField={vi.fn()}
+          onAction={onAction}
+          fields={[]}
+          canEdit={true}
+          archiveStorageEnabled={true}
+        />
+      </QueryClientProvider>,
+    )
+    expect(screen.getByTestId('file-card-restoring-badge')).toBeTruthy()
+  })
 })

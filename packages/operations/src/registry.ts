@@ -1,3 +1,4 @@
+import { archiveAssets } from './asset/archive-assets'
 import { copyAssets } from './asset/copy-assets'
 import { createFolder } from './asset/create-folder'
 import { deleteAsset } from './asset/delete-asset'
@@ -7,6 +8,7 @@ import { listAssets } from './asset/list-assets'
 import { moveAssets } from './asset/move-assets'
 import { getAssetRender, readAsset } from './asset/read-asset'
 import { renameAsset } from './asset/rename-asset'
+import { restoreArchivedAssets } from './asset/restore-archived-assets'
 import { searchAssets } from './asset/search-assets'
 import { createComment } from './comment/create-comment'
 import { listComments } from './comment/list-comments'
@@ -35,6 +37,8 @@ export const operationDefinitions = [
   moveAssets,
   copyAssets,
   deleteAsset,
+  archiveAssets,
+  restoreArchivedAssets,
   readAsset,
   getAssetRender,
   downloadAsset,

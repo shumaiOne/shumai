@@ -183,16 +183,39 @@ export const transcodeWatermarkMediaActivity = defineStep(
         })
       }
 
-      const inputKey = is3d
-        ? (asset.media as PrismaJson.MediaInfo | null)?.videoTranscodes?.[0]?.key ||
+      const isArchived = Boolean(asset.storageKey.isArchived || asset.status === 'archived')
+      let inputKey: string | undefined
+      if (is3d) {
+        inputKey =
+          (asset.media as PrismaJson.MediaInfo | null)?.videoTranscodes?.[0]?.key ||
           (asset.media as PrismaJson.MediaInfo | null)?.videoPreview?.key
-        : assetKey
-
-      if (is3d && !inputKey) {
-        throw ApplicationFailure.create({
-          message: `Turntable video transcode not found for 3D asset ${params.assetId}`,
-          nonRetryable: true,
-        })
+        if (!inputKey) {
+          throw ApplicationFailure.create({
+            message: `Turntable video transcode not found for 3D asset ${params.assetId}`,
+            nonRetryable: true,
+          })
+        }
+      } else if (isArchived) {
+        const media = asset.media as PrismaJson.MediaInfo | null
+        if (isVideo) {
+          const sortedVideos = [...(media?.videoTranscodes || [])]
+            .filter((t) => Boolean(t.key))
+            .sort((a, b) => (b.height || 0) - (a.height || 0))
+          inputKey = sortedVideos[0]?.key || media?.videoPreview?.key
+        } else if (isImage) {
+          const sortedImages = [...(media?.imageTranscodes || [])]
+            .filter((t) => Boolean(t.key))
+            .sort((a, b) => (b.width || 0) * (b.height || 0) - (a.width || 0) * (a.height || 0))
+          inputKey = sortedImages[0]?.key
+        }
+        if (!inputKey) {
+          throw ApplicationFailure.create({
+            message: `Original file is archived and no transcoded proxy is available in main storage for asset ${params.assetId}`,
+            nonRetryable: true,
+          })
+        }
+      } else {
+        inputKey = assetKey
       }
 
       const rawFilePath = path.join(tmpDir, path.basename(inputKey!))

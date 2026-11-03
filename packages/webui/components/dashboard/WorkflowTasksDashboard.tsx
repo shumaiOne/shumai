@@ -266,6 +266,16 @@ export function WorkflowTasksDashboard({ teamId }: WorkflowTasksDashboardProps) 
         </Badge>
       )
     }
+    if (type === 'archive_asset' || type === 'restore_asset') {
+      return (
+        <Badge
+          variant="outline"
+          className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 font-mono text-xs"
+        >
+          {type}
+        </Badge>
+      )
+    }
     return (
       <Badge variant="secondary" className="font-mono text-xs">
         {type}

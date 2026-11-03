@@ -1,6 +1,7 @@
 import { cancelWorkflowTask, prisma } from '@shumai/db'
 import {
   AncestorFolder,
+  ArchiveAssetsResponse,
   AssetInfo,
   AttachmentInfo,
   ChildPreview,
@@ -14,6 +15,7 @@ import {
   ListChildrenRequest,
   PreviewInfo,
   ReparentAssetsRequest,
+  RestoreArchivedAssetsResponse,
   UpdateAssetNameRequest,
   UpdateAssetOrderRequest,
   AssetUserInfo,
@@ -42,6 +44,11 @@ import { HTTPException } from 'hono/http-exception'
 import { logger } from '@shumai/core/src/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@shumai/core/src/pagination'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import {
+  getArchiveStorageService,
+  isArchiveStorageEnabled,
+} from '@shumai/core/src/s3/archive-storage'
+import { assetArchiveService } from './asset-archive'
 import {
   ensureJpegInStorage,
   getJpegKeyForWebp,
@@ -409,7 +416,7 @@ export class AssetService {
 
       const assetsToCopy = await tx.asset.findMany({
         where: { id: { in: req.assetIds } },
-        include: { project: { include: { team: true } } },
+        include: { project: { include: { team: true } }, storageKey: true },
       })
 
       if (assetsToCopy.length !== req.assetIds.length) {
@@ -488,6 +495,17 @@ export class AssetService {
     creatorId?: string,
     withComments: boolean = false,
   ): Promise<Asset> {
+    if (asset.status === AssetStatus.archiving || asset.status === AssetStatus.restoring) {
+      throw new HTTPException(409, {
+        message: 'Cannot copy an asset while it is being archived or restored',
+      })
+    }
+
+    const copiedStatus =
+      asset.type === AssetType.file && asset.storageKey?.isArchived
+        ? AssetStatus.archived
+        : asset.status
+
     const newAsset = await tx.asset.create({
       data: {
         name: asset.name,
@@ -496,7 +514,7 @@ export class AssetService {
         mediaType: asset.mediaType,
         fileCount: asset.fileCount,
         sizeByte: asset.sizeByte,
-        status: asset.status,
+        status: copiedStatus,
         transcodeTaskId: asset.transcodeTaskId,
         media: asset.media || undefined,
         isDeleted: asset.isDeleted,
@@ -515,9 +533,10 @@ export class AssetService {
       await this.copyComments(tx, asset.id, newAsset.id, projectId, creatorId)
     }
 
-    if (asset.type === AssetType.folder) {
+    if (asset.type === AssetType.folder || asset.type === AssetType.version_stack) {
       const children = await tx.asset.findMany({
         where: { parentId: asset.id },
+        include: { storageKey: true },
         orderBy: { sortIndex: 'asc' },
       })
       for (const child of children) {
@@ -1605,7 +1624,9 @@ export class AssetService {
 
     // 1. Find storage keys with no associated assets and older than 24 hours
     // using FOR UPDATE SKIP LOCKED to ensure multiple servers don't pick up the same keys.
-    const lockedKeys = await this.prismaClient.$queryRaw<{ id: string; key: string }[]>`
+    const lockedKeys = await this.prismaClient.$queryRaw<
+      { id: string; key: string; isArchived: boolean }[]
+    >`
       WITH to_purge AS (
         SELECT id FROM storage_keys sk
         WHERE NOT EXISTS (SELECT 1 FROM assets a WHERE a.storage_key_id = sk.id)
@@ -1616,17 +1637,30 @@ export class AssetService {
       )
       UPDATE storage_keys SET status = 'purging', updated_at = NOW()
       WHERE id IN (SELECT id FROM to_purge)
-      RETURNING id, key;
+      RETURNING id, key, is_archived AS "isArchived";
     `
 
     if (lockedKeys.length === 0) return
 
     let physicalFilesDeleted = 0
     let purgedCount = 0
+    const archiveEnabled = isArchiveStorageEnabled()
 
     for (const sk of lockedKeys) {
       try {
-        // Physically delete from S3
+        if (sk.isArchived && !archiveEnabled) {
+          logger.warn(
+            { storageKeyId: sk.id, key: sk.key },
+            'Skipping purge of archived storage key because archive storage is not configured',
+          )
+          await this.prismaClient.storageKey.update({
+            where: { id: sk.id },
+            data: { status: 'active' },
+          })
+          continue
+        }
+
+        // Physically delete proxies (and unarchived original) from main storage
         const parts = sk.key.split('/')
         if (parts.length > 2) {
           const prefix = parts.slice(0, parts.length - 1).join('/') + '/'
@@ -1635,6 +1669,15 @@ export class AssetService {
         } else {
           const count = await s3Service.deleteObject(bucket, sk.key)
           physicalFilesDeleted += count
+        }
+
+        // Also delete original raw file from archive storage when archive storage is separate
+        if (archiveEnabled) {
+          const archiveStorage = getArchiveStorageService()
+          if (!archiveStorage.isSameS3Target) {
+            const archiveDeleted = await archiveStorage.deleteObject(sk.key)
+            physicalFilesDeleted += archiveDeleted
+          }
         }
 
         // Delete from database
@@ -1663,7 +1706,7 @@ export class AssetService {
       await this.prismaClient.$transaction(async (tx) => {
         const a = await tx.asset.findUnique({
           where: { id },
-          include: { project: { include: { team: true } } },
+          include: { project: { include: { team: true } }, storageKey: true },
         })
         if (!a) throw new Error('Asset not found')
         if (!a.parentId) throw new Error('Asset has no parent')
@@ -1687,7 +1730,25 @@ export class AssetService {
         if (descendantIds.length > 0) {
           await tx.asset.updateMany({
             where: { id: { in: descendantIds } },
-            data: { isDeleted: false },
+            data: { isDeleted: false, deletedAt: null },
+          })
+          await tx.asset.updateMany({
+            where: {
+              id: { in: descendantIds },
+              type: AssetType.file,
+              status: AssetStatus.trashed,
+              storageKey: { isArchived: true },
+            },
+            data: { status: AssetStatus.archived },
+          })
+          await tx.asset.updateMany({
+            where: {
+              id: { in: descendantIds },
+              type: AssetType.file,
+              status: AssetStatus.trashed,
+              storageKey: { isArchived: false },
+            },
+            data: { status: AssetStatus.processed },
           })
         }
 
@@ -1724,6 +1785,16 @@ export class AssetService {
           }
         }
 
+        const activeArchiveTask = await tx.workflowTask.findFirst({
+          where: {
+            assetId: a.id,
+            status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
+            type: {
+              in: [WorkflowTaskType.archive_asset, WorkflowTaskType.restore_asset],
+            },
+          },
+        })
+
         const activeTask = await tx.workflowTask.findFirst({
           where: {
             assetId: a.id,
@@ -1743,11 +1814,22 @@ export class AssetService {
           },
         })
 
+        let restoredStatus: AssetStatus = AssetStatus.processed
+        if (activeArchiveTask?.type === WorkflowTaskType.archive_asset) {
+          restoredStatus = AssetStatus.archiving
+        } else if (activeArchiveTask?.type === WorkflowTaskType.restore_asset) {
+          restoredStatus = AssetStatus.restoring
+        } else if (activeTask) {
+          restoredStatus = AssetStatus.processing
+        } else if (a.type === AssetType.file && a.storageKey?.isArchived) {
+          restoredStatus = AssetStatus.archived
+        }
+
         await tx.asset.update({
           where: { id: a.id },
           data: {
             isDeleted: false,
-            status: activeTask ? AssetStatus.processing : AssetStatus.processed,
+            status: restoredStatus,
             deletedAt: null,
           },
         })
@@ -2352,6 +2434,7 @@ export class AssetService {
                   current: i === 0,
                   id: v.id,
                   name: v.name,
+                  status: v.status,
                   previewUrl: preview?.thumbnailUrl || null,
                   createdAt: v.createdAt.toISOString(),
                   creator: v.creator
@@ -2445,7 +2528,15 @@ export class AssetService {
         }
       }
 
-      let media = latestVersion.media as PrismaJson.MediaInfo | null
+      const isOriginalUnavailable =
+        latestVersion.status === AssetStatus.archiving ||
+        latestVersion.status === AssetStatus.archived ||
+        latestVersion.status === AssetStatus.restoring ||
+        Boolean(latestVersion.storageKey?.isArchived)
+
+      let media = latestVersion.media
+        ? (structuredClone(latestVersion.media) as PrismaJson.MediaInfo)
+        : null
       if (media && media.videoPreview?.key) {
         media.videoPreview.url = await s3Service.presign(
           process.env.S3_BUCKET || 'shumai',
@@ -2454,11 +2545,15 @@ export class AssetService {
         )
       }
       if (media && media.pdfTranscode?.key) {
-        media.pdfTranscode.url = await s3Service.presign(
-          process.env.S3_BUCKET || 'shumai',
-          media.pdfTranscode.key,
-          'GET',
-        )
+        if (isOriginalUnavailable && media.pdfTranscode.key === latestVersion.storageKey?.key) {
+          delete media.pdfTranscode.url
+        } else {
+          media.pdfTranscode.url = await s3Service.presign(
+            process.env.S3_BUCKET || 'shumai',
+            media.pdfTranscode.key,
+            'GET',
+          )
+        }
       }
       if (media && media.isHls && media.hls?.key) {
         media.hls.url = `/api/files/${latestVersion.id}/m3u8/master.m3u8`
@@ -2523,6 +2618,7 @@ export class AssetService {
       id: string
       version: number
       name: string
+      status: AssetStatus
       previewUrl: string | null
       createdAt: string
       creator: { id: string; name: string | null; image?: string | null } | null
@@ -2546,6 +2642,7 @@ export class AssetService {
           id: v.id,
           version: versions.length - i,
           name: v.name,
+          status: v.status,
           previewUrl: preview?.thumbnailUrl || null,
           createdAt: v.createdAt.toISOString(),
           creator: v.creator
@@ -2605,8 +2702,11 @@ export class AssetService {
     return Array.from(projectIds)
   }
 
-  async getDownloadLinks(ids: string[]): Promise<Array<{ id: string; name: string; url: string }>> {
-    if (ids.length === 0) return []
+  async getDownloadLinks(ids: string[]): Promise<{
+    files: Array<{ id: string; name: string; url: string }>
+    skippedArchivedCount: number
+  }> {
+    if (ids.length === 0) return { files: [], skippedArchivedCount: 0 }
 
     // Resolve starting IDs (dereference top-level symlinks)
     const assets = await this.prismaClient.asset.findMany({
@@ -2625,13 +2725,14 @@ export class AssetService {
       return asset.id
     })
 
-    if (startingIds.length === 0) return []
+    if (startingIds.length === 0) return { files: [], skippedArchivedCount: 0 }
 
     const descendants = await this.prismaClient.$queryRaw<
       Array<{
         id: string
         name: string
         type: string
+        status: string
         parentId: string | null
         storageKeyId: string | null
         sortIndex: string | null
@@ -2639,16 +2740,16 @@ export class AssetService {
       }>
     >`
       WITH RECURSIVE descendant AS (
-        SELECT id, name, type, parent_id, storage_key_id, sort_index, target_id, is_deleted
+        SELECT id, name, type, status::text AS status, parent_id, storage_key_id, sort_index, target_id, is_deleted
         FROM assets
         WHERE id IN (${Prisma.join(startingIds)}) AND is_deleted = false
         UNION ALL
-        SELECT a.id, a.name, a.type, a.parent_id, a.storage_key_id, a.sort_index, a.target_id, a.is_deleted
+        SELECT a.id, a.name, a.type, a.status::text AS status, a.parent_id, a.storage_key_id, a.sort_index, a.target_id, a.is_deleted
         FROM assets a
         INNER JOIN descendant d ON a.parent_id = d.id
         WHERE a.is_deleted = false
       )
-      SELECT id, name, type, parent_id AS "parentId", storage_key_id AS "storageKeyId", sort_index AS "sortIndex", target_id AS "targetId" FROM descendant;
+      SELECT id, name, type, status, parent_id AS "parentId", storage_key_id AS "storageKeyId", sort_index AS "sortIndex", target_id AS "targetId" FROM descendant;
     `
 
     // Find any symlink in the descendants and resolve its target.
@@ -2657,6 +2758,7 @@ export class AssetService {
       id: string
       name: string
       type: string
+      status: string
       parentId: string | null
       storageKeyId: string | null
       sortIndex: string | null
@@ -2673,6 +2775,7 @@ export class AssetService {
           id: t.id,
           name: t.name,
           type: t.type,
+          status: t.status,
           parentId: t.parentId,
           storageKeyId: t.storageKeyId,
           sortIndex: t.sortIndex,
@@ -2737,16 +2840,29 @@ export class AssetService {
     const storageKeys = await this.prismaClient.storageKey.findMany({
       where: { id: { in: storageKeyIds } },
     })
-    const storageKeyMap = new Map(storageKeys.map((k) => [k.id, k.key]))
+    const storageKeyMap = new Map(storageKeys.map((k) => [k.id, k]))
+
+    let skippedArchivedCount = 0
 
     const downloadLinks = await Promise.all(
       deduplicatedFiles.map(async (file) => {
-        const key = file.storageKeyId ? storageKeyMap.get(file.storageKeyId) : null
-        if (!key) return null
+        const sk = file.storageKeyId ? storageKeyMap.get(file.storageKeyId) : null
+        if (!sk?.key) return null
+
+        const isArchivedOrTransitioning =
+          file.status === AssetStatus.archiving ||
+          file.status === AssetStatus.archived ||
+          file.status === AssetStatus.restoring ||
+          sk.isArchived
+
+        if (isArchivedOrTransitioning) {
+          skippedArchivedCount++
+          return null
+        }
 
         const url = await s3Service.presign(
           process.env.S3_BUCKET || 'shumai',
-          key,
+          sk.key,
           'GET',
           true,
           file.name,
@@ -2760,7 +2876,14 @@ export class AssetService {
       }),
     )
 
-    return downloadLinks.filter((link): link is { id: string; name: string; url: string } => !!link)
+    const filteredLinks = downloadLinks.filter(
+      (link): link is { id: string; name: string; url: string } => !!link,
+    )
+
+    return {
+      files: filteredLinks,
+      skippedArchivedCount,
+    }
   }
 
   /**
@@ -2772,7 +2895,13 @@ export class AssetService {
     const targetAssetId = await this.resolveLatestVersionId(assetId)
     const asset = await this.prismaClient.asset.findUnique({
       where: { id: targetAssetId },
-      select: { id: true, name: true, parentId: true, storageKey: { select: { key: true } } },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        parentId: true,
+        storageKey: { select: { key: true, isArchived: true } },
+      },
     })
 
     if (!asset?.storageKey?.key) {
@@ -2786,6 +2915,8 @@ export class AssetService {
     let storageKey = asset.storageKey.key
     let assetDir = storageKey.substring(0, storageKey.lastIndexOf('/') + 1)
     let targetName = asset.name
+    let targetStatus = asset.status
+    let targetIsArchived = asset.storageKey.isArchived
 
     if (!key.startsWith(assetDir) && asset.parentId) {
       // Check if requested key belongs to another version in the same version stack
@@ -2795,11 +2926,17 @@ export class AssetService {
           isDeleted: false,
           storageKey: { key: { startsWith: key.substring(0, key.lastIndexOf('/') + 1) } },
         },
-        select: { name: true, storageKey: { select: { key: true } } },
+        select: {
+          name: true,
+          status: true,
+          storageKey: { select: { key: true, isArchived: true } },
+        },
       })
       if (sibling?.storageKey?.key) {
         storageKey = sibling.storageKey.key
         assetDir = storageKey.substring(0, storageKey.lastIndexOf('/') + 1)
+        targetStatus = sibling.status
+        targetIsArchived = sibling.storageKey.isArchived
         if (sibling.name) {
           targetName = sibling.name
         }
@@ -2808,6 +2945,19 @@ export class AssetService {
 
     if (!key.startsWith(assetDir)) {
       throw new Error('Key does not belong to this asset')
+    }
+
+    if (key === storageKey) {
+      if (
+        targetStatus === AssetStatus.archiving ||
+        targetStatus === AssetStatus.archived ||
+        targetStatus === AssetStatus.restoring ||
+        targetIsArchived
+      ) {
+        throw new HTTPException(409, {
+          message: 'Original file is archived. Restore the asset to download the original file.',
+        })
+      }
     }
 
     let downloadFilename: string | undefined
@@ -2839,6 +2989,14 @@ export class AssetService {
     }
 
     return s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET', true, downloadFilename)
+  }
+
+  async archiveAssets(assetIds: string[]): Promise<ArchiveAssetsResponse> {
+    return assetArchiveService.archiveAssets(assetIds)
+  }
+
+  async restoreArchivedAssets(assetIds: string[]): Promise<RestoreArchivedAssetsResponse> {
+    return assetArchiveService.restoreArchivedAssets(assetIds)
   }
 
   async toPreviewInfo(

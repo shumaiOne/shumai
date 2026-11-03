@@ -1,4 +1,5 @@
 import { client } from '@/ui/api/client'
+import { Badge } from '@/ui/components/ui/badge'
 import { Button } from '@/ui/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
 import {
@@ -8,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
+import { useArchiveConfig } from '@/ui/hooks/use-archive-config'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { PointerActivationConstraints } from '@dnd-kit/dom'
@@ -16,9 +18,19 @@ import { isSortable, useSortable } from '@dnd-kit/react/sortable'
 import type { StackVersionInfo } from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
-import { Bot, FileIcon, GripVertical, MoreVertical, Trash2 } from 'lucide-react'
+import {
+  Archive,
+  ArchiveRestore,
+  Bot,
+  FileIcon,
+  GripVertical,
+  Loader2,
+  MoreVertical,
+  Trash2,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { ArchiveConfirmDialog } from './archive-confirm-dialog'
 
 interface ManageVersionsDialogProps {
   open: boolean
@@ -34,7 +46,10 @@ interface SortableVersionRowProps {
   displayVersionNumber: number
   index: number
   canEdit: boolean
+  archiveStorageEnabled?: boolean
   onRemove: (versionId: string) => void
+  onArchive?: (versionId: string) => void
+  onRestoreArchive?: (versionId: string) => void
 }
 
 function formatVersionDate(dateString?: string | null): string | null {
@@ -53,7 +68,10 @@ function SortableVersionRow({
   displayVersionNumber,
   index,
   canEdit,
+  archiveStorageEnabled = false,
   onRemove,
+  onArchive,
+  onRestoreArchive,
 }: SortableVersionRowProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const { ref, handleRef } = useSortable({
@@ -67,7 +85,7 @@ function SortableVersionRow({
   return (
     <div
       ref={ref}
-      className="group flex items-center gap-3 p-2.5 rounded-lg border border-border bg-card hover:bg-accent/40 transition-colors"
+      className="group flex items-center gap-3 p-2.5 rounded-lg border border-border bg-card hover:bg-accent/40 transition-colors w-full min-w-0 overflow-hidden"
     >
       {/* 1. Version Label */}
       <div className="flex-shrink-0 flex items-center justify-center bg-muted text-muted-foreground rounded-full px-2.5 py-0.5 text-xs font-semibold select-none min-w-[2.25rem]">
@@ -78,12 +96,12 @@ function SortableVersionRow({
       {canEdit ? (
         <div
           ref={handleRef}
-          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1 -m-1 rounded touch-none flex items-center justify-center"
+          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1 -m-1 rounded touch-none flex items-center justify-center flex-shrink-0"
         >
           <GripVertical className="h-4 w-4" />
         </div>
       ) : (
-        <div className="w-4" />
+        <div className="w-4 flex-shrink-0" />
       )}
 
       {/* 3. Thumbnail Preview */}
@@ -100,15 +118,43 @@ function SortableVersionRow({
       </div>
 
       {/* 4. Name / Creator / Create Date (2 rows) */}
-      <div className="flex flex-col flex-1 min-w-0 text-left">
+      <div className="flex flex-col flex-1 min-w-0 text-left overflow-hidden">
         {/* Row 1: Name */}
-        <span className="truncate text-sm font-medium text-foreground" title={version.name || ''}>
-          {version.name || 'Untitled'}
-        </span>
+        <div className="flex items-center gap-1.5 min-w-0 w-full overflow-hidden">
+          {(version.status === 'archived' || version.status === 'restoring') && (
+            <span
+              data-testid={
+                version.status === 'restoring'
+                  ? 'version-row-restoring-badge'
+                  : 'version-row-archived-badge'
+              }
+              title={version.status === 'restoring' ? m.restoring_status() : m.archived_status()}
+              className="inline-flex items-center shrink-0"
+            >
+              <Archive className="h-3.5 w-3.5 text-muted-foreground" />
+            </span>
+          )}
+          <span
+            className="truncate text-sm font-medium text-foreground min-w-0 flex-1 block"
+            title={version.name || ''}
+          >
+            {version.name || 'Untitled'}
+          </span>
+          {version.status === 'archiving' && (
+            <Badge
+              variant="secondary"
+              data-testid="version-row-archiving-badge"
+              className="gap-1 px-1.5 py-0 text-xs shrink-0"
+            >
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>{m.archiving_status()}</span>
+            </Badge>
+          )}
+        </div>
         {/* Row 2: Creator & Create Date */}
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 w-full overflow-hidden">
           {version.agent ? (
-            <span className="flex items-center gap-1 truncate">
+            <span className="flex items-center gap-1 min-w-0 truncate">
               <Bot className="h-3 w-3 shrink-0" />
               <span className="truncate">
                 {m.user_via_agent({
@@ -118,12 +164,12 @@ function SortableVersionRow({
               </span>
             </span>
           ) : (
-            <span>{version.creator?.name || m.unknown()}</span>
+            <span className="truncate min-w-0">{version.creator?.name || m.unknown()}</span>
           )}
           {formattedDate && (
             <>
-              <span>•</span>
-              <span>{formattedDate}</span>
+              <span className="shrink-0">•</span>
+              <span className="shrink-0">{formattedDate}</span>
             </>
           )}
         </div>
@@ -148,6 +194,26 @@ function SortableVersionRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {archiveStorageEnabled && (!version.status || version.status === 'processed') && (
+              <DropdownMenuItem
+                data-testid="version-row-archive-action"
+                onClick={() => onArchive?.(version.id)}
+                className="cursor-pointer"
+              >
+                <Archive className="h-4 w-4 mr-2" />
+                <span>{m.archive()}</span>
+              </DropdownMenuItem>
+            )}
+            {archiveStorageEnabled && version.status === 'archived' && (
+              <DropdownMenuItem
+                data-testid="version-row-restore-archive-action"
+                onClick={() => onRestoreArchive?.(version.id)}
+                className="cursor-pointer"
+              >
+                <ArchiveRestore className="h-4 w-4 mr-2" />
+                <span>{m.restore_from_archive()}</span>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={() => onRemove(version.id)}
               className="text-destructive focus:text-destructive cursor-pointer"
@@ -171,7 +237,17 @@ export function ManageVersionsDialog({
   onStackDissolved,
 }: ManageVersionsDialogProps) {
   const queryClient = useQueryClient()
+  const { archiveStorageEnabled } = useArchiveConfig()
   const [localVersions, setLocalVersions] = useState<StackVersionInfo[]>([])
+  const [archiveConfirmState, setArchiveConfirmState] = useState<{
+    open: boolean
+    mode: 'archive' | 'restore'
+    versionId: string | null
+  }>({ open: false, mode: 'archive', versionId: null })
+
+  const hasTransitioningVersions = localVersions.some(
+    (v) => v.status === 'archiving' || v.status === 'restoring',
+  )
 
   const { data: fetchedVersions, isLoading } = useQuery({
     queryKey: ['version_stacks', stackId, 'versions'],
@@ -183,6 +259,57 @@ export function ManageVersionsDialog({
       return (await res.json()) as StackVersionInfo[]
     },
     enabled: open && !!stackId,
+    refetchInterval: hasTransitioningVersions ? 2000 : false,
+  })
+
+  const { mutate: archiveVersion, isPending: isArchivingVersion } = useMutation({
+    mutationFn: async (versionId: string) => {
+      const res = await client.api.files.archive.$post({
+        json: { ids: [versionId] },
+      })
+      if (!res.ok) throw new Error(m.archive_failed_toast())
+      return await res.json()
+    },
+    onSuccess: (data) => {
+      if (data.archivedAssetIds.length > 0) {
+        toast.success(m.archive_started_toast({ count: data.archivedAssetIds.length }))
+      } else {
+        toast.info(m.archive_no_eligible_assets_toast())
+      }
+      queryClient.invalidateQueries({ queryKey: ['version_stacks', stackId, 'versions'] })
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      queryClient.removeQueries({ queryKey: ['file'] })
+      queryClient.invalidateQueries({ queryKey: ['search'] })
+      setArchiveConfirmState((prev) => ({ ...prev, open: false, versionId: null }))
+    },
+    onError: () => {
+      toast.error(m.archive_failed_toast())
+    },
+  })
+
+  const { mutate: restoreArchiveVersion, isPending: isRestoringArchiveVersion } = useMutation({
+    mutationFn: async (versionId: string) => {
+      const res = await client.api.files['restore-archive'].$post({
+        json: { ids: [versionId] },
+      })
+      if (!res.ok) throw new Error(m.restore_archive_failed_toast())
+      return await res.json()
+    },
+    onSuccess: (data) => {
+      if (data.restoredAssetIds.length > 0) {
+        toast.success(m.restore_archive_started_toast({ count: data.restoredAssetIds.length }))
+      } else {
+        toast.info(m.restore_archive_no_eligible_assets_toast())
+      }
+      queryClient.invalidateQueries({ queryKey: ['version_stacks', stackId, 'versions'] })
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      queryClient.removeQueries({ queryKey: ['file'] })
+      queryClient.invalidateQueries({ queryKey: ['search'] })
+      setArchiveConfirmState((prev) => ({ ...prev, open: false, versionId: null }))
+    },
+    onError: () => {
+      toast.error(m.restore_archive_failed_toast())
+    },
   })
 
   useEffect(() => {
@@ -284,12 +411,12 @@ export function ManageVersionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden">
-        <DialogHeader className="p-4 pb-3 border-b border-border">
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden grid-cols-1">
+        <DialogHeader className="p-4 pb-3 border-b border-border min-w-0">
           <DialogTitle className="text-base font-semibold">{m.manage_versions_title()}</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] p-4">
+        <ScrollArea className="max-h-[60vh] p-4 w-full min-w-0 [&>div>div]:!block">
           {isLoading ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               {m.loading?.() || 'Loading...'}
@@ -299,7 +426,7 @@ export function ManageVersionsDialog({
               {m.no_versions_found()}
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 w-full min-w-0">
               <DragDropProvider
                 sensors={[
                   PointerSensor.configure({
@@ -318,7 +445,14 @@ export function ManageVersionsDialog({
                     displayVersionNumber={localVersions.length - index}
                     index={index}
                     canEdit={canEdit}
+                    archiveStorageEnabled={archiveStorageEnabled}
                     onRemove={handleRemove}
+                    onArchive={(versionId) =>
+                      setArchiveConfirmState({ open: true, mode: 'archive', versionId })
+                    }
+                    onRestoreArchive={(versionId) =>
+                      setArchiveConfirmState({ open: true, mode: 'restore', versionId })
+                    }
                   />
                 ))}
               </DragDropProvider>
@@ -326,6 +460,20 @@ export function ManageVersionsDialog({
           )}
         </ScrollArea>
       </DialogContent>
+      <ArchiveConfirmDialog
+        open={archiveConfirmState.open}
+        onOpenChange={(nextOpen) => setArchiveConfirmState((prev) => ({ ...prev, open: nextOpen }))}
+        mode={archiveConfirmState.mode}
+        onConfirm={() => {
+          if (!archiveConfirmState.versionId) return
+          if (archiveConfirmState.mode === 'archive') {
+            archiveVersion(archiveConfirmState.versionId)
+          } else {
+            restoreArchiveVersion(archiveConfirmState.versionId)
+          }
+        }}
+        isPending={isArchivingVersion || isRestoringArchiveVersion}
+      />
     </Dialog>
   )
 }

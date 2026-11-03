@@ -244,6 +244,60 @@ describe('AssetReadService', () => {
       expect(s3Service.getObject).not.toHaveBeenCalled()
       expect(outcome.status === 'ready' && outcome.result.text?.content).toBe('')
     })
+
+    it('rejects reading raw text or native PDF pages when the original is archived, while allowing proxy.pdf', async () => {
+      const archivedText = await createFile('notes.md', {
+        mediaType: 'text/markdown',
+        key: 'raw/notes.md',
+        status: 'archived',
+      })
+      await expect(
+        assetReadService.read(
+          user(owner),
+          { assetId: archivedText.id, docConfig: { mode: 'text' } },
+          now,
+        ),
+      ).rejects.toMatchObject({
+        status: 400,
+        message: expect.stringContaining('is archived in cold storage'),
+      })
+
+      const archivedNativePdf = await createFile('report.pdf', {
+        mediaType: 'application/pdf',
+        key: 'raw/report.pdf',
+        status: 'archived',
+        media: {
+          proxyType: 'pdf',
+          pdfTranscode: { key: 'raw/report.pdf', numPages: 3 },
+        } as unknown as PrismaJson.MediaInfo,
+      })
+      await expect(
+        assetReadService.read(
+          user(owner),
+          { assetId: archivedNativePdf.id, docConfig: { mode: 'pages', startPage: 1, endPage: 1 } },
+          now,
+        ),
+      ).rejects.toMatchObject({
+        status: 400,
+        message: expect.stringContaining('is archived in cold storage'),
+      })
+
+      const archivedOfficeDoc = await createFile('deck.pptx', {
+        mediaType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        key: 'raw/deck.pptx',
+        status: 'archived',
+        media: {
+          proxyType: 'pdf',
+          pdfTranscode: { key: 'transcoded/deck/proxy.pdf', numPages: 3 },
+        } as unknown as PrismaJson.MediaInfo,
+      })
+      const officeOutcome = await assetReadService.read(
+        user(owner),
+        { assetId: archivedOfficeDoc.id, docConfig: { mode: 'pages', startPage: 1, endPage: 1 } },
+        now,
+      )
+      expect(officeOutcome.status).toBe('pending')
+    })
   })
 
   describe('render tasks', () => {

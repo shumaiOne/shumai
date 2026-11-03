@@ -7,6 +7,7 @@ export { DBOS, DBOSError }
  */
 export const TaskQueueAgent = 'agent_queue'
 export const TaskQueueTranscode = 'transcode_queue'
+export const TaskQueueArchive = 'archive_queue'
 
 export class WorkflowFailure extends Error {
   readonly nonRetryable: boolean

@@ -55,6 +55,8 @@ import { FolderCard } from './folder-card'
 import { useFileActions } from './use-file-actions'
 import { MobileFileBrowserContentSkeleton } from '../loading-skeletons'
 import { useBatchFileStatus } from '@/ui/hooks/use-batch-file-status'
+import { useArchiveConfig } from '@/ui/hooks/use-archive-config'
+import { ArchiveConfirmDialog } from '../archive-confirm-dialog'
 
 export interface MobileFileBrowserProps {
   teamId: string
@@ -167,7 +169,13 @@ export function MobileFileBrowser({
     setIsDownloadDialogOpen,
     isLoadingLinks,
     resolvedFiles,
+    skippedArchivedCount,
     startDownload,
+    archiveConfirmState,
+    setArchiveConfirmState,
+    confirmArchiveOrRestore,
+    isArchiving,
+    isRestoringArchive,
   } = useFileActions({
     teamId,
     projectId,
@@ -178,6 +186,7 @@ export function MobileFileBrowser({
     isPublic,
     shareId,
   })
+  const { archiveStorageEnabled } = useArchiveConfig()
 
   // Infinite scroll trigger
   const { ref: loadMoreRef, inView } = useInView()
@@ -510,12 +519,22 @@ export function MobileFileBrowser({
                         onRename={(newName) => onRenameSubmit(folder, newName)}
                         onFinishEditing={() => setEditingItemId(null)}
                         onAction={(action, item) =>
-                          handleAction(action as 'rename' | 'delete' | 'download' | 'restore', item)
+                          handleAction(
+                            action as
+                              | 'rename'
+                              | 'delete'
+                              | 'download'
+                              | 'restore'
+                              | 'archive'
+                              | 'restore-archive',
+                            item,
+                          )
                         }
                         isRecentlyDeleted={isRecentlyDeleted}
                         isRecents={isRecents}
                         selectedCount={selectedIds.size}
                         canEdit={canEdit}
+                        archiveStorageEnabled={archiveStorageEnabled}
                         isShareView={isShareView}
                         allowDownload={allowDownload}
                       />
@@ -563,12 +582,22 @@ export function MobileFileBrowser({
                         onSaveField={(fieldId, value) => onSaveField?.(file.id!, fieldId, value)}
                         fields={[]}
                         onAction={(action, item) =>
-                          handleAction(action as 'rename' | 'delete' | 'download' | 'restore', item)
+                          handleAction(
+                            action as
+                              | 'rename'
+                              | 'delete'
+                              | 'download'
+                              | 'restore'
+                              | 'archive'
+                              | 'restore-archive',
+                            item,
+                          )
                         }
                         isRecentlyDeleted={isRecentlyDeleted}
                         isRecents={isRecents}
                         selectedCount={selectedIds.size}
                         canEdit={canEdit}
+                        archiveStorageEnabled={archiveStorageEnabled}
                         isShareView={isShareView}
                         allowDownload={allowDownload}
                       />
@@ -742,6 +771,14 @@ export function MobileFileBrowser({
               <div className="text-sm text-muted-foreground">
                 {m.download_includes_files({ count: resolvedFiles.length })}
               </div>
+              {skippedArchivedCount > 0 && (
+                <div
+                  data-testid="download-skipped-archived-notice"
+                  className="text-sm text-amber-600 dark:text-amber-400"
+                >
+                  {m.download_skipped_archived_notice({ count: skippedArchivedCount })}
+                </div>
+              )}
               <div className="flex items-start gap-3 p-3 text-sm rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/30">
                 <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
                 <div>
@@ -777,6 +814,14 @@ export function MobileFileBrowser({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ArchiveConfirmDialog
+        open={archiveConfirmState.open}
+        onOpenChange={(open) => setArchiveConfirmState((prev) => ({ ...prev, open }))}
+        mode={archiveConfirmState.mode}
+        onConfirm={confirmArchiveOrRestore}
+        isPending={isArchiving || isRestoringArchive}
+      />
     </div>
   )
 }

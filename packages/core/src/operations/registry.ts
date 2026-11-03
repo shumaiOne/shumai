@@ -1,4 +1,5 @@
 import type { OperationName, Surface } from '@shumai/operations'
+import { archiveAssetsOp } from './asset/archive-assets'
 import { copyAssetsOp } from './asset/copy-assets'
 import { createFolderOp } from './asset/create-folder'
 import { deleteAssetOp } from './asset/delete-asset'
@@ -8,6 +9,7 @@ import { listAssetsOp } from './asset/list-assets'
 import { moveAssetsOp } from './asset/move-assets'
 import { getAssetRenderOp, readAssetOp } from './asset/read-asset'
 import { renameAssetOp } from './asset/rename-asset'
+import { restoreArchivedAssetsOp } from './asset/restore-archived-assets'
 import { searchAssetsOp } from './asset/search-assets'
 import { createCommentOp } from './comment/create-comment'
 import { listCommentsOp } from './comment/list-comments'
@@ -49,6 +51,8 @@ export const operations = defineRegistry([
   moveAssetsOp,
   copyAssetsOp,
   deleteAssetOp,
+  archiveAssetsOp,
+  restoreArchivedAssetsOp,
   readAssetOp,
   getAssetRenderOp,
   downloadAssetOp,

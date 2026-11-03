@@ -41,6 +41,8 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { useMatch, useNavigate, useParams } from '@tanstack/react-router'
 import {
   AlertTriangle,
+  Archive,
+  ArchiveRestore,
   Bookmark,
   ChevronDown,
   ChevronRight,
@@ -63,6 +65,8 @@ import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
 import type { DragState } from './dnd-types'
 import { m } from '@/ui/paraglide/messages.js'
+import { useArchiveConfig } from '@/ui/hooks/use-archive-config'
+import { ArchiveConfirmDialog } from './archive-confirm-dialog'
 
 interface FolderTreeProps {
   teamId: string
@@ -96,6 +100,7 @@ export function FolderTree({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { canEdit } = usePermissions(projectId)
+  const { archiveStorageEnabled } = useArchiveConfig()
   const isRecentlyDeleted = useMatch({
     from: '/projects/$projectId/recently-deleted',
     shouldThrow: false,
@@ -310,17 +315,77 @@ export function FolderTree({
   const [resolvedFiles, setResolvedFiles] = useState<
     Array<{ id: string; name: string; url: string }>
   >([])
+  const [skippedArchivedCount, setSkippedArchivedCount] = useState(0)
+  const [archiveConfirmState, setArchiveConfirmState] = useState<{
+    open: boolean
+    mode: 'archive' | 'restore'
+    folderId: string | null
+  }>({ open: false, mode: 'archive', folderId: null })
+
+  const { mutate: archiveFolder, isPending: isArchivingFolder } = useMutation({
+    mutationFn: async (folderId: string) => {
+      const res = await client.api.files.archive.$post({
+        json: { ids: [folderId] },
+      })
+      if (!res.ok) throw new Error(m.archive_failed_toast())
+      return await res.json()
+    },
+    onSuccess: (data) => {
+      if (data.archivedAssetIds.length > 0) {
+        toast.success(m.archive_started_toast({ count: data.archivedAssetIds.length }))
+      } else {
+        toast.info(m.archive_no_eligible_assets_toast())
+      }
+      queryClient.removeQueries({ queryKey: ['file', teamId] })
+      queryClient.invalidateQueries({ queryKey: ['search', teamId] })
+      setArchiveConfirmState((prev) => ({ ...prev, open: false, folderId: null }))
+    },
+    onError: () => {
+      toast.error(m.archive_failed_toast())
+    },
+  })
+
+  const { mutate: restoreArchiveFolder, isPending: isRestoringArchiveFolder } = useMutation({
+    mutationFn: async (folderId: string) => {
+      const res = await client.api.files['restore-archive'].$post({
+        json: { ids: [folderId] },
+      })
+      if (!res.ok) throw new Error(m.restore_archive_failed_toast())
+      return await res.json()
+    },
+    onSuccess: (data) => {
+      if (data.restoredAssetIds.length > 0) {
+        toast.success(m.restore_archive_started_toast({ count: data.restoredAssetIds.length }))
+      } else {
+        toast.info(m.restore_archive_no_eligible_assets_toast())
+      }
+      queryClient.removeQueries({ queryKey: ['file', teamId] })
+      queryClient.invalidateQueries({ queryKey: ['search', teamId] })
+      setArchiveConfirmState((prev) => ({ ...prev, open: false, folderId: null }))
+    },
+    onError: () => {
+      toast.error(m.restore_archive_failed_toast())
+    },
+  })
 
   const handleDownloadFolder = async (folderId: string) => {
     setIsDownloadOpen(true)
     setIsLoadingLinks(true)
     setResolvedFiles([])
+    setSkippedArchivedCount(0)
     try {
       const res = await client.api.files['download-links'].$post({
         json: { ids: [folderId] },
       })
       if (!res.ok) throw new Error(m.failed_to_prepare_download_links())
       const data = await res.json()
+      const skipped = data.skippedArchivedCount ?? 0
+      setSkippedArchivedCount(skipped)
+      if (data.files.length === 0 && skipped > 0) {
+        setIsDownloadOpen(false)
+        toast.error(m.download_all_archived_error())
+        return
+      }
       setResolvedFiles(data.files)
     } catch (error) {
       toast.error(m.failed_to_prepare_download_links())
@@ -538,6 +603,13 @@ export function FolderTree({
               }}
               onDownloadTrigger={(id) => {
                 handleDownloadFolder(id)
+              }}
+              archiveStorageEnabled={archiveStorageEnabled}
+              onArchiveTrigger={(id) => {
+                setArchiveConfirmState({ open: true, mode: 'archive', folderId: id })
+              }}
+              onRestoreArchiveTrigger={(id) => {
+                setArchiveConfirmState({ open: true, mode: 'restore', folderId: id })
               }}
               ancestorFolders={ancestorFolders}
             />
@@ -913,6 +985,14 @@ export function FolderTree({
               <div className="text-sm text-muted-foreground">
                 {m.download_includes_files({ count: resolvedFiles.length })}
               </div>
+              {skippedArchivedCount > 0 && (
+                <div
+                  data-testid="download-skipped-archived-notice"
+                  className="text-sm text-amber-600 dark:text-amber-400"
+                >
+                  {m.download_skipped_archived_notice({ count: skippedArchivedCount })}
+                </div>
+              )}
               <div className="flex items-start gap-3 p-3 text-sm rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/30">
                 <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
                 <div>
@@ -948,6 +1028,21 @@ export function FolderTree({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ArchiveConfirmDialog
+        open={archiveConfirmState.open}
+        onOpenChange={(open) => setArchiveConfirmState((prev) => ({ ...prev, open }))}
+        mode={archiveConfirmState.mode}
+        onConfirm={() => {
+          if (!archiveConfirmState.folderId) return
+          if (archiveConfirmState.mode === 'archive') {
+            archiveFolder(archiveConfirmState.folderId)
+          } else {
+            restoreArchiveFolder(archiveConfirmState.folderId)
+          }
+        }}
+        isPending={isArchivingFolder || isRestoringArchiveFolder}
+      />
     </div>
   )
 }
@@ -1055,9 +1150,12 @@ interface FolderTreeItemProps {
   onSelect?: (folder: AssetInfo) => void
   selectedFolderId?: string
   canEdit?: boolean
+  archiveStorageEnabled?: boolean
   onRenameTrigger: (id: string, name: string) => void
   onDeleteTrigger: (id: string) => void
   onDownloadTrigger: (id: string) => void
+  onArchiveTrigger?: (id: string) => void
+  onRestoreArchiveTrigger?: (id: string) => void
   ancestorFolders?: AncestorFolder[]
 }
 
@@ -1071,9 +1169,12 @@ function FolderTreeItem({
   onSelect,
   selectedFolderId,
   canEdit,
+  archiveStorageEnabled,
   onRenameTrigger,
   onDeleteTrigger,
   onDownloadTrigger,
+  onArchiveTrigger,
+  onRestoreArchiveTrigger,
   ancestorFolders,
 }: FolderTreeItemProps) {
   const isAncestor = useMemo(() => {
@@ -1251,7 +1352,7 @@ function FolderTreeItem({
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem
                   onClick={() => {
                     onRenameTrigger(folder.id!, folder.name)
@@ -1268,6 +1369,28 @@ function FolderTreeItem({
                   <Download className="mr-2 h-4 w-4" />
                   {m.download()}
                 </DropdownMenuItem>
+                {archiveStorageEnabled && (
+                  <>
+                    <DropdownMenuItem
+                      data-testid="folder-tree-archive-action"
+                      onClick={() => {
+                        onArchiveTrigger?.(folder.id!)
+                      }}
+                    >
+                      <Archive className="mr-2 h-4 w-4" />
+                      {m.archive()}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      data-testid="folder-tree-restore-archive-action"
+                      onClick={() => {
+                        onRestoreArchiveTrigger?.(folder.id!)
+                      }}
+                    >
+                      <ArchiveRestore className="mr-2 h-4 w-4" />
+                      {m.restore_from_archive()}
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
@@ -1308,6 +1431,9 @@ function FolderTreeItem({
               onRenameTrigger={onRenameTrigger}
               onDeleteTrigger={onDeleteTrigger}
               onDownloadTrigger={onDownloadTrigger}
+              archiveStorageEnabled={archiveStorageEnabled}
+              onArchiveTrigger={onArchiveTrigger}
+              onRestoreArchiveTrigger={onRestoreArchiveTrigger}
               ancestorFolders={ancestorFolders}
             />
           ))}

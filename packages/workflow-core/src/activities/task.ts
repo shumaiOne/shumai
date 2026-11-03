@@ -88,8 +88,13 @@ export const updateAssetStatusActivity = defineStep(
         where: { id: params.assetId },
         select: { media: true, status: true },
       })
-      // Never overwrite an asset that has already completed media processing
-      if (asset?.status === AssetStatus.processed) {
+      // Never overwrite an asset that has already completed media processing or is archived
+      if (
+        asset?.status === AssetStatus.processed ||
+        asset?.status === AssetStatus.archived ||
+        asset?.status === AssetStatus.archiving ||
+        asset?.status === AssetStatus.restoring
+      ) {
         return
       }
       const data: Prisma.AssetUpdateInput = { status: params.status }

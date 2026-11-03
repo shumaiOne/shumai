@@ -6,16 +6,20 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import {
+  archiveAssetsOp,
   renameAssetOp,
   resolveCommentOp,
+  restoreArchivedAssetsOp,
   runOperation,
   updateAssetMetadataOp,
 } from '@shumai/core/src/operations'
 import {
+  archiveAssetsRequestSchema,
   createCommentRequestSchema,
   deleteFilesRequestSchema,
   batchGetFilesRequestSchema,
   paginationParamsSchema,
+  restoreArchivedAssetsRequestSchema,
   restoreFilesRequestSchema,
   updateAssetMetadataRequestSchema,
   updateAssetOrderRequestSchema,
@@ -343,6 +347,28 @@ const route = new Hono<{ Variables: { user: User } }>()
     await assetService.restoreAssets(req.ids)
     return c.body(null, 204)
   })
+  .post('/files/archive', zValidator('json', archiveAssetsRequestSchema), async (c) => {
+    const req = c.req.valid('json')
+    const result = await runOperation(
+      archiveAssetsOp,
+      { userId: c.get('user').id, via: 'api' },
+      { assetIds: req.ids },
+    )
+    return c.json(result)
+  })
+  .post(
+    '/files/restore-archive',
+    zValidator('json', restoreArchivedAssetsRequestSchema),
+    async (c) => {
+      const req = c.req.valid('json')
+      const result = await runOperation(
+        restoreArchivedAssetsOp,
+        { userId: c.get('user').id, via: 'api' },
+        { assetIds: req.ids },
+      )
+      return c.json(result)
+    },
+  )
   .post('/teams/:teamId/files', zValidator('form', uploadFileRequestSchema), async (c) => {
     const teamId = c.req.param('teamId')
     const user = c.get('user')
@@ -424,8 +450,11 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     // 4. Generate download links
-    const files = await assetService.getDownloadLinks(req.ids)
-    return c.json({ files })
+    const { files, skippedArchivedCount } = await assetService.getDownloadLinks(req.ids)
+    return c.json({
+      files,
+      ...(skippedArchivedCount > 0 ? { skippedArchivedCount } : {}),
+    })
   })
   .post(
     '/files/download-url',

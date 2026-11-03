@@ -61,6 +61,24 @@ For example, if you deploy Shumai on a remote server at `http://123.456.7.8` and
 - Set `SHUMAI_SERVER_PORT` to `3000`.
 - Set `AWS_ENDPOINT_URL_S3` to `http://123.456.7.8:12345`.
 
+### Archive Storage Config
+
+Shumai supports configuring an optional **Archive Storage** tier (`local` NAS/directory or `s3` bucket/storage class) for moving original raw files while keeping proxies, previews, thumbnails, and metadata in main storage.
+
+| Variable                        | Description                                                                                                                                                                             | Example / Default                                      |
+| :------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------- |
+| `ARCHIVE_STORAGE_BACKEND`       | Archive storage type. Leave unset to disable archive storage, or set to `local` or `s3`.                                                                                                | Unset (disabled), `local`, or `s3`                     |
+| `ARCHIVE_LOCAL_ROOT`            | Required when `ARCHIVE_STORAGE_BACKEND=local`. Root directory (e.g., a mounted NAS folder) where archived original files are stored directly under `<ARCHIVE_LOCAL_ROOT>/<key>`.        | `/mnt/nas/shumai-archive`                              |
+| `ARCHIVE_AWS_ENDPOINT_URL_S3`   | Optional custom S3 endpoint for archive storage when `ARCHIVE_STORAGE_BACKEND=s3` (independent of `AWS_ENDPOINT_URL_S3`).                                                               | `https://s3.us-east-1.amazonaws.com`                   |
+| `ARCHIVE_S3_BUCKET`             | Required when `ARCHIVE_STORAGE_BACKEND=s3`. Target S3 bucket for archived files (can be a dedicated bucket or the same bucket as `S3_BUCKET` with a cold storage class).                | `shumai-archive`                                       |
+| `ARCHIVE_S3_ACCESS_KEY_ID`      | Required when `ARCHIVE_STORAGE_BACKEND=s3`. S3 access key ID for archive storage.                                                                                                       | `AKIA...`                                              |
+| `ARCHIVE_S3_SECRET_ACCESS_KEY`  | Required when `ARCHIVE_STORAGE_BACKEND=s3`. S3 secret access key for archive storage.                                                                                                   | `...`                                                  |
+| `ARCHIVE_S3_REGION`             | S3 region for archive storage when `ARCHIVE_STORAGE_BACKEND=s3`.                                                                                                                        | `auto` (default)                                       |
+| `ARCHIVE_S3_STORAGE_CLASS`      | Optional S3 `StorageClass` header applied when archiving objects (accepts any standard or provider-specific class string; required and must not be `STANDARD` for same-bucket tiering). | `GLACIER_IR`, `GLACIER`, `DEEP_ARCHIVE`, `STANDARD_IA` |
+| `ARCHIVE_S3_USE_RESTORE_OBJECT` | Controls whether S3 `RestoreObject` is called before reading archived objects (`auto`, `true`, or `false`).                                                                             | `auto` (default)                                       |
+| `ARCHIVE_S3_RESTORE_DAYS`       | Number of days a restored copy of a cold S3 object remains readable during restoration.                                                                                                 | `1` (default)                                          |
+| `ARCHIVE_S3_RESTORE_TIER`       | Optional S3 Glacier retrieval tier (`Expedited`, `Standard`, `Bulk`). Omitted when unset for S3-compatible providers that reject `GlacierJobParameters`.                                | Unset (default)                                        |
+
 ---
 
 ## Workflow Config
@@ -69,8 +87,9 @@ Configures background worker execution, concurrency limits, and worker identity 
 
 | Variable                | Description                                                                                                                       | Example / Default |
 | :---------------------- | :-------------------------------------------------------------------------------------------------------------------------------- | :---------------- |
-| `SHUMAI_WORKERS`        | Queues listened to by the web server. Options: `all` (default), `none` (API/UI only), `agent` (or `ai`), `transcode`.             | `all` (default)   |
+| `SHUMAI_WORKERS`        | Queues listened to by the web server. Options: `all` (default), `none` (API/UI only), `agent` (or `ai`), `transcode`, `archive`.  | `all` (default)   |
 | `CONCURRENCY_TRANSCODE` | Maximum concurrent media transcoding tasks executed by workers.                                                                   | `1` (default)     |
+| `CONCURRENCY_ARCHIVE`   | Maximum concurrent archive and restore tasks executed by workers.                                                                 | `5` (default)     |
 | `CONCURRENCY_AGENT`     | Maximum concurrent AI tasks executed by workers. Set to `1` when running local `embedding-server`.                                | `5` (default)     |
 | `SHUMAI_WORKER_ID`      | Optional explicit instance ID for worker replicas in multi-node deployments (auto-derived from hostname and process ID if unset). | `worker-1`        |
 | `POD_NAME`              | Kubernetes pod name, used to provide stable per-pod worker identity across StatefulSet restarts.                                  | `transcode-pod-0` |

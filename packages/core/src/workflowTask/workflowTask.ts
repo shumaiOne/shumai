@@ -8,6 +8,7 @@ import {
 import type { WorkflowTaskItem, ListWorkflowTasksResponse } from '@shumai/dtos'
 import { paginateQuery } from '@shumai/core/src/pagination'
 import { logger } from '@shumai/core/src/logger'
+import { revertArchiveStateForStorageKey } from '@shumai/core/src/asset/asset-archive'
 import { HTTPException } from 'hono/http-exception'
 
 export interface ListWorkflowTasksParams {
@@ -300,15 +301,30 @@ export class WorkflowTaskService {
       }
 
       if (task.assetId) {
-        await tx.$executeRaw`
-          UPDATE "assets"
-          SET
-            "status" = 'failed'::"AssetStatus",
-            "media" = COALESCE("media", '{}'::jsonb) || jsonb_build_object('error', ${errorMsg}::text)
-          WHERE "id" = ${task.assetId}
-            AND "is_deleted" = false
-            AND "status" != 'processed'::"AssetStatus"
-        `
+        if (task.type === 'archive_asset' || task.type === 'restore_asset') {
+          const payload = task.payload as PrismaJson.WorkflowTaskPayload | null
+          let storageKeyId = payload?.archive?.storageKeyId
+          if (!storageKeyId) {
+            const targetAsset = await tx.asset.findUnique({
+              where: { id: task.assetId },
+              select: { storageKeyId: true },
+            })
+            storageKeyId = targetAsset?.storageKeyId ?? undefined
+          }
+          if (storageKeyId) {
+            await revertArchiveStateForStorageKey(storageKeyId, tx)
+          }
+        } else {
+          await tx.$executeRaw`
+            UPDATE "assets"
+            SET
+              "status" = 'failed'::"AssetStatus",
+              "media" = COALESCE("media", '{}'::jsonb) || jsonb_build_object('error', ${errorMsg}::text)
+            WHERE "id" = ${task.assetId}
+              AND "is_deleted" = false
+              AND "status" NOT IN ('processed'::"AssetStatus", 'archived'::"AssetStatus", 'archiving'::"AssetStatus", 'restoring'::"AssetStatus")
+          `
+        }
       }
 
       return await tx.workflowTask.findUniqueOrThrow({

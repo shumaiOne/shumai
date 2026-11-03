@@ -106,5 +106,34 @@ describe('SqlQueryBuilder', () => {
       )
       expect(query.values).toEqual(['custom_field"test', 'hello'])
     })
+
+    it('isArchived eq true matches archived files and version stacks whose latest version is archived', () => {
+      const builder = new SqlQueryBuilder()
+        .from(Prisma.sql`assets a`)
+        .addSearchConditions('AND', [{ field: 'isArchived', operator: 'eq', value: true }])
+
+      const query = builder.build()
+      expect(query.text).toContain(
+        `a."type" = 'file'::"AssetType" AND a."status" = 'archived'::"AssetStatus"`,
+      )
+    })
+
+    it('isArchived eq false matches non-archived files and version stacks', () => {
+      const builder = new SqlQueryBuilder()
+        .from(Prisma.sql`assets a`)
+        .addSearchConditions('AND', [{ field: 'isArchived', operator: 'eq', value: false }])
+
+      const query = builder.build()
+      expect(query.text).toContain(
+        `a."type" = 'file'::"AssetType" AND a."status" != 'archived'::"AssetStatus"`,
+      )
+    })
+
+    it('throws an error for unsupported isArchived operators', () => {
+      const builder = new SqlQueryBuilder().from(Prisma.sql`assets a`)
+      expect(() =>
+        builder.addSearchConditions('AND', [{ field: 'isArchived', operator: 'gt', value: true }]),
+      ).toThrow('Unsupported operator for isArchived field: gt')
+    })
   })
 })

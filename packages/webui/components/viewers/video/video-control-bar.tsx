@@ -425,9 +425,20 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
               (isAudio ? (
                 <button
                   onClick={() => handleDownload(data.media?.original?.key || '')}
-                  className="transition-colors hover:text-primary"
-                  title={m.download()}
-                  disabled={!data.media?.original?.key}
+                  className="transition-colors hover:text-primary disabled:opacity-50"
+                  title={
+                    data.status === 'archived' ||
+                    data.status === 'archiving' ||
+                    data.status === 'restoring'
+                      ? m.original_archived_tooltip()
+                      : m.download()
+                  }
+                  disabled={
+                    !data.media?.original?.key ||
+                    data.status === 'archived' ||
+                    data.status === 'archiving' ||
+                    data.status === 'restoring'
+                  }
                 >
                   <Download className="h-5 w-5" />
                 </button>
@@ -468,7 +479,24 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          onClick={() => handleDownload(data.media?.original?.key ?? '')}
+                          disabled={
+                            data.status === 'archived' ||
+                            data.status === 'archiving' ||
+                            data.status === 'restoring'
+                          }
+                          title={
+                            data.status === 'archived' ||
+                            data.status === 'archiving' ||
+                            data.status === 'restoring'
+                              ? m.original_archived_tooltip()
+                              : undefined
+                          }
+                          onClick={() =>
+                            data.status !== 'archived' &&
+                            data.status !== 'archiving' &&
+                            data.status !== 'restoring' &&
+                            handleDownload(data.media?.original?.key ?? '')
+                          }
                           className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
                         >
                           <span>{m.original()}</span>

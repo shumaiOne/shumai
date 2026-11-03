@@ -304,4 +304,92 @@ describe('BreadcrumbNav component', () => {
     expect(items.some((i) => i.textContent?.includes('1080p'))).toBe(true)
     expect(items.some((i) => i.textContent?.includes('480p'))).toBe(false)
   })
+
+  it('renders archive icon in front of file name without archived text when status is archived', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          fileId="file-archived"
+          currentAsset={{
+            id: 'file-archived',
+            name: 'video.mp4',
+            type: 'file',
+            status: 'archived',
+            version: 1,
+          }}
+        />
+      </QueryClientProvider>,
+    )
+
+    const archiveIcon = screen.getByTestId('detail-header-archived-badge')
+    expect(archiveIcon).toBeDefined()
+    expect(screen.queryByText('Archived')).toBeNull()
+    expect(screen.queryByText('已归档')).toBeNull()
+  })
+
+  it('renders archive icon in front of file name without restoring text when status is restoring', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          fileId="file-restoring"
+          currentAsset={{
+            id: 'file-restoring',
+            name: 'restoring-video.mp4',
+            type: 'file',
+            status: 'restoring',
+            version: 1,
+          }}
+        />
+      </QueryClientProvider>,
+    )
+
+    const archiveIcon = screen.getByTestId('detail-header-restoring-badge')
+    expect(archiveIcon).toBeDefined()
+    expect(screen.queryByText('Restoring...')).toBeNull()
+    expect(screen.queryByText('恢复中...')).toBeNull()
+  })
+
+  it('renders archive icon in front of version name without text in versions dropdown', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          fileId="file-with-versions"
+          currentAsset={{
+            id: 'file-with-versions',
+            name: 'v2.mp4',
+            type: 'file',
+            version: 2,
+            status: 'processed',
+          }}
+          versions={[
+            {
+              id: 'file-v2',
+              version: 2,
+              name: 'v2.mp4',
+              status: 'processed',
+            },
+            {
+              id: 'file-v1',
+              version: 1,
+              name: 'v1-archived.mp4',
+              status: 'archived',
+            },
+          ]}
+        />
+      </QueryClientProvider>,
+    )
+
+    const triggerButton = screen.getByRole('button', { name: 'v2.mp4' })
+    fireEvent.pointerDown(triggerButton, { button: 0, ctrlKey: false })
+
+    const versionsTrigger = screen.getByText('Versions')
+    fireEvent.click(versionsTrigger)
+
+    expect(screen.getByText('v1-archived.mp4')).toBeDefined()
+    expect(screen.queryByText('Archived')).toBeNull()
+    expect(screen.queryByText('已归档')).toBeNull()
+  })
 })

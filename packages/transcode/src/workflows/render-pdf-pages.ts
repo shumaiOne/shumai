@@ -17,6 +17,12 @@ export async function renderPdfPagesWorkflow(task: WorkflowTask): Promise<void> 
 
     const { asset, key } = await fetchAssetWithKey(task.assetId)
     const pdfKey = (asset.media as PrismaJson.MediaInfo | null)?.pdfTranscode?.key || key
+    if (pdfKey === key && (asset.storageKey?.isArchived || asset.status === 'archived')) {
+      throw ApplicationFailure.create({
+        message: 'Original PDF file is archived. Restore the asset to render pages.',
+        nonRetryable: true,
+      })
+    }
 
     const pages = await renderPdfPagesActivity({
       taskId: task.id,

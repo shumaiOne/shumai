@@ -12,6 +12,7 @@ export interface TopNavProjectState {
     name?: string
     type: 'file' | 'folder'
     version?: number
+    status?: string
     proxyType?: 'image' | 'video' | 'audio' | 'pdf' | '3d' | null
   }
   isRootFolder: boolean
@@ -31,6 +32,7 @@ export interface TopNavProjectState {
     id: string
     version: number
     name?: string | null
+    status?: string | null
     previewUrl?: string | null
     creator?: { id: string; name: string | null } | null
     agent?: { id: string; name: string } | null
@@ -42,6 +44,8 @@ export interface TopNavProjectState {
   onFolderClick?: (folderId: string) => void
   onRename?: () => void
   onDelete?: () => void
+  onArchive?: () => void
+  onRestoreArchive?: () => void
   isRightSidebarCollapsed?: boolean
   onRightSidebarToggle?: () => void
   // Compare Versions

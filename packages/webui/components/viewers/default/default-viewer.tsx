@@ -77,8 +77,14 @@ export const DefaultViewer = React.forwardRef<MediaController, FileViewerProps>(
         <div className="relative px-4 py-3 bg-card border-t border-gray-200 dark:border-gray-700 z-10 flex items-center justify-end gap-2 transition-colors duration-200">
           {allowDownload && (
             <button
+              data-testid="default-viewer-download-button"
               onClick={handleDownload}
-              disabled={!file.media?.original?.key}
+              disabled={
+                !file.media?.original?.key ||
+                file.status === 'archived' ||
+                file.status === 'archiving' ||
+                file.status === 'restoring'
+              }
               className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent disabled:opacity-50 animate-in fade-in zoom-in-95 duration-200"
               title="Download original file"
             >
