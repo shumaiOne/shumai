@@ -485,7 +485,6 @@ export function FolderCard({
                           context={{
                             isTeamOwner,
                             allowDownload,
-                            archiveStorageEnabled,
                           }}
                           onCopy={(kind, targetItems) => onCopy?.(kind, targetItems)}
                         />

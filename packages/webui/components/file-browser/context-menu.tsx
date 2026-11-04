@@ -237,7 +237,6 @@ export function FileBrowserContextMenu({
           context={{
             isTeamOwner,
             allowDownload,
-            archiveStorageEnabled,
           }}
           onCopy={(kind, targetItems) => onCopy?.(kind, targetItems)}
         />
@@ -334,7 +333,6 @@ export function FileBrowserContextMenu({
           context={{
             isTeamOwner,
             allowDownload,
-            archiveStorageEnabled,
           }}
           onCopy={(kind, targetItems) => onCopy?.(kind, targetItems)}
         />

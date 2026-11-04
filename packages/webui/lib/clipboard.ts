@@ -54,12 +54,18 @@ export async function copyToClipboardDeferred(textPromise: Promise<string>): Pro
     typeof ClipboardItem !== 'undefined'
   ) {
     try {
-      const blobPromise = textPromise.then((text) => new Blob([text], { type: 'text/plain' }))
+      const blobPromise = textPromise.then((text) => {
+        if (!text) throw new Error('EMPTY_TEXT')
+        return new Blob([text], { type: 'text/plain' })
+      })
+      blobPromise.catch(() => {})
+
       await navigator.clipboard.write([
         new ClipboardItem({
           'text/plain': blobPromise,
         }),
       ])
+      await textPromise
       return true
     } catch {
       // Fall back if deferred writing fails or is rejected
@@ -68,6 +74,7 @@ export async function copyToClipboardDeferred(textPromise: Promise<string>): Pro
 
   try {
     const text = await textPromise
+    if (!text) return false
     return await copyToClipboard(text)
   } catch (err) {
     console.error('Failed to copy deferred text to clipboard:', err)

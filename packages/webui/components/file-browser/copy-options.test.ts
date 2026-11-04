@@ -265,5 +265,18 @@ describe('copy-options', () => {
         'Assets\tfolder\t—\thttps://shumai.app/projects/proj-1/folders/folder-1\tfolder-1',
       )
     })
+
+    it('escapes brackets in markdown links', () => {
+      const fileWithBrackets = { ...dummyFile, name: 'Report [Final] (v1).pdf' }
+      expect(formatCopyText('markdown', [fileWithBrackets], ctx)).toBe(
+        '[Report \\[Final\\] (v1).pdf](https://shumai.app/projects/proj-1/files/file-1)',
+      )
+    })
+
+    it('sanitizes tabs and newlines in TSV file names', () => {
+      const fileWithTabs = { ...dummyFile, name: 'test\tfile\nname.pdf' }
+      const tsv = formatCopyText('tsv', [fileWithTabs], ctx)
+      expect(tsv).toContain('test file name.pdf\tfile\t1.05 MB')
+    })
   })
 })

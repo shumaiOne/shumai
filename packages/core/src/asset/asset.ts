@@ -49,7 +49,7 @@ import { s3Service, getStorageBackend } from '@shumai/core/src/s3/s3'
 import {
   getArchiveStorageService,
   isArchiveStorageEnabled,
-  getArchiveStorageConfig,
+  getArchiveStoragePath,
 } from '@shumai/core/src/s3/archive-storage'
 import { assetArchiveService } from './asset-archive'
 import {
@@ -1249,6 +1249,75 @@ export class AssetService {
     }
 
     return currentId
+  }
+
+  async resolveLatestVersionIds(assetIds: string[]): Promise<string[]> {
+    if (assetIds.length === 0) return []
+
+    const initialAssets = await this.prismaClient.asset.findMany({
+      where: { id: { in: assetIds }, isDeleted: false },
+      select: { id: true, type: true, targetId: true },
+    })
+    const assetMap = new Map(initialAssets.map((a) => [a.id, a]))
+
+    // Find symlinks to resolve
+    const symlinks = initialAssets.filter((a) => a.type === AssetType.symlink && a.targetId)
+    const targetIds = Array.from(new Set(symlinks.map((s) => s.targetId!)))
+
+    const symlinkTargetMap = new Map<string, { id: string; type: AssetType }>()
+    if (targetIds.length > 0) {
+      const targets = await this.prismaClient.asset.findMany({
+        where: { id: { in: targetIds }, isDeleted: false },
+        select: { id: true, type: true },
+      })
+      for (const t of targets) {
+        symlinkTargetMap.set(t.id, t)
+      }
+    }
+
+    // Determine current ID and type for each input ID
+    const intermediate = assetIds.map((id) => {
+      const asset = assetMap.get(id)
+      if (!asset) return { originalId: id, currentId: id, type: null }
+      if (asset.type === AssetType.symlink && asset.targetId) {
+        const target = symlinkTargetMap.get(asset.targetId)
+        if (target) {
+          return { originalId: id, currentId: target.id, type: target.type }
+        }
+      }
+      return { originalId: id, currentId: asset.id, type: asset.type }
+    })
+
+    // Find version stacks to resolve to their latest child
+    const versionStackIds = Array.from(
+      new Set(
+        intermediate
+          .filter((item) => item.type === AssetType.version_stack)
+          .map((item) => item.currentId),
+      ),
+    )
+
+    const latestChildByParent = new Map<string, string>()
+    if (versionStackIds.length > 0) {
+      const children = await this.prismaClient.asset.findMany({
+        where: { parentId: { in: versionStackIds }, isDeleted: false },
+        select: { id: true, parentId: true, sortIndex: true },
+        orderBy: { sortIndex: 'asc' },
+      })
+      for (const child of children) {
+        if (child.parentId && !latestChildByParent.has(child.parentId)) {
+          latestChildByParent.set(child.parentId, child.id)
+        }
+      }
+    }
+
+    return intermediate.map((item) => {
+      if (item.type === AssetType.version_stack) {
+        const childId = latestChildByParent.get(item.currentId)
+        if (childId) return childId
+      }
+      return item.currentId
+    })
   }
 
   async updateAssetName(req: UpdateAssetNameRequest): Promise<AssetInfo> {
@@ -2892,8 +2961,7 @@ export class AssetService {
   async getStoragePaths(ids: string[]): Promise<GetStoragePathsResponse> {
     if (ids.length === 0) return { paths: [] }
 
-    const targetAssetIds = await Promise.all(ids.map(async (id) => this.resolveLatestVersionId(id)))
-
+    const targetAssetIds = await this.resolveLatestVersionIds(ids)
     const uniqueTargetIds = Array.from(new Set(targetAssetIds))
 
     const assets = await this.prismaClient.asset.findMany({
@@ -2917,10 +2985,8 @@ export class AssetService {
       },
     })
 
-    const archiveConfig = getArchiveStorageConfig()
     const defaultBackend = getStorageBackend()
     const mainBucket = process.env.S3_BUCKET || 'shumai'
-
     const paths: StoragePathItem[] = []
 
     for (const asset of assets) {
@@ -2933,42 +2999,24 @@ export class AssetService {
         asset.status === AssetStatus.restoring ||
         sk.isArchived
 
-      if (isArchived && archiveConfig.enabled) {
-        if (archiveConfig.backend === 's3') {
-          paths.push({
-            id: asset.id,
-            name: asset.name,
-            path: `s3://${archiveConfig.bucket}/${sk.key}`,
-            backend: 's3',
-            isArchived: true,
-          })
-        } else {
-          paths.push({
-            id: asset.id,
-            name: asset.name,
-            path: path.join(archiveConfig.localRoot, sk.key),
-            backend: 'local',
-            isArchived: true,
-          })
-        }
+      const archivePathInfo = isArchived ? getArchiveStoragePath(sk.key) : null
+      if (archivePathInfo) {
+        paths.push({
+          id: asset.id,
+          name: asset.name,
+          path: archivePathInfo.path,
+          backend: archivePathInfo.backend,
+          isArchived: true,
+        })
       } else {
-        if (defaultBackend === 's3') {
-          paths.push({
-            id: asset.id,
-            name: asset.name,
-            path: `s3://${mainBucket}/${sk.key}`,
-            backend: 's3',
-            isArchived: false,
-          })
-        } else {
-          paths.push({
-            id: asset.id,
-            name: asset.name,
-            path: path.resolve('data', mainBucket, sk.key),
-            backend: 'local',
-            isArchived: false,
-          })
-        }
+        const storagePath = s3Service.getStoragePath(mainBucket, sk.key)
+        paths.push({
+          id: asset.id,
+          name: asset.name,
+          path: storagePath,
+          backend: defaultBackend,
+          isArchived,
+        })
       }
     }
 

@@ -14,7 +14,6 @@ export interface CopyOptionsContext {
   isPublicShare?: boolean
   isTeamOwner?: boolean
   allowDownload?: boolean
-  archiveStorageEnabled?: boolean
 }
 
 export interface CopyFormatContext {
@@ -182,13 +181,15 @@ export function formatCopyText(
     case 'markdown':
       if (items.length === 1) {
         const item = items[0]
+        const safeName = item.name.replace(/\[/g, '\\[').replace(/\]/g, '\\]')
         const url = getItemInAppUrl(item, context.origin, context.projectId)
-        return `[${item.name}](${url})`
+        return `[${safeName}](${url})`
       }
       return items
         .map((i) => {
+          const safeName = i.name.replace(/\[/g, '\\[').replace(/\]/g, '\\]')
           const url = getItemInAppUrl(i, context.origin, context.projectId)
-          return `- [${i.name}](${url})`
+          return `- [${safeName}](${url})`
         })
         .join('\n')
 
@@ -199,7 +200,8 @@ export function formatCopyText(
         const size = i.type === 'folder' ? '—' : formatSize(i.sizeByte || 0)
         const link = getItemInAppUrl(i, context.origin, context.projectId)
         const id = i.versionStack ? i.versionStack.id : i.id
-        return `${i.name}\t${type}\t${size}\t${link}\t${id}`
+        const safeName = i.name.replace(/[\t\r\n]+/g, ' ')
+        return `${safeName}\t${type}\t${size}\t${link}\t${id}`
       })
       return [header, ...rows].join('\n')
     }

@@ -401,7 +401,7 @@ export const getDownloadLinksResponseSchema = z.object({
 export type GetDownloadLinksResponse = z.infer<typeof getDownloadLinksResponseSchema>
 
 export const getStoragePathsRequestSchema = z.object({
-  ids: z.array(z.string()),
+  ids: z.array(z.string()).max(100),
 })
 export type GetStoragePathsRequest = z.infer<typeof getStoragePathsRequestSchema>
 

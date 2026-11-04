@@ -176,6 +176,7 @@ export function MobileFileBrowser({
     confirmArchiveOrRestore,
     isArchiving,
     isRestoringArchive,
+    handleCopy,
   } = useFileActions({
     teamId,
     projectId,
@@ -537,6 +538,8 @@ export function MobileFileBrowser({
                         archiveStorageEnabled={archiveStorageEnabled}
                         isShareView={isShareView}
                         allowDownload={allowDownload}
+                        onCopy={handleCopy}
+                        isTeamOwner={canAdmin}
                       />
                     ))}
                   </div>
@@ -600,6 +603,8 @@ export function MobileFileBrowser({
                         archiveStorageEnabled={archiveStorageEnabled}
                         isShareView={isShareView}
                         allowDownload={allowDownload}
+                        onCopy={handleCopy}
+                        isTeamOwner={canAdmin}
                       />
                     ))}
                   </div>

@@ -424,4 +424,17 @@ describe('MobileFileBrowser', () => {
 
     expect(screen.queryByRole('button', { name: /actions/i })).toBeNull()
   })
+
+  it('renders Copy submenu in file card dropdown menu on mobile', async () => {
+    const { container } = renderComponent()
+
+    const dropdownTrigger = container.querySelector(
+      '[data-slot="dropdown-menu-trigger"]',
+    ) as HTMLElement
+    expect(dropdownTrigger).toBeTruthy()
+    fireEvent.keyDown(dropdownTrigger, { key: 'ArrowDown', code: 'ArrowDown' })
+
+    const copyOption = await screen.findByText(/^Copy$|^复制$/i)
+    expect(copyOption).toBeTruthy()
+  })
 })

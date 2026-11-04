@@ -979,6 +979,18 @@ describe('file api', () => {
       mockGetProjectTeam.mockRestore()
       mockGetStoragePaths.mockRestore()
     })
+
+    it('rejects if more than 100 ids are provided', async () => {
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const ids = Array.from({ length: 101 }, (_, i) => `asset-${i}`)
+      const res = await app.request('/files/storage-paths', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      })
+
+      expect(res.status).toBe(400)
+    })
   })
 
   describe('GET /files/:fileId/m3u8 routes', () => {

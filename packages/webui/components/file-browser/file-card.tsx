@@ -705,7 +705,6 @@ export function FileCard({
                       context={{
                         isTeamOwner,
                         allowDownload,
-                        archiveStorageEnabled,
                       }}
                       onCopy={(kind, targetItems) => onCopy?.(kind, targetItems)}
                     />

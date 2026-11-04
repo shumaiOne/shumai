@@ -4,7 +4,8 @@ import { setupTestDbHooks } from '@shumai/db/test'
 import { HTTPException } from 'hono/http-exception'
 
 import { AssetType, AssetStatus, Prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
-import { s3Service } from '@shumai/core/src/s3/s3'
+import { s3Service, getStorageBackend } from '@shumai/core/src/s3/s3'
+import * as archiveStorageModule from '@shumai/core/src/s3/archive-storage'
 import { uploadService } from '@shumai/core/src/upload/upload'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { AssetService } from './asset'
@@ -20,6 +21,7 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
     deleteObject: vi.fn().mockResolvedValue(1),
     deletePrefix: vi.fn().mockResolvedValue(1),
     copyObject: vi.fn().mockResolvedValue(undefined),
+    getStoragePath: vi.fn((bucket: string, key: string) => `/mock/data/${bucket}/${key}`),
   },
   getStorageBackend: vi.fn().mockReturnValue('local'),
 }))
@@ -3178,6 +3180,144 @@ describe('AssetService — natural sort by name', () => {
       const stackPath = result.paths.find((p) => p.name === 'stack_v2.png')!
       expect(stackPath.id).toBe(latestChild.id)
       expect(stackPath.path).toContain('files/ulid3/stack_v2.png')
+    })
+
+    it('returns S3 path when main storage backend is s3', async () => {
+      vi.mocked(getStorageBackend).mockReturnValueOnce('s3')
+      vi.mocked(s3Service.getStoragePath).mockReturnValueOnce('s3://shumai/files/test/s3-file.mp4')
+
+      const project = await prisma.project.create({
+        data: { name: 'P-S3', team: { create: { name: 'T-S3' } } },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'U-S3', email: `s3-${Date.now()}@example.com` },
+      })
+      const file = await prisma.asset.create({
+        data: {
+          name: 's3-file.mp4',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.processed,
+          storageKey: { create: { key: 'files/test/s3-file.mp4' } },
+        },
+      })
+
+      const res = await assetService.getStoragePaths([file.id])
+      expect(res.paths).toEqual([
+        {
+          id: file.id,
+          name: 's3-file.mp4',
+          path: 's3://shumai/files/test/s3-file.mp4',
+          backend: 's3',
+          isArchived: false,
+        },
+      ])
+    })
+
+    it('returns archive S3 path when asset is archived and archive backend is s3', async () => {
+      vi.spyOn(archiveStorageModule, 'getArchiveStoragePath').mockReturnValueOnce({
+        path: 's3://my-archive-bucket/files/archived/clip.mp4',
+        backend: 's3',
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'P-Archive-S3', team: { create: { name: 'T-Archive-S3' } } },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'U-Arch', email: `arch-${Date.now()}@example.com` },
+      })
+      const file = await prisma.asset.create({
+        data: {
+          name: 'clip.mp4',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.archived,
+          storageKey: { create: { key: 'files/archived/clip.mp4', isArchived: true } },
+        },
+      })
+
+      const res = await assetService.getStoragePaths([file.id])
+      expect(res.paths).toEqual([
+        {
+          id: file.id,
+          name: 'clip.mp4',
+          path: 's3://my-archive-bucket/files/archived/clip.mp4',
+          backend: 's3',
+          isArchived: true,
+        },
+      ])
+    })
+
+    it('returns archive local path when asset is archived and archive backend is local', async () => {
+      vi.spyOn(archiveStorageModule, 'getArchiveStoragePath').mockReturnValueOnce({
+        path: '/mnt/archive/files/archived/clip.mp4',
+        backend: 'local',
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'P-Archive-Local', team: { create: { name: 'T-Archive-Local' } } },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'U-ArchLocal', email: `archloc-${Date.now()}@example.com` },
+      })
+      const file = await prisma.asset.create({
+        data: {
+          name: 'clip.mp4',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.archived,
+          storageKey: { create: { key: 'files/archived/clip.mp4', isArchived: true } },
+        },
+      })
+
+      const res = await assetService.getStoragePaths([file.id])
+      expect(res.paths).toEqual([
+        {
+          id: file.id,
+          name: 'clip.mp4',
+          path: '/mnt/archive/files/archived/clip.mp4',
+          backend: 'local',
+          isArchived: true,
+        },
+      ])
+    })
+
+    it('marks isArchived: true with main storage path when archive storage is disabled', async () => {
+      vi.spyOn(archiveStorageModule, 'getArchiveStoragePath').mockReturnValueOnce(null)
+      vi.mocked(s3Service.getStoragePath).mockReturnValueOnce(
+        '/mock/data/shumai/files/archived/clip.mp4',
+      )
+
+      const project = await prisma.project.create({
+        data: { name: 'P-DisabledArchive', team: { create: { name: 'T-DisabledArchive' } } },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'U-DisArch', email: `disarch-${Date.now()}@example.com` },
+      })
+      const file = await prisma.asset.create({
+        data: {
+          name: 'clip.mp4',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.archived,
+          storageKey: { create: { key: 'files/archived/clip.mp4', isArchived: true } },
+        },
+      })
+
+      const res = await assetService.getStoragePaths([file.id])
+      expect(res.paths).toEqual([
+        {
+          id: file.id,
+          name: 'clip.mp4',
+          path: '/mock/data/shumai/files/archived/clip.mp4',
+          backend: 'local',
+          isArchived: true,
+        },
+      ])
     })
   })
 

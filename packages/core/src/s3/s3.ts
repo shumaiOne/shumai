@@ -360,6 +360,7 @@ export interface S3Service {
   ) => Promise<{ url: string }>
   abortMultipartUpload: (bucket: string, key: string, uploadId: string) => Promise<void>
   resolveInput: (bucket: string, key: string) => Promise<string>
+  getStoragePath: (bucket: string, key: string) => string
 }
 
 export class S3StorageService implements S3Service {
@@ -760,6 +761,10 @@ export class S3StorageService implements S3Service {
   async resolveInput(bucket: string, key: string): Promise<string> {
     return this.presign(bucket, key, 'GET', false, undefined, true)
   }
+
+  getStoragePath(bucket: string, key: string): string {
+    return `s3://${bucket}/${key}`
+  }
 }
 
 export class LocalStorageService implements S3Service {
@@ -1048,6 +1053,10 @@ export class LocalStorageService implements S3Service {
       return filePath
     }
     return this.presign(bucket, key, 'GET')
+  }
+
+  getStoragePath(bucket: string, key: string): string {
+    return this.getFilePath(bucket, key)
   }
 }
 
