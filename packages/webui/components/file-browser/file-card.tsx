@@ -1,5 +1,7 @@
 import { client } from '@/ui/api/client'
 import { m } from '@/ui/paraglide/messages.js'
+import { CopyDropdownMenuSub } from './copy-submenu'
+import type { CopyKind } from './copy-options'
 import type { AssetInfo, FieldValueInfo } from '@shumai/dtos'
 import { useQuery } from '@tanstack/react-query'
 
@@ -89,6 +91,8 @@ interface FileCardProps {
   allowDownload?: boolean
   hideCheckbox?: boolean
   hideActions?: boolean
+  isTeamOwner?: boolean
+  onCopy?: (kind: CopyKind, items: AssetInfo[]) => void
 }
 
 export function FileCard({
@@ -110,6 +114,8 @@ export function FileCard({
   dragState,
   disabled,
   onAction,
+  onCopy,
+  isTeamOwner = false,
   isRecentlyDeleted,
   isRecents,
   selectedCount,
@@ -692,6 +698,17 @@ export function FileCard({
                       <Download className="mr-2 h-4 w-4" />
                       <span>{m.download()}</span>
                     </DropdownMenuItem>
+                  )}
+                  {!isRecentlyDeleted && !isShareView && (
+                    <CopyDropdownMenuSub
+                      items={[item]}
+                      context={{
+                        isTeamOwner,
+                        allowDownload,
+                        archiveStorageEnabled,
+                      }}
+                      onCopy={(kind, targetItems) => onCopy?.(kind, targetItems)}
+                    />
                   )}
                   {canEdit && archiveStorageEnabled && canArchiveItem && (
                     <DropdownMenuItem

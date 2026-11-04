@@ -12,6 +12,8 @@ import { useDraggable, useDroppable } from '@dnd-kit/react'
 import type { AssetInfo, ChildPreview } from '@shumai/dtos'
 import { m } from '@/ui/paraglide/messages.js'
 import { getTrashDaysLeft } from '@/ui/lib/time'
+import { CopyDropdownMenuSub } from './copy-submenu'
+import type { CopyKind } from './copy-options'
 import {
   Archive,
   ArchiveRestore,
@@ -68,6 +70,8 @@ interface FolderCardProps {
   allowDownload?: boolean
   hideCheckbox?: boolean
   hideActions?: boolean
+  isTeamOwner?: boolean
+  onCopy?: (kind: CopyKind, items: AssetInfo[]) => void
 }
 
 const FolderPreviewGrid = ({ items }: { items: ChildPreview[] }) => {
@@ -140,6 +144,8 @@ export function FolderCard({
   dragState,
   disabled,
   onAction,
+  onCopy,
+  isTeamOwner = false,
   isRecentlyDeleted,
   isRecents,
   selectedCount,
@@ -472,6 +478,17 @@ export function FolderCard({
                           <Download className="mr-2 h-4 w-4" />
                           <span>{m.download()}</span>
                         </DropdownMenuItem>
+                      )}
+                      {!isRecentlyDeleted && !isShareView && (
+                        <CopyDropdownMenuSub
+                          items={[item]}
+                          context={{
+                            isTeamOwner,
+                            allowDownload,
+                            archiveStorageEnabled,
+                          }}
+                          onCopy={(kind, targetItems) => onCopy?.(kind, targetItems)}
+                        />
                       )}
                       {canEdit && archiveStorageEnabled && (
                         <>

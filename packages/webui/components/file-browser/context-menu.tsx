@@ -26,6 +26,8 @@ import {
   Copy,
   Layers,
 } from 'lucide-react'
+import { CopyContextMenuSub } from './copy-submenu'
+import type { CopyKind } from './copy-options'
 
 interface FileBrowserContextMenuProps {
   item: AssetInfo | null
@@ -33,11 +35,13 @@ interface FileBrowserContextMenuProps {
   onRename: (item: AssetInfo) => void
   onDelete: (items: AssetInfo[]) => void
   onDownload: (items: AssetInfo[]) => void
-  onCopyNameAndDownloadLink?: (items: AssetInfo[]) => void
+  onCopy?: (kind: CopyKind, items: AssetInfo[]) => void
   onRestore: (items: AssetInfo[]) => void
   onArchive?: (items: AssetInfo[]) => void
   onRestoreArchive?: (items: AssetInfo[]) => void
   archiveStorageEnabled?: boolean
+  isTeamOwner?: boolean
+  allowDownload?: boolean
   onNewFolder: (name: string) => void
   onUploadFile: () => void
   onUploadFolder: () => void
@@ -64,11 +68,13 @@ export function FileBrowserContextMenu({
   onRename,
   onDelete,
   onDownload,
-  onCopyNameAndDownloadLink,
+  onCopy,
   onRestore,
   onArchive,
   onRestoreArchive,
   archiveStorageEnabled = false,
+  isTeamOwner = false,
+  allowDownload = true,
   onNewFolder,
   onUploadFile,
   onUploadFolder,
@@ -110,14 +116,6 @@ export function FileBrowserContextMenu({
       onDownload(selectedItems)
     } else if (item) {
       onDownload([item])
-    }
-  }
-
-  const handleCopyNameAndDownloadLink = () => {
-    if (isItemSelected) {
-      onCopyNameAndDownloadLink?.(selectedItems)
-    } else if (item) {
-      onCopyNameAndDownloadLink?.([item])
     }
   }
 
@@ -166,10 +164,6 @@ export function FileBrowserContextMenu({
         <ContextMenuItem onSelect={handleDownload}>
           <Download className="mr-2 h-4 w-4" />
           <span>{m.download()}</span>
-        </ContextMenuItem>
-        <ContextMenuItem onSelect={handleCopyNameAndDownloadLink}>
-          <Copy className="mr-2 h-4 w-4" />
-          <span>{m.copy_name_and_download_link()}</span>
         </ContextMenuItem>
         {canEdit && (
           <ContextMenuItem
@@ -238,10 +232,15 @@ export function FileBrowserContextMenu({
           <Download className="mr-2 h-4 w-4" />
           <span>{m.download()}</span>
         </ContextMenuItem>
-        <ContextMenuItem onSelect={handleCopyNameAndDownloadLink} disabled={isDownloadUnavailable}>
-          <Copy className="mr-2 h-4 w-4" />
-          <span>{m.copy_name_and_download_link()}</span>
-        </ContextMenuItem>
+        <CopyContextMenuSub
+          items={itemsToModify}
+          context={{
+            isTeamOwner,
+            allowDownload,
+            archiveStorageEnabled,
+          }}
+          onCopy={(kind, targetItems) => onCopy?.(kind, targetItems)}
+        />
         {canEdit && (
           <ContextMenuItem onSelect={() => onMoveTo(itemsToModify)}>
             <ArrowRight className="mr-2 h-4 w-4" />
@@ -330,10 +329,15 @@ export function FileBrowserContextMenu({
           <Download className="mr-2 h-4 w-4" />
           <span>{m.download()}</span>
         </ContextMenuItem>
-        <ContextMenuItem onSelect={handleCopyNameAndDownloadLink} disabled={isDownloadUnavailable}>
-          <Copy className="mr-2 h-4 w-4" />
-          <span>{m.copy_name_and_download_link()}</span>
-        </ContextMenuItem>
+        <CopyContextMenuSub
+          items={itemsToModify}
+          context={{
+            isTeamOwner,
+            allowDownload,
+            archiveStorageEnabled,
+          }}
+          onCopy={(kind, targetItems) => onCopy?.(kind, targetItems)}
+        />
 
         {canEdit && (
           <ContextMenuItem onSelect={() => onMoveTo(itemsToModify)}>

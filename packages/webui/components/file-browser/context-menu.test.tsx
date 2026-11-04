@@ -80,4 +80,13 @@ describe('FileBrowserContextMenu', () => {
 
     expect(screen.queryByText(/Manage versions|管理版本/i)).toBeNull()
   })
+
+  it('renders Copy submenu trigger for regular file item', () => {
+    renderWithMenu(fileItem)
+
+    fireEvent.contextMenu(screen.getByTestId('context-trigger'))
+
+    const copyOption = screen.getByText(/^Copy$|^复制$/i)
+    expect(copyOption).toBeTruthy()
+  })
 })

@@ -400,6 +400,25 @@ export const getDownloadLinksResponseSchema = z.object({
 })
 export type GetDownloadLinksResponse = z.infer<typeof getDownloadLinksResponseSchema>
 
+export const getStoragePathsRequestSchema = z.object({
+  ids: z.array(z.string()),
+})
+export type GetStoragePathsRequest = z.infer<typeof getStoragePathsRequestSchema>
+
+export const storagePathItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  path: z.string(),
+  backend: z.enum(['s3', 'local']),
+  isArchived: z.boolean(),
+})
+export type StoragePathItem = z.infer<typeof storagePathItemSchema>
+
+export const getStoragePathsResponseSchema = z.object({
+  paths: z.array(storagePathItemSchema),
+})
+export type GetStoragePathsResponse = z.infer<typeof getStoragePathsResponseSchema>
+
 export const archiveAssetsRequestSchema = z.object({
   ids: z.array(z.string().min(1)).min(1),
 })

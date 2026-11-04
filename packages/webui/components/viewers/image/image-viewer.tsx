@@ -1,6 +1,7 @@
 import { useScreenSize } from '@/ui/hooks/useScreenSize'
 import { client } from '@/ui/api/client'
 import { getBestTranscode } from '@/ui/lib/media'
+import { copyImageToClipboard } from '@/ui/lib/clipboard'
 import React, { useEffect, useRef, useState, useImperativeHandle } from 'react'
 import DrawingCanvas from '@/ui/components/drawing-canvas'
 import { ImageControlBar } from './image-control-bar'
@@ -128,49 +129,10 @@ export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
     const handleCopy = async () => {
       const webpUrl = bestUrl
       if (!webpUrl) return
-      try {
-        const copyPromise = (async () => {
-          const response = await fetch(webpUrl)
-          const blob = await response.blob()
-
-          const img = new Image()
-          img.crossOrigin = 'anonymous'
-          const objectUrl = URL.createObjectURL(blob)
-          img.src = objectUrl
-
-          try {
-            await new Promise((resolve, reject) => {
-              img.onload = resolve
-              img.onerror = (e) => reject(new Error('Failed to load image: ' + String(e)))
-            })
-
-            const canvas = document.createElement('canvas')
-            canvas.width = img.width
-            canvas.height = img.height
-            const ctx = canvas.getContext('2d')
-            if (!ctx) throw new Error('Could not get canvas context')
-            ctx.drawImage(img, 0, 0)
-
-            const pngBlob = await new Promise<Blob | null>((resolve) => {
-              canvas.toBlob(resolve, 'image/png')
-            })
-
-            if (!pngBlob) throw new Error('Failed to convert image to PNG')
-            return pngBlob
-          } finally {
-            URL.revokeObjectURL(objectUrl)
-          }
-        })()
-
-        await navigator.clipboard.write([
-          new ClipboardItem({
-            'image/png': copyPromise,
-          }),
-        ])
+      const ok = await copyImageToClipboard(webpUrl)
+      if (ok) {
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
-      } catch (err) {
-        console.error('Failed to copy image to clipboard:', err)
       }
     }
 

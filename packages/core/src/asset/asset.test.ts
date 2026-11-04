@@ -21,6 +21,7 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
     deletePrefix: vi.fn().mockResolvedValue(1),
     copyObject: vi.fn().mockResolvedValue(undefined),
   },
+  getStorageBackend: vi.fn().mockReturnValue('local'),
 }))
 
 vi.mock('@shumai/core/src/s3/preview-converter', async (importOriginal) => {
@@ -3073,6 +3074,110 @@ describe('AssetService — natural sort by name', () => {
       expect(result.files).toHaveLength(1)
       expect(result.files[0].name).toBe('file1.txt')
       expect(result.files[0].id).toBe(file1.id)
+    })
+  })
+
+  describe('getStoragePaths', () => {
+    it('returns empty array for empty inputs', async () => {
+      const result = await assetService.getStoragePaths([])
+      expect(result).toEqual({ paths: [] })
+    })
+
+    it('resolves files, symlinks, and version stacks while skipping folders', async () => {
+      const user = await prisma.user.create({
+        data: {
+          name: 'StoragePathUser',
+          email: `storage-path-${Date.now()}@example.com`,
+        },
+      })
+      const team = await prisma.team.create({ data: { name: 'StoragePathTeam' } })
+      const project = await prisma.project.create({
+        data: { name: 'StoragePathProject', teamId: team.id },
+      })
+
+      const folder = await prisma.asset.create({
+        data: {
+          name: 'MyFolder',
+          type: AssetType.folder,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.processed,
+        },
+      })
+
+      const file = await prisma.asset.create({
+        data: {
+          name: 'clip.mp4',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.processed,
+          storageKey: { create: { key: 'files/ulid1/clip.mp4' } },
+        },
+      })
+
+      const symlink = await prisma.asset.create({
+        data: {
+          name: 'clip-symlink',
+          type: AssetType.symlink,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          target: { connect: { id: file.id } },
+        },
+      })
+
+      const stack = await prisma.asset.create({
+        data: {
+          name: 'stack.png',
+          type: AssetType.version_stack,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.processed,
+        },
+      })
+
+      await prisma.asset.create({
+        data: {
+          name: 'stack_v1.png',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: stack.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.processed,
+          sortIndex: 'b',
+          storageKey: { create: { key: 'files/ulid2/stack_v1.png' } },
+        },
+      })
+
+      const latestChild = await prisma.asset.create({
+        data: {
+          name: 'stack_v2.png',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: stack.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.processed,
+          sortIndex: 'a',
+          storageKey: { create: { key: 'files/ulid3/stack_v2.png' } },
+        },
+      })
+
+      const result = await assetService.getStoragePaths([folder.id, file.id, symlink.id, stack.id])
+
+      // folder should be skipped, symlink deduplicated to file, stack resolved to latest child
+      expect(result.paths).toHaveLength(2)
+      const names = result.paths.map((p) => p.name)
+      expect(names).toContain('clip.mp4')
+      expect(names).toContain('stack_v2.png')
+
+      const clipPath = result.paths.find((p) => p.name === 'clip.mp4')!
+      expect(clipPath.path).toContain('files/ulid1/clip.mp4')
+      expect(clipPath.isArchived).toBe(false)
+
+      const stackPath = result.paths.find((p) => p.name === 'stack_v2.png')!
+      expect(stackPath.id).toBe(latestChild.id)
+      expect(stackPath.path).toContain('files/ulid3/stack_v2.png')
     })
   })
 

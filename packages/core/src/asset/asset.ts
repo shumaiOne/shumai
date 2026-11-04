@@ -23,6 +23,8 @@ import {
   CommentExportFormat,
   PreviewFormat,
   TRASH_RETENTION_DAYS,
+  GetStoragePathsResponse,
+  StoragePathItem,
 } from '@shumai/dtos'
 import {
   exportCommentsToFormat,
@@ -43,10 +45,11 @@ import {
 import { HTTPException } from 'hono/http-exception'
 import { logger } from '@shumai/core/src/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@shumai/core/src/pagination'
-import { s3Service } from '@shumai/core/src/s3/s3'
+import { s3Service, getStorageBackend } from '@shumai/core/src/s3/s3'
 import {
   getArchiveStorageService,
   isArchiveStorageEnabled,
+  getArchiveStorageConfig,
 } from '@shumai/core/src/s3/archive-storage'
 import { assetArchiveService } from './asset-archive'
 import {
@@ -2884,6 +2887,92 @@ export class AssetService {
       files: filteredLinks,
       skippedArchivedCount,
     }
+  }
+
+  async getStoragePaths(ids: string[]): Promise<GetStoragePathsResponse> {
+    if (ids.length === 0) return { paths: [] }
+
+    const targetAssetIds = await Promise.all(ids.map(async (id) => this.resolveLatestVersionId(id)))
+
+    const uniqueTargetIds = Array.from(new Set(targetAssetIds))
+
+    const assets = await this.prismaClient.asset.findMany({
+      where: {
+        id: { in: uniqueTargetIds },
+        isDeleted: false,
+        type: {
+          notIn: [AssetType.folder, AssetType.root, AssetType.share_root, AssetType.share],
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        storageKey: {
+          select: {
+            key: true,
+            isArchived: true,
+          },
+        },
+      },
+    })
+
+    const archiveConfig = getArchiveStorageConfig()
+    const defaultBackend = getStorageBackend()
+    const mainBucket = process.env.S3_BUCKET || 'shumai'
+
+    const paths: StoragePathItem[] = []
+
+    for (const asset of assets) {
+      const sk = asset.storageKey
+      if (!sk?.key) continue
+
+      const isArchived =
+        asset.status === AssetStatus.archived ||
+        asset.status === AssetStatus.archiving ||
+        asset.status === AssetStatus.restoring ||
+        sk.isArchived
+
+      if (isArchived && archiveConfig.enabled) {
+        if (archiveConfig.backend === 's3') {
+          paths.push({
+            id: asset.id,
+            name: asset.name,
+            path: `s3://${archiveConfig.bucket}/${sk.key}`,
+            backend: 's3',
+            isArchived: true,
+          })
+        } else {
+          paths.push({
+            id: asset.id,
+            name: asset.name,
+            path: path.join(archiveConfig.localRoot, sk.key),
+            backend: 'local',
+            isArchived: true,
+          })
+        }
+      } else {
+        if (defaultBackend === 's3') {
+          paths.push({
+            id: asset.id,
+            name: asset.name,
+            path: `s3://${mainBucket}/${sk.key}`,
+            backend: 's3',
+            isArchived: false,
+          })
+        } else {
+          paths.push({
+            id: asset.id,
+            name: asset.name,
+            path: path.resolve('data', mainBucket, sk.key),
+            backend: 'local',
+            isArchived: false,
+          })
+        }
+      }
+    }
+
+    return { paths }
   }
 
   /**
