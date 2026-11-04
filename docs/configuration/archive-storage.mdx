@@ -201,25 +201,43 @@ ARCHIVE_S3_STORAGE_CLASS=COLDLINE
 
 ## Automatic Asset Archival
 
-Teams can automate cold storage tiering based on asset age without manual intervention.
+In addition to manual on-demand archival, Shumai allows teams to automate cold storage tiering based on asset age lifecycle policies. This ensures heavy original master files are automatically offloaded to secondary cold storage without requiring manual housekeeping from creative staff or administrators.
 
-### Configuration
+### WebUI Configuration
 
-Under **Team Settings > Storage** (accessible by team owners):
+Team owners can configure automatic archival under **Team Settings > Storage**:
 
-- **Enable Auto Archive**: Toggle automated background archival on or off for the team (disabled by default; requires archive storage to be configured).
-- **Archive Criteria**:
-  - `not_updated`: Archives assets that have not been modified for at least the specified number of days (default: 30 days).
-  - `after_created`: Archives assets whose initial creation date is at least the specified number of days ago (default: 30 days).
-- **Post-Restore Grace Period**: When using the `after_created` rule, restored assets receive a configurable grace period (default: 30 days) during which they will not be re-archived even if their original creation date exceeds the threshold.
+1. **Archive Storage Status Overview**:
+   - Displays the current system archive storage backend (`local` or `s3`), endpoint, bucket, or root directory configured on the server.
+   - If archive storage is not configured in server environment variables, a warning alert is displayed, and auto-archive controls are disabled.
+   - For security, credentials and private server settings are not exposed to client browsers.
 
-### Background Job
+2. **Automatic Asset Archival Policy**:
+   - **Enable Auto Archive**: Toggle automated background archival on or off for the team (disabled by default; requires an active archive storage backend).
+   - **Archive Criteria (`method`)**:
+     - **Not modified for specified days (`not_updated`)**: Evaluates the last modification timestamp (`updatedAt`). Ideal for active production workflows—files stay in fast primary storage as long as team members are actively commenting, annotating, or modifying them. Once no modifications have occurred for the configured duration, the asset is moved to cold storage.
+     - **After creation for specified days (`after_created`)**: Evaluates the initial upload/creation timestamp (`createdAt`). Ideal for strict retention or compliance pipelines where footage is tiered based on its age (e.g., 60 or 90 days after delivery) regardless of recent review comments.
+   - **Age Threshold (`days`)**: The threshold in days (between 1 and 3,650 days) after which eligible assets are queued for archival.
+   - **Post-Restore Grace Period (`postRestoreGraceDays`)**:
+     - When an asset is restored from archive back to primary storage, its modification date is refreshed to the restore time.
+     - When using the **After creation** rule, an asset older than the threshold (e.g. 100 days old) would otherwise be immediately picked up and re-archived by the very next hourly scan.
+     - The post-restore grace period (default: 30 days) guarantees that restored files remain in primary storage for at least the specified number of days before becoming eligible for automated archival again.
 
-The auto-archive job runs periodically across all teams where auto-archive is enabled:
+### Sibling Deduplication & Safety
 
-- **Scan Interval**: Configured via `AUTO_ARCHIVE_INTERVAL_MINUTES` (default: 60 minutes).
-- **Concurrency & Deduplication**: Distributed transaction-scoped advisory locks ensure only one instance scans at a time across multi-replica deployments. If multiple assets share a deduplicated storage key, all sibling files must meet the age policy before the underlying storage object is moved.
-- **Safety**: Atomic database filters and locks prevent race conditions with concurrent manual archival or asset modifications.
+Shumai uses content-addressable storage keys (`storage_keys`) to deduplicate identical files across projects and folders:
+
+- **Sibling Protection**: If multiple asset records reference the same underlying storage object (e.g., copied or duplicated files across folders or projects), the auto-archive scanner inspects all sibling assets.
+- **Strict Consensus**: The underlying storage file is **only** archived if **all active sibling files** satisfy the team's auto-archive criteria and are in a stable `processed` state.
+- **Starvation-Free Scheduling**: If any sibling copy was modified recently or is currently in an active workflow, the storage key is safely skipped without blocking other eligible assets from being archived.
+
+### Background Scanner & Execution Semantics
+
+The auto-archive job runs periodically in the background:
+
+- **Scan Frequency**: Configured via the `AUTO_ARCHIVE_INTERVAL_MINUTES` environment variable (defaults to `60` minutes; accepts decimal values such as `0.02` for automated testing).
+- **Distributed Leader Election**: Uses PostgreSQL transaction-scoped advisory locks (`pg_try_advisory_xact_lock`) during the candidate discovery phase. In multi-pod or multi-replica container deployments, only one server instance performs the scan per interval while other replicas cleanly skip.
+- **Race Condition Prevention**: During archival, candidate assets transition atomically via conditional SQL (`UPDATE assets SET status = 'archiving' WHERE status = 'processed'`) protected by row-level `storage_keys FOR UPDATE` locks. This guarantees zero race conditions with concurrent manual user archival, restoration, or file deletion.
 
 ---
 
