@@ -313,7 +313,7 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ teamId }) => {
             </div>
 
             {method === 'after_created' && (
-              <div className="space-y-2 pt-2 border-t border-border">
+              <div className="space-y-2">
                 <label
                   htmlFor="auto-archive-post-restore-grace-days-input"
                   className="text-sm font-medium"

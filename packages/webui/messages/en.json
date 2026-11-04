@@ -300,7 +300,7 @@
   "auto_archive_days": "Age Threshold (days)",
   "auto_archive_days_description": "Assets older than this number of days will be moved to archive storage.",
   "auto_archive_post_restore_grace_days": "Post-Restore Grace Period (days)",
-  "auto_archive_post_restore_grace_days_description": "After an asset is restored from archive, wait at least this many days before allowing it to be auto-archived again.",
+  "auto_archive_post_restore_grace_days_description": "After an asset is restored from archive, wait at least this many days before allowing it to be auto-archived again. This should be smaller than the age threshold; only assets that exceed the age threshold and have also passed this grace period since restoration will be auto-archived.",
   "auto_archive_disabled_hint": "Archive storage must be configured on the server before auto archive can be enabled.",
   "auto_archive_settings_saved": "Auto archive settings saved successfully",
   "auto_archive_settings_save_failed": "Failed to save auto archive settings",

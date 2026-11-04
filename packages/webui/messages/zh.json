@@ -300,7 +300,7 @@
   "auto_archive_days": "时间阈值（天）",
   "auto_archive_days_description": "超出此天数的资产将被转移至归档存储。",
   "auto_archive_post_restore_grace_days": "恢复后宽限期（天）",
-  "auto_archive_post_restore_grace_days_description": "从归档恢复资产后，至少等待指定天数后才允许再次被自动归档。",
+  "auto_archive_post_restore_grace_days_description": "从归档恢复资产后，至少等待指定天数后才允许再次被自动归档。此值应小于时间阈值，实际被自动归档的资产需同时满足创建时间超过时间阈值且恢复后已超出宽限期。",
   "auto_archive_disabled_hint": "必须在服务端配置归档存储后才能启用自动归档。",
   "auto_archive_settings_saved": "自动归档设置保存成功",
   "auto_archive_settings_save_failed": "保存自动归档设置失败",

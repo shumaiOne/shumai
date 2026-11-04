@@ -221,7 +221,7 @@ Team owners can configure automatic archival under **Team Settings > Storage**:
    - **Post-Restore Grace Period (`postRestoreGraceDays`)**:
      - When an asset is restored from archive back to primary storage, its modification date is refreshed to the restore time.
      - When using the **After creation** rule, an asset older than the threshold (e.g. 100 days old) would otherwise be immediately picked up and re-archived by the very next hourly scan.
-     - The post-restore grace period (default: 30 days) guarantees that restored files remain in primary storage for at least the specified number of days before becoming eligible for automated archival again.
+     - The post-restore grace period (default: 30 days) guarantees that restored files remain in primary storage for at least the specified number of days before becoming eligible for automated archival again. This value should be set smaller than the Age Threshold. Under this policy, only files that are older than the Age Threshold and have also surpassed the Post-Restore Grace Period since restoration are auto-archived.
 
 ### Sibling Deduplication & Safety
 
