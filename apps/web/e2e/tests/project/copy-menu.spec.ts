@@ -1,10 +1,15 @@
 import { expect, test } from '../../fixtures'
 import { fileCard } from '../../helpers/files'
 
-test('owner sees Copy submenu in context menu and copies file name', async ({ file }) => {
+test('owner sees Copy submenu in context menu and copies file name', async ({
+  file,
+  browserName,
+}) => {
   const { page, projectId, fileName } = file
 
-  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+  if (browserName === 'chromium') {
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+  }
   await page.goto(`/projects/${projectId}`)
   await expect(fileCard(page, fileName)).toBeVisible()
 
@@ -31,6 +36,8 @@ test('owner sees Copy submenu in context menu and copies file name', async ({ fi
   })
   await expect(toast).toBeVisible()
 
-  const clipboardText = await page.evaluate(() => navigator.clipboard.readText())
-  expect(clipboardText).toBe(fileName)
+  if (browserName === 'chromium') {
+    const clipboardText = await page.evaluate(() => navigator.clipboard.readText())
+    expect(clipboardText).toBe(fileName)
+  }
 })
