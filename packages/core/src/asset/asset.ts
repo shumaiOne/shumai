@@ -2991,8 +2991,11 @@ export class AssetService {
     return s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET', true, downloadFilename)
   }
 
-  async archiveAssets(assetIds: string[]): Promise<ArchiveAssetsResponse> {
-    return assetArchiveService.archiveAssets(assetIds)
+  async archiveAssets(
+    assetIds: string[],
+    options?: { suppressBusyErrors?: boolean },
+  ): Promise<ArchiveAssetsResponse> {
+    return assetArchiveService.archiveAssets(assetIds, options)
   }
 
   async restoreArchivedAssets(assetIds: string[]): Promise<RestoreArchivedAssetsResponse> {

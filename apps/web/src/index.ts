@@ -20,6 +20,7 @@ import { authService } from '@shumai/core/src/auth/auth'
 import { embeddingService } from '@shumai/core/src/search/embedding-service'
 import { sandboxService } from '@shumai/core'
 import { notificationJobService } from '@shumai/core/src/notification/notification-job'
+import { autoArchiveJobService } from '@shumai/core/src/asset/auto-archive-job'
 
 if (process.argv.includes('--check')) {
   console.log('✅ Web app evaluated successfully!')
@@ -91,6 +92,7 @@ async function run() {
   await agentService.ensureSystemEmbeddingAgents().catch(console.error)
   assetService.startCleanupJob()
   notificationJobService.start()
+  autoArchiveJobService.start()
   const args = process.argv.slice(2)
   let workersOption = process.env.SHUMAI_WORKERS || 'all'
   for (let i = 0; i < args.length; i++) {

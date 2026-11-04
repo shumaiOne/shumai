@@ -11,6 +11,10 @@ import { sandboxService } from '@shumai/core/src/sandbox/sandbox-service'
 import { turntableService } from '@shumai/core/src/turntable/turntable'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import {
+  getArchiveStorageConfig,
+  isArchiveStorageEnabled,
+} from '@shumai/core/src/s3/archive-storage'
+import {
   ServiceCreateTeamRequest,
   ServiceGetUserTeamsRequest,
   ServiceJoinTeamRequest,
@@ -23,6 +27,9 @@ import {
   SandboxSettings,
   UpdateSandboxSettingsRequest,
   TeamSettingsResponse,
+  AutoArchiveMethod,
+  AutoArchiveSettings,
+  DEFAULT_AUTO_ARCHIVE_SETTINGS,
 } from '@shumai/dtos'
 
 export class TeamService {
@@ -355,6 +362,31 @@ export class TeamService {
     settings.turntable = await turntableService.getSettings(teamId)
     settings.gotenberg = await gotenbergService.getSettings(teamId)
 
+    const archiveConfig = getArchiveStorageConfig()
+    if (!archiveConfig.enabled) {
+      settings.archiveStorage = { enabled: false }
+    } else if (archiveConfig.backend === 'local') {
+      settings.archiveStorage = {
+        enabled: true,
+        backend: 'local',
+        localRoot: archiveConfig.localRoot,
+      }
+    } else {
+      settings.archiveStorage = {
+        enabled: true,
+        backend: 's3',
+        endpoint: archiveConfig.endpoint,
+        bucket: archiveConfig.bucket,
+      }
+    }
+
+    settings.autoArchive = {
+      enabled: settings.autoArchive?.enabled ?? false,
+      method: settings.autoArchive?.method ?? 'not_updated',
+      days: settings.autoArchive?.days ?? 30,
+      postRestoreGraceDays: settings.autoArchive?.postRestoreGraceDays ?? 30,
+    }
+
     return settings
   }
 
@@ -421,6 +453,49 @@ export class TeamService {
       }
       settings.appearance.hideAgent = Boolean(value)
       delete settings['appearance.hideAgent']
+    } else if (key === 'autoArchive') {
+      const autoArchiveVal = value as AutoArchiveSettings
+      if (autoArchiveVal.enabled && !isArchiveStorageEnabled()) {
+        throw new HTTPException(400, {
+          message: 'Cannot enable auto archive when archive storage is not configured',
+        })
+      }
+      settings.autoArchive = {
+        enabled: Boolean(autoArchiveVal.enabled),
+        method: autoArchiveVal.method || 'not_updated',
+        days: Number(autoArchiveVal.days) || 30,
+        postRestoreGraceDays: Number(autoArchiveVal.postRestoreGraceDays) || 30,
+      }
+    } else if (key === 'autoArchive.enabled') {
+      const enabled = Boolean(value)
+      if (enabled && !isArchiveStorageEnabled()) {
+        throw new HTTPException(400, {
+          message: 'Cannot enable auto archive when archive storage is not configured',
+        })
+      }
+      if (!settings.autoArchive) {
+        settings.autoArchive = { ...DEFAULT_AUTO_ARCHIVE_SETTINGS }
+      }
+      settings.autoArchive.enabled = enabled
+      delete settings['autoArchive.enabled']
+    } else if (key === 'autoArchive.method') {
+      if (!settings.autoArchive) {
+        settings.autoArchive = { ...DEFAULT_AUTO_ARCHIVE_SETTINGS }
+      }
+      settings.autoArchive.method = value as AutoArchiveMethod
+      delete settings['autoArchive.method']
+    } else if (key === 'autoArchive.days') {
+      if (!settings.autoArchive) {
+        settings.autoArchive = { ...DEFAULT_AUTO_ARCHIVE_SETTINGS }
+      }
+      settings.autoArchive.days = Number(value)
+      delete settings['autoArchive.days']
+    } else if (key === 'autoArchive.postRestoreGraceDays') {
+      if (!settings.autoArchive) {
+        settings.autoArchive = { ...DEFAULT_AUTO_ARCHIVE_SETTINGS }
+      }
+      settings.autoArchive.postRestoreGraceDays = Number(value)
+      delete settings['autoArchive.postRestoreGraceDays']
     } else {
       settings[key] = value
     }

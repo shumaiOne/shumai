@@ -381,6 +381,65 @@ describe('team api', () => {
     expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'appearance.hideAgent', true)
   })
 
+  it('PATCH /teams/:teamId/settings updates autoArchive settings object', async () => {
+    mockUpdateSettings.mockResolvedValue({
+      autoArchive: {
+        enabled: true,
+        method: 'not_updated',
+        days: 30,
+        postRestoreGraceDays: 30,
+      },
+    })
+
+    const res = await app.request('/teams/t1/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        key: 'autoArchive',
+        value: {
+          enabled: true,
+          method: 'not_updated',
+          days: 30,
+          postRestoreGraceDays: 30,
+        },
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.autoArchive.enabled).toBe(true)
+    expect(data.autoArchive.days).toBe(30)
+    expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'autoArchive', {
+      enabled: true,
+      method: 'not_updated',
+      days: 30,
+      postRestoreGraceDays: 30,
+    })
+  })
+
+  it('PATCH /teams/:teamId/settings updates autoArchive.enabled individual field', async () => {
+    mockUpdateSettings.mockResolvedValue({
+      autoArchive: {
+        enabled: false,
+        method: 'not_updated',
+        days: 30,
+        postRestoreGraceDays: 30,
+      },
+    })
+
+    const res = await app.request('/teams/t1/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        key: 'autoArchive.enabled',
+        value: false,
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'autoArchive.enabled', false)
+  })
+
   it('GET /teams/:teamId/user-metadata returns all metadata for the user in the team', async () => {
     mockListUserMetadata.mockResolvedValue([
       { key: 'key1', value: 'value1' },

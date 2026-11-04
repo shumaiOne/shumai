@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **storage**: Add optional archive storage support (`local` folder/NAS or `s3` with configurable storage class and Glacier restore) allowing editors and owners to archive and restore original files while keeping previews, proxy streams, comments, and metadata available in main storage
+- **storage**: Add team-level automatic asset archival based on age policies (creation time or last modified time) with configurable post-restore grace periods, an hourly background scanning worker, and a dedicated Storage settings page displaying read-only archive backend status and policy configurations
 
 ### Fixed
 
