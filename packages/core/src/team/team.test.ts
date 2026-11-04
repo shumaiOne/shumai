@@ -1,3 +1,4 @@
+import * as path from 'path'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { teamService } from '@shumai/core/src/team/team'
@@ -388,6 +389,13 @@ describe('TeamService', () => {
         username: undefined,
       },
       appearance: { hideAgent: false },
+      archiveStorage: { enabled: false },
+      autoArchive: {
+        enabled: false,
+        method: 'not_updated',
+        days: 30,
+        postRestoreGraceDays: 30,
+      },
     })
 
     await teamService.updateSettings(team.id, 'theme', 'dark')
@@ -417,6 +425,13 @@ describe('TeamService', () => {
         username: undefined,
       },
       appearance: { hideAgent: false },
+      archiveStorage: { enabled: false },
+      autoArchive: {
+        enabled: false,
+        method: 'not_updated',
+        days: 30,
+        postRestoreGraceDays: 30,
+      },
     })
 
     await teamService.updateSettings(team.id, 'transcode.videoStrategy', 'multi')
@@ -456,6 +471,13 @@ describe('TeamService', () => {
       },
       appearance: { hideAgent: true },
       semanticSearchEnabled: false,
+      archiveStorage: { enabled: false },
+      autoArchive: {
+        enabled: false,
+        method: 'not_updated',
+        days: 30,
+        postRestoreGraceDays: 30,
+      },
     })
   })
 
@@ -631,6 +653,68 @@ describe('TeamService', () => {
       expect(settings.semanticSearchEnabled).toBe(false)
     } finally {
       delete process.env.ENABLE_EMBEDDING_AGENT
+    }
+  })
+
+  it('rejects enabling auto-archive when archive storage is not configured', async () => {
+    delete process.env.ARCHIVE_STORAGE_BACKEND
+    const owner = await prisma.user.create({
+      data: { name: 'Owner AA', email: 'owner-aa@example.com', password: 'pw' },
+    })
+    const team = await teamService.createTeam(owner, { name: 'AA Team' })
+
+    await expect(
+      teamService.updateSettings(team.id, 'autoArchive', {
+        enabled: true,
+        method: 'not_updated',
+        days: 30,
+        postRestoreGraceDays: 30,
+      }),
+    ).rejects.toThrow('Cannot enable auto archive when archive storage is not configured')
+
+    await expect(teamService.updateSettings(team.id, 'autoArchive.enabled', true)).rejects.toThrow(
+      'Cannot enable auto archive when archive storage is not configured',
+    )
+  })
+
+  it('allows updating auto-archive settings when archive storage is configured', async () => {
+    const saved = { ...process.env }
+    process.env.ARCHIVE_STORAGE_BACKEND = 'local'
+    process.env.ARCHIVE_LOCAL_ROOT = '/tmp/shumai-archive-test-team'
+
+    try {
+      const owner = await prisma.user.create({
+        data: { name: 'Owner AA 2', email: 'owner-aa2@example.com', password: 'pw' },
+      })
+      const team = await teamService.createTeam(owner, { name: 'AA Team 2' })
+
+      await teamService.updateSettings(team.id, 'autoArchive', {
+        enabled: true,
+        method: 'after_created',
+        days: 45,
+        postRestoreGraceDays: 15,
+      })
+
+      const settings = await teamService.getSettings(team.id)
+      expect(settings.autoArchive).toEqual({
+        enabled: true,
+        method: 'after_created',
+        days: 45,
+        postRestoreGraceDays: 15,
+      })
+      expect(settings.archiveStorage).toEqual({
+        enabled: true,
+        backend: 'local',
+        localRoot: path.resolve('/tmp/shumai-archive-test-team'),
+      })
+
+      // Non-admin call should mask backend/root details
+      const readerSettings = await teamService.getSettings(team.id, { isAdmin: false })
+      expect(readerSettings.archiveStorage).toEqual({
+        enabled: true,
+      })
+    } finally {
+      process.env = saved
     }
   })
 })

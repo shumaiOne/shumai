@@ -122,6 +122,7 @@ declare global {
       mediaGeneration?: MediaGenerationSettings
       appearance?: AppearanceSettings
       emailNotification?: EmailNotificationSettings
+      autoArchive?: import('@shumai/dtos').AutoArchiveSettings
     }
 
     // ----------------------------------------------------------------------

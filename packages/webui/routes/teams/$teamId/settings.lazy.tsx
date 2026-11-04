@@ -25,6 +25,7 @@ import { EmailNotificationSettings } from '@/ui/components/settings/EmailNotific
 import { ImageVideoGenerationSettings } from '@/ui/components/settings/ImageVideoGenerationSettings'
 import { TurntableSettingsCard } from '@/ui/components/settings/TurntableSettingsCard'
 import { GotenbergSettingsCard } from '@/ui/components/settings/GotenbergSettingsCard'
+import { StorageSettings } from '@/ui/components/settings/StorageSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { Slider } from '@/ui/components/ui/slider'
 import { cn } from '@/ui/lib/utils'
@@ -45,6 +46,7 @@ import {
   Key,
   Gauge,
   Palette,
+  HardDrive,
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
@@ -70,6 +72,7 @@ type SettingsTab =
   | 'appearance'
   | 'email'
   | 'integrations'
+  | 'storage'
   | 'skills'
   | 'mcp'
   | 'providers'
@@ -86,6 +89,7 @@ const VALID_SETTINGS_TABS: readonly SettingsTab[] = [
   'appearance',
   'email',
   'integrations',
+  'storage',
   'skills',
   'mcp',
   'providers',
@@ -301,6 +305,8 @@ export function TeamSettingsPage() {
       'quotas',
       'appearance',
       'email',
+      'integrations',
+      'storage',
       'providers',
       'image-video',
       'skills',
@@ -667,6 +673,22 @@ export function TeamSettingsPage() {
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
                   )}
                 </button>
+
+                <button
+                  onClick={() => handleTabChange('storage')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                    activeTab === 'storage'
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                      : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  )}
+                >
+                  <HardDrive className="w-5 h-5" />
+                  {m.storage()}
+                  {activeTab === 'storage' && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+                  )}
+                </button>
               </>
             )}
 
@@ -789,6 +811,7 @@ export function TeamSettingsPage() {
                   {activeTab === 'appearance' && m.appearance_settings()}
                   {activeTab === 'email' && m.email_notifications()}
                   {activeTab === 'integrations' && m.integrations()}
+                  {activeTab === 'storage' && m.storage_settings()}
                   {activeTab === 'skills' && m.skills_management()}
                   {activeTab === 'mcp' && m.mcp_servers()}
                   {activeTab === 'providers' && m.ai_providers()}
@@ -805,6 +828,7 @@ export function TeamSettingsPage() {
                   {activeTab === 'appearance' && m.appearance_settings_description()}
                   {activeTab === 'email' && m.email_notifications_description()}
                   {activeTab === 'integrations' && m.integrations_settings_description()}
+                  {activeTab === 'storage' && m.storage_settings_description()}
                   {activeTab === 'skills' && m.skills_description()}
                   {activeTab === 'mcp' && m.mcp_servers_description()}
                   {activeTab === 'providers' && m.providers_description()}
@@ -1217,6 +1241,8 @@ export function TeamSettingsPage() {
                   <GotenbergSettingsCard teamId={teamId} />
                 </div>
               )}
+
+              {activeTab === 'storage' && <StorageSettings teamId={teamId} />}
             </div>
           </div>
         </main>

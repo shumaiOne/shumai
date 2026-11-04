@@ -489,7 +489,7 @@ export const commitRestoreDbStateActivity = defineStep(
           type: 'file',
           status: AssetStatus.restoring,
         },
-        data: { status: AssetStatus.processed },
+        data: { status: AssetStatus.processed, updatedAt: new Date() },
       }),
     ])
   },

@@ -82,7 +82,17 @@ export class AssetArchiveService {
     })
   }
 
-  async archiveAssets(assetIds: string[]): Promise<ArchiveAssetsResponse> {
+  async archiveAssets(
+    assetIds: string[],
+    options?: {
+      suppressBusyErrors?: boolean
+      autoArchivePolicy?: {
+        method: 'not_updated' | 'after_created'
+        cutoffDate: Date
+        restoreCutoffDate: Date
+      }
+    },
+  ): Promise<ArchiveAssetsResponse> {
     if (!isArchiveStorageEnabled()) {
       throw new HTTPException(400, { message: 'Archive storage is not configured' })
     }
@@ -187,15 +197,17 @@ export class AssetArchiveService {
     }
 
     if (eligibleByStorageKey.size === 0) {
-      if (alreadyArchivedCount === 0 && busyCount > 0) {
-        throw new HTTPException(409, {
-          message: 'Cannot archive asset while a workflow task is in progress',
-        })
-      }
-      if (alreadyArchivedCount === 0 && invalidStateCount > 0) {
-        throw new HTTPException(409, {
-          message: 'Only processed assets can be archived',
-        })
+      if (!options?.suppressBusyErrors) {
+        if (alreadyArchivedCount === 0 && busyCount > 0) {
+          throw new HTTPException(409, {
+            message: 'Cannot archive asset while a workflow task is in progress',
+          })
+        }
+        if (alreadyArchivedCount === 0 && invalidStateCount > 0) {
+          throw new HTTPException(409, {
+            message: 'Only processed assets can be archived',
+          })
+        }
       }
       return { archivedAssetIds: [], taskIds: [], skippedCount }
     }
@@ -206,26 +218,63 @@ export class AssetArchiveService {
     for (const [storageKeyId, filesForKey] of eligibleByStorageKey.entries()) {
       const primaryFile = filesForKey[0]
       await this.prismaClient.$transaction(async (tx) => {
-        const sharedAssets = await tx.asset.findMany({
-          where: {
-            storageKeyId,
-            isDeleted: false,
-            type: AssetType.file,
-            status: AssetStatus.processed,
-          },
-          select: { id: true },
-        })
-        const sharedAssetIds = sharedAssets.map((a) => a.id)
+        // 1. Lock the storageKey row to serialize concurrent archive requests
+        const lockedKeys = await tx.$queryRaw<Array<{ id: string; isArchived: boolean }>>`
+          SELECT id, is_archived AS "isArchived"
+          FROM storage_keys
+          WHERE id = ${storageKeyId}
+          FOR UPDATE
+        `
+        if (!lockedKeys || lockedKeys.length === 0 || lockedKeys[0].isArchived) {
+          return
+        }
 
-        if (sharedAssetIds.length > 0) {
-          await tx.asset.updateMany({
-            where: { id: { in: sharedAssetIds } },
-            data: { status: AssetStatus.archiving },
+        // If an auto-archive policy was specified, re-verify under lock that all sibling assets meet the age policy
+        if (options?.autoArchivePolicy) {
+          const policy = options.autoArchivePolicy
+          const ineligible = await tx.asset.findFirst({
+            where: {
+              storageKeyId,
+              isDeleted: false,
+              OR: [
+                { type: { not: AssetType.file } },
+                { status: { not: AssetStatus.processed } },
+                ...(policy.method === 'not_updated'
+                  ? [{ updatedAt: { gt: policy.cutoffDate } }]
+                  : [
+                      {
+                        OR: [
+                          { createdAt: { gt: policy.cutoffDate } },
+                          { updatedAt: { gt: policy.restoreCutoffDate } },
+                        ],
+                      },
+                    ]),
+              ],
+            },
+            select: { id: true },
           })
-
-          for (const id of sharedAssetIds) {
-            archivedAssetIdsSet.add(id)
+          if (ineligible) {
+            return
           }
+        }
+
+        // 2. Atomic Filter + Update: only files that are currently 'processed' transition to 'archiving'
+        const updatedAssets = await tx.$queryRaw<Array<{ id: string }>>`
+          UPDATE assets
+          SET status = 'archiving'::"AssetStatus", updated_at = NOW()
+          WHERE storage_key_id = ${storageKeyId}
+            AND type = 'file'::"AssetType"
+            AND status = 'processed'::"AssetStatus"
+            AND is_deleted = false
+          RETURNING id
+        `
+
+        if (!updatedAssets || updatedAssets.length === 0) {
+          return
+        }
+
+        for (const row of updatedAssets) {
+          archivedAssetIdsSet.add(row.id)
         }
 
         const existingTask = await tx.workflowTask.findFirst({

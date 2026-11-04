@@ -110,6 +110,32 @@ export type HlsResolutionLadder = (typeof HlsResolutionLadder)[keyof typeof HlsR
 
 export const DEFAULT_HLS_RESOLUTIONS: HlsResolutionLadder[] = ['480p', '720p', '1080p']
 
+export const autoArchiveMethodSchema = z.enum(['not_updated', 'after_created'])
+export type AutoArchiveMethod = z.infer<typeof autoArchiveMethodSchema>
+
+export const autoArchiveSettingsSchema = z.object({
+  enabled: z.boolean(),
+  method: autoArchiveMethodSchema,
+  days: z.number().int().min(1).max(3650),
+  postRestoreGraceDays: z.number().int().min(1).max(3650).default(30),
+})
+export type AutoArchiveSettings = z.infer<typeof autoArchiveSettingsSchema>
+
+export const DEFAULT_AUTO_ARCHIVE_SETTINGS: AutoArchiveSettings = {
+  enabled: false,
+  method: 'not_updated',
+  days: 30,
+  postRestoreGraceDays: 30,
+}
+
+export interface ArchiveStorageInfo {
+  enabled: boolean
+  backend?: 'local' | 's3'
+  endpoint?: string
+  bucket?: string
+  localRoot?: string
+}
+
 export const updateTeamSettingsRequestSchema = z.union([
   z.object({
     key: z.literal('transcode.videoStrategy'),
@@ -138,6 +164,26 @@ export const updateTeamSettingsRequestSchema = z.union([
   z.object({
     key: z.literal('appearance.hideAgent'),
     value: z.boolean(),
+  }),
+  z.object({
+    key: z.literal('autoArchive'),
+    value: autoArchiveSettingsSchema,
+  }),
+  z.object({
+    key: z.literal('autoArchive.enabled'),
+    value: z.boolean(),
+  }),
+  z.object({
+    key: z.literal('autoArchive.method'),
+    value: autoArchiveMethodSchema,
+  }),
+  z.object({
+    key: z.literal('autoArchive.days'),
+    value: z.number().int().min(1).max(3650),
+  }),
+  z.object({
+    key: z.literal('autoArchive.postRestoreGraceDays'),
+    value: z.number().int().min(1).max(3650),
   }),
 ])
 export type UpdateTeamSettingsRequest = z.infer<typeof updateTeamSettingsRequestSchema>
@@ -189,6 +235,8 @@ export interface TeamSettingsResponse {
   gotenberg?: GotenbergSettingsResponse
   appearance?: TeamAppearanceSettings
   semanticSearchEnabled?: boolean
+  archiveStorage?: ArchiveStorageInfo
+  autoArchive?: AutoArchiveSettings
   [key: string]: unknown
 }
 
