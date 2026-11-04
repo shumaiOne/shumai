@@ -1,10 +1,18 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as fs from 'fs'
 import * as path from 'path'
-import { AssetStatus, prisma, WorkflowTaskType, WorkflowTaskStatus, type User } from '@shumai/db'
+import {
+  AssetStatus,
+  prisma,
+  Prisma,
+  WorkflowTaskType,
+  WorkflowTaskStatus,
+  type User,
+} from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { projectService } from '@shumai/core/src/project/project'
 import { assetService } from './asset'
+import { assetArchiveService } from './asset-archive'
 import { resetArchiveStorageServiceForTests } from '../s3/archive-storage'
 import {
   AutoArchiveJobService,
@@ -295,7 +303,7 @@ describe('AutoArchiveJobService', () => {
 
     // Together they should archive the asset exactly once
     const totalArchived = jobRes.archivedCount + manualRes.archivedAssetIds.length
-    expect(totalArchived).toBeGreaterThanOrEqual(1)
+    expect(totalArchived).toBe(1)
 
     // Verify exactly ONE WorkflowTask was created
     const tasks = await prisma.workflowTask.findMany({
@@ -305,6 +313,113 @@ describe('AutoArchiveJobService', () => {
 
     const refreshedFile = await prisma.asset.findUniqueOrThrow({ where: { id: file.id } })
     expect(refreshedFile.status).toBe(AssetStatus.archiving)
+  })
+
+  it('prevents candidate starvation: storage keys with stuck siblings are ignored so eligible candidates are not blocked', async () => {
+    const oldDate = new Date(Date.now() - 40 * 86_400_000)
+
+    // Key 1: has an old file AND a stuck sibling with status 'failed'
+    const stuckKey = 'files/test/stuck-sibling.mp4'
+    const fileWithStuckSibling = await createTestFile({
+      name: 'stuck-primary.mp4',
+      key: stuckKey,
+      updatedAt: oldDate,
+    })
+    const stuckSibling = await assetService.createAsset({
+      name: 'stuck-sibling-failed.mp4',
+      type: 'file',
+      parentId: rootFolderId,
+      projectId,
+      key: stuckKey,
+      sizeByte: 2048,
+      contentType: 'video/mp4',
+      creatorId: owner.id,
+    })
+    await prisma.asset.update({
+      where: { id: stuckSibling.id },
+      data: {
+        status: AssetStatus.failed,
+        updatedAt: oldDate,
+      },
+    })
+
+    // Key 2: fully eligible old file
+    const eligibleFile = await createTestFile({
+      name: 'eligible-siblingless.mp4',
+      key: 'files/test/eligible-siblingless.mp4',
+      updatedAt: oldDate,
+    })
+
+    const job = new AutoArchiveJobService()
+    // With batchSize 1, the query must pick the eligible file instead of getting stuck on Key 1
+    const res = await job.processAutoArchive(1)
+
+    expect(res.archivedCount).toBe(1)
+
+    const refreshedEligible = await prisma.asset.findUniqueOrThrow({
+      where: { id: eligibleFile.id },
+    })
+    expect(refreshedEligible.status).toBe(AssetStatus.archiving)
+
+    const refreshedStuck = await prisma.asset.findUniqueOrThrow({
+      where: { id: fileWithStuckSibling.id },
+    })
+    expect(refreshedStuck.status).toBe(AssetStatus.processed)
+  })
+
+  it('skips scan when another process holds the transaction advisory lock', async () => {
+    const queryRawSpy = vi.spyOn(prisma, '$queryRaw').mockImplementation((query: unknown) => {
+      const sqlText = String((query as { strings?: string[] })?.strings || '')
+      if (sqlText.includes('pg_try_advisory_xact_lock')) {
+        return Promise.resolve([{ acquired: false }]) as unknown as Prisma.PrismaPromise<unknown>
+      }
+      queryRawSpy.mockRestore()
+      return prisma.$queryRaw(query as TemplateStringsArray)
+    })
+
+    try {
+      const job = new AutoArchiveJobService()
+      const res = await job.processAutoArchive()
+      expect(res.archivedCount).toBe(0)
+    } finally {
+      queryRawSpy.mockRestore()
+    }
+  })
+
+  it('does not archive non-file assets even if their status is processed and age criteria met', async () => {
+    const oldDate = new Date(Date.now() - 50 * 86_400_000)
+
+    const folder = await assetService.createAsset({
+      name: 'Old Folder',
+      type: 'folder',
+      projectId,
+      parentId: rootFolderId,
+      creatorId: owner.id,
+    })
+    await prisma.asset.update({
+      where: { id: folder.id },
+      data: {
+        status: AssetStatus.processed,
+        updatedAt: oldDate,
+        createdAt: oldDate,
+      },
+    })
+
+    const res = await assetArchiveService.archiveAssets([folder.id], {
+      suppressBusyErrors: true,
+      autoArchivePolicy: {
+        method: 'not_updated',
+        cutoffDate: new Date(),
+        restoreCutoffDate: new Date(),
+      },
+    })
+
+    expect(res.archivedAssetIds).toHaveLength(0)
+
+    const refreshedFolder = await prisma.asset.findUniqueOrThrow({
+      where: { id: folder.id },
+    })
+    expect(refreshedFolder.status).toBe(AssetStatus.processed)
   })
 
   it('can start and stop without errors', () => {

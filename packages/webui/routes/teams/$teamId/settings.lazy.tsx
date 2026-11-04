@@ -305,6 +305,8 @@ export function TeamSettingsPage() {
       'quotas',
       'appearance',
       'email',
+      'integrations',
+      'storage',
       'providers',
       'image-video',
       'skills',

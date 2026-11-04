@@ -304,6 +304,8 @@
   "auto_archive_disabled_hint": "Archive storage must be configured on the server before auto archive can be enabled.",
   "auto_archive_settings_saved": "Auto archive settings saved successfully",
   "auto_archive_settings_save_failed": "Failed to save auto archive settings",
+  "failed_to_load_storage_settings": "Failed to load storage settings",
+  "retry": "Retry",
   "gotenberg_settings": "Gotenberg Document Converter",
   "gotenberg_settings_description": "Configure the external Gotenberg service for converting Office documents, Markdown, and HTML to PDF.",
   "gotenberg_server_url": "Server URL",

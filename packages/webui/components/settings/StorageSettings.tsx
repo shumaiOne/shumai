@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select'
-import { Loader2, HardDrive, CheckCircle2, AlertTriangle, Info } from 'lucide-react'
+import { Loader2, HardDrive, CheckCircle2, AlertTriangle, Info, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { m } from '@/ui/paraglide/messages.js'
 import type { TeamSettingsResponse, AutoArchiveMethod } from '@shumai/dtos'
@@ -29,10 +29,22 @@ interface StorageSettingsProps {
   teamId: string
 }
 
+function clampDays(val: string | number, defaultVal = 30): number {
+  const parsed = typeof val === 'number' ? val : parseInt(val, 10)
+  if (isNaN(parsed)) return defaultVal
+  return Math.min(3650, Math.max(1, parsed))
+}
+
 export const StorageSettings: React.FC<StorageSettingsProps> = ({ teamId }) => {
   const queryClient = useQueryClient()
 
-  const { data: settings, isLoading } = useQuery<TeamSettingsResponse>({
+  const {
+    data: settings,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery<TeamSettingsResponse>({
     queryKey: ['teams', teamId, 'settings'],
     queryFn: async () => {
       const res = await client.api.teams[':teamId'].settings.$get({
@@ -46,23 +58,27 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ teamId }) => {
 
   const [enabled, setEnabled] = useState(false)
   const [method, setMethod] = useState<AutoArchiveMethod>('not_updated')
-  const [days, setDays] = useState(30)
-  const [postRestoreGraceDays, setPostRestoreGraceDays] = useState(30)
+  const [daysInput, setDaysInput] = useState('30')
+  const [postRestoreGraceDaysInput, setPostRestoreGraceDaysInput] = useState('30')
+  const [isDirty, setIsDirty] = useState(false)
 
   useEffect(() => {
-    if (settings?.autoArchive) {
+    if (settings?.autoArchive && !isDirty) {
       setEnabled(settings.autoArchive.enabled ?? false)
       setMethod(settings.autoArchive.method ?? 'not_updated')
-      setDays(settings.autoArchive.days ?? 30)
-      setPostRestoreGraceDays(settings.autoArchive.postRestoreGraceDays ?? 30)
+      setDaysInput(String(settings.autoArchive.days ?? 30))
+      setPostRestoreGraceDaysInput(String(settings.autoArchive.postRestoreGraceDays ?? 30))
     }
-  }, [settings?.autoArchive])
+  }, [settings?.autoArchive, isDirty])
 
   const archiveStorage = settings?.archiveStorage
   const isArchiveConfigured = Boolean(archiveStorage?.enabled)
 
   const { mutate: saveAutoArchiveSettings, isPending: isSaving } = useMutation({
     mutationFn: async () => {
+      const days = clampDays(daysInput, 30)
+      const postRestoreGraceDays = clampDays(postRestoreGraceDaysInput, 30)
+
       const res = await client.api.teams[':teamId'].settings.$patch({
         param: { teamId },
         json: {
@@ -70,8 +86,8 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ teamId }) => {
           value: {
             enabled,
             method,
-            days: Math.max(1, Number(days) || 30),
-            postRestoreGraceDays: Math.max(1, Number(postRestoreGraceDays) || 30),
+            days,
+            postRestoreGraceDays,
           },
         },
       })
@@ -82,6 +98,7 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ teamId }) => {
       return await res.json()
     },
     onSuccess: () => {
+      setIsDirty(false)
       queryClient.invalidateQueries({
         queryKey: ['teams', teamId, 'settings'],
       })
@@ -96,6 +113,29 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ teamId }) => {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="h-full overflow-y-auto space-y-6 pr-1">
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <CardTitle className="text-destructive flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" />
+              {m.failed_to_load_storage_settings()}
+            </CardTitle>
+            <CardDescription>
+              {error instanceof Error ? error.message : m.failed_load_settings()}
+            </CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button variant="outline" onClick={() => refetch()}>
+              {m.retry()}
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     )
   }
@@ -216,7 +256,10 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ teamId }) => {
             <Switch
               id="enable-auto-archive-switch"
               checked={enabled}
-              onCheckedChange={setEnabled}
+              onCheckedChange={(val) => {
+                setIsDirty(true)
+                setEnabled(val)
+              }}
               disabled={!isArchiveConfigured || isSaving}
             />
           </div>
@@ -227,7 +270,10 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ teamId }) => {
               <label className="text-sm font-medium">{m.auto_archive_method()}</label>
               <Select
                 value={method}
-                onValueChange={(val) => setMethod(val as AutoArchiveMethod)}
+                onValueChange={(val) => {
+                  setIsDirty(true)
+                  setMethod(val as AutoArchiveMethod)
+                }}
                 disabled={!isArchiveConfigured || isSaving}
               >
                 <SelectTrigger id="auto-archive-method-trigger">
@@ -252,8 +298,14 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ teamId }) => {
                 type="number"
                 min={1}
                 max={3650}
-                value={days}
-                onChange={(e) => setDays(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                value={daysInput}
+                onChange={(e) => {
+                  setIsDirty(true)
+                  setDaysInput(e.target.value)
+                }}
+                onBlur={() => {
+                  setDaysInput(String(clampDays(daysInput, 30)))
+                }}
                 disabled={!isArchiveConfigured || isSaving}
                 className="w-full md:w-64"
               />
@@ -273,10 +325,14 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ teamId }) => {
                   type="number"
                   min={1}
                   max={3650}
-                  value={postRestoreGraceDays}
-                  onChange={(e) =>
-                    setPostRestoreGraceDays(Math.max(1, parseInt(e.target.value, 10) || 1))
-                  }
+                  value={postRestoreGraceDaysInput}
+                  onChange={(e) => {
+                    setIsDirty(true)
+                    setPostRestoreGraceDaysInput(e.target.value)
+                  }}
+                  onBlur={() => {
+                    setPostRestoreGraceDaysInput(String(clampDays(postRestoreGraceDaysInput, 30)))
+                  }}
                   disabled={!isArchiveConfigured || isSaving}
                   className="w-full md:w-64"
                 />

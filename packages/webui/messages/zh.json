@@ -304,6 +304,8 @@
   "auto_archive_disabled_hint": "必须在服务端配置归档存储后才能启用自动归档。",
   "auto_archive_settings_saved": "自动归档设置保存成功",
   "auto_archive_settings_save_failed": "保存自动归档设置失败",
+  "failed_to_load_storage_settings": "加载存储设置失败",
+  "retry": "重试",
   "gotenberg_settings": "Gotenberg 文档转换服务",
   "gotenberg_settings_description": "配置用于将 Office 文档、Markdown 及 HTML 转换为 PDF 的外部 Gotenberg 服务。",
   "gotenberg_server_url": "服务地址",

@@ -185,4 +185,50 @@ describe('StorageSettings', () => {
       expect(toast.error).toHaveBeenCalledWith('Cannot save settings')
     })
   })
+
+  it('allows clearing the days input and clamps value on blur', async () => {
+    renderComponent()
+
+    const daysInput = (await screen.findByLabelText(/Age Threshold/i)) as HTMLInputElement
+    expect(daysInput.value).toBe('30')
+
+    // User clears the field
+    fireEvent.change(daysInput, { target: { value: '' } })
+    expect(daysInput.value).toBe('')
+
+    // User types new value
+    fireEvent.change(daysInput, { target: { value: '45' } })
+    expect(daysInput.value).toBe('45')
+
+    // Blur clamps if out of range
+    fireEvent.change(daysInput, { target: { value: '99999' } })
+    fireEvent.blur(daysInput)
+    expect(daysInput.value).toBe('3650')
+  })
+
+  it('renders error state and retries on button click', async () => {
+    mockGetSettings.mockResolvedValueOnce({
+      ok: false,
+    })
+
+    renderComponent()
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Retry/i })).toBeDefined()
+    })
+
+    mockGetSettings.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        archiveStorage: { enabled: true, backend: 'local', localRoot: '/tmp/retry-path' },
+        autoArchive: { enabled: false, method: 'not_updated', days: 30, postRestoreGraceDays: 30 },
+      }),
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Retry/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('/tmp/retry-path')).toBeDefined()
+    })
+  })
 })

@@ -2993,7 +2993,14 @@ export class AssetService {
 
   async archiveAssets(
     assetIds: string[],
-    options?: { suppressBusyErrors?: boolean },
+    options?: {
+      suppressBusyErrors?: boolean
+      autoArchivePolicy?: {
+        method: 'not_updated' | 'after_created'
+        cutoffDate: Date
+        restoreCutoffDate: Date
+      }
+    },
   ): Promise<ArchiveAssetsResponse> {
     return assetArchiveService.archiveAssets(assetIds, options)
   }

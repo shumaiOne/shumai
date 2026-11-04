@@ -39,11 +39,12 @@ Configure archive storage by adding the following environment variables to your 
 
 ### General Configuration
 
-| Variable                  | Description                                                                                                                                                          | Required | Default          |
-| :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------- | :--------------- |
-| `ARCHIVE_STORAGE_BACKEND` | Storage backend for archives: `local` or `s3`. When unset, archive functionality is disabled in the WebUI.                                                           | No       | Unset (Disabled) |
-| `CONCURRENCY_ARCHIVE`     | Maximum concurrent archive and restore tasks executed by background workers.                                                                                         | No       | `5`              |
-| `SHUMAI_WORKERS`          | Worker queues listened to by the application server: `all` (default), `none`, `agent` (or `ai`), `transcode`, `archive`. Set to `all` or `archive` to process tasks. | No       | `all`            |
+| Variable                        | Description                                                                                                                                                          | Required | Default          |
+| :------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------- | :--------------- |
+| `ARCHIVE_STORAGE_BACKEND`       | Storage backend for archives: `local` or `s3`. When unset, archive functionality is disabled in the WebUI.                                                           | No       | Unset (Disabled) |
+| `CONCURRENCY_ARCHIVE`           | Maximum concurrent archive and restore tasks executed by background workers.                                                                                         | No       | `5`              |
+| `SHUMAI_WORKERS`                | Worker queues listened to by the application server: `all` (default), `none`, `agent` (or `ai`), `transcode`, `archive`. Set to `all` or `archive` to process tasks. | No       | `all`            |
+| `AUTO_ARCHIVE_INTERVAL_MINUTES` | Frequency (in minutes) of the background auto-archive scanner job. Accepts decimal numbers (e.g. `0.02` for testing).                                                | No       | `60` (1 hour)    |
 
 ### Local Archive Storage
 
@@ -195,6 +196,30 @@ ARCHIVE_S3_STORAGE_CLASS=COLDLINE
 
 > [!TIP]
 > Google Cloud Storage objects are readable immediately and do not accept AWS Glacier retrieval parameters. Do not set `ARCHIVE_S3_RESTORE_TIER`. If using GCS's `ARCHIVE` storage class, set `ARCHIVE_S3_USE_RESTORE_OBJECT=false` to bypass S3 `RestoreObject` calls.
+
+---
+
+## Automatic Asset Archival
+
+Teams can automate cold storage tiering based on asset age without manual intervention.
+
+### Configuration
+
+Under **Team Settings > Storage** (accessible by team owners):
+
+- **Enable Auto Archive**: Toggle automated background archival on or off for the team (disabled by default; requires archive storage to be configured).
+- **Archive Criteria**:
+  - `not_updated`: Archives assets that have not been modified for at least the specified number of days (default: 30 days).
+  - `after_created`: Archives assets whose initial creation date is at least the specified number of days ago (default: 30 days).
+- **Post-Restore Grace Period**: When using the `after_created` rule, restored assets receive a configurable grace period (default: 30 days) during which they will not be re-archived even if their original creation date exceeds the threshold.
+
+### Background Job
+
+The auto-archive job runs periodically across all teams where auto-archive is enabled:
+
+- **Scan Interval**: Configured via `AUTO_ARCHIVE_INTERVAL_MINUTES` (default: 60 minutes).
+- **Concurrency & Deduplication**: Distributed transaction-scoped advisory locks ensure only one instance scans at a time across multi-replica deployments. If multiple assets share a deduplicated storage key, all sibling files must meet the age policy before the underlying storage object is moved.
+- **Safety**: Atomic database filters and locks prevent race conditions with concurrent manual archival or asset modifications.
 
 ---
 

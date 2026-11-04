@@ -84,7 +84,14 @@ export class AssetArchiveService {
 
   async archiveAssets(
     assetIds: string[],
-    options?: { suppressBusyErrors?: boolean },
+    options?: {
+      suppressBusyErrors?: boolean
+      autoArchivePolicy?: {
+        method: 'not_updated' | 'after_created'
+        cutoffDate: Date
+        restoreCutoffDate: Date
+      }
+    },
   ): Promise<ArchiveAssetsResponse> {
     if (!isArchiveStorageEnabled()) {
       throw new HTTPException(400, { message: 'Archive storage is not configured' })
@@ -222,11 +229,41 @@ export class AssetArchiveService {
           return
         }
 
+        // If an auto-archive policy was specified, re-verify under lock that all sibling assets meet the age policy
+        if (options?.autoArchivePolicy) {
+          const policy = options.autoArchivePolicy
+          const ineligible = await tx.asset.findFirst({
+            where: {
+              storageKeyId,
+              isDeleted: false,
+              OR: [
+                { type: { not: AssetType.file } },
+                { status: { not: AssetStatus.processed } },
+                ...(policy.method === 'not_updated'
+                  ? [{ updatedAt: { gt: policy.cutoffDate } }]
+                  : [
+                      {
+                        OR: [
+                          { createdAt: { gt: policy.cutoffDate } },
+                          { updatedAt: { gt: policy.restoreCutoffDate } },
+                        ],
+                      },
+                    ]),
+              ],
+            },
+            select: { id: true },
+          })
+          if (ineligible) {
+            return
+          }
+        }
+
         // 2. Atomic Filter + Update: only files that are currently 'processed' transition to 'archiving'
         const updatedAssets = await tx.$queryRaw<Array<{ id: string }>>`
           UPDATE assets
           SET status = 'archiving'::"AssetStatus", updated_at = NOW()
           WHERE storage_key_id = ${storageKeyId}
+            AND type = 'file'::"AssetType"
             AND status = 'processed'::"AssetStatus"
             AND is_deleted = false
           RETURNING id

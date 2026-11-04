@@ -244,7 +244,23 @@ describe('team api', () => {
         permission: Permission.Read,
       }),
     )
-    expect(mockGetSettings).toHaveBeenCalledWith('t1')
+    expect(mockGetSettings).toHaveBeenCalledWith('t1', { isAdmin: true })
+  })
+
+  it('GET /teams/:teamId/settings passes isAdmin: false when user lacks admin permission', async () => {
+    vi.mocked(authzService.hasPermission).mockImplementation(async (params) => {
+      if (params.permission === Permission.Admin) {
+        throw new Error('Forbidden')
+      }
+    })
+    mockGetSettings.mockResolvedValue({
+      archiveStorage: { enabled: true },
+    })
+
+    const res = await app.request('/teams/t1/settings')
+
+    expect(res.status).toBe(200)
+    expect(mockGetSettings).toHaveBeenCalledWith('t1', { isAdmin: false })
   })
 
   it('GET /teams/:teamId/settings does not return emailNotification to readers', async () => {

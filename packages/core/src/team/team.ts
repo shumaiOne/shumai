@@ -307,7 +307,10 @@ export class TeamService {
     })
   }
 
-  async getSettings(teamId: string): Promise<TeamSettingsResponse> {
+  async getSettings(
+    teamId: string,
+    options?: { isAdmin?: boolean },
+  ): Promise<TeamSettingsResponse> {
     const team = await prisma.team.findUnique({
       where: { id: teamId },
     })
@@ -365,6 +368,8 @@ export class TeamService {
     const archiveConfig = getArchiveStorageConfig()
     if (!archiveConfig.enabled) {
       settings.archiveStorage = { enabled: false }
+    } else if (options?.isAdmin === false) {
+      settings.archiveStorage = { enabled: true }
     } else if (archiveConfig.backend === 'local') {
       settings.archiveStorage = {
         enabled: true,

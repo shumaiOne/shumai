@@ -556,4 +556,22 @@ describe('TeamSettingsPage Transcode Settings', () => {
     // Redundant "Transcode Settings" card title should not be rendered
     expect(screen.queryByRole('heading', { level: 3, name: 'Transcode Settings' })).toBeNull()
   })
+
+  it('redirects non-owners attempting to access storage tab to general', async () => {
+    window.location.hash = '#storage'
+    mockGetMe.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ role: 'member' }),
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TeamSettingsPage />
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.queryByText('Storage Settings')).toBeNull()
+    })
+  })
 })

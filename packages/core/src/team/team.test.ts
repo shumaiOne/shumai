@@ -707,6 +707,12 @@ describe('TeamService', () => {
         backend: 'local',
         localRoot: path.resolve('/tmp/shumai-archive-test-team'),
       })
+
+      // Non-admin call should mask backend/root details
+      const readerSettings = await teamService.getSettings(team.id, { isAdmin: false })
+      expect(readerSettings.archiveStorage).toEqual({
+        enabled: true,
+      })
     } finally {
       process.env = saved
     }

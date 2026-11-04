@@ -210,7 +210,17 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: teamId,
     })
 
-    const settings = await teamService.getSettings(teamId)
+    const isAdmin = await authzService
+      .hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
+      })
+      .then(() => true)
+      .catch(() => false)
+
+    const settings = await teamService.getSettings(teamId, { isAdmin })
     return c.json(settings)
   })
   .patch(

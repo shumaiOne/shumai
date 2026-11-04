@@ -78,6 +78,7 @@ Shumai supports configuring an optional **Archive Storage** tier (`local` NAS/di
 | `ARCHIVE_S3_USE_RESTORE_OBJECT` | Controls whether S3 `RestoreObject` is called before reading archived objects (`auto`, `true`, or `false`).                                                                             | `auto` (default)                                       |
 | `ARCHIVE_S3_RESTORE_DAYS`       | Number of days a restored copy of a cold S3 object remains readable during restoration.                                                                                                 | `1` (default)                                          |
 | `ARCHIVE_S3_RESTORE_TIER`       | Optional S3 Glacier retrieval tier (`Expedited`, `Standard`, `Bulk`). Omitted when unset for S3-compatible providers that reject `GlacierJobParameters`.                                | Unset (default)                                        |
+| `AUTO_ARCHIVE_INTERVAL_MINUTES` | Frequency (in minutes) of the background auto-archive scanner job. Accepts decimal values (e.g. `0.02` for testing).                                                                    | `60` (1 hour default)                                  |
 
 ---
 

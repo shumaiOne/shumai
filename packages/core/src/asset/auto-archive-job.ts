@@ -1,4 +1,4 @@
-import { AssetStatus, AssetType, prisma } from '@shumai/db'
+import { prisma, Prisma } from '@shumai/db'
 import { isArchiveStorageEnabled } from '@shumai/core/src/s3/archive-storage'
 import { assetArchiveService } from '@shumai/core/src/asset/asset-archive'
 import { logger } from '@shumai/core/src/logger'
@@ -12,6 +12,16 @@ export function getAutoArchiveIntervalMs(): number {
     }
   }
   return 60 * 60 * 1000 // default 1 hour
+}
+
+interface TeamArchiveBatch {
+  teamId: string
+  assetIds: string[]
+  policy: {
+    method: 'not_updated' | 'after_created'
+    cutoffDate: Date
+    restoreCutoffDate: Date
+  }
 }
 
 export class AutoArchiveJobService {
@@ -29,10 +39,7 @@ export class AutoArchiveJobService {
       try {
         await this.processAutoArchive()
       } catch (err: unknown) {
-        logger.error(
-          { err: err instanceof Error ? err.message : String(err) },
-          'Error in auto-archive background job',
-        )
+        logger.error({ err }, 'Error in auto-archive background job')
       }
 
       if (this.isRunning) {
@@ -65,150 +72,120 @@ export class AutoArchiveJobService {
     }
 
     this.isProcessing = true
-    let advisoryLockAcquired = false
 
     try {
-      // 1. Acquire advisory lock only for the query/scan phase
-      const lockRes = await prisma.$queryRaw<Array<{ locked: boolean }>>`
-        SELECT pg_try_advisory_lock(hashtext('auto_archive_job')) AS locked
-      `
-      if (!lockRes || !lockRes[0]?.locked) {
-        logger.debug('Could not acquire advisory lock for auto-archive scan, skipping')
-        return { archivedCount: 0 }
-      }
-      advisoryLockAcquired = true
-
-      // 2. Query all teams with auto-archive enabled
-      const teams = await prisma.team.findMany({
-        select: { id: true, settings: true },
-      })
-
-      const eligibleTeams = teams.filter((t) => {
-        const s = (t.settings || {}) as PrismaJson.Settings
-        return Boolean(s.autoArchive?.enabled)
-      })
-
-      if (eligibleTeams.length === 0) {
-        return { archivedCount: 0 }
-      }
-
-      // Collect candidate asset IDs to archive across teams
-      const assetsToArchive: string[] = []
-
-      for (const team of eligibleTeams) {
-        const settings = (team.settings || {}) as PrismaJson.Settings
-        const autoArchive = settings.autoArchive
-        const method = autoArchive?.method || 'not_updated'
-        const days = Math.max(1, autoArchive?.days || 30)
-        const postRestoreGraceDays = Math.max(1, autoArchive?.postRestoreGraceDays || 30)
-
-        const now = Date.now()
-        const cutoffDate = new Date(now - days * 86_400_000)
-        const restoreCutoffDate = new Date(now - postRestoreGraceDays * 86_400_000)
-
-        // Find candidate files for this team
-        const candidates = await prisma.asset.findMany({
-          where: {
-            project: { teamId: team.id },
-            type: AssetType.file,
-            status: AssetStatus.processed,
-            isDeleted: false,
-            storageKeyId: { not: null },
-            storageKey: { isArchived: false },
-            ...(method === 'not_updated'
-              ? { updatedAt: { lte: cutoffDate } }
-              : {
-                  createdAt: { lte: cutoffDate },
-                  updatedAt: { lte: restoreCutoffDate },
-                }),
-          },
-          select: { id: true, storageKeyId: true },
-          take: batchSize,
-          orderBy: { id: 'asc' },
-        })
-
-        if (candidates.length === 0) {
-          continue
+      // Phase 1: Query & Scan under transaction-scoped advisory lock.
+      // Automatically released as soon as this transaction completes.
+      const teamBatches = await prisma.$transaction(async (tx) => {
+        const lockRes = await tx.$queryRaw<Array<{ locked: boolean }>>`
+          SELECT pg_try_advisory_xact_lock(hashtext('auto_archive_job')) AS locked
+        `
+        if (!lockRes || !lockRes[0]?.locked) {
+          logger.debug(
+            'Could not acquire transaction advisory lock for auto-archive scan, skipping',
+          )
+          return []
         }
 
-        const candidateStorageKeyIds = Array.from(
-          new Set(candidates.map((c) => c.storageKeyId).filter((id): id is string => !!id)),
-        )
-
-        // Inspect all sibling files sharing these storage keys.
-        // Policy: only archive if ALL sibling files sharing the key satisfy the age policy
-        const allSiblings = await prisma.asset.findMany({
+        // Query only teams where autoArchive is enabled via JSON filter
+        const eligibleTeams = await tx.team.findMany({
           where: {
-            storageKeyId: { in: candidateStorageKeyIds },
-            isDeleted: false,
-            type: AssetType.file,
-            status: { notIn: [AssetStatus.trashed, AssetStatus.pending_purge] },
+            settings: {
+              path: ['autoArchive', 'enabled'],
+              equals: true,
+            },
           },
-          select: {
-            id: true,
-            storageKeyId: true,
-            status: true,
-            createdAt: true,
-            updatedAt: true,
-          },
+          select: { id: true, settings: true },
         })
 
-        const siblingsByKey = new Map<string, typeof allSiblings>()
-        for (const s of allSiblings) {
-          if (!s.storageKeyId) continue
-          const list = siblingsByKey.get(s.storageKeyId) || []
-          list.push(s)
-          siblingsByKey.set(s.storageKeyId, list)
+        if (eligibleTeams.length === 0) {
+          return []
         }
 
-        for (const [keyId, siblings] of siblingsByKey.entries()) {
-          const allEligible = siblings.every((sib) => {
-            if (sib.status !== AssetStatus.processed) return false
-            if (method === 'not_updated') {
-              return sib.updatedAt <= cutoffDate
-            }
-            return sib.createdAt <= cutoffDate && sib.updatedAt <= restoreCutoffDate
-          })
+        const batches: TeamArchiveBatch[] = []
 
-          if (allEligible) {
-            // Add primary candidate IDs for this key
-            const matchingCandidates = candidates.filter((c) => c.storageKeyId === keyId)
-            for (const mc of matchingCandidates) {
-              assetsToArchive.push(mc.id)
-            }
+        for (const team of eligibleTeams) {
+          const settings = (team.settings || {}) as PrismaJson.Settings
+          const autoArchive = settings.autoArchive
+          const method = autoArchive?.method || 'not_updated'
+          const days = Math.max(1, autoArchive?.days || 30)
+          const postRestoreGraceDays = Math.max(1, autoArchive?.postRestoreGraceDays || 30)
+
+          const now = Date.now()
+          const cutoffDate = new Date(now - days * 86_400_000)
+          const restoreCutoffDate = new Date(now - postRestoreGraceDays * 86_400_000)
+
+          // Query candidate assets whose storage keys have NO ineligible sibling.
+          // NOT EXISTS eliminates starvation from stuck/recent siblings at the database level.
+          const candidateRows = await tx.$queryRaw<Array<{ id: string }>>`
+            SELECT a.id
+            FROM assets a
+            JOIN projects p ON a.project_id = p.id
+            JOIN storage_keys sk ON a.storage_key_id = sk.id
+            WHERE p.team_id = ${team.id}
+              AND a.type = 'file'::"AssetType"
+              AND a.status = 'processed'::"AssetStatus"
+              AND a.is_deleted = false
+              AND sk.is_archived = false
+              AND ${
+                method === 'not_updated'
+                  ? Prisma.sql`a.updated_at <= ${cutoffDate}`
+                  : Prisma.sql`a.created_at <= ${cutoffDate} AND a.updated_at <= ${restoreCutoffDate}`
+              }
+              AND NOT EXISTS (
+                SELECT 1
+                FROM assets sib
+                WHERE sib.storage_key_id = a.storage_key_id
+                  AND sib.is_deleted = false
+                  AND (
+                    sib.type != 'file'::"AssetType"
+                    OR sib.status != 'processed'::"AssetStatus"
+                    OR ${
+                      method === 'not_updated'
+                        ? Prisma.sql`sib.updated_at > ${cutoffDate}`
+                        : Prisma.sql`sib.created_at > ${cutoffDate} OR sib.updated_at > ${restoreCutoffDate}`
+                    }
+                  )
+              )
+            ORDER BY a.id ASC
+            LIMIT ${batchSize};
+          `
+
+          if (candidateRows.length > 0) {
+            batches.push({
+              teamId: team.id,
+              assetIds: candidateRows.map((r) => r.id),
+              policy: { method, cutoffDate, restoreCutoffDate },
+            })
           }
         }
-      }
 
-      // 3. Release the advisory lock immediately after the query/scan phase
-      if (advisoryLockAcquired) {
-        await prisma.$queryRaw`SELECT pg_advisory_unlock(hashtext('auto_archive_job'))`
-        advisoryLockAcquired = false
-      }
+        return batches
+      })
 
-      // 4. Execute archival in batches (each item protected by row-level lock)
-      if (assetsToArchive.length === 0) {
+      if (teamBatches.length === 0) {
         return { archivedCount: 0 }
       }
 
+      // Phase 2: Execute archival in chunks per team batch.
+      // Each asset/storageKey transition is protected by row-level lock and re-verifies policy.
       let totalArchived = 0
       const chunkSize = 50
-      for (let i = 0; i < assetsToArchive.length; i += chunkSize) {
-        const chunk = assetsToArchive.slice(i, i + chunkSize)
-        const result = await assetArchiveService.archiveAssets(chunk, {
-          suppressBusyErrors: true,
-        })
-        totalArchived += result.archivedAssetIds.length
+
+      for (const batch of teamBatches) {
+        for (let i = 0; i < batch.assetIds.length; i += chunkSize) {
+          const chunk = batch.assetIds.slice(i, i + chunkSize)
+          const result = await assetArchiveService.archiveAssets(chunk, {
+            suppressBusyErrors: true,
+            autoArchivePolicy: batch.policy,
+          })
+          totalArchived += result.archivedAssetIds.length
+        }
       }
 
       logger.info({ totalArchived }, 'Auto-archive job completed run')
       return { archivedCount: totalArchived }
     } finally {
-      if (advisoryLockAcquired) {
-        await prisma.$queryRaw`SELECT pg_advisory_unlock(hashtext('auto_archive_job'))`.catch(
-          () => {},
-        )
-      }
       this.isProcessing = false
     }
   }
