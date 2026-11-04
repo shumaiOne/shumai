@@ -89,8 +89,6 @@ export class AutoArchiveJobService {
           return null
         }
 
-        logger.info('Auto-archive job started')
-
         // Query only teams where autoArchive is enabled via JSON filter
         const eligibleTeams = await tx.team.findMany({
           where: {
@@ -167,25 +165,28 @@ export class AutoArchiveJobService {
         return batches
       })
 
-      if (teamBatches) {
-        // Phase 2: Execute archival in chunks per team batch.
-        // Each asset/storageKey transition is protected by row-level lock and re-verifies policy.
-        const chunkSize = 50
-
-        for (const batch of teamBatches) {
-          for (let i = 0; i < batch.assetIds.length; i += chunkSize) {
-            const chunk = batch.assetIds.slice(i, i + chunkSize)
-            const result = await assetArchiveService.archiveAssets(chunk, {
-              suppressBusyErrors: true,
-              autoArchivePolicy: batch.policy,
-            })
-            totalArchived += result.archivedAssetIds.length
-          }
-        }
-
-        logger.info({ totalArchived }, 'Auto-archive job finished')
+      if (!teamBatches || teamBatches.length === 0) {
+        return { archivedCount: 0 }
       }
 
+      logger.info('Auto-archive job started')
+
+      // Phase 2: Execute archival in chunks per team batch.
+      // Each asset/storageKey transition is protected by row-level lock and re-verifies policy.
+      const chunkSize = 50
+
+      for (const batch of teamBatches) {
+        for (let i = 0; i < batch.assetIds.length; i += chunkSize) {
+          const chunk = batch.assetIds.slice(i, i + chunkSize)
+          const result = await assetArchiveService.archiveAssets(chunk, {
+            suppressBusyErrors: true,
+            autoArchivePolicy: batch.policy,
+          })
+          totalArchived += result.archivedAssetIds.length
+        }
+      }
+
+      logger.info({ totalArchived }, 'Auto-archive job finished')
       return { archivedCount: totalArchived }
     } finally {
       this.isProcessing = false

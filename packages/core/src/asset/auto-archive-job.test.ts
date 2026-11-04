@@ -407,6 +407,19 @@ describe('AutoArchiveJobService', () => {
     infoSpy.mockRestore()
   })
 
+  it('does not log info level messages when no files are eligible to archive', async () => {
+    const infoSpy = vi.spyOn(logger, 'info')
+
+    const job = new AutoArchiveJobService()
+    const res = await job.processAutoArchive()
+
+    expect(res.archivedCount).toBe(0)
+    expect(infoSpy).not.toHaveBeenCalledWith('Auto-archive job started')
+    expect(infoSpy).not.toHaveBeenCalledWith(expect.anything(), 'Auto-archive job finished')
+
+    infoSpy.mockRestore()
+  })
+
   it('does not archive non-file assets even if their status is processed and age criteria met', async () => {
     const oldDate = new Date(Date.now() - 50 * 86_400_000)
 
