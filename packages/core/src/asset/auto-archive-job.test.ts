@@ -11,6 +11,7 @@ import {
 } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { projectService } from '@shumai/core/src/project/project'
+import { logger } from '@shumai/core/src/logger'
 import { assetService } from './asset'
 import { assetArchiveService } from './asset-archive'
 import { resetArchiveStorageServiceForTests } from '../s3/archive-storage'
@@ -371,7 +372,7 @@ describe('AutoArchiveJobService', () => {
     const queryRawSpy = vi.spyOn(prisma, '$queryRaw').mockImplementation((query: unknown) => {
       const sqlText = String((query as { strings?: string[] })?.strings || '')
       if (sqlText.includes('pg_try_advisory_xact_lock')) {
-        return Promise.resolve([{ acquired: false }]) as unknown as Prisma.PrismaPromise<unknown>
+        return Promise.resolve([{ locked: false }]) as unknown as Prisma.PrismaPromise<unknown>
       }
       queryRawSpy.mockRestore()
       return prisma.$queryRaw(query as TemplateStringsArray)
@@ -384,6 +385,26 @@ describe('AutoArchiveJobService', () => {
     } finally {
       queryRawSpy.mockRestore()
     }
+  })
+
+  it('logs info level message on job start and finish with totalArchived count', async () => {
+    const infoSpy = vi.spyOn(logger, 'info')
+
+    const oldDate = new Date(Date.now() - 40 * 86_400_000)
+    await createTestFile({
+      name: 'log-test.mp4',
+      key: 'files/test/log-test.mp4',
+      updatedAt: oldDate,
+    })
+
+    const job = new AutoArchiveJobService()
+    const res = await job.processAutoArchive()
+
+    expect(res.archivedCount).toBe(1)
+    expect(infoSpy).toHaveBeenCalledWith('Auto-archive job started')
+    expect(infoSpy).toHaveBeenCalledWith({ totalArchived: 1 }, 'Auto-archive job finished')
+
+    infoSpy.mockRestore()
   })
 
   it('does not archive non-file assets even if their status is processed and age criteria met', async () => {

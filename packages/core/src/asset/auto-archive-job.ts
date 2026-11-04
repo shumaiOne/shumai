@@ -74,6 +74,8 @@ export class AutoArchiveJobService {
     this.isProcessing = true
 
     try {
+      let totalArchived = 0
+
       // Phase 1: Query & Scan under transaction-scoped advisory lock.
       // Automatically released as soon as this transaction completes.
       const teamBatches = await prisma.$transaction(async (tx) => {
@@ -84,8 +86,10 @@ export class AutoArchiveJobService {
           logger.debug(
             'Could not acquire transaction advisory lock for auto-archive scan, skipping',
           )
-          return []
+          return null
         }
+
+        logger.info('Auto-archive job started')
 
         // Query only teams where autoArchive is enabled via JSON filter
         const eligibleTeams = await tx.team.findMany({
@@ -163,27 +167,25 @@ export class AutoArchiveJobService {
         return batches
       })
 
-      if (teamBatches.length === 0) {
-        return { archivedCount: 0 }
-      }
+      if (teamBatches) {
+        // Phase 2: Execute archival in chunks per team batch.
+        // Each asset/storageKey transition is protected by row-level lock and re-verifies policy.
+        const chunkSize = 50
 
-      // Phase 2: Execute archival in chunks per team batch.
-      // Each asset/storageKey transition is protected by row-level lock and re-verifies policy.
-      let totalArchived = 0
-      const chunkSize = 50
-
-      for (const batch of teamBatches) {
-        for (let i = 0; i < batch.assetIds.length; i += chunkSize) {
-          const chunk = batch.assetIds.slice(i, i + chunkSize)
-          const result = await assetArchiveService.archiveAssets(chunk, {
-            suppressBusyErrors: true,
-            autoArchivePolicy: batch.policy,
-          })
-          totalArchived += result.archivedAssetIds.length
+        for (const batch of teamBatches) {
+          for (let i = 0; i < batch.assetIds.length; i += chunkSize) {
+            const chunk = batch.assetIds.slice(i, i + chunkSize)
+            const result = await assetArchiveService.archiveAssets(chunk, {
+              suppressBusyErrors: true,
+              autoArchivePolicy: batch.policy,
+            })
+            totalArchived += result.archivedAssetIds.length
+          }
         }
+
+        logger.info({ totalArchived }, 'Auto-archive job finished')
       }
 
-      logger.info({ totalArchived }, 'Auto-archive job completed run')
       return { archivedCount: totalArchived }
     } finally {
       this.isProcessing = false
