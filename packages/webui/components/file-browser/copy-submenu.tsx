@@ -92,7 +92,7 @@ export function CopyContextMenuSub({ items, context, onCopy }: CopyMenuProps) {
         <span>{m.copy()}</span>
       </ContextMenuSubTrigger>
       <ContextMenuPortal>
-        <ContextMenuSubContent className="w-48">
+        <ContextMenuSubContent className="w-52">
           {imageOpt && (
             <>
               <ContextMenuItem disabled={imageOpt.disabled} onSelect={() => onCopy('image', items)}>
@@ -163,7 +163,7 @@ export function CopyDropdownMenuSub({ items, context, onCopy }: CopyMenuProps) {
         <Copy className="mr-2 h-4 w-4" />
         <span>{m.copy()}</span>
       </DropdownMenuSubTrigger>
-      <DropdownMenuSubContent className="w-48">
+      <DropdownMenuSubContent className="w-52">
         {imageOpt && (
           <>
             <DropdownMenuItem

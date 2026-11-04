@@ -66,7 +66,14 @@ describe('useCopyActions', () => {
     updatedAt: '2026-01-01',
     media: {
       imageTranscodes: [
-        { id: 't1', url: '', key: 'files/img1/proxy-768p.webp', width: 768, height: 1024, size: 500 },
+        {
+          id: 't1',
+          url: '',
+          key: 'files/img1/proxy-768p.webp',
+          width: 768,
+          height: 1024,
+          size: 500,
+        },
       ],
     },
   }

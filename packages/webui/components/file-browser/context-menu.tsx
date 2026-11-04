@@ -160,7 +160,7 @@ export function FileBrowserContextMenu({
   if (isShareView) {
     if (!item) return null
     return (
-      <ContextMenuContent>
+      <ContextMenuContent className="w-52">
         <ContextMenuItem onSelect={handleDownload}>
           <Download className="mr-2 h-4 w-4" />
           <span>{m.download()}</span>
@@ -183,7 +183,7 @@ export function FileBrowserContextMenu({
       return null
     }
     return (
-      <ContextMenuContent>
+      <ContextMenuContent className="w-52">
         <ContextMenuItem onSelect={handleRestore}>
           <History className="mr-2 h-4 w-4" />
           <span>{m.restore()}</span>
@@ -197,6 +197,7 @@ export function FileBrowserContextMenu({
     // Right-click on empty area
     return (
       <ContextMenuContent
+        className="w-52"
         onCloseAutoFocus={(e) => {
           e.preventDefault()
         }}
@@ -224,6 +225,7 @@ export function FileBrowserContextMenu({
   const contextMenuContent =
     isItemSelected && selectedIds.size > 1 ? (
       <ContextMenuContent
+        className="w-52"
         onCloseAutoFocus={(e) => {
           e.preventDefault()
         }}
@@ -292,7 +294,7 @@ export function FileBrowserContextMenu({
                   <span>{m.add_to_share_links()}</span>
                 </ContextMenuSubTrigger>
                 <ContextMenuPortal>
-                  <ContextMenuSubContent className="w-48">
+                  <ContextMenuSubContent className="w-52">
                     {shareLinks.map((share) => (
                       <ContextMenuItem
                         key={share.id}
@@ -310,6 +312,7 @@ export function FileBrowserContextMenu({
       </ContextMenuContent>
     ) : (
       <ContextMenuContent
+        className="w-52"
         onCloseAutoFocus={(e) => {
           e.preventDefault()
         }}
@@ -411,7 +414,7 @@ export function FileBrowserContextMenu({
                   <span>{m.add_to_share_links()}</span>
                 </ContextMenuSubTrigger>
                 <ContextMenuPortal>
-                  <ContextMenuSubContent className="w-48">
+                  <ContextMenuSubContent className="w-52">
                     {shareLinks.map((share) => (
                       <ContextMenuItem
                         key={share.id}

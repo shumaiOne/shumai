@@ -81,12 +81,18 @@ describe('FileBrowserContextMenu', () => {
     expect(screen.queryByText(/Manage versions|管理版本/i)).toBeNull()
   })
 
-  it('renders Copy submenu trigger for regular file item', () => {
+  it('renders Copy submenu trigger for regular file item with aligned gap-2 and w-52 menu width', () => {
     renderWithMenu(fileItem)
 
     fireEvent.contextMenu(screen.getByTestId('context-trigger'))
 
     const copyOption = screen.getByText(/^Copy$|^复制$/i)
     expect(copyOption).toBeTruthy()
+
+    const trigger = copyOption.closest('[data-slot="context-menu-sub-trigger"]')
+    expect(trigger?.className).toContain('gap-2')
+
+    const menuContent = copyOption.closest('[data-slot="context-menu-content"]')
+    expect(menuContent?.className).toContain('w-52')
   })
 })
