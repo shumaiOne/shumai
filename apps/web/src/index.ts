@@ -21,6 +21,7 @@ import { embeddingService } from '@shumai/core/src/search/embedding-service'
 import { sandboxService } from '@shumai/core'
 import { notificationJobService } from '@shumai/core/src/notification/notification-job'
 import { autoArchiveJobService } from '@shumai/core/src/asset/auto-archive-job'
+import { createHtmlHandler, createStaticFileHandler } from './static'
 
 if (process.argv.includes('--check')) {
   console.log('✅ Web app evaluated successfully!')
@@ -151,7 +152,8 @@ async function run() {
       for (const file of bundle.files) {
         const routePath = file.path.startsWith('.') ? file.path.slice(1) : file.path
         const filePath = join(import.meta.dir, file.path)
-        routes[routePath] = () => new Response(Bun.file(filePath), { headers: file.headers })
+        const isHtml = file.loader === 'html' || file.path.endsWith('.html')
+        routes[routePath] = createStaticFileHandler(filePath, file.headers, !isHtml)
       }
 
       const sampleFile = bundle.files[0]?.path || bundle.index || ''
@@ -163,13 +165,14 @@ async function run() {
           const routePath = '/' + pdfWorkerFile
           const filePath = join(bundleDir, pdfWorkerFile)
           const bunFile = Bun.file(filePath)
-          routes[routePath] = () =>
-            new Response(bunFile, {
-              headers: {
-                'content-type': 'text/javascript;charset=utf-8',
-                etag: `"${bunFile.size}-${bunFile.lastModified}"`,
-              },
-            })
+          routes[routePath] = createStaticFileHandler(
+            filePath,
+            {
+              'content-type': 'text/javascript;charset=utf-8',
+              etag: `"${bunFile.size}-${bunFile.lastModified}"`,
+            },
+            true,
+          )
         }
       } catch (err) {
         console.warn('Failed to register pdf.worker route:', err)
@@ -185,16 +188,17 @@ async function run() {
         .replaceAll('href="./', 'href="/')
         .replaceAll('src="./', 'src="/')
         .replaceAll('content="./', 'content="/')
-      const serveMainHtml = () => new Response(mainHtmlText, { headers: mainHtmlHeaders })
+      const serveMainHtml = createHtmlHandler(mainHtmlText, mainHtmlHeaders)
 
       routes['/'] = serveMainHtml
       routes['/*'] = serveMainHtml
     } else {
       const fallbackHtmlPath = join(import.meta.dir, 'shumai-app.html')
-      const serveFallbackHtml = () =>
-        new Response(Bun.file(fallbackHtmlPath), {
-          headers: { 'content-type': 'text/html;charset=utf-8' },
-        })
+      const fallbackHtmlFile = Bun.file(fallbackHtmlPath)
+      const fallbackRaw = (await fallbackHtmlFile.exists()) ? await fallbackHtmlFile.text() : ''
+      const serveFallbackHtml = createHtmlHandler(fallbackRaw, {
+        'content-type': 'text/html;charset=utf-8',
+      })
       routes['/'] = serveFallbackHtml
       routes['/*'] = serveFallbackHtml
     }

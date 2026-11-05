@@ -8,6 +8,7 @@ import { teamService } from '@shumai/core/src/team/team'
 import { inviteService } from '@shumai/core/src/invite/invite'
 import { createAuthMiddleware } from 'better-auth/api'
 import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
+import { logger } from '@shumai/core/src/logger'
 
 interface GeneratedResetLink {
   url: string
@@ -22,22 +23,80 @@ export const authBaseUrl = (
 export const mcpResource = `${authBaseUrl}/mcp`
 export { hashPassword } from 'better-auth/crypto'
 
+/**
+ * Checks whether a host is a loopback address (localhost, 127.0.0.0/8, or [::1]).
+ */
+export function isLoopbackHost(hostname: string): boolean {
+  const ipv4Octets = hostname.split('.')
+  const isIpv4Loopback =
+    ipv4Octets.length === 4 &&
+    ipv4Octets[0] === '127' &&
+    ipv4Octets.every((octet) => /^\d+$/.test(octet) && Number(octet) <= 255)
+  return hostname === 'localhost' || hostname === '[::1]' || isIpv4Loopback
+}
+
+/**
+ * Validates whether an MCP resource URL meets RFC 9728 and MCP security requirements
+ * (HTTPS required unless using a localhost or loopback IP address).
+ */
+export function isMcpResourceValid(resource: string): { valid: boolean; error?: string } {
+  if (typeof resource !== 'string' || !resource) {
+    return { valid: false, error: 'MCP resource must be a non-empty string URL' }
+  }
+  let url: URL
+  try {
+    url = new URL(resource)
+  } catch {
+    return { valid: false, error: 'MCP resource must be an absolute URL' }
+  }
+  if (url.username || url.password) {
+    return { valid: false, error: 'MCP resource URL must not contain credentials' }
+  }
+  if (resource.includes('#')) {
+    return { valid: false, error: 'MCP resource URL must not contain a fragment' }
+  }
+  if (resource.includes('?')) {
+    return { valid: false, error: 'MCP resource URL must not contain a query' }
+  }
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopbackHost(url.hostname))) {
+    return {
+      valid: false,
+      error:
+        'MCP resource URL must use HTTPS, except for localhost or loopback IP development URLs',
+    }
+  }
+  return { valid: true }
+}
+
+const mcpValidation = isMcpResourceValid(mcpResource)
+export const isMcpOauthEnabled = mcpValidation.valid
+if (!isMcpOauthEnabled) {
+  logger.error(
+    { mcpResource, error: mcpValidation.error },
+    'MCP OAuth 2.1 is disabled: resource URL must use HTTPS for remote hosts. The main server and Web UI will continue running normally, but MCP OAuth clients cannot connect until HTTPS is configured.',
+  )
+}
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
   plugins: [
     jwt(),
-    mcp({
-      loginPage: '/login',
-      consentPage: '/consent',
-      resource: mcpResource,
-      resources: [{ identifier: mcpResource, allowedScopes: ['mcp'] }],
-      scopes: ['openid', 'profile', 'email', 'offline_access', 'mcp'],
-      allowDynamicClientRegistration: true,
-      allowUnauthenticatedClientRegistration: true,
-      clientRegistrationDefaultApplicationType: 'infer',
-    }),
+    ...(isMcpOauthEnabled
+      ? [
+          mcp({
+            loginPage: '/login',
+            consentPage: '/consent',
+            resource: mcpResource,
+            resources: [{ identifier: mcpResource, allowedScopes: ['mcp'] }],
+            scopes: ['openid', 'profile', 'email', 'offline_access', 'mcp'],
+            allowDynamicClientRegistration: true,
+            allowUnauthenticatedClientRegistration: true,
+            clientRegistrationDefaultApplicationType: 'infer',
+          }),
+        ]
+      : []),
   ],
   emailAndPassword: {
     enabled: true,

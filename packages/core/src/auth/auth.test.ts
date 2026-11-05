@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { auth, authService } from './auth'
+import { auth, authService, isLoopbackHost, isMcpResourceValid } from './auth'
 import { userMetadataService } from '../user-metadata/user-metadata'
 import { teamService } from '@shumai/core/src/team/team'
 
@@ -324,5 +324,50 @@ describe('AuthService Password Reset', () => {
         delete process.env.BETTER_AUTH_URL
       }
     }
+  })
+})
+
+describe('MCP Resource Validation & Loopback Checking', () => {
+  it('correctly identifies loopback hostnames', () => {
+    expect(isLoopbackHost('localhost')).toBe(true)
+    expect(isLoopbackHost('127.0.0.1')).toBe(true)
+    expect(isLoopbackHost('127.0.0.254')).toBe(true)
+    expect(isLoopbackHost('[::1]')).toBe(true)
+
+    expect(isLoopbackHost('43.133.100.178')).toBe(false)
+    expect(isLoopbackHost('192.168.1.100')).toBe(false)
+    expect(isLoopbackHost('10.0.0.1')).toBe(false)
+    expect(isLoopbackHost('example.com')).toBe(false)
+    expect(isLoopbackHost('128.0.0.1')).toBe(false)
+  })
+
+  it('validates MCP resource URLs according to RFC 9728 and MCP security rules', () => {
+    // Loopback HTTP URLs are allowed for development
+    expect(isMcpResourceValid('http://localhost:3000/mcp')).toEqual({ valid: true })
+    expect(isMcpResourceValid('http://127.0.0.1:3000/mcp')).toEqual({ valid: true })
+    expect(isMcpResourceValid('http://[::1]:3000/mcp')).toEqual({ valid: true })
+
+    // HTTPS is allowed for any host (including domains and remote IPs)
+    expect(isMcpResourceValid('https://shumai.example.com/mcp')).toEqual({ valid: true })
+    expect(isMcpResourceValid('https://43.133.100.178:3000/mcp')).toEqual({ valid: true })
+
+    // Remote HTTP IPs and hostnames are rejected (the user issue)
+    const remoteIpResult = isMcpResourceValid('http://43.133.100.178:3000/mcp')
+    expect(remoteIpResult.valid).toBe(false)
+    expect(remoteIpResult.error).toContain(
+      'MCP resource URL must use HTTPS, except for localhost or loopback IP development URLs',
+    )
+
+    const remoteDomainResult = isMcpResourceValid('http://shumai.example.com/mcp')
+    expect(remoteDomainResult.valid).toBe(false)
+    expect(remoteDomainResult.error).toContain(
+      'MCP resource URL must use HTTPS, except for localhost or loopback IP development URLs',
+    )
+
+    // Invalid URL formats
+    expect(isMcpResourceValid('not-a-url').valid).toBe(false)
+    expect(isMcpResourceValid('http://user:pass@localhost:3000/mcp').valid).toBe(false)
+    expect(isMcpResourceValid('http://localhost:3000/mcp#frag').valid).toBe(false)
+    expect(isMcpResourceValid('http://localhost:3000/mcp?query=1').valid).toBe(false)
   })
 })
