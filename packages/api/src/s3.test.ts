@@ -16,11 +16,14 @@ describe('S3 API', () => {
     vi.resetModules()
   })
 
-  it('GET /files/* calls serveStatic with correct options', async () => {
+  it('GET /files/* calls serveStatic with correct options when valid signature is provided', async () => {
+    const { signLocalGetUrl } = await import('@shumai/core/src/s3/s3')
+    const { signature, expires } = signLocalGetUrl('b1', 'test.webp')
+
     const { default: route } = await import('./s3')
     const app = new Hono().route('/files', route)
 
-    const res = await app.request('/files/b1/test.webp')
+    const res = await app.request(`/files/b1/test.webp?Signature=${signature}&Expires=${expires}`)
 
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('static-file')
@@ -39,7 +42,40 @@ describe('S3 API', () => {
     }
   })
 
+  it('GET /files/* returns 403 Forbidden when signature is missing', async () => {
+    const { default: route } = await import('./s3')
+    const app = new Hono().route('/files', route)
+
+    const res = await app.request('/files/b1/test.webp')
+    expect(res.status).toBe(403)
+    const json = await res.json()
+    expect(json.error).toContain('Forbidden')
+  })
+
+  it('GET /files/* returns 403 Forbidden when signature is invalid', async () => {
+    const { default: route } = await import('./s3')
+    const app = new Hono().route('/files', route)
+
+    const res = await app.request('/files/b1/test.webp?Signature=invalidsig&Expires=9999999999')
+    expect(res.status).toBe(403)
+  })
+
+  it('GET /files/* returns 403 Forbidden when signature is expired', async () => {
+    const { signLocalGetUrl } = await import('@shumai/core/src/s3/s3')
+    // Signed with -10 seconds (expired)
+    const { signature, expires } = signLocalGetUrl('b1', 'test.webp', -10)
+
+    const { default: route } = await import('./s3')
+    const app = new Hono().route('/files', route)
+
+    const res = await app.request(`/files/b1/test.webp?Signature=${signature}&Expires=${expires}`)
+    expect(res.status).toBe(403)
+  })
+
   it('GET /files/* sets Content-Disposition with filename when download=1 & filename query params are present', async () => {
+    const { signLocalGetUrl } = await import('@shumai/core/src/s3/s3')
+    const { signature, expires } = signLocalGetUrl('b1', 'test.webp')
+
     // We need to capture the onFound callback from serveStatic options
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let onFoundCallback: ((path: string, c: any) => void) | undefined
@@ -54,7 +90,9 @@ describe('S3 API', () => {
     const { default: route } = await import('./s3')
     const app = new Hono().route('/files', route)
 
-    await app.request('/files/b1/test.webp?download=1&filename=foo.png')
+    await app.request(
+      `/files/b1/test.webp?Signature=${signature}&Expires=${expires}&download=1&filename=foo.png`,
+    )
 
     expect(onFoundCallback).toBeDefined()
 
