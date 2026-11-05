@@ -3,7 +3,6 @@ import { zValidator } from '@hono/zod-validator'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { teamService } from '@shumai/core/src/team/team'
 import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
-import { notificationService } from '@shumai/core/src/notification/notification'
 import {
   createTeamRequestSchema,
   getUserTeamsRequestSchema,
@@ -31,7 +30,6 @@ import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { workflowTaskService } from '@shumai/core/src/workflowTask/workflowTask'
 import { turntableService } from '@shumai/core/src/turntable/turntable'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
-import { NotificationType } from '@shumai/db'
 import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -66,30 +64,6 @@ const route = new Hono<{ Variables: { user: User } }>()
         cursor: teams.pageInfo.cursor,
       },
     })
-  })
-  .post('/teams/:teamId/members', async (c) => {
-    const user = c.get('user')
-    const teamId = c.req.param('teamId')
-
-    await teamService.joinTeam({
-      teamId,
-      userId: user.id,
-    })
-
-    await notificationService.create({
-      type: NotificationType.new_user_join_team,
-      teamId,
-      userId: user.id,
-    })
-
-    await auditLogService.logAction({
-      action: AuditAction.team_member_add,
-      teamId,
-      userId: user.id,
-      itemId: user.id,
-    })
-
-    return new Response(null, { status: 204 })
   })
   .get('/teams/:teamId/me', async (c) => {
     const user = c.get('user')

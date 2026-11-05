@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import type { Context } from 'hono'
+import { getCookie } from 'hono/cookie'
 import { zValidator } from '@hono/zod-validator'
 import { shareService } from '@shumai/core/src/share/share'
 import { assetService } from '@shumai/core/src/asset/asset'
@@ -12,6 +13,7 @@ import type { Prisma as PrismaType } from '@shumai/db'
 import { projectService } from '@shumai/core/src/project/project'
 import { userService } from '@shumai/core/src/user/user'
 import { auth } from '@shumai/core/src/auth/auth'
+import { verifyGuestToken } from '@shumai/core/src/auth/guest-token'
 import { createCommentRequestSchema } from '@shumai/dtos'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import {
@@ -160,7 +162,7 @@ const route = app
     const password = c.req.header('x-share-password')
     try {
       const shareLink = await shareService.getShareLink(shareId)
-      await shareService.verifyPublicAccess(shareLink.rootFolderId, password)
+      await shareService.verifyPublicAccess(shareId, shareLink.rootFolderId, password)
       return c.json({
         id: shareLink.id,
         name: shareLink.name,
@@ -184,7 +186,7 @@ const route = app
 
     try {
       const shareLink = await shareService.getShareLink(shareId)
-      await shareService.verifyPublicAccess(shareLink.rootFolderId, password)
+      await shareService.verifyPublicAccess(shareId, shareLink.rootFolderId, password)
 
       const fields = await metadataService.listProjectFields(null, shareLink.projectId)
       const fieldVisibility = (shareLink.fieldVisibility || {}) as Record<string, boolean>
@@ -202,13 +204,14 @@ const route = app
     '/shares/:shareId/folders/:folderId/children',
     zValidator('query', sharedChildrenRequestSchema),
     async (c) => {
+      const shareId = c.req.param('shareId')
       const folderId = c.req.param('folderId')
       const password =
         c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
       const req = c.req.valid('query')
 
       try {
-        const shareLink = await shareService.verifyPublicAccess(folderId, password)
+        const shareLink = await shareService.verifyPublicAccess(shareId, folderId, password)
 
         let sort: string | undefined
         let order: string | undefined
@@ -264,11 +267,12 @@ const route = app
     },
   )
   .get('/shares/:shareId/files/:fileId', async (c) => {
+    const shareId = c.req.param('shareId')
     const fileId = c.req.param('fileId')
     const password = c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
 
     try {
-      const shareLink = await shareService.verifyPublicAccess(fileId, password)
+      const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
 
       let asset = await assetService.getAsset({ assetId: fileId })
 
@@ -303,12 +307,13 @@ const route = app
     '/shares/:shareId/files/:fileId/download-url',
     zValidator('json', z.object({ key: z.string().min(1) })),
     async (c) => {
+      const shareId = c.req.param('shareId')
       const fileId = c.req.param('fileId')
       const password = c.req.header('x-share-password')
       const { key } = c.req.valid('json')
 
       try {
-        const shareLink = await shareService.verifyPublicAccess(fileId, password)
+        const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
 
         if (!shareLink.allowDownload) {
           throw new ShareLinkDownloadDisabledError('Download is disabled for this share link')
@@ -329,12 +334,13 @@ const route = app
     '/shares/:shareId/files/:fileId/comments',
     zValidator('query', paginationParamsSchema),
     async (c) => {
+      const shareId = c.req.param('shareId')
       const fileId = c.req.param('fileId')
       const password = c.req.header('x-share-password')
       const req = c.req.valid('query')
 
       try {
-        await shareService.verifyPublicAccess(fileId, password)
+        await shareService.verifyPublicAccess(shareId, fileId, password)
 
         const targetFileId = await assetService.resolveTargetAssetId(fileId)
         let userId: string | undefined
@@ -343,6 +349,18 @@ const route = app
         })
         if (session?.user) {
           userId = session.user.id
+        } else {
+          const cookieName = `shumai_guest_${shareId}`
+          const token = getCookie(c, cookieName) || getCookie(c, 'shumai_guest')
+          if (token) {
+            const verified = verifyGuestToken(token, shareId)
+            if (verified) {
+              const guestUser = await userService.getUserById(verified.userId)
+              if (guestUser && guestUser.guestEmail) {
+                userId = guestUser.id
+              }
+            }
+          }
         }
         const res = await assetService.listComments(targetFileId, req, userId)
         return c.json(res)
@@ -358,12 +376,15 @@ const route = app
       const shareId = c.req.param('shareId')
       const fileId = c.req.param('fileId')
       const password = c.req.header('x-share-password')
-      const guestUserId = c.req.header('x-guest-user-id')
       const req = c.req.valid('json')
+
+      if (req.attachmentIds && req.attachmentIds.length > 0) {
+        return c.json({ error: 'Attachments are not allowed on public share comments' }, 400)
+      }
 
       try {
         const shareLink = await shareService.getShareLink(shareId)
-        await shareService.verifyPublicAccess(fileId, password)
+        await shareService.verifyPublicAccess(shareId, fileId, password)
 
         const targetFileId = await assetService.resolveTargetAssetId(fileId)
 
@@ -377,10 +398,17 @@ const route = app
 
         if (session?.user) {
           userId = session.user.id
-        } else if (guestUserId) {
-          const guestUser = await userService.getUserById(guestUserId)
-          if (guestUser) {
-            userId = guestUser.id
+        } else {
+          const cookieName = `shumai_guest_${shareId}`
+          const token = getCookie(c, cookieName) || getCookie(c, 'shumai_guest')
+          if (token) {
+            const verified = verifyGuestToken(token, shareId)
+            if (verified) {
+              const guestUser = await userService.getUserById(verified.userId)
+              if (guestUser && guestUser.guestEmail) {
+                userId = guestUser.id
+              }
+            }
           }
         }
 
@@ -400,7 +428,7 @@ const route = app
 
         const notifType = req.replyToId ? 'reply_created' : 'comment_created'
 
-        notificationService.create({
+        await notificationService.create({
           type: notifType,
           teamId: teamId,
           creatorId: userId,
@@ -415,11 +443,12 @@ const route = app
     },
   )
   .get('/shares/:shareId/files/:fileId/m3u8', async (c) => {
+    const shareId = c.req.param('shareId')
     const fileId = c.req.param('fileId')
     const password = c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
 
     try {
-      const shareLink = await shareService.verifyPublicAccess(fileId, password)
+      const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
       const targetAssetId = await assetService.resolveLatestVersionId(fileId)
       let playlist = await assetService.getHlsMasterPlaylist({
         assetId: targetAssetId,
@@ -438,11 +467,12 @@ const route = app
     }
   })
   .get('/shares/:shareId/files/:fileId/m3u8/master.m3u8', async (c) => {
+    const shareId = c.req.param('shareId')
     const fileId = c.req.param('fileId')
     const password = c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
 
     try {
-      const shareLink = await shareService.verifyPublicAccess(fileId, password)
+      const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
       const targetAssetId = await assetService.resolveLatestVersionId(fileId)
       let playlist = await assetService.getHlsMasterPlaylist({
         assetId: targetAssetId,
@@ -461,6 +491,7 @@ const route = app
     }
   })
   .get('/shares/:shareId/files/:fileId/m3u8/:resolution', async (c) => {
+    const shareId = c.req.param('shareId')
     const fileId = c.req.param('fileId')
     let resolution = c.req.param('resolution')
     if (resolution.endsWith('.m3u8')) {
@@ -469,7 +500,7 @@ const route = app
     const password = c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
 
     try {
-      const shareLink = await shareService.verifyPublicAccess(fileId, password)
+      const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
       const targetAssetId = await assetService.resolveLatestVersionId(fileId)
       const playlist = await assetService.getHlsVariantPlaylist({
         assetId: targetAssetId,
@@ -483,12 +514,13 @@ const route = app
     }
   })
   .get('/shares/:shareId/files/:fileId/m3u8/:resolution/index.m3u8', async (c) => {
+    const shareId = c.req.param('shareId')
     const fileId = c.req.param('fileId')
     const resolution = c.req.param('resolution')
     const password = c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
 
     try {
-      const shareLink = await shareService.verifyPublicAccess(fileId, password)
+      const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
       const targetAssetId = await assetService.resolveLatestVersionId(fileId)
       const playlist = await assetService.getHlsVariantPlaylist({
         assetId: targetAssetId,

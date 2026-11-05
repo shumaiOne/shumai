@@ -101,10 +101,7 @@ describe('S3 API', () => {
     }
   })
 
-  it('PUT /files/:bucket/:key calls s3Service.putObject', async () => {
-    const { s3Service: service } = await import('@shumai/core/src/s3/s3')
-    const mockPut = vi.spyOn(service, 'putObject').mockResolvedValue(undefined)
-
+  it('PUT /files/:bucket/:key returns 404', async () => {
     const { default: route } = await import('./s3')
     const app = new Hono().route('/files', route)
     const body = new TextEncoder().encode('test-data')
@@ -117,13 +114,17 @@ describe('S3 API', () => {
       body,
     })
 
-    expect(res.status).toBe(200)
-    expect(await res.text()).toBe('OK')
-    expect(mockPut).toHaveBeenCalledWith(
-      'b1',
-      'test.webp',
-      expect.any(ReadableStream),
-      body.byteLength,
-    )
+    expect(res.status).toBe(404)
+  })
+
+  it('GET /files/* returns 404 when STORAGE_BACKEND is not local', async () => {
+    const s3Module = await import('@shumai/core/src/s3/s3')
+    vi.spyOn(s3Module, 'getStorageBackend').mockReturnValue('s3')
+
+    const { default: route } = await import('./s3')
+    const app = new Hono().route('/files', route)
+
+    const res = await app.request('/files/b1/test.webp')
+    expect(res.status).toBe(404)
   })
 })

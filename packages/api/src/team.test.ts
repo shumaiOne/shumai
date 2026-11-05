@@ -5,7 +5,6 @@ import teamRoute from './team'
 import { authMiddleware } from './middleware/auth'
 import { teamService } from '@shumai/core/src/team/team'
 import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
-import { notificationService } from '@shumai/core/src/notification/notification'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
 
 vi.mock('@shumai/core/src/authz/authz', () => ({
@@ -80,14 +79,12 @@ describe('team api', () => {
   const app = new Hono().use('*', authMiddleware).route('/', teamRoute)
   let mockCreateTeam: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockGetUserTeams: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  let mockJoinTeam: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockGetMe: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockGetTeamMembers: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockGetSettings: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockUpdateSettings: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockListUserMetadata: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockUpsertUserMetadata: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  let mockCreateNotification: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockGetSandboxSettings: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockUpdateSandboxSettings: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockUpdateMe: any // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -95,14 +92,12 @@ describe('team api', () => {
   beforeEach(() => {
     mockCreateTeam = vi.spyOn(teamService, 'createTeam')
     mockGetUserTeams = vi.spyOn(teamService, 'getUserTeams')
-    mockJoinTeam = vi.spyOn(teamService, 'joinTeam')
     mockGetMe = vi.spyOn(teamService, 'getMe')
     mockGetTeamMembers = vi.spyOn(teamService, 'getTeamMembers')
     mockGetSettings = vi.spyOn(teamService, 'getSettings')
     mockUpdateSettings = vi.spyOn(teamService, 'updateSettings')
     mockListUserMetadata = vi.spyOn(userMetadataService, 'listMetadata')
     mockUpsertUserMetadata = vi.spyOn(userMetadataService, 'upsertMetadata')
-    mockCreateNotification = vi.spyOn(notificationService, 'create').mockResolvedValue()
     mockGetSandboxSettings = vi.spyOn(teamService, 'getSandboxSettings')
     mockUpdateSandboxSettings = vi.spyOn(teamService, 'updateSandboxSettings')
     mockUpdateMe = vi.spyOn(teamService, 'updateMe')
@@ -148,20 +143,9 @@ describe('team api', () => {
     expect(mockGetUserTeams).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user1' }))
   })
 
-  it('POST /teams/:teamId/members joins team and sends notification', async () => {
-    mockJoinTeam.mockResolvedValue(undefined)
-
+  it('POST /teams/:teamId/members returns 404', async () => {
     const res = await app.request('/teams/t1/members', { method: 'POST' })
-
-    expect(res.status).toBe(204)
-    expect(mockJoinTeam).toHaveBeenCalledWith({ teamId: 't1', userId: 'user1' })
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'new_user_join_team',
-        teamId: 't1',
-        userId: 'user1',
-      }),
-    )
+    expect(res.status).toBe(404)
   })
 
   it('GET /teams/:teamId/me returns user role in team', async () => {

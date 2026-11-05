@@ -170,6 +170,7 @@ describe('UploadService', () => {
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: parentId } },
+        task: { connect: { id: task.id } },
         status: AssetStatus.uploading,
         storageKey: {
           connectOrCreate: {
@@ -228,6 +229,7 @@ describe('UploadService', () => {
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: parentId } },
+        task: { connect: { id: task.id } },
         status: AssetStatus.uploading,
         storageKey: {
           connectOrCreate: {
@@ -268,6 +270,7 @@ describe('UploadService', () => {
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: parentId } },
+        task: { connect: { id: task.id } },
         status: AssetStatus.uploading,
         storageKey: {
           connectOrCreate: {
@@ -303,6 +306,7 @@ describe('UploadService', () => {
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: parentId } },
+        task: { connect: { id: task.id } },
         status: AssetStatus.uploading,
         storageKey: {
           connectOrCreate: {
@@ -336,6 +340,7 @@ describe('UploadService', () => {
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: parentId } },
+        task: { connect: { id: task.id } },
         status: AssetStatus.uploading,
         storageKey: {
           connectOrCreate: {
@@ -366,6 +371,7 @@ describe('UploadService', () => {
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: parentId } },
+        task: { connect: { id: task.id } },
         status: AssetStatus.uploading,
         storageKey: {
           connectOrCreate: {
@@ -399,6 +405,7 @@ describe('UploadService', () => {
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: parentId } },
+        task: { connect: { id: task.id } },
         status: AssetStatus.uploading,
         storageKey: {
           connectOrCreate: {
@@ -429,6 +436,7 @@ describe('UploadService', () => {
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: parentId } },
+        task: { connect: { id: task.id } },
         status: AssetStatus.uploading,
         storageKey: {
           connectOrCreate: {
@@ -484,6 +492,7 @@ describe('UploadService', () => {
           type: AssetType.file,
           project: { connect: { id: projectId } },
           parent: { connect: { id: parentId } },
+          task: { connect: { id: task.id } },
           status: AssetStatus.uploading,
           storageKey: {
             connectOrCreate: {
@@ -512,6 +521,7 @@ describe('UploadService', () => {
           type: AssetType.file,
           project: { connect: { id: projectId } },
           parent: { connect: { id: parentId } },
+          task: { connect: { id: htmlTask.id } },
           status: AssetStatus.uploading,
           storageKey: {
             connectOrCreate: {
@@ -547,6 +557,7 @@ describe('UploadService', () => {
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: parentId } },
+        task: { connect: { id: task.id } },
         status: AssetStatus.uploading,
         storageKey: {
           connectOrCreate: {
@@ -584,6 +595,7 @@ describe('UploadService', () => {
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: parentId } },
+        task: { connect: { id: task.id } },
         status: AssetStatus.uploading,
         storageKey: {
           connectOrCreate: {
@@ -616,6 +628,7 @@ describe('UploadService', () => {
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: parentId } },
+        task: { connect: { id: task.id } },
         status: AssetStatus.uploading,
         storageKey: {
           connectOrCreate: {
@@ -649,6 +662,7 @@ describe('UploadService', () => {
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: parentId } },
+        task: { connect: { id: task.id } },
         status: AssetStatus.uploading,
         storageKey: {
           connectOrCreate: {
@@ -752,6 +766,7 @@ describe('UploadService', () => {
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: stack.id } },
+        task: { connect: { id: task.id } },
         status: AssetStatus.uploading,
         storageKey: {
           connectOrCreate: {
@@ -1119,6 +1134,68 @@ describe('UploadService', () => {
         where: { id: asset.id },
       })
       expect(deletedAsset).toBeNull()
+    })
+
+    it('should not increment task count if error arrives for an already finished or deleted asset', async () => {
+      const task = await prisma.task.create({
+        data: {
+          creatorId: userId,
+          type: 'upload',
+          name: 'task-late-err',
+          total: 2,
+          uploaded: 1,
+          status: TaskStatus.uploading,
+        },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: { key: 'files/test/already-uploaded.mp4' },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'already-uploaded.mp4',
+          type: AssetType.file,
+          projectId,
+          storageKeyId: storageKey.id,
+          taskId: task.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      await uploadService.confirmFileUpload(userId, task.id, {
+        fileId: asset.id,
+        errorMessage: 'Late network error',
+      })
+
+      const taskAfter = await prisma.task.findUniqueOrThrow({ where: { id: task.id } })
+      expect(taskAfter.uploaded).toBe(1)
+    })
+
+    it('should reject confirmation if asset does not belong to specified task', async () => {
+      const task1 = await prisma.task.create({
+        data: { creatorId: userId, type: 'upload', total: 1, status: TaskStatus.uploading },
+      })
+      const task2 = await prisma.task.create({
+        data: { creatorId: userId, type: 'upload', total: 1, status: TaskStatus.uploading },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: { key: 'files/test/task-mismatch.mp4' },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'task-mismatch.mp4',
+          type: AssetType.file,
+          projectId,
+          storageKeyId: storageKey.id,
+          taskId: task1.id,
+          status: AssetStatus.uploading,
+        },
+      })
+
+      await expect(
+        uploadService.confirmFileUpload(userId, task2.id, { fileId: asset.id }),
+      ).rejects.toThrow('Asset does not belong to specified task')
     })
   })
 

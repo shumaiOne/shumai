@@ -84,7 +84,11 @@ export class InviteService {
         include: { team: true, project: true },
       })
 
-      if (inv.used) {
+      const claimed = await tx.invite.updateMany({
+        where: { id: inv.id, used: false },
+        data: { used: true },
+      })
+      if (claimed.count !== 1) {
         throw new Error('invite code already used')
       }
 
@@ -155,11 +159,6 @@ export class InviteService {
           })
         }
       }
-
-      await tx.invite.update({
-        where: { id: inv.id },
-        data: { used: true },
-      })
     })
   }
 }

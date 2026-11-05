@@ -7,6 +7,9 @@ import { shareService } from '@shumai/core/src/share/share'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { ShareLinkPasswordInvalidError, ShareLinkExpiredError } from '@shumai/core/src/share/errors'
+import { createGuestToken } from '@shumai/core/src/auth/guest-token'
+import { userService } from '@shumai/core/src/user/user'
+import { notificationService } from '@shumai/core/src/notification/notification'
 
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
@@ -121,7 +124,7 @@ describe('Share API', () => {
       expect(body.name).toBe('Public Share')
       expect(body.hasPassword).toBe(true)
       expect(body.allowDownload).toBe(false)
-      expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('folder1', 'pass')
+      expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('share1', 'folder1', 'pass')
     })
 
     test('Unauthorized', async () => {
@@ -206,7 +209,7 @@ describe('Share API', () => {
       })
 
       expect(res.status).toBe(200)
-      expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('folder1', 'pass')
+      expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('share1', 'folder1', 'pass')
       expect(assetService.listChildren).toHaveBeenCalledWith(
         expect.objectContaining({
           assetId: 'folder1',
@@ -989,7 +992,7 @@ describe('Share API', () => {
       expect(res.status).toBe(200)
       const body = await res.json()
       expect(body.url).toBe('https://s3.example.com/download')
-      expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('symlink1', undefined)
+      expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('share1', 'symlink1', undefined)
       expect(assetService.getDownloadUrl).toHaveBeenCalledWith('symlink1', 'files/target1/fly.png')
     })
 
@@ -1033,7 +1036,7 @@ describe('Share API', () => {
       expect(res.headers.get('content-type')).toContain('application/vnd.apple.mpegurl')
       const text = await res.text()
       expect(text).toContain('1080p/index.m3u8?p=secret123')
-      expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('file1', 'secret123')
+      expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('share1', 'file1', 'secret123')
       expect(assetService.getHlsMasterPlaylist).toHaveBeenCalledWith({
         assetId: 'file1',
         watermarkConfigId: null,
@@ -1091,6 +1094,108 @@ describe('Share API', () => {
         assetId: 'child-version-file-id',
         watermarkConfigId: null,
       })
+    })
+  })
+
+  describe('POST /shares/:shareId/files/:fileId/comments', () => {
+    test('rejects comments with attachmentIds on public shares', async () => {
+      const res = await app.request('/shares/share1/files/file1/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: 'hi',
+          attachmentIds: ['att1'],
+        }),
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.error).toContain('Attachments are not allowed')
+    })
+
+    test('rejects spoofed x-guest-user-id header without cookie', async () => {
+      vi.spyOn(shareService, 'getShareLink').mockResolvedValue({
+        id: 'share1',
+        projectId: 'p1',
+      } as unknown as Awaited<ReturnType<typeof shareService.getShareLink>>)
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        id: 'share1',
+      } as unknown as Awaited<ReturnType<typeof shareService.verifyPublicAccess>>)
+      vi.spyOn(assetService, 'resolveTargetAssetId').mockResolvedValue('file1')
+
+      const res = await app.request('/shares/share1/files/file1/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-guest-user-id': 'victim_user',
+        },
+        body: JSON.stringify({ message: 'spoofed comment', attachmentIds: [] }),
+      })
+
+      expect(res.status).toBe(401)
+    })
+
+    test('allows valid guest cookie bound to shareId and creates comment', async () => {
+      vi.spyOn(shareService, 'getShareLink').mockResolvedValue({
+        id: 'share1',
+        projectId: 'p1',
+      } as unknown as Awaited<ReturnType<typeof shareService.getShareLink>>)
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        id: 'share1',
+      } as unknown as Awaited<ReturnType<typeof shareService.verifyPublicAccess>>)
+      vi.spyOn(assetService, 'resolveTargetAssetId').mockResolvedValue('file1')
+      vi.spyOn(userService, 'getUserById').mockResolvedValue({
+        id: 'guest1',
+        name: 'Guest Alice',
+        guestEmail: 'alice@guest.com',
+      } as unknown as Awaited<ReturnType<typeof userService.getUserById>>)
+      vi.spyOn(assetService, 'createComment').mockResolvedValue({
+        id: 'comm1',
+        message: 'hello from alice',
+      } as unknown as Awaited<ReturnType<typeof assetService.createComment>>)
+      vi.spyOn(notificationService, 'create').mockResolvedValue(
+        undefined as unknown as Awaited<ReturnType<typeof notificationService.create>>,
+      )
+
+      const token = createGuestToken({ userId: 'guest1', shareId: 'share1' })
+      const res = await app.request('/shares/share1/files/file1/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `shumai_guest_share1=${token}`,
+        },
+        body: JSON.stringify({ message: 'hello from alice', attachmentIds: [] }),
+      })
+
+      expect(res.status).toBe(201)
+      expect(assetService.createComment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'guest1',
+          message: 'hello from alice',
+        }),
+      )
+    })
+
+    test('rejects guest cookie bound to a different shareId', async () => {
+      vi.spyOn(shareService, 'getShareLink').mockResolvedValue({
+        id: 'share1',
+        projectId: 'p1',
+      } as unknown as Awaited<ReturnType<typeof shareService.getShareLink>>)
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        id: 'share1',
+      } as unknown as Awaited<ReturnType<typeof shareService.verifyPublicAccess>>)
+
+      const wrongToken = createGuestToken({ userId: 'guest1', shareId: 'other-share' })
+      const res = await app.request('/shares/share1/files/file1/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `shumai_guest_share1=${wrongToken}`,
+        },
+        body: JSON.stringify({ message: 'should fail', attachmentIds: [] }),
+      })
+
+      expect(res.status).toBe(401)
     })
   })
 })

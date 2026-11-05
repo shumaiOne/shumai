@@ -170,14 +170,12 @@ export function MobileFileBottomSheet({
       attachmentIds,
       annotations,
       replyToId,
-      guestUserId,
       second,
     }: {
       text: string
       attachmentIds: string[]
       annotations?: Annotation[]
       replyToId?: string | null
-      guestUserId?: string
       second?: number | null
     }) => {
       if (isPublic) {
@@ -196,7 +194,6 @@ export function MobileFileBottomSheet({
           {
             headers: {
               'x-share-password': password,
-              ...(guestUserId ? { 'x-guest-user-id': guestUserId } : {}),
             },
           },
         )
@@ -285,7 +282,6 @@ export function MobileFileBottomSheet({
           attachmentIds,
           annotations,
           replyToId: actualReplyToId,
-          guestUserId,
           second,
         })
       }
@@ -295,9 +291,9 @@ export function MobileFileBottomSheet({
     setReplyingTo(null)
   }
 
-  const handleGuestSuccess = (guestUserId: string) => {
+  const handleGuestSuccess = () => {
     if (pendingComment) {
-      createComment({ ...pendingComment, guestUserId })
+      createComment({ ...pendingComment })
       setPendingComment(null)
       setReplyingTo(null)
     }
@@ -442,6 +438,7 @@ export function MobileFileBottomSheet({
                 isOpen={isGuestPopupOpen}
                 onClose={() => setIsGuestPopupOpen(false)}
                 onSuccess={handleGuestSuccess}
+                shareId={shareId || undefined}
               >
                 <ChatInput
                   projectId={projectId}

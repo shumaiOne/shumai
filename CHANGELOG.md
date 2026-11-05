@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **security**: ⚠️ Several security improvements and access control hardenings. Upgrading to this release is strongly recommended.
 
 ### Changed
 

@@ -206,23 +206,28 @@ export class UploadService {
       },
     })
     if (!asset) throw new Error('Asset not found')
+    if (asset.taskId !== taskId) {
+      throw new Error('Asset does not belong to specified task')
+    }
     if (!asset.project) throw new Error('Project not found for asset')
     const key = asset.storageKey?.key
     if (!key) throw new Error('Asset has no key')
 
     if (req.errorMessage) {
-      await this.discardUploadingAsset(asset)
-      const t = await this.prismaClient.task.findUnique({ where: { id: taskId } })
-      if (t) {
-        const updatedTask = await this.prismaClient.task.update({
-          where: { id: taskId },
-          data: { uploaded: { increment: 1 } },
-        })
-        if (updatedTask.uploaded === updatedTask.total) {
-          await this.prismaClient.task.update({
+      const discarded = await this.discardUploadingAsset(asset)
+      if (discarded) {
+        const t = await this.prismaClient.task.findUnique({ where: { id: taskId } })
+        if (t) {
+          const updatedTask = await this.prismaClient.task.update({
             where: { id: taskId },
-            data: { status: TaskStatus.completed },
+            data: { uploaded: { increment: 1 } },
           })
+          if (updatedTask.uploaded === updatedTask.total) {
+            await this.prismaClient.task.update({
+              where: { id: taskId },
+              data: { status: TaskStatus.completed },
+            })
+          }
         }
       }
       return
@@ -242,15 +247,22 @@ export class UploadService {
         resolvedMediaType = Bun.file(asset.name).type || 'application/octet-stream'
       }
 
-      // Update asset
-      const updatedAsset = await tx.asset.update({
-        where: { id: asset.id },
+      // Claim status transition atomically
+      const claim = await tx.asset.updateMany({
+        where: {
+          id: asset.id,
+          taskId: taskId,
+          status: AssetStatus.uploading,
+        },
         data: {
           status: AssetStatus.uploaded,
           sizeByte: size,
           mediaType: resolvedMediaType,
         },
       })
+      if (claim.count !== 1) {
+        throw new Error('Asset is not in uploading status')
+      }
 
       // Update parent and ancestors
       if (asset.parentId) {
@@ -259,7 +271,7 @@ export class UploadService {
           data: { fileCount: { increment: 1 } },
         })
 
-        await assetService.updateAncestorsSize(tx, asset.parentId, updatedAsset.sizeByte)
+        await assetService.updateAncestorsSize(tx, asset.parentId, size)
       }
 
       // Update task
@@ -533,7 +545,7 @@ export class UploadService {
       storageKey: { key: string } | null
     },
     requestedUploadId?: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const deleteResult = await this.prismaClient.asset.deleteMany({
       where: {
         id: asset.id,
@@ -542,7 +554,7 @@ export class UploadService {
     })
 
     if (deleteResult.count === 0) {
-      return
+      return false
     }
 
     const bucket = process.env.S3_BUCKET || 'shumai'
@@ -568,6 +580,8 @@ export class UploadService {
         .delete({ where: { id: asset.storageKeyId } })
         .catch(() => {})
     }
+
+    return true
   }
 
   async cancelUploadTask(

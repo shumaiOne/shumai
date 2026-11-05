@@ -249,57 +249,16 @@ export class ShareService {
   }
 
   async verifyPublicAccess(
+    shareLinkId: string,
     assetId: string,
     providedPassword?: string,
   ): Promise<Prisma.ShareLinkGetPayload<true>> {
-    // 1. Trace ancestors of the current asset in the real tree
-    // 2. Find if any ancestor (including itself) is the target of a symlink that belongs to a share
-    // 3. Or if the asset itself is a descendant of a 'share' type folder (direct share link root or subfolder within)
-
-    const rows = await prisma.$queryRaw<{ shareRootId: string }[]>`
-      WITH RECURSIVE 
-      -- Trace ancestors in the real asset tree
-      real_ancestors AS (
-        SELECT id, parent_id, type::text FROM assets WHERE id = ${assetId} AND is_deleted = false
-        UNION ALL
-        SELECT a.id, a.parent_id, a.type::text FROM assets a
-        INNER JOIN real_ancestors ra ON ra.parent_id = a.id
-        WHERE a.is_deleted = false
-      ),
-      -- Find all symlinks pointing to any of these real ancestors
-      found_symlinks AS (
-        SELECT s.id, s.parent_id, s.type::text FROM assets s
-        INNER JOIN real_ancestors ra ON s.target_id = ra.id
-        WHERE s.type = 'symlink' AND s.is_deleted = false
-      ),
-      -- Combine: start with either real ancestors that are 'share' type, or symlinks that lead to 'share' type
-      search_starts AS (
-        SELECT id, parent_id, type FROM real_ancestors WHERE type = 'share'
-        UNION
-        SELECT id, parent_id, type FROM found_symlinks
-      ),
-      -- Trace UP from these search starts to find the ultimate 'share' root
-      share_trace AS (
-        SELECT id, parent_id, type FROM search_starts
-        UNION ALL
-        SELECT a.id, a.parent_id, a.type::text FROM assets a
-        INNER JOIN share_trace st ON st.parent_id = a.id
-        WHERE a.is_deleted = false
-      )
-      SELECT id as "shareRootId" FROM share_trace WHERE type = 'share' LIMIT 1;
-    `
-
-    if (rows.length === 0) {
-      throw new ShareLinkNotFoundError('Asset is not shared')
-    }
-
-    const shareRootId = rows[0].shareRootId
     const shareLink = await prisma.shareLink.findUnique({
-      where: { rootFolderId: shareRootId },
+      where: { id: shareLinkId },
     })
 
     if (!shareLink) {
-      throw new ShareLinkNotFoundError('Share link not found for this asset')
+      throw new ShareLinkNotFoundError('Share link not found')
     }
 
     if (shareLink.isDisabled) {
@@ -312,6 +271,43 @@ export class ShareService {
 
     if (shareLink.password && shareLink.password !== providedPassword) {
       throw new ShareLinkPasswordInvalidError('Invalid password for share link')
+    }
+
+    const rows = await prisma.$queryRaw<{ id: string }[]>`
+      WITH RECURSIVE 
+      -- Trace ancestors in the real asset tree
+      real_ancestors AS (
+        SELECT id, parent_id, type::text, target_id FROM assets WHERE id = ${assetId} AND is_deleted = false
+        UNION ALL
+        SELECT a.id, a.parent_id, a.type::text, a.target_id FROM assets a
+        INNER JOIN real_ancestors ra ON ra.parent_id = a.id
+        WHERE a.is_deleted = false
+      ),
+      -- Find all symlinks pointing to any of these real ancestors
+      found_symlinks AS (
+        SELECT s.id, s.parent_id, s.type::text FROM assets s
+        INNER JOIN real_ancestors ra ON s.target_id = ra.id
+        WHERE s.type = 'symlink' AND s.is_deleted = false
+      ),
+      -- Combine: start with either real ancestors, or symlinks that lead to them
+      search_starts AS (
+        SELECT id, parent_id, type FROM real_ancestors
+        UNION
+        SELECT id, parent_id, type FROM found_symlinks
+      ),
+      -- Trace UP from these search starts to find the ultimate 'share' root
+      share_trace AS (
+        SELECT id, parent_id, type FROM search_starts
+        UNION ALL
+        SELECT a.id, a.parent_id, a.type::text FROM assets a
+        INNER JOIN share_trace st ON st.parent_id = a.id
+        WHERE a.is_deleted = false
+      )
+      SELECT id FROM share_trace WHERE id = ${shareLink.rootFolderId} LIMIT 1;
+    `
+
+    if (rows.length === 0) {
+      throw new ShareLinkNotFoundError('Asset is not shared')
     }
 
     return shareLink
