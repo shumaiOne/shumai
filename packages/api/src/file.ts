@@ -1,5 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { projectService } from '@shumai/core/src/project/project'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { commentService } from '@shumai/core/src/comment/comment'
 import { s3Service } from '@shumai/core/src/s3/s3'
@@ -26,6 +27,7 @@ import {
   updateFileRequestSchema,
   uploadFileRequestSchema,
   getDownloadLinksRequestSchema,
+  getStoragePathsRequestSchema,
   completeCommentRequestSchema,
   exportCommentsRequestSchema,
   addCommentReactionRequestSchema,
@@ -455,6 +457,37 @@ const route = new Hono<{ Variables: { user: User } }>()
       files,
       ...(skippedArchivedCount > 0 ? { skippedArchivedCount } : {}),
     })
+  })
+  .post('/files/storage-paths', zValidator('json', getStoragePathsRequestSchema), async (c) => {
+    const user = c.get('user')
+    const req = c.req.valid('json')
+
+    if (req.ids.length === 0) {
+      return c.json({ paths: [] })
+    }
+
+    const projectIds = await assetService.getProjectIds(req.ids)
+    if (projectIds.length === 0) {
+      return c.json({ paths: [] })
+    }
+
+    if (projectIds.length !== 1) {
+      return c.json({ error: 'All selected items must belong to the same project' }, 400)
+    }
+
+    const projectId = projectIds[0]
+    const teamId = await projectService.getProjectTeam(projectId)
+
+    // Verify user has Admin (owner) permission on the team
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const result = await assetService.getStoragePaths(req.ids)
+    return c.json(result)
   })
   .post(
     '/files/download-url',

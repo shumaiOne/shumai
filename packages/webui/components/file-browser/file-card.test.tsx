@@ -772,4 +772,34 @@ describe('FileCard', () => {
     )
     expect(screen.getByTestId('file-card-restoring-badge')).toBeTruthy()
   })
+
+  it('renders Copy submenu in dropdown menu', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <FileCard
+          item={fileItem}
+          isSelected={false}
+          isChecked={false}
+          isEditing={false}
+          onSelect={vi.fn()}
+          onDoubleClick={vi.fn()}
+          onContextMenu={vi.fn()}
+          onDragStart={vi.fn()}
+          onDrop={vi.fn()}
+          onRename={vi.fn()}
+          onFinishEditing={vi.fn()}
+          onSaveField={vi.fn()}
+          onAction={vi.fn()}
+          fields={[]}
+          canEdit={true}
+        />
+      </QueryClientProvider>,
+    )
+
+    const moreBtn = screen.getByRole('button', { name: '' })
+    fireEvent.keyDown(moreBtn, { key: 'ArrowDown', code: 'ArrowDown' })
+
+    const copyOption = screen.getByText(/^Copy$|^复制$/i)
+    expect(copyOption).toBeTruthy()
+  })
 })

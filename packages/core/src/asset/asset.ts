@@ -23,6 +23,8 @@ import {
   CommentExportFormat,
   PreviewFormat,
   TRASH_RETENTION_DAYS,
+  GetStoragePathsResponse,
+  StoragePathItem,
 } from '@shumai/dtos'
 import {
   exportCommentsToFormat,
@@ -43,10 +45,11 @@ import {
 import { HTTPException } from 'hono/http-exception'
 import { logger } from '@shumai/core/src/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@shumai/core/src/pagination'
-import { s3Service } from '@shumai/core/src/s3/s3'
+import { s3Service, getStorageBackend } from '@shumai/core/src/s3/s3'
 import {
   getArchiveStorageService,
   isArchiveStorageEnabled,
+  getArchiveStoragePath,
 } from '@shumai/core/src/s3/archive-storage'
 import { assetArchiveService } from './asset-archive'
 import {
@@ -1246,6 +1249,75 @@ export class AssetService {
     }
 
     return currentId
+  }
+
+  async resolveLatestVersionIds(assetIds: string[]): Promise<string[]> {
+    if (assetIds.length === 0) return []
+
+    const initialAssets = await this.prismaClient.asset.findMany({
+      where: { id: { in: assetIds }, isDeleted: false },
+      select: { id: true, type: true, targetId: true },
+    })
+    const assetMap = new Map(initialAssets.map((a) => [a.id, a]))
+
+    // Find symlinks to resolve
+    const symlinks = initialAssets.filter((a) => a.type === AssetType.symlink && a.targetId)
+    const targetIds = Array.from(new Set(symlinks.map((s) => s.targetId!)))
+
+    const symlinkTargetMap = new Map<string, { id: string; type: AssetType }>()
+    if (targetIds.length > 0) {
+      const targets = await this.prismaClient.asset.findMany({
+        where: { id: { in: targetIds }, isDeleted: false },
+        select: { id: true, type: true },
+      })
+      for (const t of targets) {
+        symlinkTargetMap.set(t.id, t)
+      }
+    }
+
+    // Determine current ID and type for each input ID
+    const intermediate = assetIds.map((id) => {
+      const asset = assetMap.get(id)
+      if (!asset) return { originalId: id, currentId: id, type: null }
+      if (asset.type === AssetType.symlink && asset.targetId) {
+        const target = symlinkTargetMap.get(asset.targetId)
+        if (target) {
+          return { originalId: id, currentId: target.id, type: target.type }
+        }
+      }
+      return { originalId: id, currentId: asset.id, type: asset.type }
+    })
+
+    // Find version stacks to resolve to their latest child
+    const versionStackIds = Array.from(
+      new Set(
+        intermediate
+          .filter((item) => item.type === AssetType.version_stack)
+          .map((item) => item.currentId),
+      ),
+    )
+
+    const latestChildByParent = new Map<string, string>()
+    if (versionStackIds.length > 0) {
+      const children = await this.prismaClient.asset.findMany({
+        where: { parentId: { in: versionStackIds }, isDeleted: false },
+        select: { id: true, parentId: true, sortIndex: true },
+        orderBy: { sortIndex: 'asc' },
+      })
+      for (const child of children) {
+        if (child.parentId && !latestChildByParent.has(child.parentId)) {
+          latestChildByParent.set(child.parentId, child.id)
+        }
+      }
+    }
+
+    return intermediate.map((item) => {
+      if (item.type === AssetType.version_stack) {
+        const childId = latestChildByParent.get(item.currentId)
+        if (childId) return childId
+      }
+      return item.currentId
+    })
   }
 
   async updateAssetName(req: UpdateAssetNameRequest): Promise<AssetInfo> {
@@ -2884,6 +2956,71 @@ export class AssetService {
       files: filteredLinks,
       skippedArchivedCount,
     }
+  }
+
+  async getStoragePaths(ids: string[]): Promise<GetStoragePathsResponse> {
+    if (ids.length === 0) return { paths: [] }
+
+    const targetAssetIds = await this.resolveLatestVersionIds(ids)
+    const uniqueTargetIds = Array.from(new Set(targetAssetIds))
+
+    const assets = await this.prismaClient.asset.findMany({
+      where: {
+        id: { in: uniqueTargetIds },
+        isDeleted: false,
+        type: {
+          notIn: [AssetType.folder, AssetType.root, AssetType.share_root, AssetType.share],
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        storageKey: {
+          select: {
+            key: true,
+            isArchived: true,
+          },
+        },
+      },
+    })
+
+    const defaultBackend = getStorageBackend()
+    const mainBucket = process.env.S3_BUCKET || 'shumai'
+    const paths: StoragePathItem[] = []
+
+    for (const asset of assets) {
+      const sk = asset.storageKey
+      if (!sk?.key) continue
+
+      const isArchived =
+        asset.status === AssetStatus.archived ||
+        asset.status === AssetStatus.archiving ||
+        asset.status === AssetStatus.restoring ||
+        sk.isArchived
+
+      const archivePathInfo = isArchived ? getArchiveStoragePath(sk.key) : null
+      if (archivePathInfo) {
+        paths.push({
+          id: asset.id,
+          name: asset.name,
+          path: archivePathInfo.path,
+          backend: archivePathInfo.backend,
+          isArchived: true,
+        })
+      } else {
+        const storagePath = s3Service.getStoragePath(mainBucket, sk.key)
+        paths.push({
+          id: asset.id,
+          name: asset.name,
+          path: storagePath,
+          backend: defaultBackend,
+          isArchived,
+        })
+      }
+    }
+
+    return { paths }
   }
 
   /**

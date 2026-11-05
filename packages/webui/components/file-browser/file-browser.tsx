@@ -485,7 +485,7 @@ export function FileBrowser({
     handleRename,
     handleRestore,
     handleDownload,
-    handleCopyNameAndDownloadLink,
+    handleCopy,
     handleArchive,
     handleRestoreArchive,
     handleAction,
@@ -781,6 +781,8 @@ export function FileBrowser({
       allowDownload,
       fields: displayedFields,
       canEdit,
+      isTeamOwner: canAdmin,
+      onCopy: handleCopy,
       archiveStorageEnabled,
       isExternalDragging,
       externalOverFolderId,
@@ -1172,7 +1174,7 @@ export function FileBrowser({
           onRename={handleRename}
           onDelete={handleDelete}
           onDownload={handleDownload}
-          onCopyNameAndDownloadLink={handleCopyNameAndDownloadLink}
+          onCopy={handleCopy}
           onNewFolder={handleNewFolder}
           onUploadFile={handleUploadFilesClick}
           onUploadFolder={handleUploadFolderClick}
@@ -1190,6 +1192,8 @@ export function FileBrowser({
           onArchive={handleArchive}
           onRestoreArchive={handleRestoreArchive}
           archiveStorageEnabled={archiveStorageEnabled}
+          isTeamOwner={canAdmin}
+          allowDownload={allowDownload}
           isRecentlyDeleted={isRecentlyDeleted}
           isRecents={isRecents}
           shareLinks={shareLinksData?.data ?? []}

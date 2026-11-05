@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { copyToClipboard } from '@/ui/lib/clipboard'
+import { useCopyActions } from './use-copy-actions'
 import { m } from '@/ui/paraglide/messages.js'
 
 interface UseFileActionsProps {
@@ -316,36 +316,12 @@ export function useFileActions({
     }
   }
 
-  const handleCopyNameAndDownloadLink = async (items: AssetInfo[]) => {
-    if (items.length === 0) return
-    try {
-      const res = await getDownloadLinks({
-        json: { ids: items.map((i) => i.id!) },
-      })
-      const files = res.files
-      if (files.length === 0) {
-        if ((res.skippedArchivedCount ?? 0) > 0) {
-          toast.error(m.download_all_archived_error())
-        }
-        return
-      }
-
-      let text = ''
-      if (files.length === 1) {
-        text = `Name: ${files[0].name}\nPath: ${files[0].url}`
-      } else {
-        text = files.map((f) => `${f.name}\t${f.url}`).join('\n')
-      }
-
-      const ok = await copyToClipboard(text)
-      if (ok) {
-        toast.success(m.copied_name_and_download_link_to_clipboard())
-      }
-    } catch (error) {
-      toast.error('Failed to copy name and download link')
-      console.error(error)
-    }
-  }
+  const { handleCopy } = useCopyActions({
+    projectId,
+    isPublic,
+    shareId,
+    getDownloadLinks: (args) => getDownloadLinks(args),
+  })
 
   const handleArchive = (items: AssetInfo[]) => {
     if (items.length === 0) return
@@ -543,7 +519,7 @@ export function useFileActions({
         handleRestore(targetItems)
         break
       case 'copy-name-and-download-link':
-        handleCopyNameAndDownloadLink(targetItems)
+        handleCopy('download-link', targetItems)
         break
       case 'archive':
         handleArchive(targetItems)
@@ -561,7 +537,7 @@ export function useFileActions({
     handleDelete,
     handleRestore,
     handleDownload,
-    handleCopyNameAndDownloadLink,
+    handleCopy,
     handleArchive,
     handleRestoreArchive,
     handleNewFolder,

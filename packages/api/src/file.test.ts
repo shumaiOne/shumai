@@ -3,6 +3,7 @@ import { Hono, type Context, type Next } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import fileRoute from './file'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { projectService } from '@shumai/core/src/project/project'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { s3Service } from '@shumai/core/src/s3/s3'
@@ -869,6 +870,127 @@ describe('file api', () => {
     expect(json.error).toBe('All selected items must belong to the same project')
 
     mockGetProjectIds.mockRestore()
+  })
+
+  describe('POST /files/storage-paths', () => {
+    it('returns empty paths if ids are empty', async () => {
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/storage-paths', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [] }),
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json).toEqual({ paths: [] })
+    })
+
+    it('rejects if assets belong to multiple projects', async () => {
+      const mockGetProjectIds = vi
+        .spyOn(assetService, 'getProjectIds')
+        .mockResolvedValue(['proj-1', 'proj-2'])
+
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/storage-paths', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: ['asset-1', 'asset-2'] }),
+      })
+
+      expect(res.status).toBe(400)
+      const json = await res.json()
+      expect(json.error).toBe('All selected items must belong to the same project')
+
+      mockGetProjectIds.mockRestore()
+    })
+
+    it('denies access if user is not a team owner (admin)', async () => {
+      const mockGetProjectIds = vi
+        .spyOn(assetService, 'getProjectIds')
+        .mockResolvedValue(['proj-1'])
+      const mockGetProjectTeam = vi
+        .spyOn(projectService, 'getProjectTeam')
+        .mockResolvedValue('team-1')
+      vi.mocked(authzService.hasPermission).mockRejectedValueOnce(
+        new HTTPException(403, { message: 'Permission denied' }),
+      )
+
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/storage-paths', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: ['asset-1'] }),
+      })
+
+      expect(res.status).toBe(403)
+      expect(authzService.hasPermission).toHaveBeenCalledWith({
+        user: { id: 'user1', name: 'Test User' },
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: 'team-1',
+      })
+
+      mockGetProjectIds.mockRestore()
+      mockGetProjectTeam.mockRestore()
+    })
+
+    it('returns storage paths if user has team admin permission', async () => {
+      const mockGetProjectIds = vi
+        .spyOn(assetService, 'getProjectIds')
+        .mockResolvedValue(['proj-1'])
+      const mockGetProjectTeam = vi
+        .spyOn(projectService, 'getProjectTeam')
+        .mockResolvedValue('team-1')
+      const mockGetStoragePaths = vi.spyOn(assetService, 'getStoragePaths').mockResolvedValue({
+        paths: [
+          {
+            id: 'asset-1',
+            name: 'clip.mp4',
+            path: 's3://shumai/files/1/clip.mp4',
+            backend: 's3',
+            isArchived: false,
+          },
+        ],
+      })
+
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/storage-paths', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: ['asset-1'] }),
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.paths).toHaveLength(1)
+      expect(json.paths[0].name).toBe('clip.mp4')
+      expect(json.paths[0].path).toBe('s3://shumai/files/1/clip.mp4')
+
+      expect(authzService.hasPermission).toHaveBeenCalledWith({
+        user: { id: 'user1', name: 'Test User' },
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: 'team-1',
+      })
+      expect(assetService.getStoragePaths).toHaveBeenCalledWith(['asset-1'])
+
+      mockGetProjectIds.mockRestore()
+      mockGetProjectTeam.mockRestore()
+      mockGetStoragePaths.mockRestore()
+    })
+
+    it('rejects if more than 100 ids are provided', async () => {
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const ids = Array.from({ length: 101 }, (_, i) => `asset-${i}`)
+      const res = await app.request('/files/storage-paths', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      })
+
+      expect(res.status).toBe(400)
+    })
   })
 
   describe('GET /files/:fileId/m3u8 routes', () => {

@@ -303,6 +303,17 @@ export function validateArchiveStorageConfig(): ArchiveStorageConfig {
   return getArchiveStorageConfig()
 }
 
+export function getArchiveStoragePath(
+  key: string,
+): { path: string; backend: 's3' | 'local' } | null {
+  const config = getArchiveStorageConfig()
+  if (!config.enabled) return null
+  if (config.backend === 's3') {
+    return { path: `s3://${config.bucket}/${key}`, backend: 's3' }
+  }
+  return { path: path.join(config.localRoot, key), backend: 'local' }
+}
+
 export class LocalArchiveStorageService implements ArchiveStorageService {
   readonly backend = 'local' as const
   readonly isSameS3Target = false

@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **file-browser**: Replace the legacy combined "Copy name and download link" action with a context-aware Copy submenu in file browser context menus and card action dropdowns, enabling users to copy image, asset names, in-app links, download links, IDs, Markdown links and storage paths(team-owner only)
+
 ## [0.6.3] - 2026-11-01
 
 ### Added
