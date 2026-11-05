@@ -24,6 +24,27 @@ export function isEtagMatching(etag: string | undefined, ifNoneMatch: string | n
 }
 
 /**
+ * Normalizes an ETag to ensure it is enclosed in quotes according to RFC 9110.
+ * Preserves weak validators (`W/"..."`).
+ */
+export function normalizeEtag(etag: string | undefined): string | undefined {
+  if (!etag) {
+    return undefined
+  }
+  const trimmed = etag.trim()
+  if (!trimmed) {
+    return undefined
+  }
+  if (trimmed.startsWith('W/"') && trimmed.endsWith('"')) {
+    return trimmed
+  }
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return trimmed
+  }
+  return `"${trimmed.replace(/^"|"$/g, '')}"`
+}
+
+/**
  * Creates a route handler for a static file on disk.
  * Content-hashed assets (e.g. `chunk-*.js`, `chunk-*.css`) should be marked `isImmutable: true`
  * to be aggressively cached locally by browsers across page reloads.
@@ -34,11 +55,14 @@ export function createStaticFileHandler(
   isImmutable: boolean,
 ): (req: Request) => Response {
   const bunFile = Bun.file(filePath)
+  const rawEtag = baseHeaders.etag || baseHeaders.ETag
+  const normalizedEtag = normalizeEtag(rawEtag)
   const headers: Record<string, string> = {
     ...baseHeaders,
+    ...(normalizedEtag ? { etag: normalizedEtag } : {}),
     'cache-control': isImmutable ? 'public, max-age=31536000, immutable' : 'no-cache',
   }
-  const etag = headers.etag || headers.ETag
+  const etag = headers.etag
 
   return (req: Request): Response => {
     const ifNoneMatch = req.headers.get('if-none-match')
@@ -61,7 +85,8 @@ export function createHtmlHandler(
   htmlText: string,
   baseHeaders: Record<string, string>,
 ): (req: Request) => Response {
-  const etag = `"${Bun.hash(htmlText).toString(16)}"`
+  const rawEtag = baseHeaders.etag || baseHeaders.ETag
+  const etag = normalizeEtag(rawEtag) || `"${Bun.hash(htmlText).toString(16)}"`
   const headers: Record<string, string> = {
     ...baseHeaders,
     etag,

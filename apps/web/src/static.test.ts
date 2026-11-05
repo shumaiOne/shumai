@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { writeFileSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { createHtmlHandler, createStaticFileHandler, isEtagMatching } from './static'
+import { createHtmlHandler, createStaticFileHandler, isEtagMatching, normalizeEtag } from './static'
 
 describe('Static Asset Serving & Caching', () => {
   const tempChunkPath = join(tmpdir(), `test-chunk-${Date.now()}.js`)
@@ -18,6 +18,24 @@ describe('Static Asset Serving & Caching', () => {
     } catch {
       // Ignore cleanup error if already deleted
     }
+  })
+
+  describe('normalizeEtag', () => {
+    it('quotes unquoted ETags according to RFC 9110', () => {
+      expect(normalizeEtag('hHRmXFeFVSk')).toBe('"hHRmXFeFVSk"')
+      expect(normalizeEtag('ACJrxcts9Iw')).toBe('"ACJrxcts9Iw"')
+    })
+
+    it('preserves already-quoted strong and weak ETags', () => {
+      expect(normalizeEtag('"hHRmXFeFVSk"')).toBe('"hHRmXFeFVSk"')
+      expect(normalizeEtag('W/"hHRmXFeFVSk"')).toBe('W/"hHRmXFeFVSk"')
+    })
+
+    it('returns undefined for empty or missing ETags', () => {
+      expect(normalizeEtag(undefined)).toBeUndefined()
+      expect(normalizeEtag('')).toBeUndefined()
+      expect(normalizeEtag('   ')).toBeUndefined()
+    })
   })
 
   describe('isEtagMatching', () => {
@@ -96,6 +114,28 @@ describe('Static Asset Serving & Caching', () => {
 
       expect(res.status).toBe(200)
       expect(res.headers.get('cache-control')).toBe('no-cache')
+    })
+
+    it('normalizes unquoted manifest ETags to quoted RFC 9110 strings', async () => {
+      const handler = createStaticFileHandler(
+        tempChunkPath,
+        { 'content-type': 'text/javascript;charset=utf-8', etag: 'hHRmXFeFVSk' },
+        true,
+      )
+
+      const req = new Request('http://localhost/chunk-123.js')
+      const res = handler(req)
+
+      expect(res.status).toBe(200)
+      expect(res.headers.get('etag')).toBe('"hHRmXFeFVSk"')
+
+      const revalidateRes = handler(
+        new Request('http://localhost/chunk-123.js', {
+          headers: { 'if-none-match': '"hHRmXFeFVSk"' },
+        }),
+      )
+      expect(revalidateRes.status).toBe(304)
+      expect(revalidateRes.headers.get('etag')).toBe('"hHRmXFeFVSk"')
     })
   })
 

@@ -195,7 +195,12 @@ async function run() {
     } else {
       const fallbackHtmlPath = join(import.meta.dir, 'shumai-app.html')
       const fallbackHtmlFile = Bun.file(fallbackHtmlPath)
-      const fallbackRaw = (await fallbackHtmlFile.exists()) ? await fallbackHtmlFile.text() : ''
+      if (!(await fallbackHtmlFile.exists())) {
+        throw new Error(
+          `Production HTML bundle is missing: neither bundle.files nor ${fallbackHtmlPath} exists.`,
+        )
+      }
+      const fallbackRaw = await fallbackHtmlFile.text()
       const serveFallbackHtml = createHtmlHandler(fallbackRaw, {
         'content-type': 'text/html;charset=utf-8',
       })
