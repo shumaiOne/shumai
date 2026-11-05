@@ -3,6 +3,25 @@ title: "Changelog"
 description: "Recent updates, new features, and improvements in Shumai"
 ---
 
+<Update label="v0.6.4" description="November 5, 2026">
+
+### Added
+
+- **storage**: Add optional archive storage support (`local` folder/NAS or `s3` with configurable storage class and Glacier restore) allowing editors and owners to archive and restore original files while keeping previews, proxy streams, comments, and metadata available in main storage
+- **storage**: Add team-level automatic asset archival based on age policies (creation time or last modified time) with configurable post-restore grace periods, an hourly background scanning worker, and a dedicated Storage settings page displaying read-only archive backend status and policy configurations
+
+### Fixed
+
+- **security**: ⚠️ Several security improvements and access control hardenings. Upgrading to this release is strongly recommended.
+- **mcp**: Gracefully disable MCP OAuth 2.1 with an error log when deploying on remote HTTP IP addresses without breaking the main server or API token MCP access
+- **web**: Add immutable cache headers and conditional 304 Not Modified support for production JavaScript and CSS chunks to prevent unnecessary refetches on page reload
+
+### Changed
+
+- **file-browser**: Replace the legacy combined "Copy name and download link" action with a context-aware Copy submenu in file browser context menus and card action dropdowns, enabling users to copy image, asset names, in-app links, download links, IDs, Markdown links and storage paths(team-owner only)
+
+</Update>
+
 <Update label="v0.6.3" description="November 1, 2026">
 
 ### Added
