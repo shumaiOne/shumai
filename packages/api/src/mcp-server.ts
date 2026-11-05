@@ -5,7 +5,7 @@ import type { z } from 'zod'
 import type { Prisma } from '@shumai/db'
 import { dropNullOptionals } from '@shumai/operations'
 import { getOperationsForSurface, runOperation, type Operation } from '@shumai/core/src/operations'
-import { auth, authBaseUrl, mcpResource } from '@shumai/core/src/auth/auth'
+import { auth, authBaseUrl, isMcpOauthEnabled, mcpResource } from '@shumai/core/src/auth/auth'
 import { apiTokenService } from '@shumai/core/src/user/api-token'
 import { mcpExtensions, type McpToolExtension } from './mcp-extensions'
 import { assertWritableInDemoMode, describeOperationError } from './operation-support'
@@ -134,40 +134,60 @@ const mcpHandler = createMcpHandler(({ authInfo }) => {
   return buildMcpServer(userId)
 })
 
-const oauthHandler = requireMcpAuth(
-  auth,
-  (req, claims) => {
-    const userId = claims.sub
-    if (!userId) {
-      throw new Error('OAuth token has no sub claim')
-    }
-    const clientId = (claims.azp as string) ?? (claims.client_id as string) ?? ''
-    const scopes =
-      typeof claims.scope === 'string'
-        ? claims.scope.split(' ')
-        : ((claims.scopes as string[]) ?? [])
-    return mcpHandler.fetch(req, {
-      authInfo: {
-        token: '',
-        clientId,
-        scopes,
-        extra: { userId },
+export const disabledOauthHandler = async (): Promise<Response> => {
+  return new Response(
+    JSON.stringify({
+      jsonrpc: '2.0',
+      error: {
+        code: -32000,
+        message:
+          'MCP OAuth 2.1 is disabled on this server because BETTER_AUTH_URL is not HTTPS or a loopback address. Please configure HTTPS or authenticate with a Shumai API token.',
       },
-    })
-  },
-  {
-    resource: mcpResource,
-    // In-process verification: avoids HTTP loopback round-trip and works even in test environments
-    // where no HTTP port is bound.
-    jwksUrl: (async () => {
-      const res = await auth.handler(new Request(`${authBaseUrl}/api/auth/jwks`))
-      if (!res.ok) {
-        throw new Error(`Failed to load JWKS in-process: ${res.statusText}`)
-      }
-      return await res.json()
-    }) as unknown as string,
-  },
-)
+      id: null,
+    }),
+    {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+    },
+  )
+}
+
+const oauthHandler = isMcpOauthEnabled
+  ? requireMcpAuth(
+      auth,
+      (req, claims) => {
+        const userId = claims.sub
+        if (!userId) {
+          throw new Error('OAuth token has no sub claim')
+        }
+        const clientId = (claims.azp as string) ?? (claims.client_id as string) ?? ''
+        const scopes =
+          typeof claims.scope === 'string'
+            ? claims.scope.split(' ')
+            : ((claims.scopes as string[]) ?? [])
+        return mcpHandler.fetch(req, {
+          authInfo: {
+            token: '',
+            clientId,
+            scopes,
+            extra: { userId },
+          },
+        })
+      },
+      {
+        resource: mcpResource,
+        // In-process verification: avoids HTTP loopback round-trip and works even in test environments
+        // where no HTTP port is bound.
+        jwksUrl: (async () => {
+          const res = await auth.handler(new Request(`${authBaseUrl}/api/auth/jwks`))
+          if (!res.ok) {
+            throw new Error(`Failed to load JWKS in-process: ${res.statusText}`)
+          }
+          return await res.json()
+        }) as unknown as string,
+      },
+    )
+  : disabledOauthHandler
 
 /** Shumai's MCP server (Streamable HTTP). Mounted at `/mcp` with dual API token and OAuth 2.1 auth. */
 const route = new Hono<{ Variables: { user: User } }>().all('/mcp', async (c) => {

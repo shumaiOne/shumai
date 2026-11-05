@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - **security**: ⚠️ Several security improvements and access control hardenings. Upgrading to this release is strongly recommended.
+- **mcp**: Gracefully disable MCP OAuth 2.1 with an error log when deploying on remote HTTP IP addresses without breaking the main server or API token MCP access
+- **web**: Add immutable cache headers and conditional 304 Not Modified support for production JavaScript and CSS chunks to prevent unnecessary refetches on page reload
 
 ### Changed
 

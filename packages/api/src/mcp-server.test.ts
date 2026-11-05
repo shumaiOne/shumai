@@ -6,7 +6,7 @@ import { teamService } from '@shumai/core/src/team/team'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { createFolderOp, readAssetOp, runOperation } from '@shumai/core/src/operations'
 import { MAX_INLINE_IMAGE_BYTES, MAX_INLINE_IMAGES } from './mcp-extensions/read-asset'
-import mcpServerRoute, { MCP_SERVER_INSTRUCTIONS } from './mcp-server'
+import mcpServerRoute, { disabledOauthHandler, MCP_SERVER_INSTRUCTIONS } from './mcp-server'
 
 vi.mock('@shumai/core/src/operations', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@shumai/core/src/operations')>()),
@@ -400,6 +400,24 @@ describe('MCP server', () => {
       expect(result.content).toEqual([
         { type: 'text', text: 'videoConfig with start, end, and count is required' },
       ])
+    })
+  })
+
+  describe('Disabled OAuth Fallback', () => {
+    it('returns 503 Service Unavailable with standard JSON-RPC error payload', async () => {
+      const res = await disabledOauthHandler()
+      expect(res.status).toBe(503)
+      expect(res.headers.get('content-type')).toContain('application/json')
+      const body = await res.json()
+      expect(body).toEqual({
+        jsonrpc: '2.0',
+        error: {
+          code: -32000,
+          message:
+            'MCP OAuth 2.1 is disabled on this server because BETTER_AUTH_URL is not HTTPS or a loopback address. Please configure HTTPS or authenticate with a Shumai API token.',
+        },
+        id: null,
+      })
     })
   })
 })
