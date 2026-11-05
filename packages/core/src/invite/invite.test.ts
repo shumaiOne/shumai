@@ -141,4 +141,33 @@ describe('Invite Service', () => {
     expect(updatedTm?.scope).toBe('team')
     expect(updatedTm?.role).toBe('editor')
   })
+
+  it('atomically claims invite and rejects concurrent redemptions', async () => {
+    const inv = await inviteService.createTeamInvite({
+      teamId: team.id,
+      role: 'editor',
+      inviterId: admin.id,
+    })
+
+    const userA = await prisma.user.create({
+      data: { name: 'userA', email: 'userA-invite@example.com', password: 'pass' },
+    })
+    const userB = await prisma.user.create({
+      data: { name: 'userB', email: 'userB-invite@example.com', password: 'pass' },
+    })
+
+    const results = await Promise.allSettled([
+      inviteService.consumeInvite(inv.code, userA.id),
+      inviteService.consumeInvite(inv.code, userB.id),
+    ])
+
+    const fulfilled = results.filter((r) => r.status === 'fulfilled')
+    const rejected = results.filter((r) => r.status === 'rejected')
+
+    expect(fulfilled.length).toBe(1)
+    expect(rejected.length).toBe(1)
+    if (rejected[0].status === 'rejected') {
+      expect(rejected[0].reason.message).toContain('invite code already used')
+    }
+  })
 })

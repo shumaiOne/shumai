@@ -10,7 +10,13 @@ import {
   ListPartsCommand,
   AbortMultipartUploadCommand,
 } from '@aws-sdk/client-s3'
-import { buildContentDisposition, LocalStorageService, S3StorageService } from './s3'
+import {
+  buildContentDisposition,
+  LocalStorageService,
+  S3StorageService,
+  signLocalGetUrl,
+  verifyLocalGetUrlSignature,
+} from './s3'
 
 const s3ClientConstructorSpy = vi.fn()
 const s3SendSpy = vi.fn()
@@ -710,24 +716,47 @@ describe('S3Service implementations', () => {
 
     it('should generate a local presign URL', async () => {
       const url = await localS3.presign('my-bucket', 'dir/file.txt', 'GET')
-      expect(url).toBe('http://localhost:3000/files/my-bucket/dir/file.txt')
+      expect(url).toContain('http://localhost:3000/files/my-bucket/dir/file.txt?')
+      expect(url).toContain('Signature=')
+      expect(url).toContain('Expires=')
     })
 
     it('should generate a local presign URL with download param', async () => {
       const url = await localS3.presign('my-bucket', 'dir/file.txt', 'GET', true)
-      expect(url).toBe('http://localhost:3000/files/my-bucket/dir/file.txt?download=1')
+      expect(url).toContain('http://localhost:3000/files/my-bucket/dir/file.txt?')
+      expect(url).toContain('Signature=')
+      expect(url).toContain('Expires=')
+      expect(url).toContain('download=1')
     })
 
     it('should include an encoded filename in the local download URL', async () => {
       const url = await localS3.presign('my-bucket', 'dir/file.txt', 'GET', true, 'foo bar.png')
-      expect(url).toBe(
-        'http://localhost:3000/files/my-bucket/dir/file.txt?download=1&filename=foo%20bar.png',
-      )
+      expect(url).toContain('http://localhost:3000/files/my-bucket/dir/file.txt?')
+      expect(url).toContain('Signature=')
+      expect(url).toContain('Expires=')
+      expect(url).toContain('download=1&filename=foo%20bar.png')
     })
 
     it('should not append a filename param when none is provided', async () => {
       const url = await localS3.presign('my-bucket', 'dir/file.txt', 'GET', true)
       expect(url).not.toContain('filename=')
+    })
+
+    it('should cache GET presigned URLs using LRU cache', async () => {
+      const url1 = await localS3.presign('my-bucket', 'dir/file.txt', 'GET')
+      const url2 = await localS3.presign('my-bucket', 'dir/file.txt', 'GET')
+      expect(url1).toBe(url2)
+
+      const urlOther = await localS3.presign('my-bucket', 'dir/other.txt', 'GET')
+      expect(urlOther).not.toBe(url1)
+    })
+
+    it('should not cache download URLs', async () => {
+      const url1 = await localS3.presign('my-bucket', 'dir/file.txt', 'GET', true)
+      const url2 = await localS3.presign('my-bucket', 'dir/file.txt', 'GET', true)
+      // download URLs include download=1
+      expect(url1).toContain('download=1')
+      expect(url2).toContain('download=1')
     })
 
     it('should throw an error for unsupported presign methods', async () => {
@@ -742,7 +771,9 @@ describe('S3Service implementations', () => {
 
     it('should resolveInput to presigned URL if file does not exist on disk', async () => {
       const input = await localS3.resolveInput('my-bucket', 'nonexistent.mp4')
-      expect(input).toBe('http://localhost:3000/files/my-bucket/nonexistent.mp4')
+      expect(input).toContain('http://localhost:3000/files/my-bucket/nonexistent.mp4?')
+      expect(input).toContain('Signature=')
+      expect(input).toContain('Expires=')
     })
   })
 
@@ -830,6 +861,65 @@ describe('S3Service implementations', () => {
       expect(
         [...buildContentDisposition('幻境边界.pptx')].every((ch) => ch.charCodeAt(0) <= 0x7f),
       ).toBe(true)
+    })
+  })
+
+  describe('signLocalGetUrl and verifyLocalGetUrlSignature', () => {
+    it('signs and verifies valid local get url', () => {
+      const { signature, expires } = signLocalGetUrl('my-bucket', 'files/123/file.mp4')
+      expect(signature).toBeDefined()
+      expect(expires).toBeGreaterThan(Math.floor(Date.now() / 1000))
+
+      const isValid = verifyLocalGetUrlSignature(
+        'my-bucket',
+        'files/123/file.mp4',
+        signature,
+        String(expires),
+      )
+      expect(isValid).toBe(true)
+    })
+
+    it('rejects expired local get url signature', () => {
+      // 10 seconds in the past
+      const { signature, expires } = signLocalGetUrl('my-bucket', 'files/123/file.mp4', -10)
+      const isValid = verifyLocalGetUrlSignature(
+        'my-bucket',
+        'files/123/file.mp4',
+        signature,
+        String(expires),
+      )
+      expect(isValid).toBe(false)
+    })
+
+    it('rejects tampered bucket or key', () => {
+      const { signature, expires } = signLocalGetUrl('my-bucket', 'files/123/file.mp4')
+      expect(
+        verifyLocalGetUrlSignature(
+          'other-bucket',
+          'files/123/file.mp4',
+          signature,
+          String(expires),
+        ),
+      ).toBe(false)
+
+      expect(
+        verifyLocalGetUrlSignature('my-bucket', 'files/999/other.mp4', signature, String(expires)),
+      ).toBe(false)
+    })
+
+    it('rejects tampered or malformed signature or expires', () => {
+      expect(
+        verifyLocalGetUrlSignature('my-bucket', 'files/123/file.mp4', 'badsig', '1234567890'),
+      ).toBe(false)
+      expect(
+        verifyLocalGetUrlSignature('my-bucket', 'files/123/file.mp4', undefined, '1234567890'),
+      ).toBe(false)
+      expect(
+        verifyLocalGetUrlSignature('my-bucket', 'files/123/file.mp4', 'badsig', undefined),
+      ).toBe(false)
+      expect(
+        verifyLocalGetUrlSignature('my-bucket', 'files/123/file.mp4', 'badsig', 'not-a-number'),
+      ).toBe(false)
     })
   })
 })

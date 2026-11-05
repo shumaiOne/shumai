@@ -1,8 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
-import uploadRoute from './upload'
+import uploadRoute, { localUploadRoute } from './upload'
 import { authMiddleware } from './middleware/auth'
 import { uploadService } from '@shumai/core/src/upload/upload'
+import * as s3Module from '@shumai/core/src/s3/s3'
 import type { CreateUploadTaskResponse, TaskInfo } from '@shumai/dtos'
 import type { PaginatedData } from '@shumai/core/src/pagination'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
@@ -242,5 +243,16 @@ describe('Upload API', () => {
       }),
     )
     expect(uploadService.cancelUploadTask).toHaveBeenCalledWith('team1', 'user1', 'task1')
+  })
+
+  describe('PUT /upload/local', () => {
+    it('returns 404 when STORAGE_BACKEND is s3', async () => {
+      vi.spyOn(s3Module, 'getStorageBackend').mockReturnValue('s3')
+      const localApp = new Hono().route('/', localUploadRoute)
+      const res = await localApp.request('/upload/local?bucket=b&key=k&Signature=sig', {
+        method: 'PUT',
+      })
+      expect(res.status).toBe(404)
+    })
   })
 })

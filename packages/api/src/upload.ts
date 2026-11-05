@@ -14,7 +14,7 @@ import { notificationService } from '@shumai/core/src/notification/notification'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { NotificationType } from '@shumai/db'
-import { s3Service, verifyLocalUrlSignature } from '@shumai/core/src/s3/s3'
+import { getStorageBackend, s3Service, verifyLocalUrlSignature } from '@shumai/core/src/s3/s3'
 import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -23,6 +23,10 @@ export const localUploadRoute = new Hono().put(
   '/upload/local',
   zValidator('query', localUploadQuerySchema),
   async (c) => {
+    if (getStorageBackend() !== 'local') {
+      return c.text('Not found', 404)
+    }
+
     const { bucket, key, Signature } = c.req.valid('query')
 
     if (!verifyLocalUrlSignature(bucket, key, Signature)) {

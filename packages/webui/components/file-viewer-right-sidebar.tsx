@@ -199,14 +199,12 @@ export function FileViewerRightSidebar({
       attachmentIds,
       annotations,
       replyToId,
-      guestUserId,
       second,
     }: {
       text: string
       attachmentIds: string[]
       annotations?: Annotation[]
       replyToId?: string | null
-      guestUserId?: string
       second?: number | null
     }) => {
       if (isPublic) {
@@ -225,7 +223,6 @@ export function FileViewerRightSidebar({
           {
             headers: {
               'x-share-password': password,
-              ...(guestUserId ? { 'x-guest-user-id': guestUserId } : {}),
             },
           },
         )
@@ -310,7 +307,7 @@ export function FileViewerRightSidebar({
           setIsGuestPopupOpen(true)
           return
         }
-        createComment({ text, attachmentIds, annotations, replyToId, guestUserId, second })
+        createComment({ text, attachmentIds, annotations, replyToId, second })
       } else {
         createComment({ text, attachmentIds, annotations, replyToId, second })
       }
@@ -320,10 +317,9 @@ export function FileViewerRightSidebar({
     setReplyingTo(null)
   }
 
-  const handleGuestSuccess = (guestUserId: string) => {
-    console.log('[handleGuestSuccess] guestUserId:', guestUserId)
+  const handleGuestSuccess = () => {
     if (pendingComment) {
-      createComment({ ...pendingComment, guestUserId })
+      createComment({ ...pendingComment })
       setPendingComment(null)
       setReplyingTo(null)
     }
@@ -473,6 +469,7 @@ export function FileViewerRightSidebar({
                 isOpen={isGuestPopupOpen}
                 onClose={() => setIsGuestPopupOpen(false)}
                 onSuccess={handleGuestSuccess}
+                shareId={shareId || undefined}
               >
                 <ChatInput
                   projectId={projectId}

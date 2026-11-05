@@ -30,6 +30,8 @@ RUN bun run scripts/extract-runtime-deps.ts
 # Stage 2: Runner
 FROM oven/bun:1.4.4 AS runner
 
+ENV NODE_ENV=production
+
 # Install system dependencies and Jellyfin-FFmpeg (with VA-API support)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \

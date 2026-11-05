@@ -13,6 +13,7 @@ interface GuestIdentityPopupProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: (guestUserId: string) => void
+  shareId?: string
   children?: React.ReactNode
 }
 
@@ -20,6 +21,7 @@ export function GuestIdentityPopup({
   isOpen,
   onClose,
   onSuccess,
+  shareId,
   children,
 }: GuestIdentityPopupProps) {
   const [name, setName] = useState('')
@@ -34,7 +36,7 @@ export function GuestIdentityPopup({
 
     try {
       const res = await client.api.identify.$post({
-        json: { username: name, email: email },
+        json: { username: name, email: email, shareId: shareId || undefined },
       })
 
       if (!res.ok) {
@@ -43,6 +45,9 @@ export function GuestIdentityPopup({
       }
 
       const { id } = await res.json()
+      if (shareId) {
+        localStorage.setItem(`guest_user_id_${shareId}`, id)
+      }
       localStorage.setItem('guest_user_id', id)
       onSuccess(id)
       onClose()

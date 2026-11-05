@@ -150,11 +150,11 @@ describe('ShareService', () => {
     expect(symlink).toBeDefined()
 
     // Test password check
-    await expect(shareService.verifyPublicAccess(symlink!.id, 'wrong')).rejects.toThrow(
-      'Invalid password',
-    )
     await expect(
-      shareService.verifyPublicAccess(symlink!.id, 'secret-password'),
+      shareService.verifyPublicAccess(shareLink.id, symlink!.id, 'wrong'),
+    ).rejects.toThrow('Invalid password')
+    await expect(
+      shareService.verifyPublicAccess(shareLink.id, symlink!.id, 'secret-password'),
     ).resolves.toBeDefined()
 
     // Test expiration
@@ -162,9 +162,9 @@ describe('ShareService', () => {
       where: { id: shareLink.id },
       data: { expireAt: new Date(Date.now() - 1000) },
     })
-    await expect(shareService.verifyPublicAccess(symlink!.id, 'secret-password')).rejects.toThrow(
-      'expired',
-    )
+    await expect(
+      shareService.verifyPublicAccess(shareLink.id, symlink!.id, 'secret-password'),
+    ).rejects.toThrow('expired')
   })
 
   it('traces deep ancestors for public access', async () => {
@@ -192,7 +192,7 @@ describe('ShareService', () => {
       },
     })
 
-    await expect(shareService.verifyPublicAccess(deepFile.id)).resolves.toBeDefined()
+    await expect(shareService.verifyPublicAccess(shareLink.id, deepFile.id)).resolves.toBeDefined()
   })
 
   it('verifies public access via symlink to a folder', async () => {
@@ -220,10 +220,11 @@ describe('ShareService', () => {
     await shareService.addAssetToShare(shareLink.id, { assetIds: [realFolder.id] })
 
     // 3. Verify access to the file inside the real folder (which is reached via the symlinked folder)
-    await expect(shareService.verifyPublicAccess(realFile.id)).resolves.toBeDefined()
+    await expect(shareService.verifyPublicAccess(shareLink.id, realFile.id)).resolves.toBeDefined()
   })
 
   it('fails public access for non-shared assets', async () => {
+    const shareLink = await shareService.createShareLink(projectId, { name: 'Empty Share' })
     const privateFile = await prisma.asset.create({
       data: {
         name: 'private.txt',
@@ -232,7 +233,7 @@ describe('ShareService', () => {
         projectId,
       },
     })
-    await expect(shareService.verifyPublicAccess(privateFile.id)).rejects.toThrow(
+    await expect(shareService.verifyPublicAccess(shareLink.id, privateFile.id)).rejects.toThrow(
       'Asset is not shared',
     )
   })
@@ -373,8 +374,8 @@ describe('ShareService', () => {
       where: { targetId: file.id, parentId: shareLink.rootFolderId },
     })
     expect(symlink).toBeDefined()
-    await expect(shareService.verifyPublicAccess(file.id)).resolves.toBeDefined()
-    await expect(shareService.verifyPublicAccess(symlink!.id)).resolves.toBeDefined()
+    await expect(shareService.verifyPublicAccess(shareLink.id, file.id)).resolves.toBeDefined()
+    await expect(shareService.verifyPublicAccess(shareLink.id, symlink!.id)).resolves.toBeDefined()
 
     // 1. Soft-delete the file (move to trash)
     await assetService.deleteAssets([file.id])
@@ -393,8 +394,8 @@ describe('ShareService', () => {
     expect(afterDeleteShareRoot?.fileCount).toBe(0)
 
     // Verify: public access is rejected
-    await expect(shareService.verifyPublicAccess(file.id)).rejects.toThrow()
-    await expect(shareService.verifyPublicAccess(symlink!.id)).rejects.toThrow()
+    await expect(shareService.verifyPublicAccess(shareLink.id, file.id)).rejects.toThrow()
+    await expect(shareService.verifyPublicAccess(shareLink.id, symlink!.id)).rejects.toThrow()
 
     // Verify: project's recently-deleted view does NOT list symlinks
     const recentlyDeleted = await assetService.listChildren({
@@ -423,8 +424,8 @@ describe('ShareService', () => {
     expect(afterRestoreShareRoot?.fileCount).toBe(1)
 
     // Verify: public access works again
-    await expect(shareService.verifyPublicAccess(file.id)).resolves.toBeDefined()
-    await expect(shareService.verifyPublicAccess(symlink!.id)).resolves.toBeDefined()
+    await expect(shareService.verifyPublicAccess(shareLink.id, file.id)).resolves.toBeDefined()
+    await expect(shareService.verifyPublicAccess(shareLink.id, symlink!.id)).resolves.toBeDefined()
   })
 
   it('hides soft-deleted folders from share link and restores them upon folder restoration', async () => {
@@ -463,7 +464,7 @@ describe('ShareService', () => {
     })
     expect(initialChildren.data).toHaveLength(1)
     expect(initialChildren.data[0].name).toBe('Shared Folder')
-    await expect(shareService.verifyPublicAccess(childFile.id)).resolves.toBeDefined()
+    await expect(shareService.verifyPublicAccess(shareLink.id, childFile.id)).resolves.toBeDefined()
 
     // 1. Soft-delete the folder
     await assetService.deleteAssets([folder.id])
@@ -476,7 +477,7 @@ describe('ShareService', () => {
     expect(afterDeleteChildren.data).toHaveLength(0)
 
     // Verify: access to child file inside folder is rejected
-    await expect(shareService.verifyPublicAccess(childFile.id)).rejects.toThrow()
+    await expect(shareService.verifyPublicAccess(shareLink.id, childFile.id)).rejects.toThrow()
 
     // 2. Restore the folder
     await assetService.restoreAssets([folder.id])
@@ -490,6 +491,46 @@ describe('ShareService', () => {
     expect(afterRestoreChildren.data[0].name).toBe('Shared Folder')
 
     // Verify: access to child file inside folder is restored
-    await expect(shareService.verifyPublicAccess(childFile.id)).resolves.toBeDefined()
+    await expect(shareService.verifyPublicAccess(shareLink.id, childFile.id)).resolves.toBeDefined()
+  })
+
+  it('binds public access strictly to the requested shareId', async () => {
+    const fileA = await prisma.asset.create({
+      data: { name: 'fileA.txt', type: AssetType.file, status: 'processed', projectId },
+    })
+    const fileB = await prisma.asset.create({
+      data: { name: 'fileB.txt', type: AssetType.file, status: 'processed', projectId },
+    })
+
+    const shareOpen = await shareService.createShareLink(projectId, { name: 'Open Share' })
+    const shareProtected = await shareService.createShareLink(projectId, {
+      name: 'Protected Share',
+      password: 'password123',
+    })
+
+    await shareService.addAssetToShare(shareOpen.id, { assetIds: [fileA.id, fileB.id] })
+    await shareService.addAssetToShare(shareProtected.id, { assetIds: [fileA.id] })
+
+    // fileA in protected share requires password
+    await expect(
+      shareService.verifyPublicAccess(shareProtected.id, fileA.id, 'wrong'),
+    ).rejects.toThrow('Invalid password')
+    await expect(
+      shareService.verifyPublicAccess(shareProtected.id, fileA.id, 'password123'),
+    ).resolves.toBeDefined()
+
+    // fileB is only in shareOpen, accessing it via shareProtected must fail even with password
+    await expect(
+      shareService.verifyPublicAccess(shareProtected.id, fileB.id, 'password123'),
+    ).rejects.toThrow('Asset is not shared')
+
+    // Disabled share must reject access even if file sits in another active share
+    await prisma.shareLink.update({
+      where: { id: shareProtected.id },
+      data: { isDisabled: true },
+    })
+    await expect(
+      shareService.verifyPublicAccess(shareProtected.id, fileA.id, 'password123'),
+    ).rejects.toThrow('disabled')
   })
 })

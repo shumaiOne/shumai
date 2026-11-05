@@ -1959,7 +1959,12 @@ export class AssetService {
         const attachmentAsset = await tx.asset.findUnique({
           where: { id: attachmentId },
         })
-        if (attachmentAsset) {
+        if (
+          attachmentAsset &&
+          (attachmentAsset.type === AssetType.attachment ||
+            attachmentAsset.type === AssetType.file) &&
+          attachmentAsset.projectId === a.projectId
+        ) {
           await tx.assetCommentAttachment.create({
             data: {
               assetId: attachmentAsset.id,
