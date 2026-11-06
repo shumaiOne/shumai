@@ -1,0 +1,233 @@
+---
+title: 硬件加速转码
+description: 利用 GPU 硬件加速显著提升视频转码速度并降低 CPU 负载。
+---
+
+高分辨率摄影机录像、手机拍摄视频以及动画媒体文件需要转码为代理格式，方可在 Web 浏览器中流畅播放。Shumai 在后台自动转码这些资产，生成用于即时拖拽播放（Scrubbing）的通用 `180p` 代理文件以及全分辨率预览流。
+
+硬件加速转码支持将视频编码负载分流至独立显卡或集成 GPU，大幅缩短处理耗时，并为其他系统服务释放宿主机的 CPU 核心资源。
+
+Shumai 内置可用性探测机制，在系统启动时自动测试硬件编码器，并在视频处理期间提供运行时自动回退保障。若 GPU 驱动或设备节点不可用，亦或硬件编码器达到硬件物理限制（例如某些 GPU 对特定分辨率或长宽比例的限制）乃至发生驱动运行时错误，Shumai 均能无缝回退至 CPU 软件编码（`libx264`），确保用户任务不会中断失败。
+
+---
+
+## 支持的硬件加速后端
+
+| 后端            | 硬件平台                             | 容器驱动 / 设备节点                              |
+| :-------------- | :----------------------------------- | :----------------------------------------------- |
+| **`nvenc`**     | NVIDIA GPU                           | NVIDIA Container Toolkit (`gpu, compute, video`) |
+| **`quicksync`** | Intel 核显与 Arc 独显                | `/dev/dri` 渲染节点                              |
+| **`vaapi`**     | AMD 与 Intel GPU                     | `/dev/dri` 渲染节点                              |
+| **`rkmpp`**     | 瑞芯微 Rockchip ARM SoC（如 RK3588） | `/dev/rga`、`/dev/dri`、`/dev/mpp_service`       |
+| **`vaapi-wsl`** | Windows 适用于 Linux 的子系统 (WSL2) | `/dev/dri`、`/dev/dxg`、`/usr/lib/wsl`           |
+
+---
+
+## 使用限制与注意事项
+
+- 本文说明以 **Docker Compose** 为准。若使用其他容器编排工具（如 Kubernetes 或 Podman），需配置等效的设备透传参数。
+- **macOS 上的 Docker Desktop** 运行在 Linux 虚拟机内，不支持 Apple Silicon 的 VideoToolbox 设备透传。（直接通过 NPM 或源码在本地原生运行 Shumai 时支持 VideoToolbox 硬件加速）。
+- 硬件加速转码生成的视频码率特征与软件编码略有差异。Shumai 采用针对 Web 流媒体优化的自适应可变码率（VBR）速率控制策略，以确保画面保真度。
+
+---
+
+## 前置要求
+
+### NVENC (NVIDIA)
+
+1. 确认宿主机已安装 NVIDIA 官方显卡驱动：
+   ```bash
+   nvidia-smi
+   ```
+2. 在宿主机上安装 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) 并重启 Docker：
+   ```bash
+   sudo apt-get install -y nvidia-container-toolkit
+   sudo nvidia-ctk runtime configure --runtime=docker
+   sudo systemctl restart docker
+   ```
+
+### QuickSync 与 VA-API (Intel / AMD)
+
+1. 验证 Linux 内核已初始化 Direct Rendering Infrastructure (DRI) 渲染节点：
+   ```bash
+   ls -la /dev/dri
+   ```
+   输出中应包含 `card0` 和 `renderD128`（或类似节点）。
+2. Shumai 的 Docker 镜像在容器启动时会自动调整用户组权限，非 root 应用用户无需手动调整即可直接访问宿主机的 `/dev/dri` 设备，避免权限错误。
+
+#### GPU 解码
+
+采用 VA-API 模式时，Shumai 会在 GPU 上同时完成视频解码与尺寸缩放，帧数据全程保留在 GPU 显存内。这种方式显著快于 CPU 解码，尤其是在集成显卡上处理 4K 片源时提升尤为明显。（其他后端目前采用 CPU 解码并由 GPU 负责编码。）
+
+部分视频会自动切换为“CPU 解码 + GPU 编码”模式：
+
+- GPU 无法解码的编码格式，例如老款 Intel 芯片上的 HEVC 或 10-bit 视频。Shumai 会先尝试 GPU 解码，并在 1 秒内自动重试切换至 CPU 解码。
+- 带有旋转元数据的视频（如手机竖屏录像），以确保输出画面朝向正确。
+- 带有水印的分享链接视频以及 HDR 片源。
+
+若某次 GPU 解码卡死超过 2 分钟（某些显卡驱动缺陷会导致 FFmpeg 进程挂起而非报错退出），Shumai 会中止该尝试并使用 CPU 重新解码。可通过 `SHUMAI_HW_DECODE_STALL_TIMEOUT`（单位：秒）调整此超时限制。
+
+若希望全局始终使用 CPU 解码，可在 `shumai` 服务上配置环境变量 `SHUMAI_HW_DECODE=false`。
+
+### WSL2 (Windows)
+
+- 确保系统运行 Windows 11 与 WSL2，且已在 Windows 宿主机上安装相应的 GPU 显卡驱动。
+- 使用 `vaapi-wsl` 预设，该预设会将 `/dev/dxg` 与 `/usr/lib/wsl` 映射进容器内。
+
+---
+
+## 使用 Docker Compose 部署配置
+
+Shumai 采用模块化的 `hwaccel.transcoding.yaml` 辅助配置文件来定义硬件设备。
+
+### 第 1 步：下载配置文件
+
+在 Shumai 部署目录下，将 `hwaccel.transcoding.yaml` 下载至 `docker-compose.yaml` 旁：
+
+```bash
+# 全球官方源
+curl -o hwaccel.transcoding.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/hwaccel.transcoding.yaml
+
+# 中国大陆加速镜像源
+curl -o hwaccel.transcoding.yaml https://gh-proxy.com/https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/hwaccel.transcoding.yaml
+```
+
+### 第 2 步：在 Docker Compose 中启用硬件加速
+
+打开 `docker-compose.yaml`（或 `docker-compose-aliyun.yaml`），找到 `shumai` 服务下被注释的 `extends` 代码块，并取消注释：
+
+```yaml
+services:
+  shumai:
+    # ...
+    # 硬件加速 (NVENC / QuickSync / VA-API / RKMPP)
+    extends:
+      file: hwaccel.transcoding.yaml
+      service: nvenc # 设置为 [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl] 之一
+```
+
+将 `nvenc` 替换为目标硬件后端：
+
+- `nvenc`：适用于 NVIDIA GPU
+- `quicksync`：适用于 Intel Quick Sync
+- `vaapi`：适用于 AMD 或 Intel VA-API
+- `rkmpp`：适用于瑞芯微 Rockchip SoC
+- `vaapi-wsl`：适用于 Windows WSL2
+
+### 第 3 步：启动服务
+
+重启或重新创建 Shumai 容器：
+
+```bash
+docker compose up -d
+```
+
+---
+
+## 单文件 Compose 配置 (Unraid / Portainer)
+
+若所处的容器编排管理工具不支持跨文件的 `extends` 语法，可直接将硬件配置内联写入 `docker-compose.yaml` 中的 `shumai` 服务：
+
+<AccordionGroup>
+  <Accordion title="NVIDIA NVENC">
+    ```yaml
+    services:
+      shumai:
+        # ...
+        deploy:
+          resources:
+            reservations:
+              devices:
+                - driver: nvidia
+                  count: 1
+                  capabilities:
+                    - gpu
+                    - compute
+                    - video
+    ```
+  </Accordion>
+
+<Accordion title="Intel QuickSync / AMD VA-API">
+  ```yaml services: shumai: # ... devices: - /dev/dri:/dev/dri ```
+</Accordion>
+
+<Accordion title="WSL2 (Windows)">
+  ```yaml services: shumai: # ... devices: - /dev/dri:/dev/dri - /dev/dxg:/dev/dxg volumes: -
+  /usr/lib/wsl:/usr/lib/wsl environment: - LIBVA_DRIVER_NAME=d3d12 ```
+</Accordion>
+
+  <Accordion title="瑞芯微 Rockchip RKMPP">
+    ```yaml
+    services:
+      shumai:
+        # ...
+        security_opt:
+          - systempaths=unconfined
+          - apparmor=unconfined
+        group_add:
+          - video
+        devices:
+          - /dev/rga:/dev/rga
+          - /dev/dri:/dev/dri
+          - /dev/dma_heap:/dev/dma_heap
+          - /dev/mpp_service:/dev/mpp_service
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Web 端设置
+
+在 Shumai Web 端，前往 **团队设置** > **转码设置**。
+
+- **自动（推荐）**：Shumai 按最优优先级顺序自动探测候选硬件编码器（`h264_nvenc` &rarr; `h264_vaapi` &rarr; `h264_qsv` &rarr; `h264_amf` &rarr; `libx264`）。若硬件加速不可用，则平滑降级至软件编码。
+- **指定编码器**：可将转码流水线显式锁定到指定编码器（如 `NVENC`、`Quick Sync`、`VA-API`）。
+- **关闭**：对所有视频任务强制使用 CPU 软件编码（`libx264`）。
+
+---
+
+## 验证与监控
+
+### 查看转码日志
+
+当上传资产开始视频转码时，Shumai 会记录一条结构化日志，明确标明所选用的编码器：
+
+```bash
+docker compose logs -f shumai
+```
+
+查找包含 `Starting video transcoding` 的日志记录：
+
+```json
+{
+  "level": 30,
+  "time": 1790414665096,
+  "encoder": "h264_nvenc",
+  "hardwareAcceleration": "auto",
+  "inputFile": "/tmp/transcode-.../video.mp4",
+  "outputFile": "/tmp/transcode-.../video-180p.mp4",
+  "msg": "Starting video transcoding"
+}
+```
+
+若硬件加速已成功初始化，`encoder` 字段将显示 `h264_nvenc`、`h264_vaapi` 或 `h264_qsv`。
+
+### 监控 GPU 负载利用率
+
+视频转码执行期间，可在宿主机上观察硬件资源占用情况：
+
+- **NVIDIA**:
+  ```bash
+  nvidia-smi
+  # 或
+  nvtop
+  ```
+- **Intel**:
+  ```bash
+  sudo intel_gpu_top
+  ```
+- **AMD**:
+  ```bash
+  sudo radeontop
+  ```

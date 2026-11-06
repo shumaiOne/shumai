@@ -1,0 +1,153 @@
+---
+title: 基于 Turntable Renderer 的 3D 资产支持
+description: 使用 turntable-renderer 渲染交互式 3D 模型转盘预览、雪碧图快擦预览与视频代理。
+---
+
+3D 模型与网格资产在各类浏览器和移动设备上往往难以实现一致的渲染效果与可靠的检查体验。Shumai 集成了 [turntable-renderer](https://github.com/shumaiOne/turntable-renderer) 独立服务——该服务通过隔离的无头 Blender 5.2 LTS 子进程，将上传的 3D 模型转换为标准化、高保真的转盘（Turntable）预览。
+
+Turntable Renderer 会自动生成：
+
+- **1080×1080 转盘视频（`turntable.mp4`）**：时长 4 秒、共 24 帧、6 fps 的视频，在纯黑背景与暗调摄影棚布光下顺时针 360°（每帧 15°）旋转展示模型。
+- **海报缩略图（`poster.webp`）**：清晰的高清静态封面海报，用于网格卡片展示与文件即时呈现。
+- **悬停预览雪碧图（`sprite.webp`）**：快速擦动（Scrubbing）雪碧图，支持在文件列表中悬停鼠标直接旋转预览并检查模型。
+- **交互式 3D 播放器**：专用的 Web 检视器，提供 360° 标尺擦动、旋转角度微调（0° 至 345°）、播放控制，并支持针对特定角度添加评审评论与视觉批注。
+
+---
+
+## 支持的文件类型
+
+配置 turntable-renderer 后，Shumai 会自动为以下格式生成 3D 转盘代理：
+
+| 格式 / 标准                       | 扩展名                            |
+| :-------------------------------- | :-------------------------------- |
+| 二进制 glTF                       | `.glb`                            |
+| Universal Scene Description (USD) | `.usd`, `.usda`, `.usdc`, `.usdz` |
+| Autodesk FBX                      | `.fbx`                            |
+| Wavefront OBJ                     | `.obj`                            |
+| 实体光刻 (STL)                    | `.stl`                            |
+| COLLADA                           | `.dae`                            |
+
+---
+
+## 配置说明
+
+Shumai 支持通过 **Web 界面**或**环境变量**配置 Turntable Renderer。
+
+### 1. Web 界面配置（团队设置 → 集成）
+
+团队所有者可直接在 Web 界面中配置 Turntable Renderer：
+
+1. 在侧边栏导航至**团队设置**。
+2. 切换至**集成**选项卡。
+3. 在 **3D Turntable Renderer** 下，输入**服务器地址（Server URL）**（例如 `http://turntable-renderer:3000` 或 `http://localhost:3003`）。
+4. 若服务启用了 Basic 基础认证，请输入**用户名**与**密码**。
+5. 点击**测试连接**，验证 Shumai 与渲染服务的通信状态并检查检测到的 Blender 版本。
+6. 点击**保存更改**。
+
+### 2. 环境变量配置
+
+也可以在运行 Shumai 或转码 Worker 的机器上通过环境变量进行全局配置：
+
+| 变量                                     | 必填             | 说明                                                                     |
+| :--------------------------------------- | :--------------- | :----------------------------------------------------------------------- |
+| `TURNTABLE_RENDERER_URL`                 | 是（启用时必填） | Turntable Renderer 基础服务地址，例如 `http://turntable-renderer:3000`。 |
+| `TURNTABLE_RENDERER_BASIC_AUTH_USERNAME` | 否               | 开启 Basic 基础认证时的用户名（别名：`TURNTABLE_RENDERER_USERNAME`）。   |
+| `TURNTABLE_RENDERER_BASIC_AUTH_PASSWORD` | 否               | 开启 Basic 基础认证时的密码（别名：`TURNTABLE_RENDERER_PASSWORD`）。     |
+
+### 配置优先级与只读模式
+
+> [!IMPORTANT]
+> **环境变量优先级最高。** 一旦在运行环境中配置了 `TURNTABLE_RENDERER_URL`，Shumai 将始终优先采用环境变量中的配置。
+>
+> 通过环境变量配置后，**团队设置 → 集成**中的对应设置项将显示**已通过环境变量配置（只读）**徽标，且输入框将被锁定，防止误操作或配置不一致。
+
+---
+
+## 部署 Turntable Renderer
+
+### Docker 快速上手
+
+运行 turntable-renderer 最便捷的方式是使用官方预构建的 Docker 镜像：
+
+```bash
+docker run -d --rm \
+  --name turntable-renderer \
+  -p 3003:3000 \
+  -e TURNTABLE_RENDERER_API_BASIC_AUTH_USERNAME=admin \
+  -e TURNTABLE_RENDERER_API_BASIC_AUTH_PASSWORD=your_password \
+  shumaione/turntable-renderer:latest
+```
+
+> **说明**：宿主机端口 `3003` 映射至容器内部端口 `3000`。
+
+### Docker Compose 配置
+
+在 `docker-compose.yaml` 中添加 `turntable-renderer` 服务：
+
+```yaml
+services:
+  turntable-renderer:
+    image: shumaione/turntable-renderer:latest
+    restart: unless-stopped
+    ports:
+      - '3003:3000'
+    environment:
+      TURNTABLE_RENDERER_API_BASIC_AUTH_USERNAME: admin
+      TURNTABLE_RENDERER_API_BASIC_AUTH_PASSWORD: your_password
+```
+
+随后在 Shumai 中配置指向该服务：
+
+```bash
+TURNTABLE_RENDERER_URL=http://localhost:3003
+TURNTABLE_RENDERER_BASIC_AUTH_USERNAME=admin
+TURNTABLE_RENDERER_BASIC_AUTH_PASSWORD=your_password
+```
+
+_（若 Shumai 与 turntable-renderer 运行在同一个 Docker Compose 网络中，服务地址请填 `http://turntable-renderer:3000`）。_
+
+### GPU 硬件加速
+
+独立 GPU 为可选配置——turntable-renderer 的 CPU 渲染流水线在普通硬件配置下已具备足够快的处理速度。当向容器传入 GPU 资源时，系统会自动检测并启用硬件加速。
+
+#### Intel / AMD（开源驱动）
+
+透传 DRI 渲染节点设备：
+
+```bash
+docker run -d --rm \
+  --name turntable-renderer \
+  --shm-size=1gb \
+  -p 3003:3000 \
+  --device /dev/dri \
+  -e TURNTABLE_RENDERER_API_BASIC_AUTH_USERNAME=admin \
+  -e TURNTABLE_RENDERER_API_BASIC_AUTH_PASSWORD=your_password \
+  shumaione/turntable-renderer:latest
+```
+
+#### NVIDIA（专有闭源驱动）
+
+宿主机需安装 580+ 版本显卡驱动及 NVIDIA Container Toolkit（`--runtime nvidia`）：
+
+```bash
+docker run -d --rm \
+  --name turntable-renderer \
+  --shm-size=1gb \
+  -p 3003:3000 \
+  --runtime nvidia \
+  --gpus all \
+  --device /dev/nvidia-modeset \
+  -e TURNTABLE_RENDERER_API_BASIC_AUTH_USERNAME=admin \
+  -e TURNTABLE_RENDERER_API_BASIC_AUTH_PASSWORD=your_password \
+  shumaione/turntable-renderer:latest
+```
+
+---
+
+## 未配置 Turntable Renderer 时的系统行为
+
+若未配置 turntable-renderer 或服务无法连通：
+
+- 上传的 3D 模型仍可正常处理完成，状态标记为 `processed`。
+- 不会生成转盘视频代理、雪碧图与海报缩略图。
+- 原始 3D 文件安全完整保存，团队成员可正常下载原文件。

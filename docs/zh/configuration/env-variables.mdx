@@ -1,0 +1,161 @@
+---
+title: 环境变量
+description: Shumai 全量配置参数参考指南。
+---
+
+Shumai 通过环境变量配置。可以在应用工作区根目录的 `.env` 文件中定义这些变量，也可在启动 Docker 容器时直接传入。
+
+---
+
+## 数据库配置
+
+| 变量           | 说明                                                          | 示例 / 默认值                                            |
+| :------------- | :------------------------------------------------------------ | :------------------------------------------------------- |
+| `DATABASE_URL` | PostgreSQL 连接 URL。目标数据库必须预先安装 `pgvector` 扩展。 | `postgresql://user:pass@localhost:5432/db?schema=public` |
+
+---
+
+## 服务器配置
+
+| 变量                    | 说明                                                                | 示例 / 默认值  |
+| :---------------------- | :------------------------------------------------------------------ | :------------- |
+| `SHUMAI_SERVER_PORT`    | Shumai Web 服务器监听的端口。                                       | `3000`（默认） |
+| `MAX_REQUEST_BODY_SIZE` | 允许的最大请求体大小（例如用于大文件上传），单位为字节。默认 10GB。 | `10737418240`  |
+
+---
+
+## 认证与应用配置
+
+| 变量                 | 说明                                                                                             | 示例 / 默认值                                                  |
+| :------------------- | :----------------------------------------------------------------------------------------------- | :------------------------------------------------------------- |
+| `BETTER_AUTH_SECRET` | 用于对会话 Cookie 和 JWT 签名的安全随机 32 字节密钥。                                            | 可通过 `openssl rand -base64 32` 生成                          |
+| `BETTER_AUTH_URL`    | Shumai 服务器的公网访问 URL。用于 MCP OAuth 2.1 端点发现、重定向流程、密码重置链接以及邮件通知。 | `http://localhost:3000`（未设置时回退至 `SHUMAI_SERVER_PORT`） |
+| `APP_URL`            | Web 前端应用的公网访问 URL。用于通知邮件中的深度链接（未设置时回退至 `BETTER_AUTH_URL`）。       | `https://shumai.example.com`                                   |
+
+---
+
+## 存储配置
+
+Shumai 支持将文件存储在本地文件系统或兼容 S3 的对象存储中。
+
+| 变量                              | 说明                                                                                                    | 示例 / 默认值                                                  |
+| :-------------------------------- | :------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------- |
+| `STORAGE_BACKEND`                 | 存储类型。使用 `local` 表示本地文件系统存储，使用 `s3` 表示兼容 S3 的云对象存储。                       | `local`（默认）或 `s3`                                         |
+| `AWS_ENDPOINT_URL_S3`             | S3 存储或本地存储的服务端点。浏览器据此生成文件上传链接。在远程部署或使用自定义端口时，必须包含端口号。 | `http://localhost:3000`（未设置时回退至 `SHUMAI_SERVER_PORT`） |
+| `S3_BUCKET`                       | S3 存储桶名称。                                                                                         | `shumai`（默认）                                               |
+| `S3_ACCESS_KEY_ID`                | S3 访问凭据 Access Key ID。                                                                             | `minioadmin`（默认）                                           |
+| `S3_SECRET_ACCESS_KEY`            | S3 访问凭据 Secret Access Key。                                                                         | `minioadmin`（默认）                                           |
+| `S3_REGION`                       | S3 存储区域。                                                                                           | `auto`（默认）                                                 |
+| `PRESIGNED_URL_EXPIRES_IN`        | 生成的预签名下载链接的有效时长（单位：小时）。                                                          | `5`（默认）                                                    |
+| `PRESIGNED_UPLOAD_URL_EXPIRES_IN` | 生成的预签名上传链接的有效时长（单位：小时）。未设置时回退至 `PRESIGNED_URL_EXPIRES_IN`。               | `12`（默认）                                                   |
+
+### 本地存储端口配置
+
+当 `STORAGE_BACKEND` 设为 `local`（默认值）时：
+
+- `SHUMAI_SERVER_PORT` 用于配置 Shumai Web 服务器启动并监听的端口。
+- `AWS_ENDPOINT_URL_S3` 用于配置客户端浏览器上传和下载文件所用的公网/外部访问端点。必须包含协议头（Scheme）与端口。
+
+例如，若在远程服务器 `http://123.456.7.8` 上部署 Shumai，且在 Docker Compose 中配置了端口映射 `12345:3000`（即内部端口 3000 映射为宿主机外部端口 12345）：
+
+- 将 `SHUMAI_SERVER_PORT` 设为 `3000`。
+- 将 `AWS_ENDPOINT_URL_S3` 设为 `http://123.456.7.8:12345`。
+
+### 归档存储配置
+
+Shumai 支持配置可选的**归档存储**（冷存储）层级（`local` NAS/挂载目录或 `s3` 存储桶/存储类型），用于将原始素材文件归档迁移，同时在主存储中保留代理版本、预览图、缩略图和元数据。
+
+| 变量                            | 说明                                                                                                                                        | 示例 / 默认值                                          |
+| :------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------- |
+| `ARCHIVE_STORAGE_BACKEND`       | 归档存储类型。留空表示禁用归档存储，可选 `local` 或 `s3`。                                                                                  | 未设置（禁用）、`local` 或 `s3`                        |
+| `ARCHIVE_LOCAL_ROOT`            | 当 `ARCHIVE_STORAGE_BACKEND=local` 时必填。归档原始文件的根目录（例如挂载的 NAS 目录），文件将直接存储在 `<ARCHIVE_LOCAL_ROOT>/<key>` 下。  | `/mnt/nas/shumai-archive`                              |
+| `ARCHIVE_AWS_ENDPOINT_URL_S3`   | 当 `ARCHIVE_STORAGE_BACKEND=s3` 时的自定义 S3 归档端点（独立于 `AWS_ENDPOINT_URL_S3`）。                                                    | `https://s3.us-east-1.amazonaws.com`                   |
+| `ARCHIVE_S3_BUCKET`             | 当 `ARCHIVE_STORAGE_BACKEND=s3` 时必填。归档文件的目标 S3 存储桶（可为独立存储桶，也可与 `S3_BUCKET` 相同并配合冷存储类型使用）。           | `shumai-archive`                                       |
+| `ARCHIVE_S3_ACCESS_KEY_ID`      | 当 `ARCHIVE_STORAGE_BACKEND=s3` 时必填。归档存储的 S3 Access Key ID。                                                                       | `AKIA...`                                              |
+| `ARCHIVE_S3_SECRET_ACCESS_KEY`  | 当 `ARCHIVE_STORAGE_BACKEND=s3` 时必填。归档存储的 S3 Secret Access Key。                                                                   | `...`                                                  |
+| `ARCHIVE_S3_REGION`             | 当 `ARCHIVE_STORAGE_BACKEND=s3` 时归档存储的 S3 区域。                                                                                      | `auto`（默认）                                         |
+| `ARCHIVE_S3_STORAGE_CLASS`      | 归档对象时附加的可选 S3 `StorageClass` 标头（支持任意标准或厂商特定的存储类型字符串；在同存储桶分层场景下必填且不可为 `STANDARD`）。        | `GLACIER_IR`、`GLACIER`、`DEEP_ARCHIVE`、`STANDARD_IA` |
+| `ARCHIVE_S3_USE_RESTORE_OBJECT` | 控制在读取已归档对象前是否调用 S3 `RestoreObject` 接口（`auto`、`true` 或 `false`）。                                                       | `auto`（默认）                                         |
+| `ARCHIVE_S3_RESTORE_DAYS`       | S3 冷存储对象解冻恢复后，解冻副本保持可读状态的天数。                                                                                       | `1`（默认）                                            |
+| `ARCHIVE_S3_RESTORE_TIER`       | 可选的 S3 Glacier 解冻检索层级（`Expedited`、`Standard`、`Bulk`）。未设置时省略该参数，适用于拒绝 `GlacierJobParameters` 的兼容 S3 服务商。 | 未设置（默认）                                         |
+| `AUTO_ARCHIVE_INTERVAL_MINUTES` | 后台自动归档扫描任务的执行频率（单位：分钟）。支持小数值（例如测试时设为 `0.02`）。                                                         | `60`（默认 1 小时）                                    |
+
+---
+
+## 工作流配置
+
+用于配置 DBOS Transact 队列的后台 Worker 执行、并发限制及 Worker 实例标识。
+
+| 变量                    | 说明                                                                                                                                      | 示例 / 默认值     |
+| :---------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- | :---------------- |
+| `SHUMAI_WORKERS`        | Web 服务器监听的任务队列。可选值：`all`（默认，监听全部队列）、`none`（仅作为 API/UI 服务）、`agent`（或 `ai`）、`transcode`、`archive`。 | `all`（默认）     |
+| `CONCURRENCY_TRANSCODE` | Worker 执行媒体转码任务的最大并发数。                                                                                                     | `1`（默认）       |
+| `CONCURRENCY_ARCHIVE`   | Worker 执行归档与解冻任务的最大并发数。                                                                                                   | `5`（默认）       |
+| `CONCURRENCY_AGENT`     | Worker 执行 AI 任务的最大并发数。在运行本地 `embedding-server` 时建议设为 `1`。                                                           | `5`（默认）       |
+| `SHUMAI_WORKER_ID`      | 多节点部署中 Worker 副本的可选显式实例 ID（未设置时根据主机名和进程 ID 自动派生）。                                                       | `worker-1`        |
+| `POD_NAME`              | Kubernetes Pod 名称，用于在 StatefulSet 重启时保持稳定的各 Pod Worker 身份标识。                                                          | `transcode-pod-0` |
+
+---
+
+## 向量模型配置
+
+| 变量                              | 说明                                                                             | 示例 / 默认值                     |
+| :-------------------------------- | :------------------------------------------------------------------------------- | :-------------------------------- |
+| `EMBEDDING_PROVIDER`              | 多模态向量模型服务商。可选值：`gemini-embedding-2`、`gemma-embedding-2-openai`。 | `gemini-embedding-2`（默认）      |
+| `GEMMA_EMBEDDING_OPENAI_BASE_URL` | 兼容 OpenAI 协议的 LiteRT-LM 向量模型服务 Base URL。                             | `http://embedding-server:9379/v1` |
+| `ENABLE_EMBEDDING_AGENT`          | 设为 `true` 时，在启动时自动为所有团队置备并启用系统向量智能体。                 | `false`（默认）                   |
+| `EMBEDDING_CHUNK_DURATION`        | 生成视频向量时每个视频切片的时长（单位：秒）。                                   | `60.0`（默认）                    |
+| `EMBEDDING_CHUNK_OVERLAP`         | 生成视频向量时各个视频切片的重叠时长（单位：秒）。                               | `5.0`（默认）                     |
+
+## 沙箱配置
+
+| 变量                           | 说明                                                                         | 示例 / 默认值   |
+| :----------------------------- | :--------------------------------------------------------------------------- | :-------------- |
+| `ENABLE_WEAKER_NESTED_SANDBOX` | 为缺少用户命名空间权限的环境（例如某些 Docker 容器）启用弱隔离嵌套沙箱模式。 | `false`（默认） |
+
+---
+
+## 日志配置
+
+| 变量         | 说明                                                                       | 示例 / 默认值  |
+| :----------- | :------------------------------------------------------------------------- | :------------- |
+| `LOG_LEVEL`  | Pino 日志输出级别。可选值：`debug`、`info`、`warn`、`error`。              | `info`（默认） |
+| `LOG_FORMAT` | 日志输出格式风格。生产环境推荐使用 `json`，终端直观查看推荐使用 `pretty`。 | `json`（默认） |
+
+---
+
+## 大语言模型 API 密钥
+
+启动时预配给 AI 服务商的 API Key。
+
+| 变量                | 说明                             | 示例 / 默认值 |
+| :------------------ | :------------------------------- | :------------ |
+| `GEMINI_API_KEY`    | Google Gemini 服务商的 API Key。 | `AIzaSy...`   |
+| `OPENAI_API_KEY`    | OpenAI 服务商的 API Key。        | `sk-proj-...` |
+| `ANTHROPIC_API_KEY` | Anthropic 服务商的 API Key。     | `sk-ant-...`  |
+
+---
+
+## 外部集成配置
+
+环境变量可用于全局配置外部微服务。设置后，这些环境变量的优先级高于在 **团队设置 → 集成** 中配置的任何团队级设置，并将 WebUI 中的对应设置字段锁定为只读状态。
+
+### Gotenberg 文档转换服务
+
+用于将 Office 文档、HTML、Markdown 和 CSV 文件转换为高保真 PDF 代理文件，以供浏览器内直接预览。安装配置步骤请参阅 [Gotenberg 指南](/zh/using-shumai/gotenberg)。
+
+| 变量                            | 说明                                          | 示例 / 默认值           |
+| :------------------------------ | :-------------------------------------------- | :---------------------- |
+| `GOTENBERG_URL`                 | 外部 Gotenberg 转换服务的 API Base URL。      | `http://gotenberg:3000` |
+| `GOTENBERG_BASIC_AUTH_USERNAME` | Gotenberg 实例启用 Basic 身份验证时的用户名。 | `admin`                 |
+| `GOTENBERG_BASIC_AUTH_PASSWORD` | Gotenberg 实例启用 Basic 身份验证时的密码。   | `secret`                |
+
+### 3D 转台渲染服务
+
+用于将 3D 模型文件（GLB、OBJ、FBX、USD、STL、DAE）转换为交互式 360° 旋转转台视频代理、封面图以及悬浮预览雪碧图。安装配置步骤请参阅 [3D 资产支持指南](/zh/using-shumai/3d-asset-support)。
+
+| 变量                                     | 说明                                                                                  | 示例 / 默认值                    |
+| :--------------------------------------- | :------------------------------------------------------------------------------------ | :------------------------------- |
+| `TURNTABLE_RENDERER_URL`                 | 外部 turntable-renderer 服务的 Base URL。                                             | `http://turntable-renderer:3000` |
+| `TURNTABLE_RENDERER_BASIC_AUTH_USERNAME` | 3D 转台渲染服务启用 Basic 身份验证时的用户名（别名：`TURNTABLE_RENDERER_USERNAME`）。 | `admin`                          |
+| `TURNTABLE_RENDERER_BASIC_AUTH_PASSWORD` | 3D 转台渲染服务启用 Basic 身份验证时的密码（别名：`TURNTABLE_RENDERER_PASSWORD`）。   | `secret`                         |

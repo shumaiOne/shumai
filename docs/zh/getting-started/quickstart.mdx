@@ -1,0 +1,218 @@
+---
+title: 快速入门
+description: 了解如何通过 Docker、NPM 或源码快速部署并运行 Shumai。
+---
+
+Shumai 提供三种安装方式。对于大多数管理员，推荐使用 **Docker Compose**，这是部署 Shumai 最便捷迅速的方式。
+
+---
+
+## 方案一：Docker Compose（推荐）
+
+使用 Docker Compose 是运行 Shumai 最快捷的方式。无需克隆仓库或手动安装依赖包。请确保已安装 [Docker](https://docs.docker.com/get-docker/) 与 [Docker Compose](https://docs.docker.com/compose/install/)，随后执行以下步骤：
+
+1.  **创建工作目录**：
+    为配置文件与数据卷创建并进入新的目录：
+
+    ```bash
+    mkdir shumai && cd shumai
+    ```
+
+2.  **下载配置文件**：
+    根据实际需求与可用内存（RAM）选择并下载对应的 `docker-compose.yaml` 配置文件：
+
+    - **精简版（建议内存 2 GB+）**：轻量级部署方案，仅包含 Shumai 主服务与 PostgreSQL 数据库。
+
+      ```bash
+      curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
+      ```
+
+    - **含向量模型服务版（建议内存 4 GB+）**：引入基于 `shumaiOne/embedding-server`（`EmbeddingGemma 2 740M`）的本地多模态语义搜索能力。
+
+      ```bash
+      curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.embedding.yaml
+      ```
+
+    - **完整版（建议内存 8 GB+）**：全功能一体化配置，包含 `embedding-server`、`turntable-renderer`（3D 预览渲染）以及 `Gotenberg`（文档 PDF 预览代理）。
+      ```bash
+      curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.full.yaml
+      ```
+
+    > [!NOTE]
+    > Docker Compose 默认采用 CPU 软解转码。如果服务器配备了 GPU（NVIDIA NVENC、Intel QuickSync、AMD/Intel VA-API 或 Rockchip RKMPP）并希望启用 GPU 硬件加速，请参阅[硬件转码指南](/zh/configuration/hardware-transcoding)。
+
+3.  **配置环境变量**：
+    打开 `docker-compose.yaml`，根据部署环境调整环境变量：
+
+    - `BETTER_AUTH_URL`：Shumai 服务器的公开访问基准 URL（例如 `https://shumai.example.com` 或 `http://12.34.56.78:3000`）。主要用于：
+      - **密码重置链接**：生成 CLI 及用户的密码重置 URL（`{BETTER_AUTH_URL}/reset-password?token=...`）。
+      - **邮件通知深度链接**：通知邮件中的默认基准跳转 URL（当未设置 `APP_URL` 时生效）。
+      - **会话 Cookie 安全策略**：在 HTTPS 部署环境下决定是否为会话 Cookie 附加 `Secure` 标记及 `__Secure-` 前缀。
+      - **MCP OAuth 2.1 与服务发现**：设置 OAuth 资源标识符（`{BETTER_AUTH_URL}/mcp`）、服务发现端点（`/.well-known/...`）以及出站 MCP OAuth 的默认重定向 URI。
+
+      > [!NOTE]
+      > 即使未配置 `BETTER_AUTH_URL`，**邮箱/密码方式的 Web UI 登录**仍可在纯 HTTP/IP 环境下正常工作。但在生产环境、自定义域名或 HTTPS 部署中，强烈建议显式配置该变量。请注意，根据 RFC 9728 规范，远程部署使用 MCP OAuth 2.1 时必须启用 HTTPS；若使用 HTTP IP 地址或域名，MCP OAuth 2.1 将优雅降级禁用，但 Web UI 及 MCP API Token 仍可正常使用。
+
+    - `BETTER_AUTH_SECRET`：用于对会话 Cookie、JWT 以及预签名文件上传/下载 URL（本地存储模式下）进行签名的随机密钥。模板中已包含一个用于本地临时体验的默认占位符，但在**生产环境或公开网络部署中，必须生成独立的密钥**（例如执行 `openssl rand -base64 32` 生成）。
+    - `AWS_ENDPOINT_URL_S3`：默认配置为 `http://localhost:{SHUMAI_SERVER_PORT}`。当使用本地存储（`STORAGE_BACKEND: local` 默认模式）并将 Shumai 部署在远程服务器、自定义域名或非默认端口时，请将 `AWS_ENDPOINT_URL_S3` 设置为客户端浏览器用于上传和下载文件的外部访问 URL。
+
+      例如，若将 `docker-compose.yaml` 中的端口映射从 `3000:3000` 修改为 `12345:3000`，且部署服务器 IP 地址为 `12.34.56.78`，则应配置为：
+
+      ```yaml
+      AWS_ENDPOINT_URL_S3: http://12.34.56.78:12345
+      ```
+
+      该地址必须能从客户端浏览器直接访问，并包含对外暴露的端口号。
+
+    - `SHUMAI_SERVER_PORT`：控制 Shumai 服务监听的端口，默认为 `3000`。
+    - **外部 S3 存储**：在此 Docker Compose 配置中，Shumai 默认使用内置的本地存储服务。若需改用外部兼容 S3 的存储，请配置对应的 S3 环境变量。以下为 AWS S3 与 Cloudflare R2 的配置示例：
+
+      **AWS S3 示例：**
+
+      ```yaml
+      STORAGE_BACKEND: s3
+      S3_BUCKET: your-bucket-name
+      S3_ACCESS_KEY_ID: your-access-key-id
+      S3_SECRET_ACCESS_KEY: your-secret-access-key
+      AWS_ENDPOINT_URL_S3: https://s3.us-east-1.amazonaws.com
+      ```
+
+      **Cloudflare R2 示例：**
+
+      ```yaml
+      STORAGE_BACKEND: s3
+      S3_BUCKET: your-bucket-name
+      S3_REGION: auto
+      S3_ACCESS_KEY_ID: your-access-key-id
+      S3_SECRET_ACCESS_KEY: your-secret-access-key
+      AWS_ENDPOINT_URL_S3: https://<account-id>.r2.cloudflarestorage.com
+      ```
+
+4.  **启动服务**：
+
+    ```bash
+    docker compose up -d
+    ```
+
+5.  **访问控制台**：
+    打开浏览器并访问 **`http://localhost:3000`**（若为远程部署则访问 `http://<服务器-IP>:3000`），即可进入 Shumai Web UI。
+
+### 生产环境部署（分布式工作节点）
+
+如果团队视频上传量较大，建议采用基于独立工作节点与兼容 S3 存储后端的分布式部署方案。该方案可将高消耗的视频转码与 AI 智能体任务分流至专用的工作节点，确保主控制台始终保持敏捷流畅。详细配置步骤请参阅[分布式工作节点部署](/zh/configuration/distributed)指南。
+
+---
+
+## 方案二：通过 NPM 安装
+
+可通过 Node 包管理器（NPM）将 Shumai 作为全局服务运行。
+
+### 系统前置依赖
+
+为支持媒体处理与安全隔离能力，宿主机系统必须安装以下系统工具：
+
+- **FFmpeg 与 FFprobe**：视频转码与元数据提取所必需。
+  - _macOS_：`brew install ffmpeg`
+  - _Linux (Ubuntu/Debian)_：`sudo apt-get install ffmpeg`
+- **dcraw_emu (LibRaw)**：相机 RAW 格式图片解码与预览生成所必需。
+  - _macOS_：`brew install libraw`
+  - _Linux (Ubuntu/Debian)_：`sudo apt-get install libraw-bin`
+- **智能体沙箱工具**：用于安全隔离并执行自定义自动化脚本。
+  - _macOS_：`brew install ripgrep`
+  - _Linux (Ubuntu/Debian)_：`sudo apt-get install bubblewrap socat ripgrep`
+
+### 详细安装步骤
+
+1.  **启动数据库**：
+    Shumai 需要搭载 `pgvector` 扩展的 PostgreSQL 数据库。启动数据库容器：
+    ```bash
+    docker run --name shumai_postgres \
+      -e POSTGRES_USER=shumai \
+      -e POSTGRES_PASSWORD=shumai_password \
+      -e POSTGRES_DB=shumai_db \
+      -p 5432:5432 \
+      -d pgvector/pgvector:pg18
+    ```
+2.  **安装 Shumai**：
+    ```bash
+    npm install -g @shumai-one/shumai
+    ```
+3.  **配置环境变量**：
+    创建新目录并进入，随后创建 `.env` 文件：
+
+    ```bash
+    mkdir shumai && cd shumai
+    ```
+
+    创建包含以下变量的 `.env` 文件：
+
+    ```env
+    DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
+    BETTER_AUTH_SECRET=your-random-32-character-secret-key
+    BETTER_AUTH_URL=http://localhost:3000
+    STORAGE_BACKEND=local
+    AWS_ENDPOINT_URL_S3=http://localhost:3000
+    ```
+
+    > [!TIP]
+    > 远程或生产环境部署时，应将 `BETTER_AUTH_URL` 设置为服务器的公网地址。`AWS_ENDPOINT_URL_S3` 则必须包含对外访问的协议协议头与端口（例如 `http://localhost:3000` 或 `http://12.34.56.78:3000`），客户端浏览器将直接使用该地址上传文件。
+
+4.  **启动 Shumai**：
+
+    > [!IMPORTANT]
+    > **Bun 用户请注意：** 发布的 npm 包二进制文件包含 `#!/usr/bin/env node` Shebang，因此直接执行 `shumai` 将由 Node.js 运行。若使用 Bun 安装并希望在 Bun 运行时环境下运行，请在命令前添加 `bun run --bun`（例如 `bun run --bun shumai`）。
+
+    ```bash
+    shumai
+    ```
+
+    在浏览器中打开 `http://localhost:3000` 即可。
+
+---
+
+## 方案三：源码运行（适合开发者）
+
+若要在本地搭建 Shumai 开发环境：
+
+1.  **克隆仓库并安装依赖**：
+    ```bash
+    git clone https://github.com/shumaiOne/shumai.git
+    cd shumai
+    bun install
+    ```
+2.  **启动数据库**：
+    启动本地数据库容器（同上述 NPM 部署步骤）：
+    ```bash
+    docker run --name shumai_postgres \
+      -e POSTGRES_USER=shumai \
+      -e POSTGRES_PASSWORD=shumai_password \
+      -e POSTGRES_DB=shumai_db \
+      -p 5432:5432 \
+      -d pgvector/pgvector:pg18
+    ```
+3.  **创建环境配置文件**：
+    在工作区根目录下创建 `.env` 文件：
+    ```env
+    DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
+    BETTER_AUTH_SECRET=ySxs7DxzHDZBbeeHNPEwBuspYwipBqz5Gk5XdBjNhWw=
+    BETTER_AUTH_URL=http://localhost:3000
+    STORAGE_BACKEND=local
+    SHUMAI_SERVER_PORT=3000
+    AWS_ENDPOINT_URL_S3=http://localhost:3000
+    ```
+4.  **编译国际化（i18n）语言包**：
+    ```bash
+    bun run i18n:compile
+    ```
+    > [!TIP]
+    > 在前端开发过程中，可在独立终端窗口运行 `bun run i18n:watch`。当修改 `packages/webui/messages/` 中的文案时，系统会自动重新编译语言包。
+5.  **执行数据库迁移**：
+    应用数据库架构迁移：
+    ```bash
+    bun run db:migrate
+    ```
+6.  **启动开发服务器**：
+    ```bash
+    bun run dev
+    ```
+    命令执行后将在 `3000` 端口启动 Web 服务，并已开启热重载（Hot-Reloading）。

@@ -1,0 +1,250 @@
+---
+title: 归档存储
+description: 配置二级冷存储以归档迁移原生媒体文件，同时完整保留浏览器内代理播放与即时预览。
+---
+
+高分辨率摄影机素材、RAW 序列帧、母带分轨音频以及庞大的 3D 资产会迅速耗尽主存储空间。Shumai 的**归档存储**（冷存储）功能支持创作团队将庞大的母盘原始文件分流至低成本的冷存储（例如本地 NAS、AWS S3 Glacier 或 Google Cloud Storage Coldline），同时将所有媒体代理版本、预览图、音频波形文件及元数据完整保留在主存储中。
+
+团队成员可在 Web 浏览器中无缝浏览、搜索、拖拽预览并审阅已归档的资产。当需要母盘制作或调色而调用原始文件时，只需一键即可将其恢复解冻至主存储。
+
+---
+
+## 核心工作机制
+
+1. **仅归档原始文件**：系统仅将原始素材文件迁移至归档存储。预览图、缩略图及转码代理文件（如 180p 拖拽代理、1080p 可流式播放 MP4、WebP 海报图）均保留在主存储中。
+2. **高可靠持久化异步工作流**：文件的归档与恢复操作由 DBOS 管理的独立 Worker 任务队列（`archive_queue`）在后台处理。任务能够抵御网络中断、缓慢的 S3 传输以及服务器重启。
+3. **透明的资产生命周期**：
+   - 资产归档过程中，其状态流转为 `archiving`（归档中），完成后定格为 `archived`（已归档）。
+   - 资产解冻恢复过程中，状态流转为 `restoring`（恢复中），原始文件恢复至主存储后变回 `processed`（已处理）。
+   - 移至废纸篓并被永久清空的资产，其在归档存储中的原始文件也会被自动同步彻底删除。
+4. **支持文件夹与版本堆栈**：对文件夹或版本堆栈执行归档，将以递归方式归档其包含的所有文件资产；恢复文件夹或版本堆栈则会一并恢复其中包含的所有已归档文件。
+
+---
+
+## 存储拓扑
+
+Shumai 支持灵活多样的存储架构，主存储与归档存储可分别采用不同的底层后端或服务商：
+
+| 拓扑模式                       | 主存储      | 归档存储 | 说明                                                                                                                    |
+| :----------------------------- | :---------- | :------- | :---------------------------------------------------------------------------------------------------------------------- |
+| **本地 NAS / 挂载目录**        | Local 或 S3 | `local`  | 将文件迁移至已挂载的网络共享目录（NFS / SMB）或二级冷备磁盘阵列。                                                       |
+| **独立 S3 存储桶 / 服务商**    | S3 或 Local | `s3`     | 将文件流式传输至 AWS S3、Wasabi、Backblaze B2 或 Google Cloud Storage 上的专属归档存储桶。                              |
+| **同一 S3 存储桶（原位分层）** | AWS S3      | `s3`     | 在 AWS S3 同一存储桶内，利用冷存储类型（`GLACIER`、`GLACIER_IR`、`DEEP_ARCHIVE`）就地重新分层，无需跨网络重新上传数据。 |
+
+---
+
+## 配置变量
+
+在 `.env` 文件或 Docker Compose 配置中添加以下环境变量即可启用和配置归档存储。
+
+### 通用配置
+
+| 变量                            | 说明                                                                                                                                              | 是否必填 | 默认值         |
+| :------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------ | :------- | :------------- |
+| `ARCHIVE_STORAGE_BACKEND`       | 归档存储后端：`local` 或 `s3`。未设置时，WebUI 中的归档功能保持禁用。                                                                             | 否       | 未设置（禁用） |
+| `CONCURRENCY_ARCHIVE`           | 后台 Worker 执行归档与恢复任务的最大并发数。                                                                                                      | 否       | `5`            |
+| `SHUMAI_WORKERS`                | 应用服务器监听的 Worker 任务队列：`all`（默认）、`none`、`agent`（或 `ai`）、`transcode`、`archive`。需设置为 `all` 或 `archive` 以处理归档任务。 | 否       | `all`          |
+| `AUTO_ARCHIVE_INTERVAL_MINUTES` | 后台自动归档扫描任务的执行频率（单位：分钟）。支持小数值（例如测试时设为 `0.02`）。                                                               | 否       | `60`（1 小时） |
+
+### 本地归档存储
+
+当 `ARCHIVE_STORAGE_BACKEND=local` 时生效：
+
+| 变量                 | 说明                                                                                                 | 是否必填 | 默认值         |
+| :------------------- | :--------------------------------------------------------------------------------------------------- | :------- | :------------- |
+| `ARCHIVE_LOCAL_ROOT` | 存储归档文件的宿主机文件系统目录路径。切勿与主存储本地目录（`./data` 或 `./data/<S3_BUCKET>`）重叠。 | 是       | 未设置（必填） |
+
+### S3 归档存储
+
+当 `ARCHIVE_STORAGE_BACKEND=s3` 时生效。请注意归档存储维护专属的独立配置，**绝不会回退**至主存储的 `S3_*` 环境变量：
+
+| 变量                               | 说明                                                                                                                                          | 是否必填 | 默认值                                    |
+| :--------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------- | :------- | :---------------------------------------- |
+| `ARCHIVE_S3_BUCKET`                | 归档文件的目标 S3 存储桶（可为独立存储桶，也可在同存储桶分层时与 `S3_BUCKET` 相同）。                                                         | 是       | 未设置（必填）                            |
+| `ARCHIVE_S3_ACCESS_KEY_ID`         | 归档 S3 服务的 Access Key ID。                                                                                                                | 是       | 未设置（必填）                            |
+| `ARCHIVE_S3_SECRET_ACCESS_KEY`     | 归档 S3 服务的 Secret Access Key。                                                                                                            | 是       | 未设置（必填）                            |
+| `ARCHIVE_AWS_ENDPOINT_URL_S3`      | 归档存储的 S3 服务端点 URL（例如 MinIO、Cloudflare R2、Google Cloud Storage）。                                                               | 否       | 未设置（AWS 标准端点）                    |
+| `ARCHIVE_S3_REGION`                | 归档存储桶所在的 S3 区域。                                                                                                                    | 否       | `auto`                                    |
+| `ARCHIVE_S3_FORCE_PATH_STYLE`      | 采用路径风格 (Path-Style) S3 URL（MinIO / 路径风格设为 `true`，虚拟主机风格设为 `false`）。                                                   | 否       | `true`                                    |
+| `ARCHIVE_S3_STORAGE_CLASS`         | 赋予归档对象的 S3 存储类别（例如 `GLACIER`、`GLACIER_IR`、`DEEP_ARCHIVE`、`COLDLINE`）。归档至同一个 S3 存储桶时此项必填且不可为 `STANDARD`。 | 否       | 未设置                                    |
+| `ARCHIVE_S3_USE_RESTORE_OBJECT`    | 控制在读取已归档对象前是否调用 S3 `RestoreObject` 接口（`auto`、`true` 或 `false`）。                                                         | 否       | `auto`                                    |
+| `ARCHIVE_S3_RESTORE_DAYS`          | 异步 Glacier 解冻恢复时，解冻的临时副本在 S3 中保持可读状态的天数。                                                                           | 否       | `1`                                       |
+| `ARCHIVE_S3_RESTORE_TIER`          | S3 Glacier 解冻检索层级（`Expedited`、`Standard` 或 `Bulk`）。若所用服务商无需异步解冻，可省略此参数。                                        | 否       | 未设置                                    |
+| `ARCHIVE_RESTORE_POLL_INTERVAL_MS` | 等待异步冷存储解冻期间，状态轮询检查的间隔毫秒数。                                                                                            | 否       | `60000`（初始 1 分钟，后续稳定为 5 分钟） |
+
+---
+
+## 配置示例
+
+### 1. 本地 NAS / 挂载路径
+
+适合配备本地网络附加存储（如群晖 Synology、威联通 QNAP、TrueNAS，或挂载至宿主机的 NFS/SMB 共享目录）的私有化部署团队：
+
+```env
+# 主存储配置（本地磁盘或 S3）
+STORAGE_BACKEND=local
+LOCAL_STORAGE_PATH=./storage
+
+# 归档存储配置（指向挂载的 NAS 目录）
+ARCHIVE_STORAGE_BACKEND=local
+ARCHIVE_LOCAL_ROOT=/mnt/nas/shumai-archive
+```
+
+在 `docker-compose.yaml` 中，将宿主机 NAS 卷挂载至容器中：
+
+```yaml
+services:
+  shumai:
+    volumes:
+      - /mnt/nas/shumai-archive:/mnt/nas/shumai-archive
+    environment:
+      ARCHIVE_STORAGE_BACKEND: local
+      ARCHIVE_LOCAL_ROOT: /mnt/nas/shumai-archive
+```
+
+---
+
+### 2. AWS S3 Glacier 即时检索 (Instant Retrieval)
+
+AWS S3 Glacier Instant Retrieval (`GLACIER_IR`) 在提供冷存储低廉费率的同时具备**毫秒级检索延迟**。由于处于 `GLACIER_IR` 状态的对象不需要发起异步 `RestoreObject` 请求，将资产恢复至主存储可即时完成。
+
+#### 同存储桶原位分层（快速路径）
+
+若主存储已使用 AWS S3，可在**同一个存储桶**内将文件分层归档至 `GLACIER_IR`，无需在网络中重新上传数据：
+
+```env
+# 主存储配置
+STORAGE_BACKEND=s3
+S3_BUCKET=my-shumai-production
+S3_REGION=us-east-1
+S3_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+S3_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+AWS_ENDPOINT_URL_S3=https://s3.us-east-1.amazonaws.com
+
+# 归档存储配置（复用相同的存储桶与凭据，搭配冷存储类别）
+ARCHIVE_STORAGE_BACKEND=s3
+ARCHIVE_S3_BUCKET=my-shumai-production
+ARCHIVE_S3_REGION=us-east-1
+ARCHIVE_S3_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+ARCHIVE_S3_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+ARCHIVE_AWS_ENDPOINT_URL_S3=https://s3.us-east-1.amazonaws.com
+ARCHIVE_S3_STORAGE_CLASS=GLACIER_IR
+```
+
+#### 专属归档存储桶
+
+若倾向于将归档媒体文件存放在独立的 S3 存储桶中：
+
+```env
+# 归档存储配置（独立存储桶）
+ARCHIVE_STORAGE_BACKEND=s3
+ARCHIVE_S3_BUCKET=my-shumai-archive-glacier-ir
+ARCHIVE_S3_REGION=us-east-1
+ARCHIVE_S3_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+ARCHIVE_S3_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+ARCHIVE_AWS_ENDPOINT_URL_S3=https://s3.us-east-1.amazonaws.com
+ARCHIVE_S3_STORAGE_CLASS=GLACIER_IR
+```
+
+---
+
+### 3. AWS S3 Glacier 灵活检索（深度冷存储）
+
+对于极少访问的归档素材，AWS S3 Flexible Archive (`GLACIER`) 或 Deep Archive (`DEEP_ARCHIVE`) 可提供最大程度的存储成本节约。
+
+当用户从 Glacier 恢复资产时，Shumai 会发起 `RestoreObject` 请求，将后台工作流转入 DBOS 持久化等待状态，并定期检查直至 AWS 完成文件解冻：
+
+```env
+ARCHIVE_STORAGE_BACKEND=s3
+ARCHIVE_S3_BUCKET=my-shumai-cold-archive
+ARCHIVE_S3_REGION=us-east-1
+ARCHIVE_S3_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+ARCHIVE_S3_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+ARCHIVE_AWS_ENDPOINT_URL_S3=https://s3.us-east-1.amazonaws.com
+ARCHIVE_S3_STORAGE_CLASS=GLACIER
+
+# 解冻后的临时副本保持可访问状态 7 天
+ARCHIVE_S3_RESTORE_DAYS=7
+
+# Glacier 检索层级：Standard（标准，3-5 小时）、Expedited（快速，1-5 分钟）或 Bulk（批量，5-12 小时）
+ARCHIVE_S3_RESTORE_TIER=Standard
+```
+
+> [!NOTE]
+> 在 Glacier 解冻恢复期间，DBOS 会在 PostgreSQL 中调度持久化等待定时器。等待 AWS 解冻文件期间，Worker 线程将完全释放，不占用任何并发执行槽位。
+
+---
+
+### 4. Google Cloud Storage Coldline 归档
+
+Google Cloud Storage (GCS) 提供兼容 S3 的 XML API 以及 `COLDLINE`、`ARCHIVE` 等低成本存储类别。与 Glacier Instant Retrieval 类似，GCS Coldline 提供**即时访问**能力，无需异步解冻阶段：
+
+```env
+# 主存储配置（例如 Cloudflare R2、MinIO 或标准 GCS）
+STORAGE_BACKEND=s3
+S3_BUCKET=shumai-main
+...
+
+# 基于 GCS Coldline 的归档存储
+ARCHIVE_STORAGE_BACKEND=s3
+ARCHIVE_S3_BUCKET=shumai-coldline-archive
+ARCHIVE_S3_ACCESS_KEY_ID=GOOG1EXAMPLETOCKENKEY
+ARCHIVE_S3_SECRET_ACCESS_KEY=your-gcs-hmac-secret-access-key
+ARCHIVE_AWS_ENDPOINT_URL_S3=https://storage.googleapis.com
+ARCHIVE_S3_STORAGE_CLASS=COLDLINE
+```
+
+> [!TIP]
+> Google Cloud Storage 对象可直接读取，不接受 AWS Glacier 解冻检索参数。切勿设置 `ARCHIVE_S3_RESTORE_TIER`。若使用 GCS 的 `ARCHIVE` 存储类别，请配置 `ARCHIVE_S3_USE_RESTORE_OBJECT=false` 以跳过 S3 `RestoreObject` 调用。
+
+---
+
+## 资产自动归档
+
+除手动按需归档外，Shumai 还支持团队基于资产生命周期策略实现冷存储自动分层。这样可以自动将庞大的原始素材文件迁移至二级冷存储，无需创作者或管理员反复手动清理。
+
+### Web 端配置
+
+团队所有者可在 **团队设置 > 存储** 下配置自动归档策略：
+
+1. **归档存储状态概览**：
+   - 展示服务器当前配置的归档存储后端（`local` 或 `s3`）、服务端点、存储桶或根目录。
+   - 若服务端环境变量中未配置归档存储，界面将显示警告提示，且自动归档控制项保持禁用。
+   - 出于安全原因，凭据与服务器私密配置不会向客户端浏览器暴露。
+
+2. **资产自动归档策略**：
+   - **启用自动归档**：为团队开启或关闭后台自动归档功能（默认关闭；需要已配置有效的归档存储后端）。
+   - **归档条件 (`method`)**：
+     - **超过指定天数未修改 (`not_updated`)**：以最后修改时间戳（`updatedAt`）作为判定标准。非常适合高频协作的生产工作流——只要团队成员仍在持续评论、批注或修改，文件就会保留在快速的主存储中。一旦在设定时间内未发生任何修改，资产便会自动移至冷存储。
+     - **创建超过指定天数 (`after_created`)**：以初始上传/创建时间戳（`createdAt`）作为判定标准。适合有严格留存周期要求或合规场景的流水线，无论近期是否有审阅评论，素材在达到指定时间（如交付后 60 天或 90 天）后均会自动分层归档。
+   - **保留时长阈值 (`days`)**：符合归档条件的资产在达到该天数阈值（介于 1 至 3650 天之间）后，将被排入归档队列。
+   - **恢复后保护缓冲期 (`postRestoreGraceDays`)**：
+     - 当资产从归档存储恢复至主存储时，其修改时间会刷新为恢复时刻。
+     - 若采用 **创建超过指定天数** 规则，早已超出阈值的文件（例如已创建 100 天的文件）原本会在下一次每小时扫描中立刻被再次归档。
+     - 恢复后保护缓冲期（默认 30 天）可确保恢复的文件在主存储中至少保留指定天数后，才重新具备自动归档资格。该数值应设置得小于保留时长阈值。在此策略下，只有既超过创建保留天数、且恢复时间也已超出保护缓冲期的文件，才会被自动归档。
+
+### 副本去重与安全保证
+
+Shumai 利用基于内容寻址的存储键（`storage_keys`），在项目与文件夹之间实现相同文件的去重：
+
+- **副本保护机制**：若多条资产记录引用底层同一个存储对象（例如在文件夹或项目间复制、克隆的文件），自动归档扫描程序会检查所有关联的同源资产（Sibling Assets）。
+- **严格共识机制**：仅当**所有活跃的关联同源文件**均满足团队的自动归档条件，且处于稳定的 `processed` 状态时，底层存储文件才会执行归档。
+- **无饥饿调度**：若任一同源副本近期发生过修改或当前正处于活跃工作流中，系统将安全跳过该存储键，且不会阻塞其他符合条件资产的正常归档。
+
+### 后台扫描与执行语义
+
+自动归档任务在后台定期运行：
+
+- **扫描频率**：通过环境变量 `AUTO_ARCHIVE_INTERVAL_MINUTES` 配置（默认 `60` 分钟；支持小数值如 `0.02` 用于自动化测试）。
+- **分布式选主机制**：在候选扫描发现阶段使用 PostgreSQL 事务级咨询锁（`pg_try_advisory_xact_lock`）。在多 Pod 或多副本容器部署环境中，每个周期仅有单台服务器实例执行扫描，其他副本实例平稳跳过。
+- **竞态条件防范**：在归档过程中，候选资产通过条件 SQL 语句（`UPDATE assets SET status = 'archiving' WHERE status = 'processed'`）配合行级 `storage_keys FOR UPDATE` 锁实现原子状态流转。这彻底避免了与用户并发执行的手动归档、恢复或文件删除发生竞态冲突。
+
+---
+
+## Web 端表现与权限
+
+- **权限控制**：仅团队 **所有者 (Owner)** 与 **编辑者 (Editor)** 可执行资产的归档与恢复操作。
+- **右键菜单**：在文件浏览器中右键点击任意文件、文件夹或版本堆栈，即可选择 **归档** 或 **从归档中恢复**。
+- **状态标识**：已归档的条目在网格卡片与列表行中均带有 `已归档` 徽标。在文件查看器中，面包屑导航栏的文件名前会显示归档图标。
+- **播放与预览**：借助主存储保留的缓存代理，视频流媒体播放、拖拽进度条、音频波形、PDF 渲染以及图片查看功能依然完全可用。
+- **下载限制**：原片下载按钮将变为禁用状态，并带有气泡提示说明原始文件已被归档。转码代理版本下载（如 1080p MP4）不受影响，依然可用。
