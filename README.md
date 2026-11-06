@@ -117,6 +117,7 @@ Docker Compose is the fastest way to get Shumai running. You do not need to clon
 
      > [!NOTE]
      > **Email/password Web UI login** works over plain HTTP/IP even if `BETTER_AUTH_URL` is omitted. However, setting it is strongly recommended for production, custom domains, or HTTPS deployments. Note that remote deployments must use HTTPS for MCP OAuth 2.1 (RFC 9728); if an HTTP IP address or domain is used, MCP OAuth 2.1 is gracefully disabled while the Web UI and MCP API tokens remain functional.
+   * `BETTER_AUTH_SECRET`: A random secret key used to sign session cookies, JWTs, and presigned file upload/download URLs (in local storage mode). A default placeholder is included in the template for instant local trials, but **you must generate a unique secret for production or public deployments** (e.g., run `openssl rand -base64 32`).
    * `AWS_ENDPOINT_URL_S3`: By default, `AWS_ENDPOINT_URL_S3` is set to `http://localhost:{SHUMAI_SERVER_PORT}`. When you use local storage (the default storage backend with `STORAGE_BACKEND: local`) and expose Shumai on a remote server, custom domain, or custom host/port combination, set `AWS_ENDPOINT_URL_S3` to the external URL that client browsers will use to upload and download files.
 
      For example, if you change the port mapping in `docker-compose.yaml` from `3000:3000` to `12345:3000` and deploy on a server with IP address `12.34.56.78`, set:
