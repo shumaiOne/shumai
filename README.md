@@ -109,7 +109,14 @@ Docker Compose is the fastest way to get Shumai running. You do not need to clon
    > By default, the Docker Compose setups use CPU software transcoding. If your server has a GPU (NVIDIA NVENC, Intel QuickSync, AMD/Intel VA-API, or Rockchip RKMPP) and you want to enable GPU hardware acceleration, check the [Hardware Transcoding Guide](https://docs.shumai.one/configuration/hardware-transcoding).
 3. Configure environment variables:
 
-   * `BETTER_AUTH_URL`: The public base URL of your Shumai server (e.g., `https://shumai.example.com` or `http://12.34.56.78:3000`). This is required for remote servers and production deployments. Note: Remote deployments must use HTTPS for MCP OAuth 2.1; if an HTTP IP address or domain is used, MCP OAuth 2.1 is gracefully disabled while the Web UI and MCP API tokens remain functional.
+   * `BETTER_AUTH_URL`: The public base URL of your Shumai server (e.g., `https://shumai.example.com` or `http://12.34.56.78:3000`). It is used for:
+     * **Password reset links**: Generates CLI and user password reset URLs (`{BETTER_AUTH_URL}/reset-password?token=...`).
+     * **Email notification deep links**: Default base URL for notification emails (if `APP_URL` is unset).
+     * **Session cookie security**: Determines whether to issue session cookies with `Secure` flags and `__Secure-` prefixes for HTTPS deployments.
+     * **MCP OAuth 2.1 & discovery**: Sets the OAuth resource identifier (`{BETTER_AUTH_URL}/mcp`), discovery endpoints (`/.well-known/...`), and default redirect URI for outbound MCP OAuth.
+
+     > [!NOTE]
+     > **Email/password Web UI login** works over plain HTTP/IP even if `BETTER_AUTH_URL` is omitted. However, setting it is strongly recommended for production, custom domains, or HTTPS deployments. Note that remote deployments must use HTTPS for MCP OAuth 2.1 (RFC 9728); if an HTTP IP address or domain is used, MCP OAuth 2.1 is gracefully disabled while the Web UI and MCP API tokens remain functional.
    * `AWS_ENDPOINT_URL_S3`: By default, `AWS_ENDPOINT_URL_S3` is set to `http://localhost:{SHUMAI_SERVER_PORT}`. When you use local storage (the default storage backend with `STORAGE_BACKEND: local`) and expose Shumai on a remote server, custom domain, or custom host/port combination, set `AWS_ENDPOINT_URL_S3` to the external URL that client browsers will use to upload and download files.
 
      For example, if you change the port mapping in `docker-compose.yaml` from `3000:3000` to `12345:3000` and deploy on a server with IP address `12.34.56.78`, set:

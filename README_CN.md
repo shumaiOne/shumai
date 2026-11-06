@@ -127,7 +127,14 @@ https://gh-proxy.com/https://raw.githubusercontent.com/shumaiOne/shumai/main/REA
 
 
 3. 配置环境变量：
-  * `BETTER_AUTH_URL`：Shumai 服务的外部公开访问地址（例如 `https://shumai.example.com` 或 `http://12.34.56.78:3000`）。在远程服务器或生产环境中部署时必须配置该变量。注意：MCP OAuth 2.1 依赖 HTTPS（本地 loopback 除外）；若远程部署使用 HTTP，系统会优雅禁用 MCP OAuth 2.1 并记录日志，Web UI 与基于 API Token 的 MCP 访问不受影响。
+  * `BETTER_AUTH_URL`：Shumai 服务的外部公开访问基础地址（例如 `https://shumai.example.com` 或 `http://12.34.56.78:3000`），主要用于：
+    * **密码重置链接**：生成 CLI 及管理员重置密码链接（`{BETTER_AUTH_URL}/reset-password?token=...`）。
+    * **邮件通知跳转链接**：作为通知邮件中深度跳转链接的基础地址（若未配置 `APP_URL` 则回退至此）。
+    * **会话 Cookie 安全标记**：根据是否以 `https://` 开头决定是否为浏览器会话 Cookie 启用 `Secure` 属性和 `__Secure-` 前缀。
+    * **MCP OAuth 2.1 与元数据发现**：配置 MCP OAuth 资源标识符（`{BETTER_AUTH_URL}/mcp`）、元数据发现端点，以及外部 MCP OAuth 的默认重定向地址。
+
+    > [!NOTE]
+    > **Web UI 的邮箱/密码基础登录**在私有 IP 或局域网 HTTP 环境下即使未配置该变量也可正常使用。但在生产环境、绑定域名或启用 HTTPS 时强烈建议配置。注意：MCP OAuth 2.1 依赖 HTTPS（本地 loopback 除外）；若远程部署使用 HTTP，系统会优雅禁用 MCP OAuth 2.1 并记录日志，Web UI 与基于 API Token 的 MCP 访问不受影响。
   * `AWS_ENDPOINT_URL_S3`：默认情况下指向 `http://localhost:{SHUMAI_SERVER_PORT}`。当你使用本地存储（即默认配置 `STORAGE_BACKEND: local`）并在远程服务器、自定义域名或自定义端口上公开访问 Shumai 时，请将 `AWS_ENDPOINT_URL_S3` 设置为客户端浏览器上传和下载文件所使用的外部 URL。
 
     例如，如果你将 `docker-compose.yaml` 中的端口映射从 `3000:3000` 修改为了 `12345:3000`，且服务部署在 IP 为 `12.34.56.78` 的服务器上，请进行如下设置：
