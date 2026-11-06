@@ -1,0 +1,108 @@
+---
+title: 基于 Gotenberg 的文档 PDF 转换
+description: 将 Office 文档、HTML、Markdown、CSV 和 TXT 文件转换为高保真 PDF 代理文件，实现浏览器内顺畅预览。
+---
+
+浏览器无法原生直接渲染 Office 文档、HTML 页面、Markdown 文件、表格以及纯文本文件。Shumai 采用基于 Docker 的开源转换服务 [Gotenberg](https://gotenberg.dev)，将这些文件转为高保真 PDF 代理资产，以便在浏览器中无缝预览。
+
+Gotenberg 采用以下组件完成文档转换：
+
+- **LibreOffice**：负责处理 Office 文档、电子表格与纯文本。
+- **无头 Chromium（Headless Chromium）**：负责渲染 HTML 与 Markdown 文件。
+
+---
+
+## 支持的文件类型
+
+配置 Gotenberg 后，Shumai 会自动为以下格式的文件生成 PDF 预览代理：
+
+| 类别                | 扩展名                 | 转换引擎    |
+| :------------------ | :--------------------- | :---------- |
+| Word 文档           | `.doc`, `.docx`        | LibreOffice |
+| Excel 表格          | `.xls`, `.xlsx`        | LibreOffice |
+| PowerPoint 幻灯片   | `.ppt`, `.pptx`        | LibreOffice |
+| OpenDocument        | `.odt`, `.ods`, `.odp` | LibreOffice |
+| 富文本（Rich Text） | `.rtf`                 | LibreOffice |
+| HTML                | `.html`, `.htm`        | Chromium    |
+| Markdown            | `.md`, `.markdown`     | Chromium    |
+| 电子表格 / CSV      | `.csv`                 | LibreOffice |
+| 纯文本              | `.txt`                 | LibreOffice |
+
+---
+
+## 配置说明
+
+Shumai 支持通过 **Web 界面**或**环境变量**配置 Gotenberg。
+
+### 1. Web 界面配置（团队设置 → 集成）
+
+团队所有者可直接在 Web 界面中配置 Gotenberg：
+
+1. 在侧边栏导航至**团队设置**。
+2. 切换至**集成**选项卡。
+3. 在 **Gotenberg 文档转换器**下，输入**服务器地址（Server URL）**（例如 `http://gotenberg:3000` 或 `http://localhost:3000`）。
+4. 若服务启用了 Basic 基础认证，请输入**用户名**与**密码**。
+5. 点击**测试连接**，验证与 Gotenberg 的通信状态并确认服务健康状况。
+6. 点击**保存更改**。
+
+### 2. 环境变量配置
+
+也可以在运行 Shumai 或转码 Worker 的机器上通过环境变量进行全局配置：
+
+| 变量                            | 必填             | 说明                                                   |
+| :------------------------------ | :--------------- | :----------------------------------------------------- |
+| `GOTENBERG_URL`                 | 是（启用时必填） | Gotenberg 基础服务地址，例如 `http://gotenberg:3000`。 |
+| `GOTENBERG_BASIC_AUTH_USERNAME` | 否               | Gotenberg 开启 Basic 基础认证时的用户名。              |
+| `GOTENBERG_BASIC_AUTH_PASSWORD` | 否               | Gotenberg 开启 Basic 基础认证时的密码。                |
+
+### 配置优先级与只读模式
+
+> [!IMPORTANT]
+> **环境变量优先级最高。** 一旦在运行环境中配置了 `GOTENBERG_URL`，Shumai 将始终优先采用环境变量中的配置。
+>
+> 通过环境变量配置后，**团队设置 → 集成**中的对应设置项将显示**已通过环境变量配置（只读）**徽标，且输入框将被锁定，防止误操作或配置不一致。
+
+---
+
+## 部署 Gotenberg
+
+### Docker 快速上手
+
+只需一条命令即可启动 Gotenberg 容器：
+
+```bash
+docker run -d --name gotenberg -p 3000:3000 gotenberg/gotenberg:8
+```
+
+若需开启 Basic 基础认证：
+
+```bash
+docker run -d --name gotenberg -p 3000:3000 gotenberg/gotenberg:8 gotenberg --gotenberg-basic-auth-username=admin --gotenberg-basic-auth-password=secret
+```
+
+### Docker Compose 配置
+
+在 `docker-compose.yaml` 中添加 Gotenberg 服务：
+
+```yaml
+gotenberg:
+  image: gotenberg/gotenberg:8
+  restart: unless-stopped
+  ports:
+    - '3000:3000'
+```
+
+随后在 Shumai 中配置指向该服务：
+
+```bash
+GOTENBERG_URL=http://localhost:3000
+```
+
+---
+
+## 未配置 Gotenberg 时的降级表现
+
+若未配置 Gotenberg 或服务无法连通，Shumai 会优雅降级：
+
+- **Office 文档与 HTML**：文件上传正常完成并标记为 `processed`，但不生成 PDF 代理文件。
+- **CSV、Markdown 与 TXT**：改由内置的轻量 PDF 生成器生成预览代理（排版保真度略低）。

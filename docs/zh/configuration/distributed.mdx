@@ -1,0 +1,173 @@
+---
+title: 分布式 Worker 部署
+description: 通过独立的后台 Worker、DBOS 与兼容 S3 的对象存储配置大规模生产级部署。
+---
+
+在面对高并发视频处理或重度 AI 智能体调用的生产环境中，若将所有后台任务集中在单台服务器上运行，极易引发性能瓶颈。Shumai 通过由 **DBOS Transact** 统一编排的独立 Worker 节点，将 Web 控制台与后台处理彻底解耦，轻松化解瓶颈。
+
+所有后台任务（媒体转码、AI 向量嵌入、智能体任务）均分发至直接托管在 PostgreSQL 中的持久化任务队列（`transcode_queue` 与 `agent_queue`）。无需部署额外的外部集群（如 Temporal）。
+
+---
+
+## 核心工作原理
+
+在分布式部署中，Shumai 核心 Web 应用负责处理用户请求、数据库更新和文件上传，并通过 PostgreSQL 任务队列将持久化后台工作流委派给专用的 Worker 实例。
+
+```mermaid
+graph TD
+    UserUpload[用户上传视频 / 触发智能体] --> WebApp[Shumai Web UI / API]
+    WebApp -->|入队任务| DB[(PostgreSQL / DBOS 队列)]
+    DB -->|队列: transcode_queue| TranscodeWorker[转码 Worker 机器]
+    DB -->|队列: agent_queue| AgentWorker[智能体 Worker 机器]
+```
+
+- **转码 Worker**：可在配备 GPU 加速或高配 CPU 的计算实例上运行。
+- **AI 智能体 Worker**：可在隔离沙箱环境中运行，以安全执行自动化脚本。
+
+> [!IMPORTANT]
+> **存储配置硬性要求**：由于在分布式部署下核心应用与后台 Worker 分别运行在不同机器上，**必须配置兼容 S3 的对象存储后端**（例如 AWS S3、Cloudflare R2 或 MinIO）。此模式下不支持本地存储（`STORAGE_BACKEND=local`），因为 Worker 节点与 Web 应用无法共享本地文件系统。
+
+---
+
+## 第 1 步：部署核心 Web 应用
+
+在主服务器上运行 PostgreSQL 和 Shumai 核心 Web 应用。
+
+若需指示核心 Web 应用仅处理 API 和前端 UI 流量，而不本地消费后台 Worker 队列任务，请设置 `SHUMAI_WORKERS=none`：
+
+```env
+DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
+STORAGE_BACKEND=s3
+AWS_ENDPOINT_URL_S3=https://your-s3-endpoint.com
+S3_BUCKET=shumai
+S3_REGION=us-east-1
+S3_ACCESS_KEY_ID=your-access-key-id
+S3_SECRET_ACCESS_KEY=your-secret-access-key
+SHUMAI_WORKERS=none
+BETTER_AUTH_SECRET=your-random-32-character-secret-key
+```
+
+当使用 `SHUMAI_WORKERS=none`（或启动参数 `--workers=none`）启动时，Web 服务器将即刻启动，不会轮询或消费来自转码或智能体队列的任务。
+
+---
+
+## 第 2 步：配置并运行专属 Worker
+
+在专用 Worker 机器上，配置各 Worker 的 `.env` 文件以指向共享的 PostgreSQL 数据库与 S3 存储：
+
+```env
+DATABASE_URL=postgresql://shumai:shumai_password@<primary-host-ip>:5432/shumai_db?schema=public
+STORAGE_BACKEND=s3
+AWS_ENDPOINT_URL_S3=https://your-s3-endpoint.com
+S3_BUCKET=shumai
+S3_REGION=us-east-1
+S3_ACCESS_KEY_ID=your-access-key-id
+S3_SECRET_ACCESS_KEY=your-secret-access-key
+CONCURRENCY_TRANSCODE=1
+CONCURRENCY_AGENT=5
+```
+
+### 媒体转码 Worker
+
+在媒体处理计算节点上运行（需要预先在系统上安装 `ffmpeg` 与 `ffprobe`）：
+
+```bash
+npm install -g @shumai-one/shumai-transcode
+shumai-transcode
+```
+
+或者，可以使用轻量级专属 Docker 镜像运行转码 Worker：
+
+```bash
+docker run -d \
+  --name shumai-transcode-worker \
+  --env-file .env \
+  shumaione/shumai-transcode:latest
+```
+
+（亦可使用一体化全功能镜像：`docker run -d --name shumai-transcode-worker --env-file .env shumaione/shumai:latest shumai-transcode`。）
+
+### AI 智能体 Worker
+
+在沙箱化智能体执行节点上运行（需要安装 `bubblewrap` 或 `sandbox-exec` 等沙箱依赖项）：
+
+```bash
+npm install -g @shumai-one/shumai-agent
+shumai-agent
+```
+
+或者，可以使用官方 Docker 镜像运行智能体 Worker：
+
+```bash
+docker run -d \
+  --name shumai-agent-worker \
+  --env-file .env \
+  --cap-add=SYS_ADMIN \
+  shumaione/shumai:latest shumai-agent
+```
+
+> [!IMPORTANT]
+> **Bun 用户须知**：由于 Worker 依赖包的二进制可执行文件包含 `#!/usr/bin/env node` Shebang，直接运行 `shumai-transcode` 或 `shumai-agent` 将在 Node.js 下执行。若希望使用 Bun 运行，请在命令前加上 `bun run --bun`（例如 `bun run --bun shumai-transcode` 或 `bun run --bun shumai-agent`）。
+
+---
+
+## Worker 并发与多实例部署
+
+### 并发调优
+
+Worker 根据可配置的并发上限从 PostgreSQL 队列中拉取任务：
+
+- `CONCURRENCY_TRANSCODE`：单个 Worker 最大并发视频转码任务数（默认 `1`）。
+- `CONCURRENCY_AGENT`：单个 Worker 最大并发智能体及向量嵌入工作流数（默认 `5`，若搭配本地 `embedding-server` 建议设为 `1`）。
+
+### 副本实例标识
+
+当在多台机器或 Pod 上运行转码或智能体 Worker 的多个副本时：
+
+- `DbosExecutor` 会自动基于机器主机名与进程 ID 派生唯一的单实例标识，确保启动恢复时仅重新入队属于该实例的任务。
+- **自定义 Worker ID**：若需显式指定标识符，可设置 `SHUMAI_WORKERS_ID`（或 `SHUMAI_WORKER_ID`）。
+- **Kubernetes 环境**：在 Kubernetes Pod 中，可通过 Downward API（`fieldRef: { fieldPath: metadata.name }`）设置 `POD_NAME`，以在 Pod 重启期间保持稳定且唯一的单 Pod 身份标识。
+
+---
+
+## 基于 Kubernetes 与 AWS EKS 的弹性扩展部署
+
+对于需要高吞吐媒体处理能力的生产级云端部署，Shumai 可部署在 Kubernetes 或 **AWS Elastic Kubernetes Service (AWS EKS)** 上，并借助 **KEDA (Kubernetes Event-driven Autoscaling)** 实现基于队列驱动的缩容至零（Scale-to-Zero）自动弹性伸缩。
+
+```mermaid
+graph TD
+    User([用户 / Web 浏览器]) -->|端口 80/3000| Server[Pod: shumai-server<br/>SHUMAI_WORKERS=agent]
+    Server -->|入队到 transcode_queue| DB[(PostgreSQL: pgvector18<br/>dbos.workflow_status)]
+    Server -->|直传 / 播放代理流| Storage[(S3 / Garage 存储)]
+
+    KEDA[KEDA ScaledJob<br/>PostgreSQL 触发器<br/>min: 0, max: 10] -.->|监控队列| DB
+    KEDA -->|为队列派发任务| Job1[Job: shumai-transcode-1<br/>自动排空 Worker]
+    KEDA -->|为队列派发任务| JobN[Job: shumai-transcode-N<br/>自动排空 Worker]
+
+    Job1 -->|获取源文件 / 存储代理文件| Storage
+    JobN -->|获取源文件 / 存储代理文件| Storage
+    Job1 -->|标记完成并退出 0| DB
+    JobN -->|标记完成并退出 0| DB
+
+    CA[Cluster Autoscaler / Karpenter] -.->|缩容至零按需节点<br/>0 到 10 实例| JobN
+```
+
+### 架构核心优势
+
+- **解耦的无状态 Worker**：核心 Web 与 API 服务、数据库以及对象存储均运行在可靠的按需计算节点上（`c9g.large`，`SHUMAI_WORKERS=agent`），媒体转码任务则委派给由 PostgreSQL 中 DBOS 任务队列统一编排的后台 Worker。
+- **专用 Graviton5 按需计算实例 (`c9g.xlarge`)**：媒体编码运行在 4 vCPU / 8 GiB 内存的 AWS Graviton5 按需实例上（约 0.174 美元/小时），充分利用 ARM64 向量优化与高速 DDR5 内存，且免受竞价实例（Spot）非预期中断的影响。
+- **基于 KEDA 的队列驱动缩容至零**：KEDA 持续监听 `dbos.workflow_status` 中已入队与待处理的转码任务，并动态创建 Kubernetes `ScaledJob` 资源（支持 0 到 10 弹性伸缩）。当队列排空时，转码节点完全缩容至零（`minSize: 0`），转码计算成本降至 **0 美元/小时**。
+- **空闲超时自动排空**：Worker Pod 以并发数 `1` 持续处理排队任务。当队列彻底排空且 Pod 持续空闲 10 秒（`SHUMAI_WORKER_IDLE_TIMEOUT_MS=10000`）后，Pod 将以状态码 `0` 正常退出以触发节点缩容，在批量上传时避免了 Pod 频繁冷启动的开销。
+- **停滞任务自动恢复**：核心 Web 服务器运行内置的恢复巡检机制，可自动检测停滞或孤儿任务（例如因节点崩溃导致的任务中断）并在 DBOS 中自动恢复执行，同时设有最多 3 次重试上限以安全防范毒丸异常素材（Poison-Pill Media）。
+
+### 完整部署示例与源码
+
+生产就绪的完整清单文件、声明式 `eksctl` 集群配置以及分步操作指引，请参阅 Shumai 仓库中的 **[EKS 部署示例](https://github.com/shumaiOne/shumai/tree/main/eks)**：
+
+👉 **[在 GitHub 上查看 EKS 部署指南与清单文件](https://github.com/shumaiOne/shumai/tree/main/eks)**
+
+仓库包含：
+
+- [`eks/eks-cluster.yaml`](https://github.com/shumaiOne/shumai/blob/main/eks/eks-cluster.yaml)：包含分层计算配置的完整 `eksctl` ClusterConfig。
+- [`eks/kustomization.yaml`](https://github.com/shumaiOne/shumai/blob/main/eks/kustomization.yaml)：用于所有服务的一键式 Kustomize 部署文件。
+- 详细说明了如何配置公网端点、自动化 Cluster Autoscaler 以及零停机平滑停机（Graceful Shutdown）。

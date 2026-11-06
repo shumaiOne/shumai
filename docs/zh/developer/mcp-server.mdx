@@ -1,0 +1,222 @@
+---
+title: Shumai MCP 服务
+description: 让 Claude Code、Cursor 或 Kiro 等外部 AI 智能体与 Shumai 项目协同工作。
+---
+
+Shumai 内置了 [模型上下文协议](https://modelcontextprotocol.io)（MCP）服务。任何兼容 MCP 协议的智能体均可接入该服务，代表用户浏览项目、查看图片、视频与文档、创建文件夹以及整理资产，且调用与 Shumai 原生内置智能体完全相同的工具集。
+
+<Note>
+  本页面介绍如何将 **外部智能体连接至 Shumai**。若需了解如何将 Shumai
+  自带智能体连接至其他外部工具，请参阅 [MCP 服务](/zh/using-shumai/mcp-servers)。
+</Note>
+
+---
+
+## 连接客户端
+
+MCP 服务采用 Streamable HTTP 传输协议，访问端点为：
+
+```
+https://<your-shumai-host>/mcp
+```
+
+Shumai 支持 **OAuth 2.1**（推荐方式，提供无缝的浏览器授权体验）以及 **API Token**（适用于无头环境或不支持 OAuth 的客户端）。
+
+请根据所使用的客户端选择相应配置指南：
+
+### Claude Code
+
+[Claude Code](https://docs.anthropic.com/en/docs/claude-code) 原生支持具备 OAuth 身份验证的远程 HTTP MCP 服务。运行以下命令即可将 Shumai 添加至 Claude Code 配置：
+
+```bash
+claude mcp add shumai --transport http https://<your-shumai-host>/mcp
+```
+
+启动新对话时，Claude Code 会打开浏览器窗口供登录并授予 Shumai 账户访问权限，无需手动配置 API Token。
+
+或者，可手动配置 `.claude/settings.json`：
+
+```json
+{
+  "mcpServers": {
+    "shumai": {
+      "type": "http",
+      "url": "https://<your-shumai-host>/mcp"
+    }
+  }
+}
+```
+
+或通过 `mcp-remote` 桥接 stdio：
+
+```bash
+claude mcp add shumai -- npx -y mcp-remote https://<your-shumai-host>/mcp
+```
+
+### Cursor
+
+将 Shumai 添加至 Cursor 的 MCP 配置（`~/.cursor/mcp.json` 或项目级 `.cursor/mcp.json`）：
+
+```json
+{
+  "mcpServers": {
+    "shumai": {
+      "url": "https://<your-shumai-host>/mcp"
+    }
+  }
+}
+```
+
+当 Cursor 连接到服务时，会在浏览器中提示完成 OAuth 登录并授权访问。
+
+若改用 API Token 验证身份，请在请求标头中传递 `Authorization`：
+
+```json
+{
+  "mcpServers": {
+    "shumai": {
+      "url": "https://<your-shumai-host>/mcp",
+      "headers": {
+        "Authorization": "Bearer <your-api-token>"
+      }
+    }
+  }
+}
+```
+
+### Codex
+
+```bash
+codex mcp add shumai --url https://<your-shumai-host>/mcp
+codex mcp login shumai
+```
+
+### VS Code
+
+```bash
+code --add-mcp '{"name":"shumai","type":"http","url":"https://<your-shumai-host>/mcp"}'
+```
+
+在 VS Code 的 **MCP Servers** 列表中启动该服务，并根据提示登录 Shumai。
+
+### 其他客户端
+
+**远程服务 (HTTP)**
+
+若客户端原生支持远程 HTTP MCP 服务：
+
+```json
+{
+  "mcpServers": {
+    "shumai": {
+      "url": "https://<your-shumai-host>/mcp"
+    }
+  }
+}
+```
+
+**本地桥接 (`mcp-remote` / stdio)**
+
+对于仅支持本地 (stdio) MCP 服务的客户端，可使用 `mcp-remote` 连接 Shumai 的远程 HTTP 端点：
+
+```json
+{
+  "mcpServers": {
+    "shumai": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://<your-shumai-host>/mcp"]
+    }
+  }
+}
+```
+
+---
+
+## 身份验证
+
+Shumai 的 MCP 服务支持两种身份验证方式：
+
+### OAuth 2.1（推荐）
+
+Shumai 实现了基于动态客户端注册（Dynamic Client Registration, [RFC 7591](https://datatracker.ietf.org/doc/html/rfc7591)）与 OAuth 受保护资源元数据（OAuth Protected Resource Metadata, [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) / [RFC 8414](https://datatracker.ietf.org/doc/html/rfc8414)）规范的 OAuth 2.1。
+
+- **无缝登录**：受支持的 MCP 客户端可自动发现授权端点并在浏览器中完成 OAuth 握手。
+- **访问控制**：外部智能体以调用方在 Shumai 中的既有权限执行操作。所有行为均归属于该用户账户，并在团队审计日志中标记为 `via: mcp`。
+- **清除 OAuth 缓存**：若需要在 `mcp-remote` 或 Claude Code 等 CLI 工具中重新鉴权或清除已保存的凭据，请删除本地认证缓存：
+
+```bash
+rm -rf ~/.mcp-auth
+```
+
+### API Token
+
+API Token 适用于自动化 CI/CD 流水线、无头环境或不支持交互式 OAuth 的客户端。
+
+1. 在 Shumai 中，打开 **团队设置** → **API Token**。
+2. 输入名称（例如 `ci-agent` 或 `cursor-token`），然后点击 **生成**。
+3. 在弹窗中复制 Token。该 Token 仅展示一次。
+4. 在请求头中传递该 Token：`Authorization: Bearer <your-api-token>`（或通过 `x-api-key` 请求头）。
+
+<Warning>
+  API Token 拥有与用户本人完全相同的操作权限：智能体可执行该账户在 Shumai
+  中所能执行的任意操作。请像保管密码一样妥善保管 Token，建议为每个客户端单独生成独立
+  Token，若不再使用，请前往 **团队设置** → **API Token** 及时吊销。
+</Warning>
+
+---
+
+## 可用工具列表
+
+| 工具                      | 功能说明                                                                                |
+| ------------------------- | --------------------------------------------------------------------------------------- |
+| `list_projects`           | 列出当前可访问的项目及其根目录文件夹。                                                  |
+| `list_assets`             | 分页列出指定文件夹内的文件与子文件夹。                                                  |
+| `search_assets`           | 按名称、语义含义（需启用 AI 搜索）或元数据搜索文件夹及其子文件夹。                      |
+| `create_folder`           | 创建文件夹。                                                                            |
+| `rename_asset`            | 重命名文件或文件夹。                                                                    |
+| `move_assets`             | 将文件或文件夹移动至另一个文件夹。                                                      |
+| `copy_assets`             | 将文件或文件夹复制至同团队下的另一个文件夹。                                            |
+| `delete_asset`            | 将文件或文件夹移至项目废纸篓。此操作标记为破坏性操作，客户端可据此要求用户确认。        |
+| `read_asset`              | 查看文件内容：图片、视频帧、PDF 页面、3D 模型视图或文本文件内容。                       |
+| `get_asset_render`        | 获取此前仍在渲染中的 `read_asset` 任务结果。                                            |
+| `download_asset`          | 获取最多 50 个文件的下载链接：默认获取 Web 预览版本，指定 `proxy: false` 可获取原文件。 |
+| `get_folder_instructions` | 读取文件夹中面向 AI 智能体的指引文件（AGENTS.md）。                                     |
+| `create_file`             | 发起向文件夹上传新文件的流程（详见 [上传文件](#上传文件)）。                            |
+| `create_version`          | 发起为已有文件上传新版本的流程。                                                        |
+| `complete_upload`         | 完成由 `create_file` 或 `create_version` 发起的上传流程。                               |
+| `list_comments`           | 列出文件上的审阅评论及其回复。                                                          |
+| `create_comment`          | 在文件上添加评论（可指定时间码）或回复评论。                                            |
+| `resolve_comment`         | 将评论标记为已解决或恢复为未解决。                                                      |
+| `list_metadata_fields`    | 列出项目的元数据字段（如状态、评分及自定义字段）及其候选值。                            |
+| `update_asset_metadata`   | 设置文件的元数据值。                                                                    |
+| `create_version_stack`    | 将同目录下的多个文件打包为单个资产的版本堆栈。                                          |
+| `list_versions`           | 按倒序列出版本堆栈中的所有版本。                                                        |
+| `remove_version`          | 将指定版本移出版本堆栈（保留原文件）。                                                  |
+
+### 读取文件
+
+`read_asset` 会将图片附加至调用结果中，以便 AI 模型直接识别：每次调用最多支持 8 张图片，每张大小不超过 2 MB。超出部分的图片仅以链接形式列出。每条返回结果均包含指向各图片的访问链接，有效期约为 1 小时。若客户端无法直接渲染图片，可传入 `inlineImages: false` 仅获取链接。
+
+渲染视频帧或 PDF 页面通常耗时较长。若渲染耗时超过约 20 秒，`read_asset` 将返回状态 `status: "pending"` 与对应的 `taskId`；随后模型可携带该 `taskId` 调用 `get_asset_render` 获取最终渲染结果。仅发起读取任务的用户本人可获取其渲染结果。
+
+### 上传文件
+
+上传过程分为三个阶段，以确保大文件内容无需经由 AI 模型中转：
+
+1. `create_file`（或 `create_version`）返回 `uploadUrl` 与 `uploadId`。
+2. 智能体通过 HTTP `PUT` 请求将文件二进制数据上传至 `uploadUrl`，例如使用 `curl -T video.mp4 "<uploadUrl>"`。
+3. 携带 `uploadId` 调用 `complete_upload` 完成文件创建并触发后续处理（如生成预览、媒体转码）。
+
+上传 URL 与 ID 的有效期约为 1 小时，且仅允许发起者本人确认完成上传。若项目配置了**创建上下文 (Creation Context)** 元数据字段（例如生成该文件所使用的 Prompt 或模型），可在调用 `create_file` 或 `create_version` 时将其作为 `metadata` 传入；通过 `list_metadata_fields` 可查询当前支持的字段。
+
+智能体必须能够直接访问上传 URL。若 Shumai 配置了本地存储，该 URL 指向 Shumai 服务器；若配置了 S3 存储，则直接指向 S3 端点。
+
+每次调用均遵循用户的实际权限执行：例如拥有 **审阅者 (Reviewer)** 角色的成员可以列出资产，但无法创建或重命名资产。所有操作均记录在团队审计日志中并归属至该用户，来源标记为 MCP。
+
+---
+
+## 故障排查
+
+- **OAuth 授权已过期或失效**：清理客户端本地 OAuth 会话缓存（`rm -rf ~/.mcp-auth`），并重启 MCP 客户端重新完成鉴权。
+- **401 Unauthorized**：API Token 或 OAuth 访问令牌缺失、过期、拼写错误或已被吊销。若使用 API Token，请前往 **团队设置** → **API Token** 重新生成，并更新客户端配置。
+- **工具调用出现权限错误 (Permission errors)**：当前用户在对应团队或项目中的角色无权执行该操作。

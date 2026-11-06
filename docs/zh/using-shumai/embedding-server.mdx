@@ -1,0 +1,131 @@
+---
+title: 向量模型服务部署 (EmbeddingGemma 2)
+description: 使用 shumaiOne/embedding-server 本地离线运行多模态向量嵌入，赋能语义搜索。
+---
+
+Shumai 支持通过 [shumaiOne/embedding-server](https://github.com/shumaiOne/embedding-server) 在本地私有化部署多模态向量模型服务以赋能语义搜索。该独立 Docker 服务由 Google AI Edge 的 **LiteRT-LM** 与 **EmbeddingGemma 2 740M** 强力驱动。
+
+该向量模型服务为文本、图片与视频关键帧提供了统一的 768 维向量空间，并对外暴露兼容 OpenAI 标准的 HTTP API 接口（`/v1/embeddings`）。由于模型权重已预先打包至 Docker 镜像内，该服务完全支持离线和物理隔离（Air-gapped）环境运行，无需访问外网或依赖第三方云厂商 API 密钥。
+
+---
+
+## 模型架构与规格参数
+
+| 属性           | 参数                                                     |
+| :------------- | :------------------------------------------------------- |
+| **模型**       | `EmbeddingGemma 2 740M` (`google/embeddinggemma-2-740m`) |
+| **运行环境**   | Google AI Edge LiteRT-LM (Python 3.14 Debian slim)       |
+| **向量维度**   | 768 维（多模态：文本、图片及视频）                       |
+| **上下文窗口** | 2,048 tokens                                             |
+| **网络模式**   | 完全支持离线运行（`--network none`）                     |
+| **API 规范**   | 兼容 OpenAI 标准的 `/v1/embeddings`                      |
+
+---
+
+## 视频处理与抽帧采样
+
+针对视频资产，Shumai 会将其切片为标准化分段并提取关键帧：
+
+- **切片分段（Chunking）**：视频按 **60 秒为一个片段**进行切片，并在相邻片段边界保留 **5 秒重叠区间**，以维持剧情与视觉上下文连贯性。
+- **抽帧频率**：Shumai 从每个分段中抽取 **15 帧/分钟**。
+- **自适应帧数边界（Adaptive Frame Bounding）**：
+  - 针对标准宽高比视频（1:1、4:3、3:4、16:9、9:16、21:9），Shumai 抽取 15 帧，生成约 1,982 个 Prompt token，安全处于 2,048 token 上下文窗口限制内。
+  - 针对非标准或特殊比例视频（如 5:3、1.4:1），Shumai 自动采样 14 帧（约 1,990 token），从数学原理上杜绝 Prompt 长度超过 2,048 token 的可能，防止向量模型服务发生内存溢出（OOM）。
+
+---
+
+## 重要说明：更换 Embedding 服务商将导致已有向量失效
+
+> [!WARNING]
+> **不同 Embedding 模型的向量空间完全互不兼容。**
+>
+> 若更换向量服务提供商（例如从 Google Gemini 的 1536 维向量切换到 EmbeddingGemma 的 768 维向量，反之亦然），**数据库中现存的所有向量嵌入数据将全部失效**。
+>
+> 为保护生产数据库免受误操作损坏及搜索失效，**Shumai 刻意未在 Web 界面中提供切换 Embedding 提供商的开关**。该配置仅能由管理员通过环境变量（`EMBEDDING_PROVIDER` 和 `GEMMA_EMBEDDING_OPENAI_BASE_URL`）进行配置。
+
+---
+
+## 通过 CLI 重新生成向量数据
+
+当更换 Embedding 提供商，或在已有 Shumai 生产环境中首次启用向量模型服务时，可通过管理员 CLI 命令为所有现有媒体资产重新生成向量数据：
+
+### Docker 容器内部执行
+
+```bash
+docker exec -it <shumai-container-name> shumai regenerate-embeddings
+```
+
+### 本地 / 裸机环境执行
+
+```bash
+shumai regenerate-embeddings
+```
+
+_（或执行 `bun apps/web/src/index.ts regenerate-embeddings`）_
+
+### 命令执行流程说明
+
+1. **扫描团队**：遍历工作区中的所有团队。若某团队未启用（开启）向量嵌入智能体，则记录警告日志并安全跳过该团队。
+2. **清除旧向量**：清空所有符合条件的资产原有的向量数据，并取消处理中或排队中的向量任务，确保平滑过渡至新模型。
+3. **加入新任务队列**：为各活跃团队下所有符合条件的资产（图片、视频及带有渲染预览的 3D 资产）派发全新的后台 `ai_embedding` 任务。
+4. **后台异步处理**：后台 Worker 按照配置的并发上限逐步处理排队任务。
+
+---
+
+## 部署与配置
+
+### Docker 快速上手
+
+运行独立的向量模型服务容器：
+
+```bash
+docker run -d \
+  --name shumai_embedding \
+  -p 9379:9379 \
+  shumaione/embedding-server:latest
+```
+
+### Docker Compose 配置
+
+在 Docker Compose 环境中，将 `embedding-server` 添加到 `docker-compose.yaml` 中，并配置 Shumai 通过 Docker 内部网络进行连接：
+
+```yaml
+services:
+  embedding-server:
+    image: shumaione/embedding-server:latest
+    container_name: shumai_embedding
+    restart: unless-stopped
+
+  shumai:
+    image: shumaione/shumai:latest
+    environment:
+      # 向量模型服务配置
+      EMBEDDING_PROVIDER: gemma-embedding-2-openai
+      GEMMA_EMBEDDING_OPENAI_BASE_URL: http://embedding-server:9379/v1
+      ENABLE_EMBEDDING_AGENT: 'true'
+      CONCURRENCY_AGENT: 1
+    depends_on:
+      - embedding-server
+```
+
+> [!NOTE]
+> 由于 Shumai 与 `embedding-server` 在 Docker 内部网络中通信，`embedding-server` 无需向宿主机映射暴露端口。
+
+### 环境变量
+
+| 变量                              | 必填     | 说明                                                                                              | 默认值                     |
+| :-------------------------------- | :------- | :------------------------------------------------------------------------------------------------ | :------------------------- |
+| `EMBEDDING_PROVIDER`              | 是       | 设置为 `gemma-embedding-2-openai` 以使用本地 LiteRT-LM 服务。                                     | `gemini-embedding-2`       |
+| `GEMMA_EMBEDDING_OPENAI_BASE_URL` | 是       | 向量模型服务的 HTTP 基础地址（例如 `http://embedding-server:9379/v1`）。                          | `http://localhost:9379/v1` |
+| `ENABLE_EMBEDDING_AGENT`          | 否       | 启动时自动为所有团队初始化并启用系统级向量嵌入智能体。                                            | `false`                    |
+| `CONCURRENCY_AGENT`               | 推荐配置 | Worker 执行 AI 任务的最大并发数。运行 `embedding-server` 时**务必设为 `1`**，以防止内存开销过大。 | `5`                        |
+
+---
+
+## 硬件与资源要求
+
+- **内存（RAM）**：
+  - 建议为 `embedding-server` 容器分配至少 **4 GB+ 的独立物理内存**。
+  - 运行 Lite+Embedding Compose 组合时，宿主机系统总内存建议在 **4 GB+** 以上；运行全量服务时建议在 **8 GB+** 以上。
+- **并发控制**：
+  - 使用 `embedding-server` 时，务必在 Shumai 配置中设置 `CONCURRENCY_AGENT=1`。并行处理多模态向量嵌入会消耗大量内存，在配置较低的机器上可能会触发系统 OOM Killer 强行终止 Docker 容器。

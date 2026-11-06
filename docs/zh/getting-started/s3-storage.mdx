@@ -1,0 +1,126 @@
+---
+title: 兼容 S3 的对象存储
+description: 为 Shumai 配置 AWS S3 或任意兼容 S3 协议的对象存储服务（Cloudflare R2、MinIO、Google Cloud Storage 等）。
+---
+
+Shumai 采用 Bun 原生高性能 S3 客户端存储与分发创意资产。借助标准化 S3 API，Shumai 能够无缝对接任意兼容 S3 协议的存储提供商，包括 AWS S3、Cloudflare R2、MinIO、Google Cloud Storage 等。
+
+生产团队强烈建议配置独立的外部 S3 存储。这样既能将存储与应用服务解耦、支持独立弹性扩容，也可为分布式媒体转码提供共享存储支持。
+
+---
+
+## 配置变量
+
+若要启用兼容 S3 的存储，请在 `.env` 文件或 Docker Compose 配置中更新以下环境变量：
+
+| 变量名                            | 说明                                                                                        | 必填 | 默认值 / 示例                        |
+| :-------------------------------- | :------------------------------------------------------------------------------------------ | :--- | :----------------------------------- |
+| `STORAGE_BACKEND`                 | 设为 `s3` 以启用兼容 S3 的存储后端。                                                        | 是   | `s3`                                 |
+| `S3_BUCKET`                       | 存放文件的 S3 存储桶名称。                                                                  | 是   | `shumai-bucket`                      |
+| `S3_REGION`                       | S3 存储桶所在地域（Region）。                                                               | 否   | `auto`                               |
+| `S3_ACCESS_KEY_ID`                | 存储服务的访问密钥 ID（Access Key ID）。                                                    | 是   | `your-access-key-id`                 |
+| `S3_SECRET_ACCESS_KEY`            | 存储服务的私有访问密钥（Secret Access Key）。                                               | 是   | `your-secret-access-key`             |
+| `AWS_ENDPOINT_URL_S3`             | 兼容 S3 的存储服务端点 URL。                                                                | 是   | `https://s3.us-east-1.amazonaws.com` |
+| `PRESIGNED_URL_EXPIRES_IN`        | 生成的预签名下载链接有效期（单位：小时）。                                                  | 否   | `5`                                  |
+| `PRESIGNED_UPLOAD_URL_EXPIRES_IN` | 生成的预签名上传链接有效期（单位：小时）。若未指定，则回退继承 `PRESIGNED_URL_EXPIRES_IN`。 | 否   | `12`                                 |
+
+---
+
+## 存储服务商配置示例
+
+以下是主流 S3 存储服务商的配置模板。可将这些变量添加至 `.env` 文件，或置于 `docker-compose.yaml` 的 `environment` 配置项中。
+
+### AWS S3
+
+使用标准 AWS S3 时，配置对应的服务区域端点 URL：
+
+```env
+STORAGE_BACKEND=s3
+S3_BUCKET=your-shumai-bucket
+S3_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+S3_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+AWS_ENDPOINT_URL_S3=https://s3.us-east-1.amazonaws.com
+```
+
+### Cloudflare R2
+
+Cloudflare R2 需要配合 Cloudflare Account ID 拼接端点 URL，并将地域设置为 `auto`：
+
+```env
+STORAGE_BACKEND=s3
+S3_BUCKET=your-shumai-bucket
+S3_ACCESS_KEY_ID=your-r2-access-key-id
+S3_SECRET_ACCESS_KEY=your-r2-secret-access-key
+AWS_ENDPOINT_URL_S3=https://<account-id>.r2.cloudflarestorage.com
+```
+
+### MinIO（自托管）
+
+针对本地开发或自托管 MinIO 环境，将端点指向 MinIO 服务地址与端口（通常为 `9000`）：
+
+```env
+STORAGE_BACKEND=s3
+S3_BUCKET=shumai
+S3_ACCESS_KEY_ID=minioadmin
+S3_SECRET_ACCESS_KEY=minioadmin
+AWS_ENDPOINT_URL_S3=http://localhost:9000
+```
+
+### Google Cloud Storage (GCS)
+
+Google Cloud Storage 提供了兼容 S3 协议的 XML API。配置 HMAC 凭据并将端点设为标准 GCS 存储域名：
+
+```env
+STORAGE_BACKEND=s3
+S3_BUCKET=your-gcs-bucket
+S3_ACCESS_KEY_ID=GOOG1EXAMPLETOCKENKEY
+S3_SECRET_ACCESS_KEY=your-gcs-hmac-secret-access-key
+AWS_ENDPOINT_URL_S3=https://storage.googleapis.com
+```
+
+### DigitalOcean Spaces
+
+使用 DigitalOcean Spaces 时，请将端点 URL 设置为空间对应的地域：
+
+```env
+STORAGE_BACKEND=s3
+S3_BUCKET=your-spaces-bucket
+S3_ACCESS_KEY_ID=your-spaces-access-key-id
+S3_SECRET_ACCESS_KEY=your-spaces-secret-access-key
+AWS_ENDPOINT_URL_S3=https://nyc3.digitaloceanspaces.com
+```
+
+### Supabase Storage
+
+若要通过 S3 协议连接 Supabase Storage，请确保已在 Supabase 控制台中开启 S3 连接支持（`Settings > Storage > Enable connection via S3 protocol`）。从该设置页面复制对应的端点 URL 与地域信息：
+
+```env
+STORAGE_BACKEND=s3
+S3_BUCKET=your-supabase-bucket
+S3_REGION=us-east-1
+S3_ACCESS_KEY_ID=your-supabase-access-key-id
+S3_SECRET_ACCESS_KEY=your-supabase-secret-access-key
+AWS_ENDPOINT_URL_S3=https://<account-id>.supabase.co/storage/v1/s3
+```
+
+---
+
+## 跨域资源共享（CORS）配置
+
+由于 Shumai 通过预签名 URL 直接从用户浏览器上传文件至存储桶，因此必须在存储桶上配置**跨域资源共享（CORS）**。若未配置 CORS，文件上传将因跨域安全限制导致网络错误或源错误（Origin Error）。
+
+请确保存储桶的 CORS 策略允许来自 Shumai 应用 URL（例如 `http://localhost:3000` 或 `https://app.shumai.one`）的请求：
+
+### CORS JSON 策略示例（AWS S3、R2、GCS）
+
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "PUT", "POST", "DELETE", "HEAD"],
+    "AllowedOrigins": ["http://localhost:3000", "https://your-shumai-domain.com"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }
+]
+```

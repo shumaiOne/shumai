@@ -21,75 +21,167 @@
     ]
   },
   "navigation": {
-    "groups": [
+    "languages": [
       {
-        "group": "Getting Started",
-        "pages": [
-          "getting-started/overview",
-          "getting-started/quickstart",
-          "getting-started/s3-storage"
+        "language": "en",
+        "default": true,
+        "navbar": {
+          "links": [
+            {
+              "label": "Changelog",
+              "href": "/changelog"
+            }
+          ]
+        },
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "getting-started/overview",
+              "getting-started/quickstart",
+              "getting-started/s3-storage"
+            ]
+          },
+          {
+            "group": "Using Shumai",
+            "pages": [
+              "using-shumai/asset-management",
+              "using-shumai/comments",
+              "using-shumai/version-stack",
+              "using-shumai/sort-and-search",
+              "using-shumai/semantic-search",
+              "using-shumai/team-project-management",
+              "using-shumai/notifications",
+              "using-shumai/metadata",
+              "using-shumai/collections",
+              "using-shumai/share-links",
+              "using-shumai/nle-and-premiere",
+              "using-shumai/3d-asset-support",
+              "using-shumai/gotenberg",
+              "using-shumai/embedding-server"
+            ]
+          },
+          {
+            "group": "Shumai Agent Settings",
+            "pages": [
+              "using-shumai/agent-providers",
+              "using-shumai/image-video-generation",
+              "using-shumai/agents",
+              "using-shumai/agents-md",
+              "using-shumai/agent-skills",
+              "using-shumai/agent-tools",
+              "using-shumai/mcp-servers",
+              "using-shumai/agent-sandbox"
+            ]
+          },
+          {
+            "group": "Team Settings",
+            "pages": [
+              "using-shumai/transcode-settings",
+              "using-shumai/quotas-settings",
+              "using-shumai/email-notifications",
+              "using-shumai/password-reset"
+            ]
+          },
+          {
+            "group": "Developer",
+            "pages": ["developer/mcp-server"]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/env-variables",
+              "configuration/hardware-transcoding",
+              "configuration/archive-storage"
+            ]
+          },
+          {
+            "group": "Distributed Deployment",
+            "pages": ["configuration/distributed"]
+          },
+          {
+            "group": "Releases",
+            "pages": ["changelog"]
+          }
         ]
       },
       {
-        "group": "Using Shumai",
-        "pages": [
-          "using-shumai/asset-management",
-          "using-shumai/comments",
-          "using-shumai/version-stack",
-          "using-shumai/sort-and-search",
-          "using-shumai/semantic-search",
-          "using-shumai/team-project-management",
-          "using-shumai/notifications",
-          "using-shumai/metadata",
-          "using-shumai/collections",
-          "using-shumai/share-links",
-          "using-shumai/nle-and-premiere",
-          "using-shumai/3d-asset-support",
-          "using-shumai/gotenberg",
-          "using-shumai/embedding-server"
+        "language": "zh",
+        "navbar": {
+          "links": [
+            {
+              "label": "Changelog",
+              "href": "/changelog"
+            }
+          ]
+        },
+        "groups": [
+          {
+            "group": "快速入门",
+            "pages": [
+              "zh/getting-started/overview",
+              "zh/getting-started/quickstart",
+              "zh/getting-started/s3-storage"
+            ]
+          },
+          {
+            "group": "使用指南",
+            "pages": [
+              "zh/using-shumai/asset-management",
+              "zh/using-shumai/comments",
+              "zh/using-shumai/version-stack",
+              "zh/using-shumai/sort-and-search",
+              "zh/using-shumai/semantic-search",
+              "zh/using-shumai/team-project-management",
+              "zh/using-shumai/notifications",
+              "zh/using-shumai/metadata",
+              "zh/using-shumai/collections",
+              "zh/using-shumai/share-links",
+              "zh/using-shumai/nle-and-premiere",
+              "zh/using-shumai/3d-asset-support",
+              "zh/using-shumai/gotenberg",
+              "zh/using-shumai/embedding-server"
+            ]
+          },
+          {
+            "group": "Agent 智能体配置",
+            "pages": [
+              "zh/using-shumai/agent-providers",
+              "zh/using-shumai/image-video-generation",
+              "zh/using-shumai/agents",
+              "zh/using-shumai/agents-md",
+              "zh/using-shumai/agent-skills",
+              "zh/using-shumai/agent-tools",
+              "zh/using-shumai/mcp-servers",
+              "zh/using-shumai/agent-sandbox"
+            ]
+          },
+          {
+            "group": "团队设置",
+            "pages": [
+              "zh/using-shumai/transcode-settings",
+              "zh/using-shumai/quotas-settings",
+              "zh/using-shumai/email-notifications",
+              "zh/using-shumai/password-reset"
+            ]
+          },
+          {
+            "group": "开发者指南",
+            "pages": ["zh/developer/mcp-server"]
+          },
+          {
+            "group": "系统配置",
+            "pages": [
+              "zh/configuration/env-variables",
+              "zh/configuration/hardware-transcoding",
+              "zh/configuration/archive-storage"
+            ]
+          },
+          {
+            "group": "分布式部署",
+            "pages": ["zh/configuration/distributed"]
+          }
         ]
-      },
-      {
-        "group": "Shumai Agent Settings",
-        "pages": [
-          "using-shumai/agent-providers",
-          "using-shumai/image-video-generation",
-          "using-shumai/agents",
-          "using-shumai/agents-md",
-          "using-shumai/agent-skills",
-          "using-shumai/agent-tools",
-          "using-shumai/mcp-servers",
-          "using-shumai/agent-sandbox"
-        ]
-      },
-      {
-        "group": "Team Settings",
-        "pages": [
-          "using-shumai/transcode-settings",
-          "using-shumai/quotas-settings",
-          "using-shumai/email-notifications",
-          "using-shumai/password-reset"
-        ]
-      },
-      {
-        "group": "Developer",
-        "pages": ["developer/mcp-server"]
-      },
-      {
-        "group": "Configuration",
-        "pages": [
-          "configuration/env-variables",
-          "configuration/hardware-transcoding",
-          "configuration/archive-storage"
-        ]
-      },
-      {
-        "group": "Distributed Deployment",
-        "pages": ["configuration/distributed"]
-      },
-      {
-        "group": "Releases",
-        "pages": ["changelog"]
       }
     ]
   }

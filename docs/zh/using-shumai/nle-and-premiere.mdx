@@ -1,0 +1,126 @@
+---
+title: 非线性编辑 (NLE) 导出与 Premiere Pro 插件
+description: 将带时间戳的评审评论导出为常用 NLE 格式，或使用原生 Premiere Pro UXP 插件导入媒体资产并自动同步时间线标记。
+---
+
+Shumai 可直接融入视频剪辑工作流。用户既能在 Web 界面中将评审意见导出为行业标准的非线性编辑系统 (NLE) 标记格式，也能通过原生 Adobe Premiere Pro UXP 插件直接导入媒体资产，并将评审评论实时同步至时间线标记。
+
+---
+
+## 导出评论至非线性编辑系统 (NLE)
+
+在音视频评审中添加的评论，可直接从 Web 界面导出至外部剪辑软件。
+
+### 评论导出步骤
+
+1. 在 Shumai 媒体播放器中打开任意音视频资产。
+2. 在右侧边栏中切换至**评论**选项卡。
+3. 点击**所有评论**旁边的**更多操作**（`...`）菜单。
+4. 悬停在**导出评论**上，选择对应的剪辑软件格式：
+
+| 格式               | 文件扩展名 | 目标软件                     |
+| :----------------- | :--------- | :--------------------------- |
+| **Premiere Pro**   | `.xml`     | Adobe Premiere Pro 序列标记  |
+| **Resolve**        | `.edl`     | DaVinci Resolve 时间线标记   |
+| **FCP 10.4.0+**    | `.fiojson` | Apple Final Cut Pro 标记数据 |
+| **Media Composer** | `.xml`     | Avid Media Composer 标记     |
+
+下载完成后，将标记文件导入剪辑软件，即可把所有评审批注和时间戳直接叠加到时间线上。
+
+---
+
+## Premiere Pro UXP 插件（实验性）
+
+Shumai 官方 Premiere Pro UXP 插件在 Adobe Premiere Pro 内提供了原生工作面板，剪辑师可直接浏览工作区资产、将原素材或代理媒体导入项目素材箱，并自动将评审评论同步为序列时间线标记。
+
+> [!NOTE]
+> **实验性功能：**
+> Premiere Pro UXP 插件当前处于实验阶段。功能虽然完整，但尚未覆盖所有 Premiere Pro 小版本与操作系统环境。若遇到 Bug、异常表现或有工作流建议，欢迎在 [GitHub 提交 Issue](https://github.com/shumaiOne/shumai/issues) 或加入我们的 [Discord 社区](https://discord.gg/sUzhujK6DD) 反馈交流。
+
+### 最低版本要求
+
+| 软件                   | 最低版本要求                                    |
+| :--------------------- | :---------------------------------------------- |
+| **Adobe Premiere Pro** | **`25.1.0`** 或更高（Premiere Pro 2025 v25.1+） |
+| **Shumai 服务端**      | **`0.4.6`** 或更高                              |
+
+---
+
+### 安装指南
+
+支持通过 `.ccx` 打包安装程序或 Adobe UXP Developer Tools 安装 Shumai Premiere Pro 插件。
+
+#### 方式一：通过 Creative Cloud (.ccx) 安装
+
+推荐普通用户使用此方式，安装最便捷。
+
+> [!IMPORTANT]
+> **前置条件：**
+>
+> - 系统需预先安装 **Adobe Premiere Pro**（v25.1.0+）以及 **Adobe Creative Cloud 桌面应用程序**。
+> - Adobe Premiere Pro 必须在 Creative Cloud 桌面应用的“已安装应用程序”列表中正常识别显示。
+
+1. 从代码仓库下载预构建的插件安装包 [`shumai-premiere.ccx`](https://github.com/shumaiOne/shumai/raw/main/apps/premiere-uxp/shumai-premiere.ccx)（位于源码路径 `apps/premiere-uxp/shumai-premiere.ccx`）。
+2. 双击下载的 `.ccx` 文件，或直接将其拖入 **Adobe Creative Cloud** 桌面应用。
+3. 按照 Creative Cloud 弹窗提示确认并完成安装。
+4. 启动或重启 Adobe Premiere Pro。
+
+#### 方式二：通过 Adobe UXP Developer Tools (UDT) 安装
+
+此方式适用于开发者或需要从源码构建的用户。
+
+> [!NOTE]
+> 关于 UXP Developer Tool (UDT) 的安装与配置细节，请参阅官方 [Adobe UXP Developer Tools 文档](https://developer.adobe.com/premiere-pro/uxp/getting-started/quickstart/)。
+
+1. 克隆 Shumai 仓库：
+   ```bash
+   git clone https://github.com/shumaiOne/shumai.git
+   cd shumai
+   ```
+2. 安装依赖并构建 UXP 插件：
+   ```bash
+   bun install
+   bun run --filter @shumai/premiere-uxp build
+   ```
+3. 打开 **Adobe UXP Developer Tool** (UDT)。
+4. 点击 **Add Plugin** 并选中如下路径的清单文件：
+   ```text
+   apps/premiere-uxp/dist/manifest.json
+   ```
+   _（若处于监听开发模式，则选择 `apps/premiere-uxp/public/manifest.json`）。_
+5. 启动 Adobe Premiere Pro。在 UDT 应用列表中找到 Shumai 插件，点击右侧 `•••` 菜单，选择 **Load**（或 **Load & Watch**）。
+
+---
+
+### 连接 Shumai 服务器
+
+1. 在 Premiere Pro 中，依次点击**窗口** > **扩展** > **Shumai**（或**窗口** > **Shumai**）打开插件面板。
+2. 输入连接凭据：
+   - **服务端地址（Endpoint URL）：** Shumai 服务器地址（例如 `http://localhost:3000` 或 `https://shumai.yourdomain.com`）。
+   - **API Key：** 在 Shumai 中生成的有效 API 密钥。生成方法：在浏览器中打开 Shumai，进入**团队设置** > **开发者指南**，生成新的 API 密钥。
+3. 点击**连接**。连接成功后，凭据将保存在 Premiere Pro 本地配置中。
+
+---
+
+### Shumai UXP 插件核心功能
+
+该插件在 Premiere Pro 中深度集成了两大核心工作流：
+
+#### 1. 浏览并导入资产至 Premiere Pro
+
+- **浏览与检索**：通过面包屑导航与即时搜索，便捷浏览 Shumai 项目、文件夹与媒体资产。
+- **按需选择下载画质**：点击任意资产上的**导入**，可自由选择：
+  - **原始素材（Raw）**：下载并导入完整的原始高码率母版媒体文件。
+  - **视频代理（Proxy）**：下载并导入经转码优化的代理文件（如 1080p、720p、540p 或 360p MP4），剪辑播放更流畅轻快。
+- **原生目录选择**：调起系统原生文件夹选择弹窗，自主决定媒体文件在本地磁盘中的保存位置。
+- **自动导入素材箱**：文件保存到本地后，自动导入当前 Premiere Pro 活动项目的素材箱。
+
+#### 2. 自动同步评论至序列标记
+
+- **关联序列**：在插件文件列表中，点击任意视频资产的**关联序列**，即可将其与当前处于活动状态的时间线序列建立绑定。
+- **自动生成标记**：插件立即拉取 Shumai 中的已有评论，转换为 Premiere Pro 原生序列标记：
+  - **精准时间戳**：带有指定时间码的评论将精确定位在对应的帧；无时间戳的全局评论则放置在序列起始位置（`00:00:00:00`）。
+  - **作者与内容**：标记名称显示评论者姓名，标记附注完整包含评论正文及层级回复内容。
+  - **后台持续同步**：插件在后台自动轮询同步（每 12 秒），且在面板获得焦点或切换序列时立即触发同步。
+  - **序列管理面板**：随时切换至**序列**选项卡，查看项目中所有已关联的序列、上次同步时间，支持手动即时同步或解除关联。
+  - **干净解绑**：当解除资产与序列的关联时，Shumai 会精准清理其自动生成的标记，绝不影响项目中原有的其他标记。
