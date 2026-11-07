@@ -21,6 +21,7 @@ import { FieldInfo } from '@shumai/dtos'
 import { FileViewer } from './file-viewer'
 import { CompareViewer } from './compare/compare-viewer'
 import { pickDefaultCompareVersions } from './compare/compare-utils'
+import { getSelectedRangeIds } from '@/ui/lib/selection-utils'
 import type { MediaController } from './viewers/types'
 import type { Annotation } from '@/ui/types'
 
@@ -145,6 +146,7 @@ export function PublicShareManager({
 
   const [selectedItem, setSelectedItem] = useState<AssetInfo | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(() => !initialFileId)
   const mediaControllerRef = useRef<MediaController | null>(null)
@@ -335,6 +337,8 @@ export function PublicShareManager({
       })
     }
     setSelectedIds(new Set())
+    setSelectedItem(null)
+    setLastSelectedId(null)
   }
 
   const handleBreadcrumbClick = (folderId: string) => {
@@ -354,6 +358,61 @@ export function PublicShareManager({
     }
     setSelectedIds(new Set())
     setSelectedItem(null)
+    setLastSelectedId(null)
+  }
+
+  const handleItemSelect = (
+    item: AssetInfo,
+    e: React.MouseEvent,
+    meta?: { isCheckbox?: boolean },
+  ) => {
+    const isCtrlOrCmd = e.metaKey || e.ctrlKey
+    const isShift = e.shiftKey
+
+    if (isShift && lastSelectedId) {
+      const allItems = [...folders, ...files]
+      const lastSelectedItem = allItems.find((i) => i.id === lastSelectedId)
+
+      if (lastSelectedItem) {
+        const newSelectedIds = getSelectedRangeIds(
+          lastSelectedItem,
+          item,
+          lastSelectedId,
+          folders,
+          files,
+          selectedIds,
+        )
+
+        if (newSelectedIds) {
+          setSelectedIds(newSelectedIds)
+          setSelectedItem(item)
+          return
+        }
+      }
+    }
+
+    if (isCtrlOrCmd || meta?.isCheckbox) {
+      const next = new Set(selectedIds)
+      if (next.has(item.id!)) {
+        next.delete(item.id!)
+        setSelectedIds(next)
+        if (selectedItem?.id === item.id) {
+          const remaining = [...folders, ...files].find((i) => next.has(i.id!))
+          setSelectedItem(remaining || null)
+          setLastSelectedId(remaining ? remaining.id! : null)
+        }
+      } else {
+        next.add(item.id!)
+        setSelectedIds(next)
+        setSelectedItem(item)
+        setLastSelectedId(item.id!)
+      }
+      return
+    }
+
+    setSelectedIds(new Set([item.id!]))
+    setSelectedItem(item)
+    setLastSelectedId(item.id!)
   }
 
   const handleCommentSelect = (comment: CommentInfo) => {
@@ -686,30 +745,12 @@ export function PublicShareManager({
                 totalFilesSize={totalFilesSize}
                 selectedItem={selectedItem}
                 selectedIds={selectedIds}
-                onItemSelect={(item, e) => {
-                  if (e.metaKey || e.ctrlKey) {
-                    const next = new Set(selectedIds)
-                    if (next.has(item.id!)) {
-                      next.delete(item.id!)
-                      setSelectedIds(next)
-                      if (selectedItem?.id === item.id) {
-                        const remaining = [...folders, ...files].find((i) => next.has(i.id!))
-                        setSelectedItem(remaining || null)
-                      }
-                    } else {
-                      next.add(item.id!)
-                      setSelectedIds(next)
-                      setSelectedItem(item)
-                    }
-                  } else {
-                    setSelectedIds(new Set([item.id!]))
-                    setSelectedItem(item)
-                  }
-                }}
+                onItemSelect={handleItemSelect}
                 onItemDoubleClick={handleItemDoubleClick}
                 onClearSelection={() => {
                   setSelectedIds(new Set())
                   setSelectedItem(null)
+                  setLastSelectedId(null)
                 }}
                 fetchNextFoldersPage={fetchNextFoldersPage}
                 hasNextFoldersPage={hasNextPageFolders}
@@ -732,32 +773,14 @@ export function PublicShareManager({
                 files={files}
                 selectedItem={selectedItem}
                 selectedIds={selectedIds}
-                onItemSelect={(item, e) => {
-                  if (e.metaKey || e.ctrlKey) {
-                    const next = new Set(selectedIds)
-                    if (next.has(item.id!)) {
-                      next.delete(item.id!)
-                      setSelectedIds(next)
-                      if (selectedItem?.id === item.id) {
-                        const remaining = [...folders, ...files].find((i) => next.has(i.id!))
-                        setSelectedItem(remaining || null)
-                      }
-                    } else {
-                      next.add(item.id!)
-                      setSelectedIds(next)
-                      setSelectedItem(item)
-                    }
-                  } else {
-                    setSelectedIds(new Set([item.id!]))
-                    setSelectedItem(item)
-                  }
-                }}
+                onItemSelect={handleItemSelect}
                 onItemDoubleClick={handleItemDoubleClick}
                 onSaveField={() => {}}
                 displayStyle={(shareInfo.viewMode as 'card' | 'list') ?? 'card'}
                 onClearSelection={() => {
                   setSelectedIds(new Set())
                   setSelectedItem(null)
+                  setLastSelectedId(null)
                 }}
                 fetchNextFoldersPage={fetchNextFoldersPage}
                 hasNextFoldersPage={hasNextPageFolders}

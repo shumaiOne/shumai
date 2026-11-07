@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **share**: Single-clicking file or folder cards on public share links immediately opens the viewer or enters the folder, even when previously selected
+- **file-browser**: Preserve multi-selection when clicking an already-selected card body in workspace file lists, and enable clicking checkboxes to independently toggle individual items without clearing other selections
+- **share**: Support Shift-click range selection across items on public share pages
+- **file-browser**: Fix folder card checkboxes to correctly toggle folder selection, and prevent preview loading spinners from blocking card clicks
+
 ### Changed
 
 ## [0.6.4] - 2026-11-05

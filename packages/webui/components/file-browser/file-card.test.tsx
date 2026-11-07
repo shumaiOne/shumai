@@ -802,4 +802,96 @@ describe('FileCard', () => {
     const copyOption = screen.getByText(/^Copy$|^复制$/i)
     expect(copyOption).toBeTruthy()
   })
+
+  it('triggers onDoubleClick on single card body click in public share view even when checked', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: fileItem,
+      isPublic: true,
+      isChecked: true,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const card = screen.getByTestId('file-card')
+    fireEvent.click(card)
+
+    expect(onDoubleClick).toHaveBeenCalledWith(fileItem)
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('triggers onSelect instead of onDoubleClick on public share card when clicking with modifier keys', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: fileItem,
+      isPublic: true,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const card = screen.getByTestId('file-card')
+    fireEvent.click(card, { shiftKey: true })
+
+    expect(onDoubleClick).not.toHaveBeenCalled()
+    expect(onSelect).toHaveBeenCalledWith(fileItem, expect.anything())
+  })
+
+  it('preserves multi-selection in internal workspace when clicking an already selected card body', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: fileItem,
+      isPublic: false,
+      isChecked: true,
+      selectedCount: 3,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const card = screen.getByTestId('file-card')
+    fireEvent.click(card)
+
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(onDoubleClick).not.toHaveBeenCalled()
+  })
+
+  it('calls onSelect when clicking an unselected card body in internal workspace', () => {
+    const onSelect = vi.fn()
+
+    renderComponent({
+      item: fileItem,
+      isPublic: false,
+      isChecked: false,
+      selectedCount: 3,
+      onSelect,
+    })
+
+    const card = screen.getByTestId('file-card')
+    fireEvent.click(card)
+
+    expect(onSelect).toHaveBeenCalledWith(fileItem, expect.anything())
+  })
+
+  it('calls onSelect with { isCheckbox: true } when checkbox is clicked directly', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: fileItem,
+      isPublic: true,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const checkbox = screen.getByRole('checkbox')
+    fireEvent.click(checkbox)
+
+    expect(onDoubleClick).not.toHaveBeenCalled()
+    expect(onSelect).toHaveBeenCalledWith(fileItem, expect.anything(), { isCheckbox: true })
+  })
 })

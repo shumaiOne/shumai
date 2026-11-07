@@ -73,7 +73,7 @@ interface FileBrowserProps {
   totalFilesSize?: number
   selectedItem: AssetInfo | null
   selectedIds: Set<string>
-  onItemSelect: (item: AssetInfo, event: React.MouseEvent) => void
+  onItemSelect: (item: AssetInfo, event: React.MouseEvent, meta?: { isCheckbox?: boolean }) => void
   onItemDoubleClick: (item: AssetInfo) => void
   onSaveField: (fileId: string, fieldId: string, value: unknown) => void
   displayStyle: 'card' | 'list'
@@ -175,9 +175,9 @@ export function FileBrowser({
   }, [selectedIds.size])
 
   const handleItemSelectWrapper = useCallback(
-    (item: AssetInfo, event: React.MouseEvent) => {
+    (item: AssetInfo, event: React.MouseEvent, meta?: { isCheckbox?: boolean }) => {
       setInternalSelectedItem(item)
-      onItemSelect(item, event)
+      onItemSelect(item, event, meta)
     },
     [onItemSelect],
   )
@@ -778,6 +778,7 @@ export function FileBrowser({
       isRecents,
       selectedCount: selectedIds.size,
       isShareView,
+      isPublic,
       allowDownload,
       fields: displayedFields,
       canEdit,

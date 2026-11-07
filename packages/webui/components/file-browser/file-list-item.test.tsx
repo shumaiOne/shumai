@@ -250,4 +250,61 @@ describe('FileListItem', () => {
     expect(statusBadge.textContent).toMatch(/Alice.*(is uploading|正在上传)/i)
     expect(screen.getByTestId('file-list-item-remote-uploading-circle')).toBeTruthy()
   })
+
+  it('triggers onDoubleClick on single row click in public share view even when checked', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: mockItem,
+      isPublic: true,
+      isChecked: true,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const row = screen.getByTestId('file-card')
+    fireEvent.click(row)
+
+    expect(onDoubleClick).toHaveBeenCalledWith(mockItem)
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('preserves multi-selection in internal workspace when clicking already selected list row', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: mockItem,
+      isPublic: false,
+      isChecked: true,
+      selectedCount: 3,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const row = screen.getByTestId('file-card')
+    fireEvent.click(row)
+
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(onDoubleClick).not.toHaveBeenCalled()
+  })
+
+  it('calls onSelect with { isCheckbox: true } when list item checkbox is clicked', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: mockItem,
+      isPublic: true,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const checkbox = screen.getByRole('checkbox')
+    fireEvent.click(checkbox)
+
+    expect(onDoubleClick).not.toHaveBeenCalled()
+    expect(onSelect).toHaveBeenCalledWith(mockItem, expect.anything(), { isCheckbox: true })
+  })
 })

@@ -168,7 +168,7 @@ interface FileBrowserListViewProps {
   selectedItem: AssetInfo | null
   selectedIds: Set<string>
   displayedFields: FieldInfo[]
-  onItemSelect: (item: AssetInfo, event: React.MouseEvent) => void
+  onItemSelect: (item: AssetInfo, event: React.MouseEvent, meta?: { isCheckbox?: boolean }) => void
   onItemDoubleClick: (item: AssetInfo) => void
   renderItem: (item: AssetInfo, columnSizing?: Record<string, number>) => React.ReactNode
   foldersExpanded: boolean

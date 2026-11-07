@@ -57,7 +57,7 @@ interface FileCardProps {
   isSelected?: boolean
   isChecked?: boolean
   isEditing?: boolean
-  onSelect?: (item: AssetInfo, event: React.MouseEvent) => void
+  onSelect?: (item: AssetInfo, event: React.MouseEvent, meta?: { isCheckbox?: boolean }) => void
   onDoubleClick?: (item: AssetInfo) => void
   onContextMenu?: (e: React.MouseEvent, item: AssetInfo) => void
   // Deprecated manual drag handlers replaced by dnd-kit
@@ -85,6 +85,7 @@ interface FileCardProps {
   selectedCount?: number
   fields?: MetadataFieldInfo[]
   isShareView?: boolean
+  isPublic?: boolean
   canEdit?: boolean
   archiveStorageEnabled?: boolean
   /** When false, hides the download action. Defaults to true. */
@@ -121,6 +122,7 @@ export function FileCard({
   selectedCount,
   fields = [],
   isShareView,
+  isPublic = false,
   canEdit = true,
   archiveStorageEnabled = false,
   allowDownload = true,
@@ -253,6 +255,25 @@ export function FileCard({
   }, [displayItem.name])
 
   const handleClick = (e: React.MouseEvent) => {
+    if (isPublic) {
+      if (e.metaKey || e.ctrlKey || e.shiftKey) {
+        onSelect(displayItem, e)
+      } else {
+        onDoubleClick(displayItem)
+      }
+      return
+    }
+
+    if (
+      (selectedCount ?? 0) > 1 &&
+      (isChecked || isSelected) &&
+      !e.metaKey &&
+      !e.ctrlKey &&
+      !e.shiftKey
+    ) {
+      return
+    }
+
     onSelect(displayItem, e)
   }
 
@@ -397,15 +418,15 @@ export function FileCard({
       )}
     >
       {!hideCheckbox && (
-        <div className="absolute left-2 top-2 z-10 flex items-center gap-1.5">
+        <div className="absolute left-2 top-2 z-20 flex items-center gap-1.5">
           <Checkbox
             checked={isChecked}
             onCheckedChange={() => {}}
             onClick={(e) => {
               e.stopPropagation()
-              onSelect(displayItem, e)
+              onSelect(displayItem, e, { isCheckbox: true })
             }}
-            className="h-4 w-4 bg-white/20 dark:bg-white/20 border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary border-foreground/15"
+            className="h-4 w-4 bg-white/20 dark:bg-white/20 border-2 hover:border-primary transition-colors cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:border-primary border-foreground/15"
           />
         </div>
       )}

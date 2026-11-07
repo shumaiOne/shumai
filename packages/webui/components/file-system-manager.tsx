@@ -358,7 +358,11 @@ export default function FileSystemManager({
     }
   }
 
-  const handleItemSelect = (item: AssetInfo, event: React.MouseEvent) => {
+  const handleItemSelect = (
+    item: AssetInfo,
+    event: React.MouseEvent,
+    meta?: { isCheckbox?: boolean },
+  ) => {
     const isCtrlOrCmd = event.metaKey || event.ctrlKey
     const isShift = event.shiftKey
 
@@ -385,7 +389,7 @@ export default function FileSystemManager({
       }
     }
 
-    if (isCtrlOrCmd) {
+    if (isCtrlOrCmd || meta?.isCheckbox) {
       const newSelectedIds = new Set(selectedIds)
       if (newSelectedIds.has(item.id)) {
         newSelectedIds.delete(item.id)
