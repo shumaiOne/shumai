@@ -33,7 +33,12 @@ export function SortControl({ fields, sort, onSortChange, disabled }: SortContro
       id: f.id!,
       label: f.config?.name || f.description || m.unknown(),
     }))
-    return [...sys, ...custom]
+    const seen = new Set<string>()
+    return [...sys, ...custom].filter((f) => {
+      if (!f.id || seen.has(f.id)) return false
+      seen.add(f.id)
+      return true
+    })
   }, [fields])
 
   // Default to Custom if no sort selected

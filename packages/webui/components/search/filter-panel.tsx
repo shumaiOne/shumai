@@ -76,7 +76,14 @@ export function FilterPanel({
           : f.config?.select?.options || f.config?.selectMulti?.options,
       config: f.config,
     }))
-    return [...sys, ...custom].filter((f) => !excludeFields?.includes(f.id))
+    const seen = new Set<string>()
+    return [...sys, ...custom]
+      .filter((f) => !excludeFields?.includes(f.id))
+      .filter((f) => {
+        if (!f.id || seen.has(f.id)) return false
+        seen.add(f.id)
+        return true
+      })
   }, [fields, memberOptions, excludeFields, archiveStorageEnabled])
 
   const handleAddCondition = () => {
