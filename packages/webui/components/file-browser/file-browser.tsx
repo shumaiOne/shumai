@@ -994,6 +994,9 @@ export function FileBrowser({
                 collection={collection}
                 onUpdateCollection={onUpdateCollection}
                 rootFolderId={rootFolderId}
+                onNewFolder={() => handleNewFolder(m.new_folder())}
+                onUploadFile={handleUploadFilesClick}
+                onUploadFolder={handleUploadFolderClick}
               />
             )}
             {isRecentlyDeleted && (

@@ -14,6 +14,13 @@ import { MembersDialog } from '../members-dialog'
 import { FilterPanel } from '../search/filter-panel'
 import { SearchFilterDialog } from '../search/search-filter-dialog'
 import { SortControl } from '../search/sort-control'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu'
+import { FolderPlus, Plus, UploadCloud } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
@@ -36,6 +43,9 @@ type FileBrowserToolbarProps = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onUpdateCollection?: (updates: { name?: string; filter?: any }) => void
   rootFolderId?: string
+  onNewFolder?: () => void
+  onUploadFile?: () => void
+  onUploadFolder?: () => void
 }
 
 export function FileBrowserToolbar({
@@ -52,6 +62,9 @@ export function FileBrowserToolbar({
   collection,
   onUpdateCollection,
   rootFolderId,
+  onNewFolder,
+  onUploadFile,
+  onUploadFolder,
 }: FileBrowserToolbarProps) {
   const { canEdit } = usePermissions(projectId)
   const [popoverOpen, setPopoverOpen] = useState(false)
@@ -392,6 +405,48 @@ export function FileBrowserToolbar({
                   </svg>
                   <span>{m.agents_md()}</span>
                 </Button>
+              </>
+            )}
+
+            {canEdit && !isRecentlyDeleted && !isRecents && (
+              <>
+                <Separator orientation="vertical" className="hidden md:block" />
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="hidden md:inline-flex items-center justify-center size-8 p-0"
+                      title={m.add()}
+                      aria-label={m.add()}
+                    >
+                      <Plus className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuItem
+                      onClick={onUploadFile}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <UploadCloud className="size-4" />
+                      <span>{m.upload_file()}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={onUploadFolder}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <UploadCloud className="size-4" />
+                      <span>{m.upload_folder()}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={onNewFolder}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <FolderPlus className="size-4" />
+                      <span>{m.new_folder()}</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             )}
           </>
