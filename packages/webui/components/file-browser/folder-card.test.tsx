@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AssetInfo } from '@shumai/dtos'
@@ -110,5 +110,81 @@ describe('FolderCard', () => {
   it('does not render 3-dot dropdown menu when hideActions is true', () => {
     renderComponent({ item: folderItem, hideActions: true })
     expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('triggers onSelect with { isCheckbox: true } when folder checkbox is clicked', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: folderItem,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const checkbox = screen.getByRole('checkbox')
+    fireEvent.click(checkbox)
+
+    expect(onDoubleClick).not.toHaveBeenCalled()
+    expect(onSelect).toHaveBeenCalledWith(folderItem, expect.anything(), { isCheckbox: true })
+  })
+
+  it('triggers onDoubleClick on single card body click in public share view even when checked', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: folderItem,
+      isPublic: true,
+      isChecked: true,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const card = screen.getByTestId('file-card')
+    fireEvent.click(card)
+
+    expect(onDoubleClick).toHaveBeenCalledWith(folderItem)
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('does not trigger onDoubleClick multiple times on double-click in public share view', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: folderItem,
+      isPublic: true,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const card = screen.getByTestId('file-card')
+    fireEvent.click(card, { detail: 1 })
+    fireEvent.click(card, { detail: 2 })
+    fireEvent.doubleClick(card)
+
+    expect(onDoubleClick).toHaveBeenCalledTimes(1)
+    expect(onDoubleClick).toHaveBeenCalledWith(folderItem)
+  })
+
+  it('preserves multi-selection in internal workspace when clicking already selected folder card body', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: folderItem,
+      isPublic: false,
+      isChecked: true,
+      selectedCount: 2,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const card = screen.getByTestId('file-card')
+    fireEvent.click(card)
+
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(onDoubleClick).not.toHaveBeenCalled()
   })
 })

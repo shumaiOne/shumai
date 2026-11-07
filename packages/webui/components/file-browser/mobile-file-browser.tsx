@@ -70,7 +70,7 @@ export interface MobileFileBrowserProps {
   totalFilesSize?: number
   selectedItem: AssetInfo | null
   selectedIds: Set<string>
-  onItemSelect: (item: AssetInfo, event: React.MouseEvent) => void
+  onItemSelect: (item: AssetInfo, event: React.MouseEvent, meta?: { isCheckbox?: boolean }) => void
   onItemDoubleClick: (item: AssetInfo) => void
   onSaveField?: (fileId: string, fieldId: string, value: unknown) => void
   onClearSelection: () => void
@@ -534,6 +534,7 @@ export function MobileFileBrowser({
                         isRecentlyDeleted={isRecentlyDeleted}
                         isRecents={isRecents}
                         selectedCount={selectedIds.size}
+                        isPublic={isPublic}
                         canEdit={canEdit}
                         archiveStorageEnabled={archiveStorageEnabled}
                         isShareView={isShareView}
@@ -599,6 +600,7 @@ export function MobileFileBrowser({
                         isRecentlyDeleted={isRecentlyDeleted}
                         isRecents={isRecents}
                         selectedCount={selectedIds.size}
+                        isPublic={isPublic}
                         canEdit={canEdit}
                         archiveStorageEnabled={archiveStorageEnabled}
                         isShareView={isShareView}

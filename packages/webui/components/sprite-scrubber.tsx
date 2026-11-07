@@ -180,7 +180,7 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
       />
 
       {isHovering && !spriteLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 pointer-events-none">
           <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         </div>
       )}

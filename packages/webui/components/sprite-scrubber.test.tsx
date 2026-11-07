@@ -170,4 +170,22 @@ describe('SpriteScrubber', () => {
     expect(scrubber.className).toContain('cursor-pointer')
     expect(scrubber.className).not.toContain('cursor-crosshair')
   })
+
+  it('renders loading spinner overlay with pointer-events-none when hovering before sprite loads', () => {
+    const { getByTestId, container } = render(
+      <SpriteScrubber
+        spriteUrl="https://example.com/sprite.webp"
+        thumbnailUrl="https://example.com/thumb.webp"
+        videoWidth={1920}
+        videoHeight={1080}
+      />,
+    )
+
+    const scrubber = getByTestId('sprite-scrubber')
+    fireEvent.mouseEnter(scrubber)
+
+    const spinnerOverlay = container.querySelector('.animate-spin')?.parentElement
+    expect(spinnerOverlay).toBeTruthy()
+    expect(spinnerOverlay?.className).toContain('pointer-events-none')
+  })
 })

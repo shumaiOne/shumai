@@ -26,6 +26,7 @@ import { ProgressCircle } from '@/ui/components/ui/progress-circle'
 import { formatRemainingTimeSeconds, formatTimeAgo, getTrashDaysLeft } from '@/ui/lib/time'
 import { formatSize } from '@/ui/lib/format'
 import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
+import { handleCardClick } from '@/ui/lib/selection-utils'
 import { cn } from '@/ui/lib/utils'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
@@ -57,7 +58,7 @@ interface FileCardProps {
   isSelected?: boolean
   isChecked?: boolean
   isEditing?: boolean
-  onSelect?: (item: AssetInfo, event: React.MouseEvent) => void
+  onSelect?: (item: AssetInfo, event: React.MouseEvent, meta?: { isCheckbox?: boolean }) => void
   onDoubleClick?: (item: AssetInfo) => void
   onContextMenu?: (e: React.MouseEvent, item: AssetInfo) => void
   // Deprecated manual drag handlers replaced by dnd-kit
@@ -85,6 +86,7 @@ interface FileCardProps {
   selectedCount?: number
   fields?: MetadataFieldInfo[]
   isShareView?: boolean
+  isPublic?: boolean
   canEdit?: boolean
   archiveStorageEnabled?: boolean
   /** When false, hides the download action. Defaults to true. */
@@ -121,6 +123,7 @@ export function FileCard({
   selectedCount,
   fields = [],
   isShareView,
+  isPublic = false,
   canEdit = true,
   archiveStorageEnabled = false,
   allowDownload = true,
@@ -253,7 +256,16 @@ export function FileCard({
   }, [displayItem.name])
 
   const handleClick = (e: React.MouseEvent) => {
-    onSelect(displayItem, e)
+    handleCardClick({
+      item: displayItem,
+      event: e,
+      isPublic,
+      selectedCount,
+      isSelected,
+      isChecked,
+      onSelect,
+      onDoubleClick,
+    })
   }
 
   const handleRename = () => {
@@ -382,7 +394,7 @@ export function FileCard({
       ref={setNodeRef}
       style={{ opacity }}
       onClick={handleClick}
-      onDoubleClick={() => onDoubleClick(displayItem)}
+      onDoubleClick={isPublic ? undefined : () => onDoubleClick(displayItem)}
       onContextMenu={(e) => onContextMenu(e, displayItem)}
       onMouseDown={(e) => {
         if (e.shiftKey) {
@@ -397,15 +409,15 @@ export function FileCard({
       )}
     >
       {!hideCheckbox && (
-        <div className="absolute left-2 top-2 z-10 flex items-center gap-1.5">
+        <div className="absolute left-2 top-2 z-20 flex items-center gap-1.5">
           <Checkbox
             checked={isChecked}
             onCheckedChange={() => {}}
             onClick={(e) => {
               e.stopPropagation()
-              onSelect(displayItem, e)
+              onSelect(displayItem, e, { isCheckbox: true })
             }}
-            className="h-4 w-4 bg-white/20 dark:bg-white/20 border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary border-foreground/15"
+            className="h-4 w-4 bg-white/20 dark:bg-white/20 border-2 hover:border-primary transition-colors cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:border-primary border-foreground/15"
           />
         </div>
       )}

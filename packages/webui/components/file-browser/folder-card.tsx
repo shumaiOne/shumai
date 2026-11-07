@@ -28,13 +28,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
 import { FilePreview } from './file-preview'
 import { getAllFilesFromEntries } from '@/ui/lib/dnd-utils'
+import { handleCardClick } from '@/ui/lib/selection-utils'
 
 interface FolderCardProps {
   item: AssetInfo
   isSelected?: boolean
   isChecked?: boolean
   isEditing?: boolean
-  onSelect?: (item: AssetInfo, event: React.MouseEvent) => void
+  onSelect?: (item: AssetInfo, event: React.MouseEvent, meta?: { isCheckbox?: boolean }) => void
   onDoubleClick?: (item: AssetInfo) => void
   onContextMenu?: (e: React.MouseEvent, item: AssetInfo) => void
   // Deprecated manual drag props replaced by dnd-kit
@@ -61,6 +62,7 @@ interface FolderCardProps {
   canEdit?: boolean
   archiveStorageEnabled?: boolean
   isShareView?: boolean
+  isPublic?: boolean
   isExternalDragging?: boolean
   externalOverFolderId?: string | null
   setExternalOverFolderId?: (id: string | null) => void
@@ -152,6 +154,7 @@ export function FolderCard({
   canEdit = true,
   archiveStorageEnabled = false,
   isShareView,
+  isPublic = false,
   isExternalDragging,
   externalOverFolderId,
   setExternalOverFolderId,
@@ -223,7 +226,16 @@ export function FolderCard({
   }, [item.name])
 
   const handleClick = (e: React.MouseEvent) => {
-    onSelect(item, e)
+    handleCardClick({
+      item,
+      event: e,
+      isPublic,
+      selectedCount,
+      isSelected,
+      isChecked,
+      onSelect,
+      onDoubleClick,
+    })
   }
 
   const handleRename = () => {
@@ -274,7 +286,7 @@ export function FolderCard({
       ref={setNodeRef}
       style={{ opacity }}
       onClick={handleClick}
-      onDoubleClick={() => onDoubleClick(item)}
+      onDoubleClick={isPublic ? undefined : () => onDoubleClick(item)}
       onContextMenu={(e) => onContextMenu(e, item)}
       onMouseDown={(e) => {
         if (e.shiftKey) {
@@ -367,8 +379,11 @@ export function FolderCard({
             <div className="absolute top-1 left-1 z-30 transition-all duration-200">
               <Checkbox
                 checked={isChecked}
-                onClick={(e) => e.stopPropagation()} // Let parent handler deal with it
-                className="w-5 h-5 border-1 border-foreground/20 bg-background/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelect(item, e, { isCheckbox: true })
+                }}
+                className="w-5 h-5 border-1 border-foreground/20 bg-background/50 hover:border-primary transition-colors cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:border-primary"
               />
             </div>
           )}

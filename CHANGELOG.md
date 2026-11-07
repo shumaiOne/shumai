@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **file-browser**: ⚠️ **Behavior Change**: Align asset selection and click behavior with Frame.io: single-clicking file or folder cards on public share links always opens or enters the asset even when already selected, clicking an already-selected card in workspace file lists preserves multi-selection, checkboxes independently toggle individual items without clearing other selections, and Shift-click range selection is supported on public share links
+
 ## [0.6.4] - 2026-11-05
 
 ### Added

@@ -24,7 +24,7 @@ import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-quer
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '../lib/utils'
-import { getSelectedRangeIds } from '../lib/selection-utils'
+import { computeNextItemSelection } from '../lib/selection-utils'
 import { useIsMobile } from '@/ui/hooks/use-mobile'
 import { ChatbotSidebar } from './chatbot-sidebar'
 import { SnapToPointer } from './dnd-modifiers'
@@ -358,56 +358,22 @@ export default function FileSystemManager({
     }
   }
 
-  const handleItemSelect = (item: AssetInfo, event: React.MouseEvent) => {
-    const isCtrlOrCmd = event.metaKey || event.ctrlKey
-    const isShift = event.shiftKey
-
-    if (isShift && lastSelectedId) {
-      // Find the last selected item
-      const allItems = [...folders, ...files]
-      const lastSelectedItem = allItems.find((i) => i.id === lastSelectedId)
-
-      if (lastSelectedItem) {
-        const newSelectedIds = getSelectedRangeIds(
-          lastSelectedItem,
-          item,
-          lastSelectedId,
-          folders,
-          files,
-          selectedIds,
-        )
-
-        if (newSelectedIds) {
-          setSelectedIds(newSelectedIds)
-          setSelectedItem(item)
-          return
-        }
-      }
-    }
-
-    if (isCtrlOrCmd) {
-      const newSelectedIds = new Set(selectedIds)
-      if (newSelectedIds.has(item.id)) {
-        newSelectedIds.delete(item.id)
-        setSelectedIds(newSelectedIds)
-        if (selectedItem?.id === item.id) {
-          const allItems = [...folders, ...files]
-          const remaining = allItems.find((i) => newSelectedIds.has(i.id))
-          setSelectedItem(remaining || null)
-          setLastSelectedId(remaining ? remaining.id : null)
-        }
-      } else {
-        newSelectedIds.add(item.id)
-        setSelectedIds(newSelectedIds)
-        setLastSelectedId(item.id)
-        setSelectedItem(item)
-      }
-      return
-    }
-
-    setSelectedIds(new Set([item.id]))
-    setLastSelectedId(item.id)
-    setSelectedItem(item)
+  const handleItemSelect = (
+    item: AssetInfo,
+    event: React.MouseEvent,
+    meta?: { isCheckbox?: boolean },
+  ) => {
+    const nextState = computeNextItemSelection({
+      item,
+      event,
+      meta,
+      folders,
+      files,
+      state: { selectedIds, selectedItem, lastSelectedId },
+    })
+    setSelectedIds(nextState.selectedIds)
+    setSelectedItem(nextState.selectedItem)
+    setLastSelectedId(nextState.lastSelectedId)
   }
 
   const handleSaveField = (fileId: string, fieldId: string, value: unknown) => {

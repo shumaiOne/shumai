@@ -17,6 +17,7 @@ import { Checkbox } from '@/ui/components/ui/checkbox'
 import { EditableText } from '@/ui/components/ui/editable-text'
 import { useUploadStore } from '@/ui/stores/upload'
 import { ProgressCircle } from '@/ui/components/ui/progress-circle'
+import { handleCardClick } from '@/ui/lib/selection-utils'
 
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 
@@ -26,7 +27,7 @@ interface FileListItemProps {
   isSelected: boolean
   isChecked: boolean
   isEditing: boolean
-  onSelect: (item: AssetInfo, event: React.MouseEvent) => void
+  onSelect: (item: AssetInfo, event: React.MouseEvent, meta?: { isCheckbox?: boolean }) => void
   onDoubleClick: (item: AssetInfo) => void
   onContextMenu: (e: React.MouseEvent, item: AssetInfo) => void
   onDragStart: (item: AssetInfo) => void
@@ -40,6 +41,8 @@ interface FileListItemProps {
   columnSizing?: Record<string, number>
   canEdit?: boolean
   isRecents?: boolean
+  isPublic?: boolean
+  selectedCount?: number
 }
 
 export function FileListItem({
@@ -64,6 +67,8 @@ export function FileListItem({
   columnSizing,
   canEdit = true,
   isRecents,
+  isPublic = false,
+  selectedCount,
 }: FileListItemProps) {
   const [name, setName] = useState(item.name)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -190,7 +195,16 @@ export function FileListItem({
   }
 
   const handleClick = (e: React.MouseEvent) => {
-    onSelect(displayItem, e)
+    handleCardClick({
+      item: displayItem,
+      event: e,
+      isPublic,
+      selectedCount,
+      isSelected,
+      isChecked,
+      onSelect,
+      onDoubleClick,
+    })
   }
   const handleRename = () => {
     if (name !== displayItem.name) {
@@ -214,7 +228,7 @@ export function FileListItem({
       ref={setDraggableRef}
       style={{ opacity }}
       onClick={handleClick}
-      onDoubleClick={() => onDoubleClick(displayItem)}
+      onDoubleClick={isPublic ? undefined : () => onDoubleClick(displayItem)}
       onContextMenu={(e) => onContextMenu(e, displayItem)}
       onMouseDown={(e) => {
         if (e.shiftKey) {
@@ -240,9 +254,9 @@ export function FileListItem({
             onCheckedChange={() => {}}
             onClick={(e) => {
               e.stopPropagation()
-              onSelect(displayItem, e)
+              onSelect(displayItem, e, { isCheckbox: true })
             }}
-            className="h-4 w-4 shrink-0 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+            className="h-4 w-4 shrink-0 hover:border-primary transition-colors cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
           <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-muted rounded overflow-hidden">
             {isUploading ? (
