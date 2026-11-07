@@ -10,12 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- **share**: Single-clicking file or folder cards on public share links immediately opens the viewer or enters the folder, even when previously selected
-- **file-browser**: Preserve multi-selection when clicking an already-selected card body in workspace file lists, and enable clicking checkboxes to independently toggle individual items without clearing other selections
-- **share**: Support Shift-click range selection across items on public share pages
-- **file-browser**: Fix folder card checkboxes to correctly toggle folder selection, and prevent preview loading spinners from blocking card clicks
-
 ### Changed
+
+- **file-browser**: ⚠️ **Behavior Change**: Align asset selection and click behavior with Frame.io: single-clicking file or folder cards on public share links always opens or enters the asset even when already selected, clicking an already-selected card in workspace file lists preserves multi-selection, checkboxes independently toggle individual items without clearing other selections, and Shift-click range selection is supported on public share links
 
 ## [0.6.4] - 2026-11-05
 
