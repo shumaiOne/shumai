@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest'
-import { getSelectedRangeIds } from './selection-utils'
+import { describe, expect, it, vi } from 'vitest'
+import {
+  computeNextItemSelection,
+  getSelectedRangeIds,
+  handleCardClick,
+  type ItemSelectionState,
+} from './selection-utils'
 import type { AssetInfo } from '@shumai/dtos'
 
 describe('getSelectedRangeIds', () => {
@@ -87,5 +92,175 @@ describe('getSelectedRangeIds', () => {
     expect(result?.size).toBe(2)
     expect(result?.has('folder1')).toBe(true)
     expect(result?.has('folder2')).toBe(true)
+  })
+})
+
+describe('computeNextItemSelection', () => {
+  const files = [
+    { id: 'f1', name: 'File 1', type: 'file' },
+    { id: 'f2', name: 'File 2', type: 'file' },
+    { id: 'f3', name: 'File 3', type: 'file' },
+    { id: 'f4', name: 'File 4', type: 'file' },
+  ] as unknown as AssetInfo[]
+
+  it('selects single item on plain click', () => {
+    const initialState: ItemSelectionState = {
+      selectedIds: new Set(),
+      selectedItem: null,
+      lastSelectedId: null,
+    }
+
+    const state = computeNextItemSelection({
+      item: files[0],
+      event: { metaKey: false, ctrlKey: false, shiftKey: false } as unknown as React.MouseEvent,
+      folders: [],
+      files,
+      state: initialState,
+    })
+
+    expect(state.selectedIds).toEqual(new Set(['f1']))
+    expect(state.selectedItem).toEqual(files[0])
+    expect(state.lastSelectedId).toBe('f1')
+  })
+
+  it('independently toggles checkbox without deselecting other items', () => {
+    const initialState: ItemSelectionState = {
+      selectedIds: new Set(['f1', 'f2', 'f3']),
+      selectedItem: files[2],
+      lastSelectedId: 'f1',
+    }
+
+    // Toggle f2 off via checkbox
+    const state = computeNextItemSelection({
+      item: files[1],
+      event: { metaKey: false, ctrlKey: false, shiftKey: false } as unknown as React.MouseEvent,
+      meta: { isCheckbox: true },
+      folders: [],
+      files,
+      state: initialState,
+    })
+
+    expect(state.selectedIds).toEqual(new Set(['f1', 'f3']))
+    expect(state.lastSelectedId).toBe('f1')
+  })
+
+  it('resets range anchor when the range anchor is deselected (Finding 2 bug)', () => {
+    // Repro steps:
+    // 1. Click f1 (anchor = f1)
+    const state1 = computeNextItemSelection({
+      item: files[0],
+      event: { metaKey: false, ctrlKey: false, shiftKey: false } as unknown as React.MouseEvent,
+      folders: [],
+      files,
+      state: { selectedIds: new Set(), selectedItem: null, lastSelectedId: null },
+    })
+    expect(state1.lastSelectedId).toBe('f1')
+
+    // 2. Shift-click f3 -> selects f1, f2, f3; selectedItem = f3; lastSelectedId remains f1
+    const state2 = computeNextItemSelection({
+      item: files[2],
+      event: { metaKey: false, ctrlKey: false, shiftKey: true } as unknown as React.MouseEvent,
+      folders: [],
+      files,
+      state: state1,
+    })
+    expect(state2.selectedIds).toEqual(new Set(['f1', 'f2', 'f3']))
+    expect(state2.selectedItem).toEqual(files[2])
+    expect(state2.lastSelectedId).toBe('f1')
+
+    // 3. Ctrl-click f1 to deselect f1
+    // The anchor f1 is now deselected! In the buggy version, lastSelectedId remained f1 because selectedItem was f3.
+    const state3 = computeNextItemSelection({
+      item: files[0],
+      event: { metaKey: true, ctrlKey: false, shiftKey: false } as unknown as React.MouseEvent,
+      folders: [],
+      files,
+      state: state2,
+    })
+    expect(state3.selectedIds).toEqual(new Set(['f2', 'f3']))
+    // Anchor MUST NOT be the deselected f1! It must update to a remaining selected item or null
+    expect(state3.lastSelectedId).not.toBe('f1')
+    expect(state3.selectedIds.has(state3.lastSelectedId!)).toBe(true)
+
+    // 4. Subsequent Shift-click on f4 must NOT re-select f1
+    const state4 = computeNextItemSelection({
+      item: files[3],
+      event: { metaKey: false, ctrlKey: false, shiftKey: true } as unknown as React.MouseEvent,
+      folders: [],
+      files,
+      state: state3,
+    })
+    expect(state4.selectedIds.has('f1')).toBe(false)
+    expect(state4.selectedIds.has('f4')).toBe(true)
+  })
+})
+
+describe('handleCardClick', () => {
+  const mockItem = { id: 'item-1', name: 'File 1' } as unknown as AssetInfo
+
+  it('in public mode, ignores click with detail > 1 (Finding 1 double-click fix)', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    // Rapid double-click event (detail = 2)
+    handleCardClick({
+      item: mockItem,
+      event: {
+        detail: 2,
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+      } as unknown as React.MouseEvent,
+      isPublic: true,
+      onSelect,
+      onDoubleClick,
+    })
+
+    expect(onDoubleClick).not.toHaveBeenCalled()
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('in public mode, single click (detail = 1) calls onDoubleClick', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    handleCardClick({
+      item: mockItem,
+      event: {
+        detail: 1,
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+      } as unknown as React.MouseEvent,
+      isPublic: true,
+      onSelect,
+      onDoubleClick,
+    })
+
+    expect(onDoubleClick).toHaveBeenCalledWith(mockItem)
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('in internal mode, preserves multi-selection when clicking already selected card', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    handleCardClick({
+      item: mockItem,
+      event: {
+        detail: 1,
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+      } as unknown as React.MouseEvent,
+      isPublic: false,
+      selectedCount: 3,
+      isChecked: true,
+      onSelect,
+      onDoubleClick,
+    })
+
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(onDoubleClick).not.toHaveBeenCalled()
   })
 })

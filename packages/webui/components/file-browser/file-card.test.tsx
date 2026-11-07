@@ -822,6 +822,29 @@ describe('FileCard', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 
+  it('does not trigger onDoubleClick multiple times on double-click in public share view', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: fileItem,
+      isPublic: true,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const card = screen.getByTestId('file-card')
+    // Click 1 (detail = 1)
+    fireEvent.click(card, { detail: 1 })
+    // Click 2 (detail = 2)
+    fireEvent.click(card, { detail: 2 })
+    // Double click event
+    fireEvent.doubleClick(card)
+
+    expect(onDoubleClick).toHaveBeenCalledTimes(1)
+    expect(onDoubleClick).toHaveBeenCalledWith(fileItem)
+  })
+
   it('triggers onSelect instead of onDoubleClick on public share card when clicking with modifier keys', () => {
     const onSelect = vi.fn()
     const onDoubleClick = vi.fn()

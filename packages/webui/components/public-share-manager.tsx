@@ -21,7 +21,7 @@ import { FieldInfo } from '@shumai/dtos'
 import { FileViewer } from './file-viewer'
 import { CompareViewer } from './compare/compare-viewer'
 import { pickDefaultCompareVersions } from './compare/compare-utils'
-import { getSelectedRangeIds } from '@/ui/lib/selection-utils'
+import { computeNextItemSelection } from '@/ui/lib/selection-utils'
 import type { MediaController } from './viewers/types'
 import type { Annotation } from '@/ui/types'
 
@@ -366,53 +366,17 @@ export function PublicShareManager({
     e: React.MouseEvent,
     meta?: { isCheckbox?: boolean },
   ) => {
-    const isCtrlOrCmd = e.metaKey || e.ctrlKey
-    const isShift = e.shiftKey
-
-    if (isShift && lastSelectedId) {
-      const allItems = [...folders, ...files]
-      const lastSelectedItem = allItems.find((i) => i.id === lastSelectedId)
-
-      if (lastSelectedItem) {
-        const newSelectedIds = getSelectedRangeIds(
-          lastSelectedItem,
-          item,
-          lastSelectedId,
-          folders,
-          files,
-          selectedIds,
-        )
-
-        if (newSelectedIds) {
-          setSelectedIds(newSelectedIds)
-          setSelectedItem(item)
-          return
-        }
-      }
-    }
-
-    if (isCtrlOrCmd || meta?.isCheckbox) {
-      const next = new Set(selectedIds)
-      if (next.has(item.id!)) {
-        next.delete(item.id!)
-        setSelectedIds(next)
-        if (selectedItem?.id === item.id) {
-          const remaining = [...folders, ...files].find((i) => next.has(i.id!))
-          setSelectedItem(remaining || null)
-          setLastSelectedId(remaining ? remaining.id! : null)
-        }
-      } else {
-        next.add(item.id!)
-        setSelectedIds(next)
-        setSelectedItem(item)
-        setLastSelectedId(item.id!)
-      }
-      return
-    }
-
-    setSelectedIds(new Set([item.id!]))
-    setSelectedItem(item)
-    setLastSelectedId(item.id!)
+    const nextState = computeNextItemSelection({
+      item,
+      event: e,
+      meta,
+      folders,
+      files,
+      state: { selectedIds, selectedItem, lastSelectedId },
+    })
+    setSelectedIds(nextState.selectedIds)
+    setSelectedItem(nextState.selectedItem)
+    setLastSelectedId(nextState.lastSelectedId)
   }
 
   const handleCommentSelect = (comment: CommentInfo) => {

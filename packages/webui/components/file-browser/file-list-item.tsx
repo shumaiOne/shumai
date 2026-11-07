@@ -17,6 +17,7 @@ import { Checkbox } from '@/ui/components/ui/checkbox'
 import { EditableText } from '@/ui/components/ui/editable-text'
 import { useUploadStore } from '@/ui/stores/upload'
 import { ProgressCircle } from '@/ui/components/ui/progress-circle'
+import { handleCardClick } from '@/ui/lib/selection-utils'
 
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 
@@ -194,26 +195,16 @@ export function FileListItem({
   }
 
   const handleClick = (e: React.MouseEvent) => {
-    if (isPublic) {
-      if (e.metaKey || e.ctrlKey || e.shiftKey) {
-        onSelect(displayItem, e)
-      } else {
-        onDoubleClick(displayItem)
-      }
-      return
-    }
-
-    if (
-      (selectedCount ?? 0) > 1 &&
-      (isChecked || isSelected) &&
-      !e.metaKey &&
-      !e.ctrlKey &&
-      !e.shiftKey
-    ) {
-      return
-    }
-
-    onSelect(displayItem, e)
+    handleCardClick({
+      item: displayItem,
+      event: e,
+      isPublic,
+      selectedCount,
+      isSelected,
+      isChecked,
+      onSelect,
+      onDoubleClick,
+    })
   }
   const handleRename = () => {
     if (name !== displayItem.name) {
@@ -237,7 +228,7 @@ export function FileListItem({
       ref={setDraggableRef}
       style={{ opacity }}
       onClick={handleClick}
-      onDoubleClick={() => onDoubleClick(displayItem)}
+      onDoubleClick={isPublic ? undefined : () => onDoubleClick(displayItem)}
       onContextMenu={(e) => onContextMenu(e, displayItem)}
       onMouseDown={(e) => {
         if (e.shiftKey) {

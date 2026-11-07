@@ -28,6 +28,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
 import { FilePreview } from './file-preview'
 import { getAllFilesFromEntries } from '@/ui/lib/dnd-utils'
+import { handleCardClick } from '@/ui/lib/selection-utils'
 
 interface FolderCardProps {
   item: AssetInfo
@@ -225,26 +226,16 @@ export function FolderCard({
   }, [item.name])
 
   const handleClick = (e: React.MouseEvent) => {
-    if (isPublic) {
-      if (e.metaKey || e.ctrlKey || e.shiftKey) {
-        onSelect(item, e)
-      } else {
-        onDoubleClick(item)
-      }
-      return
-    }
-
-    if (
-      (selectedCount ?? 0) > 1 &&
-      (isChecked || isSelected) &&
-      !e.metaKey &&
-      !e.ctrlKey &&
-      !e.shiftKey
-    ) {
-      return
-    }
-
-    onSelect(item, e)
+    handleCardClick({
+      item,
+      event: e,
+      isPublic,
+      selectedCount,
+      isSelected,
+      isChecked,
+      onSelect,
+      onDoubleClick,
+    })
   }
 
   const handleRename = () => {
@@ -295,7 +286,7 @@ export function FolderCard({
       ref={setNodeRef}
       style={{ opacity }}
       onClick={handleClick}
-      onDoubleClick={() => onDoubleClick(item)}
+      onDoubleClick={isPublic ? undefined : () => onDoubleClick(item)}
       onContextMenu={(e) => onContextMenu(e, item)}
       onMouseDown={(e) => {
         if (e.shiftKey) {

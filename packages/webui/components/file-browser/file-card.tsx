@@ -26,6 +26,7 @@ import { ProgressCircle } from '@/ui/components/ui/progress-circle'
 import { formatRemainingTimeSeconds, formatTimeAgo, getTrashDaysLeft } from '@/ui/lib/time'
 import { formatSize } from '@/ui/lib/format'
 import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
+import { handleCardClick } from '@/ui/lib/selection-utils'
 import { cn } from '@/ui/lib/utils'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
@@ -255,26 +256,16 @@ export function FileCard({
   }, [displayItem.name])
 
   const handleClick = (e: React.MouseEvent) => {
-    if (isPublic) {
-      if (e.metaKey || e.ctrlKey || e.shiftKey) {
-        onSelect(displayItem, e)
-      } else {
-        onDoubleClick(displayItem)
-      }
-      return
-    }
-
-    if (
-      (selectedCount ?? 0) > 1 &&
-      (isChecked || isSelected) &&
-      !e.metaKey &&
-      !e.ctrlKey &&
-      !e.shiftKey
-    ) {
-      return
-    }
-
-    onSelect(displayItem, e)
+    handleCardClick({
+      item: displayItem,
+      event: e,
+      isPublic,
+      selectedCount,
+      isSelected,
+      isChecked,
+      onSelect,
+      onDoubleClick,
+    })
   }
 
   const handleRename = () => {
@@ -403,7 +394,7 @@ export function FileCard({
       ref={setNodeRef}
       style={{ opacity }}
       onClick={handleClick}
-      onDoubleClick={() => onDoubleClick(displayItem)}
+      onDoubleClick={isPublic ? undefined : () => onDoubleClick(displayItem)}
       onContextMenu={(e) => onContextMenu(e, displayItem)}
       onMouseDown={(e) => {
         if (e.shiftKey) {

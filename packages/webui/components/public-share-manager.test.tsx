@@ -310,4 +310,37 @@ describe('PublicShareManager selection and card click behavior', () => {
     expect(checkboxes[2].getAttribute('data-state')).toBe('checked')
     expect(checkboxes[3].getAttribute('data-state')).toBe('unchecked')
   })
+
+  it('updates range anchor when the anchor item is deselected so it is not re-selected on next shift-click', async () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <PublicShareManager shareId="share-1" />
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('File 1.mov')).toBeTruthy()
+    })
+
+    const checkboxes = screen.getAllByRole('checkbox')
+
+    // 1. Click item 0 to establish anchor at item 0
+    fireEvent.click(checkboxes[0])
+    expect(checkboxes[0].getAttribute('data-state')).toBe('checked')
+
+    // 2. Shift-click item 2 -> selects 0, 1, 2
+    fireEvent.click(checkboxes[2], { shiftKey: true })
+    expect(checkboxes[0].getAttribute('data-state')).toBe('checked')
+    expect(checkboxes[1].getAttribute('data-state')).toBe('checked')
+    expect(checkboxes[2].getAttribute('data-state')).toBe('checked')
+
+    // 3. Deselect item 0 via its checkbox
+    fireEvent.click(checkboxes[0])
+    expect(checkboxes[0].getAttribute('data-state')).toBe('unchecked')
+
+    // 4. Shift-click item 3 -> should NOT re-select item 0
+    fireEvent.click(checkboxes[3], { shiftKey: true })
+    expect(checkboxes[0].getAttribute('data-state')).toBe('unchecked')
+    expect(checkboxes[3].getAttribute('data-state')).toBe('checked')
+  })
 })

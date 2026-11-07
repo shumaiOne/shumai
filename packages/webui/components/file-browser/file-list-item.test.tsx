@@ -270,6 +270,26 @@ describe('FileListItem', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 
+  it('does not trigger onDoubleClick multiple times on double-click in public share view', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: mockItem,
+      isPublic: true,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const row = screen.getByTestId('file-card')
+    fireEvent.click(row, { detail: 1 })
+    fireEvent.click(row, { detail: 2 })
+    fireEvent.doubleClick(row)
+
+    expect(onDoubleClick).toHaveBeenCalledTimes(1)
+    expect(onDoubleClick).toHaveBeenCalledWith(mockItem)
+  })
+
   it('preserves multi-selection in internal workspace when clicking already selected list row', () => {
     const onSelect = vi.fn()
     const onDoubleClick = vi.fn()

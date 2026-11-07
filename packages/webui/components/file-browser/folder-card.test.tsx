@@ -148,6 +148,26 @@ describe('FolderCard', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 
+  it('does not trigger onDoubleClick multiple times on double-click in public share view', () => {
+    const onSelect = vi.fn()
+    const onDoubleClick = vi.fn()
+
+    renderComponent({
+      item: folderItem,
+      isPublic: true,
+      onSelect,
+      onDoubleClick,
+    })
+
+    const card = screen.getByTestId('file-card')
+    fireEvent.click(card, { detail: 1 })
+    fireEvent.click(card, { detail: 2 })
+    fireEvent.doubleClick(card)
+
+    expect(onDoubleClick).toHaveBeenCalledTimes(1)
+    expect(onDoubleClick).toHaveBeenCalledWith(folderItem)
+  })
+
   it('preserves multi-selection in internal workspace when clicking already selected folder card body', () => {
     const onSelect = vi.fn()
     const onDoubleClick = vi.fn()
