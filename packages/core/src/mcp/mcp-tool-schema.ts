@@ -11,8 +11,8 @@
  *   (arguments pass through to `callTool`).
  */
 
-import { Compile } from 'typebox/compile'
-import { Type, type TSchema } from '@sinclair/typebox'
+import { compile } from '@earendil-works/pi-schema'
+import { Type, type TSchema } from 'typebox'
 
 const STRIPPED_KEYS = new Set(['$schema', '$id', '$comment'])
 
@@ -40,7 +40,7 @@ function normalizeInputSchema(schema: unknown): Record<string, unknown> {
 export function toToolParameters(inputSchema: unknown): TSchema {
   const normalized = normalizeInputSchema(inputSchema)
   try {
-    Compile(normalized)
+    compile(normalized)
     return normalized as TSchema
   } catch {
     // Fall back to a permissive object schema so the tool remains usable.

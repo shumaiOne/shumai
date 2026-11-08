@@ -6,7 +6,15 @@ export * from './agent-avatar'
 export { AgentType }
 export const agentTypeSchema = z.nativeEnum(AgentType)
 
-export const thinkingLevelSchema = z.enum(['off', 'minimal', 'low', 'medium', 'high', 'xhigh'])
+export const thinkingLevelSchema = z.enum([
+  'off',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+])
 export type ThinkingLevel = z.infer<typeof thinkingLevelSchema>
 
 export const agentPermissionSchema = z.enum(['owner', 'editor', 'reviewer'])

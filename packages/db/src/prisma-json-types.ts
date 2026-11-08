@@ -1,10 +1,10 @@
-export {}
+import type { SessionTreeEntry } from '@shumai/dtos'
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace PrismaJson {
     export type PiSessionEntryData = Omit<
-      import('@earendil-works/pi-agent-core').SessionTreeEntry,
+      SessionTreeEntry,
       'id' | 'type' | 'parentId' | 'timestamp'
     >
 
@@ -27,7 +27,7 @@ declare global {
     export interface AgentConfig {
       provider: string
       model: string
-      thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
+      thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
       systemPrompt?: string
       appendSystemPrompt?: string[]
       deniedTools?: string[]

@@ -2,9 +2,8 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { workflowService, TaskQueueAgent } from '@shumai/workflow-core'
-import { initAgentWorkflows } from '@shumai/agent'
+import { AgentHarness, initAgentWorkflows } from '@shumai/agent'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { AgentHarness } from '@earendil-works/pi-agent-core'
 
 describe('Workflow E2E - agentChat', () => {
   setupTestDbHooks()

@@ -7,7 +7,7 @@
  * server(list) > status.
  */
 
-import { Type } from '@sinclair/typebox'
+import { Type } from 'typebox'
 import type { AgentTool, AgentToolResult } from '@earendil-works/pi-agent-core'
 import type { McpToolRegistry, ToolMetadata } from './mcp-tool-registry'
 import { formatSchema } from './mcp-tool-schema'

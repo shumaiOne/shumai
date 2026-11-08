@@ -15,6 +15,8 @@ export const PRIORITY_PROVIDERS = [
   'amazon-bedrock',
 ]
 
+export const EXCLUDED_BUILTIN_PROVIDERS = new Set(['radius', 'typesafe'])
+
 export const ENV_MAP: Record<string, string> = {
   openai: 'OPENAI_API_KEY',
   anthropic: 'ANTHROPIC_API_KEY',
@@ -29,6 +31,7 @@ export const ENV_MAP: Record<string, string> = {
   openrouter: 'OPENROUTER_API_KEY',
   'vercel-ai-gateway': 'AI_GATEWAY_API_KEY',
   zai: 'ZAI_API_KEY',
+  'zai-coding-cn': 'ZAI_CN_API_KEY',
   mistral: 'MISTRAL_API_KEY',
   minimax: 'MINIMAX_API_KEY',
   'minimax-cn': 'MINIMAX_CN_API_KEY',
@@ -46,6 +49,14 @@ export const ENV_MAP: Record<string, string> = {
   'xiaomi-token-plan-cn': 'XIAOMI_TOKEN_PLAN_CN_API_KEY',
   'xiaomi-token-plan-ams': 'XIAOMI_TOKEN_PLAN_AMS_API_KEY',
   'xiaomi-token-plan-sgp': 'XIAOMI_TOKEN_PLAN_SGP_API_KEY',
+  'ant-ling': 'LING_API_KEY',
+  baseten: 'BASETEN_API_KEY',
+  meta: 'LLAMA_API_KEY',
+  nvidia: 'NVIDIA_API_KEY',
+  'qwen-token-plan': 'QWEN_TOKEN_PLAN_API_KEY',
+  'qwen-token-plan-cn': 'QWEN_TOKEN_PLAN_CN_API_KEY',
+  'qwen-token-plan-individual': 'QWEN_TOKEN_PLAN_INDIVIDUAL_API_KEY',
+  'qwen-token-plan-individual-cn': 'QWEN_TOKEN_PLAN_INDIVIDUAL_CN_API_KEY',
 }
 
 export interface BuiltinProviderData {
@@ -55,7 +66,9 @@ export interface BuiltinProviderData {
 }
 
 export function getBuiltinProvidersMap(): Record<string, BuiltinProviderData> {
-  const providerNames = getBuiltinProviders()
+  const providerNames = getBuiltinProviders().filter(
+    (name) => !EXCLUDED_BUILTIN_PROVIDERS.has(name),
+  )
 
   providerNames.sort((a, b) => {
     const indexA = PRIORITY_PROVIDERS.indexOf(a)

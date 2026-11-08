@@ -73,6 +73,7 @@ const API_PROTOCOL_LABELS: Record<(typeof KNOWN_APIS)[number], string> = {
   'bedrock-converse-stream': 'AWS Bedrock',
   'google-generative-ai': 'Google Generative AI',
   'google-vertex': 'Google Vertex',
+  'pi-messages': 'Pi Messages',
 }
 
 type ProvidersResponse = InferResponseType<

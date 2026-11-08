@@ -2,11 +2,10 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { workflowService, TaskQueueAgent } from '@shumai/workflow-core'
-import { initAgentWorkflows } from '@shumai/agent'
+import { AgentHarness, initAgentWorkflows } from '@shumai/agent'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { projectService } from '@shumai/core/src/project/project'
-import { AgentHarness } from '@earendil-works/pi-agent-core'
 
 type ToolResult = { content: Array<{ type: string; text?: string }> }
 type ExecutableTool = {

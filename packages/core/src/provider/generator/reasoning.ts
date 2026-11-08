@@ -1,14 +1,5 @@
 import type { ThinkingLevel, ThinkingLevelMap } from '@earendil-works/pi-ai'
-
-export type ModelsDevReasoningOption =
-  | { type: 'toggle' }
-  | {
-      type: 'effort'
-      values: Array<
-        'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | 'default' | null
-      >
-    }
-  | { type: 'budget_tokens'; min?: number; max?: number }
+import type { ModelsDevReasoningOption } from './sources/models-dev'
 
 const THINKING_LEVELS: readonly ThinkingLevel[] = [
   'minimal',
@@ -31,8 +22,9 @@ export function getEffortThinkingLevelMap(
   if (effortValues.length === 0) return undefined
 
   const supported = new Set(effortValues)
-  if (!THINKING_LEVELS.some((level) => supported.has(level)) && !supported.has('none'))
+  if (!THINKING_LEVELS.some((level) => supported.has(level)) && !supported.has('none')) {
     return undefined
+  }
 
   const map: ThinkingLevelMap = { off: supported.has('none') ? 'none' : null }
   for (const level of THINKING_LEVELS) {

@@ -8,9 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **agent**: Add support for the `max` thinking level, the `Pi Messages` API protocol, keyless custom provider endpoints when a base URL is configured, and expanded built-in AI provider and model catalogs
+
 ### Fixed
 
 ### Changed
+
+- **agent**: Upgrade the underlying AI agent and model catalog engine to improve provider compatibility, reasoning level handling, and model catalog synchronization
 
 ## [0.6.5] - 2026-11-07
 

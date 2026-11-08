@@ -8,7 +8,7 @@
  * discovery/auth/status and for tools not in direct mode.
  */
 
-import { Type } from '@sinclair/typebox'
+import { Type } from 'typebox'
 import type { AgentTool, AgentToolResult } from '@earendil-works/pi-agent-core'
 import '@shumai/db/src/prisma-json-types'
 import type { ToolMetadata } from './mcp-tool-registry'
@@ -66,7 +66,7 @@ export function buildDirectTools(
       label: tool.name,
       description:
         tool.description || `Call ${tool.originalName} on MCP server ${opts.serverName}.`,
-      parameters: parameters as unknown as import('typebox').TSchema,
+      parameters,
       execute: async (_toolCallId, args): Promise<AgentToolResult<Record<string, unknown>>> => {
         const result = await opts.callTool(
           opts.serverId,

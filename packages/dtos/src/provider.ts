@@ -11,6 +11,7 @@ export const KNOWN_APIS = [
   'bedrock-converse-stream',
   'google-generative-ai',
   'google-vertex',
+  'pi-messages',
 ] as const
 
 // We define a serializable version of ProviderConfig for our API and DB

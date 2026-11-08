@@ -7,8 +7,7 @@ import {
   resolveEffectiveRole,
 } from '@shumai/core/src/authz/authz'
 import { paginateQuery, type PaginatedData } from '@shumai/core/src/pagination'
-import type { ChatRequest, ChatSessionInfo, ChatMessage } from '@shumai/dtos'
-import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
+import type { ChatRequest, ChatSessionInfo, ChatMessage, SessionTreeEntry } from '@shumai/dtos'
 import { workflowService } from '@shumai/workflow-core'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'

@@ -843,9 +843,12 @@ export function AgentFormDialog({
                         children={(field) => {
                           const thinkingLabels: Record<string, string> = {
                             off: m.thinking_disable(),
+                            minimal: m.thinking_minimal(),
                             low: m.thinking_low(),
                             medium: m.thinking_medium(),
                             high: m.thinking_high(),
+                            xhigh: m.thinking_xhigh(),
+                            max: m.thinking_max(),
                           }
                           return (
                             <Field>

@@ -1,12 +1,24 @@
 import { sandboxService } from '@shumai/core'
-import {
-  AgentHarness,
-  Session,
-  type AgentTool,
-  type ThinkingLevel,
-} from '@earendil-works/pi-agent-core'
-import type { Api, Model } from '@earendil-works/pi-ai'
-import { createModels, InMemoryCredentialStore } from '@earendil-works/pi-ai'
+import { type AgentTool, type ThinkingLevel } from '@earendil-works/pi-agent-core'
+import type {
+  Api,
+  KnownApi,
+  Model,
+  Provider,
+  ProviderAuth,
+  ProviderStreams,
+} from '@earendil-works/pi-ai'
+import { createModels, createProvider, InMemoryCredentialStore } from '@earendil-works/pi-ai'
+import { anthropicMessagesApi } from '@earendil-works/pi-ai/api/anthropic-messages.lazy'
+import { azureOpenAIResponsesApi } from '@earendil-works/pi-ai/api/azure-openai-responses.lazy'
+import { bedrockConverseStreamApi } from '@earendil-works/pi-ai/api/bedrock-converse-stream.lazy'
+import { googleGenerativeAIApi } from '@earendil-works/pi-ai/api/google-generative-ai.lazy'
+import { googleVertexApi } from '@earendil-works/pi-ai/api/google-vertex.lazy'
+import { mistralConversationsApi } from '@earendil-works/pi-ai/api/mistral-conversations.lazy'
+import { openAICodexResponsesApi } from '@earendil-works/pi-ai/api/openai-codex-responses.lazy'
+import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy'
+import { openAIResponsesApi } from '@earendil-works/pi-ai/api/openai-responses.lazy'
+import { piMessagesApi } from '@earendil-works/pi-ai/api/pi-messages.lazy'
 import { builtinProviders } from '@earendil-works/pi-ai/providers/all'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
@@ -16,7 +28,7 @@ import { prisma } from '@shumai/db'
 import { Type, type TSchema } from 'typebox'
 import * as fs from 'fs'
 import * as path from 'path'
-import { DatabaseSessionStorage } from './database-session-storage'
+import { DatabaseSessionStorage, type DatabaseSessionMetadata } from './database-session-storage'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { createReadSkillTool } from './tools/read-skill'
 import { createReadThreadTool } from './tools/read-thread'
@@ -28,6 +40,11 @@ import { createAutofillReadAssetTool } from './operation-extensions'
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
 import { serializeContextToXml } from './context/serialize-context'
 import { DEFAULT_DENIED_TOOLS, type ShumaiMessageContext } from '@shumai/dtos'
+import { AgentHarness } from './harness'
+import { Session } from './session'
+
+export * from './harness'
+export * from './session'
 
 export interface DbModelInfo {
   modelId: string
@@ -41,7 +58,38 @@ export interface DbProviderInfo {
   models: DbModelInfo[]
 }
 
-export function getModelFromDb(providers: DbProviderInfo[], providerName: string, modelId: string) {
+const ALL_CHAT_APIS: Record<KnownApi, ProviderStreams> = {
+  'anthropic-messages': anthropicMessagesApi(),
+  'openai-completions': openAICompletionsApi(),
+  'mistral-conversations': mistralConversationsApi(),
+  'openai-responses': openAIResponsesApi(),
+  'azure-openai-responses': azureOpenAIResponsesApi(),
+  'openai-codex-responses': openAICodexResponsesApi(),
+  'google-generative-ai': googleGenerativeAIApi(),
+  'google-vertex': googleVertexApi(),
+  'bedrock-converse-stream': bedrockConverseStreamApi(),
+  'pi-messages': piMessagesApi(),
+}
+
+function findBuiltinModel(providerName: string, modelId: string): Model<Api> | undefined {
+  for (const provider of builtinProviders()) {
+    if (provider.id !== providerName) continue
+    try {
+      const found = provider.getModels().find((m) => m.id === modelId)
+      if (found) return found
+    } catch {
+      return undefined
+    }
+  }
+  return undefined
+}
+
+export function getModelFromDb(
+  providers: DbProviderInfo[],
+  providerName: string,
+  modelId: string,
+  builtinModel?: Model<Api>,
+) {
   const dbProvider = providers.find((p) => p.name === providerName)
   const dbModel = dbProvider?.models.find((m) => m.modelId === modelId)
 
@@ -51,31 +99,68 @@ export function getModelFromDb(providers: DbProviderInfo[], providerName: string
     )
   }
 
-  const m = {
+  const resolvedBuiltin = builtinModel ?? findBuiltinModel(providerName, modelId)
+
+  const m: Model<Api> = {
     id: modelId,
-    name: dbModel.name || modelId,
+    name: dbModel.name || resolvedBuiltin?.name || modelId,
     provider: providerName,
-    api: 'openai-responses',
-    baseUrl: '',
+    api: resolvedBuiltin?.api ?? 'openai-responses',
+    baseUrl: resolvedBuiltin?.baseUrl ?? '',
     reasoning: false,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: 4096,
     maxTokens: 4096,
+    ...(resolvedBuiltin?.headers ? { headers: { ...resolvedBuiltin.headers } } : {}),
+    ...(resolvedBuiltin?.compat ? { compat: { ...resolvedBuiltin.compat } } : {}),
+    ...(resolvedBuiltin?.thinkingLevelMap
+      ? { thinkingLevelMap: { ...resolvedBuiltin.thinkingLevelMap } }
+      : {}),
+    ...(resolvedBuiltin?.inputLimits ? { inputLimits: { ...resolvedBuiltin.inputLimits } } : {}),
+    ...(resolvedBuiltin?.promptCache ? { promptCache: { ...resolvedBuiltin.promptCache } } : {}),
+    ...(resolvedBuiltin?.samplingParams
+      ? { samplingParams: { ...resolvedBuiltin.samplingParams } }
+      : {}),
+    ...(resolvedBuiltin?.samplingParamsByThinkingLevel
+      ? {
+          samplingParamsByThinkingLevel: {
+            ...resolvedBuiltin.samplingParamsByThinkingLevel,
+          },
+        }
+      : {}),
   }
 
   // Override with database config
   if (dbProvider.config.baseUrl) {
     m.baseUrl = dbProvider.config.baseUrl
   }
-  Object.assign(m, dbModel.config)
+  const {
+    compat: dbCompat,
+    headers: dbModelHeaders,
+    ...restDbModelConfig
+  } = dbModel.config as PrismaJson.ModelConfig & {
+    compat?: Model<Api>['compat']
+    headers?: Record<string, string>
+  }
+  Object.assign(m, restDbModelConfig)
+  if (dbCompat) {
+    m.compat = { ...(m.compat ?? {}), ...dbCompat }
+  }
   if (dbProvider.config.api) {
     m.api = dbProvider.config.api
   }
   if (dbModel.name) {
     m.name = dbModel.name
   }
-  return m as Model<Api>
+  if (dbProvider.config.headers || dbModelHeaders) {
+    m.headers = {
+      ...(m.headers ?? {}),
+      ...(dbProvider.config.headers ?? {}),
+      ...(dbModelHeaders ?? {}),
+    }
+  }
+  return m
 }
 
 export function getApiKeyAndHeadersFromDb(providers: DbProviderInfo[], providerName: string) {
@@ -90,6 +175,98 @@ export function getApiKeyAndHeadersFromDb(providers: DbProviderInfo[], providerN
   }
 
   return undefined
+}
+
+function buildDbProviderForStore(
+  dbProvider: DbProviderInfo,
+  allDbProviders: DbProviderInfo[],
+  existingProvider: Provider | undefined,
+  resolvedKey: string | undefined,
+): Provider {
+  const existingModels = existingProvider ? [...existingProvider.getModels()] : []
+  const existingById = new Map(existingModels.map((m) => [m.id, m]))
+
+  for (const dm of dbProvider.models) {
+    const built = getModelFromDb(
+      allDbProviders,
+      dbProvider.name,
+      dm.modelId,
+      existingById.get(dm.modelId),
+    )
+    existingById.set(dm.modelId, built)
+  }
+
+  const mergedModels = Array.from(existingById.values())
+  const customHeaders = dbProvider.config?.headers
+  const customBaseUrl = dbProvider.config?.baseUrl
+  const useAuthHeader = Boolean(dbProvider.config?.authHeader)
+
+  let auth: ProviderAuth
+  if (existingProvider) {
+    const baseApiKeyAuth = existingProvider.auth.apiKey
+    auth = {
+      ...existingProvider.auth,
+      ...(baseApiKeyAuth
+        ? {
+            apiKey: {
+              ...baseApiKeyAuth,
+              resolve: async (input) => {
+                const resolved = await baseApiKeyAuth.resolve(input)
+                if (!resolved) return undefined
+                const mergedHeaders: Record<string, string> = {
+                  ...(resolved.auth.headers ?? {}),
+                  ...(customHeaders ?? {}),
+                  ...(useAuthHeader && resolved.auth.apiKey
+                    ? { Authorization: `Bearer ${resolved.auth.apiKey}` }
+                    : {}),
+                }
+                return {
+                  ...resolved,
+                  auth: {
+                    ...resolved.auth,
+                    ...(customBaseUrl ? { baseUrl: customBaseUrl } : {}),
+                    ...(Object.keys(mergedHeaders).length > 0 ? { headers: mergedHeaders } : {}),
+                  },
+                }
+              },
+            },
+          }
+        : {}),
+    }
+  } else {
+    auth = {
+      apiKey: {
+        name: `${dbProvider.name} API key`,
+        login: async () => ({ type: 'api_key', key: '' }),
+        resolve: async ({ credential }) => {
+          const key = credential?.key || resolvedKey || (customBaseUrl ? 'keyless' : undefined)
+          if (!key) return undefined
+          const headers: Record<string, string> = {
+            ...(customHeaders ?? {}),
+            ...(useAuthHeader ? { Authorization: `Bearer ${key}` } : {}),
+          }
+          return {
+            auth: {
+              apiKey: key,
+              ...(customBaseUrl ? { baseUrl: customBaseUrl } : {}),
+              ...(Object.keys(headers).length > 0 ? { headers } : {}),
+            },
+            source: credential?.key ? 'stored credential' : 'db config',
+          }
+        },
+      },
+    }
+  }
+
+  return createProvider({
+    id: dbProvider.name,
+    name: existingProvider?.name ?? dbProvider.name,
+    baseUrl: customBaseUrl ?? existingProvider?.baseUrl,
+    headers: customHeaders ?? existingProvider?.headers,
+    auth,
+    models: mergedModels,
+    api: ALL_CHAT_APIS,
+  })
 }
 
 export interface CreateAgentSessionParams {
@@ -165,7 +342,36 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const agentDir = path.join(process.cwd(), '.pi', 'agents', agentId)
   if (!fs.existsSync(agentDir)) fs.mkdirSync(agentDir, { recursive: true })
 
-  const model = getModelFromDb(params.providers, providerName, modelId)
+  const credentials = new InMemoryCredentialStore()
+  const resolveKey = (key: string | undefined) => (key ? process.env[key] || key : undefined)
+  for (const p of params.providers) {
+    const apiKey = resolveKey(p.config?.apiKey)
+    if (apiKey) {
+      await credentials.modify(p.name, async () => ({ type: 'api_key' as const, key: apiKey }))
+    }
+  }
+  const modelsStore = createModels({
+    credentials,
+    identity: { attribution: null },
+  })
+  for (const provider of builtinProviders()) {
+    modelsStore.setProvider(provider)
+  }
+
+  for (const dbProvider of params.providers) {
+    const existing = modelsStore.getProvider(dbProvider.name)
+    const resolvedKey = resolveKey(dbProvider.config?.apiKey)
+    modelsStore.setProvider(
+      buildDbProviderForStore(dbProvider, params.providers, existing, resolvedKey),
+    )
+  }
+
+  const model = getModelFromDb(
+    params.providers,
+    providerName,
+    modelId,
+    modelsStore.getModel(providerName, modelId),
+  )
 
   const piDir = path.join(process.cwd(), '.pi')
   if (!fs.existsSync(piDir)) fs.mkdirSync(piDir, { recursive: true })
@@ -305,17 +511,17 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   // For non-owner users, the bash tool is not injected initially. It becomes available
   // only after a skill is successfully loaded via the read_skill tool (or immediately when
   // a skill was already loaded earlier in this session).
-  let harness: AgentHarness | undefined = undefined
+  let harnessRef: AgentHarness<DatabaseSessionMetadata> | undefined = undefined
   const bashIncludedFromStart = isOwner || skillLoadedInSession
   let bashInjected = bashIncludedFromStart
   const onSkillLoaded = async () => {
-    if (!harness || bashInjected || deniedTools.includes('bash')) return
-    if (harness.getTools().some((t) => t.name === 'bash')) return
+    if (!harnessRef || bashInjected || deniedTools.includes('bash')) return
+    if (harnessRef.getTools().some((t) => t.name === 'bash')) return
     bashInjected = true
     // Pass the full post-update tool list as activeToolNames: setTools only updates the
     // registry otherwise, and the model would never see the bash tool on the next turn.
-    const next = [...harness.getTools(), wrapToolWithQuota(sandboxedBash)]
-    await harness.setTools(
+    const next = [...harnessRef.getTools(), wrapToolWithQuota(sandboxedBash)]
+    await harnessRef.setTools(
       next,
       next.map((t) => t.name),
     )
@@ -352,20 +558,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     ? []
     : allTools.filter((tool) => !deniedTools.includes(tool.name))
 
-  const credentials = new InMemoryCredentialStore()
-  const resolveKey = (key: string | undefined) => (key ? process.env[key] || key : undefined)
-  for (const p of params.providers) {
-    const apiKey = resolveKey(p.config?.apiKey)
-    if (apiKey) {
-      await credentials.modify(p.name, async () => ({ type: 'api_key' as const, key: apiKey }))
-    }
-  }
-  const modelsStore = createModels({ credentials })
-  for (const provider of builtinProviders()) {
-    modelsStore.setProvider(provider)
-  }
-
-  harness = new AgentHarness({
+  const harness = new AgentHarness({
     session,
     models: modelsStore,
     model,
@@ -404,6 +597,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     },
     tools: enabledTools,
   })
+  harnessRef = harness
 
   harness.on('context', async ({ messages }) => {
     return {

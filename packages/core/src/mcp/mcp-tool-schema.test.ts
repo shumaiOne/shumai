@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { toToolParameters, formatSchema } from './mcp-tool-schema'
-import { Compile } from 'typebox/compile'
+import { compile } from '@earendil-works/pi-schema'
 
 describe('toToolParameters', () => {
   it('passes through a plain object schema', () => {
@@ -12,7 +12,7 @@ describe('toToolParameters', () => {
     const params = toToolParameters(schema)
     expect(params).toMatchObject({ type: 'object', properties: { query: { type: 'string' } } })
     // The resulting schema must compile with the same validator pi-ai uses.
-    expect(() => Compile(params)).not.toThrow()
+    expect(() => compile(params)).not.toThrow()
   })
 
   it('strips $schema / $id / $comment keywords', () => {
@@ -35,8 +35,8 @@ describe('toToolParameters', () => {
       $defs: { query: { type: 'string' } },
       required: ['q'],
     })
-    const compiled = Compile(params)
-    expect(compiled.Check({ q: 'hello' })).toBe(true)
+    const compiled = compile(params)
+    expect(compiled.check({ q: 'hello' })).toBe(true)
   })
 
   it('supports anyOf and enums', () => {
@@ -47,9 +47,9 @@ describe('toToolParameters', () => {
         color: { type: 'string', enum: ['red', 'blue'] },
       },
     })
-    const compiled = Compile(params)
-    expect(compiled.Check({ value: 42, color: 'red' })).toBe(true)
-    expect(compiled.Check({ value: 'x', color: 'green' })).toBe(false)
+    const compiled = compile(params)
+    expect(compiled.check({ value: 42, color: 'red' })).toBe(true)
+    expect(compiled.check({ value: 'x', color: 'green' })).toBe(false)
   })
 
   it('supports additionalProperties and patternProperties', () => {
@@ -58,14 +58,14 @@ describe('toToolParameters', () => {
       properties: { a: { type: 'string' } },
       additionalProperties: false,
     })
-    const compiled = Compile(params)
-    expect(compiled.Check({ a: 'x' })).toBe(true)
+    const compiled = compile(params)
+    expect(compiled.check({ a: 'x' })).toBe(true)
 
     const patterned = toToolParameters({
       type: 'object',
       patternProperties: { '^x-': { type: 'string' } },
     })
-    expect(() => Compile(patterned)).not.toThrow()
+    expect(() => compile(patterned)).not.toThrow()
   })
 
   it('normalizes non-object roots to an object', () => {
@@ -74,9 +74,9 @@ describe('toToolParameters', () => {
 
   it('falls back to a permissive record for invalid schemas', () => {
     const params = toToolParameters({ type: 'object', properties: { bad: { type: 'not-a-type' } } })
-    const compiled = Compile(params)
+    const compiled = compile(params)
     // Fallback must accept arbitrary arguments.
-    expect(compiled.Check({ anything: 123, nested: { x: 1 } })).toBe(true)
+    expect(compiled.check({ anything: 123, nested: { x: 1 } })).toBe(true)
   })
 
   it('handles undefined / empty input', () => {

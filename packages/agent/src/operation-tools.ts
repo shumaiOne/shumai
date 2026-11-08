@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { TSchema } from 'typebox'
-import { Compile } from 'typebox/compile'
+import { compile } from '@earendil-works/pi-schema'
 import { type AgentTool, type AgentToolResult } from '@earendil-works/pi-agent-core'
 import { dropNullOptionals } from '@shumai/operations'
 import {
@@ -102,7 +102,7 @@ export function toToolParameters(
     schema.required = schema.required?.filter((field) => field !== name)
   }
   extension?.adjustParameters?.(schema, options)
-  Compile(schema)
+  compile(schema)
   return schema as unknown as TSchema
 }
 

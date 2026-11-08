@@ -1,14 +1,14 @@
 import { prisma } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { ulid } from 'ulid'
-import {
-  type AgentMessage,
-  type SessionMetadata,
-  type SessionStorage,
-  type SessionTreeEntry,
-} from '@earendil-works/pi-agent-core'
+import { type AgentMessage } from '@earendil-works/pi-agent-core'
 import { agentService } from '@shumai/core/src/agent/agent'
-import type { ShumaiMessageContext } from '@shumai/dtos'
+import type {
+  SessionMetadata,
+  SessionStorage,
+  SessionTreeEntry,
+  ShumaiMessageContext,
+} from '@shumai/dtos'
 
 export interface DatabaseSessionMetadata extends SessionMetadata {
   agentId: string

@@ -842,7 +842,7 @@ describe('createAgentSession bash restriction for non-owner users', () => {
     expect(harness.getTools().some((t) => t.name === 'bash')).toBe(false)
     expect(harness.getActiveTools().some((t) => t.name === 'bash')).toBe(false)
 
-    await readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined, undefined)
+    await readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined)
 
     expect(harness.getTools().some((t) => t.name === 'bash')).toBe(true)
     // bash must be part of the ACTIVE tool set, not just the registry, or the model
@@ -867,7 +867,7 @@ describe('createAgentSession bash restriction for non-owner users', () => {
     const readSkillTool = harness.getTools().find((t) => t.name === 'read_skill')
     expect(readSkillTool).toBeDefined()
 
-    await readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined, undefined)
+    await readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined)
 
     expect(harness.getTools().some((t) => t.name === 'bash')).toBe(false)
   })
@@ -1169,13 +1169,12 @@ describe('createAgentSession enabled skill filtering', () => {
       })
 
       await expect(
-        readSkillTool!.execute('1', { skillId: disabledSkill.id }, undefined, undefined, undefined),
+        readSkillTool!.execute('1', { skillId: disabledSkill.id }, undefined, undefined),
       ).rejects.toThrow('not enabled for this agent')
 
       const result = await readSkillTool!.execute(
         '1',
         { skillId: enabledSkill.id },
-        undefined,
         undefined,
         undefined,
       )
@@ -1227,7 +1226,7 @@ describe('createAgentSession enabled skill filtering', () => {
       expect(readSkillTool).toBeDefined()
 
       await expect(
-        readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined, undefined),
+        readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined),
       ).rejects.toThrow('not enabled for this agent')
     } finally {
       initializeSpy.mockRestore()
@@ -1292,7 +1291,6 @@ describe('createAgentSession enabled skill filtering', () => {
         { threadId: 'non-existent' },
         undefined,
         undefined,
-        undefined,
       )
       expect(res1).toBeDefined()
 
@@ -1300,7 +1298,6 @@ describe('createAgentSession enabled skill filtering', () => {
       const res2 = await readThreadTool!.execute(
         'call-2',
         { threadId: 'non-existent' },
-        undefined,
         undefined,
         undefined,
       )
@@ -1342,6 +1339,117 @@ describe('getModelFromDb', () => {
 
     const model = getModelFromDb(providers, 'custom-provider', 'my-model')
     expect(model.api).toBe('anthropic-messages')
+  })
+
+  it('should inherit compat and thinkingLevelMap from built-in models while allowing DB overrides', () => {
+    const providers: DbProviderInfo[] = [
+      {
+        name: 'anthropic',
+        config: {
+          api: 'anthropic-messages',
+          apiKey: 'ANTHROPIC_API_KEY',
+          headers: { 'X-Custom-Header': 'shumai' },
+        },
+        models: [
+          {
+            modelId: 'claude-opus-4-6',
+            name: 'Claude Opus 4.6 Custom Name',
+            config: {
+              api: 'anthropic-messages',
+              reasoning: true,
+              input: ['text', 'image'],
+              cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+              contextWindow: 500000,
+              maxTokens: 64000,
+            },
+          },
+        ],
+      },
+    ]
+
+    const model = getModelFromDb(providers, 'anthropic', 'claude-opus-4-6')
+    expect(model.name).toBe('Claude Opus 4.6 Custom Name')
+    expect(model.contextWindow).toBe(500000)
+    expect(model.thinkingLevelMap?.max).toBe('max')
+    expect(model.headers).toMatchObject({ 'X-Custom-Header': 'shumai' })
+  })
+})
+
+describe('createAgentSession custom and keyless DB providers', () => {
+  setupTestDbHooks()
+
+  it('registers custom keyless local baseUrl providers on modelsStore', async () => {
+    const team = await prisma.team.create({ data: { name: 'Local Ollama Team' } })
+    await prisma.user.create({
+      data: {
+        id: 'local-agent',
+        name: 'Local Agent',
+        email: 'local@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'local-agent',
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'local-ollama', model: 'qwen2.5' },
+      },
+    })
+
+    const customProviders: DbProviderInfo[] = [
+      {
+        name: 'local-ollama',
+        config: {
+          api: 'openai-completions',
+          baseUrl: 'http://localhost:11434/v1',
+          authHeader: true,
+          headers: { 'X-Local': '1' },
+        },
+        models: [
+          {
+            modelId: 'qwen2.5',
+            name: 'Qwen 2.5',
+            config: {
+              api: 'openai-completions',
+              reasoning: false,
+              input: ['text'],
+              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+              contextWindow: 32768,
+              maxTokens: 4096,
+            },
+          },
+        ],
+      },
+    ]
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      const { harness } = await createAgentSession({
+        teamId: team.id,
+        agentId: 'local-agent',
+        providerName: 'local-ollama',
+        modelId: 'qwen2.5',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        allowedDomains: [],
+        providers: customProviders,
+        thinkingLevel: 'max',
+      })
+
+      expect(harness.getModel().provider).toBe('local-ollama')
+      expect(harness.getModel().baseUrl).toBe('http://localhost:11434/v1')
+      expect(harness.getThinkingLevel()).toBe('max')
+      // @ts-expect-error accessing private models store for verification
+      const resolvedAuth = await harness.models.getAuth(harness.getModel())
+      expect(resolvedAuth?.auth.apiKey).toBe('keyless')
+      expect(resolvedAuth?.auth.headers).toMatchObject({
+        'X-Local': '1',
+        Authorization: 'Bearer keyless',
+      })
+    } finally {
+      initializeSpy.mockRestore()
+    }
   })
 })
 
