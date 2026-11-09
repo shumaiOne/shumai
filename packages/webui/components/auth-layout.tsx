@@ -52,7 +52,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
           {/* Footer Label */}
           <div className="relative pt-4 border-t border-zinc-200/30 dark:border-zinc-800/30">
             <a
-              href="https://discord.gg/sUzhujK6DD"
+              href="https://shumai.discourse.group/"
               target="_blank"
               rel="noreferrer"
               className="text-xs text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 font-medium transition-colors hover:underline inline-flex items-center gap-1"

@@ -3,7 +3,7 @@
 ## Reporting a Vulnerability
 
 Please report security vulnerabilities **privately**. Do not open a public issue,
-pull request or Discord message for a suspected vulnerability, as that discloses it
+pull request, or public forum post for a suspected vulnerability, as that discloses it
 to everyone before a fix exists.
 
 Use **[GitHub private vulnerability reporting](https://github.com/shumaiOne/shumai/security/advisories/new)**

@@ -15,6 +15,10 @@
   "navbar": {
     "links": [
       {
+        "label": "Forum",
+        "href": "https://shumai.discourse.group/"
+      },
+      {
         "label": "Changelog",
         "href": "/changelog"
       }
@@ -27,6 +31,10 @@
         "default": true,
         "navbar": {
           "links": [
+            {
+              "label": "Forum",
+              "href": "https://shumai.discourse.group/"
+            },
             {
               "label": "Changelog",
               "href": "/changelog"
@@ -109,6 +117,10 @@
         "language": "zh",
         "navbar": {
           "links": [
+            {
+              "label": "论坛",
+              "href": "https://shumai.discourse.group/"
+            },
             {
               "label": "Changelog",
               "href": "/changelog"
