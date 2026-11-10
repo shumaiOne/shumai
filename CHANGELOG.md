@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **agent**: Keep session logs within the dialog and allow scrolling through long messages and expanded records.
+
 ### Changed
 
 - **agent**: Upgrade the agent runtime, automatically migrate existing conversations, and keep each thread’s history independent. Agents now always run with the main server; standalone agent workers are no longer supported.

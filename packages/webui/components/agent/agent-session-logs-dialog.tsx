@@ -43,8 +43,8 @@ function EntryLog({ entry }: { entry: EntryRecord }) {
           ? m.tool_result_with_name({ name: message.toolName })
           : entry.kind
   return (
-    <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
-      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+    <div className="min-w-0 rounded-lg border border-border bg-muted/30 p-3 space-y-2 [overflow-wrap:anywhere]">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span className="font-semibold text-foreground">{role}</span>
         <span>
           {m.entry_id()}: {entry.id}
@@ -52,7 +52,7 @@ function EntryLog({ entry }: { entry: EntryRecord }) {
         {timestamp !== undefined && <span>{formatTimeAgo(new Date(timestamp).toISOString())}</span>}
       </div>
       {content && (
-        <div className="text-xs whitespace-pre-wrap break-words">
+        <div className="text-xs whitespace-pre-wrap break-words [&_pre]:whitespace-pre-wrap [&_pre]:break-all">
           <Markdown>{content}</Markdown>
         </div>
       )}
@@ -83,15 +83,15 @@ export function AgentSessionLogsDialog({
   })
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-2xl h-[80dvh] max-h-[80dvh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Terminal className="h-5 w-5" />
             {m.agent_session_logs()}
           </DialogTitle>
           <DialogDescription>{m.agent_logs_description()}</DialogDescription>
         </DialogHeader>
-        <ScrollArea className="min-h-0 flex-1">
+        <ScrollArea className="min-h-0 min-w-0 flex-1 overflow-hidden">
           <div className="space-y-3 pr-3 py-2">
             {isLoading ? (
               <Skeleton className="h-32 w-full" />
