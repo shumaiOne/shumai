@@ -1,16 +1,17 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import type { AssistantMessage } from '@earendil-works/pi-ai'
+import { initAgentWorkflows } from '@shumai/agent'
+import { getAssetRenderOp, readAssetOp, runOperation } from '@shumai/core/src/operations'
+import { projectService } from '@shumai/core/src/project/project'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { prisma, type User } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { workflowService, TaskQueueAgent, TaskQueueTranscode } from '@shumai/workflow-core'
-import { initAgentWorkflows } from '@shumai/agent'
 import { initTranscodeWorkflows } from '@shumai/transcode'
-import { s3Service } from '@shumai/core/src/s3/s3'
-import { projectService } from '@shumai/core/src/project/project'
-import { getAssetRenderOp, readAssetOp, runOperation } from '@shumai/core/src/operations'
-import { AgentHarness } from '@earendil-works/pi-agent-core'
-import { fileURLToPath } from 'url'
-import * as path from 'path'
+import { TaskQueueAgent, TaskQueueTranscode, workflowService } from '@shumai/workflow-core'
 import * as fs from 'fs'
+import * as path from 'path'
+import { fileURLToPath } from 'url'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { mockModelPrompt, type ModelScenario } from './model-mock'
 
 const BUCKET = 'shumai-e2e-test-bucket-read-asset'
 const fixturesDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../fixtures')
@@ -38,9 +39,7 @@ describe('Workflow E2E - read_asset', () => {
     initTranscodeWorkflows()
     initAgentWorkflows()
 
-    vi.spyOn(AgentHarness.prototype, 'prompt').mockImplementation(async function (
-      this: AgentHarness,
-    ) {
+    mockModelPrompt(async function (this: ModelScenario) {
       const readAsset = this.getTools().find((t) => t.name === 'read_asset') as unknown as
         ExecutableTool | undefined
       const hasRenderTool = this.getTools().some((t) => t.name === 'get_asset_render')
@@ -49,7 +48,7 @@ describe('Workflow E2E - read_asset', () => {
           content: [{ type: 'text', text: 'MISSING_READ_ASSET' }],
           usage: { input: 1, output: 1 },
           stopReason: 'stop',
-        } as unknown as Awaited<ReturnType<typeof AgentHarness.prototype.prompt>>
+        } as unknown as AssistantMessage
       }
       const result = await readAsset.execute('call-1', {
         assetId: videoAssetId,
@@ -76,7 +75,7 @@ describe('Workflow E2E - read_asset', () => {
         content: [{ type: 'text', text: summary }],
         usage: { input: 10, output: 20 },
         stopReason: 'stop',
-      } as unknown as Awaited<ReturnType<typeof AgentHarness.prototype.prompt>>
+      } as unknown as AssistantMessage
     })
 
     await workflowService.startWorkers([TaskQueueTranscode, TaskQueueAgent])

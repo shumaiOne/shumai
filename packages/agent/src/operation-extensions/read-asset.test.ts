@@ -1,17 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
+import { resolveAnnotationsById } from '@shumai/core/src/asset-read/annotations'
+import { authzService } from '@shumai/core/src/authz/authz'
+import { getOperation } from '@shumai/core/src/operations'
+import { s3Service } from '@shumai/core/src/s3/s3'
+import { degreeToSecond } from '@shumai/core/src/utils/model3d'
 import {
   prisma,
-  WorkflowTaskType,
   WorkflowTaskStatus,
+  WorkflowTaskType,
   type Asset,
   type WorkflowTask,
 } from '@shumai/db'
-import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
-import { authzService } from '@shumai/core/src/authz/authz'
-import { resolveAnnotationsById } from '@shumai/core/src/asset-read/annotations'
-import { getOperation } from '@shumai/core/src/operations'
-import { degreeToSecond } from '@shumai/core/src/utils/model3d'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { toAgentTool } from '../operation-tools'
 import { createAutofillReadAssetTool } from './read-asset'
 
@@ -90,7 +91,7 @@ type Details = {
   taskId?: string
   isTruncated?: boolean
 }
-function details(result: { details: unknown }): Details {
+function details(result: { details?: unknown }): Details {
   return result.details as Details
 }
 
@@ -212,7 +213,7 @@ describe('read_asset agent tool', () => {
   })
 
   it('throws an authorization error if the user ID is empty', async () => {
-    await expect(readAssetTool('').execute('call-1', { assetId: 'asset-1' })).rejects.toThrow(
+    await expect(invokeTool(readAssetTool(''), 'call-1', { assetId: 'asset-1' })).rejects.toThrow(
       'User ID is required for authorization.',
     )
   })
@@ -220,7 +221,7 @@ describe('read_asset agent tool', () => {
   it('throws if the asset is not found', async () => {
     vi.mocked(prisma.asset.findUnique).mockResolvedValue(null)
     await expect(
-      readAssetTool().execute('call-1', {
+      invokeTool(readAssetTool(), 'call-1', {
         assetId: 'asset-1',
         annotationId: null,
         imageConfig: null,
@@ -233,7 +234,7 @@ describe('read_asset agent tool', () => {
   it('does not plan or render anything when Read is denied', async () => {
     vi.mocked(authzService.hasPermission).mockRejectedValue(new Error('Forbidden'))
     await expect(
-      readAssetTool().execute('call-1', {
+      invokeTool(readAssetTool(), 'call-1', {
         assetId: 'vid-1',
         videoConfig: { start: 0, end: 1, count: 1 },
       }),
@@ -244,7 +245,7 @@ describe('read_asset agent tool', () => {
 
   it('rejects unsupported asset types', async () => {
     mockAsset({ id: 'zip-1', name: 'bundle.zip', mediaType: 'application/zip', media: null })
-    await expect(readAssetTool().execute('call-1', { assetId: 'zip-1' })).rejects.toThrow(
+    await expect(invokeTool(readAssetTool(), 'call-1', { assetId: 'zip-1' })).rejects.toThrow(
       'Unsupported asset type for read_asset. Asset zip-1 has media type "application/zip".',
     )
   })
@@ -254,7 +255,7 @@ describe('read_asset agent tool', () => {
       mockAsset(imageAsset)
       mockObjects()
 
-      const result = await readAssetTool().execute('call-1', {
+      const result = await invokeTool(readAssetTool(), 'call-1', {
         assetId: 'img-1',
         annotationId: null,
         imageConfig: null,
@@ -289,14 +290,17 @@ describe('read_asset agent tool', () => {
     it('ignores an empty imageConfig', async () => {
       mockAsset(imageAsset)
       mockObjects()
-      const result = await readAssetTool().execute('call-1', { assetId: 'img-1', imageConfig: {} })
+      const result = await invokeTool(readAssetTool(), 'call-1', {
+        assetId: 'img-1',
+        imageConfig: {},
+      })
       expect(details(result).key).toBe('proxy/photo.webp')
     })
 
     it('rejects a config meant for another asset type', async () => {
       mockAsset(imageAsset)
       await expect(
-        readAssetTool().execute('call-1', {
+        invokeTool(readAssetTool(), 'call-1', {
           assetId: 'img-1',
           docConfig: { mode: 'pages', startPage: 1, endPage: 1 },
         }),
@@ -312,7 +316,7 @@ describe('read_asset agent tool', () => {
       mockTaskFinished('task-anno', { key: 'annotated/photo.webp' })
       mockObjects()
 
-      const result = await readAssetTool().execute('call-1', {
+      const result = await invokeTool(readAssetTool(), 'call-1', {
         assetId: 'img-1',
         annotationId: 'comment-1',
       })
@@ -348,7 +352,7 @@ describe('read_asset agent tool', () => {
       mockAsset(modelAsset)
       mockObjects()
 
-      const result = await readAssetTool().execute('call-3d', { assetId: 'model-1' })
+      const result = await invokeTool(readAssetTool(), 'call-3d', { assetId: 'model-1' })
 
       expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'proxy/views.webp')
       const text = textOf(result)
@@ -367,7 +371,7 @@ describe('read_asset agent tool', () => {
 
     it('supports s3KeyOnly for 3D assets', async () => {
       mockAsset(modelAsset)
-      const result = await readAssetTool().execute('call-3d-s3', {
+      const result = await invokeTool(readAssetTool(), 'call-3d-s3', {
         assetId: 'model-1',
         s3KeyOnly: true,
       })
@@ -381,7 +385,7 @@ describe('read_asset agent tool', () => {
     it('rejects videoConfig for 3D assets', async () => {
       mockAsset(modelAsset)
       await expect(
-        readAssetTool().execute('call-3d-err', {
+        invokeTool(readAssetTool(), 'call-3d-err', {
           assetId: 'model-1',
           videoConfig: { start: 0, end: 4, count: 4 },
         }),
@@ -392,9 +396,9 @@ describe('read_asset agent tool', () => {
 
     it('throws if the 4-views image is missing when the overview is requested', async () => {
       mockAsset({ ...modelAsset, media: { proxyType: '3d', imageTranscodes: [] } })
-      await expect(readAssetTool().execute('call-3d-err2', { assetId: 'model-1' })).rejects.toThrow(
-        '4-views image (views.webp) is missing',
-      )
+      await expect(
+        invokeTool(readAssetTool(), 'call-3d-err2', { assetId: 'model-1' }),
+      ).rejects.toThrow('4-views image (views.webp) is missing')
     })
 
     it('renders a turntable frame when config3d.degree is provided', async () => {
@@ -405,7 +409,7 @@ describe('read_asset agent tool', () => {
       })
       mockObjects()
 
-      const result = await readAssetTool().execute('call-3d-degree', {
+      const result = await invokeTool(readAssetTool(), 'call-3d-degree', {
         assetId: 'model-1',
         config3d: { degree: 45 },
       })
@@ -446,10 +450,10 @@ describe('read_asset agent tool', () => {
       mockAsset(modelAsset)
       const tool = readAssetTool()
       await expect(
-        tool.execute('call-1', { assetId: 'model-1', config3d: { degree: 40 } }),
+        invokeTool(tool, 'call-1', { assetId: 'model-1', config3d: { degree: 40 } }),
       ).rejects.toThrow('Invalid turntable degree: 40')
       await expect(
-        tool.execute('call-2', { assetId: 'model-1', config3d: { degree: 360 } }),
+        invokeTool(tool, 'call-2', { assetId: 'model-1', config3d: { degree: 360 } }),
       ).rejects.toThrow('Invalid turntable degree: 360')
       expect(resolveAnnotationsById).not.toHaveBeenCalled()
     })
@@ -463,7 +467,7 @@ describe('read_asset agent tool', () => {
       })
       mockObjects()
 
-      const result = await readAssetTool().execute('call-3d-ann', {
+      const result = await invokeTool(readAssetTool(), 'call-3d-ann', {
         assetId: 'model-1',
         annotationId: 'comm-1',
         config3d: null,
@@ -500,7 +504,7 @@ describe('read_asset agent tool', () => {
       })
       mockObjects()
 
-      const result = await readAssetTool().execute('call-3d-session-ann', {
+      const result = await invokeTool(readAssetTool(), 'call-3d-session-ann', {
         assetId: 'model-1',
         annotationId: 'session-entry-1',
       })
@@ -524,7 +528,7 @@ describe('read_asset agent tool', () => {
       mockAsset(modelAsset)
       vi.mocked(resolveAnnotationsById).mockResolvedValue({ annotations: arrow, timestamp: 0.5 })
       await expect(
-        readAssetTool().execute('call-3d-conflict', {
+        invokeTool(readAssetTool(), 'call-3d-conflict', {
           assetId: 'model-1',
           annotationId: 'comm-1',
           config3d: { degree: 90 },
@@ -538,7 +542,7 @@ describe('read_asset agent tool', () => {
     it('throws if the turntable video is missing when an angle is requested', async () => {
       mockAsset({ ...modelAsset, media: { proxyType: '3d', videoTranscodes: [] } })
       await expect(
-        readAssetTool().execute('call-1', { assetId: 'model-1', config3d: { degree: 45 } }),
+        invokeTool(readAssetTool(), 'call-1', { assetId: 'model-1', config3d: { degree: 45 } }),
       ).rejects.toThrow('turntable video (turntable.mp4) is missing')
     })
   })
@@ -546,7 +550,7 @@ describe('read_asset agent tool', () => {
   describe('Video Assets', () => {
     it('requires videoConfig', async () => {
       mockAsset(videoAsset)
-      await expect(readAssetTool().execute('call-1', { assetId: 'vid-1' })).rejects.toThrow(
+      await expect(invokeTool(readAssetTool(), 'call-1', { assetId: 'vid-1' })).rejects.toThrow(
         'videoConfig with start, end, and count is required',
       )
     })
@@ -554,7 +558,7 @@ describe('read_asset agent tool', () => {
     it('rejects an invalid time range', async () => {
       mockAsset(videoAsset)
       await expect(
-        readAssetTool().execute('call-1', {
+        invokeTool(readAssetTool(), 'call-1', {
           assetId: 'vid-1',
           videoConfig: { start: 10, end: 5, count: 1 },
         }),
@@ -566,7 +570,7 @@ describe('read_asset agent tool', () => {
     it('rejects more than 20 frames', async () => {
       mockAsset(videoAsset)
       await expect(
-        readAssetTool().execute('call-1', {
+        invokeTool(readAssetTool(), 'call-1', {
           assetId: 'vid-1',
           videoConfig: { start: 0, end: 60, count: 21 },
         }),
@@ -584,7 +588,7 @@ describe('read_asset agent tool', () => {
       })
       mockObjects()
 
-      const result = await readAssetTool().execute('call-1', {
+      const result = await invokeTool(readAssetTool(), 'call-1', {
         assetId: 'vid-1',
         annotationId: null,
         imageConfig: null,
@@ -638,7 +642,7 @@ describe('read_asset agent tool', () => {
         done: false,
       }))
 
-      const result = await readAssetTool().execute('call-1', {
+      const result = await invokeTool(readAssetTool(), 'call-1', {
         assetId: 'vid-1',
         videoConfig: { start: 0, end: 10, count: 5 },
         maxWaitSeconds: 0,
@@ -661,7 +665,7 @@ describe('read_asset agent tool', () => {
       mockTaskFinished('task-shot', { screenshots: [{ key: 's/1.webp', timestamp: 0 }] })
       mockObjects()
 
-      await readAssetTool().execute('call-1', {
+      await invokeTool(readAssetTool(), 'call-1', {
         assetId: 'vid-1',
         videoConfig: { start: 0, end: 0, count: 1 },
         maxWaitSeconds: 600,
@@ -673,7 +677,7 @@ describe('read_asset agent tool', () => {
   describe('Document Assets', () => {
     it('requires docConfig', async () => {
       mockAsset(pdfAsset)
-      await expect(readAssetTool().execute('call-1', { assetId: 'doc-1' })).rejects.toThrow(
+      await expect(invokeTool(readAssetTool(), 'call-1', { assetId: 'doc-1' })).rejects.toThrow(
         'docConfig with mode ("pages" or "text") is required',
       )
     })
@@ -689,7 +693,7 @@ describe('read_asset agent tool', () => {
       })
       mockObjects()
 
-      const result = await readAssetTool().execute('call-1', {
+      const result = await invokeTool(readAssetTool(), 'call-1', {
         assetId: 'doc-1',
         docConfig: { mode: 'pages', startPage: 1, endPage: 2 },
       })
@@ -716,7 +720,7 @@ describe('read_asset agent tool', () => {
     it('rejects page ranges over 20 pages', async () => {
       mockAsset(pdfAsset)
       await expect(
-        readAssetTool().execute('call-1', {
+        invokeTool(readAssetTool(), 'call-1', {
           assetId: 'doc-1',
           docConfig: { mode: 'pages', startPage: 1, endPage: 25 },
         }),
@@ -726,7 +730,7 @@ describe('read_asset agent tool', () => {
     it('rejects mode "text" on a binary PDF', async () => {
       mockAsset({ ...pdfAsset, name: 'manual.pdf' })
       await expect(
-        readAssetTool().execute('call-1', {
+        invokeTool(readAssetTool(), 'call-1', {
           assetId: 'doc-1',
           docConfig: { mode: 'text', startPage: null, endPage: null },
         }),
@@ -736,7 +740,7 @@ describe('read_asset agent tool', () => {
     it('rejects mode "text" with annotationId', async () => {
       mockAsset(markdownAsset)
       await expect(
-        readAssetTool().execute('call-1', {
+        invokeTool(readAssetTool(), 'call-1', {
           assetId: 'doc-md',
           annotationId: 'comment-123',
           docConfig: { mode: 'text', startPage: null, endPage: null },
@@ -748,7 +752,7 @@ describe('read_asset agent tool', () => {
     it('rejects page numbers in mode "text"', async () => {
       mockAsset(markdownAsset)
       await expect(
-        readAssetTool().execute('call-1', {
+        invokeTool(readAssetTool(), 'call-1', {
           assetId: 'doc-md',
           docConfig: { mode: 'text', startPage: 1, endPage: 2 },
         }),
@@ -762,7 +766,7 @@ describe('read_asset agent tool', () => {
         contentType: 'text/markdown',
       })
 
-      const result = await readAssetTool().execute('call-1', {
+      const result = await invokeTool(readAssetTool(), 'call-1', {
         assetId: 'doc-md',
         docConfig: { mode: 'text', startPage: null, endPage: null },
       })
@@ -793,7 +797,7 @@ describe('read_asset agent tool', () => {
         contentType: 'text/markdown',
       })
 
-      const result = await readAssetTool().execute('call-1', {
+      const result = await invokeTool(readAssetTool(), 'call-1', {
         assetId: 'doc-md',
         docConfig: { mode: 'text' },
       })
@@ -824,7 +828,7 @@ describe('read_asset agent tool', () => {
       } as unknown as Asset)
       mockObjects()
 
-      const result = await readAssetTool().execute('call-1', { assetId: 'stack-1' })
+      const result = await invokeTool(readAssetTool(), 'call-1', { assetId: 'stack-1' })
 
       expect(prisma.asset.findFirst).toHaveBeenCalledWith({
         where: { parentId: 'stack-1', isDeleted: false },
@@ -839,7 +843,7 @@ describe('read_asset agent tool', () => {
   describe('s3KeyOnly mode', () => {
     it('returns only the S3 key and MIME for image assets', async () => {
       mockAsset(imageAsset)
-      const result = await readAssetTool().execute('call-1', {
+      const result = await invokeTool(readAssetTool(), 'call-1', {
         assetId: 'img-1',
         s3KeyOnly: true,
       })
@@ -859,7 +863,7 @@ describe('read_asset agent tool', () => {
         screenshots: [{ key: 'screenshots/shot1.webp', timestamp: 1.5 }],
       })
 
-      const result = await readAssetTool().execute('call-1', {
+      const result = await invokeTool(readAssetTool(), 'call-1', {
         assetId: 'vid-1',
         s3KeyOnly: true,
         videoConfig: { start: 1.5, end: 1.5, count: 1 },
@@ -875,7 +879,7 @@ describe('read_asset agent tool', () => {
 
     it('returns only the document S3 key and MIME without reading the text', async () => {
       mockAsset({ ...markdownAsset, name: 'notes.md', storageKey: { key: 'raw/notes.md' } })
-      const result = await readAssetTool().execute('call-1', {
+      const result = await invokeTool(readAssetTool(), 'call-1', {
         assetId: 'doc-md',
         s3KeyOnly: true,
         docConfig: { mode: 'text', startPage: null, endPage: null },
@@ -919,7 +923,7 @@ describe('get_asset_render agent tool', () => {
     })
     mockObjects()
 
-    const result = await getAssetRenderTool().execute('call-1', { taskId: 'task-1' })
+    const result = await invokeTool(getAssetRenderTool(), 'call-1', { taskId: 'task-1' })
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
       user: { id: 'user-1' },
@@ -936,14 +940,14 @@ describe('get_asset_render agent tool', () => {
     mockPendingTask('user-1')
     vi.mocked(workflowService.waitFor).mockImplementation(async (task) => ({ task, done: false }))
 
-    const result = await getAssetRenderTool().execute('call-1', { taskId: 'task-1' })
+    const result = await invokeTool(getAssetRenderTool(), 'call-1', { taskId: 'task-1' })
     expect(textOf(result)).toContain('Call get_asset_render with taskId "task-1"')
     expect(details(result)).toEqual({ taskId: 'task-1', status: 'pending' })
   })
 
   it('hides renders requested by another user', async () => {
     mockPendingTask('someone-else')
-    await expect(getAssetRenderTool().execute('call-1', { taskId: 'task-1' })).rejects.toThrow(
+    await expect(invokeTool(getAssetRenderTool(), 'call-1', { taskId: 'task-1' })).rejects.toThrow(
       'Render not found',
     )
     expect(workflowService.waitFor).not.toHaveBeenCalled()
@@ -952,7 +956,7 @@ describe('get_asset_render agent tool', () => {
   it('hides renders once the user loses access to the asset', async () => {
     mockPendingTask('user-1')
     vi.mocked(authzService.hasPermission).mockRejectedValue(new Error('Forbidden'))
-    await expect(getAssetRenderTool().execute('call-1', { taskId: 'task-1' })).rejects.toThrow(
+    await expect(invokeTool(getAssetRenderTool(), 'call-1', { taskId: 'task-1' })).rejects.toThrow(
       'Render not found',
     )
   })
@@ -963,7 +967,7 @@ describe('get_asset_render agent tool', () => {
       assetId: 'vid-1',
       payload: { projectId: 'project-1' },
     } as unknown as WorkflowTask)
-    await expect(getAssetRenderTool().execute('call-1', { taskId: 'task-2' })).rejects.toThrow(
+    await expect(invokeTool(getAssetRenderTool(), 'call-1', { taskId: 'task-2' })).rejects.toThrow(
       'Render not found',
     )
   })
@@ -976,14 +980,14 @@ describe('autofill read_asset tool', () => {
 
   it('requires targetAssetId', async () => {
     const tool = createAutofillReadAssetTool({ teamId: 'team-1' })
-    await expect(tool.execute('call-1', { assetId: 'asset-1' })).rejects.toThrow(
+    await expect(invokeTool(tool, 'call-1', { assetId: 'asset-1' })).rejects.toThrow(
       'Target asset ID is required for autofill agent authorization.',
     )
   })
 
   it('requires teamId', async () => {
     const tool = createAutofillReadAssetTool({ targetAssetId: 'asset-1' })
-    await expect(tool.execute('call-1', { assetId: 'asset-1' })).rejects.toThrow(
+    await expect(invokeTool(tool, 'call-1', { assetId: 'asset-1' })).rejects.toThrow(
       'Team ID is required for autofill agent authorization.',
     )
   })
@@ -991,7 +995,7 @@ describe('autofill read_asset tool', () => {
   it('denies assets from another team', async () => {
     mockAsset({ id: 'asset-1', project: { teamId: 'other-team' } })
     const tool = createAutofillReadAssetTool({ teamId: 'team-1', targetAssetId: 'asset-1' })
-    await expect(tool.execute('call-1', { assetId: 'asset-1' })).rejects.toThrow(
+    await expect(invokeTool(tool, 'call-1', { assetId: 'asset-1' })).rejects.toThrow(
       'Access denied: asset asset-1 does not belong to team team-1.',
     )
   })
@@ -1002,7 +1006,7 @@ describe('autofill read_asset tool', () => {
       teamId: 'team-1',
       targetAssetId: 'target-asset-id',
     })
-    await expect(tool.execute('call-1', { assetId: 'other-asset' })).rejects.toThrow(
+    await expect(invokeTool(tool, 'call-1', { assetId: 'other-asset' })).rejects.toThrow(
       'Access denied: autofill agent can only read target asset target-asset-id.',
     )
   })
@@ -1021,7 +1025,7 @@ describe('autofill read_asset tool', () => {
       targetAssetId: 'target-asset-id',
     })
 
-    const result = await tool.execute('call-1', {
+    const result = await invokeTool(tool, 'call-1', {
       assetId: 'target-asset-id',
       annotationId: null,
       s3KeyOnly: true,
@@ -1041,7 +1045,7 @@ describe('autofill read_asset tool', () => {
     mockTaskFinished('task-shot', { screenshots: [{ key: 's/1.webp', timestamp: 0 }] })
 
     const tool = createAutofillReadAssetTool({ teamId: 'team-1', targetAssetId: 'vid-1' })
-    await tool.execute('call-1', {
+    await invokeTool(tool, 'call-1', {
       assetId: 'vid-1',
       s3KeyOnly: true,
       videoConfig: { start: 0, end: 0, count: 1 },

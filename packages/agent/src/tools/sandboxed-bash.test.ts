@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createSandboxedBashTool } from './sandboxed-bash'
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
+import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { spawn } from 'node:child_process'
 import { EventEmitter } from 'node:events'
 import { readFile } from 'node:fs/promises'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createSandboxedBashTool } from './sandboxed-bash'
 
 vi.mock('@anthropic-ai/sandbox-runtime')
 vi.mock('node:child_process')
@@ -57,7 +58,8 @@ describe('createSandboxedBashTool', () => {
     const signal = createMockSignal()
 
     // pi-coding-agent AgentTool.execute signature: (toolCallId, params, signal?, onUpdate?)
-    const executePromise = tool.execute(
+    const executePromise = invokeTool(
+      tool,
       '1',
       { command: 'echo hello', source: 'user' },
       signal,
@@ -97,7 +99,7 @@ describe('createSandboxedBashTool', () => {
 
     const signal = createMockSignal()
     await expect(
-      tool.execute('1', { command: 'echo hack', source: 'user' }, signal, createMockOnUpdate()),
+      invokeTool(tool, '1', { command: 'echo hack', source: 'user' }, signal, createMockOnUpdate()),
     ).rejects.toThrow(/not permitted for your role/)
 
     expect(spawn).not.toHaveBeenCalled()
@@ -119,7 +121,7 @@ describe('createSandboxedBashTool', () => {
     ;(spawn as any).mockReturnValue(mockChild)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute('1', { command: 'echo skill', source: 'skill' }, signal)
+    const executePromise = invokeTool(tool, '1', { command: 'echo skill', source: 'skill' }, signal)
 
     await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
     expect(SandboxManager.wrapWithSandbox).toHaveBeenCalledWith(
@@ -145,7 +147,8 @@ describe('createSandboxedBashTool', () => {
     ;(spawn as any).mockReturnValue(mockChild)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute(
+    const executePromise = invokeTool(
+      tool,
       '1',
       { command: 'fail', source: 'user' },
       signal,
@@ -169,7 +172,8 @@ describe('createSandboxedBashTool', () => {
     ;(spawn as any).mockReturnValue(mockChild)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute(
+    const executePromise = invokeTool(
+      tool,
       '1',
       { command: 'exit 1', source: 'user' },
       signal,
@@ -198,7 +202,8 @@ describe('createSandboxedBashTool', () => {
     const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true as any)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute(
+    const executePromise = invokeTool(
+      tool,
       '1',
       { command: 'sleep 10', timeout: 2, source: 'user' },
       signal,
@@ -232,7 +237,8 @@ describe('createSandboxedBashTool', () => {
     const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true as any)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute(
+    const executePromise = invokeTool(
+      tool,
       '1',
       { command: 'long-run', source: 'user' },
       signal,
@@ -266,7 +272,12 @@ describe('createSandboxedBashTool', () => {
     ;(spawn as any).mockReturnValue(mockChild)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute('1', { command: 'generate lines', source: 'user' }, signal)
+    const executePromise = invokeTool(
+      tool,
+      '1',
+      { command: 'generate lines', source: 'user' },
+      signal,
+    )
 
     await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
 
@@ -308,7 +319,8 @@ describe('createSandboxedBashTool', () => {
     ;(spawn as any).mockReturnValue(mockChild)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute(
+    const executePromise = invokeTool(
+      tool,
       '1',
       { command: 'long single line', source: 'user' },
       signal,
@@ -342,7 +354,8 @@ describe('createSandboxedBashTool', () => {
     const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true as any)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute(
+    const executePromise = invokeTool(
+      tool,
       '1',
       { command: 'slow', timeout: 1, source: 'user' },
       signal,

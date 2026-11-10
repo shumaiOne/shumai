@@ -1,7 +1,8 @@
-import { describe, expect, test } from 'vitest'
-import { AgentService } from './agent'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
+import { describe, expect, test } from 'vitest'
+import { AgentService } from './agent'
+import { appendSessionEntries } from './session-test-utils'
 
 describe('AgentService', () => {
   setupTestDbHooks()
@@ -477,56 +478,23 @@ describe('AgentService', () => {
       expect(agents[0].modelRef).toBeDefined()
     })
 
-    test('getSessionEntries follows parentId across shared sessions', async () => {
-      const db = prisma
-      const svc = new AgentService()
-      const { agent } = await setupTestData(db)
-
-      const mainSession = await db.agentSession.create({
-        data: {
-          agentId: agent.id,
-          type: 'comment',
-          cwd: '/tmp',
-        },
+    test('getSessionEntries reads independent native session transcripts', async () => {
+      const { agent } = await setupTestData(prisma)
+      const main = await prisma.agentSession.create({
+        data: { agentId: agent.id, type: 'comment', cwd: '/tmp' },
       })
-
-      const threadSession = await db.agentSession.create({
-        data: {
-          agentId: agent.id,
-          type: 'comment',
-          cwd: '/tmp',
-        },
+      const thread = await prisma.agentSession.create({
+        data: { agentId: agent.id, type: 'comment', cwd: '/tmp' },
       })
-
-      const entry1 = await db.agentSessionEntry.create({
-        data: {
-          id: '01ENTRY0000000000000000001',
-          sessionId: mainSession.id,
-          type: 'message',
-          parentId: null,
-          data: { text: 'Main Entry 1' },
-        },
-      })
-
-      const entry2 = await db.agentSessionEntry.create({
-        data: {
-          id: '01ENTRY0000000000000000002',
-          sessionId: threadSession.id,
-          type: 'message',
-          parentId: entry1.id,
-          data: { text: 'Thread Entry 2' },
-        },
-      })
-
-      await db.agentSession.update({
-        where: { id: threadSession.id },
-        data: { leafId: entry2.id },
-      })
-
-      const entries = await svc.getSessionEntries({ sessionId: threadSession.id })
-      expect(entries).toHaveLength(2)
-      expect(entries[0].id).toBe(entry1.id)
-      expect(entries[1].id).toBe(entry2.id)
+      await appendSessionEntries(main.id, [
+        { kind: 'pi.user', model: [{ role: 'user', content: 'main', timestamp: 1 }] },
+      ])
+      const records = await appendSessionEntries(thread.id, [
+        { kind: 'pi.user', model: [{ role: 'user', content: 'copied context', timestamp: 1 }] },
+        { kind: 'pi.user', model: [{ role: 'user', content: 'thread', timestamp: 2 }] },
+      ])
+      await prisma.agentSession.delete({ where: { id: main.id } })
+      expect(await new AgentService().getSessionEntries({ sessionId: thread.id })).toEqual(records)
     })
 
     test('getSessionEntries dynamically attaches details.thread on custom_message entries with replies', async () => {
@@ -577,34 +545,23 @@ describe('AgentService', () => {
         },
       })
 
-      const entry = await db.agentSessionEntry.create({
-        data: {
-          id: rootComment.id,
-          sessionId: session.id,
-          type: 'custom_message',
-          parentId: null,
+      await appendSessionEntries(session.id, [
+        {
+          kind: 'shumai.message',
           data: {
-            customType: 'shumai_message',
-            content: 'Top-level comment',
-            display: true,
-            details: { user: { id: user.id, name: user.name } },
+            displayText: 'Top-level comment',
+            timestamp: 1,
+            context: { id: rootComment.id, thread: { id: rootComment.id, replyCount: 1 } },
+            sourceCommentId: rootComment.id,
           },
+          model: [{ role: 'user', content: 'Top-level comment', timestamp: 1 }],
         },
-      })
-
-      await db.agentSession.update({
-        where: { id: session.id },
-        data: { leafId: entry.id },
-      })
-
+      ])
       const entries = await svc.getSessionEntries({ sessionId: session.id })
       expect(entries).toHaveLength(1)
-      expect(entries[0].id).toBe(rootComment.id)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const entryDetails = (entries[0].entry as any).details
-      expect(entryDetails?.thread).toEqual({
-        id: rootComment.id,
-        replyCount: 1,
+      expect(entries[0]).toMatchObject({
+        kind: 'shumai.message',
+        data: { context: { thread: { id: rootComment.id, replyCount: 1 } } },
       })
     })
   })

@@ -8,17 +8,17 @@ import {
   type TeamMemberRole,
 } from '@shumai/db'
 import {
-  type CreateQuotaRuleRequest,
-  type ListQuotaRulesResponse,
-  type QuotaRuleResponse,
-  type ListQuotaRecordsResponse,
-  type QuotaRecordResponse,
-  type UpdateQuotaRuleRequest,
-  normalizeQuotaPeriod,
+  bashResourceDataSchema,
   formatQuotaPeriod,
   mcpResourceDataSchema,
-  bashResourceDataSchema,
+  normalizeQuotaPeriod,
   toolResourceDataSchema,
+  type CreateQuotaRuleRequest,
+  type ListQuotaRecordsResponse,
+  type ListQuotaRulesResponse,
+  type QuotaRecordResponse,
+  type QuotaRuleResponse,
+  type UpdateQuotaRuleRequest,
 } from '@shumai/dtos'
 import { HTTPException } from 'hono/http-exception'
 
@@ -765,7 +765,11 @@ export class QuotaService {
    * Lazy resets the period window in-place when previous window has expired.
    * Uses SELECT ... FOR UPDATE inside transactions for atomic concurrency protection.
    */
-  async consumeQuota(event: QuotaEvent, amount: number): Promise<void> {
+  async consumeQuota(
+    event: QuotaEvent,
+    amount: number,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<void> {
     if (amount <= 0) return
 
     const rules = await this.findMatchingRules(event)
@@ -776,7 +780,7 @@ export class QuotaService {
     for (const rule of rules) {
       const targetUserId = getQuotaRuleTargetUserId(rule, event)
 
-      await this.prismaClient.$transaction(async (tx) => {
+      const consume = async (tx: Prisma.TransactionClient) => {
         if (targetUserId === null) {
           // Serialize all_members (shared pool) creations and updates on the parent rule row
           await tx.$queryRaw`SELECT id FROM quota_rules WHERE id = ${rule.id} FOR UPDATE`
@@ -851,7 +855,9 @@ export class QuotaService {
             })
           }
         }
-      })
+      }
+      if (transaction) await consume(transaction)
+      else await this.prismaClient.$transaction(consume)
     }
   }
 }

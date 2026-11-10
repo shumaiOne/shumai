@@ -1,12 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Value } from 'typebox/value'
 import { validateToolArguments } from '@earendil-works/pi-ai'
-import { type AgentTool } from '@earendil-works/pi-agent-core'
-import { AuditAction, type AssetInfo, type ProjectInfo } from '@shumai/dtos'
+import { type ToolRegistration as AgentTool } from '@earendil-works/pi-durable'
+import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { projectService } from '@shumai/core/src/project/project'
+import { AuditAction, type AssetInfo, type ProjectInfo } from '@shumai/dtos'
+import { Value } from 'typebox/value'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildOperationTools } from './operation-tools'
 
 const ctx = { userId: 'user-1', agentId: 'agent-1', teamId: 'team-1', projectId: 'proj-1' }
@@ -33,7 +34,7 @@ function getTool(name: string): AgentTool {
 }
 
 async function run(name: string, params: Record<string, unknown>) {
-  const result = await getTool(name).execute('call-1', params as never)
+  const result = await invokeTool(getTool(name), 'call-1', params as never)
   return { result, output: JSON.parse((result.content[0] as { text: string }).text) as unknown }
 }
 
@@ -136,7 +137,7 @@ describe('operation-backed agent tools', () => {
           arguments: { parent: 'folder-1' },
         } as Parameters<typeof validateToolArguments>[1],
       )
-      await expect(tool.execute('call-1', validated as never)).resolves.toBeDefined()
+      await expect(invokeTool(tool, 'call-1', validated as never)).resolves.toBeDefined()
     })
   })
 

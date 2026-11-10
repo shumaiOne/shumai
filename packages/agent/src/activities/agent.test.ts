@@ -1,44 +1,47 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { ToolRegistration } from '@earendil-works/pi-durable'
+import { agentSessionService } from '@shumai/core/src/agent/session-service'
+import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
+import { logger } from '@shumai/core/src/logger'
+import { getShumaiMessage } from '@shumai/dtos'
+import { DBOS, DBOSError, runInLocalTaskContext, triggerLocalCancel } from '@shumai/workflow-core'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import * as piAgent from '../runtime'
+import { mockAgentSession } from '../testing/native-runtime'
 import {
   agentChatActivity,
-  autofillAiActivity,
   type AgentExecutionContext,
-  initializeAgentSessionActivity,
-  deleteCommentActivity,
+  autofillAiActivity,
   createCommentActivity,
-  updateCommentActivity,
-  getAgentChatContextActivity,
-  getAgentAutofillContextActivity,
-  getAssetActivity,
-  getCommentActivity,
-  getProjectAutofillFieldsActivity,
-  updateAssetMetadataActivity,
-  getAssetPathHierarchyActivity,
-  getAssetPathContextActivity,
+  deleteCommentActivity,
+  formatProjectContextPrompt,
   generateSessionNameActivity,
   type GenerateSessionNameParams,
+  getAgentAutofillContextActivity,
+  getAgentChatContextActivity,
+  getAssetActivity,
+  getAssetPathContextActivity,
+  getAssetPathHierarchyActivity,
+  getCommentActivity,
+  getProjectAutofillFieldsActivity,
   getUserTeamInfoActivity,
-  formatProjectContextPrompt,
+  initializeAgentSessionActivity,
+  updateAssetMetadataActivity,
+  updateCommentActivity,
 } from './agent'
-import * as piAgent from '../index'
-import { type AgentHarness, type Session } from '@earendil-works/pi-agent-core'
-import { DatabaseSessionStorage, type DatabaseSessionMetadata } from '../database-session-storage'
-import { triggerLocalCancel, runInLocalTaskContext, DBOS, DBOSError } from '@shumai/workflow-core'
-import { logger } from '@shumai/core/src/logger'
 
 import {
-  prisma,
-  AssetType,
+  type Asset,
   AssetStatus,
+  AssetType,
+  prisma,
+  type Project,
   type Team,
   type User,
-  type Project,
-  type Asset,
 } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 
-vi.mock('../index', async () => {
-  const actual = await vi.importActual('../index')
+vi.mock('../runtime', async () => {
+  const actual = await vi.importActual('../runtime')
   return {
     ...actual,
     createAgentSession: vi.fn(),
@@ -49,6 +52,7 @@ vi.mock('../index', async () => {
 describe('Agent Activities', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.spyOn(agentSessionService, 'getEntries').mockResolvedValue([])
   })
 
   it('should call agentChatActivity and prompt the harness', async () => {
@@ -64,11 +68,9 @@ describe('Agent Activities', () => {
       getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
     }
 
-    vi.mocked(piAgent.createAgentSession).mockResolvedValue({
-      session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-      harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-    })
+    vi.mocked(piAgent.createAgentSession).mockResolvedValue(
+      mockAgentSession(mockHarness, mockSession),
+    )
 
     const context = {
       agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
@@ -94,58 +96,25 @@ describe('Agent Activities', () => {
     expect(piAgent.createAgentSession).toHaveBeenCalled()
   })
 
-  it('should subscribe to harness events and record usage for assistant message_end events', async () => {
-    const { aiUsageService } = await import('@shumai/core/src/ai-usage/ai-usage')
-    const spyRecordUsage = vi.spyOn(aiUsageService, 'recordUsage').mockResolvedValue()
-
-    let subscribeListener!: (event: unknown) => Promise<void>
-    const mockHarness = {
-      subscribe: vi.fn().mockImplementation((listener) => {
-        subscribeListener = listener
-      }),
-      prompt: vi.fn().mockImplementation(async () => {
-        // Trigger assistant message end event during turn
-        if (subscribeListener) {
-          await subscribeListener({
-            type: 'message_end',
-            message: {
-              role: 'assistant',
-              usage: {
-                input: 150,
-                output: 75,
-                cacheRead: 25,
-                totalTokens: 225,
-                cost: { total: 0.0015 },
-              },
-            },
-          })
-        }
-        return {
-          content: [{ type: 'text', text: 'Subscribed response' }],
-          usage: { input: 150, output: 75 },
-        }
-      }),
+  it('reports committed native model usage', async () => {
+    const usage = {
+      input: 150,
+      output: 75,
+      cacheRead: 25,
+      totalTokens: 225,
+      cost: { total: 0.0015 },
     }
-
-    const mockSession = {
-      getEntries: vi.fn().mockResolvedValue([]),
-      getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
+    const model = {
+      prompt: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'Response' }], usage }),
     }
-
-    vi.mocked(piAgent.createAgentSession).mockResolvedValue({
-      session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-      harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-    })
-
+    vi.mocked(piAgent.createAgentSession).mockResolvedValue(mockAgentSession(model))
     const context = {
       agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
       dbProviders: [],
       teamSkills: [],
       allowedDomains: [],
     } as unknown as AgentExecutionContext
-
-    const res = await agentChatActivity({
+    const response = await agentChatActivity({
       teamId: 'team123',
       agentId: 'b1',
       message: 'Hi',
@@ -153,24 +122,15 @@ describe('Agent Activities', () => {
       projectId: 'p1',
       folderId: 'f1',
       sessionId: 'mock-session-id',
-      userId: 'user123',
       context,
     })
-
-    expect(res.text).toBe('Subscribed response')
-    expect(res.usage.inputTokens).toBe(150)
-    expect(res.usage.outputTokens).toBe(75)
-    expect(res.usage.cacheReadTokens).toBe(25)
-    expect(res.usage.cost).toBe(0.0015)
-    expect(spyRecordUsage).toHaveBeenCalledWith({
-      teamId: 'team123',
-      userId: 'user123',
+    expect(response.usage).toMatchObject({
       inputTokens: 150,
       outputTokens: 75,
       cacheReadTokens: 25,
-      totalTokens: 225,
       cost: 0.0015,
     })
+    expect(response.usage.totalTokens).toBe(225)
   })
 
   it('should register local cancellation handler and call harness.abort when cancelled in local mode', async () => {
@@ -194,11 +154,9 @@ describe('Agent Activities', () => {
       getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
     }
 
-    vi.mocked(piAgent.createAgentSession).mockResolvedValue({
-      session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-      harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-    })
+    vi.mocked(piAgent.createAgentSession).mockResolvedValue(
+      mockAgentSession(mockHarness, mockSession),
+    )
 
     const context = {
       agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
@@ -257,11 +215,9 @@ describe('Agent Activities', () => {
       getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
     }
 
-    vi.mocked(piAgent.createAgentSession).mockResolvedValue({
-      session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-      harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-    })
+    vi.mocked(piAgent.createAgentSession).mockResolvedValue(
+      mockAgentSession(mockHarness, mockSession),
+    )
 
     const context = {
       agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
@@ -302,7 +258,7 @@ describe('Agent Activities', () => {
     })
   })
 
-  it('should include error message in text when stopReason is error', async () => {
+  it('rejects a failed native answer instead of completing the workflow', async () => {
     const mockHarness = {
       subscribe: vi.fn(),
       prompt: vi.fn().mockResolvedValue({
@@ -317,11 +273,9 @@ describe('Agent Activities', () => {
       getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
     }
 
-    vi.mocked(piAgent.createAgentSession).mockResolvedValue({
-      session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-      harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-    })
+    vi.mocked(piAgent.createAgentSession).mockResolvedValue(
+      mockAgentSession(mockHarness, mockSession),
+    )
 
     const context = {
       agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
@@ -330,18 +284,18 @@ describe('Agent Activities', () => {
       allowedDomains: [],
     } as unknown as AgentExecutionContext
 
-    const res = await agentChatActivity({
-      teamId: 't1',
-      agentId: 'b1',
-      message: 'Hi',
-      imageUrls: [],
-      projectId: 'p1',
-      folderId: 'f1',
-      sessionId: 'mock-session-id',
-      context,
-    })
-
-    expect(res.text).toBe('Error: API key not valid')
+    await expect(
+      agentChatActivity({
+        teamId: 't1',
+        agentId: 'b1',
+        message: 'Hi',
+        imageUrls: [],
+        projectId: 'p1',
+        folderId: 'f1',
+        sessionId: 'mock-session-id',
+        context,
+      }),
+    ).rejects.toThrow('API key not valid')
   })
 
   it('should pass thinkingLevel from agent config to createAgentSession', async () => {
@@ -358,11 +312,9 @@ describe('Agent Activities', () => {
       getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
     }
 
-    vi.mocked(piAgent.createAgentSession).mockResolvedValue({
-      session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-      harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-    })
+    vi.mocked(piAgent.createAgentSession).mockResolvedValue(
+      mockAgentSession(mockHarness, mockSession),
+    )
 
     const context = {
       agent: {
@@ -409,20 +361,13 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockImplementation(async (config: unknown) => {
       const params = config as {
-        customTools: Array<{
-          name: string
-          execute: (id: string, args: Record<string, unknown>) => Promise<unknown>
-        }>
+        customTools: ToolRegistration[]
       }
       const tool = params.customTools.find((t) => t.name === 'autofill_metadata')
       if (tool) {
-        await tool.execute('1', { f1: 'val' })
+        await invokeTool(tool, '1', { f1: 'val' })
       }
-      return {
-        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-      }
+      return mockAgentSession(mockHarness, mockSession)
     })
 
     const context = {
@@ -460,21 +405,14 @@ describe('Agent Activities', () => {
     vi.mocked(piAgent.createAgentSession).mockImplementation(async (config: unknown) => {
       const params = config as {
         systemPrompt?: string
-        customTools: Array<{
-          name: string
-          execute: (id: string, args: Record<string, unknown>) => Promise<unknown>
-        }>
+        customTools: ToolRegistration[]
       }
       capturedSystemPrompt = params.systemPrompt ?? ''
       const tool = params.customTools.find((t) => t.name === 'autofill_metadata')
       if (tool) {
-        await tool.execute('1', { f1: 'val' })
+        await invokeTool(tool, '1', { f1: 'val' })
       }
-      return {
-        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-      }
+      return mockAgentSession(mockHarness, mockSession)
     })
 
     const context = {
@@ -534,20 +472,13 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockImplementation(async (config: unknown) => {
       const params = config as {
-        customTools: Array<{
-          name: string
-          execute: (id: string, args: Record<string, unknown>) => Promise<unknown>
-        }>
+        customTools: ToolRegistration[]
       }
       const tool = params.customTools.find((t) => t.name === 'autofill_metadata')
       if (tool) {
-        await tool.execute('1', { f1: 'val' })
+        await invokeTool(tool, '1', { f1: 'val' })
       }
-      return {
-        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-      }
+      return mockAgentSession(mockHarness, mockSession)
     })
 
     const context = {
@@ -590,20 +521,13 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockImplementation(async (config: unknown) => {
       const params = config as {
-        customTools: Array<{
-          name: string
-          execute: (id: string, args: Record<string, unknown>) => Promise<unknown>
-        }>
+        customTools: ToolRegistration[]
       }
       const tool = params.customTools.find((t) => t.name === 'autofill_metadata')
       if (tool) {
-        await tool.execute('1', { f1: 'val' })
+        await invokeTool(tool, '1', { f1: 'val' })
       }
-      return {
-        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-      }
+      return mockAgentSession(mockHarness, mockSession)
     })
 
     const context = {
@@ -721,491 +645,123 @@ describe('Agent Database Activities Integration', () => {
   })
 
   describe('initializeAgentSessionActivity', () => {
-    it('should initialize a session, create agent/user records if missing, and store existing comments context', async () => {
-      const attAsset = await prisma.asset.create({
+    it('copies independent context with authors, mentions, attachments and media positions', async () => {
+      await prisma.asset.update({
+        where: { id: asset.id },
         data: {
-          name: 'attached-doc.pdf',
-          type: AssetType.file,
-          mediaType: 'application/pdf',
-          status: AssetStatus.uploaded,
-          projectId: project.id,
-        },
-      })
-
-      // Create first comment so it acts as context
-      const firstComment = await prisma.assetComment.create({
-        data: {
-          assetId: asset.id,
-          message: 'Hello <@' + user.id + '> check this',
-          creatorId: user.id,
-        },
-      })
-
-      await prisma.assetCommentAttachment.create({
-        data: {
-          commentId: firstComment.id,
-          assetId: attAsset.id,
-        },
-      })
-
-      await sleep(2)
-      // Create second comment that user responds with, triggering session initialization
-      const userComment = await prisma.assetComment.create({
-        data: {
-          assetId: asset.id,
-          message: 'Reply comment',
-          creatorId: user.id,
-        },
-      })
-
-      const sessionId = await initializeAgentSessionActivity({
-        teamId: team.id,
-        agentId: 'test-agent-id',
-        userCommentId: userComment.id,
-        userId: user.id,
-      })
-
-      expect(sessionId).toBeDefined()
-
-      // Verify agent user created
-      const agentUser = await prisma.user.findUnique({ where: { id: 'test-agent-id' } })
-      expect(agentUser).toBeDefined()
-      expect(agentUser?.type).toBe('agent')
-
-      // Verify agentSession created
-      const agentSession = await prisma.agentSession.findUnique({
-        where: { id: sessionId },
-      })
-      expect(agentSession).toBeDefined()
-      expect(agentSession?.leafId).toBeDefined()
-
-      // Verify historical comment is converted and saved to DAG entries via path traversal
-      const storage = new DatabaseSessionStorage(sessionId)
-      const pathEntries = await storage.getPathToRoot(agentSession!.leafId)
-      expect(pathEntries.length).toBe(2)
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- entry data is stored as Json in DB and needs casting to check properties
-      const parsedEntry = pathEntries[0] as any
-      expect(parsedEntry.type).toBe('custom_message')
-      expect(parsedEntry.customType).toBe('shumai_message')
-      expect(parsedEntry.content).toContain(`Hello <@${user.name}> check this`)
-      expect(parsedEntry.details.user.name).toBe(user.name)
-      expect(parsedEntry.details.user.role).toBe('owner')
-      expect(parsedEntry.details.attachedFiles).toEqual([
-        {
-          id: attAsset.id,
-          name: 'attached-doc.pdf',
-          type: 'file',
-          mediaType: undefined,
-          mimeType: 'application/pdf',
-        },
-      ])
-    })
-
-    it('should distinguish Main Session (userCommentId: null) and Thread Session (userCommentId: rootId) during lazy sync', async () => {
-      // 1. Top-level comments
-      const mainComment1 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: 'Main Comment 1', creatorId: user.id },
-      })
-      await sleep(2)
-      const mainComment2 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: 'Main Comment 2', creatorId: user.id },
-      })
-
-      // 2. Thread reply under mainComment1
-      await sleep(2)
-      const threadReply1 = await prisma.assetComment.create({
-        data: {
-          assetId: asset.id,
-          message: 'Thread Reply 1',
-          creatorId: user.id,
-          replyToId: mainComment1.id,
-        },
-      })
-
-      // 3. Initialize session for mention on mainComment2 (creates Thread Session for mainComment2)
-      const threadSession2Id = await initializeAgentSessionActivity({
-        teamId: team.id,
-        agentId: 'test-agent-id',
-        userCommentId: mainComment2.id,
-        userId: user.id,
-      })
-
-      const threadSession2 = await prisma.agentSession.findUnique({
-        where: { id: threadSession2Id },
-      })
-      expect(threadSession2?.userCommentId).toBe(mainComment2.id)
-
-      // Main Session (userCommentId: null) is created during lazy sync
-      const mainSession = await prisma.agentSession.findFirst({
-        where: { assetId: asset.id, type: 'comment', userCommentId: null },
-      })
-      expect(mainSession).toBeDefined()
-      expect(mainSession?.userCommentId).toBeNull()
-
-      // Retrieve main session entries (contains top-level comments mainComment1 and mainComment2)
-      const mainEntries = await prisma.agentSessionEntry.findMany({
-        where: { sessionId: mainSession!.id },
-        orderBy: { id: 'asc' },
-      })
-
-      // Main session contains mainComment1 and mainComment2, but NOT threadReply1
-      expect(mainEntries.length).toBe(2)
-      expect(mainEntries[0].id).toContain(mainComment1.id)
-      expect(mainEntries[1].id).toContain(mainComment2.id)
-
-      // 4. Initialize session for mention on threadReply1 (Thread Session for mainComment1)
-      const threadSession1Id = await initializeAgentSessionActivity({
-        teamId: team.id,
-        agentId: 'test-agent-id',
-        userCommentId: threadReply1.id,
-        userId: user.id,
-      })
-
-      const threadSession1 = await prisma.agentSession.findUnique({
-        where: { id: threadSession1Id },
-      })
-      expect(threadSession1?.userCommentId).toBe(mainComment1.id) // Thread Session has userCommentId = rootComment.id
-    })
-
-    it('should dynamically tag top-level comments with thread metadata in context even if thread was created after initial sync', async () => {
-      const msg3 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: 'Question in msg3', creatorId: user.id },
-      })
-
-      await initializeAgentSessionActivity({
-        teamId: team.id,
-        agentId: 'test-agent-id',
-        userCommentId: msg3.id,
-        userId: user.id,
-      })
-
-      await prisma.assetComment.create({
-        data: {
-          assetId: asset.id,
-          message: 'Reply msg4',
-          creatorId: user.id,
-          replyToId: msg3.id,
-        },
-      })
-
-      const msg6 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: 'Question in msg6', creatorId: user.id },
-      })
-
-      await initializeAgentSessionActivity({
-        teamId: team.id,
-        agentId: 'test-agent-id',
-        userCommentId: msg6.id,
-        userId: user.id,
-      })
-
-      // Check main session where top-level comments are stored
-      const mainSession = await prisma.agentSession.findFirst({
-        where: { assetId: asset.id, type: 'comment', userCommentId: null },
-      })
-      expect(mainSession).toBeDefined()
-
-      const storage = new DatabaseSessionStorage(mainSession!.id)
-      const leafId = await storage.getLeafId()
-      const pathEntries = await storage.getPathToRoot(leafId)
-
-      const msg3Entry = pathEntries.find((e) => e.id.includes(msg3.id))
-      expect(msg3Entry).toBeDefined()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect((msg3Entry as any).details?.thread).toEqual({
-        id: msg3.id,
-        replyCount: 1,
-      })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const text = (msg3Entry as any).content ?? (msg3Entry as any).message?.content[0]?.text
-      expect(text).not.toContain(`[Thread ID: ${msg3.id}]`)
-    })
-
-    it('should create separate thread sessions when agent is mentioned in top-level comments (msg3 & msg5) sharing DAG entries without duplication', async () => {
-      // msg1 (top level)
-      const msg1 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: 'msg1', creatorId: user.id },
-      })
-      await sleep(2)
-      // msg2 (top level)
-      const msg2 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: 'msg2', creatorId: user.id },
-      })
-      await sleep(2)
-      // msg3 (top level asking agent)
-      const msg3 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: '[ask agent] msg3', creatorId: user.id },
-      })
-
-      // Initialize session for msg3
-      const session3Id = await initializeAgentSessionActivity({
-        teamId: team.id,
-        agentId: 'test-agent-id',
-        userCommentId: msg3.id,
-        userId: user.id,
-      })
-
-      // agent response msg4
-      await sleep(2)
-      const msg4 = await prisma.assetComment.create({
-        data: {
-          assetId: asset.id,
-          message: 'msg4',
-          creatorId: 'test-agent-id',
-          replyToId: msg3.id,
-          sessionId: session3Id,
-        },
-      })
-
-      // msg5 (top level asking agent)
-      await sleep(2)
-      const msg5 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: '[ask agent] msg5', creatorId: user.id },
-      })
-
-      // Initialize session for msg5
-      const session5Id = await initializeAgentSessionActivity({
-        teamId: team.id,
-        agentId: 'test-agent-id',
-        userCommentId: msg5.id,
-        userId: user.id,
-      })
-
-      const session3 = await prisma.agentSession.findUnique({ where: { id: session3Id } })
-      const session5 = await prisma.agentSession.findUnique({ where: { id: session5Id } })
-
-      // Thread Session 1 anchored at msg3.id
-      expect(session3?.userCommentId).toBe(msg3.id)
-      // Thread Session 2 anchored at msg5.id
-      expect(session5?.userCommentId).toBe(msg5.id)
-      // They should be distinct sessions
-      expect(session3Id).not.toBe(session5Id)
-
-      // msg7 (reply to msg3 asking agent again)
-      await sleep(2)
-      const msg7 = await prisma.assetComment.create({
-        data: {
-          assetId: asset.id,
-          message: '[ask agent again] msg7',
-          creatorId: user.id,
-          replyToId: msg3.id,
-        },
-      })
-
-      const session7Id = await initializeAgentSessionActivity({
-        teamId: team.id,
-        agentId: 'test-agent-id',
-        userCommentId: msg7.id,
-        userId: user.id,
-      })
-
-      // Reuses session3Id (Thread Session 1)
-      expect(session7Id).toBe(session3Id)
-
-      // VERIFY DAG ENTRY SHARING & NO DUPLICATION
-      // Every shared comment must have EXACTLY 1 row in agent_session_entries with id = comment.id
-      const msg1Entries = await prisma.agentSessionEntry.findMany({ where: { id: msg1.id } })
-      const msg2Entries = await prisma.agentSessionEntry.findMany({ where: { id: msg2.id } })
-      expect(msg1Entries.length).toBe(1)
-      expect(msg2Entries.length).toBe(1)
-
-      // Verify DatabaseSessionStorage path traversal for session 3 vs session 5
-      const storage3 = new DatabaseSessionStorage(session3Id)
-      const path3 = await storage3.getPathToRoot(msg4.id)
-      const path3Ids = path3.map((e) => e.id)
-      expect(path3Ids).toContain(msg1.id)
-      expect(path3Ids).toContain(msg2.id)
-      expect(path3Ids).toContain(msg4.id)
-      expect(path3Ids).not.toContain(msg5.id)
-
-      const storage5 = new DatabaseSessionStorage(session5Id)
-      const path5 = await storage5.getPathToRoot(session5!.leafId!)
-      const path5Ids = path5.map((e) => e.id)
-      expect(path5Ids).toContain(msg1.id)
-      expect(path5Ids).toContain(msg2.id)
-      expect(path5Ids).not.toContain(msg4.id)
-    })
-
-    it('should set thread session leafId to rootComment.id including preceding top-level comments', async () => {
-      // msg1 (top level)
-      const msg1 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: 'msg1', creatorId: user.id },
-      })
-      await sleep(2)
-      // msg2 (top level)
-      const msg2 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: 'msg2', creatorId: user.id },
-      })
-      await sleep(2)
-      // msg3 (top level asking agent)
-      const msg3 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: '<@shumai-x1> what did i say', creatorId: user.id },
-      })
-
-      const sessionId = await initializeAgentSessionActivity({
-        teamId: team.id,
-        agentId: 'test-agent-id',
-        userCommentId: msg3.id,
-        userId: user.id,
-      })
-
-      const threadSession = await prisma.agentSession.findUnique({
-        where: { id: sessionId },
-      })
-
-      // The leafId for the thread session is msg3.id
-      expect(threadSession?.leafId).toBe(msg3.id)
-
-      const storage = new DatabaseSessionStorage(sessionId)
-      const pathEntries = await storage.getPathToRoot(threadSession!.leafId)
-      const pathIds = pathEntries.map((e) => e.id)
-
-      // Context history contains msg1, msg2, and msg3
-      expect(pathIds).toContain(msg1.id)
-      expect(pathIds).toContain(msg2.id)
-      expect(pathIds).toContain(msg3.id)
-    })
-
-    it('should include top-level agent mention comment in Main Session top-level DAG timeline', async () => {
-      // msg1 (top level)
-      const msg1 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: 'msg1', creatorId: user.id },
-      })
-      await sleep(2)
-      // msg2 (top level)
-      const msg2 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: 'msg2', creatorId: user.id },
-      })
-      await sleep(2)
-      // msg3 (top level asking agent)
-      const msg3 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: '<@shumai-x1> what did i say', creatorId: user.id },
-      })
-
-      await initializeAgentSessionActivity({
-        teamId: team.id,
-        agentId: 'test-agent-id',
-        userCommentId: msg3.id,
-        userId: user.id,
-      })
-
-      const mainSession = await prisma.agentSession.findFirst({
-        where: { assetId: asset.id, type: 'comment', userCommentId: null },
-      })
-      expect(mainSession).toBeDefined()
-      // Main session leafId MUST be msg3.id (top-level comment asking agent)
-      expect(mainSession?.leafId).toBe(msg3.id)
-
-      const storage = new DatabaseSessionStorage(mainSession!.id)
-      const mainPath = await storage.getPathToRoot(mainSession!.leafId)
-      const mainPathIds = mainPath.map((e) => e.id)
-
-      // Main session contains all top-level comments including msg3
-      expect(mainPathIds).toContain(msg1.id)
-      expect(mainPathIds).toContain(msg2.id)
-      expect(mainPathIds).toContain(msg3.id)
-    })
-
-    it('should safely upsert entry without unique constraint error when appendEntry is called for pre-existing userComment.id', async () => {
-      const msg3 = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: '<@shumai-x1> what did i say', creatorId: user.id },
-      })
-
-      const sessionId = await initializeAgentSessionActivity({
-        teamId: team.id,
-        agentId: 'test-agent-id',
-        userCommentId: msg3.id,
-        userId: user.id,
-      })
-
-      const storage = new DatabaseSessionStorage(sessionId)
-      storage.nextEntryId = msg3.id
-
-      const entryId = await storage.createEntryId()
-      expect(entryId).toBe(msg3.id)
-
-      // appendEntry should upsert msg3.id without throwing unique constraint error
-      await expect(
-        storage.appendEntry({
-          id: entryId,
-          type: 'message',
-          parentId: null,
-          timestamp: new Date().toISOString(),
-          message: {
-            role: 'user',
-            content: [{ type: 'text', text: 'Updated content' }],
+          media: {
+            proxyType: '3d',
+            duration: 0,
+            filesize: 0,
+            frames: 0,
+            imageTranscodes: [],
+            videoTranscodes: [],
+            finishedAt: '',
+            metadata: null,
+            original: null,
           },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- testing mock entry casting
-        } as any),
-      ).resolves.not.toThrow()
-    })
-
-    it('should not tag thread when only __CHAT__ placeholder comment exists under root comment', async () => {
-      const rootComment = await prisma.assetComment.create({
-        data: { assetId: asset.id, message: 'Root comment asking agent', creatorId: user.id },
-      })
-      // Create placeholder comment under rootComment
-      await prisma.assetComment.create({
-        data: {
-          assetId: asset.id,
-          message: '__CHAT__',
-          creatorId: user.id,
-          replyToId: rootComment.id,
         },
       })
-
-      const sessionId = await initializeAgentSessionActivity({
-        teamId: team.id,
-        agentId: 'test-agent-id',
-        userCommentId: rootComment.id,
-        userId: user.id,
-      })
-
-      const storage = new DatabaseSessionStorage(sessionId)
-      const pathEntries = await storage.getPathToRoot(rootComment.id)
-      const rootEntry = pathEntries.find((e) => e.id === rootComment.id)
-
-      expect(rootEntry).toBeDefined()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- entry data structure parsing
-      expect((rootEntry as any)?.details?.thread).toBeUndefined()
-    })
-
-    it('should set media position to degree for 3D asset comments', async () => {
-      const asset3d = await prisma.asset.create({
+      const attachment = await prisma.asset.create({
         data: {
-          name: 'robot.glb',
+          name: 'doc.pdf',
           type: 'file',
-          status: 'processed',
-          mediaType: 'model/gltf-binary',
-          media: { proxyType: '3d' } as unknown as PrismaJson.MediaInfo,
+          status: 'uploaded',
+          mediaType: 'application/pdf',
           projectId: project.id,
         },
       })
-
-      const comment3d = await prisma.assetComment.create({
-        data: {
-          assetId: asset3d.id,
-          message: 'Nice angle',
-          creatorId: user.id,
-          second: 0.5, // 45°
+      const first = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: `Hello <@${user.id}>`, creatorId: user.id, second: 1 },
+      })
+      await prisma.assetCommentAttachment.create({
+        data: { commentId: first.id, assetId: attachment.id },
+      })
+      await sleep(2)
+      const second = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: 'Next', creatorId: user.id },
+      })
+      await sleep(2)
+      const third = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: 'Third', creatorId: user.id },
+      })
+      const initialize = (id: string) =>
+        initializeAgentSessionActivity({
+          teamId: team.id,
+          agentId: 'test-agent-id',
+          userCommentId: id,
+          userId: user.id,
+        })
+      const secondSession = await initialize(second.id)
+      const thirdSession = await initialize(third.id)
+      expect(secondSession).not.toBe(thirdSession)
+      const entries = await agentSessionService.getEntries(secondSession)
+      const message = entries
+        .map(getShumaiMessage)
+        .find((data) => data?.sourceCommentId === first.id)
+      expect(message).toMatchObject({
+        displayText: `Hello <@${user.name}>`,
+        context: {
+          user: { name: user.name, role: 'owner' },
+          position: { type: 'degree' },
+          attachedFiles: [{ id: attachment.id, mimeType: 'application/pdf' }],
         },
       })
+      expect(entries.filter((e) => e.kind === 'shumai.message')).toHaveLength(1)
+      expect(
+        (await agentSessionService.getEntries(thirdSession)).filter(
+          (e) => e.kind === 'shumai.message',
+        ),
+      ).toHaveLength(2)
+      expect(
+        await prisma.agentSession.count({ where: { assetId: asset.id, userCommentId: null } }),
+      ).toBe(0)
+      expect(await prisma.agentSessionEntry.count()).toBe(0)
+      // Repeated initialization is idempotent, and deleting another session cannot remove copied context.
+      await initialize(second.id)
+      await prisma.agentSession.delete({ where: { id: thirdSession } })
+      expect(await agentSessionService.getEntries(secondSession)).toEqual(entries)
+    })
 
+    it('copies thread replies without the triggering comment, placeholders or duplicate agent answers', async () => {
+      const root = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: 'Question', creatorId: user.id },
+      })
+      await prisma.assetComment.create({
+        data: { assetId: asset.id, message: '__CHAT__', replyToId: root.id },
+      })
+      await sleep(2)
+      const reply = await prisma.assetComment.create({
+        data: {
+          assetId: asset.id,
+          message: 'Earlier reply',
+          creatorId: user.id,
+          replyToId: root.id,
+        },
+      })
+      await sleep(2)
+      const current = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: 'Trigger', creatorId: user.id, replyToId: root.id },
+      })
       const sessionId = await initializeAgentSessionActivity({
         teamId: team.id,
         agentId: 'test-agent-id',
-        userCommentId: comment3d.id,
+        userCommentId: current.id,
         userId: user.id,
       })
-
-      const storage = new DatabaseSessionStorage(sessionId)
-      const pathEntries = await storage.getPathToRoot(comment3d.id)
-      const entry = pathEntries.find((e) => e.id === comment3d.id)
-
-      expect(entry).toBeDefined()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test entry position parsing
-      expect((entry as any)?.details?.position).toEqual({ type: 'degree', degree: 45 })
+      const records = (await agentSessionService.getEntries(sessionId))
+        .map(getShumaiMessage)
+        .filter(Boolean)
+      expect(records.map((record) => record?.sourceCommentId)).toEqual([root.id, reply.id])
+      expect(records[0]?.context?.thread).toEqual({ id: root.id, replyCount: 2 })
+      await initializeAgentSessionActivity({
+        teamId: team.id,
+        agentId: 'test-agent-id',
+        userCommentId: current.id,
+      })
+      expect(
+        (await agentSessionService.getEntries(sessionId)).map(getShumaiMessage).filter(Boolean),
+      ).toEqual(records)
     })
 
     it('should return user name and role for team member', async () => {
@@ -1669,11 +1225,7 @@ describe('Agent Database Activities Integration', () => {
           content: [{ type: 'text', text: '  "Summarized Chat Title"  ' }],
         }),
       }
-      vi.mocked(piAgent.createAgentSession).mockResolvedValue({
-        session: {} as unknown as Session<DatabaseSessionMetadata>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-      })
+      vi.mocked(piAgent.createAgentSession).mockResolvedValue(mockAgentSession(mockHarness, {}))
 
       await generateSessionNameActivity({
         teamId: 't1',
@@ -1728,6 +1280,7 @@ describe('Agent Database Activities Integration', () => {
       expect(updatedSession?.name).toBe('Summarized Chat Title')
       expect(mockHarness.prompt).toHaveBeenCalledWith(
         'Generate a short 2 to 4 word title for a session starting with this message:\n\n<user_message>\nhello world prompt\n</user_message>',
+        { images: [] },
       )
 
       // Verify that transient naming session was cleaned up (deleted)
@@ -1851,11 +1404,7 @@ describe('Agent Database Activities Integration', () => {
           errorMessage: 'Rate limit exceeded (429)',
         }),
       }
-      vi.mocked(piAgent.createAgentSession).mockResolvedValue({
-        session: {} as unknown as Session<DatabaseSessionMetadata>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-      })
+      vi.mocked(piAgent.createAgentSession).mockResolvedValue(mockAgentSession(mockHarness, {}))
 
       await generateSessionNameActivity({
         teamId: 't1',
@@ -1942,11 +1491,7 @@ describe('Agent Database Activities Integration', () => {
           content: [{ type: 'text', text: 'Thinking Title' }],
         }),
       }
-      vi.mocked(piAgent.createAgentSession).mockResolvedValue({
-        session: {} as unknown as Session<DatabaseSessionMetadata>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-      })
+      vi.mocked(piAgent.createAgentSession).mockResolvedValue(mockAgentSession(mockHarness, {}))
 
       await generateSessionNameActivity({
         teamId: 't-thinking',
@@ -2052,11 +1597,9 @@ describe('Agent Database Activities Integration', () => {
         getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
       }
 
-      vi.mocked(piAgent.createAgentSession).mockResolvedValue({
-        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-      })
+      vi.mocked(piAgent.createAgentSession).mockResolvedValue(
+        mockAgentSession(mockHarness, mockSession),
+      )
 
       const context = {
         agent: { id: 'agent-1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
@@ -2132,11 +1675,9 @@ describe('Agent Database Activities Integration', () => {
         getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
       }
 
-      vi.mocked(piAgent.createAgentSession).mockResolvedValue({
-        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-      })
+      vi.mocked(piAgent.createAgentSession).mockResolvedValue(
+        mockAgentSession(mockHarness, mockSession),
+      )
 
       const context = {
         agent: { id: 'agent-1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
@@ -2182,7 +1723,17 @@ describe('Agent Database Activities Integration', () => {
           type: 'file',
           status: 'processed',
           mediaType: 'model/gltf-binary',
-          media: { proxyType: '3d' } as unknown as PrismaJson.MediaInfo,
+          media: {
+            proxyType: '3d',
+            duration: 0,
+            filesize: 0,
+            frames: 0,
+            imageTranscodes: [],
+            videoTranscodes: [],
+            finishedAt: '',
+            metadata: null,
+            original: null,
+          } as unknown as PrismaJson.MediaInfo,
           projectId: project.id,
         },
       })
@@ -2209,11 +1760,9 @@ describe('Agent Database Activities Integration', () => {
         }),
       }
 
-      vi.mocked(piAgent.createAgentSession).mockResolvedValue({
-        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-      })
+      vi.mocked(piAgent.createAgentSession).mockResolvedValue(
+        mockAgentSession(mockHarness, mockSession),
+      )
 
       const context = {
         agent: { id: 'agent-1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },

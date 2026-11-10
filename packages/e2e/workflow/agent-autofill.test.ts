@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import { initAgentWorkflows } from '@shumai/agent'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { workflowService, TaskQueueAgent, TaskQueueTranscode } from '@shumai/workflow-core'
-import { initAgentWorkflows } from '@shumai/agent'
 import { initTranscodeWorkflows } from '@shumai/transcode'
-import { s3Service } from '@shumai/core/src/s3/s3'
-import { AgentHarness } from '@earendil-works/pi-agent-core'
+import { TaskQueueAgent, TaskQueueTranscode, workflowService } from '@shumai/workflow-core'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { mockModelPrompt, type ModelScenario } from './model-mock'
 
 describe('Workflow E2E - agentAutofillMedia', () => {
   setupTestDbHooks()
@@ -19,10 +19,7 @@ describe('Workflow E2E - agentAutofillMedia', () => {
     initTranscodeWorkflows()
 
     // Spy on the harness prompt method to intercept the LLM call while running real activities & tools
-    vi.spyOn(AgentHarness.prototype, 'prompt').mockImplementation(async function (
-      this: AgentHarness,
-      ...args: unknown[]
-    ) {
+    mockModelPrompt(async function (this: ModelScenario, ...args: unknown[]) {
       // Find the real tools configured on the harness
       const tools = this.getTools()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Tool execution mock for E2E harness test
@@ -411,9 +408,9 @@ describe('Workflow E2E - agentAutofillMedia', () => {
     })
 
     // Mock prompt to fail
-    vi.spyOn(AgentHarness.prototype, 'prompt').mockRejectedValueOnce(
-      new Error('LLM rate limit reached'),
-    )
+    mockModelPrompt(async () => {
+      throw new Error('LLM rate limit reached')
+    })
 
     const task = await prisma.workflowTask.create({
       data: {

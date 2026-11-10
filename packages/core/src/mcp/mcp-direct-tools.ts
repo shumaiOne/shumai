@@ -8,9 +8,12 @@
  * discovery/auth/status and for tools not in direct mode.
  */
 
-import { Type } from '@sinclair/typebox'
-import type { AgentTool, AgentToolResult } from '@earendil-works/pi-agent-core'
+import type {
+  ToolRegistration as AgentTool,
+  ToolExecutionResult as AgentToolResult,
+} from '@earendil-works/pi-durable'
 import '@shumai/db/src/prisma-json-types'
+import { Type } from '@sinclair/typebox'
 import type { ToolMetadata } from './mcp-tool-registry'
 import { isToolAllowed } from './mcp-tool-registry'
 import { toToolParameters } from './mcp-tool-schema'
@@ -24,7 +27,7 @@ export interface DirectToolCallOptions {
     args: Record<string, unknown>,
   ): Promise<{
     ok: boolean
-    content: AgentToolResult<Record<string, unknown>>['content']
+    content: NonNullable<AgentToolResult['output']>
   }>
 }
 
@@ -63,18 +66,17 @@ export function buildDirectTools(
     const parameters = toToolParameters(tool.inputSchema)
     tools.push({
       name: tool.name,
-      label: tool.name,
       description:
         tool.description || `Call ${tool.originalName} on MCP server ${opts.serverName}.`,
       parameters: parameters as unknown as import('typebox').TSchema,
-      execute: async (_toolCallId, args): Promise<AgentToolResult<Record<string, unknown>>> => {
+      execute: async (args): Promise<AgentToolResult> => {
         const result = await opts.callTool(
           opts.serverId,
           tool.originalName,
           args as Record<string, unknown>,
         )
         return {
-          content: result.content,
+          output: result.content,
           details: { server: opts.serverName, tool: tool.originalName },
         }
       },

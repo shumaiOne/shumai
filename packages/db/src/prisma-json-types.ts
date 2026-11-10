@@ -3,10 +3,20 @@ export {}
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace PrismaJson {
-    export type PiSessionEntryData = Omit<
-      import('@earendil-works/pi-agent-core').SessionTreeEntry,
-      'id' | 'type' | 'parentId' | 'timestamp'
-    >
+    export interface AgentSessionCommitData {
+      version: 1
+      writes: import('./generated/prisma/internal/prismaNamespace').JsonValue[]
+    }
+
+    export interface AgentSessionUsage {
+      inputTokens: number
+      outputTokens: number
+      cacheReadTokens: number
+      totalTokens: number
+      cost: number
+    }
+
+    export type PiSessionEntryData = { [key: string]: unknown }
 
     export type ShumaiMessageContext = import('@shumai/dtos').ShumaiMessageContext
 

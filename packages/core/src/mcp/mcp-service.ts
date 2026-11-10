@@ -2,8 +2,14 @@
  * McpService — CRUD, discovery, OAuth, and agent integration for MCP servers.
  */
 
+import type {
+  ToolRegistration as AgentTool,
+  ToolExecutionResult as AgentToolResult,
+} from '@earendil-works/pi-durable'
 import { auth } from '@modelcontextprotocol/client'
-import type { AgentTool, AgentToolResult } from '@earendil-works/pi-agent-core'
+import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
+import { logger } from '@shumai/core/src/logger'
+import { quotaService } from '@shumai/core/src/quota/quota-service'
 import { prisma, type TeamMemberRole } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
 import type {
@@ -12,20 +18,17 @@ import type {
   McpServerInfo,
   UpdateMcpServerRequest,
 } from '@shumai/dtos'
-import { logger } from '@shumai/core/src/logger'
-import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
-import { quotaService } from '@shumai/core/src/quota/quota-service'
 import { mcpDbStore, type PendingAuth } from './mcp-db-store'
 import { buildDirectTools, isDirectTool } from './mcp-direct-tools'
 import { McpOauthProvider, type McpOauthConfig } from './mcp-oauth-provider'
 import { buildProxyTool, transformMcpContent, type McpProxyToolContext } from './mcp-proxy-tool'
+import { McpServerManager, type McpServerDefinition } from './mcp-server-manager'
 import {
   formatToolName,
   McpToolRegistry,
   sanitizeServerPrefix,
   type ToolMetadata,
 } from './mcp-tool-registry'
-import { McpServerManager, type McpServerDefinition } from './mcp-server-manager'
 
 const ROLE_HIERARCHY: Record<string, number> = {
   owner: 3,
@@ -39,7 +42,7 @@ export interface McpToolCallContext {
   projectId?: string
 }
 
-export type McpToolCallContent = AgentToolResult<Record<string, unknown>>['content']
+export type McpToolCallContent = NonNullable<AgentToolResult['output']>
 
 export interface McpToolCallResult {
   ok: boolean

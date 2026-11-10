@@ -1,7 +1,8 @@
-import { prisma } from '@shumai/db'
-import type { ShumaiMessageContext } from '@shumai/dtos'
-import { HTTPException } from 'hono/http-exception'
 import { degreeToSecond } from '@shumai/core/src/utils/model3d'
+import { prisma } from '@shumai/db'
+import { getShumaiMessage } from '@shumai/dtos'
+import { HTTPException } from 'hono/http-exception'
+import { agentSessionService } from '../agent/session-service'
 
 /**
  * Resolve the visual markup referenced by an annotation ID: a comment (comments mode) or an
@@ -32,15 +33,13 @@ export async function resolveAnnotationsById(
     return { annotations, timestamp: comment.second }
   }
 
-  // 2. Check AgentSessionEntry table (1-on-1 Chat Mode)
-  const entry = await prisma.agentSessionEntry.findUnique({
-    where: { id: annotationId },
-    select: { assetId: true, data: true },
-  })
+  const reference = /^chat:([^:]+):(.+)$/.exec(annotationId)
+  const entry = reference
+    ? await agentSessionService.getEntryForRequest(reference[1], reference[2])
+    : undefined
   if (entry) {
-    const details = (entry.data as Record<string, unknown> | null)?.details as
-      ShumaiMessageContext | undefined
-    const entryAssetId = entry.assetId || details?.currentAsset?.id
+    const details = getShumaiMessage(entry)?.context
+    const entryAssetId = details?.currentAsset?.id
     if (entryAssetId && entryAssetId !== assetId) {
       throw new HTTPException(400, {
         message: `Annotation "${annotationId}" belongs to asset "${entryAssetId}", not target asset "${assetId}".`,

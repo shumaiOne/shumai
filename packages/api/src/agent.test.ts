@@ -1,3 +1,4 @@
+import { ROOT_CONVERSATION_ID, type EntryId, type EntryRecord } from '@earendil-works/pi-durable'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { HTTPException } from 'hono/http-exception'
 import { agentService } from '@shumai/core/src/agent/agent'
@@ -352,15 +353,15 @@ describe('Agent API', () => {
 
   describe('GET /agent-sessions/:sessionId/entries', () => {
     it('returns entries of agent session if user is admin', async () => {
-      const mockEntries = [
+      const mockEntries: EntryRecord[] = [
         {
-          id: 'entry1',
-          sessionId: 'session1',
-          entry: { step: 1, message: 'Step 1' },
+          id: 7 as EntryId,
+          conversationId: ROOT_CONVERSATION_ID,
+          kind: 'pi.user',
+          model: [{ role: 'user', content: 'Step 1', timestamp: 1 }],
         },
       ]
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(agentService.getSessionEntries).mockResolvedValue(mockEntries as any)
+      vi.mocked(agentService.getSessionEntries).mockResolvedValue(mockEntries)
 
       const res = await app.request('/agent-sessions/session1/entries', {
         headers: { 'Content-Type': 'application/json' },
@@ -369,8 +370,9 @@ describe('Agent API', () => {
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data).toHaveLength(1)
-      expect(data[0].id).toBe('entry1')
-      expect(data[0].entry.step).toBe(1)
+      expect(data[0].id).toBe(7)
+      expect(data[0].kind).toBe('pi.user')
+      expect(data[0].model[0].content).toBe('Step 1')
       expect(authzService.hasPermission).toHaveBeenCalledWith({
         user: undefined,
         permission: 'Admin',

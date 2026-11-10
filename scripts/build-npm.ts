@@ -498,15 +498,6 @@ await buildMainPackage({
   external: shumaiExternal,
 })
 
-// 3. Build shumai-agent (Agent app & platform binaries)
-await buildPlatformPackages('shumai-agent', dummyRunnerPath)
-await buildMainPackage({
-  appName: 'shumai-agent',
-  description: 'AI worker agent for the shumai media workspace',
-  hasPrisma: true,
-  entrypoint: './apps/agent/src/index.ts',
-})
-
 // 4. Build shumai-transcode (Transcode app & platform binaries)
 await buildPlatformPackages('shumai-transcode', dummyRunnerPath)
 await buildMainPackage({

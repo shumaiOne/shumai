@@ -8,7 +8,6 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY --parents packages/*/package.json ./
 COPY --parents apps/*/package.json ./
-COPY patches/ ./patches/
 
 # Install dependencies (including devDependencies for build tools)
 RUN bun install --frozen-lockfile
@@ -96,11 +95,10 @@ USER root
 COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Expose "bun index.js" as "shumai" CLI command (and worker commands "shumai-transcode", "shumai-agent")
+# Expose "bun index.js" as "shumai" CLI command (and the transcode worker command)
 RUN printf '#!/bin/sh\nexec bun /app/index.js "$@"\n' > /usr/local/bin/shumai \
     && printf '#!/bin/sh\nexec bun /app/transcode-worker.js "$@"\n' > /usr/local/bin/shumai-transcode \
-    && printf '#!/bin/sh\nexec bun /app/agent-worker.js "$@"\n' > /usr/local/bin/shumai-agent \
-    && chmod +x /usr/local/bin/shumai /usr/local/bin/shumai-transcode /usr/local/bin/shumai-agent \
+    && chmod +x /usr/local/bin/shumai /usr/local/bin/shumai-transcode \
     && ln -s /usr/local/bin/shumai /usr/local/bin/shuami
 
 ENTRYPOINT ["docker-entrypoint.sh"]

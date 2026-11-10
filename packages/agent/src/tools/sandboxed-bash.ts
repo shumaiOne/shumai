@@ -1,8 +1,13 @@
+import {
+  type ToolRegistration as AgentTool,
+  type ToolExecutionResult as AgentToolResult,
+} from '@earendil-works/pi-durable'
 import { logger } from '@shumai/core/src/logger'
+import { quotaService } from '@shumai/core/src/quota/quota-service'
 import { sandboxService } from '@shumai/core/src/sandbox/sandbox-service'
-import { type AgentTool, type AgentToolResult } from '@earendil-works/pi-agent-core'
-import { Type } from 'typebox'
+import type { TeamMemberRole } from '@shumai/db'
 import { spawn } from 'node:child_process'
+import { Type } from 'typebox'
 import { OutputAccumulator } from '../utils/output-accumulator'
 import {
   DEFAULT_MAX_BYTES,
@@ -10,8 +15,6 @@ import {
   formatSize,
   type TruncationResult,
 } from '../utils/truncate'
-import { quotaService } from '@shumai/core/src/quota/quota-service'
-import type { TeamMemberRole } from '@shumai/db'
 
 const BashSource = Type.String({
   enum: ['user', 'skill'],
@@ -28,7 +31,7 @@ const BashParameters = Type.Object({
   source: BashSource,
 })
 
-export interface BashDetails {
+export type BashDetails = {
   exitCode: number | null
   truncation?: TruncationResult
   fullOutputPath?: string
@@ -47,8 +50,6 @@ export interface SandboxedBashOptions {
   restrictedUser?: boolean
 }
 
-const BASH_UPDATE_THROTTLE_MS = 100
-
 export const createSandboxedBashTool = (
   cwd: string,
   skillEnvs: Record<string, string> = {},
@@ -57,14 +58,15 @@ export const createSandboxedBashTool = (
   return {
     name: 'bash',
     description: `Execute a bash command in a sandboxed environment. Returns stdout and stderr. Output is truncated to last ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds. When in a restricted (non-owner) user context, only commands required by a skill loaded via the read_skill tool are allowed, and you must set source="skill".`,
-    label: 'Executing bash command',
     parameters: BashParameters,
+    outputLimits: { maxBytes: DEFAULT_MAX_BYTES, maxLines: DEFAULT_MAX_LINES, retain: 'tail' },
     execute: async (
-      toolCallId,
       { command, timeout, source },
-      signal,
-      onUpdate,
+      api,
+      context,
     ): Promise<AgentToolResult<BashDetails>> => {
+      const toolCallId = api.callId
+      const signal = context.abortSignal
       if (options?.restrictedUser && source !== 'skill') {
         throw new Error(
           'Bash commands requested directly by the user (source="user") are not permitted for your role. ' +
@@ -88,62 +90,17 @@ export const createSandboxedBashTool = (
 
       const output = new OutputAccumulator({ tempFilePrefix: 'shumai-bash' })
       let acceptingOutput = true
-      let updateTimer: NodeJS.Timeout | undefined
-      let updateDirty = false
-      let lastUpdateAt = 0
-
-      const emitOutputUpdate = () => {
-        if (!onUpdate || !updateDirty) return
-        updateDirty = false
-        lastUpdateAt = Date.now()
-        const snapshot = output.snapshot({ persistIfTruncated: true })
-        onUpdate({
-          content: [{ type: 'text', text: snapshot.content || '' }],
-          details: {
-            exitCode: null,
-            truncation: snapshot.truncation.truncated ? snapshot.truncation : undefined,
-            fullOutputPath: snapshot.fullOutputPath,
-          },
-        })
-      }
-
-      const clearUpdateTimer = () => {
-        if (updateTimer) {
-          clearTimeout(updateTimer)
-          updateTimer = undefined
-        }
-      }
-
-      const scheduleOutputUpdate = () => {
-        if (!onUpdate) return
-        updateDirty = true
-        const delay = BASH_UPDATE_THROTTLE_MS - (Date.now() - lastUpdateAt)
-        if (delay <= 0) {
-          clearUpdateTimer()
-          emitOutputUpdate()
-          return
-        }
-        updateTimer ??= setTimeout(() => {
-          updateTimer = undefined
-          emitOutputUpdate()
-        }, delay)
-      }
-
-      if (onUpdate) {
-        onUpdate({ content: [], details: { exitCode: null } })
-      }
+      await api.details({ exitCode: null }, context)
 
       const handleData = (data: Buffer) => {
         if (!acceptingOutput) return
         output.append(data)
-        scheduleOutputUpdate()
+        api.output(data)
       }
 
       const finishOutput = async () => {
         acceptingOutput = false
         output.finish()
-        clearUpdateTimer()
-        emitOutputUpdate()
         const snapshot = output.snapshot({ persistIfTruncated: true })
         await output.closeTempFile()
         return snapshot
@@ -284,7 +241,7 @@ export const createSandboxedBashTool = (
             )
           } else {
             resolve({
-              content: [
+              output: [
                 {
                   type: 'text',
                   text: outputText,

@@ -1,39 +1,20 @@
 ---
 title: Deploy with Distributed Workers
-description: Configure a high-scale production deployment using dedicated background workers, DBOS, and S3-compatible storage.
+description: Run media transcoding on dedicated workers while agents run with the main server.
 ---
 
-For production environments or workloads with high-volume video processing and heavy AI agent usage, running background tasks on a single server can cause bottlenecks. Shumai resolves this by decoupling the web dashboard from background processing through dedicated worker nodes orchestrated by **DBOS Transact**.
-
-All background tasks (media transcoding, AI embeddings, agent tasks) are dispatched to durable task queues (`transcode_queue` and `agent_queue`) hosted directly in PostgreSQL. No separate external cluster (like Temporal) is required.
-
----
-
-## How it Works
-
-In a distributed deployment, the core Shumai web application handles user requests, database updates, and file uploads, while delegating durable background workflows to specialized worker instances via PostgreSQL task queues.
+Shumai runs agent, embedding, and archive queues with the main web server. Media transcoding can run on dedicated workers through PostgreSQL queues managed by DBOS Transact.
 
 ```mermaid
 graph TD
-    UserUpload[User Uploads Video / Triggers Agent] --> WebApp[Shumai Web UI / API]
-    WebApp -->|Enqueue Task| DB[(PostgreSQL / DBOS Queues)]
-    DB -->|Queue: transcode_queue| TranscodeWorker[Transcode Worker Machine]
-    DB -->|Queue: agent_queue| AgentWorker[Agent Worker Machine]
+    User[User] --> Server[Shumai Web UI / API + Agents + Archives]
+    Server --> DB[(PostgreSQL / DBOS Queues)]
+    DB --> Transcode[Dedicated Transcode Workers]
 ```
 
-- **Transcoding Workers**: Can be run on GPU-accelerated or high-CPU compute instances.
-- **AI Agent Workers**: Can be run on isolated, sandboxed hosts to safely execute automation scripts.
+## Main Server
 
-> [!IMPORTANT]
-> **Storage Requirement**: Because the core application and the background workers run on separate machines in a distributed setup, **you must configure an S3-compatible storage backend** (such as AWS S3, Cloudflare R2, or MinIO). Local storage (`STORAGE_BACKEND=local`) is not supported in this mode because the workers and the web application do not share a common filesystem.
-
----
-
-## Step 1: Deploy the Core Web Application
-
-On your primary host machine, run PostgreSQL and the main Shumai web application.
-
-To instruct the main web application to handle only API and UI traffic without running background worker queues locally, set `SHUMAI_WORKERS=none`:
+Set `SHUMAI_WORKERS=none` (or `--workers=none`) to run agents and archives with the main server and send transcoding jobs to dedicated workers. `all` and `transcode` also run the transcode queue in the server. The older `agent`, `ai`, and `archive` values remain accepted and run agents and archives.
 
 ```env
 DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
@@ -47,67 +28,30 @@ SHUMAI_WORKERS=none
 BETTER_AUTH_SECRET=your-random-32-character-secret-key
 ```
 
-When started with `SHUMAI_WORKERS=none` (or `--workers=none`), the web server starts immediately without polling or consuming tasks from the transcode or agent queues.
+Agent tools run on the server, so install its sandbox dependencies (`bubblewrap` on Linux or `sandbox-exec` on macOS). Standalone agent workers are no longer supported.
 
----
+## Dedicated Transcode Workers
 
-## Step 2: Configure & Run Dedicated Workers
-
-On your specialized worker machines, configure each worker with a `.env` file referencing the shared PostgreSQL database and S3 storage:
-
-```env
-DATABASE_URL=postgresql://shumai:shumai_password@<primary-host-ip>:5432/shumai_db?schema=public
-STORAGE_BACKEND=s3
-AWS_ENDPOINT_URL_S3=https://your-s3-endpoint.com
-S3_BUCKET=shumai
-S3_REGION=us-east-1
-S3_ACCESS_KEY_ID=your-access-key-id
-S3_SECRET_ACCESS_KEY=your-secret-access-key
-CONCURRENCY_TRANSCODE=1
-CONCURRENCY_AGENT=5
-```
-
-### Media Transcoding Worker
-
-Run this on your media processing nodes (requires system installations of `ffmpeg` and `ffprobe`):
+Configure workers with the same PostgreSQL database and S3 storage as the server. A shared S3-compatible backend is required when machines do not share a filesystem.
 
 ```bash
 npm install -g @shumai-one/shumai-transcode
 shumai-transcode
 ```
 
-Alternatively, you can run the transcode worker using the dedicated lightweight Docker image:
+Or use the dedicated image:
 
 ```bash
-docker run -d \
-  --name shumai-transcode-worker \
-  --env-file .env \
-  shumaione/shumai-transcode:latest
+docker run -d --name shumai-transcode-worker --env-file .env shumaione/shumai-transcode:latest
 ```
 
-(You can also use the all-in-one image: `docker run -d --name shumai-transcode-worker --env-file .env shumaione/shumai:latest shumai-transcode`.)
+Bun users can run `bun run --bun shumai-transcode`.
 
-### AI Agent Worker
+## Upgrading Existing Agent Sessions
 
-Run this on your sandboxed agent execution nodes (requires sandbox dependencies like `bubblewrap` or `sandbox-exec`):
+Stop and drain old agent workers before upgrading the server. The normal database migration copies existing session context into independent histories automatically. No separate migration command is required. Legacy records remain in the database during this transition.
 
-```bash
-npm install -g @shumai-one/shumai-agent
-shumai-agent
-```
-
-Alternatively, you can run the agent worker using the official Docker image:
-
-```bash
-docker run -d \
-  --name shumai-agent-worker \
-  --env-file .env \
-  --cap-add=SYS_ADMIN \
-  shumaione/shumai:latest shumai-agent
-```
-
-> [!IMPORTANT]
-> **For Bun Users:** Since the worker package binaries contain a `#!/usr/bin/env node` shebang, running `shumai-transcode` or `shumai-agent` directly will run under Node.js. If you wish to run them using Bun, prefix the commands with `bun run --bun` (e.g., `bun run --bun shumai-transcode` or `bun run --bun shumai-agent`).
+Each session uses a local SQLite working copy, restored from PostgreSQL when missing. `AGENT_SESSION_CACHE_DIR` optionally selects the cache directory. The server mirrors compact session commits to PostgreSQL before acknowledging them. Keep the database in your backup policy; local SQLite copies are disposable. Image and skill placeholders remain compact in both copies and are resolved when the agent needs them.
 
 ---
 
@@ -118,11 +62,11 @@ docker run -d \
 Workers pull tasks from PostgreSQL queues based on configurable concurrency limits:
 
 - `CONCURRENCY_TRANSCODE`: Maximum concurrent video transcoding jobs per worker (defaults to `1`).
-- `CONCURRENCY_AGENT`: Maximum concurrent agent and embedding workflows per worker (defaults to `5`, recommend setting to `1` when paired with a local `embedding-server`).
+- `CONCURRENCY_AGENT`: Maximum concurrent agent and embedding workflows per main server (defaults to `5`, recommend setting to `1` when paired with a local `embedding-server`).
 
 ### Replica Identity
 
-When running multiple replicas of the transcode or agent worker across multiple machines or pods:
+When running multiple replicas of the transcode workers or main servers across multiple machines or pods:
 
 - `DbosExecutor` automatically derives a unique per-instance ID from the machine hostname and process ID to ensure startup recovery only re-enqueues tasks belonging to that specific instance.
 - **Custom Worker ID**: Set `SHUMAI_WORKERS_ID` (or `SHUMAI_WORKER_ID`) if you wish to assign an explicit identifier.

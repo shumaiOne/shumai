@@ -1,14 +1,15 @@
+import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { vi } from 'vitest'
 
 vi.mock('fs')
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { createGenerateImageTool } from './generate-image'
-import * as downloadAsset from './download-asset'
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
 import { EnabledMediaModel } from '@shumai/dtos'
 import * as fs from 'fs'
 import * as path from 'path'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import * as downloadAsset from './download-asset'
+import { createGenerateImageTool } from './generate-image'
 
 describe('generate_image tool', () => {
   const enabledModels: EnabledMediaModel[] = [
@@ -60,7 +61,6 @@ describe('generate_image tool', () => {
   it('creates tool with correct metadata and provider-prefixed model schema', () => {
     const tool = createGenerateImageTool(enabledModels, providerKeys, 'user-1')
     expect(tool.name).toBe('generate_image')
-    expect(tool.label).toBe('Generate Image')
     expect(tool.description).toContain('Generate an image')
     const modelDesc = (tool.parameters as { properties: { model: { description: string } } })
       .properties.model.description
@@ -78,7 +78,8 @@ describe('generate_image tool', () => {
     })
     const writeSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {})
 
-    const result = await tool.execute(
+    const result = await invokeTool(
+      tool,
       'call-1',
       {
         prompt: 'A futuristic city skyline at dusk',
@@ -129,7 +130,8 @@ describe('generate_image tool', () => {
     })
 
     // Invoke azure:dall-e-3
-    await tool.execute(
+    await invokeTool(
+      tool,
       'call-azure',
       {
         prompt: 'Azure generation',
@@ -153,7 +155,8 @@ describe('generate_image tool', () => {
     )
 
     // Invoke openai:dall-e-3
-    await tool.execute(
+    await invokeTool(
+      tool,
       'call-openai',
       {
         prompt: 'OpenAI generation',
@@ -186,7 +189,8 @@ describe('generate_image tool', () => {
       mimeType: 'image/png',
     })
 
-    await tool.execute(
+    await invokeTool(
+      tool,
       'call-2',
       {
         prompt: 'A cute cat',
@@ -224,7 +228,8 @@ describe('generate_image tool', () => {
         mimeType: 'image/png',
       }))
 
-    await tool.execute(
+    await invokeTool(
+      tool,
       'call-3',
       {
         prompt: 'Transform into watercolor',
@@ -257,7 +262,8 @@ describe('generate_image tool', () => {
     const tool = createGenerateImageTool(enabledModels, {}, 'user-1') // No keys configured
 
     await expect(
-      tool.execute(
+      invokeTool(
+        tool,
         'call-4',
         {
           prompt: 'A sunset',
@@ -278,7 +284,8 @@ describe('generate_image tool', () => {
     const tool = createGenerateImageTool(enabledModels, providerKeys, 'user-1')
 
     await expect(
-      tool.execute(
+      invokeTool(
+        tool,
         'call-5',
         {
           prompt: 'A sunset',

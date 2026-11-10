@@ -1,10 +1,10 @@
-import { type AgentTool } from '@earendil-works/pi-agent-core'
-import { EnabledMediaModel } from '@shumai/dtos'
+import { type ToolRegistration as AgentTool } from '@earendil-works/pi-durable'
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
-import { Type, type Static, type TSchema } from 'typebox'
+import { EnabledMediaModel } from '@shumai/dtos'
 import * as fs from 'fs'
 import * as path from 'path'
+import { Type, type Static, type TSchema } from 'typebox'
 import { ulid } from 'ulid'
 import { resolveS3MediaBuffer } from './download-asset'
 
@@ -162,11 +162,11 @@ export function createGenerateVideoTool(
 
   return {
     name: 'generate_video',
-    label: 'Generate Video',
+
     description:
       'Generate a video using a configured video model. Supports text-to-video, image-to-video (using an S3 image key from read_asset), first/last frame (using S3 image keys from read_asset), and reference-to-video (using S3 image keys from read_asset). The generated file is saved in the local .pi/ directory.',
     parameters: generateVideoSchema,
-    execute: async (_toolCallId, params) => {
+    execute: async (params) => {
       const p = params as GenerateVideoParams
 
       const defaultModel = `${enabledModels[0].provider}:${enabledModels[0].modelId}`
@@ -280,7 +280,7 @@ export function createGenerateVideoTool(
       fs.writeFileSync(targetPath, buffer)
 
       return {
-        content: [
+        output: [
           {
             type: 'text',
             text: `Successfully generated video using model "${modelConfig.modelId}" (${modelConfig.provider}) in mode "${p.mode}". Saved to "${relativePath}". Size: ${(buffer.length / (1024 * 1024)).toFixed(2)} MB.`,

@@ -1,12 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db/test'
-import { workflowService, TaskQueueAgent } from '@shumai/workflow-core'
+import type { AssistantMessage } from '@earendil-works/pi-ai'
 import { initAgentWorkflows } from '@shumai/agent'
-import { s3Service } from '@shumai/core/src/s3/s3'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { projectService } from '@shumai/core/src/project/project'
-import { AgentHarness } from '@earendil-works/pi-agent-core'
+import { s3Service } from '@shumai/core/src/s3/s3'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
+import { TaskQueueAgent, workflowService } from '@shumai/workflow-core'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { mockModelPrompt, type ModelScenario } from './model-mock'
 
 type ToolResult = { content: Array<{ type: string; text?: string }> }
 type ExecutableTool = {
@@ -36,7 +37,7 @@ describe('Workflow E2E - agent Operation tools', () => {
       content: [{ type: 'text', text }],
       usage: { input: 10, output: 20 },
       stopReason: 'stop',
-    }) as unknown as Awaited<ReturnType<typeof AgentHarness.prototype.prompt>>
+    }) as unknown as AssistantMessage
 
   beforeAll(async () => {
     process.env.S3_BUCKET = 'shumai-e2e-test-bucket-agent-ops'
@@ -44,9 +45,7 @@ describe('Workflow E2E - agent Operation tools', () => {
 
     initAgentWorkflows()
 
-    vi.spyOn(AgentHarness.prototype, 'prompt').mockImplementation(async function (
-      this: AgentHarness,
-    ) {
+    mockModelPrompt(async function (this: ModelScenario) {
       const tool = (name: string) =>
         this.getTools().find((t) => t.name === name) as unknown as ExecutableTool | undefined
       const call = async (name: string, params: Record<string, unknown>) => {

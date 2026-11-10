@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import type { AgentMessage } from '@earendil-works/pi-agent-core'
 
 export const chatRequestSchema = z
   .object({
@@ -107,26 +106,4 @@ export const shumaiMessageContextSchema = z.object({
 
 export type ShumaiMessageContext = z.infer<typeof shumaiMessageContextSchema>
 
-export const chatMessageSchema = z.intersection(
-  z.object({
-    id: z.string(),
-  }),
-  z.unknown(),
-) as unknown as z.ZodType<ChatMessage>
-
-export type ChatMessage = (
-  | AgentMessage
-  | {
-      role: 'custom'
-      customType: string
-      content?: unknown
-      display?: boolean
-      details?: unknown
-      timestamp?: number
-    }
-  | {
-      role: 'thinking_level_change'
-      content: string
-      timestamp?: number
-    }
-) & { id: string }
+export type { EntryId, EntryRecord } from '@earendil-works/pi-durable'

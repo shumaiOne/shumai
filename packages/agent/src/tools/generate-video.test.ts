@@ -1,14 +1,15 @@
+import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { vi } from 'vitest'
 
 vi.mock('fs')
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { createGenerateVideoTool } from './generate-video'
-import * as downloadAsset from './download-asset'
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
 import { EnabledMediaModel } from '@shumai/dtos'
 import * as fs from 'fs'
 import * as path from 'path'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import * as downloadAsset from './download-asset'
+import { createGenerateVideoTool } from './generate-video'
 
 describe('generate_video tool', () => {
   const enabledModels: EnabledMediaModel[] = [
@@ -60,7 +61,6 @@ describe('generate_video tool', () => {
   it('creates tool with correct metadata and provider-prefixed model schema', () => {
     const tool = createGenerateVideoTool(enabledModels, providerKeys, 'user-1')
     expect(tool.name).toBe('generate_video')
-    expect(tool.label).toBe('Generate Video')
     expect(tool.description).toContain('Generate a video')
     const modelDesc = (tool.parameters as { properties: { model: { description: string } } })
       .properties.model.description
@@ -78,7 +78,8 @@ describe('generate_video tool', () => {
     })
     const writeSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {})
 
-    const result = await tool.execute(
+    const result = await invokeTool(
+      tool,
       'call-vid-1',
       {
         mode: 'text_to_video',
@@ -140,7 +141,8 @@ describe('generate_video tool', () => {
     })
 
     // Select fal:kling-v1-standard
-    await tool.execute(
+    await invokeTool(
+      tool,
       'call-fal',
       {
         mode: 'text_to_video',
@@ -169,7 +171,8 @@ describe('generate_video tool', () => {
     )
 
     // Select klingai:kling-v1-standard
-    await tool.execute(
+    await invokeTool(
+      tool,
       'call-klingai',
       {
         mode: 'text_to_video',
@@ -211,7 +214,8 @@ describe('generate_video tool', () => {
       mimeType: 'image/png',
     })
 
-    await tool.execute(
+    await invokeTool(
+      tool,
       'call-vid-2',
       {
         mode: 'image_to_video',
@@ -257,7 +261,8 @@ describe('generate_video tool', () => {
       mimeType: 'image/png',
     }))
 
-    await tool.execute(
+    await invokeTool(
+      tool,
       'call-vid-3',
       {
         mode: 'first_last_frame',
@@ -304,7 +309,8 @@ describe('generate_video tool', () => {
       mimeType: 'image/png',
     }))
 
-    await tool.execute(
+    await invokeTool(
+      tool,
       'call-vid-4',
       {
         mode: 'reference_to_video',
@@ -343,7 +349,8 @@ describe('generate_video tool', () => {
     const tool = createGenerateVideoTool(enabledModels, {}, 'user-1')
 
     await expect(
-      tool.execute(
+      invokeTool(
+        tool,
         'call-vid-5',
         {
           mode: 'text_to_video',

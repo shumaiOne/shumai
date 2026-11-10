@@ -1,7 +1,7 @@
+import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { isAbsolute, join, relative, resolve } from 'node:path'
-import { spawnSync } from 'node:child_process'
 
 function printUsage() {
   console.log(`Usage: bun run scripts/release-local.ts [options]
@@ -179,7 +179,6 @@ mkdirSync(nodeInstallDirectory, { recursive: true })
 
 const wrapperAppNames = [
   '@shumai-one/shumai',
-  '@shumai-one/shumai-agent',
   '@shumai-one/shumai-transcode',
   '@shumai-one/shumai-cli',
 ]
@@ -214,6 +213,5 @@ console.log(`  ${nodeInstallDirectory}`)
 
 console.log('\nTo run the locally packed CLI apps from outside the repository:')
 console.log(`  npx --prefix ${nodeInstallDirectory} shumai`)
-console.log(`  npx --prefix ${nodeInstallDirectory} shumai-agent`)
 console.log(`  npx --prefix ${nodeInstallDirectory} shumai-transcode`)
 console.log(`  npx --prefix ${nodeInstallDirectory} shumai-cli`)

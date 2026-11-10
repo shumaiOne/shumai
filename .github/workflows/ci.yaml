@@ -53,9 +53,6 @@ jobs:
           echo "Smoke testing shumai..."
           bun run /tmp/shumai-local-release/node/node_modules/@shumai-one/shumai/bin/shumai-app.js --check
 
-          echo "Smoke testing shumai-agent..."
-          bun run /tmp/shumai-local-release/node/node_modules/@shumai-one/shumai-agent/bin/shumai-agent-app.js --check
-
           echo "Smoke testing shumai-transcode..."
           bun run /tmp/shumai-local-release/node/node_modules/@shumai-one/shumai-transcode/bin/shumai-transcode-app.js --check
 

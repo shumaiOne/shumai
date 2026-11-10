@@ -1,113 +1,38 @@
 ---
 title: 分布式 Worker 部署
-description: 通过独立的后台 Worker、DBOS 与兼容 S3 的对象存储配置大规模生产级部署。
+description: 将媒体转码部署到独立 Worker，智能体随主服务器运行。
 ---
 
-在面对高并发视频处理或重度 AI 智能体调用的生产环境中，若将所有后台任务集中在单台服务器上运行，极易引发性能瓶颈。Shumai 通过由 **DBOS Transact** 统一编排的独立 Worker 节点，将 Web 控制台与后台处理彻底解耦，轻松化解瓶颈。
+智能体、嵌入和归档队列随 Shumai 主服务器一起启动。媒体转码仍可通过 PostgreSQL 和 DBOS 队列交给独立 Worker。
 
-所有后台任务（媒体转码、AI 向量嵌入、智能体任务）均分发至直接托管在 PostgreSQL 中的持久化任务队列（`transcode_queue` 与 `agent_queue`）。无需部署额外的外部集群（如 Temporal）。
+## 主服务器
 
----
+设置 `SHUMAI_WORKERS=none`（或 `--workers=none`）时，主服务器处理智能体和归档任务，转码交给独立 Worker。`all` 和 `transcode` 会同时在主服务器运行转码队列。旧的 `agent`、`ai`、`archive` 参数仍可使用，均启动智能体和归档队列。
 
-## 核心工作原理
+主服务器需安装智能体沙箱依赖（Linux 使用 `bubblewrap`，macOS 使用 `sandbox-exec`）。不再支持独立启动智能体 Worker。
 
-在分布式部署中，Shumai 核心 Web 应用负责处理用户请求、数据库更新和文件上传，并通过 PostgreSQL 任务队列将持久化后台工作流委派给专用的 Worker 实例。
+## 独立转码 Worker
 
-```mermaid
-graph TD
-    UserUpload[用户上传视频 / 触发智能体] --> WebApp[Shumai Web UI / API]
-    WebApp -->|入队任务| DB[(PostgreSQL / DBOS 队列)]
-    DB -->|队列: transcode_queue| TranscodeWorker[转码 Worker 机器]
-    DB -->|队列: agent_queue| AgentWorker[智能体 Worker 机器]
-```
-
-- **转码 Worker**：可在配备 GPU 加速或高配 CPU 的计算实例上运行。
-- **AI 智能体 Worker**：可在隔离沙箱环境中运行，以安全执行自动化脚本。
-
-> [!IMPORTANT]
-> **存储配置硬性要求**：由于在分布式部署下核心应用与后台 Worker 分别运行在不同机器上，**必须配置兼容 S3 的对象存储后端**（例如 AWS S3、Cloudflare R2 或 MinIO）。此模式下不支持本地存储（`STORAGE_BACKEND=local`），因为 Worker 节点与 Web 应用无法共享本地文件系统。
-
----
-
-## 第 1 步：部署核心 Web 应用
-
-在主服务器上运行 PostgreSQL 和 Shumai 核心 Web 应用。
-
-若需指示核心 Web 应用仅处理 API 和前端 UI 流量，而不本地消费后台 Worker 队列任务，请设置 `SHUMAI_WORKERS=none`：
-
-```env
-DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
-STORAGE_BACKEND=s3
-AWS_ENDPOINT_URL_S3=https://your-s3-endpoint.com
-S3_BUCKET=shumai
-S3_REGION=us-east-1
-S3_ACCESS_KEY_ID=your-access-key-id
-S3_SECRET_ACCESS_KEY=your-secret-access-key
-SHUMAI_WORKERS=none
-BETTER_AUTH_SECRET=your-random-32-character-secret-key
-```
-
-当使用 `SHUMAI_WORKERS=none`（或启动参数 `--workers=none`）启动时，Web 服务器将即刻启动，不会轮询或消费来自转码或智能体队列的任务。
-
----
-
-## 第 2 步：配置并运行专属 Worker
-
-在专用 Worker 机器上，配置各 Worker 的 `.env` 文件以指向共享的 PostgreSQL 数据库与 S3 存储：
-
-```env
-DATABASE_URL=postgresql://shumai:shumai_password@<primary-host-ip>:5432/shumai_db?schema=public
-STORAGE_BACKEND=s3
-AWS_ENDPOINT_URL_S3=https://your-s3-endpoint.com
-S3_BUCKET=shumai
-S3_REGION=us-east-1
-S3_ACCESS_KEY_ID=your-access-key-id
-S3_SECRET_ACCESS_KEY=your-secret-access-key
-CONCURRENCY_TRANSCODE=1
-CONCURRENCY_AGENT=5
-```
-
-### 媒体转码 Worker
-
-在媒体处理计算节点上运行（需要预先在系统上安装 `ffmpeg` 与 `ffprobe`）：
+在 Worker 上配置与主服务器相同的 PostgreSQL 数据库和 S3 存储。多台机器不共享文件系统时，必须使用 S3 兼容存储。
 
 ```bash
 npm install -g @shumai-one/shumai-transcode
 shumai-transcode
 ```
 
-或者，可以使用轻量级专属 Docker 镜像运行转码 Worker：
+也可以使用 Docker：
 
 ```bash
-docker run -d \
-  --name shumai-transcode-worker \
-  --env-file .env \
-  shumaione/shumai-transcode:latest
+docker run -d --name shumai-transcode-worker --env-file .env shumaione/shumai-transcode:latest
 ```
 
-（亦可使用一体化全功能镜像：`docker run -d --name shumai-transcode-worker --env-file .env shumaione/shumai:latest shumai-transcode`。）
+Bun 用户可运行 `bun run --bun shumai-transcode`。
 
-### AI 智能体 Worker
+## 升级现有智能体会话
 
-在沙箱化智能体执行节点上运行（需要安装 `bubblewrap` 或 `sandbox-exec` 等沙箱依赖项）：
+升级主服务器前，请等待旧智能体 Worker 完成任务并将其停止。正常数据库迁移会自动将已有会话上下文复制为独立记录，无需额外运行迁移脚本。过渡期间保留旧记录表。
 
-```bash
-npm install -g @shumai-one/shumai-agent
-shumai-agent
-```
-
-或者，可以使用官方 Docker 镜像运行智能体 Worker：
-
-```bash
-docker run -d \
-  --name shumai-agent-worker \
-  --env-file .env \
-  --cap-add=SYS_ADMIN \
-  shumaione/shumai:latest shumai-agent
-```
-
-> [!IMPORTANT]
-> **Bun 用户须知**：由于 Worker 依赖包的二进制可执行文件包含 `#!/usr/bin/env node` Shebang，直接运行 `shumai-transcode` 或 `shumai-agent` 将在 Node.js 下执行。若希望使用 Bun 运行，请在命令前加上 `bun run --bun`（例如 `bun run --bun shumai-transcode` 或 `bun run --bun shumai-agent`）。
+每个会话使用独立的本地 SQLite 工作副本，缺失时自动从 PostgreSQL 恢复。可用 `AGENT_SESSION_CACHE_DIR` 指定缓存目录。主服务器在确认提交前将精简记录同步至 PostgreSQL。本地副本可重建，备份应包含 PostgreSQL。图片和技能内容在两种存储中继续使用动态占位符，在智能体需要时解析。
 
 ---
 
@@ -118,11 +43,11 @@ docker run -d \
 Worker 根据可配置的并发上限从 PostgreSQL 队列中拉取任务：
 
 - `CONCURRENCY_TRANSCODE`：单个 Worker 最大并发视频转码任务数（默认 `1`）。
-- `CONCURRENCY_AGENT`：单个 Worker 最大并发智能体及向量嵌入工作流数（默认 `5`，若搭配本地 `embedding-server` 建议设为 `1`）。
+- `CONCURRENCY_AGENT`：单个主服务器最大并发智能体及向量嵌入工作流数（默认 `5`，若搭配本地 `embedding-server` 建议设为 `1`）。
 
 ### 副本实例标识
 
-当在多台机器或 Pod 上运行转码或智能体 Worker 的多个副本时：
+当在多台机器或 Pod 上运行转码 Worker 或主服务器 的多个副本时：
 
 - `DbosExecutor` 会自动基于机器主机名与进程 ID 派生唯一的单实例标识，确保启动恢复时仅重新入队属于该实例的任务。
 - **自定义 Worker ID**：若需显式指定标识符，可设置 `SHUMAI_WORKERS_ID`（或 `SHUMAI_WORKER_ID`）。

@@ -1,13 +1,13 @@
-import * as fs from 'fs'
-import * as path from 'path'
-import { z } from 'zod'
-import { Type } from 'typebox'
-import type { AgentToolResult } from '@earendil-works/pi-agent-core'
-import { createFile, type StartedUploadOutput } from '@shumai/operations'
+import type { ToolExecutionResult as AgentToolResult } from '@earendil-works/pi-durable'
 import { storageBucket } from '@shumai/core/src/asset-read'
 import { completeUploadOp, runOperation } from '@shumai/core/src/operations'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { getFileMimeType, readFileMimeType } from '@shumai/core/src/utils/file-mime'
+import { createFile, type StartedUploadOutput } from '@shumai/operations'
+import * as fs from 'fs'
+import * as path from 'path'
+import { Type } from 'typebox'
+import { z } from 'zod'
 import {
   registerAgentToolExtension,
   type AgentOperationContext,
@@ -48,7 +48,7 @@ async function uploadAndComplete(
   raw: unknown,
   extra: Record<string, unknown>,
   ctx: AgentOperationContext,
-): Promise<AgentToolResult<unknown>> {
+): Promise<AgentToolResult> {
   const started = raw as StartedUploadOutput
   if (!started.key) throw new Error('The upload did not return a storage key')
 
@@ -79,7 +79,7 @@ async function uploadAndComplete(
     { ...ctx, via: 'agent' },
     { uploadId: started.uploadId },
   )
-  return { content: [{ type: 'text', text: JSON.stringify(asset, null, 2) }], details: {} }
+  return { output: [{ type: 'text', text: JSON.stringify(asset, null, 2) }], details: {} }
 }
 
 const createFileExtension: AgentToolExtension = {

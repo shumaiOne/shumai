@@ -1,8 +1,10 @@
-import { create } from 'zustand'
 import { client } from '@/ui/api/client'
-import type { ChatMessage, ChatSessionInfo } from '@shumai/dtos'
 import type { Annotation } from '@/ui/types'
+import type { EntryId, EntryRecord, JsonObject } from '@earendil-works/pi-durable'
+import { ROOT_CONVERSATION_ID } from '@earendil-works/pi-durable'
+import type { ChatSessionInfo } from '@shumai/dtos'
 import { toast } from 'sonner'
+import { create } from 'zustand'
 
 export const AGENT_PREFERENCE_STORAGE_KEY = 'shumai_selected_agent_id'
 
@@ -39,8 +41,8 @@ interface ChatbotState {
   addAssets: (assets: ChatAsset[]) => void
   removeAsset: (id: string) => void
   clearAssets: () => void
-  messages: ChatMessage[]
-  setMessages: (messages: ChatMessage[]) => void
+  messages: EntryRecord[]
+  setMessages: (messages: EntryRecord[]) => void
   historySessions: ChatSessionInfo[]
   setHistorySessions: (sessions: ChatSessionInfo[]) => void
   isStreaming: boolean
@@ -142,7 +144,7 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
         const agentId = sessionInfo?.agentId || null
         set({
           currentSessionId: sessionId,
-          messages: messages as ChatMessage[],
+          messages: messages as EntryRecord[],
           isHistoryMode: false,
           scrollTop: 0,
           isAtBottom: true,
@@ -205,27 +207,34 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
     const state = useChatbotStore.getState()
     if (state.isStreaming) return
 
-    const tempId = `temp-${Date.now()}`
-    const optimisticMsg = {
+    const tempId = -Date.now() as EntryId
+    const optimisticMsg: EntryRecord = {
       id: tempId,
-      role: 'custom' as const,
-      customType: 'shumai_message',
-      content: text,
-      display: true,
-      details: {
-        currentAsset: contextAssetId ? { id: contextAssetId, name: '', type: 'file' } : undefined,
-        position:
-          second !== undefined && second !== null ? { type: 'time', seconds: second } : undefined,
-        annotation: !!(annotations && annotations.length > 0),
-        annotations: annotations || undefined,
-        attachedFiles: attachedFilesMeta || undefined,
-        referencedAssets:
-          state.chatAssets.length > 0
-            ? state.chatAssets.map((a) => ({ id: a.id, name: a.name, type: a.type }))
-            : undefined,
-      },
-      timestamp: Date.now(),
-    } as unknown as ChatMessage
+      conversationId: ROOT_CONVERSATION_ID,
+      kind: 'shumai.optimistic',
+      data: JSON.parse(
+        JSON.stringify({
+          displayText: text,
+          timestamp: Date.now(),
+          context: {
+            currentAsset: contextAssetId
+              ? { id: contextAssetId, name: '', type: 'file' }
+              : undefined,
+            position:
+              second !== undefined && second !== null
+                ? { type: 'time', seconds: second }
+                : undefined,
+            annotation: !!(annotations && annotations.length > 0),
+            annotations: annotations || undefined,
+            attachedFiles: attachedFilesMeta || undefined,
+            referencedAssets:
+              state.chatAssets.length > 0
+                ? state.chatAssets.map((a) => ({ id: a.id, name: a.name, type: a.type }))
+                : undefined,
+          },
+        }),
+      ) as JsonObject,
+    }
 
     const newMessages = [...state.messages, optimisticMsg]
 
@@ -302,10 +311,10 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
                   set({ currentSessionId: data.sessionId })
                 }
               } else if (data.type === 'entry') {
-                const entry = data.entry as ChatMessage
-                const entryObj = entry as unknown as Record<string, unknown>
+                const entry = data.entry as EntryRecord
+                const entryObj = entry.model?.[0]
                 if (
-                  entryObj.role === 'toolResult' &&
+                  entryObj?.role === 'toolResult' &&
                   typeof entryObj.toolName === 'string' &&
                   [
                     'create_file',
@@ -323,23 +332,8 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
                 set((s) => {
                   const isExisting = s.messages.some((m) => m.id === entry.id)
                   const isUserMessage =
-                    (entry.role === 'user' ||
-                      (entry.role === 'custom' && entry.customType === 'shumai_message')) &&
-                    !isExisting
-                  // Replace temp/optimistic message when the real counterpart streams back
-                  const filtered = s.messages.filter((m) => {
-                    if (isUserMessage) {
-                      return !m.id.startsWith('temp-')
-                    }
-                    if (
-                      entry.role === 'custom' &&
-                      entry.customType === 'context_display_info' &&
-                      !isExisting
-                    ) {
-                      return !m.id.startsWith('temp-context-')
-                    }
-                    return true
-                  })
+                    ['pi.user', 'shumai.message'].includes(entry.kind) && !isExisting
+                  const filtered = s.messages.filter((m) => !isUserMessage || m.id >= 0)
 
                   // Prevent duplicates by ID
                   const existingIdx = filtered.findIndex((m) => m.id === entry.id)

@@ -1,10 +1,10 @@
-import { prisma, type User } from '@shumai/db'
-import { Type } from 'typebox'
-import { type AgentTool } from '@earendil-works/pi-agent-core'
+import { type ToolRegistration as AgentTool } from '@earendil-works/pi-durable'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
-import { secondToDegree } from '@shumai/core/src/utils/model3d'
 import { getProxyType } from '@shumai/core/src/utils/mime'
+import { secondToDegree } from '@shumai/core/src/utils/model3d'
+import { prisma, type User } from '@shumai/db'
+import { Type } from 'typebox'
 
 const readThreadSchema = Type.Object({
   threadId: Type.String({
@@ -67,10 +67,10 @@ export const createReadThreadTool = (
   ctx: ReadThreadToolContext,
 ): AgentTool<typeof readThreadSchema, { threadId: string }> => ({
   name: 'read_thread',
-  label: 'Read Comment Thread',
+
   description: 'Reads all comments and replies inside a specific comment thread.',
   parameters: readThreadSchema,
-  execute: async (_toolCallId, params) => {
+  execute: async (params) => {
     const rootComment = await prisma.assetComment.findUnique({
       where: { id: params.threadId },
       include: {
@@ -89,7 +89,7 @@ export const createReadThreadTool = (
         : `Comment thread with ID "${params.threadId}" not found.`
 
       return {
-        content: [{ type: 'text', text: errorText }],
+        output: [{ type: 'text', text: errorText }],
         details: { threadId: params.threadId },
       }
     }
@@ -127,7 +127,7 @@ export const createReadThreadTool = (
     }
 
     return {
-      content: [{ type: 'text', text: output }],
+      output: [{ type: 'text', text: output }],
       details: { threadId: params.threadId },
     }
   },

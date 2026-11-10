@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db/test'
-import { workflowService, TaskQueueAgent } from '@shumai/workflow-core'
+import type { AssistantMessage } from '@earendil-works/pi-ai'
 import { initAgentWorkflows } from '@shumai/agent'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { AgentHarness } from '@earendil-works/pi-agent-core'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
+import { TaskQueueAgent, workflowService } from '@shumai/workflow-core'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { mockModelPrompt } from './model-mock'
 
 describe('Workflow E2E - agentChat', () => {
   setupTestDbHooks()
@@ -15,11 +16,14 @@ describe('Workflow E2E - agentChat', () => {
 
     initAgentWorkflows()
 
-    vi.spyOn(AgentHarness.prototype, 'prompt').mockResolvedValue({
-      content: [{ type: 'text', text: 'E2E Agent Chat Response Success' }],
-      usage: { input: 10, output: 20 },
-      stopReason: 'stop',
-    } as unknown as Awaited<ReturnType<typeof AgentHarness.prototype.prompt>>)
+    mockModelPrompt(
+      async () =>
+        ({
+          content: [{ type: 'text', text: 'E2E Agent Chat Response Success' }],
+          usage: { input: 10, output: 20 },
+          stopReason: 'stop',
+        }) as unknown as AssistantMessage,
+    )
 
     await workflowService.startWorkers(TaskQueueAgent)
   })

@@ -1,13 +1,18 @@
-import { type AgentMessage, type AgentTool } from '@earendil-works/pi-agent-core'
+import { BACKGROUND_CONTEXT as piContext } from '@earendil-works/chord/context'
+import type { AssistantMessage } from '@earendil-works/pi-ai'
 import { type ImageContent } from '@earendil-works/pi-ai'
+import type { ToolRegistration as AgentTool, JsonObject } from '@earendil-works/pi-durable'
+import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
+import { S3_PLACEHOLDER } from '@shumai/core/src/agent/session-content'
+import { agentSessionService } from '@shumai/core/src/agent/session-service'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 import { logger } from '@shumai/core/src/logger'
 import { mcpService } from '@shumai/core/src/mcp/mcp-service'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
 import { AssetType, prisma, Prisma, type Skill } from '@shumai/db'
+import { serializeContextToXml, ShumaiMessageEntry } from '@shumai/dtos'
 import {
   ApplicationFailure,
   defineStep,
@@ -15,23 +20,18 @@ import {
   registerLocalCancelHandler,
   unregisterLocalCancelHandler,
 } from '@shumai/workflow-core'
-import { DatabaseSessionStorage } from '../database-session-storage'
+import { randomUUID } from 'node:crypto'
+import { initializeCommentSession } from '../comment-context'
 import {
   createAgentSession,
   fieldsToTypeBoxSchema,
   type AutofillField,
   type DbProviderInfo,
-} from '../index'
+} from '../runtime'
 
-import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
-import { quotaService, QuotaExceededError } from '@shumai/core/src/quota/quota-service'
+import { QuotaExceededError, quotaService } from '@shumai/core/src/quota/quota-service'
 import { getProxyType } from '@shumai/core/src/utils/mime'
-import { secondToDegree } from '@shumai/core/src/utils/model3d'
-import {
-  UpdateAssetMetadataRequest,
-  type ShumaiMessageContext,
-  type ShumaiMediaPosition,
-} from '@shumai/dtos'
+import { UpdateAssetMetadataRequest, type ShumaiMessageContext } from '@shumai/dtos'
 
 export interface Usage {
   inputTokens: number
@@ -206,7 +206,30 @@ User messages may contain a <context> block detailing the user, active asset loc
         )
       : []
 
-  const { session, harness } = await createAgentSession({
+  // A workflow retry must reopen the same autofill session before submitting its stable request ID.
+  let persistedSessionId = params.sessionId
+  if (!persistedSessionId && params.taskId) {
+    persistedSessionId = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM workflow_tasks WHERE id = ${params.taskId} FOR UPDATE`
+      const task = await tx.workflowTask.findUniqueOrThrow({ where: { id: params.taskId } })
+      if (task.sessionId) return task.sessionId
+      const record = await tx.agentSession.create({
+        data: {
+          agentId: params.agentId,
+          userId: params.userId,
+          cwd: process.cwd(),
+          assetId: params.assetId,
+        },
+      })
+      await tx.workflowTask.update({ where: { id: task.id }, data: { sessionId: record.id } })
+      return record.id
+    })
+  }
+  const {
+    session,
+    harness,
+    sessionId: activeSessionId,
+  } = await createAgentSession({
     teamId: params.teamId,
     agentId: params.agentId,
     providerName,
@@ -220,7 +243,7 @@ User messages may contain a <context> block detailing the user, active asset loc
     })),
     enabledSkillIds,
     allowedDomains,
-    sessionId: params.sessionId,
+    sessionId: persistedSessionId,
     userId: params.userId,
     projectId: params.projectId,
     assetId: params.assetId,
@@ -237,225 +260,146 @@ User messages may contain a <context> block detailing the user, active asset loc
     })),
   })
 
-  const imagesToPass: ImageContent[] = []
-
-  if (params.images && params.images.length > 0) {
-    for (const key of params.images) {
-      const { buffer, contentType } = await s3Service.getObject(
-        process.env.S3_BUCKET || 'shumai',
-        key,
-      )
-      imagesToPass.push({
-        type: 'image',
-        data: buffer.toString('base64'),
-        mimeType: contentType,
-      })
-    }
-  }
-
   const onAbort = () => {
-    harness.abort()
+    void session.abort(piContext).catch((err) => logger.error({ err }, 'Failed to stop agent'))
   }
-
   const abortSignal = getLocalTaskAbortSignal(params.taskId)
-  if (abortSignal) {
-    if (abortSignal.aborted) {
-      harness.abort()
-    } else {
-      abortSignal.addEventListener('abort', onAbort, { once: true })
-    }
-  } else if (params.taskId) {
-    registerLocalCancelHandler(params.taskId, () => {
-      harness.abort()
-    })
-  }
-
+  if (abortSignal) abortSignal.addEventListener('abort', onAbort, { once: true })
+  else if (params.taskId) registerLocalCancelHandler(params.taskId, onAbort)
   try {
-    const storage = session.getStorage()
-    if (storage instanceof DatabaseSessionStorage && params.messageContext) {
-      storage.currentMessageContext = params.messageContext
-    }
-
-    let totalInputTokens = 0
-    let totalOutputTokens = 0
-    let totalCacheReadTokens = 0
-    let grandTotalTokens = 0
-    let totalCost = 0
-
+    if (abortSignal?.aborted)
+      throw ApplicationFailure.create({ message: 'Agent execution stopped.', nonRetryable: true })
     const effectiveRole = params.userId
       ? await resolveEffectiveRole(params.teamId, params.projectId, params.userId)
       : undefined
-
     try {
-      await quotaService.checkQuota(
-        {
-          teamId: params.teamId,
-          userId: params.userId,
-          role: effectiveRole,
-          resource: 'agent_total_tokens',
-        },
-        0,
-      )
-      await quotaService.checkQuota(
-        {
-          teamId: params.teamId,
-          userId: params.userId,
-          role: effectiveRole,
-          resource: 'agent_cost',
-        },
-        0,
-      )
-    } catch (err) {
-      if (err instanceof QuotaExceededError) {
-        throw ApplicationFailure.create({
-          message: err.message,
-          nonRetryable: true,
-        })
+      for (const resource of ['agent_total_tokens', 'agent_cost'] as const) {
+        await quotaService.checkQuota(
+          { teamId: params.teamId, userId: params.userId, role: effectiveRole, resource },
+          0,
+        )
       }
+    } catch (err) {
+      if (err instanceof QuotaExceededError)
+        throw ApplicationFailure.create({ message: err.message, nonRetryable: true })
       throw err
     }
-
-    harness.subscribe(async (event) => {
-      if (event.type === 'message_end' && event.message.role === 'assistant') {
-        const assistantMsg = event.message
-        const u = assistantMsg.usage
-        if (u) {
-          const inputTokens = u.input || 0
-          const outputTokens = u.output || 0
-          const cacheReadTokens = u.cacheRead || 0
-          const totalTokens = u.totalTokens || inputTokens + outputTokens
-          const cost = u.cost?.total || 0
-
-          totalInputTokens += inputTokens
-          totalOutputTokens += outputTokens
-          totalCacheReadTokens += cacheReadTokens
-          grandTotalTokens += totalTokens
-          totalCost += cost
-
-          try {
-            await aiUsageService.recordUsage({
-              teamId: params.teamId,
-              userId: params.userId,
-              inputTokens,
-              outputTokens,
-              cacheReadTokens,
-              totalTokens,
-              cost,
-            })
-          } catch (err) {
-            logger.error({ err }, 'Failed to record AI usage')
-          }
-
-          try {
-            await quotaService.consumeQuota(
-              {
-                teamId: params.teamId,
-                userId: params.userId,
-                role: effectiveRole,
-                resource: 'agent_total_tokens',
-              },
-              totalTokens,
-            )
-            await quotaService.consumeQuota(
-              {
-                teamId: params.teamId,
-                userId: params.userId,
-                role: effectiveRole,
-                resource: 'agent_cost',
-              },
-              cost,
-            )
-          } catch (err) {
-            logger.error({ err }, 'Failed to record quota usage for AI call')
-          }
-        }
-      }
-    })
-
-    const assistantMessage = await harness.prompt(params.prompt, { images: imagesToPass })
-
-    if (totalInputTokens === 0 && totalOutputTokens === 0 && assistantMessage.usage) {
-      totalInputTokens = assistantMessage.usage.input || 0
-      totalOutputTokens = assistantMessage.usage.output || 0
-      totalCacheReadTokens = assistantMessage.usage.cacheRead || 0
-      grandTotalTokens = assistantMessage.usage.totalTokens || totalInputTokens + totalOutputTokens
-      totalCost = assistantMessage.usage.cost?.total || 0
-
-      try {
-        await quotaService.consumeQuota(
-          {
-            teamId: params.teamId,
-            userId: params.userId,
-            role: effectiveRole,
-            resource: 'agent_total_tokens',
-          },
-          grandTotalTokens,
-        )
-        await quotaService.consumeQuota(
-          {
-            teamId: params.teamId,
-            userId: params.userId,
-            role: effectiveRole,
-            resource: 'agent_cost',
-          },
-          totalCost,
-        )
-      } catch (err) {
-        logger.error({ err }, 'Failed to record fallback quota usage for AI call')
-      }
+    const requestId = params.taskId || params.userCommentId || randomUUID()
+    const context = {
+      ...params.messageContext,
+      id: params.userCommentId || `chat:${activeSessionId}:${requestId}`,
     }
-
-    const sessionEntries = await session.getEntries()
-    sessionEntries.forEach((entry) => {
-      if (entry.type === 'message' && entry.message) {
-        const msg = entry.message
-        if (msg.role === 'toolResult') {
-          const logMsg = { ...msg, content: undefined }
-          logger.debug(logMsg, 'agent message')
-        } else {
-          logger.debug(msg, 'agent message')
+    const xml = serializeContextToXml(context)
+    const images: ImageContent[] = []
+    for (const key of params.images) {
+      const { contentType } = await s3Service.getObject(process.env.S3_BUCKET || 'shumai', key)
+      images.push({ type: 'image', data: S3_PLACEHOLDER, mimeType: contentType })
+    }
+    const submission = await session.submit(
+      {
+        type: 'input',
+        requestId,
+        content: [
+          { type: 'text', text: xml ? `${params.prompt}\n\n${xml}` : params.prompt },
+          ...images,
+        ],
+        entry: {
+          kind: ShumaiMessageEntry.kind,
+          data: JSON.parse(
+            JSON.stringify({
+              displayText: params.prompt,
+              timestamp: Date.now(),
+              context,
+              sourceCommentId: params.userCommentId,
+              sourceKeys: params.images,
+            }),
+          ) as JsonObject,
+        },
+      },
+      piContext,
+    )
+    const settled = await submission.wait(piContext)
+    if (settled.status !== 'done' || settled.type !== 'input') {
+      let detail = ''
+      const recent = await session.entries?.({ order: 'descending' }, 20, undefined, piContext)
+      for (const entry of recent?.items ?? []) {
+        const failure = entry.model?.find(
+          (message) => message.role === 'assistant' && message.errorMessage,
+        )
+        if (failure?.role === 'assistant') {
+          detail = `: ${failure.errorMessage}`
+          break
         }
       }
-    })
-
-    let text = assistantMessage.content
-      .filter((c) => c.type === 'text')
-      .map((c) => {
-        if ('text' in c && typeof c.text === 'string') {
-          return c.text
-        }
-        return ''
+      throw ApplicationFailure.create({
+        message: `Agent run ended without an answer: ${settled.status === 'unanswered' ? settled.reason : settled.status}${detail}`,
+        nonRetryable: true,
       })
-      .join('\n')
-
-    if (assistantMessage.stopReason === 'error' && assistantMessage.errorMessage) {
-      if (text) {
-        text += '\n\n'
-      }
-      text += `Error: ${assistantMessage.errorMessage}`
     }
-
+    const answer = await session.commit((tx) => tx.entry(settled.answer), piContext)
+    const assistantMessage = answer?.model?.find(
+      (message): message is AssistantMessage => message.role === 'assistant',
+    )
+    if (!assistantMessage) throw new Error('Agent answer is missing')
+    if (assistantMessage.stopReason === 'error')
+      throw ApplicationFailure.create({
+        message: assistantMessage.errorMessage || 'Agent generation failed',
+        nonRetryable: true,
+      })
+    const totals = await harness.usage(piContext)
     const usage: Usage = {
       model: modelId,
-      inputTokens: totalInputTokens,
-      outputTokens: totalOutputTokens,
-      cacheReadTokens: totalCacheReadTokens,
-      totalTokens: grandTotalTokens,
-      cost: totalCost,
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      totalTokens: 0,
+      cost: 0,
     }
-
-    let sessionId = ''
-    if (storage instanceof DatabaseSessionStorage) {
-      sessionId = storage.sessionId
+    for (const value of Object.values(totals.models)) {
+      usage.inputTokens += value.input
+      usage.outputTokens += value.output
+      usage.cacheReadTokens += value.cacheRead
+      usage.totalTokens += value.totalTokens
+      usage.cost += value.cost.total
     }
-    return { text, usage, sessionId }
+    // Accounting is committed with the native usage ledger; workflow reporting uses this request's entries.
+    if (session.entries) {
+      Object.assign(usage, {
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadTokens: 0,
+        totalTokens: 0,
+        cost: 0,
+      })
+      let cursor: import('@earendil-works/pi-durable').Cursor | undefined
+      do {
+        const page = await session.entries(
+          { order: 'ascending', minEntryId: settled.entry, maxEntryId: settled.answer },
+          100,
+          cursor,
+          piContext,
+        )
+        for (const entry of page.items)
+          for (const message of entry.model ?? [])
+            if (message.role === 'assistant') {
+              usage.inputTokens += message.usage.input
+              usage.outputTokens += message.usage.output
+              usage.cacheReadTokens += message.usage.cacheRead
+              usage.totalTokens += message.usage.totalTokens
+              usage.cost += message.usage.cost.total
+            }
+        cursor = page.next
+      } while (cursor)
+    }
+    const text = assistantMessage.content
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text)
+      .join('\n')
+    return { text, usage, sessionId: activeSessionId }
   } finally {
-    if (abortSignal) {
-      abortSignal.removeEventListener('abort', onAbort)
-    }
-    if (params.taskId) {
-      unregisterLocalCancelHandler(params.taskId)
-    }
+    abortSignal?.removeEventListener('abort', onAbort)
+    if (params.taskId) unregisterLocalCancelHandler(params.taskId)
+    await harness.close(piContext)
   }
 }
 
@@ -522,6 +466,7 @@ export const agentChatActivity = defineStep(async function agentChatActivity(
 })
 
 export interface AutofillAiParams {
+  taskId?: string
   teamId: string
   images?: string[]
   fields: AutofillField[]
@@ -542,14 +487,13 @@ export const autofillAiActivity = defineStep(async function autofillAiActivity(
 
   const autofillTool: AgentTool = {
     name: 'autofill_metadata',
-    label: 'Autofill Metadata',
     description: 'Provide the extracted metadata once you have analyzed the asset content.',
     parameters: toolSchema,
-    execute: async (_toolCallId, toolParams) => {
+    execute: async (toolParams) => {
       capturedData = toolParams as Record<string, unknown>
       return {
-        content: [{ type: 'text', text: 'Metadata captured successfully.' }],
-        details: {},
+        output: [{ type: 'text', text: 'Metadata captured successfully.' }],
+        details: { metadata: toolParams as JsonObject },
       }
     },
   }
@@ -592,6 +536,7 @@ export const autofillAiActivity = defineStep(async function autofillAiActivity(
   const { agent } = params.context
 
   const { usage, sessionId } = await executeAgentPrompt({
+    taskId: params.taskId,
     teamId: params.teamId,
     agentId: agent.id,
     prompt: fullPrompt,
@@ -604,6 +549,24 @@ export const autofillAiActivity = defineStep(async function autofillAiActivity(
     context: params.context,
   })
 
+  if (!capturedData) {
+    for (const entry of await agentSessionService.getEntries(sessionId))
+      for (const message of entry.model ?? []) {
+        if (
+          message.role === 'toolResult' &&
+          message.toolName === 'autofill_metadata' &&
+          !message.isError &&
+          message.details &&
+          typeof message.details === 'object' &&
+          !Array.isArray(message.details) &&
+          'metadata' in message.details &&
+          message.details.metadata &&
+          typeof message.details.metadata === 'object' &&
+          !Array.isArray(message.details.metadata)
+        )
+          capturedData = Object.fromEntries(Object.entries(message.details.metadata))
+      }
+  }
   return {
     text: capturedData ? JSON.stringify(capturedData) : '{}',
     usage,
@@ -611,355 +574,9 @@ export const autofillAiActivity = defineStep(async function autofillAiActivity(
   }
 })
 
-export const initializeAgentSessionActivity = defineStep(
-  async function initializeAgentSessionActivity(params: {
-    teamId: string
-    agentId: string
-    userCommentId: string
-    userId?: string
-  }): Promise<string> {
-    const agentId = params.agentId === 'default' ? 'default' : params.agentId
-
-    // Ensure user exists for agent
-    const userExists = await prisma.user.findUnique({ where: { id: agentId } })
-    if (!userExists) {
-      await prisma.user.create({
-        data: {
-          id: agentId,
-          name: 'Ai Agent',
-          email: `${agentId}@shumai.ai`,
-          type: 'agent',
-        },
-      })
-    }
-
-    // Ensure agent exists
-    const agentExists = await prisma.agent.findUnique({ where: { id: agentId } })
-    if (!agentExists) {
-      await prisma.agent.create({
-        data: {
-          id: agentId,
-          teamId: params.teamId,
-          type: 'chat',
-          config: {
-            provider: 'openai',
-            model: 'gpt-4',
-          },
-        },
-      })
-    }
-
-    const userComment = await prisma.assetComment.findUnique({
-      where: { id: params.userCommentId },
-      include: { creator: true },
-    })
-
-    if (!userComment) {
-      throw new Error(`User comment ${params.userCommentId} not found`)
-    }
-
-    const rootCommentId = userComment.replyToId || userComment.id
-    const targetUserCommentId = rootCommentId
-
-    let session = await prisma.agentSession.findFirst({
-      where: {
-        assetId: userComment.assetId,
-        type: 'comment',
-        userCommentId: targetUserCommentId,
-      },
-    })
-
-    if (!session) {
-      session = await prisma.agentSession.create({
-        data: {
-          agentId,
-          userId: params.userId || null,
-          cwd: process.cwd(),
-          assetId: userComment.assetId,
-          userCommentId: targetUserCommentId,
-          type: 'comment',
-        },
-      })
-    }
-
-    const rootComment = await prisma.assetComment.findUnique({
-      where: { id: rootCommentId },
-      include: { creator: true },
-    })
-    if (!rootComment) {
-      throw new Error(`Root comment ${rootCommentId} not found`)
-    }
-
-    // Ensure preceding top-level comments up to rootCommentId are synced in Main Session first
-    let mainSession = await prisma.agentSession.findFirst({
-      where: {
-        assetId: userComment.assetId,
-        type: 'comment',
-        userCommentId: null,
-      },
-    })
-    if (!mainSession) {
-      mainSession = await prisma.agentSession.create({
-        data: {
-          agentId,
-          userId: params.userId || null,
-          cwd: process.cwd(),
-          assetId: userComment.assetId,
-          userCommentId: null,
-          type: 'comment',
-        },
-      })
-    }
-
-    // 1. Fetch top-level comments up to rootComment.createdAt sorted by id
-    const topLevelComments = await prisma.assetComment.findMany({
-      where: {
-        assetId: userComment.assetId,
-        replyToId: null,
-        createdAt: { lte: rootComment.createdAt },
-      },
-      orderBy: { id: 'asc' },
-      include: {
-        creator: true,
-        attachments: { include: { asset: true } },
-      },
-    })
-
-    // 2. Fetch thread replies up to userComment.createdAt excluding userComment itself
-    const threadReplies = userComment.replyToId
-      ? await prisma.assetComment.findMany({
-          where: {
-            replyToId: rootCommentId,
-            createdAt: { lte: userComment.createdAt },
-            id: { not: userComment.id },
-          },
-          orderBy: { id: 'asc' },
-          include: {
-            creator: true,
-            attachments: { include: { asset: true } },
-          },
-        })
-      : []
-
-    const allCommentsToSync = [...topLevelComments, ...threadReplies]
-
-    // Resolve user mentions from IDs to names and roles
-    const mentionRegex = /<@([^>]+)>/g
-    const mentionedUserIds = new Set<string>()
-    for (const c of allCommentsToSync) {
-      if (c.message) {
-        const matches = [...c.message.matchAll(mentionRegex)]
-        for (const match of matches) {
-          mentionedUserIds.add(match[1])
-        }
-      }
-    }
-
-    const userIdToNameMap = new Map<string, string>()
-    if (mentionedUserIds.size > 0) {
-      const resolvedUsers = await prisma.user.findMany({
-        where: { id: { in: Array.from(mentionedUserIds) } },
-        select: { id: true, name: true },
-      })
-      for (const u of resolvedUsers) {
-        if (u.name) userIdToNameMap.set(u.id, u.name)
-      }
-    }
-
-    const userRoleMap = new Map<string, string>()
-    const humanCreatorIds = Array.from(
-      new Set(
-        allCommentsToSync
-          .filter((c) => c.creator?.type !== 'agent' && c.creatorId)
-          .map((c) => c.creatorId!),
-      ),
-    )
-    if (humanCreatorIds.length > 0) {
-      const members = await prisma.teamMember.findMany({
-        where: {
-          teamId: params.teamId,
-          userId: { in: humanCreatorIds },
-        },
-        select: { userId: true, role: true },
-      })
-      for (const m of members) {
-        userRoleMap.set(m.userId, m.role)
-      }
-    }
-
-    const assetRecord = await prisma.asset.findUnique({
-      where: { id: userComment.assetId },
-      select: { media: true },
-    })
-    const proxyType = (assetRecord?.media as PrismaJson.MediaInfo | null)?.proxyType
-
-    function buildCommentEntry(c: (typeof allCommentsToSync)[0]) {
-      const isAgent = c.creator?.type === 'agent' || c.sessionId !== null
-      let messageContent = c.message || ''
-
-      messageContent = messageContent.replace(mentionRegex, (match, userId) => {
-        const resolvedName = userIdToNameMap.get(userId)
-        return resolvedName ? `<@${resolvedName}>` : match
-      })
-
-      if (isAgent) {
-        const message: AgentMessage = {
-          role: 'assistant',
-          content: [{ type: 'text', text: messageContent }],
-          api: 'custom',
-          provider: 'shumai',
-          model: 'agent',
-          usage: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-            totalTokens: 0,
-            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-          },
-          stopReason: 'stop',
-          timestamp: c.createdAt.getTime(),
-        }
-        return {
-          type: 'message' as const,
-          data: { message },
-        }
-      }
-
-      let userObj: ShumaiMessageContext['user'] = undefined
-      if (c.creator) {
-        const role = (c.creatorId ? userRoleMap.get(c.creatorId) : undefined) || 'user'
-        userObj = {
-          id: c.creator.id,
-          name: c.creator.name || 'Unknown',
-          role,
-        }
-      }
-
-      let position: ShumaiMediaPosition | undefined = undefined
-      if (c.second !== null && c.second !== undefined) {
-        if (proxyType === '3d') {
-          position = { type: 'degree', degree: secondToDegree(c.second) }
-        } else if (proxyType === 'pdf') {
-          position = { type: 'page', page: Math.round(c.second) }
-        } else {
-          position = { type: 'time', seconds: c.second }
-        }
-      }
-
-      const annotation = !!(c.annotation && Array.isArray(c.annotation) && c.annotation.length > 0)
-
-      const attachedFiles: ShumaiMessageContext['attachedFiles'] = []
-      if (c.attachments && c.attachments.length > 0) {
-        for (const att of c.attachments) {
-          if (att.asset) {
-            const attProxyType = (att.asset.media as PrismaJson.MediaInfo | null)?.proxyType
-            attachedFiles.push({
-              id: att.asset.id,
-              name: att.asset.name,
-              type: att.asset.type,
-              mediaType: attProxyType as
-                'image' | 'video' | 'pdf' | 'audio' | '3d' | 'other' | undefined,
-              mimeType: att.asset.mediaType || undefined,
-            })
-          }
-        }
-      }
-
-      const commentDetails: ShumaiMessageContext = {
-        id: c.id,
-        ...(userObj ? { user: userObj } : {}),
-        ...(position ? { position } : {}),
-        ...(annotation
-          ? {
-              annotation: true,
-              annotations: c.annotation as unknown as ShumaiMessageContext['annotations'],
-            }
-          : {}),
-        ...(attachedFiles.length > 0 ? { attachedFiles } : {}),
-      }
-
-      return {
-        type: 'custom_message' as const,
-        data: {
-          customType: 'shumai_message',
-          content: messageContent,
-          display: true,
-          details: commentDetails,
-        },
-      }
-    }
-
-    // 3. Sync top-level comments into agent_session_entries (DAG spine)
-    let mainPrevId: string | null = null
-    for (const c of topLevelComments) {
-      const existingEntry = await prisma.agentSessionEntry.findUnique({
-        where: { id: c.id },
-        select: { id: true },
-      })
-
-      if (!existingEntry) {
-        const entryData = buildCommentEntry(c)
-        await prisma.agentSessionEntry.create({
-          data: {
-            id: c.id,
-            sessionId: mainSession.id,
-            assetId: userComment.assetId,
-            type: entryData.type,
-            parentId: mainPrevId,
-            createdAt: c.createdAt,
-            data: entryData.data as PrismaJson.PiSessionEntryData,
-          },
-        })
-      }
-      mainPrevId = c.id
-    }
-
-    if (mainPrevId) {
-      await prisma.agentSession.update({
-        where: { id: mainSession.id },
-        data: { leafId: mainPrevId },
-      })
-    }
-
-    // 4. Sync thread replies and set Thread Session leafId
-    let threadLeafId: string = rootCommentId
-
-    if (threadReplies.length > 0) {
-      let lastReplyParentId: string = rootCommentId
-      for (const reply of threadReplies) {
-        const existingReplyEntry = await prisma.agentSessionEntry.findUnique({
-          where: { id: reply.id },
-          select: { id: true },
-        })
-
-        if (!existingReplyEntry) {
-          const entryData = buildCommentEntry(reply)
-          await prisma.agentSessionEntry.create({
-            data: {
-              id: reply.id,
-              sessionId: session.id,
-              assetId: userComment.assetId,
-              type: entryData.type,
-              parentId: lastReplyParentId,
-              createdAt: reply.createdAt,
-              data: entryData.data as PrismaJson.PiSessionEntryData,
-            },
-          })
-        }
-        lastReplyParentId = reply.id
-      }
-      threadLeafId = lastReplyParentId
-    }
-
-    await prisma.agentSession.update({
-      where: { id: session.id },
-      data: { leafId: threadLeafId },
-    })
-
-    return session.id
-  },
-)
+export const initializeAgentSessionActivity = defineStep(initializeCommentSession, {
+  name: 'initializeAgentSessionActivity',
+})
 
 export const deleteCommentActivity = defineStep(async function deleteCommentActivity(
   commentId: string,
@@ -1499,7 +1116,23 @@ export const generateSessionNameActivity = defineStep(async function generateSes
     })
 
     const promptToTitle = `Generate a short 2 to 4 word title for a session starting with this message:\n\n<user_message>\n${prompt}\n</user_message>`
-    const result = await harness.prompt(promptToTitle)
+    let result: AssistantMessage
+    try {
+      const conversation = await harness.root(piContext)
+      const settled = await (
+        await conversation.submit(
+          { type: 'input', content: promptToTitle, requestId: 'title' },
+          piContext,
+        )
+      ).wait(piContext)
+      if (settled.status !== 'done' || settled.type !== 'input') return
+      const entry = await conversation.commit((tx) => tx.entry(settled.answer), piContext)
+      const message = entry?.model?.find((m): m is AssistantMessage => m.role === 'assistant')
+      if (!message) return
+      result = message
+    } finally {
+      await harness.close(piContext)
+    }
 
     if (result.stopReason === 'error' || result.stopReason === 'aborted' || result.errorMessage) {
       logger.error(

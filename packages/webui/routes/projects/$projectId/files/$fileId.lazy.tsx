@@ -1,4 +1,5 @@
 import { client } from '@/ui/api/client'
+import { ArchiveConfirmDialog } from '@/ui/components/archive-confirm-dialog'
 import { ChatbotSidebar } from '@/ui/components/chatbot-sidebar'
 import { pickDefaultCompareVersions } from '@/ui/components/compare/compare-utils'
 import { CompareViewer } from '@/ui/components/compare/compare-viewer'
@@ -6,11 +7,10 @@ import { FileViewer } from '@/ui/components/file-viewer'
 import { FileViewerLeftSidebar } from '@/ui/components/file-viewer-left-sidebar'
 import { FileViewerRightSidebar } from '@/ui/components/file-viewer-right-sidebar'
 import { MobileFileDetail } from '@/ui/components/file-viewer/mobile-file-detail'
-import { ArchiveConfirmDialog } from '@/ui/components/archive-confirm-dialog'
-import { useArchiveConfig } from '@/ui/hooks/use-archive-config'
-import { useIsMobile } from '@/ui/hooks/use-mobile'
 import { FileDetailSkeleton } from '@/ui/components/loading-skeletons'
 import { ResizeHandle } from '@/ui/components/resize-handle'
+import { useArchiveConfig } from '@/ui/hooks/use-archive-config'
+import { useIsMobile } from '@/ui/hooks/use-mobile'
 import { m } from '@/ui/paraglide/messages.js'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import { useChatbotStore } from '@/ui/stores/chatbot'
@@ -20,6 +20,8 @@ import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useUiStore } from '@/ui/stores/ui'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 import { type Annotation } from '@/ui/types'
+import type { EntryRecord } from '@earendil-works/pi-durable'
+import { getShumaiMessage } from '@shumai/dtos'
 import { useMutation } from '@tanstack/react-query'
 import { createLazyFileRoute } from '@tanstack/react-router'
 import { InferRequestType, InferResponseType } from 'hono/client'
@@ -43,20 +45,14 @@ import {
   DialogTitle,
 } from '@/ui/components/ui/dialog'
 import { Input } from '@/ui/components/ui/input'
-import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
-import { toast } from 'sonner'
 import type { MediaController } from '@/ui/components/viewers/types'
-import type {
-  AssetInfo,
-  AssetInfoPaginatedList,
-  ChatMessage,
-  CommentInfo,
-  ShumaiMessageContext,
-} from '@shumai/dtos'
+import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
+import type { AssetInfo, AssetInfoPaginatedList, CommentInfo } from '@shumai/dtos'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 function FileViewPage() {
   const { projectId, fileId } = Route.useParams()
@@ -644,10 +640,9 @@ function FileViewPage() {
     }
   }
 
-  const handleChatMessageSelect = (msg: ChatMessage) => {
-    setSelectedCommentId(msg.id || null)
-    const msgObj = msg as unknown as Record<string, unknown>
-    const details = msgObj.details as ShumaiMessageContext | undefined
+  const handleChatMessageSelect = (msg: EntryRecord) => {
+    setSelectedCommentId(String(msg.id))
+    const details = getShumaiMessage(msg)?.context
     const rawAnnotations = details?.annotations as Annotation[] | undefined
     if (rawAnnotations && rawAnnotations.length > 0) {
       setAnnotations(rawAnnotations)

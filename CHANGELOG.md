@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **agent**: Upgrade the agent runtime, automatically migrate existing conversations, and keep each thread’s history independent. Agents now always run with the main server; standalone agent workers are no longer supported.
+
 ## [0.6.5] - 2026-11-07
 
 ### Added

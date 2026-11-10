@@ -1,5 +1,5 @@
-import { z } from 'zod'
 import { AgentType } from '@shumai/db/enums'
+import { z } from 'zod'
 
 export * from './agent-avatar'
 
@@ -123,13 +123,6 @@ export interface ListAgentsParams {
   teamId: string
   userId?: string
 }
-
-export const agentSessionEntrySchema = z.object({
-  id: z.string(),
-  sessionId: z.string(),
-  entry: z.unknown(),
-})
-export type AgentSessionEntryInfo = z.infer<typeof agentSessionEntrySchema>
 
 export const agentSessionSchema = z.object({
   id: z.string(),

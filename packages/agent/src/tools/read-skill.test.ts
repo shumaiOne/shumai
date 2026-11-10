@@ -1,15 +1,16 @@
+import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { vi } from 'vitest'
 
 vi.mock('@shumai/core/src/s3/s3')
 vi.mock('fs')
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { createReadSkillTool } from './read-skill'
-import { s3Service } from '@shumai/core/src/s3/s3'
 import AdmZip from 'adm-zip'
 import * as fs from 'fs'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { createReadSkillTool } from './read-skill'
 
 describe('readSkillTool', () => {
   setupTestDbHooks()
@@ -21,7 +22,7 @@ describe('readSkillTool', () => {
   it('should throw error if skill not found', async () => {
     const readSkillTool = createReadSkillTool(undefined, () => {})
     await expect(
-      readSkillTool.execute('1', { skillId: 'non-existent' }, undefined, undefined),
+      invokeTool(readSkillTool, '1', { skillId: 'non-existent' }, undefined, undefined),
     ).rejects.toThrow('not found')
   })
 
@@ -45,7 +46,7 @@ describe('readSkillTool', () => {
     })
 
     const readSkillTool = createReadSkillTool(undefined, () => {})
-    const result = await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
+    const result = await invokeTool(readSkillTool, '1', { skillId: skill.id }, undefined, undefined)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((result.content[0] as any).text).toBe('# Test Skill Content')
@@ -97,7 +98,7 @@ describe('readSkillTool', () => {
     })
 
     const readSkillTool = createReadSkillTool(undefined, () => {})
-    const result = await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
+    const result = await invokeTool(readSkillTool, '1', { skillId: skill.id }, undefined, undefined)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((result.content[0] as any).text).toBe('# Extracted Content')
@@ -144,7 +145,7 @@ describe('readSkillTool', () => {
       const readSkillTool = createReadSkillTool(undefined, (envs) => {
         capturedEnvs = { ...capturedEnvs, ...envs }
       })
-      await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
+      await invokeTool(readSkillTool, '1', { skillId: skill.id }, undefined, undefined)
 
       expect(capturedEnvs).toEqual({
         CONFIGURED_VAR: 'user-val',
@@ -179,7 +180,7 @@ describe('readSkillTool', () => {
       const readSkillTool = createReadSkillTool(undefined, (envs) => {
         capturedEnvs = { ...capturedEnvs, ...envs }
       })
-      await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
+      await invokeTool(readSkillTool, '1', { skillId: skill.id }, undefined, undefined)
 
       expect(capturedEnvs).toEqual({
         OVERRIDDEN_VAR: 'user-val',
@@ -214,7 +215,7 @@ describe('readSkillTool', () => {
       const readSkillTool = createReadSkillTool(undefined, (envs) => {
         capturedEnvs = { ...capturedEnvs, ...envs }
       })
-      await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
+      await invokeTool(readSkillTool, '1', { skillId: skill.id }, undefined, undefined)
 
       expect(capturedEnvs).toEqual({
         FALLBACK_VAR: 'host-val',
@@ -249,7 +250,7 @@ describe('readSkillTool', () => {
       const readSkillTool = createReadSkillTool(undefined, (envs) => {
         capturedEnvs = { ...capturedEnvs, ...envs }
       })
-      await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
+      await invokeTool(readSkillTool, '1', { skillId: skill.id }, undefined, undefined)
 
       expect(capturedEnvs).toEqual({
         FALLBACK_VAR_UNDEF: 'host-val2',
@@ -293,7 +294,8 @@ describe('readSkillTool', () => {
       })
 
       const ownerTool = createReadSkillTool(ownerUser.id, () => {})
-      const resultOwner = await ownerTool.execute(
+      const resultOwner = await invokeTool(
+        ownerTool,
         '1',
         { skillId: ownerSkill.id },
         undefined,
@@ -304,7 +306,7 @@ describe('readSkillTool', () => {
 
       const reviewerTool = createReadSkillTool(reviewerUser.id, () => {})
       await expect(
-        reviewerTool.execute('1', { skillId: ownerSkill.id }, undefined, undefined),
+        invokeTool(reviewerTool, '1', { skillId: ownerSkill.id }, undefined, undefined),
       ).rejects.toThrow('Permission denied')
     })
 
@@ -340,7 +342,7 @@ describe('readSkillTool', () => {
         project.id,
       )
       await expect(
-        demotedTool.execute('1', { skillId: editorSkill.id }, undefined, undefined),
+        invokeTool(demotedTool, '1', { skillId: editorSkill.id }, undefined, undefined),
       ).rejects.toThrow('Permission denied')
 
       // Project-scoped member invited as editor: allowed
@@ -369,7 +371,8 @@ describe('readSkillTool', () => {
         undefined,
         project.id,
       )
-      const result = await projEditorTool.execute(
+      const result = await invokeTool(
+        projEditorTool,
         '1',
         { skillId: editorSkill.id },
         undefined,
@@ -402,7 +405,7 @@ describe('readSkillTool', () => {
 
       const onSkillLoaded = vi.fn()
       const readSkillTool = createReadSkillTool(undefined, () => {}, onSkillLoaded)
-      await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
+      await invokeTool(readSkillTool, '1', { skillId: skill.id }, undefined, undefined)
 
       expect(onSkillLoaded).toHaveBeenCalledTimes(1)
     })
@@ -428,7 +431,7 @@ describe('readSkillTool', () => {
       const onSkillLoaded = vi.fn()
       const reviewerTool = createReadSkillTool(reviewerUser.id, () => {}, onSkillLoaded)
       await expect(
-        reviewerTool.execute('1', { skillId: ownerSkill.id }, undefined, undefined),
+        invokeTool(reviewerTool, '1', { skillId: ownerSkill.id }, undefined, undefined),
       ).rejects.toThrow('Permission denied')
 
       expect(onSkillLoaded).not.toHaveBeenCalled()
@@ -451,7 +454,7 @@ describe('readSkillTool', () => {
         'some-other-enabled-skill',
       ])
       await expect(
-        readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined),
+        invokeTool(readSkillTool, '1', { skillId: skill.id }, undefined, undefined),
       ).rejects.toThrow('not enabled for this agent')
     })
 
@@ -475,7 +478,13 @@ describe('readSkillTool', () => {
       })
 
       const readSkillTool = createReadSkillTool(undefined, () => {}, undefined, [skill.id])
-      const result = await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
+      const result = await invokeTool(
+        readSkillTool,
+        '1',
+        { skillId: skill.id },
+        undefined,
+        undefined,
+      )
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((result.content[0] as any).text).toBe('# Enabled For Agent Skill')
     })
@@ -500,7 +509,13 @@ describe('readSkillTool', () => {
       })
 
       const readSkillTool = createReadSkillTool(undefined, () => {})
-      const result = await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
+      const result = await invokeTool(
+        readSkillTool,
+        '1',
+        { skillId: skill.id },
+        undefined,
+        undefined,
+      )
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((result.content[0] as any).text).toBe('# No Filter Skill')
     })

@@ -1,13 +1,3 @@
-import {
-  getEffortThinkingLevelMap,
-  type ModelsDevReasoningOption,
-} from './models-dev-reasoning-options.ts'
-import {
-  CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL,
-  CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL,
-  CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL,
-  CLOUDFLARE_WORKERS_AI_BASE_URL,
-} from '@earendil-works/pi-ai/api/cloudflare'
 import type {
   AnthropicMessagesCompat,
   Api,
@@ -17,6 +7,16 @@ import type {
   OpenAICompletionsCompat,
   OpenAIResponsesCompat,
 } from '@earendil-works/pi-ai'
+import {
+  CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL,
+  CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL,
+  CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL,
+  CLOUDFLARE_WORKERS_AI_BASE_URL,
+} from '@earendil-works/pi-ai/api/cloudflare'
+import {
+  getEffortThinkingLevelMap,
+  type ModelsDevReasoningOption,
+} from './models-dev-reasoning-options.ts'
 
 export interface GeneratorOptions {
   strict?: boolean
@@ -1951,7 +1951,6 @@ async function loadModelsDevData(): Promise<Model<any>[]> {
         const compat = isKimiK3 ? { ...moonshotCompat } : moonshotCompat
         if (isKimiK3) {
           compat.requiresReasoningContentOnAssistantMessages = true
-          compat.deferredToolsMode = 'kimi'
           compat.thinkingFormat = 'openai'
           compat.supportsReasoningEffort = true
         }

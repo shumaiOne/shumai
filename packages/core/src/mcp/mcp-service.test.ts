@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db/test'
 import '@shumai/db/src/prisma-json-types'
+import { setupTestDbHooks } from '@shumai/db/test'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { invokeTool } from '../agent/tool-test-utils'
 import { McpService } from './mcp-service'
 import {
-  startTestMcpServer,
   standardTestTools,
+  startTestMcpServer,
   type RunningTestMcpServer,
   type TestMcpToolDef,
 } from './mcp-test-server'
@@ -61,11 +62,6 @@ const AIRTABLE_TOOLS: TestMcpToolDef[] = [
     handler: async () => 'airtable-candidates',
   },
 ]
-
-type ProxyExecute = (
-  id: string,
-  params: unknown,
-) => Promise<{ content: Array<{ type: string; text?: string }> }>
 
 describe('McpService', () => {
   setupTestDbHooks()
@@ -199,7 +195,7 @@ describe('McpService', () => {
       const agent = await seedAgentAndUser(teamId, 'Meta Name Agent')
       await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
       const agentTools = await service.buildAgentTools(agent.id, teamId)
-      const search = await (agentTools[0].execute as ProxyExecute)('meta-1', { search: 'echo' })
+      const search = await invokeTool(agentTools[0], 'meta-1', { search: 'echo' })
       expect(JSON.stringify(search.content)).toContain('Meta_Server_echo')
     } finally {
       await metaSrv.stop()
@@ -337,14 +333,14 @@ describe('McpService', () => {
       expect(proxy.description).not.toContain(instructionsText)
 
       // L2: longer preview at the end of the server listing + full-text hint.
-      const list = await (proxy.execute as ProxyExecute)('list-1', { server: 'inst-srv' })
+      const list = await invokeTool(proxy, 'list-1', { server: 'inst-srv' })
       const listText = JSON.stringify(list.content)
       expect(listText).toContain('Server instructions:')
       expect(listText).toContain('for the full text')
       expect(listText).not.toContain(instructionsText)
 
       // L3: full text via the instructions mode.
-      const full = await (proxy.execute as ProxyExecute)('inst-1', { instructions: 'inst-srv' })
+      const full = await invokeTool(proxy, 'inst-1', { instructions: 'inst-srv' })
       const fullText = JSON.stringify(full.content)
       expect(fullText).toContain(instructionsText)
       expect(fullText).toContain('inst-srv instructions:')
@@ -364,9 +360,9 @@ describe('McpService', () => {
 
     // No L1 block, no L2 preview, and L3 says so explicitly.
     expect(proxy.description).not.toContain('Server instructions (truncated')
-    const list = await (proxy.execute as ProxyExecute)('list-1', { server: 'test-mcp-server' })
+    const list = await invokeTool(proxy, 'list-1', { server: 'test-mcp-server' })
     expect(JSON.stringify(list.content)).not.toContain('Server instructions:')
-    const full = await (proxy.execute as ProxyExecute)('inst-1', {
+    const full = await invokeTool(proxy, 'inst-1', {
       instructions: 'test-mcp-server',
     })
     expect(JSON.stringify(full.content)).toContain('does not provide instructions')
@@ -386,7 +382,7 @@ describe('McpService', () => {
       const agent = await seedAgentAndUser(teamId, 'Cache Agent')
       await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
       const tools = await service.buildAgentTools(agent.id, teamId)
-      const full = await (tools[0].execute as ProxyExecute)('inst-1', {
+      const full = await invokeTool(tools[0], 'inst-1', {
         instructions: 'cache-srv',
       })
       expect(JSON.stringify(full.content)).toContain('Always use the read-only API.')
@@ -661,12 +657,11 @@ describe('McpService', () => {
     expect(tools[0].description).toContain('test-mcp-server')
 
     // Executing the proxy's call mode hits the real server.
-    const result = await (
-      tools[0].execute as (
-        id: string,
-        params: unknown,
-      ) => Promise<{ content: Array<{ type: string; text?: string }> }>
-    )('call-1', { server: 'test-mcp-server', tool: 'echo', args: { text: 'via-proxy' } })
+    const result = await invokeTool(tools[0], 'call-1', {
+      server: 'test-mcp-server',
+      tool: 'echo',
+      args: { text: 'via-proxy' },
+    })
     expect(JSON.stringify(result.content)).toContain('echo:via-proxy')
   })
 
@@ -704,7 +699,7 @@ describe('McpService', () => {
     try {
       // The agent only has tavily assigned. Asking for a tool that does not
       // exist on tavily must not surface airtable's tool names as suggestions.
-      const result = await (proxy.execute as ProxyExecute)('leak-1', {
+      const result = await invokeTool(proxy, 'leak-1', {
         server: 'tavily-mcp',
         tool: 'search',
       })
@@ -721,7 +716,7 @@ describe('McpService', () => {
   it('does not resolve, search or describe tools of unassigned servers', async () => {
     const { proxy, tavilySrv, airtableSrv } = await seedAgentWithUnassignedServer()
     try {
-      const execute = proxy.execute as ProxyExecute
+      const execute = (id: string, args: Record<string, unknown>) => invokeTool(proxy, id, args)
 
       // 1. Direct tool call with the unassigned server's prefixed tool name
       //    (no server param) must not execute airtable's handler.
@@ -758,10 +753,10 @@ describe('McpService', () => {
         where: { agentId: agent.id, mcpServerId: airtable.id },
       })
       tools = await service.buildAgentTools(agent.id, teamId)
-      const search = await (tools[0].execute as ProxyExecute)('leak-5', { search: 'records' })
+      const search = await invokeTool(tools[0], 'leak-5', { search: 'records' })
       expect(JSON.stringify(search.content)).not.toContain('airtable')
 
-      const call = await (tools[0].execute as ProxyExecute)('leak-6', {
+      const call = await invokeTool(tools[0], 'leak-6', {
         tool: 'airtable_mcp_server_search_records',
       })
       expect(JSON.stringify(call.content)).not.toContain('AIRTABLE-SECRET-DATA')
@@ -836,12 +831,7 @@ describe('McpService', () => {
 
     // Direct tool executes through callMcpTool.
     const echo = tools.find((t) => t.name === 'test_mcp_server_echo')!
-    const result = await (
-      echo.execute as (
-        id: string,
-        params: unknown,
-      ) => Promise<{ content: Array<{ type: string; text?: string }> }>
-    )('call-2', { text: 'direct' })
+    const result = await invokeTool(echo, 'call-2', { text: 'direct' })
     expect(JSON.stringify(result.content)).toContain('echo:direct')
   })
 
@@ -867,15 +857,15 @@ describe('McpService', () => {
     )
     expect(proxy.description).toContain('test-mcp-server (1 tools, status:')
 
-    const list = await (proxy.execute as ProxyExecute)('excl-list-1', {
+    const list = await invokeTool(proxy, 'excl-list-1', {
       server: 'test-mcp-server',
     })
     expect(JSON.stringify(list.content)).not.toContain('test_mcp_server_add')
 
-    const search = await (proxy.execute as ProxyExecute)('excl-search-1', { search: 'add' })
+    const search = await invokeTool(proxy, 'excl-search-1', { search: 'add' })
     expect(JSON.stringify(search.content)).not.toContain('test_mcp_server_add')
 
-    const call = await (proxy.execute as ProxyExecute)('excl-call-1', {
+    const call = await invokeTool(proxy, 'excl-call-1', {
       server: 'test-mcp-server',
       tool: 'add',
       args: { a: 1, b: 2 },
@@ -987,29 +977,14 @@ describe('McpService', () => {
       expect(tools.length).toBe(1) // only the proxy
       const proxy = tools[0]
 
-      const callA = await (
-        proxy.execute as (
-          id: string,
-          params: unknown,
-        ) => Promise<{ content: Array<{ type: string; text?: string }> }>
-      )('c1', { server: 'srvA', tool: 'shared' })
+      const callA = await invokeTool(proxy, 'c1', { server: 'srvA', tool: 'shared' })
       expect(JSON.stringify(callA.content)).toContain('from-A')
 
-      const callB = await (
-        proxy.execute as (
-          id: string,
-          params: unknown,
-        ) => Promise<{ content: Array<{ type: string; text?: string }> }>
-      )('c2', { server: 'srvB', tool: 'shared' })
+      const callB = await invokeTool(proxy, 'c2', { server: 'srvB', tool: 'shared' })
       expect(JSON.stringify(callB.content)).toContain('from-B')
 
       // Prefixed names also resolve without the server parameter.
-      const prefixed = await (
-        proxy.execute as (
-          id: string,
-          params: unknown,
-        ) => Promise<{ content: Array<{ type: string; text?: string }> }>
-      )('c3', { tool: 'srvA_get' })
+      const prefixed = await invokeTool(proxy, 'c3', { tool: 'srvA_get' })
       expect(JSON.stringify(prefixed.content)).toContain('A')
     } finally {
       await srvA.stop()

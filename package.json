@@ -28,7 +28,6 @@
     "db:migrate": "bun run prisma migrate dev",
     "db:deploy": "bun run prisma migrate deploy",
     "db:generate": "cd packages/db && bunx prisma generate",
-    "worker:agent": "bun apps/agent/src/index.ts",
     "worker:transcode": "bun apps/transcode/src/index.ts",
     "build": "bun run i18n:compile && bun run build.ts",
     "build-npm": "bun run i18n:compile && bun scripts/build-npm.ts",
@@ -67,8 +66,5 @@
     "typescript-eslint": "8.68.0",
     "vite-tsconfig-paths": "6.1.1",
     "vitest": "4.1.11"
-  },
-  "patchedDependencies": {
-    "@earendil-works/pi-ai@0.82.1": "patches/@earendil-works%2Fpi-ai@0.82.1.patch"
   }
 }

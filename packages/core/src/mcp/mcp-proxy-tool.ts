@@ -7,12 +7,15 @@
  * server(list) > status.
  */
 
-import { Type } from '@sinclair/typebox'
-import type { AgentTool, AgentToolResult } from '@earendil-works/pi-agent-core'
+import type {
+  ToolRegistration as AgentTool,
+  ToolExecutionResult as AgentToolResult,
+} from '@earendil-works/pi-durable'
+import { Type } from 'typebox'
 import type { McpToolRegistry, ToolMetadata } from './mcp-tool-registry'
 import { formatSchema } from './mcp-tool-schema'
 
-type ProxyToolResult = AgentToolResult<Record<string, unknown>>
+type ProxyToolResult = AgentToolResult
 
 /** Truncated instructions head baked into the proxy tool description (L1). */
 const INSTRUCTIONS_SNIPPET_LENGTH = 150
@@ -45,7 +48,7 @@ export type ConnectionOutcome =
 
 export interface CallToolOutcome {
   ok: boolean
-  content: AgentToolResult<Record<string, unknown>>['content']
+  content: NonNullable<AgentToolResult['output']>
 }
 
 export interface McpProxyToolContext {
@@ -167,7 +170,7 @@ function parseArgs(raw: unknown): Record<string, unknown> {
 }
 
 function contentText(text: string): ProxyToolResult {
-  return { content: [{ type: 'text', text }], details: {} }
+  return { output: [{ type: 'text', text }], details: {} }
 }
 
 /** Transform MCP content blocks into model content blocks. */
@@ -181,7 +184,7 @@ export function transformMcpContent(
     uri?: string
     name?: string
   }>,
-): AgentToolResult<Record<string, unknown>>['content'] {
+): NonNullable<AgentToolResult['output']> {
   return content.map((c) => {
     if (c.type === 'text') {
       return { type: 'text', text: c.text ?? '' }
@@ -331,10 +334,10 @@ function renderServerListing(
 export function buildProxyTool(ctx: McpProxyToolContext): AgentTool<typeof proxyToolSchema> {
   return {
     name: 'mcp',
-    label: 'MCP Tools',
+
     description: buildProxyDescription(ctx.servers),
     parameters: proxyToolSchema,
-    execute: async (_toolCallId, params): Promise<ProxyToolResult> => {
+    execute: async (params): Promise<ProxyToolResult> => {
       const action = params.action
       const server = params.server
       const tool = params.tool
@@ -396,10 +399,10 @@ export function buildProxyTool(ctx: McpProxyToolContext): AgentTool<typeof proxy
           parseArgs(params.args),
         )
         if (outcome.ok) {
-          return { content: outcome.content, details: {} }
+          return { output: outcome.content, details: {} }
         }
         return {
-          content: outcome.content,
+          output: outcome.content,
           details: { error: 'tool_call_failed', tool, server: resolved.serverId },
         }
       }

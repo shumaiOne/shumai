@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { useChatbotStore, AGENT_PREFERENCE_STORAGE_KEY } from './chatbot'
 import { client } from '@/ui/api/client'
-import type { ChatMessage } from '@shumai/dtos'
+import { type EntryRecord, getShumaiMessage } from '@shumai/dtos'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { AGENT_PREFERENCE_STORAGE_KEY, useChatbotStore } from './chatbot'
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {}
@@ -86,7 +86,14 @@ describe('useChatbotStore', () => {
     useChatbotStore.setState({
       selectedAgentId: 'agent-temporary-historical',
       currentSessionId: 'sess-historical',
-      messages: [{ id: 'msg-1', role: 'user', content: 'test' } as unknown as ChatMessage],
+      messages: [
+        {
+          id: 10,
+          conversationId: 1,
+          kind: 'pi.user',
+          model: [{ role: 'user', content: 'test', timestamp: 0 }],
+        } as unknown as EntryRecord,
+      ],
     })
 
     useChatbotStore.getState().startNewSession()
@@ -102,7 +109,14 @@ describe('useChatbotStore', () => {
 
     useChatbotStore.setState({
       currentSessionId: 'sess-abc',
-      messages: [{ id: 'msg-1', role: 'user', content: 'test' } as unknown as ChatMessage],
+      messages: [
+        {
+          id: 10,
+          conversationId: 1,
+          kind: 'pi.user',
+          model: [{ role: 'user', content: 'test', timestamp: 0 }],
+        } as unknown as EntryRecord,
+      ],
     })
     // Navigating or changing other state does not wipe inputText
     expect(useChatbotStore.getState().inputText).toBe('Draft text in progress')
@@ -132,7 +146,14 @@ describe('useChatbotStore', () => {
   it('should reset currentSessionId and messages on startNewSession', () => {
     useChatbotStore.setState({
       currentSessionId: 'sess-abc',
-      messages: [{ id: 'msg-1', role: 'user', content: 'test' } as unknown as ChatMessage],
+      messages: [
+        {
+          id: 10,
+          conversationId: 1,
+          kind: 'pi.user',
+          model: [{ role: 'user', content: 'test', timestamp: 0 }],
+        } as unknown as EntryRecord,
+      ],
       chatAssets: [{ id: 'asset-1', name: 'Asset', type: 'file' }],
     })
 
@@ -146,8 +167,8 @@ describe('useChatbotStore', () => {
   it('should handle incoming SSE stream and replace optimistic message in a new session', async () => {
     const mockEvents = [
       'data: {"type":"session","sessionId":"sess-123"}\n\n',
-      'data: {"type":"entry","entry":{"id":"user-msg-ulid","role":"user","content":[{"type":"text","text":"hello"}],"timestamp":123}}\n\n',
-      'data: {"type":"entry","entry":{"id":"assistant-msg-ulid","role":"assistant","content":[{"type":"text","text":"hi user"}],"timestamp":124}}\n\n',
+      'data: {"type":"entry","entry":{"id":12,"conversationId":1,"kind":"pi.user","model":[{"role":"user","content":[{"type":"text","text":"hello"}],"timestamp":123}]}}\n\n',
+      'data: {"type":"entry","entry":{"id":13,"conversationId":1,"kind":"pi.assistant","model":[{"role":"assistant","content":[{"type":"text","text":"hi user"}],"timestamp":124}]}}\n\n',
       'data: {"type":"done","status":"completed"}\n\n',
     ]
 
@@ -180,8 +201,8 @@ describe('useChatbotStore', () => {
     // Optimistic message should be present immediately
     const stateWithOptimistic = useChatbotStore.getState()
     expect(stateWithOptimistic.messages).toHaveLength(1)
-    expect(stateWithOptimistic.messages[0].id).toContain('temp-')
-    expect((stateWithOptimistic.messages[0] as { content: unknown }).content).toBe('hello')
+    expect(stateWithOptimistic.messages[0].id).toBeLessThan(0)
+    expect(getShumaiMessage(stateWithOptimistic.messages[0])?.displayText).toBe('hello')
     expect(stateWithOptimistic.isStreaming).toBe(true)
 
     await sendPromise
@@ -191,8 +212,8 @@ describe('useChatbotStore', () => {
     expect(finalState.isStreaming).toBe(false)
     expect(finalState.currentSessionId).toBe('sess-123')
     expect(finalState.messages).toHaveLength(2)
-    expect(finalState.messages[0].id).toBe('user-msg-ulid')
-    expect(finalState.messages[1].id).toBe('assistant-msg-ulid')
+    expect(finalState.messages[0].id).toBe(12)
+    expect(finalState.messages[1].id).toBe(13)
   })
 
   it('should not remove optimistic message when historical user message streams back', async () => {
@@ -200,19 +221,21 @@ describe('useChatbotStore', () => {
       currentSessionId: 'sess-123',
       messages: [
         {
-          id: 'user-msg-ulid-old',
-          role: 'user',
-          content: [{ type: 'text', text: 'old message' }],
-          timestamp: 100,
-        } as unknown as ChatMessage,
+          id: 11,
+          conversationId: 1,
+          kind: 'pi.user',
+          model: [
+            { role: 'user', content: [{ type: 'text', text: 'old message' }], timestamp: 100 },
+          ],
+        } as unknown as EntryRecord,
       ],
       chatAssets: [],
     })
 
     const mockEvents = [
       'data: {"type":"session","sessionId":"sess-123"}\n\n',
-      'data: {"type":"entry","entry":{"id":"user-msg-ulid-old","role":"user","content":[{"type":"text","text":"old message"}],"timestamp":100}}\n\n',
-      'data: {"type":"entry","entry":{"id":"user-msg-ulid-new","role":"user","content":[{"type":"text","text":"new message"}],"timestamp":150}}\n\n',
+      'data: {"type":"entry","entry":{"id":11,"conversationId":1,"kind":"pi.user","model":[{"role":"user","content":[{"type":"text","text":"old message"}],"timestamp":100}]}}\n\n',
+      'data: {"type":"entry","entry":{"id":14,"conversationId":1,"kind":"pi.user","model":[{"role":"user","content":[{"type":"text","text":"new message"}],"timestamp":150}]}}\n\n',
       'data: {"type":"done","status":"completed"}\n\n',
     ]
 
@@ -247,16 +270,16 @@ describe('useChatbotStore', () => {
     // Optimistic message should be appended immediately
     const stateWithOptimistic = useChatbotStore.getState()
     expect(stateWithOptimistic.messages).toHaveLength(2)
-    expect(stateWithOptimistic.messages[0].id).toBe('user-msg-ulid-old')
-    expect(stateWithOptimistic.messages[1].id).toContain('temp-')
+    expect(stateWithOptimistic.messages[0].id).toBe(11)
+    expect(stateWithOptimistic.messages[1].id).toBeLessThan(0)
 
     await sendPromise
 
     // Final state assertions
     const finalState = useChatbotStore.getState()
     expect(finalState.messages).toHaveLength(2)
-    expect(finalState.messages[0].id).toBe('user-msg-ulid-old')
-    expect(finalState.messages[1].id).toBe('user-msg-ulid-new')
+    expect(finalState.messages[0].id).toBe(11)
+    expect(finalState.messages[1].id).toBe(14)
   })
 
   it('should create optimistic context display message when sending with assets', async () => {
@@ -268,8 +291,8 @@ describe('useChatbotStore', () => {
     // 2. Mock POST response with context_display_info entry streaming back
     const mockEvents = [
       'data: {"type":"session","sessionId":"sess-123"}\n\n',
-      'data: {"type":"entry","entry":{"id":"context-display-ulid","role":"custom","customType":"context_display_info","details":{"assets":[{"id":"asset-1","name":"File 1.txt","type":"file"}]},"timestamp":120}}\n\n',
-      'data: {"type":"entry","entry":{"id":"user-msg-ulid","role":"user","content":[{"type":"text","text":"hello"}],"timestamp":123}}\n\n',
+      'data: {"type":"entry","entry":{"id":15,"conversationId":1,"kind":"shumai.custom","data":{"customType":"context_display_info","details":{"assets":[{"id":"asset-1","name":"File 1.txt","type":"file"}]}}}}\n\n',
+      'data: {"type":"entry","entry":{"id":12,"conversationId":1,"kind":"pi.user","model":[{"role":"user","content":[{"type":"text","text":"hello"}],"timestamp":123}]}}\n\n',
       'data: {"type":"done","status":"completed"}\n\n',
     ]
 
@@ -304,13 +327,10 @@ describe('useChatbotStore', () => {
     expect(stateWithOptimistic.messages).toHaveLength(1)
 
     // Message should be the optimistic shumai_message with referencedAssets in details
-    expect(stateWithOptimistic.messages[0].id).toContain('temp-')
-    expect(stateWithOptimistic.messages[0].role).toBe('custom')
-    expect((stateWithOptimistic.messages[0] as { customType?: string }).customType).toBe(
-      'shumai_message',
-    )
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((stateWithOptimistic.messages[0] as any).details.referencedAssets).toEqual([
+    expect(stateWithOptimistic.messages[0].id).toBeLessThan(0)
+    expect(stateWithOptimistic.messages[0].kind).toBe('shumai.optimistic')
+
+    expect(getShumaiMessage(stateWithOptimistic.messages[0])?.context?.referencedAssets).toEqual([
       { id: 'asset-1', name: 'File 1.txt', type: 'file' },
     ])
 
@@ -319,15 +339,15 @@ describe('useChatbotStore', () => {
     // 4. Verify message list after streaming completes
     const finalState = useChatbotStore.getState()
     expect(finalState.messages).toHaveLength(2)
-    expect(finalState.messages[0].id).toBe('context-display-ulid')
-    expect(finalState.messages[1].id).toBe('user-msg-ulid')
+    expect(finalState.messages[0].id).toBe(15)
+    expect(finalState.messages[1].id).toBe(12)
   })
 
   it('should invoke onAssetMutation callback when asset creation tool result arrives', async () => {
     const mockEvents = [
       'data: {"type":"session","sessionId":"sess-123"}\n\n',
-      'data: {"type":"entry","entry":{"id":"user-msg-ulid","role":"user","content":[{"type":"text","text":"create a file"}],"timestamp":123}}\n\n',
-      'data: {"type":"entry","entry":{"id":"tool-res-ulid","role":"toolResult","toolName":"create_file","isError":false,"content":"File created","timestamp":124}}\n\n',
+      'data: {"type":"entry","entry":{"id":12,"conversationId":1,"kind":"pi.user","model":[{"role":"user","content":[{"type":"text","text":"create a file"}],"timestamp":123}]}}\n\n',
+      'data: {"type":"entry","entry":{"id":16,"conversationId":1,"kind":"pi.tool-result","model":[{"role":"toolResult","content":"File created","timestamp":124,"toolName":"create_file","isError":false}]}}\n\n',
       'data: {"type":"done","status":"completed"}\n\n',
     ]
 
@@ -366,8 +386,8 @@ describe('useChatbotStore', () => {
   it('should replace optimistic message when shumai_message entry streams back', async () => {
     const mockEvents = [
       'data: {"type":"session","sessionId":"sess-123"}\n\n',
-      'data: {"type":"entry","entry":{"id":"user-msg-ulid","role":"custom","customType":"shumai_message","content":"hello","details":{"user":{"id":"u1","name":"User 1"}},"timestamp":123}}\n\n',
-      'data: {"type":"entry","entry":{"id":"assistant-msg-ulid","role":"assistant","content":[{"type":"text","text":"Hi!"}],"timestamp":124}}\n\n',
+      'data: {"type":"entry","entry":{"id":12,"conversationId":1,"kind":"shumai.message","data":{"displayText":"hello","timestamp":123,"context":{"user":{"id":"u1","name":"User 1"}}}}}\n\n',
+      'data: {"type":"entry","entry":{"id":13,"conversationId":1,"kind":"pi.assistant","model":[{"role":"assistant","content":[{"type":"text","text":"Hi!"}],"timestamp":124}]}}\n\n',
       'data: {"type":"done","status":"completed"}\n\n',
     ]
 
@@ -400,17 +420,16 @@ describe('useChatbotStore', () => {
     // Optimistic message should be present immediately
     const stateWithOptimistic = useChatbotStore.getState()
     expect(stateWithOptimistic.messages).toHaveLength(1)
-    expect(stateWithOptimistic.messages[0].id).toContain('temp-')
+    expect(stateWithOptimistic.messages[0].id).toBeLessThan(0)
 
     await sendPromise
 
     // Final state assertions: optimistic message must be replaced
     const finalState = useChatbotStore.getState()
     expect(finalState.messages).toHaveLength(2)
-    expect(finalState.messages[0].id).toBe('user-msg-ulid')
-    expect(finalState.messages[0].role).toBe('custom')
-    expect((finalState.messages[0] as { customType?: string }).customType).toBe('shumai_message')
-    expect(finalState.messages[1].id).toBe('assistant-msg-ulid')
+    expect(finalState.messages[0].id).toBe(12)
+    expect(finalState.messages[0].kind).toBe('shumai.message')
+    expect(finalState.messages[1].id).toBe(13)
   })
 
   it('should include attachments, annotations, and second in optimistic message and API call', async () => {
@@ -459,20 +478,20 @@ describe('useChatbotStore', () => {
         },
       ],
       12.5,
-      [{ id: 'att-1', name: 'screenshot.png', type: 'image', mediaType: 'image/png' }],
+      [{ id: 'att-1', name: 'screenshot.png', type: 'image', mediaType: 'image' }],
     )
 
     // Check optimistic message has annotations, second position, and attachedFiles
     const optimisticState = useChatbotStore.getState()
     expect(optimisticState.messages).toHaveLength(1)
     const optMsg = optimisticState.messages[0] as unknown as Record<string, unknown>
-    expect(optMsg.customType).toBe('shumai_message')
-    const details = optMsg.details as Record<string, unknown>
+    expect(optMsg.kind).toBe('shumai.optimistic')
+    const details = getShumaiMessage(optimisticState.messages[0])!.context
     expect(details.annotation).toBe(true)
     expect(details.annotations).toHaveLength(1)
     expect(details.position).toEqual({ type: 'time', seconds: 12.5 })
     expect(details.attachedFiles).toEqual([
-      { id: 'att-1', name: 'screenshot.png', type: 'image', mediaType: 'image/png' },
+      { id: 'att-1', name: 'screenshot.png', type: 'image', mediaType: 'image' },
     ])
 
     await sendPromise
