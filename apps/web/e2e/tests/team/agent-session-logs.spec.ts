@@ -101,10 +101,14 @@ test('session logs stay within the dialog and scroll through long messages and e
       element.scrollTop = 0
     })
     await viewport.hover()
-    await page.mouse.wheel(0, 100_000)
+    // Wheel events may be capped; verify movement before jumping to the final record.
+    await page.mouse.wheel(0, 400)
+    await expect.poll(() => viewport.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
     const record = dialog.locator('details').last()
+    await viewport.evaluate((element) => {
+      element.scrollTop = element.scrollHeight
+    })
     await expect(record.locator('summary')).toBeInViewport()
-    expect(await viewport.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
     expect((await heading.boundingBox())!.y).toBeCloseTo(headerTop, 0)
 
     await record.locator('summary').click()
