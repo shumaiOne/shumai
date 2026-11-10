@@ -61,6 +61,7 @@ test('session logs stay within the dialog and scroll through long messages and e
   await page.getByRole('row').filter({ hasText: session.name! }).click()
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByText('Log message 1', { exact: true })).toBeVisible()
+  await expect(dialog.getByText(/^(Entry ID|条目 ID):/)).toHaveCount(0)
   const viewport = dialog.locator('[data-slot="scroll-area-viewport"]')
   const heading = dialog.getByRole('heading')
 
@@ -111,6 +112,7 @@ test('session logs stay within the dialog and scroll through long messages and e
       element.scrollTop = element.scrollHeight
     })
     await expect(record.locator('pre')).toBeInViewport()
+    await expect(record.locator('pre')).toContainText('"id": 31')
     expect(await viewport.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
       true,
     )

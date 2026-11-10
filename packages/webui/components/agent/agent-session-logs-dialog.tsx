@@ -46,9 +46,6 @@ function EntryLog({ entry }: { entry: EntryRecord }) {
     <div className="min-w-0 rounded-lg border border-border bg-muted/30 p-3 space-y-2 [overflow-wrap:anywhere]">
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span className="font-semibold text-foreground">{role}</span>
-        <span>
-          {m.entry_id()}: {entry.id}
-        </span>
         {timestamp !== undefined && <span>{formatTimeAgo(new Date(timestamp).toISOString())}</span>}
       </div>
       {content && (
