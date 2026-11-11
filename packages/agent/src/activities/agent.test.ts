@@ -1,4 +1,7 @@
 import type { ToolRegistration } from '@earendil-works/pi-durable'
+import { Harness, createRegistry } from '@earendil-works/pi-durable'
+import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context'
+import { createModels } from '@earendil-works/pi-ai'
 import { agentSessionService } from '@shumai/core/src/agent/session-service'
 import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { logger } from '@shumai/core/src/logger'
@@ -6,6 +9,7 @@ import { getShumaiMessage } from '@shumai/dtos'
 import { DBOS, DBOSError, runInLocalTaskContext, triggerLocalCancel } from '@shumai/workflow-core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as piAgent from '../runtime'
+import * as commentContext from '../comment-context'
 import { mockAgentSession } from '../testing/native-runtime'
 import {
   agentChatActivity,
@@ -53,6 +57,7 @@ describe('Agent Activities', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(agentSessionService, 'getEntries').mockResolvedValue([])
+    vi.spyOn(commentContext, 'synchronizeCommentContext').mockResolvedValue()
   })
 
   it('should call agentChatActivity and prompt the harness', async () => {
@@ -645,6 +650,26 @@ describe('Agent Database Activities Integration', () => {
   })
 
   describe('initializeAgentSessionActivity', () => {
+    const synchronize = async (sessionId: string, userCommentId: string) =>
+      agentSessionService.withWriter(sessionId, async (storage) => {
+        const harness = await Harness.open(
+          storage,
+          { models: createModels(), registry: createRegistry() },
+          BACKGROUND_CONTEXT,
+        )
+        try {
+          await commentContext.synchronizeCommentContext({
+            conversation: await harness.root(BACKGROUND_CONTEXT),
+            sessionId,
+            userCommentId,
+            teamId: team.id,
+            agentId: 'test-agent-id',
+          })
+        } finally {
+          await harness.close(BACKGROUND_CONTEXT)
+        }
+      })
+
     it('copies independent context with authors, mentions, attachments and media positions', async () => {
       await prisma.asset.update({
         where: { id: asset.id },
@@ -685,13 +710,16 @@ describe('Agent Database Activities Integration', () => {
       const third = await prisma.assetComment.create({
         data: { assetId: asset.id, message: 'Third', creatorId: user.id },
       })
-      const initialize = (id: string) =>
-        initializeAgentSessionActivity({
+      const initialize = async (id: string) => {
+        const sessionId = await initializeAgentSessionActivity({
           teamId: team.id,
           agentId: 'test-agent-id',
           userCommentId: id,
           userId: user.id,
         })
+        await synchronize(sessionId, id)
+        return sessionId
+      }
       const secondSession = await initialize(second.id)
       const thirdSession = await initialize(third.id)
       expect(secondSession).not.toBe(thirdSession)
@@ -749,6 +777,7 @@ describe('Agent Database Activities Integration', () => {
         userCommentId: current.id,
         userId: user.id,
       })
+      await synchronize(sessionId, current.id)
       const records = (await agentSessionService.getEntries(sessionId))
         .map(getShumaiMessage)
         .filter(Boolean)
@@ -759,6 +788,7 @@ describe('Agent Database Activities Integration', () => {
         agentId: 'test-agent-id',
         userCommentId: current.id,
       })
+      await synchronize(sessionId, current.id)
       expect(
         (await agentSessionService.getEntries(sessionId)).map(getShumaiMessage).filter(Boolean),
       ).toEqual(records)
@@ -1532,6 +1562,9 @@ describe('Agent Database Activities Integration', () => {
   })
 
   describe('Nested AGENTS.md prompt injection', () => {
+    beforeEach(() => {
+      vi.spyOn(commentContext, 'synchronizeCommentContext').mockResolvedValue()
+    })
     it('formatProjectContextPrompt formats context files into XML project_context block', () => {
       expect(formatProjectContextPrompt([])).toBe('')
 

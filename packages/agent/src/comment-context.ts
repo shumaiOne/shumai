@@ -1,14 +1,12 @@
 import { BACKGROUND_CONTEXT as piContext } from '@earendil-works/chord/context'
-import { createModels, type Message as AgentMessage } from '@earendil-works/pi-ai'
+import { type Message as AgentMessage } from '@earendil-works/pi-ai'
 import {
-  Harness,
-  createRegistry,
+  type Conversation,
   defineDoc,
   type Cursor,
   type EntryDraft,
   type JsonObject,
 } from '@earendil-works/pi-durable'
-import { agentSessionService } from '@shumai/core/src/agent/session-service'
 import { secondToDegree } from '@shumai/core/src/utils/model3d'
 import { prisma } from '@shumai/db'
 import {
@@ -34,40 +32,9 @@ export async function initializeCommentSession(params: {
   userCommentId: string
   userId?: string
 }): Promise<string> {
-  const agentId = params.agentId === 'default' ? 'default' : params.agentId
-
-  // Ensure user exists for agent
-  const userExists = await prisma.user.findUnique({ where: { id: agentId } })
-  if (!userExists) {
-    await prisma.user.create({
-      data: {
-        id: agentId,
-        name: 'Ai Agent',
-        email: `${agentId}@shumai.ai`,
-        type: 'agent',
-      },
-    })
-  }
-
-  // Ensure agent exists
-  const agentExists = await prisma.agent.findUnique({ where: { id: agentId } })
-  if (!agentExists) {
-    await prisma.agent.create({
-      data: {
-        id: agentId,
-        teamId: params.teamId,
-        type: 'chat',
-        config: {
-          provider: 'openai',
-          model: 'gpt-4',
-        },
-      },
-    })
-  }
-
   const userComment = await prisma.assetComment.findUnique({
     where: { id: params.userCommentId },
-    include: { creator: true },
+    select: { assetId: true, replyToId: true },
   })
 
   if (!userComment) {
@@ -77,30 +44,76 @@ export async function initializeCommentSession(params: {
     })
   }
 
-  const rootCommentId = userComment.replyToId || userComment.id
-  const targetUserCommentId = rootCommentId
-
-  let session = await prisma.agentSession.findFirst({
-    where: {
-      assetId: userComment.assetId,
-      type: 'comment',
-      userCommentId: targetUserCommentId,
-    },
-  })
-
-  if (!session) {
-    session = await prisma.agentSession.create({
+  const rootCommentId = userComment.replyToId || params.userCommentId
+  const threadKey = `agent-thread:${params.agentId}:${userComment.assetId}:${rootCommentId}`
+  return prisma.$transaction(async (tx) => {
+    // The lock and insert share a transaction, so rollback also releases ownership.
+    // Unlike the writer lock, this key exists before a session ID has been chosen.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${threadKey}, 0))`
+    await tx.user.upsert({
+      where: { id: params.agentId },
+      update: {},
+      create: {
+        id: params.agentId,
+        name: 'Ai Agent',
+        email: `${params.agentId}@shumai.ai`,
+        type: 'agent',
+      },
+    })
+    await tx.agent.upsert({
+      where: { id: params.agentId },
+      update: {},
+      create: {
+        id: params.agentId,
+        teamId: params.teamId,
+        type: 'chat',
+        config: { provider: 'openai', model: 'gpt-4' },
+      },
+    })
+    const existing = await tx.agentSession.findFirst({
+      where: {
+        agentId: params.agentId,
+        assetId: userComment.assetId,
+        type: 'comment',
+        userCommentId: rootCommentId,
+      },
+      // Reuse the original session deterministically if older data contains duplicates.
+      orderBy: { id: 'asc' },
+    })
+    if (existing) return existing.id
+    const session = await tx.agentSession.create({
       data: {
-        agentId,
+        agentId: params.agentId,
         userId: params.userId || null,
         cwd: process.cwd(),
         assetId: userComment.assetId,
-        userCommentId: targetUserCommentId,
+        userCommentId: rootCommentId,
         type: 'comment',
       },
     })
-  }
+    return session.id
+  })
+}
 
+/** Import passive history while the caller owns the generation's session writer. */
+export async function synchronizeCommentContext(params: {
+  conversation: Conversation
+  sessionId: string
+  teamId: string
+  agentId: string
+  userCommentId: string
+}): Promise<void> {
+  const userComment = await prisma.assetComment.findUnique({
+    where: { id: params.userCommentId },
+    include: { creator: true },
+  })
+  if (!userComment) {
+    throw ApplicationFailure.create({
+      message: `User comment ${params.userCommentId} not found`,
+      nonRetryable: true,
+    })
+  }
+  const rootCommentId = userComment.replyToId || userComment.id
   const rootComment = await prisma.assetComment.findUnique({
     where: { id: rootCommentId },
     include: { creator: true },
@@ -304,48 +317,57 @@ export async function initializeCommentSession(params: {
     }
   }
 
-  await agentSessionService.withWriter(session.id, async (storage) => {
-    const harness = await Harness.open(
-      storage,
-      { models: createModels(), registry: createRegistry() },
-      piContext,
-    )
-    try {
-      const root = await harness.root(piContext)
-      const present = new Set<string>()
-      let cursor: Cursor | undefined
-      do {
-        const page = await root.entries({ order: 'ascending' }, 100, cursor, piContext)
-        for (const entry of page.items) {
-          if (
-            entry.data &&
-            typeof entry.data === 'object' &&
-            !Array.isArray(entry.data) &&
-            'sourceCommentId' in entry.data &&
-            typeof entry.data.sourceCommentId === 'string'
-          )
-            present.add(entry.data.sourceCommentId)
-        }
-        cursor = page.next
-      } while (cursor)
-      await root.commit(async (tx) => {
-        const state = await tx.doc(ThreadContextDoc, root.id)
-        for (const comment of allCommentsToSync) {
-          if (
-            comment.id === params.userCommentId ||
-            comment.sessionId === session.id ||
-            comment.message === '__CHAT__' ||
-            present.has(comment.id) ||
-            state.commentIds.includes(comment.id)
-          )
-            continue
-          await tx.appendEntry(root.id, buildCommentEntry(comment))
-          state.commentIds.push(comment.id)
-        }
-      }, piContext)
-    } finally {
-      await harness.close(piContext)
+  const root = params.conversation
+  const present = new Set<string>()
+  let cursor: Cursor | undefined
+  do {
+    const page = await root.entries({ order: 'ascending' }, 100, cursor, piContext)
+    for (const entry of page.items) {
+      if (
+        entry.data &&
+        typeof entry.data === 'object' &&
+        !Array.isArray(entry.data) &&
+        'sourceCommentId' in entry.data &&
+        typeof entry.data.sourceCommentId === 'string'
+      )
+        present.add(entry.data.sourceCommentId)
     }
-  })
-  return session.id
+    cursor = page.next
+  } while (cursor)
+  const candidates = allCommentsToSync.filter(
+    (comment) =>
+      comment.id !== params.userCommentId &&
+      comment.sessionId !== params.sessionId &&
+      comment.message !== '__CHAT__' &&
+      !present.has(comment.id),
+  )
+  if (!candidates.length) return
+  // A comment and its agent workflows are created in the same DB transaction.
+  // Reserve these comments for their live input, including across workflow retries.
+  const threadCommentIds = candidates
+    .filter((comment) => (comment.replyToId || comment.id) === rootCommentId)
+    .map((comment) => comment.id)
+  const tasks = threadCommentIds.length
+    ? await prisma.workflowTask.findMany({
+        where: {
+          assetId: userComment.assetId,
+          type: 'chat',
+          payload: { path: ['agent', 'agentId'], equals: params.agentId },
+          OR: threadCommentIds.map((id) => ({
+            payload: { path: ['agent', 'userCommentId'], equals: id },
+          })),
+        },
+        select: { payload: true },
+        orderBy: { id: 'desc' },
+      })
+    : []
+  const liveComments = new Set(tasks.map((task) => task.payload?.agent?.userCommentId))
+  await root.commit(async (tx) => {
+    const state = await tx.doc(ThreadContextDoc, root.id)
+    for (const comment of candidates) {
+      if (liveComments.has(comment.id) || state.commentIds.includes(comment.id)) continue
+      await tx.appendEntry(root.id, buildCommentEntry(comment))
+      state.commentIds.push(comment.id)
+    }
+  }, piContext)
 }

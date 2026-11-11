@@ -21,7 +21,7 @@ import {
   unregisterLocalCancelHandler,
 } from '@shumai/workflow-core'
 import { randomUUID } from 'node:crypto'
-import { initializeCommentSession } from '../comment-context'
+import { initializeCommentSession, synchronizeCommentContext } from '../comment-context'
 import {
   createAgentSession,
   fieldsToTypeBoxSchema,
@@ -283,6 +283,15 @@ User messages may contain a <context> block detailing the user, active asset loc
       if (err instanceof QuotaExceededError)
         throw ApplicationFailure.create({ message: err.message, nonRetryable: true })
       throw err
+    }
+    if (params.userCommentId) {
+      await synchronizeCommentContext({
+        conversation: session,
+        sessionId: activeSessionId,
+        teamId: params.teamId,
+        agentId: params.agentId,
+        userCommentId: params.userCommentId,
+      })
     }
     const requestId = params.taskId || params.userCommentId || randomUUID()
     const context = {
