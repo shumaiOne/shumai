@@ -117,6 +117,7 @@ export function FileBrowserGridView({
   const [cols, setCols] = useState(5)
 
   useEffect(() => {
+    let resizeFrame = 0
     const updateCols = () => {
       if (!containerRef.current) return
       const width = containerRef.current.offsetWidth
@@ -128,9 +129,16 @@ export function FileBrowserGridView({
     }
 
     updateCols()
-    const observer = new ResizeObserver(updateCols)
+    const observer = new ResizeObserver(() => {
+      // Defer column changes so row measurements do not feed back into resize delivery.
+      cancelAnimationFrame(resizeFrame)
+      resizeFrame = requestAnimationFrame(updateCols)
+    })
     if (containerRef.current) observer.observe(containerRef.current)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      cancelAnimationFrame(resizeFrame)
+    }
   }, [])
 
   const rows = useMemo(() => {

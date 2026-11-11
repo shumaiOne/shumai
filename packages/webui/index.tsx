@@ -10,11 +10,16 @@ if (typeof window !== 'undefined') {
     'ResizeObserver loop limit exceeded',
     'ResizeObserver loop completed with undelivered notifications.',
   ]
-  window.addEventListener('error', (e) => {
-    if (resizeObserverErrorNames.includes(e.message)) {
-      e.stopImmediatePropagation()
-    }
-  })
+  // Capture these warnings before Bun's development overlay handles them.
+  window.addEventListener(
+    'error',
+    (e) => {
+      if (resizeObserverErrorNames.includes(e.message)) {
+        e.stopImmediatePropagation()
+      }
+    },
+    true,
+  )
 }
 
 const queryClient = new QueryClient()
