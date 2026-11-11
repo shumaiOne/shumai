@@ -14,6 +14,8 @@ import { quotaService } from '../quota/quota-service'
 import { openSessionCache, removeSessionCaches } from './session-cache'
 import { hydrateStorage, synchronizeStorage, type CommitReceipt } from './session-storage'
 
+type SessionReader = Pick<Storage, 'conversation' | 'scanEntries' | 'submissionByRequest' | 'entry'>
+
 type UsageOwner = { teamId: string; userId?: string; role?: TeamMemberRole | null }
 
 export async function readSessionUsage(storage: Storage): Promise<PrismaJson.AgentSessionUsage> {
@@ -36,70 +38,95 @@ export async function readSessionUsage(storage: Storage): Promise<PrismaJson.Age
 }
 
 export class AgentSessionService {
-  private readonly readers = new Map<string, Promise<unknown>>()
-  private readonly writers = new Set<Storage>()
+  private readonly access = new Map<string, Promise<unknown>>()
+  private readonly writers = new Map<string, { storage: Storage; reader: SessionReader }>()
+  private closing: Promise<void> | undefined
+  private shutdown = new AbortController()
 
   async openWriter(sessionId: string, context: Context = BACKGROUND_CONTEXT, owner?: UsageOwner) {
-    const lock = await acquireAdvisoryLock(`agent-session:${sessionId}`, context.abortSignal)
+    if (this.closing) throw new Error('Session service is closing')
+    const shutdown = this.shutdown.signal
+    const signal = context.abortSignal ? AbortSignal.any([context.abortSignal, shutdown]) : shutdown
+    const lock = await acquireAdvisoryLock(`agent-session:${sessionId}`, signal)
     let storage: Storage | undefined
     try {
-      const session = await prisma.agentSession.update({
-        where: { id: sessionId },
-        data: { writerVersion: { increment: 1 } },
-      })
-      const cache = await openSessionCache(sessionId, 'write')
-      let head = cache.seq
-      storage = hydrateStorage(
-        synchronizeStorage(cache.storage, {
-          dirty: cache.dirty,
-          clean: cache.clean,
-          persist: async (commits: readonly CommitReceipt[]) => {
-            lock.signal.throwIfAborted()
-            if (!commits.length) return
-            await prisma.$transaction(async (tx) => {
-              const rows = await tx.$queryRaw<
-                Array<{ writerVersion: number }>
-              >`SELECT writer_version AS "writerVersion" FROM agent_sessions WHERE id = ${sessionId} FOR UPDATE`
-              if (rows[0]?.writerVersion !== session.writerVersion)
-                throw new Error('Session writer ownership was lost')
-              const latest = await tx.agentSessionCommit.findFirst({
-                where: { sessionId },
-                orderBy: { seq: 'desc' },
-                select: { seq: true },
-              })
-              if (Number(latest?.seq ?? 0) !== head)
-                throw new Error('Session changed while writing')
-              if (owner)
-                await this.recordUsage(sessionId, await readSessionUsage(cache.storage), owner, tx)
-              await tx.agentSessionCommit.createMany({
-                data: commits.map(({ seq, writes }) => ({
-                  sessionId,
-                  seq: BigInt(seq),
-                  data: JSON.parse(
-                    JSON.stringify({ version: 1, writes }),
-                  ) as PrismaJson.AgentSessionCommitData,
-                })),
-              })
-            })
-            head = commits[commits.length - 1].seq
-          },
-        }),
+      // A previous writer may still be draining after losing its advisory-lock connection.
+      const previous = await this.withCacheAccess(sessionId, async () =>
+        this.writers.get(sessionId),
       )
-      const close = storage.close.bind(storage)
-      let closed = false
-      const owned = storage
-      owned.close = async (context) => {
-        if (closed) return
-        closed = true
-        this.writers.delete(owned)
-        try {
-          await close(context)
-        } finally {
-          await lock.release()
+      await previous?.storage.close(BACKGROUND_CONTEXT)
+      return await this.withCacheAccess(sessionId, async () => {
+        shutdown.throwIfAborted()
+        lock.signal.throwIfAborted()
+        const session = await prisma.agentSession.update({
+          where: { id: sessionId },
+          data: { writerVersion: { increment: 1 } },
+        })
+        const cache = await openSessionCache(sessionId)
+        storage = cache.storage
+        // Capture native reads before writer hydration decorates this instance.
+        const reader: SessionReader = {
+          conversation: storage.conversation.bind(storage),
+          scanEntries: storage.scanEntries.bind(storage),
+          submissionByRequest: storage.submissionByRequest.bind(storage),
+          entry: storage.entry.bind(storage),
         }
-      }
-      this.writers.add(owned)
-      return { storage: owned, signal: lock.signal }
+        const close = storage.close.bind(storage)
+        storage.close = (context) =>
+          this.withCacheAccess(sessionId, async () => {
+            try {
+              await close(context)
+            } finally {
+              if (this.writers.get(sessionId)?.storage === cache.storage)
+                this.writers.delete(sessionId)
+              await lock.release()
+            }
+          })
+        let head = cache.seq
+        storage = hydrateStorage(
+          synchronizeStorage(cache.storage, {
+            dirty: cache.dirty,
+            clean: cache.clean,
+            persist: async (commits: readonly CommitReceipt[]) => {
+              lock.signal.throwIfAborted()
+              if (!commits.length) return
+              await prisma.$transaction(async (tx) => {
+                const rows = await tx.$queryRaw<
+                  Array<{ writerVersion: number }>
+                >`SELECT writer_version AS "writerVersion" FROM agent_sessions WHERE id = ${sessionId} FOR UPDATE`
+                if (rows[0]?.writerVersion !== session.writerVersion)
+                  throw new Error('Session writer ownership was lost')
+                const latest = await tx.agentSessionCommit.findFirst({
+                  where: { sessionId },
+                  orderBy: { seq: 'desc' },
+                  select: { seq: true },
+                })
+                if (Number(latest?.seq ?? 0) !== head)
+                  throw new Error('Session changed while writing')
+                if (owner)
+                  await this.recordUsage(
+                    sessionId,
+                    await readSessionUsage(cache.storage),
+                    owner,
+                    tx,
+                  )
+                await tx.agentSessionCommit.createMany({
+                  data: commits.map(({ seq, writes }) => ({
+                    sessionId,
+                    seq: BigInt(seq),
+                    data: JSON.parse(
+                      JSON.stringify({ version: 1, writes }),
+                    ) as PrismaJson.AgentSessionCommitData,
+                  })),
+                })
+              })
+              head = commits[commits.length - 1].seq
+            },
+          }),
+        )
+        this.writers.set(sessionId, { storage, reader })
+        return { storage, signal: lock.signal }
+      })
     } catch (error) {
       try {
         await storage?.close(BACKGROUND_CONTEXT)
@@ -123,34 +150,58 @@ export class AgentSessionService {
     }
   }
 
-  async closeAll() {
-    await Promise.allSettled([...this.writers].map((storage) => storage.close(BACKGROUND_CONTEXT)))
-    await Promise.allSettled(this.readers.values())
-    await removeSessionCaches()
+  closeAll(): Promise<void> {
+    if (this.closing) return this.closing
+    this.shutdown.abort(new Error('Session service is closing'))
+    return (this.closing ??= (async () => {
+      // An admitted open may publish its writer after shutdown starts.
+      await Promise.allSettled(this.access.values())
+      await Promise.allSettled(
+        [...this.writers.values()].map(({ storage }) => storage.close(BACKGROUND_CONTEXT)),
+      )
+      await Promise.allSettled(this.access.values())
+      await removeSessionCaches()
+    })().finally(() => {
+      this.shutdown = new AbortController()
+      this.closing = undefined
+    }))
   }
 
-  private async read<T>(sessionId: string, use: (storage: Storage) => Promise<T>): Promise<T> {
-    const previous = this.readers.get(sessionId)
+  /** Serialize file initialization, history reads and final close, never PostgreSQL mirroring. */
+  private async withCacheAccess<T>(sessionId: string, use: () => Promise<T>): Promise<T> {
+    const previous = this.access.get(sessionId)
     const current = (async () => {
       await previous?.catch(() => {})
+      return use()
+    })()
+    this.access.set(sessionId, current)
+    try {
+      return await current
+    } finally {
+      if (this.access.get(sessionId) === current) this.access.delete(sessionId)
+    }
+  }
+
+  private async read<T>(
+    sessionId: string,
+    use: (storage: SessionReader) => Promise<T>,
+  ): Promise<T> {
+    if (this.closing) throw new Error('Session service is closing')
+    return this.withCacheAccess(sessionId, async () => {
       const session = await prisma.agentSession.findUnique({
         where: { id: sessionId },
         select: { id: true },
       })
       if (!session) throw new Error('Session not found')
-      const cache = await openSessionCache(sessionId, 'read')
+      const writer = this.writers.get(sessionId)
+      if (writer) return use(writer.reader)
+      const cache = await openSessionCache(sessionId)
       try {
         return await use(cache.storage)
       } finally {
         await cache.storage.close(BACKGROUND_CONTEXT)
       }
-    })()
-    this.readers.set(sessionId, current)
-    try {
-      return await current
-    } finally {
-      if (this.readers.get(sessionId) === current) this.readers.delete(sessionId)
-    }
+    })
   }
 
   async listEntries(

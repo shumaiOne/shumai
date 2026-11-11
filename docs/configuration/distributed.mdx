@@ -51,7 +51,7 @@ Bun users can run `bun run --bun shumai-transcode`.
 
 Stop and drain old agent workers before upgrading the server. The normal database migration copies existing session context into independent histories automatically. No separate migration command is required. Legacy records remain in the database during this transition.
 
-Each session uses a local SQLite working copy, restored from PostgreSQL when missing. `AGENT_SESSION_CACHE_DIR` optionally selects the cache directory. The server mirrors compact session commits to PostgreSQL before acknowledging them. Keep the database in your backup policy; local SQLite copies are disposable. Image and skill placeholders remain compact in both copies and are resolved when the agent needs them.
+Each session uses a local SQLite working copy, restored from PostgreSQL when missing. `AGENT_SESSION_CACHE_DIR` optionally selects the cache directory. Within each server process, history reads and the active agent share the same SQLite database. History can show locally committed entries before PostgreSQL persistence completes; these entries may disappear after recovery if persistence fails. The server mirrors compact session commits to PostgreSQL before acknowledging them. Keep the database in your backup policy; local SQLite copies are disposable. Image and skill placeholders remain compact in both copies and are resolved when the agent needs them.
 
 ---
 

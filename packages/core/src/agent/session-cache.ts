@@ -14,8 +14,9 @@ const root = join(
   instance,
 )
 
-export async function openSessionCache(sessionId: string, mode: 'read' | 'write') {
-  const directory = join(root, mode, encodeURIComponent(sessionId))
+// Call only while the session has no open connections; live readers borrow the writer's storage.
+export async function openSessionCache(sessionId: string) {
+  const directory = join(root, encodeURIComponent(sessionId))
   await mkdir(directory, { recursive: true, mode: 0o700 })
   const path = join(directory, 'session.sqlite')
   const marker = join(directory, 'sync.json')

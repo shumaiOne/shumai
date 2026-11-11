@@ -1,5 +1,6 @@
 import type { AssistantMessage } from '@earendil-works/pi-ai'
 import { initAgentWorkflows } from '@shumai/agent'
+import { agentSessionService } from '@shumai/core/src/agent/session-service'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
@@ -9,6 +10,7 @@ import { mockModelPrompt } from './model-mock'
 
 describe('Workflow E2E - agentChat', () => {
   setupTestDbHooks()
+  let pauseGeneration: (() => Promise<void>) | undefined
 
   beforeAll(async () => {
     process.env.S3_BUCKET = 'shumai-e2e-test-bucket-chat'
@@ -16,14 +18,14 @@ describe('Workflow E2E - agentChat', () => {
 
     initAgentWorkflows()
 
-    mockModelPrompt(
-      async () =>
-        ({
-          content: [{ type: 'text', text: 'E2E Agent Chat Response Success' }],
-          usage: { input: 10, output: 20 },
-          stopReason: 'stop',
-        }) as unknown as AssistantMessage,
-    )
+    mockModelPrompt(async () => {
+      await pauseGeneration?.()
+      return {
+        content: [{ type: 'text', text: 'E2E Agent Chat Response Success' }],
+        usage: { input: 10, output: 20 },
+        stopReason: 'stop',
+      } as unknown as AssistantMessage
+    })
 
     await workflowService.startWorkers(TaskQueueAgent)
   })
@@ -295,6 +297,12 @@ describe('Workflow E2E - agentChat', () => {
     })
 
     // 2. Create Workflow Task (without userCommentId, but with prompt/sessionId)
+    const resume = Promise.withResolvers<void>()
+    let generating = false
+    pauseGeneration = async () => {
+      generating = true
+      await resume.promise
+    }
     const task = await prisma.workflowTask.create({
       data: {
         type: 'chat',
@@ -316,7 +324,17 @@ describe('Workflow E2E - agentChat', () => {
 
     // 3. Wait for workflow to complete
     console.log(`Submitted E2E Direct Chat Workflow Task. ID: ${task.id}. Awaiting completion...`)
-    const completedTask = await workflowService.executeWait(task, 45000)
+    const completion = workflowService.executeWait(task, 45000)
+    try {
+      await vi.waitFor(() => expect(generating).toBe(true), { timeout: 30000 })
+      const entries = await agentSessionService.getEntries('direct-session-456')
+      expect(entries.some((entry) => entry.kind === 'shumai.message')).toBe(true)
+      expect((await agentSessionService.listEntries('direct-session-456')).items).toEqual(entries)
+    } finally {
+      pauseGeneration = undefined
+      resume.resolve()
+    }
+    const completedTask = await completion
 
     // 4. Verification
     expect(completedTask.status).toBe('completed')
