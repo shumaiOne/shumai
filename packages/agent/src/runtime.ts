@@ -1,6 +1,21 @@
 import { BACKGROUND_CONTEXT as piContext } from '@earendil-works/chord/context'
-import type { Api, Model, ModelThinkingLevel } from '@earendil-works/pi-ai'
-import { createModels, InMemoryCredentialStore } from '@earendil-works/pi-ai'
+import type { Model, ModelThinkingLevel } from '@earendil-works/pi-ai'
+import {
+  createModels,
+  createProvider,
+  envApiKeyAuth,
+  InMemoryCredentialStore,
+  type ProviderStreams,
+} from '@earendil-works/pi-ai'
+import { anthropicMessagesApi } from '@earendil-works/pi-ai/api/anthropic-messages.lazy'
+import { azureOpenAIResponsesApi } from '@earendil-works/pi-ai/api/azure-openai-responses.lazy'
+import { bedrockConverseStreamApi } from '@earendil-works/pi-ai/api/bedrock-converse-stream.lazy'
+import { googleGenerativeAIApi } from '@earendil-works/pi-ai/api/google-generative-ai.lazy'
+import { googleVertexApi } from '@earendil-works/pi-ai/api/google-vertex.lazy'
+import { mistralConversationsApi } from '@earendil-works/pi-ai/api/mistral-conversations.lazy'
+import { openAICodexResponsesApi } from '@earendil-works/pi-ai/api/openai-codex-responses.lazy'
+import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy'
+import { openAIResponsesApi } from '@earendil-works/pi-ai/api/openai-responses.lazy'
 import { builtinProviders } from '@earendil-works/pi-ai/providers/all'
 import {
   createRegistry,
@@ -51,6 +66,20 @@ export interface DbProviderInfo {
   models: DbModelInfo[]
 }
 
+type ConfiguredApi = PrismaJson.ProviderConfig['api']
+
+const apiAdapters = {
+  'anthropic-messages': anthropicMessagesApi,
+  'azure-openai-responses': azureOpenAIResponsesApi,
+  'bedrock-converse-stream': bedrockConverseStreamApi,
+  'google-generative-ai': googleGenerativeAIApi,
+  'google-vertex': googleVertexApi,
+  'mistral-conversations': mistralConversationsApi,
+  'openai-codex-responses': openAICodexResponsesApi,
+  'openai-completions': openAICompletionsApi,
+  'openai-responses': openAIResponsesApi,
+} satisfies Record<ConfiguredApi, () => ProviderStreams>
+
 export function getModelFromDb(providers: DbProviderInfo[], providerName: string, modelId: string) {
   const dbProvider = providers.find((p) => p.name === providerName)
   const dbModel = dbProvider?.models.find((m) => m.modelId === modelId)
@@ -85,7 +114,7 @@ export function getModelFromDb(providers: DbProviderInfo[], providerName: string
   if (dbModel.name) {
     m.name = dbModel.name
   }
-  return m as Model<Api>
+  return m as Model<ConfiguredApi>
 }
 
 export function getApiKeyAndHeadersFromDb(providers: DbProviderInfo[], providerName: string) {
@@ -384,13 +413,20 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     }
 
     const configuredModel = getModelFromDb(params.providers, providerName, modelId)
-    const builtin = modelsStore
-      .getProviders()
-      .find((provider) =>
-        provider.getModels().some((candidate) => candidate.api === configuredModel.api),
+    const builtin = modelsStore.getProvider(providerName)
+    if (builtin?.getModels().some((candidate) => candidate.api === configuredModel.api)) {
+      modelsStore.setProvider({ ...builtin, getModels: () => [configuredModel] })
+    } else {
+      // Providers that share an API can still require different authentication and headers.
+      modelsStore.setProvider(
+        createProvider({
+          id: providerName,
+          models: [configuredModel],
+          api: apiAdapters[configuredModel.api](),
+          auth: { apiKey: envApiKeyAuth('API key', []) },
+        }),
       )
-    if (builtin)
-      modelsStore.setProvider({ ...builtin, id: providerName, getModels: () => [configuredModel] })
+    }
     registry.install(
       defineExtension({
         name: 'shumai',

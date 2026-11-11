@@ -496,6 +496,68 @@ describe('Sandbox Network isolation integration', () => {
     }
   })
 
+  it.each(['openai', 'custom-responses'])(
+    'authenticates %s Responses sessions using the configured API key',
+    async (providerName) => {
+      const team = await prisma.team.create({ data: { name: 'Responses team' } })
+      const user = await prisma.user.create({
+        data: { name: 'Responses agent', email: 'responses@test.com', type: 'agent' },
+      })
+      const modelId = 'gpt-4.1'
+      const agent = await prisma.agent.create({
+        data: {
+          id: user.id,
+          teamId: team.id,
+          type: 'chat',
+          config: { provider: providerName, model: modelId },
+        },
+      })
+      const baseUrl =
+        providerName === 'openai' ? 'https://api.openai.com/v1' : 'https://example.test/v1'
+      const openSpy = vi.spyOn(Harness, 'open')
+      vi.stubEnv('CLOUDFLARE_ACCOUNT_ID', '')
+      vi.stubEnv('CLOUDFLARE_GATEWAY_ID', '')
+      vi.stubEnv('TEST_RESPONSES_API_KEY', 'test-responses-key')
+      try {
+        await createAgentSession({
+          teamId: team.id,
+          agentId: agent.id,
+          providerName,
+          modelId,
+          systemPrompt: 'prompt',
+          teamSkills: [],
+          disableTools: true,
+          providers: [
+            {
+              name: providerName,
+              config: { api: 'openai-responses', baseUrl, apiKey: 'TEST_RESPONSES_API_KEY' },
+              models: [
+                {
+                  modelId,
+                  name: 'Responses model',
+                  config: { ...mockProviders[0].models[0].config, api: 'openai-responses' },
+                },
+              ],
+            },
+          ],
+        })
+        const configuredModels = openSpy.mock.lastCall?.[1].models
+        const models =
+          typeof configuredModels === 'function' ? configuredModels() : configuredModels
+        expect(models?.getModel(providerName, modelId)).toMatchObject({
+          api: 'openai-responses',
+          baseUrl,
+        })
+        await expect(models?.getAuth(providerName)).resolves.toMatchObject({
+          auth: { apiKey: 'test-responses-key' },
+        })
+      } finally {
+        openSpy.mockRestore()
+        vi.unstubAllEnvs()
+      }
+    },
+  )
+
   it('should filter out denied tools from AgentHarness', async () => {
     const team = await prisma.team.create({
       data: { name: 'Test Team 3' },

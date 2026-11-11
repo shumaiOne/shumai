@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **agent**: Fix authentication for OpenAI and custom providers that use the OpenAI Responses API.
 - **agent**: Keep session logs within the dialog, allow scrolling through long messages and expanded records, and show internal entry IDs only in expanded details.
 
 ### Changed
