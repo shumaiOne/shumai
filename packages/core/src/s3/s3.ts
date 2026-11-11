@@ -939,7 +939,6 @@ export class LocalStorageService implements S3Service {
     const filePath = this.getFilePath(bucket, key)
     try {
       await fs.promises.unlink(filePath)
-      return 1
     } catch (e: unknown) {
       if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT') {
         // Ignore if file doesn't exist
@@ -947,6 +946,24 @@ export class LocalStorageService implements S3Service {
       }
       throw e
     }
+
+    const bucketPath = path.resolve(this.basePath, bucket)
+    let directory = path.dirname(filePath)
+    // Preserve the bucket and its top-level directories, such as files/.
+    while (
+      directory.startsWith(`${bucketPath}${path.sep}`) &&
+      path.dirname(directory) !== bucketPath
+    ) {
+      try {
+        await fs.promises.rmdir(directory)
+      } catch (e: unknown) {
+        const code = e instanceof Error ? (e as NodeJS.ErrnoException).code : undefined
+        if (code === 'ENOTEMPTY' || code === 'EEXIST') break
+        if (code !== 'ENOENT') throw e
+      }
+      directory = path.dirname(directory)
+    }
+    return 1
   }
 
   async deletePrefix(bucket: string, prefix: string): Promise<number> {
