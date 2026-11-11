@@ -1,16 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Value } from 'typebox/value'
 import { validateToolArguments } from '@earendil-works/pi-ai'
-import * as fs from 'fs'
-import * as os from 'os'
-import * as path from 'path'
-import { AuditAction, type AssetInfo } from '@shumai/dtos'
+import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { getOperation } from '@shumai/core/src/operations'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { AuditAction, type AssetInfo } from '@shumai/dtos'
+import * as fs from 'fs'
+import * as os from 'os'
+import * as path from 'path'
+import { Value } from 'typebox/value'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fieldsToTypeBoxSchema } from '../index'
 import { toAgentTool, type AgentToolOptions } from '../operation-tools'
 import './upload'
@@ -106,7 +107,7 @@ describe('create_file and create_version agent tools', () => {
     it('uploads a local file to storage and creates the file as the agent', async () => {
       const filePath = tempFile('# Hello from disk', 'agent-create-file.md')
 
-      const result = await tool('create_file').execute('call-1', {
+      const result = await invokeTool(tool('create_file'), 'call-1', {
         parent: 'folder-1',
         path: filePath,
       } as never)
@@ -155,7 +156,7 @@ describe('create_file and create_version agent tools', () => {
     })
 
     it('creates a text file from name and content', async () => {
-      await tool('create_file').execute('call-1', {
+      await invokeTool(tool('create_file'), 'call-1', {
         parent: 'folder-1',
         name: 'notes.md',
         content: '# Notes\n\nHello',
@@ -172,7 +173,7 @@ describe('create_file and create_version agent tools', () => {
     })
 
     it('defaults unknown extensions to text/plain when creating from content', async () => {
-      await tool('create_file').execute('call-1', {
+      await invokeTool(tool('create_file'), 'call-1', {
         parent: 'folder-1',
         name: 'script.ts',
         content: 'const x = 1',
@@ -185,7 +186,7 @@ describe('create_file and create_version agent tools', () => {
     })
 
     it('sanitizes the name', async () => {
-      await tool('create_file').execute('call-1', {
+      await invokeTool(tool('create_file'), 'call-1', {
         parent: 'folder-1',
         name: 'my/notes.md',
         content: 'hello',
@@ -200,7 +201,7 @@ describe('create_file and create_version agent tools', () => {
     it('forwards Creation Context metadata, including new select options', async () => {
       const filePath = tempFile('# Hello', 'agent-create-file-meta.md')
 
-      await tool('create_file').execute('call-1', {
+      await invokeTool(tool('create_file'), 'call-1', {
         parent: 'folder-1',
         path: filePath,
         metadata: { prompt: { newOption: { value: 'Kling' } } },
@@ -214,7 +215,7 @@ describe('create_file and create_version agent tools', () => {
     it('treats null metadata as omitted', async () => {
       const filePath = tempFile('# Hello', 'agent-create-file-null.md')
 
-      await tool('create_file').execute('call-1', {
+      await invokeTool(tool('create_file'), 'call-1', {
         parent: 'folder-1',
         path: filePath,
         metadata: null,
@@ -227,7 +228,7 @@ describe('create_file and create_version agent tools', () => {
       const filePath = tempFile('# Hello', 'agent-create-file-bad-meta.md')
 
       await expect(
-        tool('create_file').execute('call-1', {
+        invokeTool(tool('create_file'), 'call-1', {
           parent: 'folder-1',
           path: filePath,
           metadata: { status: 'approved' },
@@ -240,10 +241,10 @@ describe('create_file and create_version agent tools', () => {
 
     it('rejects a call with neither or both of "path" and "content"', async () => {
       await expect(
-        tool('create_file').execute('call-1', { parent: 'folder-1' } as never),
+        invokeTool(tool('create_file'), 'call-1', { parent: 'folder-1' } as never),
       ).rejects.toThrow('Provide exactly one of "path" (a local file) or "content" (with "name").')
       await expect(
-        tool('create_file').execute('call-1', {
+        invokeTool(tool('create_file'), 'call-1', {
           parent: 'folder-1',
           path: '/some/file.md',
           name: 'notes.md',
@@ -255,13 +256,13 @@ describe('create_file and create_version agent tools', () => {
 
     it('requires a name with "content"', async () => {
       await expect(
-        tool('create_file').execute('call-1', { parent: 'folder-1', content: 'x' } as never),
+        invokeTool(tool('create_file'), 'call-1', { parent: 'folder-1', content: 'x' } as never),
       ).rejects.toThrow('"name" is required')
     })
 
     it('fails when the local file does not exist, without touching storage', async () => {
       await expect(
-        tool('create_file').execute('call-1', {
+        invokeTool(tool('create_file'), 'call-1', {
           parent: 'folder-1',
           path: '/nonexistent/file.md',
         } as never),
@@ -277,10 +278,10 @@ describe('create_file and create_version agent tools', () => {
       const filePath = tempFile('# Not allowed', 'agent-create-file-denied.md')
 
       await expect(
-        tool('create_file').execute('call-1', { parent: 'folder-1', path: filePath } as never),
+        invokeTool(tool('create_file'), 'call-1', { parent: 'folder-1', path: filePath } as never),
       ).rejects.toThrow('User is not a member of the team')
       await expect(
-        tool('create_file').execute('call-1', {
+        invokeTool(tool('create_file'), 'call-1', {
           parent: 'folder-1',
           name: 'notes.md',
           content: 'x',
@@ -306,7 +307,7 @@ describe('create_file and create_version agent tools', () => {
         } as Parameters<typeof validateToolArguments>[1],
       )
 
-      await t.execute('call-1', validated as never)
+      await invokeTool(t, 'call-1', validated as never)
       expect(assetService.createFile).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'random.txt' }),
       )
@@ -324,7 +325,7 @@ describe('create_file and create_version agent tools', () => {
     it('uploads a local file and creates a version as the agent', async () => {
       const filePath = tempFile('# Hello from disk', 'agent-create-version.md')
 
-      const result = await tool('create_version').execute('call-1', {
+      const result = await invokeTool(tool('create_version'), 'call-1', {
         parent: 'file-1',
         path: filePath,
       } as never)
@@ -349,7 +350,7 @@ describe('create_file and create_version agent tools', () => {
     it('forwards Creation Context metadata', async () => {
       const filePath = tempFile('# Hello', 'agent-create-version-meta.md')
 
-      await tool('create_version').execute('call-1', {
+      await invokeTool(tool('create_version'), 'call-1', {
         parent: 'file-1',
         path: filePath,
         metadata: { prompt: 'Generated using gemini' },
@@ -367,7 +368,7 @@ describe('create_file and create_version agent tools', () => {
       const filePath = tempFile('# Not allowed', 'agent-create-version-denied.md')
 
       await expect(
-        tool('create_version').execute('call-1', { parent: 'file-1', path: filePath } as never),
+        invokeTool(tool('create_version'), 'call-1', { parent: 'file-1', path: filePath } as never),
       ).rejects.toThrow('User is not a member of the team')
       expect(s3Service.putObject).not.toHaveBeenCalled()
       expect(assetService.createVersion).not.toHaveBeenCalled()
@@ -375,7 +376,7 @@ describe('create_file and create_version agent tools', () => {
 
     it('fails when the local file does not exist', async () => {
       await expect(
-        tool('create_version').execute('call-1', {
+        invokeTool(tool('create_version'), 'call-1', {
           parent: 'file-1',
           path: '/nonexistent/file.md',
         } as never),

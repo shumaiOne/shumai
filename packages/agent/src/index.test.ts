@@ -1,22 +1,30 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import {
-  formatSkillsForPrompt,
-  createAgentSession,
-  getModelFromDb,
-  buildRestrictedUserInstructions,
-  type DbProviderInfo,
-} from './index'
-import { createSandboxedBashTool } from './tools/sandboxed-bash'
 import { SandboxManager, type SandboxAskCallback } from '@anthropic-ai/sandbox-runtime'
-import { quotaService } from '@shumai/core/src/quota/quota-service'
+import { BACKGROUND_CONTEXT as piContext } from '@earendil-works/chord/context'
+import { Harness } from '@earendil-works/pi-durable'
+import { appendSessionEntries } from '@shumai/core/src/agent/session-test-utils'
+import { getAgentPrompt, getAgentTools, invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
+import { quotaService } from '@shumai/core/src/quota/quota-service'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
+import * as fs from 'fs'
+import * as childProcess from 'node:child_process'
+import * as path from 'path'
 import { type TSchema } from 'typebox'
 import { Value } from 'typebox/value'
-import * as path from 'path'
-import * as childProcess from 'node:child_process'
-import * as fs from 'fs'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  buildRestrictedUserInstructions,
+  createAgentSession,
+  formatSkillsForPrompt,
+  getModelFromDb,
+  type DbProviderInfo,
+} from './index'
+import { closeAgentSessions } from './runtime'
+import { createSandboxedBashTool } from './tools/sandboxed-bash'
+afterEach(async () => {
+  await closeAgentSessions()
+})
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockSpawn: any = null
@@ -187,7 +195,10 @@ describe('Sandbox Network isolation integration', () => {
       return mockChild
     }
 
-    const bashPromise = bashTool.execute('1', { command: 'curl blocked-api.com', source: 'user' })
+    const bashPromise = invokeTool(bashTool, '1', {
+      command: 'curl blocked-api.com',
+      source: 'user',
+    })
 
     try {
       await expect(bashPromise).rejects.toThrow(
@@ -417,7 +428,9 @@ describe('Sandbox Network isolation integration', () => {
         providers: mockProviders,
         thinkingLevel: 'high',
       })
-      expect(harnessHigh.getThinkingLevel()).toBe('high')
+      expect((await (await harnessHigh.root(piContext)).agent(piContext)).thinkingLevel).toBe(
+        'high',
+      )
 
       // Call createAgentSession without thinkingLevel
       const { harness: harnessDefault } = await createAgentSession({
@@ -430,7 +443,9 @@ describe('Sandbox Network isolation integration', () => {
         allowedDomains: [],
         providers: mockProviders,
       })
-      expect(harnessDefault.getThinkingLevel()).toBe('off')
+      expect((await (await harnessDefault.root(piContext)).agent(piContext)).thinkingLevel).toBe(
+        'off',
+      )
     } finally {
       initializeSpy.mockRestore()
     }
@@ -457,9 +472,10 @@ describe('Sandbox Network isolation integration', () => {
       },
     })
 
+    const openSpy = vi.spyOn(Harness, 'open')
     const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
     try {
-      const { harness } = await createAgentSession({
+      await createAgentSession({
         teamId: team.id,
         agentId: 'test-agent-retry',
         providerName: 'google',
@@ -472,12 +488,75 @@ describe('Sandbox Network isolation integration', () => {
         baseDelayMs: 1500,
       })
 
-      // @ts-expect-error accessing private property for verification
-      expect(harness.streamOptions?.maxRetries).toBe(5)
+      expect(openSpy.mock.calls.at(-1)?.[1].settings).toMatchObject({
+        retry: { maxRetries: 5, baseDelayMs: 1500 },
+      })
     } finally {
       initializeSpy.mockRestore()
     }
   })
+
+  it.each(['openai', 'custom-responses'])(
+    'authenticates %s Responses sessions using the configured API key',
+    async (providerName) => {
+      const team = await prisma.team.create({ data: { name: 'Responses team' } })
+      const user = await prisma.user.create({
+        data: { name: 'Responses agent', email: 'responses@test.com', type: 'agent' },
+      })
+      const modelId = 'gpt-4.1'
+      const agent = await prisma.agent.create({
+        data: {
+          id: user.id,
+          teamId: team.id,
+          type: 'chat',
+          config: { provider: providerName, model: modelId },
+        },
+      })
+      const baseUrl =
+        providerName === 'openai' ? 'https://api.openai.com/v1' : 'https://example.test/v1'
+      const openSpy = vi.spyOn(Harness, 'open')
+      vi.stubEnv('CLOUDFLARE_ACCOUNT_ID', '')
+      vi.stubEnv('CLOUDFLARE_GATEWAY_ID', '')
+      vi.stubEnv('TEST_RESPONSES_API_KEY', 'test-responses-key')
+      try {
+        await createAgentSession({
+          teamId: team.id,
+          agentId: agent.id,
+          providerName,
+          modelId,
+          systemPrompt: 'prompt',
+          teamSkills: [],
+          disableTools: true,
+          providers: [
+            {
+              name: providerName,
+              config: { api: 'openai-responses', baseUrl, apiKey: 'TEST_RESPONSES_API_KEY' },
+              models: [
+                {
+                  modelId,
+                  name: 'Responses model',
+                  config: { ...mockProviders[0].models[0].config, api: 'openai-responses' },
+                },
+              ],
+            },
+          ],
+        })
+        const configuredModels = openSpy.mock.lastCall?.[1].models
+        const models =
+          typeof configuredModels === 'function' ? configuredModels() : configuredModels
+        expect(models?.getModel(providerName, modelId)).toMatchObject({
+          api: 'openai-responses',
+          baseUrl,
+        })
+        await expect(models?.getAuth(providerName)).resolves.toMatchObject({
+          auth: { apiKey: 'test-responses-key' },
+        })
+      } finally {
+        openSpy.mockRestore()
+        vi.unstubAllEnvs()
+      }
+    },
+  )
 
   it('should filter out denied tools from AgentHarness', async () => {
     const team = await prisma.team.create({
@@ -512,7 +591,7 @@ describe('Sandbox Network isolation integration', () => {
         allowedDomains: [],
         providers: mockProviders,
       })
-      const tools = harness.getTools()
+      const tools = await getAgentTools(harness)
       const bashTool = tools.find((t) => t.name === 'bash')
       expect(bashTool).toBeUndefined()
       const readSkillTool = tools.find((t) => t.name === 'read_skill')
@@ -724,21 +803,20 @@ describe('createAgentSession bash restriction for non-owner users', () => {
 
   it('should include the bash tool from the start for team owners', async () => {
     const { harness } = await setupSession({ role: 'owner' })
-    expect(harness.getTools().some((t) => t.name === 'bash')).toBe(true)
+    expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(true)
   })
 
   it('should include the bash tool from the start when there is no user context', async () => {
     const { harness } = await setupSession({ role: 'none' })
-    expect(harness.getTools().some((t) => t.name === 'bash')).toBe(true)
+    expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(true)
   })
 
   it('should treat a user who is not a team member as restricted (fail-closed)', async () => {
     const { harness } = await setupSession({ role: 'non-member' })
-    const tools = harness.getTools()
+    const tools = await getAgentTools(harness)
     expect(tools.some((t) => t.name === 'bash')).toBe(false)
     expect(tools.some((t) => t.name === 'read_skill')).toBe(true)
-    // @ts-expect-error accessing private property for verification
-    const prompt = await harness.systemPrompt()
+    const prompt = await await getAgentPrompt(harness)
     expect(prompt).toContain('# Restricted User Context')
   })
 
@@ -746,7 +824,7 @@ describe('createAgentSession bash restriction for non-owner users', () => {
     'should exclude the bash tool initially for %s users',
     async (role) => {
       const { harness } = await setupSession({ role })
-      const tools = harness.getTools()
+      const tools = await getAgentTools(harness)
       expect(tools.some((t) => t.name === 'bash')).toBe(false)
       expect(tools.some((t) => t.name === 'read_skill')).toBe(true)
     },
@@ -785,23 +863,22 @@ describe('createAgentSession bash restriction for non-owner users', () => {
         type: 'chat',
       },
     })
-    await prisma.agentSessionEntry.create({
-      data: {
-        id: 'restore-entry-1',
-        sessionId: session.id,
-        type: 'message',
-        data: {
-          message: {
+    await appendSessionEntries(session.id, [
+      {
+        kind: 'pi.tool-result',
+        model: [
+          {
             role: 'toolResult',
+            toolCallId: 'loaded',
             content: [{ type: 'text', text: 'skill content restored' }],
             toolName: 'read_skill',
             isError: false,
             details: { skillId: 'previously-loaded-skill' },
             timestamp: Date.now(),
           },
-        },
+        ],
       },
-    })
+    ])
 
     const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
     try {
@@ -817,7 +894,7 @@ describe('createAgentSession bash restriction for non-owner users', () => {
         userId: user.id,
         sessionId: session.id,
       })
-      expect(harness.getTools().some((t) => t.name === 'bash')).toBe(true)
+      expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(true)
     } finally {
       initializeSpy.mockRestore()
     }
@@ -837,17 +914,17 @@ describe('createAgentSession bash restriction for non-owner users', () => {
       return ''
     })
 
-    const readSkillTool = harness.getTools().find((t) => t.name === 'read_skill')
+    const readSkillTool = (await getAgentTools(harness)).find((t) => t.name === 'read_skill')
     expect(readSkillTool).toBeDefined()
-    expect(harness.getTools().some((t) => t.name === 'bash')).toBe(false)
-    expect(harness.getActiveTools().some((t) => t.name === 'bash')).toBe(false)
+    expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(false)
+    expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(false)
 
-    await readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined, undefined)
+    await invokeTool(readSkillTool!, '1', { skillId: skill.id }, undefined, undefined)
 
-    expect(harness.getTools().some((t) => t.name === 'bash')).toBe(true)
+    expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(true)
     // bash must be part of the ACTIVE tool set, not just the registry, or the model
     // would never receive it on the next turn
-    expect(harness.getActiveTools().some((t) => t.name === 'bash')).toBe(true)
+    expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(true)
   })
 
   it('should not inject the bash tool for restricted users when bash is in deniedTools', async () => {
@@ -864,26 +941,24 @@ describe('createAgentSession bash restriction for non-owner users', () => {
       return ''
     })
 
-    const readSkillTool = harness.getTools().find((t) => t.name === 'read_skill')
+    const readSkillTool = (await getAgentTools(harness)).find((t) => t.name === 'read_skill')
     expect(readSkillTool).toBeDefined()
 
-    await readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined, undefined)
+    await invokeTool(readSkillTool!, '1', { skillId: skill.id }, undefined, undefined)
 
-    expect(harness.getTools().some((t) => t.name === 'bash')).toBe(false)
+    expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(false)
   })
 
   it('should include restricted user instructions in the system prompt for non-owners', async () => {
     const { harness } = await setupSession({ role: 'editor' })
-    // @ts-expect-error accessing private property for verification
-    const prompt = await harness.systemPrompt()
+    const prompt = await await getAgentPrompt(harness)
     expect(prompt).toContain('# Restricted User Context')
     expect(prompt).toContain('source="user" will be rejected')
   })
 
   it('should not include restricted user instructions in the system prompt for owners', async () => {
     const { harness } = await setupSession({ role: 'owner' })
-    // @ts-expect-error accessing private property for verification
-    const prompt = await harness.systemPrompt()
+    const prompt = await await getAgentPrompt(harness)
     expect(prompt).not.toContain('# Restricted User Context')
   })
 })
@@ -982,7 +1057,7 @@ describe('createAgentSession typed metadata schema', () => {
 
   it('should build create_file/create_version with the project CREATION_CONTEXT fields', async () => {
     const { harness } = await setupSessionWithProject({ withCreationFields: true })
-    const tools = harness.getTools()
+    const tools = await getAgentTools(harness)
 
     expect(tools.some((t) => t.name === 'list_autofill_fields')).toBe(false)
 
@@ -1018,8 +1093,8 @@ describe('createAgentSession typed metadata schema', () => {
 
   it('should omit the metadata parameter when the project has no CREATION_CONTEXT fields', async () => {
     const { harness } = await setupSessionWithProject({ withCreationFields: false })
-    const createFile = harness.getTools().find((t) => t.name === 'create_file')
-    const createVersion = harness.getTools().find((t) => t.name === 'create_version')
+    const createFile = (await getAgentTools(harness)).find((t) => t.name === 'create_file')
+    const createVersion = (await getAgentTools(harness)).find((t) => t.name === 'create_version')
     expect(createFile).toBeDefined()
     expect(createVersion).toBeDefined()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inspecting the runtime schema shape of the dynamically-built tool
@@ -1032,7 +1107,7 @@ describe('createAgentSession typed metadata schema', () => {
 
   it('should include rename_asset and move_assets by default, but exclude delete_asset', async () => {
     const { harness } = await setupSessionWithProject({ withCreationFields: false })
-    const toolNames = harness.getTools().map((t) => t.name)
+    const toolNames = (await getAgentTools(harness)).map((t) => t.name)
 
     expect(toolNames).toContain('rename_asset')
     expect(toolNames).toContain('move_assets')
@@ -1081,7 +1156,7 @@ describe('createAgentSession typed metadata schema', () => {
         providers: mockProviders,
         userId: user.id,
       })
-      const toolNames = harness.getTools().map((t) => t.name)
+      const toolNames = (await getAgentTools(harness)).map((t) => t.name)
       expect(toolNames).toContain('delete_asset')
     } finally {
       initializeSpy.mockRestore()
@@ -1151,13 +1226,12 @@ describe('createAgentSession enabled skill filtering', () => {
       })
 
       // The disabled skill must not be advertised in the available skills list
-      // @ts-expect-error accessing private property for verification
-      const prompt = await harness.systemPrompt()
+      const prompt = await await getAgentPrompt(harness)
       expect(prompt).toContain(enabledSkill.id)
       expect(prompt).not.toContain(disabledSkill.id)
 
       // read_skill must reject the disabled skill id
-      const readSkillTool = harness.getTools().find((t) => t.name === 'read_skill')
+      const readSkillTool = (await getAgentTools(harness)).find((t) => t.name === 'read_skill')
       expect(readSkillTool).toBeDefined()
 
       vi.spyOn(fs, 'existsSync').mockReturnValue(true)
@@ -1169,13 +1243,13 @@ describe('createAgentSession enabled skill filtering', () => {
       })
 
       await expect(
-        readSkillTool!.execute('1', { skillId: disabledSkill.id }, undefined, undefined, undefined),
+        invokeTool(readSkillTool!, '1', { skillId: disabledSkill.id }, undefined, undefined),
       ).rejects.toThrow('not enabled for this agent')
 
-      const result = await readSkillTool!.execute(
+      const result = await invokeTool(
+        readSkillTool!,
         '1',
         { skillId: enabledSkill.id },
-        undefined,
         undefined,
         undefined,
       )
@@ -1223,11 +1297,11 @@ describe('createAgentSession enabled skill filtering', () => {
         providers: mockProviders,
       })
 
-      const readSkillTool = harness.getTools().find((t) => t.name === 'read_skill')
+      const readSkillTool = (await getAgentTools(harness)).find((t) => t.name === 'read_skill')
       expect(readSkillTool).toBeDefined()
 
       await expect(
-        readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined, undefined),
+        invokeTool(readSkillTool!, '1', { skillId: skill.id }, undefined, undefined),
       ).rejects.toThrow('not enabled for this agent')
     } finally {
       initializeSpy.mockRestore()
@@ -1283,24 +1357,24 @@ describe('createAgentSession enabled skill filtering', () => {
         providers: mockProviders,
       })
 
-      const readThreadTool = harness.getTools().find((t) => t.name === 'read_thread')
+      const readThreadTool = (await getAgentTools(harness)).find((t) => t.name === 'read_thread')
       expect(readThreadTool).toBeDefined()
 
       // First call executes and consumes quota
-      const res1 = await readThreadTool!.execute(
+      const res1 = await invokeTool(
+        readThreadTool!,
         'call-1',
         { threadId: 'non-existent' },
-        undefined,
         undefined,
         undefined,
       )
       expect(res1).toBeDefined()
 
       // Second call exceeds quota and returns error
-      const res2 = await readThreadTool!.execute(
+      const res2 = await invokeTool(
+        readThreadTool!,
         'call-2',
         { threadId: 'non-existent' },
-        undefined,
         undefined,
         undefined,
       )
@@ -1393,7 +1467,7 @@ describe('createAgentSession media generation tools injection', () => {
         providers: mockProviders,
       })
 
-      const tools = harness.getTools()
+      const tools = await getAgentTools(harness)
       expect(tools.find((t) => t.name === 'generate_image')).toBeUndefined()
       expect(tools.find((t) => t.name === 'generate_video')).toBeUndefined()
     } finally {
@@ -1467,7 +1541,7 @@ describe('createAgentSession media generation tools injection', () => {
         providers: mockProviders,
       })
 
-      const tools = harness.getTools()
+      const tools = await getAgentTools(harness)
       expect(tools.find((t) => t.name === 'generate_image')).toBeDefined()
       expect(tools.find((t) => t.name === 'generate_video')).toBeDefined()
     } finally {
@@ -1545,7 +1619,7 @@ describe('createAgentSession media generation tools injection', () => {
         providers: mockProviders,
       })
 
-      const tools = harness.getTools()
+      const tools = await getAgentTools(harness)
       expect(tools.find((t) => t.name === 'generate_image')).toBeUndefined()
       expect(tools.find((t) => t.name === 'generate_video')).toBeDefined()
     } finally {

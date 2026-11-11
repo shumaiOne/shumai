@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import * as fs from 'fs'
-import * as path from 'path'
-import { prisma, type Asset, type StorageKey } from '@shumai/db'
-import { s3Service } from '@shumai/core/src/s3/s3'
+import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { authzService } from '@shumai/core/src/authz/authz'
 import { getOperation } from '@shumai/core/src/operations'
+import { s3Service } from '@shumai/core/src/s3/s3'
+import { prisma, type Asset, type StorageKey } from '@shumai/db'
+import * as fs from 'fs'
+import * as path from 'path'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { toAgentTool } from '../operation-tools'
 import './download-asset'
 
@@ -96,7 +97,7 @@ describe('download_asset agent tool', () => {
     mockAssets(photo)
     mockStorage('image/webp', 'proxy-bytes')
 
-    const result = await downloadTool().execute('call-1', { assetIds: ['img-1'] })
+    const result = await invokeTool(downloadTool(), 'call-1', { assetIds: ['img-1'] })
 
     const expectedPath = path.join(piDir, 'img-1_sample_photo.webp')
     created.push(expectedPath)
@@ -130,7 +131,7 @@ describe('download_asset agent tool', () => {
     mockAssets(photo)
     mockStorage('image/jpeg')
 
-    await downloadTool().execute('call-1', { assetIds: ['img-1'], proxy: false })
+    await invokeTool(downloadTool(), 'call-1', { assetIds: ['img-1'], proxy: false })
 
     const expectedPath = path.join(piDir, 'img-1_sample_photo.jpg')
     created.push(expectedPath)
@@ -153,7 +154,7 @@ describe('download_asset agent tool', () => {
     } as unknown as Asset)
     mockStorage('image/webp')
 
-    const result = await downloadTool().execute('call-1', {
+    const result = await invokeTool(downloadTool(), 'call-1', {
       assetIds: ['img-1', 'stack-1'],
       key: null,
     })
@@ -173,7 +174,7 @@ describe('download_asset agent tool', () => {
 
   it('rejects folders', async () => {
     mockAssets({ id: 'folder-1', name: 'Renders', type: 'folder', isDeleted: false })
-    await expect(downloadTool().execute('call-1', { assetIds: ['folder-1'] })).rejects.toThrow(
+    await expect(invokeTool(downloadTool(), 'call-1', { assetIds: ['folder-1'] })).rejects.toThrow(
       'Asset folder-1 ("Renders") is a folder. Download the files inside it instead.',
     )
     expect(s3Service.downloadToFile).not.toHaveBeenCalled()
@@ -185,36 +186,36 @@ describe('download_asset agent tool', () => {
       if (id === 'secret') throw new Error('Forbidden')
     })
     await expect(
-      downloadTool().execute('call-1', { assetIds: ['img-1', 'secret'] }),
+      invokeTool(downloadTool(), 'call-1', { assetIds: ['img-1', 'secret'] }),
     ).rejects.toThrow('Forbidden')
     expect(s3Service.downloadToFile).not.toHaveBeenCalled()
   })
 
   it('requires assetIds or key', async () => {
-    await expect(downloadTool().execute('call-1', { assetIds: null, key: null })).rejects.toThrow(
-      'Invalid input for download_asset',
-    )
+    await expect(
+      invokeTool(downloadTool(), 'call-1', { assetIds: null, key: null }),
+    ).rejects.toThrow('Invalid input for download_asset')
   })
 
   it('rejects assetIds and key together', async () => {
     await expect(
-      downloadTool().execute('call-1', { assetIds: ['img-1'], key: 'files/img-1/a.webp' }),
+      invokeTool(downloadTool(), 'call-1', { assetIds: ['img-1'], key: 'files/img-1/a.webp' }),
     ).rejects.toThrow('Provide either "assetIds" or "key", not both.')
   })
 
   describe('by storage key', () => {
     it('requires a user', async () => {
       await expect(
-        downloadTool('').execute('call-1', { key: 'files/ast-1/shot.webp' }),
+        invokeTool(downloadTool(''), 'call-1', { key: 'files/ast-1/shot.webp' }),
       ).rejects.toThrow('User ID is required for authorization.')
     })
 
     it('rejects keys outside files/ and path traversal', async () => {
-      await expect(downloadTool().execute('call-1', { key: 'avatars/user-1.png' })).rejects.toThrow(
-        'Invalid storage key format: key must start with "files/"',
-      )
       await expect(
-        downloadTool().execute('call-1', { key: 'files/../../etc/passwd' }),
+        invokeTool(downloadTool(), 'call-1', { key: 'avatars/user-1.png' }),
+      ).rejects.toThrow('Invalid storage key format: key must start with "files/"')
+      await expect(
+        invokeTool(downloadTool(), 'call-1', { key: 'files/../../etc/passwd' }),
       ).rejects.toThrow('cannot contain ".."')
     })
 
@@ -223,7 +224,7 @@ describe('download_asset agent tool', () => {
       vi.mocked(prisma.storageKey.findFirst).mockResolvedValue(null)
       vi.mocked(prisma.storageKey.findUnique).mockResolvedValue(null)
       await expect(
-        downloadTool().execute('call-1', { key: 'files/nope/shot.webp' }),
+        invokeTool(downloadTool(), 'call-1', { key: 'files/nope/shot.webp' }),
       ).rejects.toThrow('does not belong to any valid asset or the asset has been deleted')
     })
 
@@ -231,7 +232,7 @@ describe('download_asset agent tool', () => {
       mockAssets({ id: 'other-project-asset' })
       vi.mocked(authzService.hasPermission).mockRejectedValue(new Error('Forbidden'))
       await expect(
-        downloadTool().execute('call-1', { key: 'files/other-project-asset/shots/a.webp' }),
+        invokeTool(downloadTool(), 'call-1', { key: 'files/other-project-asset/shots/a.webp' }),
       ).rejects.toThrow('Forbidden')
       expect(authzService.hasPermission).toHaveBeenCalledWith({
         user: { id: 'user-1' },
@@ -246,7 +247,7 @@ describe('download_asset agent tool', () => {
       mockAssets({ id: 'ast-123' })
       mockStorage('image/webp', 'frame-bytes')
 
-      const result = await downloadTool().execute('call-1', {
+      const result = await invokeTool(downloadTool(), 'call-1', {
         key: 'files/ast-123/screenshots/shot_5.0s.webp',
       })
 
@@ -279,7 +280,7 @@ describe('download_asset agent tool', () => {
         await fs.promises.writeFile(dest, pngHeader)
       })
 
-      const result = await downloadTool().execute('call-1', {
+      const result = await invokeTool(downloadTool(), 'call-1', {
         key: 'files/upload-ulid-456/photo.png',
       })
 

@@ -1,10 +1,10 @@
-import { type AgentTool } from '@earendil-works/pi-agent-core'
-import { EnabledMediaModel } from '@shumai/dtos'
+import { type ToolRegistration as AgentTool } from '@earendil-works/pi-durable'
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
-import { Type, type Static, type TSchema } from 'typebox'
+import { EnabledMediaModel } from '@shumai/dtos'
 import * as fs from 'fs'
 import * as path from 'path'
+import { Type, type Static, type TSchema } from 'typebox'
 import { ulid } from 'ulid'
 import { resolveS3MediaBuffer } from './download-asset'
 
@@ -83,11 +83,11 @@ export function createGenerateImageTool(
 
   return {
     name: 'generate_image',
-    label: 'Generate Image',
+
     description:
       'Generate an image using a configured image model. Supports text-to-image, reference images (image-to-image using S3 keys from read_asset), and inpainting (using a mask image S3 key from read_asset). The generated file is saved in the local .pi/ directory.',
     parameters: generateImageSchema,
-    execute: async (_toolCallId, params) => {
+    execute: async (params) => {
       const p = params as GenerateImageParams
 
       const defaultModel = `${enabledModels[0].provider}:${enabledModels[0].modelId}`
@@ -161,7 +161,7 @@ export function createGenerateImageTool(
       fs.writeFileSync(targetPath, buffer)
 
       return {
-        content: [
+        output: [
           {
             type: 'text',
             text: `Successfully generated image using model "${modelConfig.modelId}" (${modelConfig.provider}). Saved to "${relativePath}". Size: ${(buffer.length / 1024).toFixed(1)} KB.`,

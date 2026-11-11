@@ -1,14 +1,17 @@
-import { z } from 'zod'
-import type { TSchema } from 'typebox'
-import { Compile } from 'typebox/compile'
-import { type AgentTool, type AgentToolResult } from '@earendil-works/pi-agent-core'
-import { dropNullOptionals } from '@shumai/operations'
+import {
+  type ToolRegistration as AgentTool,
+  type ToolExecutionResult as AgentToolResult,
+} from '@earendil-works/pi-durable'
 import {
   getOperationsForSurface,
   runOperation,
   type Operation,
   type OperationContext,
 } from '@shumai/core/src/operations'
+import { dropNullOptionals } from '@shumai/operations'
+import type { TSchema } from 'typebox'
+import { Compile } from 'typebox/compile'
+import { z } from 'zod'
 
 /** Context for agent-invoked Operations; `via` is always `agent`. */
 export type AgentOperationContext = Omit<OperationContext, 'via'>
@@ -60,12 +63,12 @@ export interface AgentToolExtension {
     input: Record<string, unknown>,
     extra: Record<string, unknown>,
     ctx: AgentOperationContext,
-  ): Promise<AgentToolResult<unknown> | undefined>
+  ): Promise<AgentToolResult | undefined>
   present(
     output: unknown,
     extra: Record<string, unknown>,
     ctx: AgentOperationContext,
-  ): Promise<AgentToolResult<unknown>>
+  ): Promise<AgentToolResult>
 }
 
 const extensions = new Map<string, AgentToolExtension>()
@@ -135,10 +138,9 @@ export function toAgentTool(
   const extension = extensions.get(definition.name)
   return {
     name: definition.name,
-    label: definition.title,
     description: extension?.description ?? definition.description,
     parameters: toToolParameters(op, extension, options),
-    execute: async (_toolCallId, params) => {
+    execute: async (params) => {
       const { input, extra } = splitAgentParams(op, extension, params)
       if (extension?.intercept) {
         const handled = await extension.intercept(input as Record<string, unknown>, extra, ctx)
@@ -149,7 +151,7 @@ export function toAgentTool(
         return extension.present(output, extra, ctx)
       }
       return {
-        content: [{ type: 'text', text: JSON.stringify(output, null, 2) }],
+        output: [{ type: 'text', text: JSON.stringify(output, null, 2) }],
         details: {},
       }
     },

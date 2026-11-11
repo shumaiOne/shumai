@@ -1,19 +1,20 @@
-import { Hono } from 'hono'
-import { HTTPException } from 'hono/http-exception'
 import { zValidator } from '@hono/zod-validator'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import {
-  createAgentRequestSchema,
-  updateAgentRequestSchema,
-  updateAgentPermissionRequestSchema,
-  paginationParamsSchema,
   AgentInfo,
   AuditAction,
+  createAgentRequestSchema,
+  paginationParamsSchema,
+  updateAgentPermissionRequestSchema,
+  updateAgentRequestSchema,
 } from '@shumai/dtos'
+import { Hono } from 'hono'
+import { HTTPException } from 'hono/http-exception'
+import { agentEntriesResponse } from './agent-entries'
 
-import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -219,13 +220,7 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     const entries = await agentService.getSessionEntries({ sessionId })
-    const infos = entries.map((entry) => ({
-      id: entry.id,
-      sessionId: entry.sessionId,
-      entry: entry.entry,
-    }))
-
-    return c.json(infos, 200)
+    return agentEntriesResponse(entries)
   })
   .get('/teams/:teamId/agent-sessions', zValidator('query', paginationParamsSchema), async (c) => {
     const teamId = c.req.param('teamId')

@@ -20,6 +20,7 @@ export interface GetTeamUsageStatsParams {
 }
 
 export class AiUsageService {
+  constructor(private readonly prismaClient: Prisma.TransactionClient = prisma) {}
   private async incrementBucket(params: {
     teamId: string
     userId: string | null
@@ -31,7 +32,7 @@ export class AiUsageService {
     cost: number
   }): Promise<void> {
     if (params.userId !== null) {
-      await prisma.aiUsage.upsert({
+      await this.prismaClient.aiUsage.upsert({
         where: {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           teamId_userId_periodStart: {
@@ -59,7 +60,7 @@ export class AiUsageService {
         },
       })
     } else {
-      const existing = await prisma.aiUsage.findFirst({
+      const existing = await this.prismaClient.aiUsage.findFirst({
         where: {
           teamId: params.teamId,
           userId: null,
@@ -68,7 +69,7 @@ export class AiUsageService {
       })
 
       if (existing) {
-        await prisma.aiUsage.update({
+        await this.prismaClient.aiUsage.update({
           where: { id: existing.id },
           data: {
             inputTokens: { increment: params.inputTokens },
@@ -80,7 +81,7 @@ export class AiUsageService {
         })
       } else {
         try {
-          await prisma.aiUsage.create({
+          await this.prismaClient.aiUsage.create({
             data: {
               teamId: params.teamId,
               userId: null,
@@ -94,7 +95,7 @@ export class AiUsageService {
           })
         } catch (err) {
           if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-            await prisma.aiUsage.updateMany({
+            await this.prismaClient.aiUsage.updateMany({
               where: {
                 teamId: params.teamId,
                 userId: null,
@@ -173,7 +174,7 @@ export class AiUsageService {
 
     if (!params.userId) {
       // Return Team-Level Usage (userId = null)
-      const teamRecords = await prisma.aiUsage.findMany({
+      const teamRecords = await this.prismaClient.aiUsage.findMany({
         where: {
           teamId: params.teamId,
           userId: null,
@@ -219,7 +220,7 @@ export class AiUsageService {
         throw new HTTPException(404, { message: 'Team member not found' })
       }
 
-      const memberRecords = await prisma.aiUsage.findMany({
+      const memberRecords = await this.prismaClient.aiUsage.findMany({
         where: {
           teamId: params.teamId,
           userId: params.userId,

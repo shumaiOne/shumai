@@ -5,23 +5,24 @@ loadEnvConfig(process.cwd(), process.env.NODE_ENV !== 'production')
 
 import index from '@shumai/webui/index.html'
 
-import { initAgentWorkflows } from '@shumai/agent'
+import { closeAgentSessions, initAgentWorkflows } from '@shumai/agent'
 import { app } from '@shumai/api'
+import { agentService } from '@shumai/core/src/agent/agent'
+import { migrateLegacyAgentAvatars } from '@shumai/core/src/agent/migration'
 import { assetService } from '@shumai/core/src/asset/asset'
-import { validateArchiveStorageConfig } from '@shumai/core/src/s3/archive-storage'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
+import { validateArchiveStorageConfig } from '@shumai/core/src/s3/archive-storage'
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { workflowService } from '@shumai/workflow-core'
-import { migrateLegacyAgentAvatars } from '@shumai/core/src/agent/migration'
-import { agentService } from '@shumai/core/src/agent/agent'
 
-import { handleDaemonCommands } from '@shumai/core/src/utils/daemon'
-import { authService } from '@shumai/core/src/auth/auth'
-import { embeddingService } from '@shumai/core/src/search/embedding-service'
 import { sandboxService } from '@shumai/core'
-import { notificationJobService } from '@shumai/core/src/notification/notification-job'
 import { autoArchiveJobService } from '@shumai/core/src/asset/auto-archive-job'
+import { authService } from '@shumai/core/src/auth/auth'
+import { notificationJobService } from '@shumai/core/src/notification/notification-job'
+import { embeddingService } from '@shumai/core/src/search/embedding-service'
+import { handleDaemonCommands } from '@shumai/core/src/utils/daemon'
 import { createHtmlHandler, createStaticFileHandler } from './static'
+import { getServerQueues } from './workers'
 
 if (process.argv.includes('--check')) {
   console.log('✅ Web app evaluated successfully!')
@@ -104,18 +105,7 @@ async function run() {
     }
   }
 
-  let listenQueues: string[] = ['agent_queue', 'transcode_queue', 'archive_queue']
-  if (workersOption === 'none') {
-    listenQueues = []
-  } else if (workersOption === 'agent' || workersOption === 'ai') {
-    listenQueues = ['agent_queue', 'archive_queue']
-  } else if (workersOption === 'transcode') {
-    listenQueues = ['transcode_queue']
-  } else if (workersOption === 'archive') {
-    listenQueues = ['archive_queue']
-  }
-
-  workflowService.start(listenQueues)
+  workflowService.start(getServerQueues(workersOption))
   workflowService.startStaleTaskRecovery()
 
   const isProd = process.env.NODE_ENV === 'production'
@@ -228,6 +218,7 @@ async function run() {
   const shutdown = async () => {
     console.log('\nShutting down gracefully...')
     workflowService.stopStaleTaskRecovery()
+    await closeAgentSessions()
     await workflowService.shutdownWorkers().catch(() => {})
     assetService.stopCleanupJob()
     server.stop(true)

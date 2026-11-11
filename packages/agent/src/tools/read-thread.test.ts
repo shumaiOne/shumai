@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createReadThreadTool } from './read-thread'
-import { prisma } from '@shumai/db'
+import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { authzService } from '@shumai/core/src/authz/authz'
+import { prisma } from '@shumai/db'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createReadThreadTool } from './read-thread'
 
 vi.mock('@shumai/core/src/authz/authz', () => ({
   authzService: {
@@ -37,7 +38,7 @@ describe('createReadThreadTool', () => {
     vi.mocked(prisma.asset.findUnique).mockResolvedValue(null)
 
     const tool = createReadThreadTool({ userId: 'user-1', teamId: 'team-1' })
-    const result = await tool.execute('call-1', { threadId: 'non-existent' })
+    const result = await invokeTool(tool, 'call-1', { threadId: 'non-existent' })
     const textContent = (result.content[0] as { text: string }).text
 
     expect(textContent).toContain('Comment thread with ID "non-existent" not found.')
@@ -49,7 +50,7 @@ describe('createReadThreadTool', () => {
     vi.mocked(prisma.asset.findUnique).mockResolvedValue({ id: 'asset-1' } as any)
 
     const tool = createReadThreadTool({ userId: 'user-1', teamId: 'team-1' })
-    const result = await tool.execute('call-asset', { threadId: 'asset-1' })
+    const result = await invokeTool(tool, 'call-asset', { threadId: 'asset-1' })
     const textContent = (result.content[0] as { text: string }).text
 
     expect(textContent).toContain('ID "asset-1" is an Asset ID, not a Comment Thread ID')
@@ -68,7 +69,7 @@ describe('createReadThreadTool', () => {
     vi.mocked(prisma.assetComment.findMany).mockResolvedValue([])
 
     const tool = createReadThreadTool({ userId: 'user-1', teamId: 'team-1' })
-    const result = await tool.execute('call-2', { threadId: 'root-1' })
+    const result = await invokeTool(tool, 'call-2', { threadId: 'root-1' })
     const textContent = (result.content[0] as { text: string }).text
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
@@ -107,7 +108,7 @@ describe('createReadThreadTool', () => {
     ] as any)
 
     const tool = createReadThreadTool({ userId: 'user-1', teamId: 'team-1' })
-    const result = await tool.execute('call-3', { threadId: 'root-1' })
+    const result = await invokeTool(tool, 'call-3', { threadId: 'root-1' })
     const textContent = (result.content[0] as { text: string }).text
 
     expect(textContent).toContain(
@@ -139,7 +140,7 @@ describe('createReadThreadTool', () => {
     ] as any)
 
     const tool = createReadThreadTool({ userId: 'user-1', teamId: 'team-1' })
-    const result = await tool.execute('call-agent', { threadId: 'root-1' })
+    const result = await invokeTool(tool, 'call-agent', { threadId: 'root-1' })
     const textContent = (result.content[0] as { text: string }).text
 
     expect(textContent).toContain('- [Ai Agent] (id: reply-1, has_markup: false): Agent answer')
@@ -170,7 +171,7 @@ describe('createReadThreadTool', () => {
     ] as any)
 
     const tool = createReadThreadTool({ userId: 'user-1', teamId: 'team-1' })
-    const result = await tool.execute('call-3d', { threadId: 'root-3d' })
+    const result = await invokeTool(tool, 'call-3d', { threadId: 'root-3d' })
     const textContent = (result.content[0] as { text: string }).text
 
     expect(textContent).toContain(

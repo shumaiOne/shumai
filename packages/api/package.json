@@ -7,6 +7,7 @@
   "types": "./src/index.ts",
   "dependencies": {
     "@better-auth/mcp": "1.7.12",
+    "@earendil-works/pi-durable": "1.5.0",
     "@hono/zod-validator": "0.7.6",
     "@modelcontextprotocol/server": "2.0.0",
     "@shumai/core": "workspace:*",

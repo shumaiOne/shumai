@@ -1,169 +1,19 @@
-import { prisma } from '@shumai/db'
-import type { Prisma } from '@shumai/db'
+import type { EntryId, EntryRecord } from '@earendil-works/pi-durable'
+import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
 import {
   authzService,
   Permission,
-  ResourceType,
   resolveEffectiveRole,
+  ResourceType,
 } from '@shumai/core/src/authz/authz'
 import { paginateQuery, type PaginatedData } from '@shumai/core/src/pagination'
-import type { ChatRequest, ChatSessionInfo, ChatMessage } from '@shumai/dtos'
-import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
+import type { Prisma } from '@shumai/db'
+import { prisma } from '@shumai/db'
+import type { ChatRequest, ChatSessionInfo } from '@shumai/dtos'
 import { workflowService } from '@shumai/workflow-core'
-import { agentService } from '@shumai/core/src/agent/agent'
-import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
+import { agentSessionService } from '../agent/session-service'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
-
-export type PathEntry = SessionTreeEntry & { id: string }
-
-export function buildSessionMessages(pathEntries: PathEntry[]): ChatMessage[] {
-  let compaction: (SessionTreeEntry & { type: 'compaction' } & { id: string }) | null = null
-
-  for (const entry of pathEntries) {
-    if (entry.type === 'compaction') {
-      compaction = entry as SessionTreeEntry & { type: 'compaction' } & { id: string }
-    }
-  }
-
-  const messages: ChatMessage[] = []
-  const appendMessage = (entry: PathEntry) => {
-    const timestampMs = new Date(entry.timestamp).getTime()
-    if (entry.type === 'message') {
-      if ((entry as unknown as { customType?: string }).customType === 'shumai_message') {
-        const customEntry = entry as unknown as {
-          customType: string
-          content: string
-          display?: boolean
-          details?: Record<string, unknown>
-        }
-        messages.push({
-          id: entry.id,
-          role: 'custom',
-          customType: customEntry.customType,
-          content: customEntry.content,
-          display: customEntry.display,
-          details: customEntry.details,
-          timestamp: timestampMs,
-        } as unknown as ChatMessage)
-        return
-      }
-      if (entry.message) {
-        messages.push({
-          ...entry.message,
-          id: entry.id,
-          timestamp: entry.message.timestamp || timestampMs,
-        } as unknown as ChatMessage)
-      }
-    } else if (entry.type === 'custom_message') {
-      if (entry.customType === 'context') return
-      messages.push({
-        id: entry.id,
-        role: 'custom',
-        customType: entry.customType,
-        content: entry.content,
-        display: entry.display,
-        details: entry.details as Record<string, unknown> | undefined,
-        timestamp: timestampMs,
-      } as unknown as ChatMessage)
-    } else if (entry.type === 'custom') {
-      messages.push({
-        id: entry.id,
-        role: 'custom',
-        customType: entry.customType,
-        details: (entry as { data?: unknown }).data as Record<string, unknown> | undefined,
-        timestamp: timestampMs,
-      } as unknown as ChatMessage)
-    } else if (entry.type === 'branch_summary') {
-      messages.push({
-        id: entry.id,
-        role: 'custom',
-        customType: 'branch-summary',
-        content: entry.summary,
-        details: { fromId: entry.fromId },
-        timestamp: timestampMs,
-      } as unknown as ChatMessage)
-    } else if (entry.type === 'thinking_level_change') {
-      messages.push({
-        id: entry.id,
-        role: 'thinking_level_change',
-        content: `Thinking level changed to ${entry.thinkingLevel}`,
-        timestamp: timestampMs,
-      } as unknown as ChatMessage)
-    } else if (entry.type === 'active_tools_change') {
-      messages.push({
-        id: entry.id,
-        role: 'custom',
-        customType: 'active-tools-change',
-        content: `Active tools: ${entry.activeToolNames.join(', ')}`,
-        details: { activeToolNames: entry.activeToolNames },
-        timestamp: timestampMs,
-      } as unknown as ChatMessage)
-    }
-  }
-
-  if (compaction) {
-    const compactionTimestamp = new Date(compaction.timestamp).getTime()
-    messages.push({
-      id: compaction.id,
-      role: 'custom',
-      customType: 'compaction-summary',
-      content: compaction.summary,
-      details: { tokensBefore: compaction.tokensBefore },
-      timestamp: compactionTimestamp,
-    } as unknown as ChatMessage)
-    const compactionIdx = pathEntries.findIndex(
-      (e) => e.type === 'compaction' && e.id === compaction?.id,
-    )
-    let foundFirstKept = false
-    for (let i = 0; i < compactionIdx; i++) {
-      const entry = pathEntries[i]
-      if (entry.id === compaction.firstKeptEntryId) foundFirstKept = true
-      if (foundFirstKept) appendMessage(entry)
-    }
-    for (let i = compactionIdx + 1; i < pathEntries.length; i++) {
-      appendMessage(pathEntries[i])
-    }
-  } else {
-    for (const entry of pathEntries) {
-      appendMessage(entry)
-    }
-  }
-
-  return messages
-}
-
-export function mapEntryToMessage(
-  entryRecord: Prisma.AgentSessionEntryGetPayload<Record<string, never>>,
-): ChatMessage | null {
-  const payload = (entryRecord.data as Record<string, unknown>) || {}
-  let type = (entryRecord.type || 'message') as SessionTreeEntry['type']
-  if (type === 'message' && payload.customType === 'shumai_message') {
-    type = 'custom_message'
-  }
-  const entryObj = {
-    id: entryRecord.id,
-    type,
-    parentId: entryRecord.parentId,
-    timestamp: entryRecord.createdAt.toISOString(),
-    ...payload,
-  } as unknown as SessionTreeEntry
-
-  if (
-    entryObj.type === 'custom_message' &&
-    (entryObj as { customType?: string }).customType === 'context'
-  ) {
-    return null
-  }
-  const pathEntries = [entryObj]
-  const messages = buildSessionMessages(pathEntries)
-  if (messages.length > 0) {
-    return messages[0]
-  }
-  // Entry types that have no chat representation (e.g. leaf, label, model_change,
-  // or any unknown/unsupported type) are skipped rather than rendered as an empty message.
-  return null
-}
 
 export class ChatService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
@@ -454,7 +304,7 @@ export class ChatService {
     )
   }
 
-  async listMessages(userId: string, teamId: string, sessionId: string): Promise<ChatMessage[]> {
+  async listMessages(userId: string, teamId: string, sessionId: string): Promise<EntryRecord[]> {
     const session = await this.prismaClient.agentSession.findUnique({
       where: { id: sessionId },
     })
@@ -465,28 +315,8 @@ export class ChatService {
       throw new Error('Unauthorized session access')
     }
 
-    const entries = await agentService.getSessionEntries({ sessionId })
-
-    const pathEntries = entries.map(
-      (e: {
-        id: string
-        type: string | null
-        parentId: string | null
-        createdAt: Date
-        data: unknown
-      }) => {
-        const payload = (e.data as Record<string, unknown>) || {}
-        return {
-          id: e.id,
-          type: (e.type || 'message') as SessionTreeEntry['type'],
-          parentId: e.parentId,
-          timestamp: e.createdAt.toISOString(),
-          ...payload,
-        } as unknown as SessionTreeEntry
-      },
-    )
-
-    return buildSessionMessages(pathEntries)
+    const entries = await agentSessionService.getEntries(sessionId)
+    return entries.filter((entry) => entry.kind !== 'pi.system')
   }
 
   async deleteSession(userId: string, teamId: string, sessionId: string): Promise<void> {
@@ -507,31 +337,26 @@ export class ChatService {
   async getNewSessionMessages(
     sessionId: string,
     lastEntryId?: string,
-  ): Promise<{ messages: ChatMessage[]; lastEntryId: string | null }> {
-    const entries = await this.prismaClient.agentSessionEntry.findMany({
-      where: {
-        sessionId,
-        ...(lastEntryId ? { id: { gt: lastEntryId } } : {}),
-      },
-      orderBy: { id: 'asc' },
-    })
-
-    if (entries.length === 0) {
-      return { messages: [], lastEntryId: lastEntryId ?? null }
-    }
-
-    const messages: ChatMessage[] = []
-    for (const entry of entries) {
-      const message = mapEntryToMessage(entry)
-      if (message) {
-        messages.push(message)
+  ): Promise<{ messages: EntryRecord[]; lastEntryId: string | null }> {
+    const after = lastEntryId ? Number(lastEntryId) : undefined
+    if (after !== undefined && (!Number.isSafeInteger(after) || after < 0))
+      throw new Error('Invalid entry cursor')
+    const messages: EntryRecord[] = []
+    let cursor: import('@earendil-works/pi-durable').Cursor | undefined
+    let last = lastEntryId ?? null
+    do {
+      const page = await agentSessionService.listEntries(sessionId, {
+        after: after as EntryId | undefined,
+        limit: 100,
+        cursor,
+      })
+      for (const entry of page.items) {
+        last = String(entry.id)
+        if (entry.kind !== 'pi.system') messages.push(entry)
       }
-    }
-
-    return {
-      messages,
-      lastEntryId: entries[entries.length - 1].id,
-    }
+      cursor = page.next
+    } while (cursor)
+    return { messages, lastEntryId: last }
   }
 
   async getChatWorkflowStatus(

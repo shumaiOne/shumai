@@ -1,10 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context'
+import { createModels } from '@earendil-works/pi-ai'
+import { Harness, createRegistry } from '@earendil-works/pi-durable'
+import { agentSessionService } from '@shumai/core/src/agent/session-service'
+import { resolveAnnotationsById } from '@shumai/core/src/asset-read/annotations'
+import { degreeToSecond } from '@shumai/core/src/utils/model3d'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { resolveAnnotationsById } from '@shumai/core/src/asset-read/annotations'
-import { DatabaseSessionStorage } from './database-session-storage'
-import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
-import { degreeToSecond } from '@shumai/core/src/utils/model3d'
+import type { ShumaiMessageContext } from '@shumai/dtos'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 describe('resolveAnnotationsById', () => {
   setupTestDbHooks()
@@ -84,10 +87,10 @@ describe('resolveAnnotationsById', () => {
       data: { name: 'Project', teamId: team.id },
     })
     const assetA = await prisma.asset.create({
-      data: { name: 'videoA.mp4', type: 'file', projectId: project.id, status: 'uploaded' },
+      data: { name: 'videoA.mp4', type: 'file', status: 'uploaded', projectId: project.id },
     })
     const assetB = await prisma.asset.create({
-      data: { name: 'videoB.mp4', type: 'file', projectId: project.id, status: 'uploaded' },
+      data: { name: 'videoB.mp4', type: 'file', status: 'uploaded', projectId: project.id },
     })
 
     const commentB = await prisma.assetComment.create({
@@ -113,236 +116,94 @@ describe('resolveAnnotationsById', () => {
     )
   })
 
-  it('resolves annotations and timestamp from AgentSessionEntry (1-on-1 Chat Mode)', async () => {
-    const user = await prisma.user.create({
-      data: { name: 'Chat User', email: 'chatuser@test.com', password: 'pw' },
-    })
-    const team = await prisma.team.create({
-      data: { name: 'Chat Team' },
-    })
-    const project = await prisma.project.create({
-      data: { name: 'Chat Project', teamId: team.id },
-    })
+  async function fixture() {
+    const team = await prisma.team.create({ data: { name: 'Native annotation team' } })
+    const project = await prisma.project.create({ data: { name: 'Project', teamId: team.id } })
     const asset = await prisma.asset.create({
-      data: {
-        name: 'chat-video.mp4',
-        type: 'file',
-        projectId: project.id,
-        status: 'uploaded',
-      },
+      data: { name: 'video.mp4', type: 'file', status: 'uploaded', projectId: project.id },
     })
-    const agentUser = await prisma.user.create({
-      data: { name: 'Chat Bot User', email: 'bot@example.com', type: 'agent' },
+    const other = await prisma.asset.create({
+      data: { name: 'other.mp4', type: 'file', status: 'uploaded', projectId: project.id },
+    })
+    const user = await prisma.user.create({
+      data: { name: 'Agent', email: 'native@test.com', type: 'agent' },
     })
     const agent = await prisma.agent.create({
       data: {
-        id: agentUser.id,
+        id: user.id,
         teamId: team.id,
         type: 'chat',
-        config: { provider: 'test-provider', model: 'test-model' },
+        config: { provider: 'faux', model: 'faux-1' },
       },
     })
+    const session = await prisma.agentSession.create({ data: { agentId: agent.id, cwd: '/test' } })
+    return { session, asset, other }
+  }
 
-    // Create session storage
-    const storage = await DatabaseSessionStorage.create({
-      agentId: agent.id,
-      userId: user.id,
-      assetId: asset.id,
+  async function annotate(sessionId: string, requestId: string, context: ShumaiMessageContext) {
+    await agentSessionService.withWriter(sessionId, async (storage) => {
+      const harness = await Harness.open(
+        storage,
+        { models: createModels(), registry: createRegistry() },
+        BACKGROUND_CONTEXT,
+      )
+      try {
+        const root = await harness.root(BACKGROUND_CONTEXT)
+        await root.submit(
+          {
+            type: 'write',
+            requestId,
+            entry: {
+              kind: 'shumai.message',
+              data: JSON.parse(
+                JSON.stringify({ displayText: 'Check markup', timestamp: 1, context }),
+              ),
+            },
+          },
+          BACKGROUND_CONTEXT,
+        )
+      } finally {
+        await harness.close(BACKGROUND_CONTEXT)
+      }
     })
+    return `chat:${sessionId}:${requestId}`
+  }
 
-    // Set active message context with markup annotations and position
-    storage.currentMessageContext = {
-      currentAsset: {
-        id: asset.id,
-        name: asset.name,
-        type: 'file',
-        path: asset.name,
-      },
+  it('resolves annotations after a SQLite cache rebuild using the durable submission reference', async () => {
+    const { session, asset } = await fixture()
+    const id = await annotate(session.id, 'request', {
+      currentAsset: { id: asset.id, name: asset.name, type: 'file' },
       position: { type: 'time', seconds: 12.34 },
       annotation: true,
-      annotations: [
-        {
-          type: 'rectangle',
-          x: 100,
-          y: 200,
-          width: 50,
-          height: 50,
-        },
-      ],
-    }
-
-    // User sends a message -> DatabaseSessionStorage.appendEntry is called
-    const userEntry: SessionTreeEntry = {
-      type: 'message',
-      id: '01JTESTENTRY1234567890',
-      parentId: null,
-      timestamp: new Date().toISOString(),
-      message: {
-        role: 'user',
-        content: 'Check this rectangle markup on video',
-        timestamp: Date.now(),
-      },
-    }
-
-    await storage.appendEntry(userEntry)
-
-    // Verify DatabaseSessionStorage persisted entry with details.id = entry.id
-    const dbEntry = await prisma.agentSessionEntry.findUnique({
-      where: { id: '01JTESTENTRY1234567890' },
+      annotations: [{ type: 'box' }],
     })
-    expect(dbEntry).toBeDefined()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const details = (dbEntry?.data as any)?.details
-    expect(details.id).toBe('01JTESTENTRY1234567890')
-    expect(details.position).toEqual({ type: 'time', seconds: 12.34 })
-    expect(details.annotations).toHaveLength(1)
-
-    // Now resolveAnnotationsById directly with the entry id and matching asset.id
-    const result = await resolveAnnotationsById(asset.id, '01JTESTENTRY1234567890')
-    expect(result.timestamp).toBe(12.34)
-    expect(result.annotations).toEqual([
-      {
-        type: 'rectangle',
-        x: 100,
-        y: 200,
-        width: 50,
-        height: 50,
-      },
-    ])
+    await agentSessionService.closeAll()
+    expect(await resolveAnnotationsById(asset.id, id)).toEqual({
+      timestamp: 12.34,
+      annotations: [{ type: 'box' }],
+    })
   })
 
-  it('resolves annotations and degree position timestamp from 1-on-1 chat AgentSessionEntry for 3D assets', async () => {
-    const user = await prisma.user.create({
-      data: { name: 'User 3D', email: 'user3d@test.com', password: 'pw' },
-    })
-    const team = await prisma.team.create({
-      data: { name: 'Team 3D' },
-    })
-    const project = await prisma.project.create({
-      data: { name: 'Project 3D', teamId: team.id },
-    })
-    const asset = await prisma.asset.create({
-      data: {
-        name: 'robot.glb',
-        type: 'file',
-        projectId: project.id,
-        status: 'uploaded',
-      },
-    })
-    const agentUser = await prisma.user.create({
-      data: { name: 'Agent 3D', email: 'agent3d@example.com', type: 'agent' },
-    })
-    const agent = await prisma.agent.create({
-      data: {
-        id: agentUser.id,
-        teamId: team.id,
-        type: 'chat',
-        config: { provider: 'test-provider', model: 'test-model' },
-      },
-    })
-
-    const storage = await DatabaseSessionStorage.create({
-      agentId: agent.id,
-      userId: user.id,
-      assetId: asset.id,
-    })
-
-    storage.currentMessageContext = {
-      currentAsset: {
-        id: asset.id,
-        name: asset.name,
-        type: 'file',
-        path: asset.name,
-      },
+  it('resolves degree positions as timestamps for 3D assets', async () => {
+    const { session, asset } = await fixture()
+    const id = await annotate(session.id, 'degree', {
+      currentAsset: { id: asset.id, name: asset.name, type: 'file' },
       position: { type: 'degree', degree: 45 },
       annotation: true,
-      annotations: [
-        {
-          type: 'rectangle',
-          x: 10,
-          y: 20,
-          width: 30,
-          height: 40,
-        },
-      ],
-    }
-
-    const userEntry: SessionTreeEntry = {
-      type: 'message',
-      id: '01JTEST3DENTRY123456789',
-      parentId: null,
-      timestamp: new Date().toISOString(),
-      message: {
-        role: 'user',
-        content: 'Check markup at 45 degrees',
-        timestamp: Date.now(),
-      },
-    }
-
-    await storage.appendEntry(userEntry)
-
-    const result = await resolveAnnotationsById(asset.id, '01JTEST3DENTRY123456789')
-    expect(result.timestamp).toBeCloseTo(degreeToSecond(45))
-    expect(result.annotations).toEqual([
-      {
-        type: 'rectangle',
-        x: 10,
-        y: 20,
-        width: 30,
-        height: 40,
-      },
-    ])
+      annotations: [{ type: 'box' }],
+    })
+    expect((await resolveAnnotationsById(asset.id, id)).timestamp).toBeCloseTo(degreeToSecond(45))
   })
 
-  it('throws an error when AgentSessionEntry belongs to a different asset', async () => {
-    const user = await prisma.user.create({
-      data: { name: 'User', email: 'user3@test.com', password: 'pw' },
-    })
-    const team = await prisma.team.create({
-      data: { name: 'Team' },
-    })
-    const project = await prisma.project.create({
-      data: { name: 'Project', teamId: team.id },
-    })
-    const assetA = await prisma.asset.create({
-      data: { name: 'chatA.mp4', type: 'file', projectId: project.id, status: 'uploaded' },
-    })
-    const assetB = await prisma.asset.create({
-      data: { name: 'chatB.mp4', type: 'file', projectId: project.id, status: 'uploaded' },
-    })
-    const agentUser = await prisma.user.create({
-      data: { name: 'Bot User', email: 'bot2@example.com', type: 'agent' },
-    })
-    const agent = await prisma.agent.create({
-      data: {
-        id: agentUser.id,
-        teamId: team.id,
-        type: 'chat',
-        config: { provider: 'test-provider', model: 'test-model' },
-      },
-    })
-
-    const storage = await DatabaseSessionStorage.create({
-      agentId: agent.id,
-      userId: user.id,
-      assetId: assetB.id,
-    })
-    storage.currentMessageContext = {
-      currentAsset: { id: assetB.id, name: assetB.name, type: 'file', path: assetB.name },
+  it('rejects references to another asset', async () => {
+    const { session, asset, other } = await fixture()
+    const id = await annotate(session.id, 'request', {
+      currentAsset: { id: asset.id, name: asset.name, type: 'file' },
       annotation: true,
       annotations: [{ type: 'box' }],
-    }
-    const userEntry: SessionTreeEntry = {
-      type: 'message',
-      id: '01JENTRYONASSETB123456',
-      parentId: null,
-      timestamp: new Date().toISOString(),
-      message: { role: 'user', content: 'Markup on B', timestamp: Date.now() },
-    }
-    await storage.appendEntry(userEntry)
-
-    await expect(resolveAnnotationsById(assetA.id, '01JENTRYONASSETB123456')).rejects.toThrow(
-      `Annotation "01JENTRYONASSETB123456" belongs to asset "${assetB.id}", not target asset "${assetA.id}".`,
+    })
+    await expect(resolveAnnotationsById(other.id, id)).rejects.toThrow(
+      `belongs to asset "${asset.id}"`,
     )
   })
 

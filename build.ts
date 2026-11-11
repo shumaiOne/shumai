@@ -37,7 +37,6 @@ const allWorkers = [
     entrypoint: './apps/transcode/src/index.ts',
     naming: 'transcode-worker.[ext]',
   },
-  { name: 'agent', entrypoint: './apps/agent/src/index.ts', naming: 'agent-worker.[ext]' },
 ]
 
 const workersToBuild = target === 'all' ? allWorkers : allWorkers.filter((w) => w.name === target)

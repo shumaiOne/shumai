@@ -1,12 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { SandboxConfig, SandboxProvider, WrapCommandOptions } from '@shumai/core'
 import { sandboxService } from '@shumai/core'
-import type { SandboxProvider, SandboxConfig, WrapCommandOptions } from '@shumai/core'
-import { createAgentSession, type DbProviderInfo } from './index'
-import { createSandboxedBashTool } from './tools/sandboxed-bash'
+import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { spawn } from 'node:child_process'
 import { EventEmitter } from 'node:events'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createAgentSession, type DbProviderInfo } from './index'
+import { closeAgentSessions } from './runtime'
+import { createSandboxedBashTool } from './tools/sandboxed-bash'
 
 vi.mock('node:child_process')
 
@@ -142,7 +144,7 @@ describe('Concurrent Sandbox Sessions', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock spawn return value
     ;(spawn as any).mockReturnValue(mockChild)
 
-    const sessionExecutionA = tool.execute('call-session-a-1', {
+    const sessionExecutionA = invokeTool(tool, 'call-session-a-1', {
       command: 'curl https://api.github.com/repos',
       source: 'skill',
     })
@@ -244,11 +246,11 @@ describe('Concurrent Sandbox Sessions', () => {
     // Record violation for the blocked command only
     testProvider.violationsByCommandId.set('call-blocked', 'blocked-target.com')
 
-    const blockedExecution = tool.execute('call-blocked', {
+    const blockedExecution = invokeTool(tool, 'call-blocked', {
       command: 'curl http://blocked-target.com',
       source: 'skill',
     })
-    const allowedExecution = tool.execute('call-allowed', {
+    const allowedExecution = invokeTool(tool, 'call-allowed', {
       command: 'curl https://api.github.com/data',
       source: 'skill',
     })
@@ -322,3 +324,5 @@ describe('Concurrent Sandbox Sessions', () => {
     expect(sandboxService.getCurrentAllowedDomains()).toEqual(['*.github.com'])
   })
 })
+
+afterEach(closeAgentSessions)

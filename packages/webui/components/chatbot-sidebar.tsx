@@ -7,13 +7,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select'
+import { isImageFileName } from '@/ui/lib/media'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { useChatbotStore } from '@/ui/stores/chatbot'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useUiStore } from '@/ui/stores/ui'
 import { useDroppable } from '@dnd-kit/react'
-import type { AssetInfo, ChatMessage, ShumaiMessageContext } from '@shumai/dtos'
+import type { EntryRecord } from '@earendil-works/pi-durable'
+import type { AssetInfo, ShumaiMessageContext } from '@shumai/dtos'
+import { getShumaiMessage } from '@shumai/dtos'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -36,7 +39,6 @@ import { formatTimeAgo } from '../lib/time'
 import { ChatInput } from './chat/message-input'
 import { DrawAnnotation } from './ui/icons'
 import { formatTimecode } from './viewers/video/utils'
-import { isImageFileName } from '@/ui/lib/media'
 
 interface ChatbotSidebarProps {
   projectId: string
@@ -47,7 +49,7 @@ interface ChatbotSidebarProps {
   startTimecode?: string
   formatTimestamp?: (second: number) => string
   onTyping?: () => void
-  onSelectMessage?: (message: ChatMessage) => void
+  onSelectMessage?: (message: EntryRecord) => void
   selectedMessageId?: string | null
 }
 
@@ -236,19 +238,31 @@ export function ChatbotSidebar({
     return text.replace(/<@([a-zA-Z0-9_-]+)>/g, '@$1').replace(/^\[([^\]]+)\]:/gm, '\\[$1\\]:')
   }
 
-  const renderMessage = (msg: ChatMessage) => {
-    switch (msg.role as string) {
+  const renderMessage = (entry: EntryRecord) => {
+    const applicationMessage = getShumaiMessage(entry)
+    const msg = entry.model?.[0]
+    const role: string | undefined = applicationMessage
+      ? 'user'
+      : entry.kind === 'shumai.thinking_level_change'
+        ? 'thinking_level_change'
+        : entry.kind === 'pi.compaction'
+          ? 'system'
+          : msg?.role
+    const payload = applicationMessage
+      ? { content: applicationMessage.displayText, details: applicationMessage.context }
+      : (msg ?? entry.data ?? {})
+    switch (role) {
       case 'user':
       case 'custom': {
-        const msgObj = msg as unknown as Record<string, unknown>
-        if (msg.role === 'custom' && msgObj.customType === 'context_display_info') {
+        const msgObj = payload as unknown as Record<string, unknown>
+        if (role === 'custom' && msgObj.customType === 'context_display_info') {
           const details = msgObj.details as
             { assets?: Array<{ id: string; name: string; type: string }> } | undefined
           const assets = details?.assets || []
           if (assets.length === 0) return null
           return (
             <div
-              key={msg.id}
+              key={entry.id}
               className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 space-y-1 my-1"
             >
               <div className="font-semibold">{m.assets_added_to_context()}</div>
@@ -262,7 +276,7 @@ export function ChatbotSidebar({
             </div>
           )
         }
-        if (msg.role === 'user' || msgObj.customType === 'shumai_message') {
+        if (role === 'user' || msgObj.customType === 'shumai_message') {
           const details = msgObj.details as ShumaiMessageContext | undefined
           const referencedAssets = details?.referencedAssets || []
           const attachedFiles = details?.attachedFiles || []
@@ -273,7 +287,7 @@ export function ChatbotSidebar({
             !details?.currentAsset?.id ||
             (contextAssetId && details.currentAsset.id === contextAssetId) ||
             (file?.id && details.currentAsset.id === file.id)
-          const isSelected = selectedMessageId === msg.id
+          const isSelected = selectedMessageId === String(entry.id)
           let timeStr = ''
           if (position?.type === 'time') {
             if (formatTimestamp) {
@@ -293,12 +307,12 @@ export function ChatbotSidebar({
           const hasAttachmentsOrAssets = attachedFiles.length > 0 || referencedAssets.length > 0
           const handleCardClick = () => {
             if (isCurrentAssetMatch && onSelectMessage) {
-              onSelectMessage(msg)
+              onSelectMessage(entry)
             }
           }
           return (
             <div
-              key={msg.id}
+              key={entry.id}
               onClick={handleCardClick}
               className={cn(
                 'flex flex-col items-end w-full group transition-all duration-150',
@@ -434,10 +448,14 @@ export function ChatbotSidebar({
             </div>
           )
         }
-        const systemContent = msgObj.content || ''
+        const systemContent =
+          msgObj.content ||
+          (typeof msgObj.thinkingLevel === 'string'
+            ? `${m.thinking_level()}: ${msgObj.thinkingLevel}`
+            : '')
         return (
           <div
-            key={msg.id}
+            key={entry.id}
             className="text-center text-xs text-muted-foreground italic bg-muted/20 py-1.5 rounded"
           >
             {getMessageText(systemContent)}
@@ -445,7 +463,7 @@ export function ChatbotSidebar({
         )
       }
       case 'assistant': {
-        const msgObj = msg as unknown as Record<string, unknown>
+        const msgObj = payload as unknown as Record<string, unknown>
         const content = msgObj.content as unknown[]
         if (!content) return null
         const renderedBlocks: React.ReactNode[] = []
@@ -576,7 +594,7 @@ export function ChatbotSidebar({
           }
         }
         return (
-          <div key={msg.id} className="flex flex-col w-full space-y-1">
+          <div key={entry.id} className="flex flex-col w-full space-y-1">
             <div className="space-y-2 w-full">{renderedBlocks}</div>
             {shouldShowFooter && (
               <div className="text-[10px] text-muted-foreground self-start italic pt-1">
@@ -589,21 +607,27 @@ export function ChatbotSidebar({
       case 'toolResult': {
         return (
           <div
-            key={msg.id}
+            key={entry.id}
             className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 p-2 rounded-md border border-border/50"
           >
             <span className="font-semibold">
-              {m.tool_result_with_name({ name: (msg as { toolName?: string }).toolName || 'tool' })}
+              {m.tool_result_with_name({
+                name: (msg as { toolName?: string } | undefined)?.toolName || 'tool',
+              })}
             </span>
           </div>
         )
       }
       case 'thinking_level_change': {
-        const msgObj = msg as unknown as Record<string, unknown>
-        const systemContent = msgObj.content || ''
+        const msgObj = payload as unknown as Record<string, unknown>
+        const systemContent =
+          msgObj.content ||
+          (typeof msgObj.thinkingLevel === 'string'
+            ? `${m.thinking_level()}: ${msgObj.thinkingLevel}`
+            : '')
         return (
           <div
-            key={msg.id}
+            key={entry.id}
             className="text-center text-xs text-muted-foreground italic bg-muted/20 py-1.5 rounded"
           >
             {getMessageText(systemContent)}
@@ -749,12 +773,9 @@ export function ChatbotSidebar({
                 {messages.map(renderMessage)}
                 {isStreaming &&
                   messages.length > 0 &&
-                  (messages[messages.length - 1].role === 'user' ||
-                    (
-                      messages[messages.length - 1] as unknown as {
-                        customType?: string
-                      }
-                    ).customType === 'shumai_message') && (
+                  ['pi.user', 'shumai.message', 'shumai.optimistic'].includes(
+                    messages[messages.length - 1].kind,
+                  ) && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground italic">
                       <Loader2 className="h-3 w-3 animate-spin text-primary" />
                       <span>{m.thinking_status()}</span>

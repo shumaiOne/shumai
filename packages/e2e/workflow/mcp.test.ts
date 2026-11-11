@@ -1,16 +1,17 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db/test'
-import { workflowService, TaskQueueAgent } from '@shumai/workflow-core'
+import type { AssistantMessage } from '@earendil-works/pi-ai'
 import { initAgentWorkflows } from '@shumai/agent'
-import { s3Service } from '@shumai/core/src/s3/s3'
 import { mcpService } from '@shumai/core/src/mcp/mcp-service'
 import {
-  startTestMcpServer,
   standardTestTools,
+  startTestMcpServer,
   type RunningTestMcpServer,
 } from '@shumai/core/src/mcp/mcp-test-server'
-import { AgentHarness } from '@earendil-works/pi-agent-core'
+import { s3Service } from '@shumai/core/src/s3/s3'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
+import { TaskQueueAgent, workflowService } from '@shumai/workflow-core'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { mockModelPrompt, type ModelScenario } from './model-mock'
 
 describe('Workflow E2E - MCP tools', () => {
   setupTestDbHooks()
@@ -36,9 +37,7 @@ describe('Workflow E2E - MCP tools', () => {
     // proxy tool on the harness and executes it against the real MCP server,
     // so the full createAgentSession → buildAgentTools → proxy execute →
     // callMcpTool → MCP server path is exercised.
-    vi.spyOn(AgentHarness.prototype, 'prompt').mockImplementation(async function (
-      this: AgentHarness,
-    ) {
+    mockModelPrompt(async function (this: ModelScenario) {
       const tools = this.getTools()
       const mcpTool = tools.find((t) => t.name === 'mcp')
       if (!mcpTool) {
@@ -46,7 +45,7 @@ describe('Workflow E2E - MCP tools', () => {
           content: [{ type: 'text', text: 'NO_MCP_TOOL' }],
           usage: { input: 10, output: 20 },
           stopReason: 'stop',
-        } as unknown as Awaited<ReturnType<typeof AgentHarness.prototype.prompt>>
+        } as unknown as AssistantMessage
       }
       const result = await (
         mcpTool.execute as unknown as (
@@ -65,7 +64,7 @@ describe('Workflow E2E - MCP tools', () => {
         content: [{ type: 'text', text }],
         usage: { input: 10, output: 20 },
         stopReason: 'stop',
-      } as unknown as Awaited<ReturnType<typeof AgentHarness.prototype.prompt>>
+      } as unknown as AssistantMessage
     })
 
     await workflowService.startWorkers(TaskQueueAgent)
@@ -244,35 +243,33 @@ describe('Workflow E2E - MCP tools', () => {
 
     // For direct mode the model would call `e2e_mcp_echo` directly; simulate
     // that by executing the direct tool on the harness.
-    const directSpy = vi
-      .spyOn(AgentHarness.prototype, 'prompt')
-      .mockImplementationOnce(async function (this: AgentHarness) {
-        const tools = this.getTools()
-        const echoTool = tools.find((t) => t.name === 'e2e_mcp_echo')
-        if (!echoTool) {
-          return {
-            content: [{ type: 'text', text: 'NO_DIRECT_TOOL' }],
-            usage: { input: 1, output: 1 },
-            stopReason: 'stop',
-          } as unknown as Awaited<ReturnType<typeof AgentHarness.prototype.prompt>>
-        }
-        const result = await (
-          echoTool.execute as unknown as (
-            id: string,
-            params: Record<string, unknown>,
-          ) => Promise<{ content: Array<{ type: string; text?: string }> }>
-        )('e2e-direct', {
-          text: 'direct call',
-        })
-        const text = result.content
-          .map((c) => ('text' in c && typeof c.text === 'string' ? c.text : ''))
-          .join('\n')
+    const directSpy = mockModelPrompt(async function (this: ModelScenario) {
+      const tools = this.getTools()
+      const echoTool = tools.find((t) => t.name === 'e2e_mcp_echo')
+      if (!echoTool) {
         return {
-          content: [{ type: 'text', text }],
+          content: [{ type: 'text', text: 'NO_DIRECT_TOOL' }],
           usage: { input: 1, output: 1 },
           stopReason: 'stop',
-        } as unknown as Awaited<ReturnType<typeof AgentHarness.prototype.prompt>>
+        } as unknown as AssistantMessage
+      }
+      const result = await (
+        echoTool.execute as unknown as (
+          id: string,
+          params: Record<string, unknown>,
+        ) => Promise<{ content: Array<{ type: string; text?: string }> }>
+      )('e2e-direct', {
+        text: 'direct call',
       })
+      const text = result.content
+        .map((c) => ('text' in c && typeof c.text === 'string' ? c.text : ''))
+        .join('\n')
+      return {
+        content: [{ type: 'text', text }],
+        usage: { input: 1, output: 1 },
+        stopReason: 'stop',
+      } as unknown as AssistantMessage
+    })
 
     const userComment = await prisma.assetComment.create({
       data: {

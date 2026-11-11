@@ -1004,10 +1004,26 @@ model AgentSession {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
   entries       AgentSessionEntry[]
+  commits       AgentSessionCommit[]
+  writerVersion Int @default(0) @map("writer_version")
+  /// [AgentSessionUsage]
+  accountedUsage Json? @map("accounted_usage")
   comments      AssetComment[]
 
   @@index([type])
   @@map("agent_sessions")
+}
+
+model AgentSessionCommit {
+  id        String       @id @default(ulid())
+  sessionId String       @map("session_id")
+  session   AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  seq       BigInt
+  /// [AgentSessionCommitData]
+  data      Json
+
+  @@unique([sessionId, seq])
+  @@map("agent_session_commits")
 }
 
 model AgentSessionEntry {

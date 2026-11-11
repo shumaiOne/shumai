@@ -1,17 +1,17 @@
+import type { ToolExecutionResult as AgentToolResult } from '@earendil-works/pi-durable'
+import { storageBucket } from '@shumai/core/src/asset-read'
+import { assertStorageKeyNotArchived } from '@shumai/core/src/asset/asset-archive'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { s3Service } from '@shumai/core/src/s3/s3'
+import { readFileMimeType } from '@shumai/core/src/utils/file-mime'
+import { sanitizeFilename } from '@shumai/core/src/utils/filename'
+import type { User } from '@shumai/db'
+import { downloadAsset, MAX_DOWNLOAD_ASSETS, type DownloadAssetOutput } from '@shumai/operations'
 import * as fs from 'fs'
 import * as path from 'path'
 import { z } from 'zod'
-import type { AgentToolResult } from '@earendil-works/pi-agent-core'
-import { downloadAsset, MAX_DOWNLOAD_ASSETS, type DownloadAssetOutput } from '@shumai/operations'
-import type { User } from '@shumai/db'
-import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
-import { assertStorageKeyNotArchived } from '@shumai/core/src/asset/asset-archive'
-import { storageBucket } from '@shumai/core/src/asset-read'
-import { s3Service } from '@shumai/core/src/s3/s3'
-import { sanitizeFilename } from '@shumai/core/src/utils/filename'
-import { readFileMimeType } from '@shumai/core/src/utils/file-mime'
-import { resolveAssetIdFromKey } from '../tools/download-asset'
 import { registerAgentToolExtension, type AgentToolExtension } from '../operation-tools'
+import { resolveAssetIdFromKey } from '../tools/download-asset'
 
 const CLEANUP_REMINDER = 'Remember to delete these temporary files when finished.'
 
@@ -47,7 +47,7 @@ async function saveToSandbox(key: string, filename: string) {
 }
 
 /** Downloads one storage key (e.g. a frame from read_asset) after checking Read on its asset. */
-async function downloadKey(key: string, userId: string): Promise<AgentToolResult<unknown>> {
+async function downloadKey(key: string, userId: string): Promise<AgentToolResult> {
   const owningAssetId = await resolveAssetIdFromKey(key)
   await authzService.hasPermission({
     user: { id: userId } as User,
@@ -59,7 +59,7 @@ async function downloadKey(key: string, userId: string): Promise<AgentToolResult
   const filename = sanitizeFilename(path.basename(key)) || 'downloaded_file'
   const saved = await saveToSandbox(key, filename)
   return {
-    content: [
+    output: [
       {
         type: 'text',
         text: `Downloaded storage key "${key}" to "${saved.filePath}". Remember to delete this temporary file when finished.`,
@@ -70,9 +70,7 @@ async function downloadKey(key: string, userId: string): Promise<AgentToolResult
 }
 
 /** Saves each file of a download_asset result into the sandbox. */
-export async function presentDownloadOutput(
-  output: DownloadAssetOutput,
-): Promise<AgentToolResult<unknown>> {
+export async function presentDownloadOutput(output: DownloadAssetOutput): Promise<AgentToolResult> {
   const lines: string[] = []
   const files = []
   for (const file of output.files) {
@@ -87,7 +85,7 @@ export async function presentDownloadOutput(
     files.push({ assetId: file.assetId, name: file.name, kind: file.kind, ...saved })
   }
   lines.push(CLEANUP_REMINDER)
-  return { content: [{ type: 'text', text: lines.join('\n') }], details: { files } }
+  return { output: [{ type: 'text', text: lines.join('\n') }], details: { files } }
 }
 
 const downloadAssetExtension: AgentToolExtension = {

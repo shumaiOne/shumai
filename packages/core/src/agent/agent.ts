@@ -1,28 +1,29 @@
-import { prisma, type Prisma, type TeamMemberRole } from '@shumai/db'
-import {
-  CreateAgentParams,
-  DeleteAgentParams,
-  ListAgentsParams,
-  UpdateAgentParams,
-  AgentSessionInfo,
-  AgentInfo,
-  AgentType,
-  DEFAULT_DENIED_TOOLS,
-} from '@shumai/dtos'
+import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 import {
   paginateQuery,
   type PaginatedData,
   type PaginationParams,
 } from '@shumai/core/src/pagination'
-import '@shumai/db/src/prisma-json-types'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
-import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
-import { getAllowedAgentRoles } from './permissions'
-import { isPresetAvatarId, getPresetAvatarBuffer, getPresetAvatarStorageKey } from './presets'
+import { prisma, type Prisma, type TeamMemberRole } from '@shumai/db'
+import '@shumai/db/src/prisma-json-types'
+import {
+  AgentInfo,
+  AgentSessionInfo,
+  AgentType,
+  CreateAgentParams,
+  DEFAULT_DENIED_TOOLS,
+  DeleteAgentParams,
+  ListAgentsParams,
+  UpdateAgentParams,
+} from '@shumai/dtos'
 import AdmZip from 'adm-zip'
 import * as fs from 'fs'
 import * as path from 'path'
+import { getAllowedAgentRoles } from './permissions'
+import { getPresetAvatarBuffer, getPresetAvatarStorageKey, isPresetAvatarId } from './presets'
+import { agentSessionService } from './session-service'
 
 const agentInclude = {
   user: true,
@@ -572,95 +573,7 @@ export class AgentService {
   }
 
   async getSessionEntries(params: { sessionId: string }) {
-    const session = await this.prismaClient.agentSession.findUnique({
-      where: { id: params.sessionId },
-      select: { leafId: true },
-    })
-
-    if (!session?.leafId) {
-      return []
-    }
-
-    interface EntryRow {
-      id: string
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      session_id: string | null
-      type: string | null
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      parent_id: string | null
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      created_at: Date
-      data: unknown
-    }
-
-    const rows = await this.prismaClient.$queryRaw<EntryRow[]>`
-      WITH RECURSIVE entry_path AS (
-        SELECT id, session_id, type, parent_id, created_at, data, 1 AS depth
-        FROM agent_session_entries
-        WHERE id = ${session.leafId}
-
-        UNION ALL
-
-        SELECT e.id, e.session_id, e.type, e.parent_id, e.created_at, e.data, ep.depth + 1
-        FROM agent_session_entries e
-        INNER JOIN entry_path ep ON e.id = ep.parent_id
-      )
-      SELECT id, session_id, type, parent_id, created_at, data
-      FROM entry_path
-      ORDER BY depth DESC;
-    `
-
-    const entryIds = rows.map((r) => r.id)
-    const threadReplyCountMap = new Map<string, number>()
-    if (entryIds.length > 0) {
-      const threadCounts = await this.prismaClient.assetComment.groupBy({
-        by: ['replyToId'],
-        where: {
-          replyToId: { in: entryIds },
-          message: { not: '__CHAT__' },
-        },
-        _count: {
-          id: true,
-        },
-      })
-      for (const tc of threadCounts) {
-        if (tc.replyToId) {
-          threadReplyCountMap.set(tc.replyToId, tc._count.id)
-        }
-      }
-    }
-
-    return rows.map((r) => {
-      const payload = (r.data as Record<string, unknown>) || {}
-      const count = threadReplyCountMap.get(r.id)
-      let details = payload.details as Record<string, unknown> | undefined
-      if (count !== undefined && count > 0 && r.type === 'custom_message') {
-        details = {
-          ...details,
-          thread: {
-            id: r.id,
-            replyCount: count,
-          },
-        }
-      }
-      const entryObj = {
-        id: r.id,
-        type: r.type || 'message',
-        parentId: r.parent_id,
-        timestamp: r.created_at.toISOString(),
-        ...payload,
-        ...(details ? { details } : {}),
-      }
-      return {
-        id: r.id,
-        sessionId: r.session_id || params.sessionId,
-        type: r.type,
-        parentId: r.parent_id,
-        data: details !== payload.details ? { ...payload, details } : r.data,
-        createdAt: r.created_at,
-        entry: entryObj,
-      }
-    })
+    return agentSessionService.getEntries(params.sessionId)
   }
 
   async listSessions(

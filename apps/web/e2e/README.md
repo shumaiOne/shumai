@@ -67,6 +67,7 @@ apps/web/e2e/
 | Owner changes a team member role in the members dialog and permissions update | `tests/team/change-member-role.spec.ts` |
 | Owner manages resource quotas in settings and resets usage from the dashboard | `tests/team/quotas-settings.spec.ts` |
 | Owner creates an API token that is shown once, listed by hint, and authenticates API calls | `tests/team/api-tokens.spec.ts` |
+| Session logs stay within the dialog and scroll through long messages and expanded records on desktop and narrow screens | `tests/team/agent-session-logs.spec.ts` |
 
 ### project
 | Test | File |

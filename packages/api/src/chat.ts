@@ -1,10 +1,11 @@
-import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { streamSSE } from 'hono/streaming'
-import { chatService } from '@shumai/core/src/chat/chat'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
-import { chatRequestSchema, paginationParamsSchema } from '@shumai/dtos'
+import { chatService } from '@shumai/core/src/chat/chat'
 import type { Prisma } from '@shumai/db'
+import { chatRequestSchema, paginationParamsSchema } from '@shumai/dtos'
+import { Hono } from 'hono'
+import { streamSSE } from 'hono/streaming'
+import { agentEntriesResponse } from './agent-entries'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -37,7 +38,7 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     const res = await chatService.listMessages(user.id, teamId, sessionId)
-    return c.json(res, 200)
+    return agentEntriesResponse(res)
   })
   .delete('/teams/:teamId/chat/sessions/:sessionId', async (c) => {
     const user = c.get('user')

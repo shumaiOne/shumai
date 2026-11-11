@@ -1,8 +1,8 @@
-import { prisma } from '@shumai/db'
-import { Type } from 'typebox'
-import { type AgentTool } from '@earendil-works/pi-agent-core'
+import { type ToolRegistration as AgentTool } from '@earendil-works/pi-durable'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
+import { prisma } from '@shumai/db'
+import { Type } from 'typebox'
 
 const readSkillSchema = Type.Object({
   skillId: Type.String({ description: 'The ID of the skill to read' }),
@@ -22,10 +22,10 @@ export const createReadSkillTool = (
   projectId?: string,
 ): AgentTool<typeof readSkillSchema, { skillId: string }> => ({
   name: 'read_skill',
-  label: 'Read Agent Skill',
+
   description: 'Downloads and reads an agent skill to understand how to use it.',
   parameters: readSkillSchema,
-  execute: async (_toolCallId, params) => {
+  execute: async (params) => {
     const skill = await prisma.skill.findUnique({
       where: { id: params.skillId },
     })
@@ -71,7 +71,7 @@ export const createReadSkillTool = (
     await onSkillLoaded?.()
 
     return {
-      content: [{ type: 'text', text: skillMdContent }],
+      output: [{ type: 'text', text: skillMdContent }],
       details: { skillId: params.skillId },
     }
   },

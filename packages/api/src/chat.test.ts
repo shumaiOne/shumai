@@ -1,9 +1,9 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { Hono } from 'hono'
-import chatRoute from './chat'
-import { chatService } from '@shumai/core/src/chat/chat'
 import { authzService } from '@shumai/core/src/authz/authz'
-import type { ChatMessage } from '@shumai/dtos'
+import { chatService } from '@shumai/core/src/chat/chat'
+import { ROOT_CONVERSATION_ID, type EntryId, type EntryRecord } from '@earendil-works/pi-durable'
+import { Hono } from 'hono'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import chatRoute from './chat'
 
 vi.mock('@shumai/core/src/chat/chat', async (importOriginal) => {
   const original = await importOriginal<typeof import('@shumai/core/src/chat/chat')>()
@@ -65,23 +65,22 @@ describe('Chat API', () => {
 
   describe('GET /teams/:teamId/chat/sessions/:sessionId/messages', () => {
     it('returns list of messages', async () => {
-      const mockMessages = [
+      const mockMessages: EntryRecord[] = [
         {
-          id: 'msg1',
-          role: 'user',
-          content: 'hello',
-          timestamp: '2026-07-07T10:00:00Z',
-          entry: {},
+          id: 7 as EntryId,
+          conversationId: ROOT_CONVERSATION_ID,
+          kind: 'pi.user',
+          model: [{ role: 'user', content: 'hello', timestamp: 1 }],
         },
       ]
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(chatService.listMessages).mockResolvedValue(mockMessages as any)
+      vi.mocked(chatService.listMessages).mockResolvedValue(mockMessages)
 
       const res = await app.request('/teams/team1/chat/sessions/session1/messages')
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data).toHaveLength(1)
-      expect(data[0].content).toBe('hello')
+      expect(data[0].model[0].content).toBe('hello')
+      expect(data[0].kind).toBe('pi.user')
       expect(chatService.listMessages).toHaveBeenCalledWith('user1', 'team1', 'session1')
     })
   })
@@ -109,16 +108,17 @@ describe('Chat API', () => {
         .mockResolvedValueOnce({
           messages: [
             {
-              id: 'entry1',
-              role: 'user',
-              content: 'hi',
-            } as unknown as ChatMessage,
+              id: 7 as EntryId,
+              conversationId: ROOT_CONVERSATION_ID,
+              kind: 'pi.user',
+              model: [{ role: 'user', content: 'hi', timestamp: 1 }],
+            },
           ],
-          lastEntryId: 'entry1',
+          lastEntryId: '7',
         })
         .mockResolvedValue({
           messages: [],
-          lastEntryId: 'entry1',
+          lastEntryId: '7',
         })
 
       vi.mocked(chatService.getChatWorkflowStatus).mockResolvedValue({
@@ -140,7 +140,8 @@ describe('Chat API', () => {
 
       const text = await res.text()
       expect(text).toContain('data:')
-      expect(text).toContain('entry1')
+      expect(text).toContain('"id":7')
+      expect(text).toContain('"kind":"pi.user"')
       expect(chatService.startOrContinueChat).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'user1' }),
         'team1',

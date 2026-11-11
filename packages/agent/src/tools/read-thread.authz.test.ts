@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
+import { describe, expect, it } from 'vitest'
 import { createReadThreadTool } from './read-thread'
 
 /**
@@ -45,7 +46,7 @@ describe('read_thread authorization', () => {
     const a = await seedTeamWithThread('a')
 
     const tool = createReadThreadTool({ userId: a.author.id, teamId: a.team.id })
-    const result = await tool.execute('call-1', { threadId: a.thread.id })
+    const result = await invokeTool(tool, 'call-1', { threadId: a.thread.id })
     const text = (result.content[0] as { text: string }).text
 
     expect(text).toContain('secret message a')
@@ -58,7 +59,7 @@ describe('read_thread authorization', () => {
 
     const tool = createReadThreadTool({ userId: a.author.id, teamId: a.team.id })
 
-    await expect(tool.execute('call-1', { threadId: b.thread.id })).rejects.toThrow(
+    await expect(invokeTool(tool, 'call-1', { threadId: b.thread.id })).rejects.toThrow(
       'User is not a member of the team',
     )
   })
@@ -74,7 +75,7 @@ describe('read_thread authorization', () => {
 
     const tool = createReadThreadTool({ userId: outsider.id, teamId: b.team.id })
 
-    await expect(tool.execute('call-1', { threadId: b.thread.id })).rejects.toThrow()
+    await expect(invokeTool(tool, 'call-1', { threadId: b.thread.id })).rejects.toThrow()
   })
 
   it('confines a system agent (no user) to threads in its own team', async () => {
@@ -83,9 +84,11 @@ describe('read_thread authorization', () => {
 
     const tool = createReadThreadTool({ teamId: a.team.id })
 
-    const own = await tool.execute('call-1', { threadId: a.thread.id })
+    const own = await invokeTool(tool, 'call-1', { threadId: a.thread.id })
     expect((own.content[0] as { text: string }).text).toContain('secret message a')
 
-    await expect(tool.execute('call-2', { threadId: b.thread.id })).rejects.toThrow('Access denied')
+    await expect(invokeTool(tool, 'call-2', { threadId: b.thread.id })).rejects.toThrow(
+      'Access denied',
+    )
   })
 })

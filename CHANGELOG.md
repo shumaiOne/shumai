@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **agent**: Upgrade the agent runtime and automatically migrate existing conversations, keep thread histories independent, prevent duplicate history during simultaneous mentions, improve session log scrolling and readability, and fix authentication for OpenAI and custom providers. Agents now run with the main server; standalone agent workers are no longer supported.
+
 ## [0.6.5] - 2026-11-07
 
 ### Added

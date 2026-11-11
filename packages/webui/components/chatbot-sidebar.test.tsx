@@ -1,12 +1,11 @@
 // @vitest-environment happy-dom
-import { cleanup, render, waitFor } from '@testing-library/react'
-import React from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ChatbotSidebar } from './chatbot-sidebar'
-import { useChatbotStore, AGENT_PREFERENCE_STORAGE_KEY } from '@/ui/stores/chatbot'
 import { client } from '@/ui/api/client'
-import type { ChatMessage } from '@shumai/dtos'
+import { AGENT_PREFERENCE_STORAGE_KEY, useChatbotStore } from '@/ui/stores/chatbot'
+import { type EntryRecord } from '@shumai/dtos'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { cleanup, render, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ChatbotSidebar } from './chatbot-sidebar'
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {}
@@ -203,20 +202,24 @@ describe('ChatbotSidebar - Agent Selection & Preference Persistence', () => {
     const mockSelectMessage = vi.fn()
 
     const mockMessage = {
-      id: 'msg-1',
-      role: 'custom',
-      customType: 'shumai_message',
-      content: 'Fix the color in this scene',
-      details: {
-        annotation: true,
-        annotations: [{ type: 'rectangle', x: 5, y: 10 }],
-        position: { type: 'time', seconds: 15 },
-        currentAsset: { id: 'file-123', name: 'video.mp4', type: 'file' },
-        attachedFiles: [
-          { id: 'att-1', name: 'color-ref.png', type: 'image', mediaType: 'image/png' },
-        ],
+      id: 10,
+      conversationId: 1,
+      kind: 'shumai.message',
+      model: [{ role: 'user', content: 'Fix the color in this scene', timestamp: 0 }],
+      data: {
+        displayText: 'Fix the color in this scene',
+        timestamp: 0,
+        context: {
+          annotation: true,
+          annotations: [{ type: 'rectangle', x: 5, y: 10 }],
+          position: { type: 'time', seconds: 15 },
+          currentAsset: { id: 'file-123', name: 'video.mp4', type: 'file' },
+          attachedFiles: [
+            { id: 'att-1', name: 'color-ref.png', type: 'image', mediaType: 'image' },
+          ],
+        },
       },
-    } as unknown as ChatMessage
+    } as unknown as EntryRecord
 
     useChatbotStore.setState({
       messages: [mockMessage],
@@ -247,15 +250,19 @@ describe('ChatbotSidebar - Agent Selection & Preference Persistence', () => {
 
   it('renders selected message card with border-blue-500 instead of ring when selectedMessageId matches', async () => {
     const mockMessage = {
-      id: 'msg-selected',
-      role: 'custom',
-      customType: 'shumai_message',
-      content: 'Selected message content',
-      details: {
-        position: { type: 'time', seconds: 10 },
-        currentAsset: { id: 'file-123', name: 'video.mp4', type: 'file' },
+      id: 11,
+      conversationId: 1,
+      kind: 'shumai.message',
+      model: [{ role: 'user', content: 'Selected message content', timestamp: 0 }],
+      data: {
+        displayText: 'Selected message content',
+        timestamp: 0,
+        context: {
+          position: { type: 'time', seconds: 10 },
+          currentAsset: { id: 'file-123', name: 'video.mp4', type: 'file' },
+        },
       },
-    } as unknown as ChatMessage
+    } as unknown as EntryRecord
 
     useChatbotStore.setState({
       messages: [mockMessage],
@@ -263,11 +270,7 @@ describe('ChatbotSidebar - Agent Selection & Preference Persistence', () => {
 
     const { getByText } = render(
       <QueryClientProvider client={queryClient}>
-        <ChatbotSidebar
-          projectId="proj-1"
-          contextAssetId="file-123"
-          selectedMessageId="msg-selected"
-        />
+        <ChatbotSidebar projectId="proj-1" contextAssetId="file-123" selectedMessageId="11" />
       </QueryClientProvider>,
     )
 
@@ -287,17 +290,21 @@ describe('ChatbotSidebar - Agent Selection & Preference Persistence', () => {
     const mockSelectMessage = vi.fn()
 
     const mockMessage = {
-      id: 'msg-2',
-      role: 'custom',
-      customType: 'shumai_message',
-      content: 'Other file comment',
-      details: {
-        annotation: true,
-        annotations: [{ type: 'rectangle', x: 5, y: 10 }],
-        position: { type: 'time', seconds: 20 },
-        currentAsset: { id: 'other-file-456', name: 'other.mp4', type: 'file' },
+      id: 12,
+      conversationId: 1,
+      kind: 'shumai.message',
+      model: [{ role: 'user', content: 'Other file comment', timestamp: 0 }],
+      data: {
+        displayText: 'Other file comment',
+        timestamp: 0,
+        context: {
+          annotation: true,
+          annotations: [{ type: 'rectangle', x: 5, y: 10 }],
+          position: { type: 'time', seconds: 20 },
+          currentAsset: { id: 'other-file-456', name: 'other.mp4', type: 'file' },
+        },
       },
-    } as unknown as ChatMessage
+    } as unknown as EntryRecord
 
     useChatbotStore.setState({
       messages: [mockMessage],
@@ -328,33 +335,37 @@ describe('ChatbotSidebar - Agent Selection & Preference Persistence', () => {
     >)
 
     const mockMessage = {
-      id: 'msg-full',
-      role: 'custom',
-      customType: 'shumai_message',
-      content: 'Review this scene carefully',
-      details: {
-        annotation: true,
-        annotations: [
-          {
-            type: 'box',
-            color: '#ff0000',
-            points: [
-              [0, 0],
-              [10, 10],
-            ],
-          },
-        ],
-        position: { type: 'time', seconds: 45 },
-        currentAsset: { id: 'file-123', name: 'clip.mp4', type: 'file' },
-        attachedFiles: [
-          { id: 'att-1', name: 'reference-mood.jpg', type: 'image', mediaType: 'image/jpeg' },
-        ],
-        referencedAssets: [
-          { id: 'asset-ref-1', name: 'Storyboard.pdf', type: 'file' },
-          { id: 'asset-ref-2', name: 'Audio Stems', type: 'folder' },
-        ],
+      id: 13,
+      conversationId: 1,
+      kind: 'shumai.message',
+      model: [{ role: 'user', content: 'Review this scene carefully', timestamp: 0 }],
+      data: {
+        displayText: 'Review this scene carefully',
+        timestamp: 0,
+        context: {
+          annotation: true,
+          annotations: [
+            {
+              type: 'box',
+              color: '#ff0000',
+              points: [
+                [0, 0],
+                [10, 10],
+              ],
+            },
+          ],
+          position: { type: 'time', seconds: 45 },
+          currentAsset: { id: 'file-123', name: 'clip.mp4', type: 'file' },
+          attachedFiles: [
+            { id: 'att-1', name: 'reference-mood.jpg', type: 'image', mediaType: 'image' },
+          ],
+          referencedAssets: [
+            { id: 'asset-ref-1', name: 'Storyboard.pdf', type: 'file' },
+            { id: 'asset-ref-2', name: 'Audio Stems', type: 'folder' },
+          ],
+        },
       },
-    } as unknown as ChatMessage
+    } as unknown as EntryRecord
 
     useChatbotStore.setState({
       messages: [mockMessage],
@@ -434,11 +445,11 @@ describe('ChatbotSidebar - Agent Selection & Preference Persistence', () => {
 
   it('renders thinking_level_change messages properly in the chat log', () => {
     const mockThinkingChangeMsg = {
-      id: 'think-1',
-      role: 'thinking_level_change',
-      content: 'Thinking level changed to high',
-      timestamp: Date.now(),
-    } as unknown as ChatMessage
+      id: 14,
+      conversationId: 1,
+      kind: 'shumai.thinking_level_change',
+      data: { thinkingLevel: 'high' },
+    } as unknown as EntryRecord
 
     useChatbotStore.setState({
       messages: [mockThinkingChangeMsg],
@@ -450,7 +461,7 @@ describe('ChatbotSidebar - Agent Selection & Preference Persistence', () => {
       </QueryClientProvider>,
     )
 
-    expect(getByText('Thinking level changed to high')).toBeTruthy()
+    expect(getByText('Thinking Level: high')).toBeTruthy()
   })
 
   it('disables message input when teamId is not available', async () => {

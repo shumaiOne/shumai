@@ -1,12 +1,19 @@
-import { z } from 'zod'
-import { type AgentTool, type AgentToolResult } from '@earendil-works/pi-agent-core'
 import { type ImageContent, type TextContent } from '@earendil-works/pi-ai'
-import { readAsset, type AssetReadOutput } from '@shumai/operations'
-import { assetReadService, toAssetReadOutput } from '@shumai/core/src/asset-read'
+import {
+  type ToolRegistration as AgentTool,
+  type ToolExecutionResult as AgentToolResult,
+} from '@earendil-works/pi-durable'
+import {
+  assetReadService,
+  MAX_TEXT_BYTES,
+  MAX_TEXT_LINES,
+  toAssetReadOutput,
+} from '@shumai/core/src/asset-read'
 import { getOperation, READ_WAIT_BUDGET_MS } from '@shumai/core/src/operations'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { getFileMimeType } from '@shumai/core/src/utils/file-mime'
-import { MAX_TEXT_BYTES, MAX_TEXT_LINES } from '@shumai/core/src/asset-read'
+import { readAsset, type AssetReadOutput } from '@shumai/operations'
+import { z } from 'zod'
 import {
   registerAgentToolExtension,
   splitAgentParams,
@@ -24,7 +31,7 @@ const extraParameters = z.object({
 })
 
 /** Details kept compatible with the previous tool; `sourceKeys` drives session image storage. */
-interface ReadAssetDetails {
+type ReadAssetDetails = {
   assetId: string
   name: string
   mediaType: string | null
@@ -45,7 +52,7 @@ export async function presentReadOutput(
   if (output.status === 'pending') {
     const retry = output.retryAfterSeconds ?? 5
     return {
-      content: [
+      output: [
         {
           type: 'text',
           text: `${output.summary} Call get_asset_render with taskId "${output.taskId}" in about ${retry} seconds to get the result.`,
@@ -87,7 +94,7 @@ export async function presentReadOutput(
   const imageKeys = output.images.map((i) => i.key ?? '')
   const content: Array<TextContent | ImageContent> = [{ type: 'text', text }, ...imageBlocks]
   return {
-    content,
+    output: content,
     details: {
       assetId: output.asset.id,
       name: output.asset.name,
@@ -131,10 +138,10 @@ export function createAutofillReadAssetTool(access: {
   const op = getOperation(readAsset.name)!
   return {
     name: readAsset.name,
-    label: readAsset.title,
+
     description: readAsset.description,
     parameters: toToolParameters(op, readAssetExtension),
-    execute: async (_toolCallId, params) => {
+    execute: async (params) => {
       const { input, extra } = splitAgentParams(op, readAssetExtension, params)
       const parsed = readAsset.input.safeParse(input)
       if (!parsed.success) {

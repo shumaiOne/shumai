@@ -1,10 +1,10 @@
+import { getProxyType } from '@shumai/core/src/utils/mime'
 import type { WorkflowTask } from '@shumai/db'
 import {
   ApplicationFailure,
   updateTaskStatusActivity,
   updateTaskUsageActivity,
 } from '@shumai/workflow-core'
-import { getProxyType } from '@shumai/core/src/utils/mime'
 import {
   autofillAiActivity,
   createCommentActivity,
@@ -64,6 +64,7 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
         : undefined
 
     const aiResult = await autofillAiActivity({
+      taskId: task.id,
       teamId,
       assetId: asset.id,
       assetName: asset.name,

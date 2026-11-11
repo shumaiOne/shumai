@@ -108,6 +108,7 @@ describe('Agent Autofill Workflow', () => {
 
     // Verify AI autofill called with asset details and mapped fields
     expect(mockActivities.autofillAiActivity).toHaveBeenCalledWith({
+      taskId: task.id,
       teamId: 't1',
       assetId: 'a1',
       assetName: 'test.png',

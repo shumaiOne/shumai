@@ -13,7 +13,6 @@
     "./src/*": "./src/*.ts"
   },
   "dependencies": {
-    "@earendil-works/pi-agent-core": "0.82.1",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
     "pg": "8.23.0",

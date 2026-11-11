@@ -1,8 +1,10 @@
+import { fauxAssistantMessage } from '@earendil-works/pi-ai'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { chatService, buildSessionMessages, mapEntryToMessage, type PathEntry } from './chat'
-import { describe, expect, it, vi } from 'vitest'
 import { workflowService } from '@shumai/workflow-core'
+import { describe, expect, it, vi } from 'vitest'
+import { appendSessionEntries } from '../agent/session-test-utils'
+import { chatService } from './chat'
 
 describe('ChatService', () => {
   setupTestDbHooks()
@@ -340,141 +342,33 @@ describe('ChatService', () => {
     expect(list.data).toHaveLength(2)
   })
 
-  it('should list messages mapped correctly', async () => {
+  it('returns native entries with structured context and model messages', async () => {
     const { user, team, project } = await setupBasicData()
-
     const { sessionId } = await chatService.startOrContinueChat(user, team.id, {
       agentId: 'test-agent-id',
       textPrompt: 'hello',
       projectId: project.id,
     })
-
-    // Manually insert a test entry representing user message
-    await prisma.agentSessionEntry.create({
-      data: {
-        id: 'test-entry-id',
-        sessionId,
-        type: 'message',
-        parentId: null,
-        data: {
-          message: {
-            role: 'user',
-            content: [{ type: 'text', text: 'hello' }],
-            timestamp: Date.now(),
-          },
-        } as PrismaJson.PiSessionEntryData,
+    await appendSessionEntries(sessionId, [
+      {
+        kind: 'shumai.message',
+        data: { displayText: 'hello', timestamp: 1, context: {} },
+        model: [{ role: 'user', content: 'hello', timestamp: 1 }],
       },
-    })
-
-    await prisma.agentSession.update({
-      where: { id: sessionId },
-      data: { leafId: 'test-entry-id' },
-    })
-
+      { kind: 'pi.assistant', model: [fauxAssistantMessage('answer')] },
+      { kind: 'pi.compaction', data: { reason: 'manual' } },
+    ])
     const messages = await chatService.listMessages(user.id, team.id, sessionId)
-    expect(messages).toHaveLength(1)
-    // Casting to any to access properties of union in test assertions
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const msg = messages[0] as any
-    expect(msg.role).toBe('user')
-    expect(msg.content).toEqual([{ type: 'text', text: 'hello' }])
-  })
-
-  it('should hide customType context messages', async () => {
-    const { user, team, project } = await setupBasicData()
-
-    const { sessionId } = await chatService.startOrContinueChat(user, team.id, {
-      agentId: 'test-agent-id',
-      textPrompt: 'hello',
-      projectId: project.id,
+    expect(messages.map((entry) => entry.kind)).toEqual([
+      'shumai.message',
+      'pi.assistant',
+      'pi.compaction',
+    ])
+    expect(messages[0]).toMatchObject({
+      data: { displayText: 'hello' },
+      model: [{ role: 'user', content: 'hello' }],
     })
-
-    // 1. Manually insert a test entry representing user message
-    await prisma.agentSessionEntry.create({
-      data: {
-        id: 'test-entry-1-user',
-        sessionId,
-        type: 'message',
-        parentId: null,
-        data: {
-          message: {
-            role: 'user',
-            content: [{ type: 'text', text: 'hello' }],
-            timestamp: Date.now(),
-          },
-        } as PrismaJson.PiSessionEntryData,
-      },
-    })
-
-    // 2. Manually insert a test entry representing a custom context message
-    await prisma.agentSessionEntry.create({
-      data: {
-        id: 'test-entry-2-context',
-        sessionId,
-        type: 'custom_message',
-        parentId: 'test-entry-1-user',
-        data: {
-          customType: 'context',
-          content: 'some context',
-          display: 'chat',
-        } as PrismaJson.PiSessionEntryData,
-      },
-    })
-
-    // 3. Manually insert a test entry representing a custom thinking level change
-    await prisma.agentSessionEntry.create({
-      data: {
-        id: 'test-entry-3-thinking',
-        sessionId,
-        type: 'thinking_level_change',
-        parentId: 'test-entry-2-context',
-        data: {
-          thinkingLevel: 'deep',
-        } as PrismaJson.PiSessionEntryData,
-      },
-    })
-
-    // 4. Manually insert a test entry representing custom context_display_info entry
-    await prisma.agentSessionEntry.create({
-      data: {
-        id: 'test-entry-4-display',
-        sessionId,
-        type: 'custom',
-        parentId: 'test-entry-3-thinking',
-        data: {
-          customType: 'context_display_info',
-          data: {
-            assets: [{ id: 'a1', name: 'File A', type: 'file' }],
-          },
-        } as PrismaJson.PiSessionEntryData,
-      },
-    })
-
-    await prisma.agentSession.update({
-      where: { id: sessionId },
-      data: { leafId: 'test-entry-4-display' },
-    })
-
-    // Verify listMessages returns only the user, thinking level change and custom display entry message
-    const messages = await chatService.listMessages(user.id, team.id, sessionId)
-    expect(messages).toHaveLength(3)
-    expect(messages[0].id).toBe('test-entry-1-user')
-    expect(messages[1].id).toBe('test-entry-3-thinking')
-    expect(messages[2].id).toBe('test-entry-4-display')
-    expect(messages[2].role).toBe('custom')
-    expect((messages[2] as { customType?: string }).customType).toBe('context_display_info')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((messages[2] as any).details).toEqual({
-      assets: [{ id: 'a1', name: 'File A', type: 'file' }],
-    })
-
-    // Verify mapEntryToMessage returns null for context message
-    const contextRecord = await prisma.agentSessionEntry.findUnique({
-      where: { id: 'test-entry-2-context' },
-    })
-    expect(contextRecord).not.toBeNull()
-    const mapped = mapEntryToMessage(contextRecord!)
-    expect(mapped).toBeNull()
+    expect(typeof messages[0].id).toBe('number')
   })
 
   it('should delete session and cascade', async () => {
@@ -499,167 +393,6 @@ describe('ChatService', () => {
     expect(entries).toHaveLength(0)
   })
 
-  it('should build session messages correctly handling compaction and custom messages', () => {
-    const pathEntries = [
-      {
-        id: 'entry-1',
-        type: 'message',
-        timestamp: '2026-07-07T00:00:00.000Z',
-        message: {
-          role: 'user',
-          content: 'first message',
-        },
-      },
-      {
-        id: 'entry-compaction',
-        type: 'compaction',
-        timestamp: '2026-07-07T00:01:00.000Z',
-        summary: 'Compacted conversation history',
-        tokensBefore: 200,
-        firstKeptEntryId: 'entry-2',
-      },
-      {
-        id: 'entry-2',
-        type: 'message',
-        timestamp: '2026-07-07T00:02:00.000Z',
-        message: {
-          role: 'assistant',
-          content: 'kept message',
-        },
-      },
-      {
-        id: 'entry-3',
-        type: 'thinking_level_change',
-        timestamp: '2026-07-07T00:03:00.000Z',
-        thinkingLevel: 'high',
-      },
-      {
-        id: 'entry-4',
-        type: 'branch_summary',
-        timestamp: '2026-07-07T00:04:00.000Z',
-        summary: 'Branch summary details',
-        fromId: 'entry-old',
-      },
-    ]
-
-    const messages = buildSessionMessages(pathEntries as unknown as PathEntry[])
-
-    expect(messages).toHaveLength(4)
-
-    // 1. Compaction summary message
-    // Casting to any to access properties of union in test assertions
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const msg0 = messages[0] as any
-    expect(msg0.role).toBe('custom')
-    expect(msg0.customType).toBe('compaction-summary')
-    expect(msg0.content).toBe('Compacted conversation history')
-    expect((msg0.details as Record<string, unknown>).tokensBefore).toBe(200)
-
-    // 2. Kept entry (entry-2)
-    // Casting to any to access properties of union in test assertions
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const msg1 = messages[1] as any
-    expect(msg1.id).toBe('entry-2')
-    expect(msg1.role).toBe('assistant')
-    expect(msg1.content).toBe('kept message')
-
-    // 3. Thinking level change (entry-3)
-    // Casting to any to access properties of union in test assertions
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const msg2 = messages[2] as any
-    expect(msg2.role).toBe('thinking_level_change')
-    expect(msg2.content).toContain('Thinking level changed to high')
-
-    // 4. Branch summary (entry-4)
-    // Casting to any to access properties of union in test assertions
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const msg3 = messages[3] as any
-    expect(msg3.role).toBe('custom')
-    expect(msg3.customType).toBe('branch-summary')
-    expect(msg3.content).toBe('Branch summary details')
-    expect((msg3.details as Record<string, unknown>).fromId).toBe('entry-old')
-  })
-
-  it('should render active_tools_change entries as custom messages', () => {
-    const pathEntries = [
-      {
-        id: 'entry-tools',
-        type: 'active_tools_change',
-        timestamp: '2026-07-07T00:05:00.000Z',
-        activeToolNames: ['read_skill', 'bash'],
-      },
-    ]
-
-    const messages = buildSessionMessages(pathEntries as unknown as PathEntry[])
-    expect(messages).toHaveLength(1)
-    // Casting to any to access properties of union in test assertions
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const msg = messages[0] as any
-    expect(msg.role).toBe('custom')
-    expect(msg.customType).toBe('active-tools-change')
-    expect(msg.content).toBe('Active tools: read_skill, bash')
-    expect(msg.details).toEqual({ activeToolNames: ['read_skill', 'bash'] })
-  })
-
-  it('should return null for entry types without a chat representation instead of an empty message', () => {
-    const leafRecord = {
-      id: 'entry-leaf',
-      type: 'leaf',
-      parentId: null,
-      createdAt: new Date('2026-07-07T00:05:00.000Z'),
-      data: { targetId: 'some-entry' },
-    } as unknown as Parameters<typeof mapEntryToMessage>[0]
-
-    expect(mapEntryToMessage(leafRecord)).toBeNull()
-  })
-
-  it('should map shumai_message custom_message entries with clean text and structured details', () => {
-    const entryRecord = {
-      id: 'entry-shumai-msg',
-      type: 'custom_message',
-      parentId: null,
-      createdAt: new Date('2026-07-07T00:05:00.000Z'),
-      data: {
-        customType: 'shumai_message',
-        content: 'Please adjust color grading',
-        display: true,
-        details: {
-          user: { id: 'u1', name: 'Alice', role: 'editor' },
-          currentAsset: { id: 'a1', name: 'video.mp4', type: 'file' },
-          position: { type: 'time', seconds: 12.5 },
-        },
-      },
-    } as unknown as Parameters<typeof mapEntryToMessage>[0]
-
-    const msg = mapEntryToMessage(entryRecord)
-    expect(msg).toBeDefined()
-    expect(msg?.id).toBe('entry-shumai-msg')
-    expect(msg?.role).toBe('custom')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((msg as any)?.customType).toBe('shumai_message')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((msg as any)?.content).toBe('Please adjust color grading')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((msg as any)?.details?.user?.name).toBe('Alice')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((msg as any)?.details?.position?.seconds).toBe(12.5)
-  })
-
-  it('should skip legacy context custom_message in mapEntryToMessage', () => {
-    const entryRecord = {
-      id: 'entry-legacy-context',
-      type: 'custom_message',
-      parentId: null,
-      createdAt: new Date('2026-07-07T00:05:00.000Z'),
-      data: {
-        customType: 'context',
-        content: 'System context prompt...',
-      },
-    } as unknown as Parameters<typeof mapEntryToMessage>[0]
-
-    expect(mapEntryToMessage(entryRecord)).toBeNull()
-  })
-
   describe('getNewSessionMessages', () => {
     it('returns new messages and lastEntryId', async () => {
       const { user, team, project } = await setupBasicData()
@@ -669,53 +402,27 @@ describe('ChatService', () => {
         projectId: project.id,
       })
 
-      // Insert two entries
-      const entry1 = await prisma.agentSessionEntry.create({
-        data: {
-          id: 'entry-id-1',
-          sessionId,
-          type: 'message',
-          parentId: null,
-          data: {
-            message: {
-              role: 'user',
-              content: [{ type: 'text', text: 'msg 1' }],
-            },
-          } as PrismaJson.PiSessionEntryData,
-        },
-      })
-
-      const entry2 = await prisma.agentSessionEntry.create({
-        data: {
-          id: 'entry-id-2',
-          sessionId,
-          type: 'message',
-          parentId: 'entry-id-1',
-          data: {
-            message: {
-              role: 'assistant',
-              content: [{ type: 'text', text: 'msg 2' }],
-            },
-          } as PrismaJson.PiSessionEntryData,
-        },
-      })
+      const [entry1, entry2] = await appendSessionEntries(sessionId, [
+        { kind: 'pi.user', model: [{ role: 'user', content: 'msg 1', timestamp: 1 }] },
+        { kind: 'pi.assistant', model: [fauxAssistantMessage('msg 2')] },
+      ])
 
       // 1. Get all messages
       const res1 = await chatService.getNewSessionMessages(sessionId)
       expect(res1.messages).toHaveLength(2)
-      expect(res1.lastEntryId).toBe(entry2.id)
+      expect(res1.lastEntryId).toBe(String(entry2.id))
       expect(res1.messages[0].id).toBe(entry1.id)
 
       // 2. Get with lastEntryId
-      const res2 = await chatService.getNewSessionMessages(sessionId, entry1.id)
+      const res2 = await chatService.getNewSessionMessages(sessionId, String(entry1.id))
       expect(res2.messages).toHaveLength(1)
-      expect(res2.lastEntryId).toBe(entry2.id)
+      expect(res2.lastEntryId).toBe(String(entry2.id))
       expect(res2.messages[0].id).toBe(entry2.id)
 
       // 3. Get with latest lastEntryId
-      const res3 = await chatService.getNewSessionMessages(sessionId, entry2.id)
+      const res3 = await chatService.getNewSessionMessages(sessionId, String(entry2.id))
       expect(res3.messages).toHaveLength(0)
-      expect(res3.lastEntryId).toBe(entry2.id)
+      expect(res3.lastEntryId).toBe(String(entry2.id))
     })
   })
 
@@ -946,47 +653,6 @@ describe('ChatService', () => {
           projectId: project.id,
         }),
       ).rejects.toThrow(/Insufficient role/)
-    })
-
-    it('safely maps entries without message object or with customType shumai_message', () => {
-      // 1. Entry with type: 'message' but customType: 'shumai_message'
-      const legacyEntry = {
-        id: 'legacy-1',
-        sessionId: 'sess-1',
-        assetId: null,
-        parentId: null,
-        type: 'message',
-        data: {
-          customType: 'shumai_message',
-          content: 'Hello legacy',
-          display: true,
-          details: { user: { id: 'u1', name: 'User 1' } },
-        },
-        createdAt: new Date(),
-      }
-
-      const msg1 = mapEntryToMessage(legacyEntry)
-      expect(msg1).toBeDefined()
-      expect(msg1?.role).toBe('custom')
-      if (msg1 && msg1.role === 'custom') {
-        expect(msg1.customType).toBe('shumai_message')
-        expect(msg1.content).toBe('Hello legacy')
-        expect(msg1.details).toEqual({ user: { id: 'u1', name: 'User 1' } })
-      }
-
-      // 2. Entry with type: 'message' but empty data / no message
-      const emptyEntry = {
-        id: 'empty-1',
-        sessionId: 'sess-1',
-        assetId: null,
-        parentId: null,
-        type: 'message',
-        data: {},
-        createdAt: new Date(),
-      }
-
-      const msg2 = mapEntryToMessage(emptyEntry)
-      expect(msg2).toBeNull()
     })
 
     it('should forward annotations and second to workflow task payload', async () => {
