@@ -12,6 +12,7 @@ import {
   Harness,
   GenerationTask,
   hook,
+  ROOT_CONVERSATION_ID,
   type StorageWrite,
 } from '@earendil-works/pi-durable'
 import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite/node'
@@ -27,6 +28,42 @@ import { hydrateStorage, synchronizeStorage } from './session-storage'
 describe('native Durable content storage', () => {
   setupTestDbHooks()
   afterEach(() => vi.restoreAllMocks())
+
+  it('keeps an uncertain commit dirty and refuses subsequent writes', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'shumai-failed-session-'))
+    const dirty = vi.fn(async () => {})
+    const clean = vi.fn(async () => {})
+    const persist = vi.fn(async () => {
+      throw new Error('mirror unavailable')
+    })
+    const storage = synchronizeStorage(
+      await openNodeSqliteStorage(join(directory, 'session.sqlite')),
+      {
+        dirty,
+        clean,
+        persist,
+      },
+    )
+    const acknowledge = vi.fn()
+    try {
+      await expect(
+        storage.commit(
+          [[{ type: 'conversation', value: { id: ROOT_CONVERSATION_ID } }]],
+          acknowledge,
+          context,
+        ),
+      ).rejects.toThrow('mirror unavailable')
+      expect(await storage.conversation(ROOT_CONVERSATION_ID, context)).toBeDefined()
+      await expect(storage.commit([[]], acknowledge, context)).rejects.toThrow('mirror unavailable')
+      expect(dirty).toHaveBeenCalledTimes(1)
+      expect(persist).toHaveBeenCalledTimes(1)
+      expect(clean).not.toHaveBeenCalled()
+      expect(acknowledge).not.toHaveBeenCalled()
+    } finally {
+      await storage.close(context)
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
 
   it('hydrates generation and compaction after reopening while both persisted copies stay compact', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'shumai-content-'))

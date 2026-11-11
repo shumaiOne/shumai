@@ -1,12 +1,16 @@
 import { BACKGROUND_CONTEXT as context } from '@earendil-works/chord/context'
 import { createModels, fauxAssistantMessage, fauxProvider } from '@earendil-works/pi-ai'
-import { Harness, UsageDoc, createRegistry } from '@earendil-works/pi-durable'
+import { Harness, ROOT_CONVERSATION_ID, UsageDoc, createRegistry } from '@earendil-works/pi-durable'
 import { prisma } from '@shumai/db'
 import { acquireAdvisoryLock } from '@shumai/db/src/advisory-lock'
+import * as advisoryLock from '@shumai/db/src/advisory-lock'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { rm, writeFile } from 'node:fs/promises'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { s3Service } from '../s3/s3'
 import { openSessionCache } from './session-cache'
+import * as sessionCache from './session-cache'
+import * as sessionStorage from './session-storage'
 import { agentSessionService } from './session-service'
 import { appendSessionEntries } from './session-test-utils'
 
@@ -63,7 +67,7 @@ describe('Native session storage and PostgreSQL synchronization', () => {
       const entries = await appendSessionEntries(session.id, [
         { kind: 'pi.user', model: [{ role: 'user', content: 'safe', timestamp: 1 }] },
       ])
-      const cache = await openSessionCache(session.id, 'read')
+      const cache = await openSessionCache(session.id)
       await cache.storage.close(context)
       if (failure === 'missing') await rm(cache.path)
       else if (failure === 'corrupt') await writeFile(cache.path, 'invalid sqlite')
@@ -84,6 +88,283 @@ describe('Native session storage and PostgreSQL synchronization', () => {
     await next.release()
   })
 
+  it('reads locally committed entries while PostgreSQL persistence is pending', async () => {
+    const { session } = await fixture()
+    const started = Promise.withResolvers<void>()
+    const resume = Promise.withResolvers<void>()
+    const synchronize = sessionStorage.synchronizeStorage
+    let paused = false
+    vi.spyOn(sessionStorage, 'synchronizeStorage').mockImplementation((storage, callbacks) =>
+      synchronize(storage, {
+        ...callbacks,
+        persist: async (commits) => {
+          if (paused) {
+            started.resolve()
+            await resume.promise
+          }
+          await callbacks.persist(commits)
+        },
+      }),
+    )
+    const writer = await agentSessionService.openWriter(session.id)
+    const harness = await Harness.open(
+      writer.storage,
+      { models: createModels(), registry: createRegistry() },
+      context,
+    )
+    const root = await harness.root(context)
+    paused = true
+    let acknowledged = false
+    const commit = root.commit(
+      (tx) => tx.appendEntry(root.id, { kind: 'pi.user', data: { text: 'locally committed' } }),
+      context,
+    )
+    void commit.then(() => {
+      acknowledged = true
+    })
+    let closing: Promise<void> | undefined
+    try {
+      await started.promise
+      expect(await prisma.agentSessionCommit.count({ where: { sessionId: session.id } })).toBe(1)
+      expect(await agentSessionService.getEntries(session.id)).toMatchObject([
+        { kind: 'pi.user', data: { text: 'locally committed' } },
+      ])
+      expect(acknowledged).toBe(false)
+      closing = writer.storage.close(context)
+      // Closing drains persistence before entering the lifecycle queue, so reads still work.
+      expect(await agentSessionService.getEntries(session.id)).toHaveLength(1)
+    } finally {
+      resume.resolve()
+      await commit
+      await closing
+      await harness.close(context)
+    }
+    expect(acknowledged).toBe(true)
+    // A history read must not close the writer's connection.
+    await agentSessionService.withWriter(session.id, async (storage) => {
+      expect(await storage.conversation(root.id, context)).toBeDefined()
+    })
+  })
+
+  it('uses one cache directory for concurrent initial reads and subsequent writes', async () => {
+    const { session } = await fixture()
+    const paths: string[] = []
+    const openCache = sessionCache.openSessionCache
+    vi.spyOn(sessionCache, 'openSessionCache').mockImplementation(async (...args) => {
+      const cache = await openCache(...args)
+      paths.push(cache.path)
+      return cache
+    })
+    expect(
+      await Promise.all([
+        agentSessionService.getEntries(session.id),
+        agentSessionService.listEntries(session.id),
+      ]),
+    ).toEqual([[], { items: [], next: undefined }])
+    const [written] = await Promise.all([
+      appendSessionEntries(session.id, [{ kind: 'pi.user', data: { text: 'shared cache' } }]),
+      agentSessionService.getEntries(session.id),
+    ])
+    expect(await agentSessionService.getEntries(session.id)).toEqual(written)
+    expect(new Set(paths).size).toBe(1)
+  })
+
+  it('keeps history compact while the live writer hydrates image references', async () => {
+    const { session } = await fixture()
+    const image = Buffer.from('image bytes')
+    vi.spyOn(s3Service, 'getObject').mockResolvedValue({ buffer: image, contentType: 'image/png' })
+    await agentSessionService.withWriter(session.id, async (storage) => {
+      const harness = await Harness.open(
+        storage,
+        { models: createModels(), registry: createRegistry() },
+        context,
+      )
+      try {
+        const root = await harness.root(context)
+        const entry = await root.commit(
+          (tx) =>
+            tx.appendEntry(root.id, {
+              kind: 'pi.user',
+              data: { sourceKeys: ['image-key'] },
+              model: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'image', data: image.toString('base64'), mimeType: 'image/png' },
+                  ],
+                  timestamp: 1,
+                },
+              ],
+            }),
+          context,
+        )
+        expect(JSON.stringify((await storage.entry(entry.id, context))?.entry)).toContain(
+          image.toString('base64'),
+        )
+        const history = await agentSessionService.getEntries(session.id)
+        expect(JSON.stringify(history)).toContain('__S3_DATA__')
+        expect(JSON.stringify(history)).not.toContain(image.toString('base64'))
+        expect((await agentSessionService.listEntries(session.id)).items).toEqual(history)
+      } finally {
+        await harness.close(context)
+      }
+    })
+  })
+
+  it('waits for an admitted history read before closing the live writer', async () => {
+    const { session } = await fixture()
+    const entered = Promise.withResolvers<void>()
+    const resume = Promise.withResolvers<void>()
+    const openCache = sessionCache.openSessionCache
+    let paused = false
+    vi.spyOn(sessionCache, 'openSessionCache').mockImplementation(async (...args) => {
+      const cache = await openCache(...args)
+      const scan = cache.storage.scanEntries.bind(cache.storage)
+      cache.storage.scanEntries = async (...query) => {
+        if (paused) {
+          entered.resolve()
+          await resume.promise
+        }
+        return scan(...query)
+      }
+      return cache
+    })
+    const writer = await agentSessionService.openWriter(session.id)
+    const harness = await Harness.open(
+      writer.storage,
+      { models: createModels(), registry: createRegistry() },
+      context,
+    )
+    const root = await harness.root(context)
+    await root.commit((tx) => tx.appendEntry(root.id, { kind: 'pi.user', data: {} }), context)
+    paused = true
+    const read = agentSessionService.getEntries(session.id)
+    await entered.promise
+    let closed = false
+    const closing = writer.storage.close(context).then(() => {
+      closed = true
+    })
+    try {
+      expect(closed).toBe(false)
+    } finally {
+      resume.resolve()
+      expect(await read).toHaveLength(1)
+      await closing
+      await harness.close(context)
+    }
+    expect(closed).toBe(true)
+  })
+
+  it('drains a writer being opened before shutdown removes the shared cache', async () => {
+    const { session } = await fixture()
+    const entered = Promise.withResolvers<void>()
+    const resume = Promise.withResolvers<void>()
+    const openCache = sessionCache.openSessionCache
+    vi.spyOn(sessionCache, 'openSessionCache').mockImplementationOnce(async (...args) => {
+      const cache = await openCache(...args)
+      entered.resolve()
+      await resume.promise
+      return cache
+    })
+    const opening = agentSessionService.openWriter(session.id)
+    await entered.promise
+    const shutdown = agentSessionService.closeAll()
+    try {
+      expect(agentSessionService.closeAll()).toBe(shutdown)
+      await expect(agentSessionService.getEntries(session.id)).rejects.toThrow('service is closing')
+    } finally {
+      resume.resolve()
+      await shutdown
+    }
+    const writer = await opening
+    await expect(writer.storage.conversation(ROOT_CONVERSATION_ID, context)).rejects.toThrow(
+      'closed',
+    )
+    expect(await agentSessionService.getEntries(session.id)).toEqual([])
+  })
+
+  it('cancels a writer waiting for ownership when the service shuts down', async () => {
+    const { session } = await fixture()
+    const held = await acquireAdvisoryLock(`agent-session:${session.id}`)
+    const opening = agentSessionService.openWriter(session.id)
+    const rejected = expect(opening).rejects.toThrow('Session service is closing')
+    try {
+      await agentSessionService.closeAll()
+      await rejected
+    } finally {
+      await held.release()
+    }
+    expect(await agentSessionService.getEntries(session.id)).toEqual([])
+  })
+
+  it('drains a writer that lost ownership before a replacement rebuilds its shared cache', async () => {
+    const { session } = await fixture()
+    const acquire = advisoryLock.acquireAdvisoryLock
+    const lost = new AbortController()
+    let release: (() => Promise<void>) | undefined
+    vi.spyOn(advisoryLock, 'acquireAdvisoryLock').mockImplementationOnce(async (...args) => {
+      const lock = await acquire(...args)
+      release = lock.release
+      return { ...lock, signal: lost.signal }
+    })
+    const started = Promise.withResolvers<void>()
+    const resume = Promise.withResolvers<void>()
+    const synchronize = sessionStorage.synchronizeStorage
+    vi.spyOn(sessionStorage, 'synchronizeStorage').mockImplementationOnce((storage, callbacks) =>
+      synchronize(storage, {
+        ...callbacks,
+        persist: async (commits) => {
+          started.resolve()
+          await resume.promise
+          await callbacks.persist(commits)
+        },
+      }),
+    )
+    const opens = vi.spyOn(sessionCache, 'openSessionCache')
+    const first = await agentSessionService.openWriter(session.id)
+    const closing = vi.spyOn(first.storage, 'close')
+    const acknowledge = vi.fn()
+    const commit = first.storage.commit(
+      [
+        [
+          { type: 'conversation', value: { id: ROOT_CONVERSATION_ID } },
+          {
+            type: 'entry',
+            value: {
+              id: await first.storage.mintId(),
+              conversationId: ROOT_CONVERSATION_ID,
+              kind: 'pi.user',
+              data: { text: 'unmirrored' },
+            },
+          },
+        ],
+      ],
+      acknowledge,
+      context,
+    )
+    const rejected = expect(commit).rejects.toThrow('lock lost')
+    await started.promise
+    lost.abort(new Error('lock lost'))
+    await release?.()
+    const replacement = agentSessionService.openWriter(session.id)
+    try {
+      await vi.waitFor(() => expect(closing).toHaveBeenCalledOnce())
+      expect(await agentSessionService.getEntries(session.id)).toMatchObject([
+        { data: { text: 'unmirrored' } },
+      ])
+      expect(opens).toHaveBeenCalledTimes(1)
+    } finally {
+      resume.resolve()
+      await rejected
+      await replacement
+    }
+    expect(acknowledge).not.toHaveBeenCalled()
+    await first.storage.close(context)
+    expect(await agentSessionService.getEntries(session.id)).toEqual([])
+    expect(opens).toHaveBeenCalledTimes(2)
+    await (await replacement).storage.close(context)
+  })
+
   it('refuses a fenced writer and rebuilds its unacknowledged SQLite commit', async () => {
     const { session } = await fixture()
     const writer = await agentSessionService.openWriter(session.id)
@@ -97,7 +378,7 @@ describe('Native session storage and PostgreSQL synchronization', () => {
           [
             {
               type: 'conversation',
-              value: { id: 1 as import('@earendil-works/pi-durable').ConversationId },
+              value: { id: ROOT_CONVERSATION_ID },
             },
           ],
         ],
@@ -139,9 +420,11 @@ describe('Native session storage and PostgreSQL synchronization', () => {
           { model: { provider: faux.provider.id, modelId: faux.getModel().id } },
           context,
         )
-        return await (
+        const receipt = await (
           await root.submit({ type: 'input', requestId: 'once', content: 'question' }, context)
         ).wait(context)
+        expect(await agentSessionService.getEntryForRequest(session.id, 'once')).toBeDefined()
+        return receipt
       } finally {
         await harness.close(context)
       }
@@ -180,6 +463,7 @@ describe('Native session storage and PostgreSQL synchronization', () => {
         })
       }, context),
     ).rejects.toThrow('mirror unavailable')
+    expect(failure).toHaveBeenCalledTimes(1)
     failure.mockRestore()
     await harness.close(context)
     expect(await prisma.aiUsage.count({ where: { teamId: team.id } })).toBe(0)

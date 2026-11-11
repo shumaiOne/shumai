@@ -23,16 +23,36 @@ export function synchronizeStorage(
   },
 ): Storage {
   const commit = storage.commit.bind(storage)
-  storage.commit = async (batches, receive, context) => {
-    await callbacks.dirty()
-    const compact = batches.map(compactSessionWrites)
-    const receipts: Array<{ index: number; seq: Seq }> = []
-    const result = await commit(compact, (index, seq) => receipts.push({ index, seq }), context)
-    await callbacks.persist(receipts.map(({ index, seq }) => ({ seq, writes: compact[index] })))
-    await callbacks.clean(receipts.at(-1)?.seq)
-    for (const { index, seq } of receipts) receive(index, seq)
-    return result
+  const close = storage.close.bind(storage)
+  let pending = Promise.resolve()
+  let failure: { error: unknown } | undefined
+  let closing: Promise<void> | undefined
+  storage.commit = (batches, receive, context) => {
+    if (closing) return Promise.reject(new Error('Session storage is closing'))
+    const current = pending.then(async () => {
+      if (failure) throw failure.error
+      try {
+        await callbacks.dirty()
+        const compact = batches.map(compactSessionWrites)
+        const receipts: Array<{ index: number; seq: Seq }> = []
+        const result = await commit(compact, (index, seq) => receipts.push({ index, seq }), context)
+        await callbacks.persist(receipts.map(({ index, seq }) => ({ seq, writes: compact[index] })))
+        await callbacks.clean(receipts.at(-1)?.seq)
+        for (const { index, seq } of receipts) receive(index, seq)
+        return result
+      } catch (error) {
+        // An uncertain local commit must never be marked clean by a later write.
+        failure = { error }
+        throw error
+      }
+    })
+    pending = current.then(
+      () => {},
+      () => {},
+    )
+    return current
   }
+  storage.close = (context) => (closing ??= pending.then(() => close(context)))
   return storage
 }
 

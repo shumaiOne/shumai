@@ -202,7 +202,7 @@ describe('SQL migration to Pi Durable', () => {
       (await prisma.agentSession.findUniqueOrThrow({ where: { id: child.id } })).accountedUsage,
     ).toMatchObject({ totalTokens: 17, cost: 0.2 })
     // Read the native ledger without hydrating image references.
-    const cache = await openSessionCache(child.id, 'read')
+    const cache = await openSessionCache(child.id)
     const harness = await Harness.open(
       cache.storage,
       { models: createModels(), registry: createRegistry() },
