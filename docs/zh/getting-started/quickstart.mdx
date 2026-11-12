@@ -216,3 +216,23 @@ Shumai 提供三种安装方式。对于大多数管理员，推荐使用 **Dock
     bun run dev
     ```
     命令执行后将在 `3000` 端口启动 Web 服务，并已开启热重载（Hot-Reloading）。
+
+---
+
+## 安装命令行客户端
+
+若要连接到已运行的 Shumai 服务器，可直接安装独立 CLI，无需安装 Node.js 或 Bun：
+
+```sh
+curl -fsSL https://github.com/shumaiOne/shumai/releases/latest/download/install.sh | sh
+```
+
+Windows 用户可使用 PowerShell：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://github.com/shumaiOne/shumai/releases/latest/download/install.ps1 | iex"
+```
+
+独立版本支持 ARM64 和 x64 架构的 macOS、使用 glibc 的 Linux，以及 Windows。安装脚本会校验 SHA-256 校验和，并将 CLI 安装到当前用户的目录中。重新运行安装脚本即可升级，使用 `shumai-cli --version` 可查看已安装的版本。也可通过 `npm install -g @shumai-one/shumai-cli` 安装，此方式需要 Node.js 22.12 或更高版本。
+
+将 `SHUMAI_API_SERVER` 设置为服务器地址，将 `SHUMAI_API_KEY` 设置为在“设置 → API 令牌”中创建的个人 API 令牌，然后运行 `shumai-cli project ls`。有关支持的系统版本、PATH 配置、指定版本安装、回滚及卸载的详细说明，请参阅 [CLI 指南](https://github.com/shumaiOne/shumai/blob/main/apps/cli/README.md)。
