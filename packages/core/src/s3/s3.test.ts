@@ -651,6 +651,18 @@ describe('S3Service implementations', () => {
       expect(size).toBe(11)
     })
 
+    it('removes empty embedding chunk directories after deleting the last chunk', async () => {
+      const key = 'files/asset-1/tmp-embedding-chunks/chunk.mp4'
+      await localS3.putObject('test-bucket', key, 'chunk', 5)
+
+      expect(await localS3.deleteObject('test-bucket', key)).toBe(1)
+
+      expect(fs.existsSync(path.join(TEST_BASE_PATH, 'test-bucket', 'files', 'asset-1'))).toBe(
+        false,
+      )
+      expect(fs.existsSync(path.join(TEST_BASE_PATH, 'test-bucket', 'files'))).toBe(true)
+    })
+
     it('should write Node.js Readable stream in putObject without corrupting to [object Object]', async () => {
       const { Readable } = await import('stream')
       const stream = Readable.from(['hello ', 'node ', 'stream'])

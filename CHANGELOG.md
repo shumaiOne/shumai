@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **storage**: Remove empty local folders left behind after generating video search embeddings.
+
 ### Changed
 
 - **agent**: Upgrade the agent runtime and automatically migrate existing conversations, keep thread histories independent, prevent duplicate history during simultaneous mentions, improve session log scrolling and readability, and fix authentication for OpenAI and custom providers. Agents now run with the main server; standalone agent workers are no longer supported.
