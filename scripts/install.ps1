@@ -47,9 +47,18 @@ try {
     if ($matchesChecksum.Count -ne 1) { throw "Missing or ambiguous checksum for $archive" }
     $archivePath = Join-Path $temporary $archive
     Invoke-WebRequest -UseBasicParsing -Uri "$base/$archive" -OutFile $archivePath
-    $actual = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    # Use framework APIs so installation does not depend on module discovery
+    # inherited from a parent PowerShell session of a different version.
+    $hasher = [Security.Cryptography.SHA256]::Create()
+    try {
+        $stream = [IO.File]::OpenRead($archivePath)
+        try { $actual = [BitConverter]::ToString($hasher.ComputeHash($stream)).Replace('-', '').ToLowerInvariant() }
+        finally { $stream.Dispose() }
+    }
+    finally { $hasher.Dispose() }
     if ($actual -cne $matchesChecksum[0].Substring(0, 64)) { throw 'Download checksum does not match; existing installation preserved' }
-    Expand-Archive -LiteralPath $archivePath -DestinationPath $temporary
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [IO.Compression.ZipFile]::ExtractToDirectory($archivePath, $temporary)
     $executable = Join-Path $temporary 'shumai-cli.exe'
     if (!(Test-Path -LiteralPath $executable -PathType Leaf)) { throw 'Archive does not contain the CLI executable' }
     $binaryVersion = & $executable --version
