@@ -67,7 +67,8 @@ try {
     $staged = Join-Path $InstallDir ([IO.Path]::GetRandomFileName())
     Copy-Item -LiteralPath $executable -Destination $staged
     Set-Content -LiteralPath $marker -Value 'shumai-cli' -Encoding ASCII
-    if (Test-Path -LiteralPath $destination) { [IO.File]::Replace($staged, $destination, $null) }
+    # PowerShell 5.1 converts $null to an empty string for string parameters.
+    if (Test-Path -LiteralPath $destination) { [IO.File]::Replace($staged, $destination, [NullString]::Value) }
     else { [IO.File]::Move($staged, $destination) }
     $staged = $null
     if (!$NoModifyPath) {
