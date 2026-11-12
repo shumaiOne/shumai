@@ -216,3 +216,23 @@ To set up Shumai locally for development:
     bun run dev
     ```
     This spins up the web server on port `3000` with hot-reloading active.
+
+---
+
+## Install the command-line client
+
+To connect to a running Shumai server, install the standalone CLI without Node.js or Bun:
+
+```sh
+curl -fsSL https://github.com/shumaiOne/shumai/releases/latest/download/install.sh | sh
+```
+
+On Windows:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://github.com/shumaiOne/shumai/releases/latest/download/install.ps1 | iex"
+```
+
+Native releases support macOS, Linux with glibc, and Windows on ARM64 and x64. The scripts verify SHA-256 checksums and install into your user directory. Re-run the installer to upgrade, and check the installed version with `shumai-cli --version`. The npm alternative, `npm install -g @shumai-one/shumai-cli`, requires Node.js 22.12+.
+
+Set `SHUMAI_API_SERVER` to your server URL and `SHUMAI_API_KEY` to a personal API token from Settings → API Tokens, then run `shumai-cli project ls`. See the [CLI guide](https://github.com/shumaiOne/shumai/blob/main/apps/cli/README.md) for supported OS versions, PATH setup, pinned versions, rollback, and uninstall instructions.
