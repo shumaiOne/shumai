@@ -4,6 +4,7 @@ param(
     [switch]$NoModifyPath
 )
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 $Version = $Version -replace '^v', ''
 if ($Version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$') {
     throw 'Use a release installer or pass -Version X.Y.Z'
