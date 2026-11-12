@@ -1,0 +1,49 @@
+name: Native CLI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_call:
+    inputs:
+      source_ref:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    name: CLI (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: linux-x64, runner: ubuntu-22.04 }
+          - { target: linux-arm64, runner: ubuntu-22.04-arm }
+          - { target: darwin-x64, runner: macos-15-intel }
+          - { target: darwin-arm64, runner: macos-15 }
+          - { target: windows-x64, runner: windows-2022 }
+          - { target: windows-arm64, runner: windows-11-arm }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref || github.ref }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Build CLI archive and installer
+        run: bun run build:cli --target ${{ matrix.target }}
+      - name: Test installed binary and file transfers
+        run: bun run test:cli-release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.target }}
+          path: out/cli-release/shumai-cli-v*
+          if-no-files-found: error
+          retention-days: 7

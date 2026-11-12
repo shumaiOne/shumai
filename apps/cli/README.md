@@ -8,7 +8,63 @@ The CLI allows you to view projects, list folder contents, create folders, uploa
 
 ## Installation
 
-The CLI package is bundled inside the Shumai workspace. The published npm package (`@shumai-one/shumai-cli`) requires Node.js 22.12 or later.
+### Standalone executable
+
+Install the CLI without Node.js or Bun. The installers download a platform-specific executable from GitHub Releases and verify its SHA-256 checksum.
+
+**macOS / Linux:**
+
+```sh
+curl -fsSL https://github.com/shumaiOne/shumai/releases/latest/download/install.sh | sh
+```
+
+**Windows (PowerShell):**
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://github.com/shumaiOne/shumai/releases/latest/download/install.ps1 | iex"
+```
+
+| Platform | Architectures | Requirements |
+| --- | --- | --- |
+| macOS | Apple Silicon, Intel | macOS 13 or later |
+| Linux | ARM64, x64 | glibc 2.17 or later; kernel 5.6+ recommended |
+| Windows | ARM64, x64 | Windows 10 version 1809 or later |
+
+Native builds use Bun 1.4.4's runtime; x64 CPUs need SSE4.2. See [Bun's system requirements](https://bun.com/docs/installation). Alpine/musl is not included in these native downloads. Native downloads are available for releases containing the installer assets; use npm for earlier releases.
+
+On macOS/Linux the default directory is `~/.local/bin`. Add it to your shell's PATH if needed:
+
+```sh
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+On Windows the installer uses `%LOCALAPPDATA%\Shumai\bin` and updates the user PATH. Open a new terminal afterward. Administrator access is not required.
+
+Re-run the installer to upgrade. To pin a version, roll back, or choose an installation directory, download the installer and pass its options (replace `X.Y.Z` with a release containing native binaries):
+
+```sh
+curl -fsSL https://github.com/shumaiOne/shumai/releases/latest/download/install.sh -o install.sh
+sh install.sh --version X.Y.Z --install-dir "$HOME/.local/bin"
+```
+
+```powershell
+Invoke-WebRequest https://github.com/shumaiOne/shumai/releases/latest/download/install.ps1 -OutFile install.ps1
+& .\install.ps1 -Version X.Y.Z -InstallDir "$env:LOCALAPPDATA\Shumai\bin"
+```
+
+The installers preserve the existing executable if download or verification fails and refuse to replace unmanaged installations. If an npm installation takes precedence on PATH, uninstall it with `npm uninstall -g @shumai-one/shumai-cli` or adjust PATH.
+
+To uninstall a native installation, remove `shumai-cli` (`shumai-cli.exe` on Windows) and `.shumai-cli-install` from its installation directory. Remove the PATH entry if it is no longer needed.
+
+### npm
+
+The existing npm package continues to run on Node.js 22.12 or later:
+
+```sh
+npm install -g @shumai-one/shumai-cli
+```
+
+`shumai-cli --version` reports the installed version for either installation method.
 
 ### Environment Setup
 
@@ -31,7 +87,7 @@ export SHUMAI_ALLOW_DELETE="true"
 ## Usage
 
 > [!IMPORTANT]
-> **For Bun Users:** Since the package binary contains a `#!/usr/bin/env node` shebang, running `shumai-cli` directly will run under Node.js. If you wish to run it using Bun, prefix the command with `bun run --bun` (e.g., `bun run --bun shumai-cli project ls`).
+> **For npm installations using Bun:** The npm entry point uses `#!/usr/bin/env node`. Use `bun run --bun shumai-cli project ls` to run that package under Bun. Standalone installations already include their runtime.
 
 Run `shumai-cli` or query specific commands:
 
@@ -258,3 +314,16 @@ bun run apps/cli/src/index.ts project ls
 ### Adding Commands
 
 Most commands are generated from the shared Operation definitions in `packages/operations` (see "Operations" in `AGENTS.md`). An Operation with the `cli` surface and a `cli` spec becomes a command automatically, with arguments, options, and help text derived from its input schema (key/value inputs such as `meta set --values` take a JSON object). It is also available to Shumai's built-in agent and MCP server. Behavior that needs the local machine, such as downloading files, goes in a CLI extension in `src/operations/extensions/` (extra options, input mapping, and output). Only commands that stream local files (`upload`, `create-version`) are written by hand in `src/program.ts`; the `create_file`, `create_version`, and `complete_upload` Operations are for the agent and MCP only.
+
+### Building and verifying native releases
+
+```sh
+bun run build:cli --target darwin-arm64 # or darwin-x64, linux-arm64, linux-x64, windows-arm64, windows-x64
+bun run test:cli-release
+```
+
+Without `--target`, the build produces all six targets. Output defaults to `out/cli-release`; both commands accept `--out /absolute/path`. Unix archives require `tar`; creating Windows archives on Unix also requires `zip`. The test runs the generated installer against local HTTP fixtures, then authenticates, creates a folder, uploads and downloads random bytes, and checks failure recovery with no runtime on the executable's PATH.
+
+The Native CLI workflow builds and tests each target on a matching runner. The npm release workflow assembles those tested archives, stages a draft GitHub Release, publishes npm packages, then publishes the completed release. Its `validate_only` dispatch input builds and tests without publishing. Published assets are verified and preserved on retries; draft assets can be replaced while resuming a failed run. Prerelease npm packages use the `next` tag and prerelease GitHub Releases do not become latest.
+
+Installers use `SHUMAI_CLI_RELEASE_BASE_URL` only when explicitly set, for private mirrors or local testing. It should point to a release download base whose children are `vX.Y.Z/<asset>`. Native executables do not automatically load `.env` or `bunfig.toml`; export the API configuration explicitly as shown above.

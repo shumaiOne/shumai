@@ -269,6 +269,20 @@ Shumai 提供了独立的转码 Worker 镜像（支持 Docker Hub 与阿里云�
 
 Shumai 自带一个功能完备的命令行工具（CLI），支持你直接在终端里高效管理项目、文件夹、素材，批量上传文件/目录，以及快速创建新版本。
 
+macOS/Linux 可直接安装独立 CLI，无需安装 Node.js 或 Bun：
+
+```sh
+curl -fsSL https://github.com/shumaiOne/shumai/releases/latest/download/install.sh | sh
+```
+
+Windows 用户可使用 PowerShell：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://github.com/shumaiOne/shumai/releases/latest/download/install.ps1 | iex"
+```
+
+仍可通过 npm 安装：`npm install -g @shumai-one/shumai-cli`（需要 Node.js 22.12 或更高版本）。
+
 关于 CLI 的安装与详细使用指南，请参阅 [CLI Readme](apps/cli/README.md)。
 
 ## MCP 服务器

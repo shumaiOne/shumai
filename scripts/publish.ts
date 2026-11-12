@@ -142,6 +142,9 @@ for (const pkg of packages) {
     continue
   }
 
-  run('npm', ['publish', '--access', 'public', '--ignore-scripts'], { cwd: pkg.directory })
+  const npmDistTag = version.includes('-') ? 'next' : 'latest'
+  run('npm', ['publish', '--access', 'public', '--ignore-scripts', '--tag', npmDistTag], {
+    cwd: pkg.directory,
+  })
   console.log()
 }

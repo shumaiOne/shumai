@@ -6,6 +6,7 @@ import { callOperation, type CallOperation } from './operations/call-operation'
 import { cliExtensions } from './operations/extensions'
 import { registerOperationCommands } from './operations/generate'
 import type { Output } from './operations/render'
+import { version } from '../package.json'
 
 export interface ProgramOptions {
   callOperation?: CallOperation
@@ -26,6 +27,7 @@ export function createProgram(options: ProgramOptions = {}): Command {
   const program = new Command()
     .name('shumai-cli')
     .description('Command line interface for the Shumai media workspace.')
+    .version(version)
     .option('--json', 'Print raw JSON output instead of human-friendly text')
     .showHelpAfterError()
     .showSuggestionAfterError()

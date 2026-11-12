@@ -14,13 +14,30 @@ on:
         description: 'Source ref to build/publish (defaults to tag)'
         required: false
         type: string
+      validate_only:
+        description: 'Build and test without publishing npm packages or a GitHub Release'
+        required: false
+        default: false
+        type: boolean
 
 permissions: {}
 
+concurrency:
+  group: npm-release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
+  cli:
+    uses: ./.github/workflows/cli-native.yaml
+    permissions:
+      contents: read
+    with:
+      source_ref: ${{ inputs.source_ref || inputs.tag || github.ref_name }}
+
   release:
     name: Build, Release and Publish
     runs-on: ubuntu-latest
+    needs: cli
     permissions:
       contents: write
       id-token: write
@@ -32,6 +49,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.SOURCE_REF }}
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -53,11 +71,17 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Validate release source and version
+        run: bun scripts/publish-cli-release.ts ${{ inputs.validate_only && 'validate-only' || 'validate' }}
+
       - name: Compile i18n
         run: bun run i18n:compile
 
       - name: Lint
         run: bun run lint
+
+      - name: Format
+        run: bun run format && git diff --exit-code
 
       - name: Typecheck
         run: bun run typecheck
@@ -68,7 +92,18 @@ jobs:
       - name: Build NPM packages
         run: bun run build-npm
 
+      - name: Download tested CLI archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cli-*
+          path: out/cli-release
+          merge-multiple: true
+
+      - name: Assemble CLI release assets
+        run: bun run build:cli --assemble
+
       - name: Generate release notes
+        if: ${{ !inputs.validate_only }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -87,29 +122,24 @@ jobs:
             fi
           } > /tmp/release-notes.md
 
-      - name: Create GitHub Release
+      - name: Stage draft GitHub Release and CLI assets
+        if: ${{ !inputs.validate_only }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [ ! -s /tmp/release-notes.md ]; then
-            NOTES_FLAG="--generate-notes"
-          else
-            NOTES_FLAG="--notes-file /tmp/release-notes.md"
-          fi
-          if gh release view "${{ env.RELEASE_TAG }}" >/dev/null 2>&1; then
-            gh release edit "${{ env.RELEASE_TAG }}" \
-              --title "${{ env.RELEASE_TAG }}" \
-              $NOTES_FLAG
-          else
-            gh release create "${{ env.RELEASE_TAG }}" \
-              --title "${{ env.RELEASE_TAG }}" \
-              $NOTES_FLAG
-          fi
+        run: bun scripts/publish-cli-release.ts stage
 
       - name: Upgrade npm for trusted publishing
+        if: ${{ !inputs.validate_only }}
         run: |
           npm install -g npm@11.16.0 --ignore-scripts
           npm --version
 
       - name: Publish to NPM
+        if: ${{ !inputs.validate_only }}
         run: bun run scripts/publish.ts
+
+      - name: Publish completed GitHub Release
+        if: ${{ !inputs.validate_only }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun scripts/publish-cli-release.ts publish

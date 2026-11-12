@@ -239,6 +239,20 @@ To set up Shumai locally for development:
 
 Shumai provides a Command Line Interface (CLI) tool to manage projects, folders, and assets, upload files/folders, and create new versions directly from your terminal.
 
+Install the standalone CLI on macOS/Linux without Node.js or Bun:
+
+```sh
+curl -fsSL https://github.com/shumaiOne/shumai/releases/latest/download/install.sh | sh
+```
+
+On Windows:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://github.com/shumaiOne/shumai/releases/latest/download/install.ps1 | iex"
+```
+
+The npm installation remains available: `npm install -g @shumai-one/shumai-cli` (Node.js 22.12+).
+
 For more details on installation and usage, see the [CLI Readme](apps/cli/README.md).
 
 ## MCP Server

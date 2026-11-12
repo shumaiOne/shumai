@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **cli**: Add standalone downloads and one-line installers for macOS, Linux, and Windows without requiring Node.js or Bun, with verified downloads, version selection, and upgrade support.
+
 ### Fixed
 
 - **storage**: Remove empty local folders left behind after generating video search embeddings.

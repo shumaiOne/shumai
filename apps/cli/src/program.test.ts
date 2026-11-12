@@ -25,6 +25,7 @@ import {
 import type { CallOperation } from './operations/call-operation'
 import { CliError, formatCliError } from './operations/errors'
 import { createProgram } from './program'
+import { version } from '../package.json'
 
 /** Runs the CLI with mocked Operation calls and captures stdout/stderr. */
 function setup() {
@@ -75,6 +76,13 @@ const pendingRead = {
 }
 
 describe('shumai-cli', () => {
+  it('reports its package version without calling the server', async () => {
+    const cli = setup()
+    await expect(cli.run('--version')).rejects.toMatchObject({ code: 'commander.version' })
+    expect(cli.stdout()).toBe(`${version}\n`)
+    expect(cli.callOperation).not.toHaveBeenCalled()
+  })
+
   const originalAllowDelete = process.env.SHUMAI_ALLOW_DELETE
 
   afterEach(() => {
