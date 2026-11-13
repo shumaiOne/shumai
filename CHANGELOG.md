@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.6.6] - 2026-11-13
+
+### Added
+
 - **project**: Support creating new projects via the built-in agent, MCP server, and CLI (`shumai-cli project create`).
 - **cli**: Add standalone downloads and one-line installers for macOS, Linux, and Windows without requiring Node.js or Bun, with verified downloads, version selection, and upgrade support.
 

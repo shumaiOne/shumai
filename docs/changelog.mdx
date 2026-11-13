@@ -3,6 +3,23 @@ title: "Changelog"
 description: "Recent updates, new features, and improvements in Shumai"
 ---
 
+<Update label="v0.6.6" description="November 13, 2026">
+
+### Added
+
+- **project**: Support creating new projects via the built-in agent, MCP server, and CLI (`shumai-cli project create`).
+- **cli**: Add standalone downloads and one-line installers for macOS, Linux, and Windows without requiring Node.js or Bun, with verified downloads, version selection, and upgrade support.
+
+### Fixed
+
+- **storage**: Remove empty local folders left behind after generating video search embeddings.
+
+### Changed
+
+- **agent**: Upgrade the agent runtime and automatically migrate existing conversations, keep thread histories independent, prevent duplicate history during simultaneous mentions, improve session log scrolling and readability, and fix authentication for OpenAI and custom providers. Agents now run with the main server; standalone agent workers are no longer supported.
+
+</Update>
+
 <Update label="v0.6.5" description="November 7, 2026">
 
 ### Added
