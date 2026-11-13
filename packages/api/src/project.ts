@@ -61,7 +61,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       { teamId, ...req },
     )
 
-    return c.json(newProject)
+    return c.json(await projectService.getProject(newProject.id))
   })
   .put('/projects/:projectId', zValidator('json', updateProjectRequestSchema), async (c) => {
     const projectId = c.req.param('projectId')

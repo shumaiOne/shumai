@@ -103,13 +103,24 @@ describe('project api', () => {
     )
   })
 
-  it('POST /teams/:teamId/projects runs create_project', async () => {
+  it('POST /teams/:teamId/projects runs create_project and returns ProjectInfo', async () => {
     vi.mocked(runOperation).mockResolvedValue({
       id: 'foo',
       name: 'foo.png',
       teamId: 't',
       rootFolderId: 'root1',
     })
+    const projectInfo: ProjectInfo = {
+      id: 'foo',
+      name: 'foo.png',
+      teamId: 't',
+      rootFolder: 'root1',
+      coverImage: 'http://s3/bucket/key',
+      coverImageKey: 'key',
+      enableNotification: true,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    vi.mocked(projectService.getProject).mockResolvedValue(projectInfo)
 
     const res = await app.request('/teams/t/projects', {
       method: 'POST',
@@ -119,17 +130,13 @@ describe('project api', () => {
 
     expect(res.status).toBe(200)
     const json = await res.json()
-    expect(json).toEqual({
-      id: 'foo',
-      name: 'foo.png',
-      teamId: 't',
-      rootFolderId: 'root1',
-    })
+    expect(json).toEqual(projectInfo)
     expect(runOperation).toHaveBeenCalledWith(
       createProjectOp,
       { userId: 'user1', via: 'api' },
       { teamId: 't', name: 'foo.png', coverImageKey: 'key', enableNotification: true },
     )
+    expect(projectService.getProject).toHaveBeenCalledWith('foo')
   })
 
   it('PUT /projects/:projectId', async () => {
