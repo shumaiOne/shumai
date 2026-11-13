@@ -4,11 +4,6 @@ import { paginationPageInfoSchema, paginationParamsSchema } from './pagination'
 
 export { UserType, TeamMemberScope }
 
-export const createTeamRequestSchema = z.object({
-  name: z.string(),
-})
-export type CreateTeamRequest = z.infer<typeof createTeamRequestSchema>
-
 export const teamInfoSchema = z.object({
   id: z.string(),
   name: z.string(),

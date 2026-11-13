@@ -4,7 +4,6 @@ import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/a
 import { teamService } from '@shumai/core/src/team/team'
 import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
 import {
-  createTeamRequestSchema,
   getUserTeamsRequestSchema,
   updateTeamSettingsRequestSchema,
   listMembersQuerySchema,
@@ -35,19 +34,6 @@ import type { Prisma } from '@shumai/db'
 type User = Prisma.UserGetPayload<Record<string, never>>
 
 const route = new Hono<{ Variables: { user: User } }>()
-  .post('/teams', zValidator('json', createTeamRequestSchema), async (c) => {
-    const user = c.get('user')
-    const req = c.req.valid('json')
-
-    const newTeam = await teamService.createTeam(user, req)
-    await auditLogService.logAction({
-      action: AuditAction.team_create,
-      teamId: newTeam.id,
-      userId: user.id,
-      itemId: newTeam.id,
-    })
-    return c.json(newTeam)
-  })
   .get('/teams', zValidator('query', getUserTeamsRequestSchema), async (c) => {
     const user = c.get('user')
     const pg = c.req.valid('query')

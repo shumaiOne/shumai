@@ -77,6 +77,8 @@ Add any additional context, caveats, or follow-up work.
 
 ## Workspace Architecture
 
+**Single-team design**: Each instance has one team, automatically created when the first user signs up.
+
 The project is a Bun Workspaces monorepo (Bun runtime, Hono API, Prisma + Pgvector18 DB, React + Tailwind CSS + Shadcn UI frontend):
 
 - **`packages/webui`**: React frontend (`bun run dev` runs on port 3000).
