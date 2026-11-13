@@ -17,6 +17,7 @@ import { resolveCommentOp } from './comment/resolve-comment'
 import type { Operation } from './implement'
 import { listMetadataFieldsOp } from './metadata/list-metadata-fields'
 import { updateAssetMetadataOp } from './metadata/update-asset-metadata'
+import { createProjectOp } from './project/create-project'
 import { listProjectsOp } from './project/list-projects'
 import { completeUploadOp } from './upload/complete-upload'
 import { createFileOp } from './upload/create-file'
@@ -43,6 +44,7 @@ function defineRegistry<const TOps extends readonly Operation[]>(
 
 /** Every implemented Operation. Each definition in `@shumai/operations` must appear exactly once. */
 export const operations = defineRegistry([
+  createProjectOp,
   listProjectsOp,
   listAssetsOp,
   searchAssetsOp,

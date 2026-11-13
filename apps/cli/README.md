@@ -105,12 +105,18 @@ When the output is piped instead of shown in a terminal, tables are printed as t
 
 ### Commands
 
-#### 1. List Projects
+#### 1. List and Create Projects
 
 List all projects you have access to. Returns the project ID, name, and its root folder ID.
 
 ```bash
 shumai-cli project ls
+```
+
+Create a new project (returns the project ID and its root folder ID):
+
+```bash
+shumai-cli project create "Project Name"
 ```
 
 #### 2. List Directory Contents

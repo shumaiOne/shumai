@@ -82,6 +82,34 @@ describe('MCP server and /api/ops (integration)', () => {
     expect(audit).toMatchObject({ userId: owner.id, teamId, projectId, via: 'mcp' })
   })
 
+  it('lets an MCP client create a project without specifying teamId and create a folder in it', async () => {
+    const client = await connect(ownerToken)
+
+    const createdProject = await client.callTool({
+      name: 'create_project',
+      arguments: { name: 'MCP Created Project' },
+    })
+    expect(createdProject.isError).toBeFalsy()
+    const created = createdProject.structuredContent as {
+      id: string
+      name: string
+      teamId: string
+      rootFolderId: string
+    }
+    expect(created).toMatchObject({
+      id: expect.any(String),
+      name: 'MCP Created Project',
+      teamId,
+      rootFolderId: expect.any(String),
+    })
+
+    const createdFolder = await client.callTool({
+      name: 'create_folder',
+      arguments: { parent: created.rootFolderId, name: 'Inside New Project' },
+    })
+    expect(createdFolder.isError).toBeFalsy()
+  })
+
   it("enforces the token owner's permissions", async () => {
     const client = await connect(reviewerToken)
 

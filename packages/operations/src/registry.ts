@@ -16,6 +16,7 @@ import { resolveComment } from './comment/resolve-comment'
 import type { AnyOperationDefinition, Surface } from './define'
 import { listMetadataFields } from './metadata/list-metadata-fields'
 import { updateAssetMetadata } from './metadata/update-asset-metadata'
+import { createProject } from './project/create-project'
 import { listProjects } from './project/list-projects'
 import { completeUpload } from './upload/complete-upload'
 import { createFile } from './upload/create-file'
@@ -29,6 +30,7 @@ import { removeVersion } from './version/remove-version'
  * `@shumai/core/src/operations/registry.ts` (enforced by the type checker).
  */
 export const operationDefinitions = [
+  createProject,
   listProjects,
   listAssets,
   searchAssets,

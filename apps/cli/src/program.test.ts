@@ -4,6 +4,7 @@ import {
   copyAssets,
   createComment,
   createFolder,
+  createProject,
   createVersionStack,
   deleteAsset,
   downloadAsset,
@@ -115,6 +116,31 @@ describe('shumai-cli', () => {
       await cli.run('project', 'ls')
 
       expect(cli.stdout()).toBe('No projects found.\n')
+    })
+  })
+
+  describe('project create', () => {
+    it('creates a project with positional name and optional --team', async () => {
+      const cli = setup()
+      cli.callOperation.mockResolvedValue({
+        id: 'p-new',
+        name: 'Summer Shoot',
+        teamId: 't1',
+        rootFolderId: 'root-new',
+      })
+
+      await cli.run('project', 'create', 'Summer Shoot')
+
+      expect(cli.callOperation).toHaveBeenCalledWith(createProject, { name: 'Summer Shoot' })
+      expect(cli.stdout()).toBe(
+        'Created project "Summer Shoot" (ID: p-new, rootFolderId: root-new)\n',
+      )
+
+      await cli.run('project', 'create', 'Team Shoot', '-t', 't2', '--json')
+      expect(cli.callOperation).toHaveBeenLastCalledWith(createProject, {
+        name: 'Team Shoot',
+        teamId: 't2',
+      })
     })
   })
 

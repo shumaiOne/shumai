@@ -73,6 +73,7 @@ describe('operation-backed agent tools', () => {
         'create_comment',
         'create_file',
         'create_folder',
+        'create_project',
         'create_version',
         'create_version_stack',
         'delete_asset',
@@ -103,6 +104,12 @@ describe('operation-backed agent tools', () => {
       const params = (name: string) =>
         Object.keys((getTool(name).parameters as unknown as { properties: object }).properties)
       expect(params('create_folder')).toEqual(['parent', 'name'])
+      expect(params('create_project')).toEqual([
+        'name',
+        'teamId',
+        'coverImageKey',
+        'enableNotification',
+      ])
       expect(params('rename_asset')).toEqual(['assetId', 'name'])
       expect(params('move_assets')).toEqual(['assetIds', 'newParentId'])
       expect(params('delete_asset')).toEqual(['assetId'])
@@ -138,6 +145,49 @@ describe('operation-backed agent tools', () => {
         } as Parameters<typeof validateToolArguments>[1],
       )
       await expect(invokeTool(tool, 'call-1', validated as never)).resolves.toBeDefined()
+    })
+  })
+
+  describe('create_project', () => {
+    it('uses ctx.teamId when teamId is omitted and logs project_create audit', async () => {
+      vi.spyOn(projectService, 'createProject').mockResolvedValue({
+        id: 'proj-new',
+        name: 'Campaign',
+        teamId: 'team-1',
+        rootFolder: 'root-new',
+        enableNotification: true,
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      } satisfies ProjectInfo)
+
+      const { output } = await run('create_project', { name: 'Campaign' })
+
+      expect(authzService.hasPermission).toHaveBeenCalledWith({
+        user: { id: 'user-1' },
+        permission: Permission.Edit,
+        type: ResourceType.Team,
+        id: 'team-1',
+      })
+      expect(projectService.createProject).toHaveBeenCalledWith(
+        { id: 'user-1' },
+        { teamId: 'team-1', name: 'Campaign', coverImageKey: undefined, enableNotification: true },
+      )
+      expect(auditLogService.logAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: AuditAction.project_create,
+          teamId: 'team-1',
+          projectId: 'proj-new',
+          itemId: 'proj-new',
+          userId: 'user-1',
+          agentId: 'agent-1',
+          via: 'agent',
+        }),
+      )
+      expect(output).toEqual({
+        id: 'proj-new',
+        name: 'Campaign',
+        teamId: 'team-1',
+        rootFolderId: 'root-new',
+      })
     })
   })
 

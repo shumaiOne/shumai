@@ -77,7 +77,6 @@ vi.mock('@shumai/core/src/workflowTask/workflowTask', () => ({
 
 describe('team api', () => {
   const app = new Hono().use('*', authMiddleware).route('/', teamRoute)
-  let mockCreateTeam: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockGetUserTeams: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockGetMe: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockGetTeamMembers: any // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -90,7 +89,6 @@ describe('team api', () => {
   let mockUpdateMe: any // eslint-disable-line @typescript-eslint/no-explicit-any
 
   beforeEach(() => {
-    mockCreateTeam = vi.spyOn(teamService, 'createTeam')
     mockGetUserTeams = vi.spyOn(teamService, 'getUserTeams')
     mockGetMe = vi.spyOn(teamService, 'getMe')
     mockGetTeamMembers = vi.spyOn(teamService, 'getTeamMembers')
@@ -108,9 +106,13 @@ describe('team api', () => {
     vi.restoreAllMocks()
   })
 
-  it('POST /teams creates a new team', async () => {
-    const mockTeam = { id: 't1', name: 'New Team', updatedAt: new Date() }
-    mockCreateTeam.mockResolvedValue(mockTeam)
+  it('POST /teams returns 404 without creating a team or writing an audit entry', async () => {
+    const createTeam = vi.spyOn(teamService, 'createTeam').mockResolvedValue({
+      id: 't1',
+      name: 'New Team',
+      updatedAt: new Date(),
+    })
+    const { auditLogService } = await import('@shumai/core/src/auditLog/auditLog')
 
     const res = await app.request('/teams', {
       method: 'POST',
@@ -120,13 +122,9 @@ describe('team api', () => {
       }),
     })
 
-    expect(res.status).toBe(200)
-    const data = await res.json()
-    expect(data.id).toBe('t1')
-    expect(mockCreateTeam).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'user1' }),
-      expect.objectContaining({ name: 'New Team' }),
-    )
+    expect(res.status).toBe(404)
+    expect(createTeam).not.toHaveBeenCalled()
+    expect(auditLogService.logAction).not.toHaveBeenCalled()
   })
 
   it('GET /teams returns user teams', async () => {
