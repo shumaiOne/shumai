@@ -18,7 +18,12 @@ import {
 import { listMembersQuerySchema, AuditAction } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
-import { copyAssetsOp, moveAssetsOp, runOperation } from '@shumai/core/src/operations'
+import {
+  copyAssetsOp,
+  createProjectOp,
+  moveAssetsOp,
+  runOperation,
+} from '@shumai/core/src/operations'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -50,25 +55,11 @@ const route = new Hono<{ Variables: { user: User } }>()
     const user = c.get('user')
     const req = c.req.valid('json')
 
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Edit,
-      type: ResourceType.Team,
-      id: teamId,
-    })
-
-    const newProject = await projectService.createProject(user, {
-      teamId,
-      ...req,
-    })
-
-    await auditLogService.logAction({
-      action: AuditAction.project_create,
-      teamId,
-      userId: user.id,
-      projectId: newProject.id,
-      itemId: newProject.id,
-    })
+    const newProject = await runOperation(
+      createProjectOp,
+      { userId: user.id, via: 'api' },
+      { teamId, ...req },
+    )
 
     return c.json(newProject)
   })

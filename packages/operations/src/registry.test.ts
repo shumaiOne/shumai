@@ -23,6 +23,7 @@ describe('operation registry', () => {
       'create_comment',
       'create_file',
       'create_folder',
+      'create_project',
       'create_version',
       'create_version_stack',
       'delete_asset',
@@ -122,6 +123,7 @@ describe('operation registry', () => {
       .filter((d) => d.cli)
       .map((d) => [d.name, [...(d.cli?.command ?? []), ...(d.cli?.aliases ?? [])]])
     expect(commands).toEqual([
+      ['create_project', ['project', 'create']],
       ['list_projects', ['project', 'ls']],
       ['list_assets', ['ls']],
       ['search_assets', ['search']],

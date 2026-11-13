@@ -59,6 +59,7 @@ describe('MCP server', () => {
       'create_comment',
       'create_file',
       'create_folder',
+      'create_project',
       'create_version',
       'create_version_stack',
       'delete_asset',

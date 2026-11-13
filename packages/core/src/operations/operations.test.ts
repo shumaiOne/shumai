@@ -6,6 +6,7 @@ import { projectService } from '@shumai/core/src/project/project'
 import { assetService } from '@shumai/core/src/asset/asset'
 import {
   createFolderOp,
+  createProjectOp,
   deleteAssetOp,
   listAssetsOp,
   listProjectsOp,
@@ -259,6 +260,97 @@ describe('asset and project Operations', () => {
       await expect(
         runOperation(deleteAssetOp, as(owner), { assetId: 'missing' }),
       ).rejects.toMatchObject({ status: 404 })
+    })
+  })
+
+  describe('create_project', () => {
+    it('creates a project with explicit teamId and logs audit with via and agentId', async () => {
+      const agentUser = await prisma.user.create({
+        data: { name: 'Ops Agent', email: 'ops-agent@test.com', password: 'pw', type: 'agent' },
+      })
+      const agent = await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          type: 'chat',
+          teamId,
+          config: { provider: 'openai', model: 'gpt-4o' },
+        },
+      })
+
+      const created = await runOperation(
+        createProjectOp,
+        { userId: owner.id, via: 'agent', agentId: agent.id },
+        { name: '  Agent Project  ', teamId },
+      )
+
+      expect(created).toEqual({
+        id: expect.any(String),
+        name: 'Agent Project',
+        teamId,
+        rootFolderId: expect.any(String),
+      })
+
+      const row = await prisma.project.findUniqueOrThrow({ where: { id: created.id } })
+      expect(row.rootFolderId).toBe(created.rootFolderId)
+      expect(row.shareRootId).toEqual(expect.any(String))
+
+      const [audit] = await auditRows(AuditAction.project_create)
+      expect(audit).toMatchObject({
+        teamId,
+        projectId: created.id,
+        itemId: created.id,
+        userId: owner.id,
+        agentId: agent.id,
+        via: 'agent',
+      })
+    })
+
+    it('resolves teamId from ctx.teamId or sole team membership when omitted', async () => {
+      const fromCtx = await runOperation(
+        createProjectOp,
+        { userId: owner.id, via: 'agent', teamId },
+        { name: 'From Context' },
+      )
+      expect(fromCtx.teamId).toBe(teamId)
+
+      const fromSoleMembership = await runOperation(createProjectOp, as(owner, 'cli'), {
+        name: 'From Sole Team',
+      })
+      expect(fromSoleMembership.teamId).toBe(teamId)
+    })
+
+    it('rejects omitted teamId when the user belongs to multiple teams', async () => {
+      const secondTeam = await prisma.team.create({ data: { name: 'Second Team' } })
+      await prisma.teamMember.create({
+        data: { teamId: secondTeam.id, userId: owner.id, role: 'owner' },
+      })
+
+      await expect(
+        runOperation(createProjectOp, as(owner, 'mcp'), { name: 'Ambiguous' }),
+      ).rejects.toMatchObject({ status: 400 })
+      expect(await prisma.project.count({ where: { name: 'Ambiguous' } })).toBe(0)
+      expect(await auditRows(AuditAction.project_create)).toHaveLength(0)
+    })
+
+    it('rejects reviewers, project-scoped members, and non-members with no side effects', async () => {
+      const projectScoped = await prisma.user.create({
+        data: { name: 'Scoped', email: 'ops-scoped@test.com', password: 'pw' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId, userId: projectScoped.id, role: 'editor', scope: 'project' },
+      })
+
+      for (const user of [reviewer, projectScoped, outsider]) {
+        await expect(
+          runOperation(createProjectOp, as(user), { name: 'Blocked', teamId }),
+        ).rejects.toMatchObject({ status: 403 })
+      }
+      await expect(
+        runOperation(createProjectOp, as(outsider), { name: 'NoTeam' }),
+      ).rejects.toMatchObject({ status: 403 })
+
+      expect(await prisma.project.count({ where: { name: { in: ['Blocked', 'NoTeam'] } } })).toBe(0)
+      expect(await auditRows(AuditAction.project_create)).toHaveLength(0)
     })
   })
 

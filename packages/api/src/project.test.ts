@@ -5,7 +5,12 @@ import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/a
 import { projectService } from '@shumai/core/src/project/project'
 import { assetService } from '@shumai/core/src/asset/asset'
 import type { ProjectInfo } from '@shumai/dtos'
-import { copyAssetsOp, moveAssetsOp, runOperation } from '@shumai/core/src/operations'
+import {
+  copyAssetsOp,
+  createProjectOp,
+  moveAssetsOp,
+  runOperation,
+} from '@shumai/core/src/operations'
 
 vi.mock('./middleware/auth', () => ({
   authMiddleware: async (
@@ -98,12 +103,13 @@ describe('project api', () => {
     )
   })
 
-  it('POST /teams/:teamId/projects', async () => {
-    vi.mocked(projectService.createProject).mockResolvedValue({
+  it('POST /teams/:teamId/projects runs create_project', async () => {
+    vi.mocked(runOperation).mockResolvedValue({
       id: 'foo',
       name: 'foo.png',
-      coverImage: 'http://s3/bucket/key',
-    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+      teamId: 't',
+      rootFolderId: 'root1',
+    })
 
     const res = await app.request('/teams/t/projects', {
       method: 'POST',
@@ -113,15 +119,17 @@ describe('project api', () => {
 
     expect(res.status).toBe(200)
     const json = await res.json()
-    expect(json.id).toBe('foo')
-    expect(json.name).toBe('foo.png')
-    expect(json.coverImage).toBe('http://s3/bucket/key')
-    expect(authzService.hasPermission).toHaveBeenCalledWith({
-      user: expect.anything(),
-      permission: Permission.Edit,
-      type: ResourceType.Team,
-      id: 't',
+    expect(json).toEqual({
+      id: 'foo',
+      name: 'foo.png',
+      teamId: 't',
+      rootFolderId: 'root1',
     })
+    expect(runOperation).toHaveBeenCalledWith(
+      createProjectOp,
+      { userId: 'user1', via: 'api' },
+      { teamId: 't', name: 'foo.png', coverImageKey: 'key', enableNotification: true },
+    )
   })
 
   it('PUT /projects/:projectId', async () => {
