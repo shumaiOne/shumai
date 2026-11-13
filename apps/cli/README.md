@@ -32,11 +32,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://github.com/s
 
 Native builds use Bun 1.4.4's runtime; x64 CPUs need SSE4.2. See [Bun's system requirements](https://bun.com/docs/installation). Alpine/musl is not included in these native downloads. Native downloads are available for releases containing the installer assets; use npm for earlier releases.
 
-On macOS/Linux the default directory is `~/.local/bin`. Add it to your shell's PATH if needed:
+On macOS/Linux the default directory is `~/.local/bin`. If it is missing from your current PATH, the installer prints a command to run in your current Bash/Zsh terminal:
 
 ```sh
 export PATH="$HOME/.local/bin:$PATH"
 ```
+
+To keep the CLI available in future terminals, add the same export line to `~/.bashrc` (Bash) or `~/.zshrc` (Zsh). For Bash login shells, use your existing login profile, such as `~/.bash_profile` or `~/.profile`. Open a new terminal after saving. If you already added it, you do not need to add it again. For a custom installation directory, use the exact command printed by the installer.
 
 On Windows the installer uses `%LOCALAPPDATA%\Shumai\bin` and updates the user PATH. Open a new terminal afterward. Administrator access is not required.
 

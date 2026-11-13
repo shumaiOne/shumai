@@ -84,7 +84,14 @@ main() {
   printf 'Installed shumai-cli %s to %s\n' "$version" "$destination"
   case ":${PATH:-}:" in
     *":$install_dir:"*) ;;
-    *) printf 'Add this directory to PATH in your shell configuration: %s\n' "$install_dir" ;;
+    *)
+      escaped_install_dir=$(printf '%s' "$install_dir" | sed "s/'/'\\\\''/g")
+      printf '\nTo use shumai-cli in this terminal (Bash/Zsh), run:\n'
+      printf "  export PATH='%s':\"\$PATH\"\n" "$escaped_install_dir"
+      printf '\nFor future terminals, add that line to ~/.bashrc (Bash) or ~/.zshrc (Zsh).\n'
+      printf 'For Bash login shells, use your existing login profile\n(e.g. ~/.bash_profile or ~/.profile).\n'
+      printf 'Open a new terminal after saving. If already configured, skip this step.\n'
+      ;;
   esac
   resolved=$(command -v shumai-cli || true)
   if [ -n "$resolved" ] && [ "$resolved" != "$destination" ]; then

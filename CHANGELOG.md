@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **cli**: Show copyable commands and shell configuration instructions when the standalone CLI installation directory is missing from PATH.
+
 ## [0.6.6] - 2026-11-13
 
 ### Added
