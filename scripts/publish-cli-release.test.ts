@@ -16,13 +16,26 @@ describe('CLI release publication', () => {
   let manifest: string
   let assets: { name: string; digest: string }[]
   let draft: boolean | undefined
+  let releasePages: unknown[][] | undefined
   let source = 'release-commit'
   const calls: string[][] = []
+  const releaseEntry = (tag: string, isDraft: boolean) => ({
+    // GitHub's REST API uses snake_case field names.
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    tag_name: tag,
+    draft: isDraft,
+    assets,
+  })
   const run = vi.fn((command: string, args: string[]): string => {
     calls.push([command, ...args])
     if (command === 'git') return args[1] === 'HEAD' ? source : 'release-commit'
     if (args[0] === 'api') {
-      if (draft === undefined) throw new Error('gh: Not Found (HTTP 404)')
+      if (args.includes('--paginate'))
+        return JSON.stringify(
+          releasePages ?? [draft === undefined ? [] : [releaseEntry(`v${version}`, draft)]],
+        )
+      // GitHub's tag endpoint only returns published releases, even with write access.
+      if (draft !== false) throw new Error('gh: Not Found (HTTP 404)')
       return JSON.stringify({ draft, assets })
     }
     if (args[1] === 'create') draft = true
@@ -51,6 +64,7 @@ describe('CLI release publication', () => {
     )
     await writeFile(join(directory, 'notes.md'), 'Test release notes')
     draft = undefined
+    releasePages = undefined
     source = 'release-commit'
     calls.length = 0
     run.mockClear()
@@ -88,6 +102,45 @@ describe('CLI release publication', () => {
         .filter((call) => call[0] === 'gh')
         .every((call) => call[1] === 'api' || call[2] === 'download'),
     ).toBe(true)
+    expect(calls.some((call) => call.includes('--paginate'))).toBe(false)
+  })
+
+  it('finds an existing draft on a later release-list page when the tag endpoint returns 404', async () => {
+    draft = true
+    releasePages = [[releaseEntry('v0.0.1', true)], [releaseEntry(`v${version}`, true)]]
+    await publishCliRelease('publish', context(), run)
+    expect(draft).toBe(false)
+    expect(calls.some((call) => call.includes('--paginate') && call.includes('--slurp'))).toBe(true)
+    expect(calls.some((call) => call[2] === 'create' || call[2] === 'upload')).toBe(false)
+  })
+
+  it('does not create a release when the draft-list request fails', async () => {
+    run
+      .mockImplementationOnce(() => 'release-commit')
+      .mockImplementationOnce(() => 'release-commit')
+      .mockImplementationOnce(() => {
+        throw new Error('gh: Not Found (HTTP 404)')
+      })
+      .mockImplementationOnce(() => {
+        throw new Error('gh: Forbidden (HTTP 403)')
+      })
+    await expect(publishCliRelease('stage', context(), run)).rejects.toThrow('HTTP 403')
+    expect(
+      run.mock.calls.filter(([command, args]) => command === 'gh' && args[0] !== 'api'),
+    ).toHaveLength(0)
+  })
+
+  it('rejects malformed or ambiguous release lists before changing GitHub', async () => {
+    releasePages = [[{ name: 'missing tag' }]]
+    await expect(publishCliRelease('stage', context(), run)).rejects.toThrow(
+      'Invalid GitHub release list entry',
+    )
+    const release = releaseEntry(`v${version}`, true)
+    releasePages = [[release], [release]]
+    await expect(publishCliRelease('stage', context(), run)).rejects.toThrow(
+      'Multiple GitHub releases',
+    )
+    expect(calls.every((call) => call[0] === 'git' || call[1] === 'api')).toBe(true)
   })
 
   it('rejects a source/tag mismatch before making any GitHub changes', async () => {

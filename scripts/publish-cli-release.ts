@@ -65,6 +65,37 @@ function parseRelease(value: unknown): Release {
   }
 }
 
+function findRelease(repository: string, tag: string, run: Runner): Release | undefined {
+  try {
+    return parseRelease(JSON.parse(run('gh', ['api', `repos/${repository}/releases/tags/${tag}`])))
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.includes('HTTP 404')) throw error
+  }
+
+  // The tag endpoint only returns published releases. Authenticated release lists include drafts.
+  const pages: unknown = JSON.parse(
+    run('gh', ['api', '--paginate', '--slurp', `repos/${repository}/releases?per_page=100`]),
+  )
+  assert.ok(Array.isArray(pages), 'Invalid GitHub release list')
+  let release: Release | undefined
+  for (const page of pages) {
+    assert.ok(Array.isArray(page), 'Invalid GitHub release list page')
+    for (const entry of page as unknown[]) {
+      assert.ok(
+        entry &&
+          typeof entry === 'object' &&
+          'tag_name' in entry &&
+          typeof entry.tag_name === 'string',
+        'Invalid GitHub release list entry',
+      )
+      if (entry.tag_name !== tag) continue
+      assert.ok(!release, 'Multiple GitHub releases found for the release tag')
+      release = parseRelease(entry)
+    }
+  }
+  return release
+}
+
 export async function publishCliRelease(
   mode: 'stage' | 'publish',
   context: { tag: string; repository: string; outdir: string; notes: string },
@@ -85,13 +116,7 @@ export async function publishCliRelease(
       `Local checksum mismatch: ${name}`,
     )
 
-  const endpoint = `repos/${context.repository}/releases/tags/${context.tag}`
-  let release: Release | undefined
-  try {
-    release = parseRelease(JSON.parse(run('gh', ['api', endpoint])))
-  } catch (error) {
-    if (!(error instanceof Error) || !error.message.includes('HTTP 404')) throw error
-  }
+  let release = findRelease(context.repository, context.tag, run)
   if (!release) {
     assert.equal(mode, 'stage', 'Release must be staged before publishing')
     run('gh', [
