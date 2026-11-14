@@ -184,6 +184,7 @@ export const createSandboxedBashTool = (
         timeoutSec: timeout,
         env: skillEnvs,
         signal,
+        collectOutput: false,
         onOutput: (chunk) => handleData(Buffer.from(chunk, 'utf-8')),
       })
 

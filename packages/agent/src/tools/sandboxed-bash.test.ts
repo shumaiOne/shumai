@@ -92,6 +92,7 @@ describe('createSandboxedBashTool', () => {
       expect.objectContaining({
         command: 'echo hello',
         env: { TEST_ENV: 'test-value' },
+        collectOutput: false,
       }),
     )
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ToolResponse content is an array of content blocks

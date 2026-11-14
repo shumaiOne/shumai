@@ -19,6 +19,7 @@ import {
 import { logger } from '@shumai/core/src/logger'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import type {
+  AuthenticatedRunner,
   ResolvedRunnerTarget,
   RunnerExecOptions,
   RunnerExecResult,
@@ -29,6 +30,7 @@ const RUNNER_KEY_PREFIX = 'shm_rn_'
 const DEFAULT_RECONNECT_GRACE_MS = 30_000
 const DEFAULT_FILE_OP_TIMEOUT_MS = 120_000
 const DEFAULT_EXEC_TIMEOUT_SEC = 120
+const DEFAULT_MAX_EXEC_OUTPUT_BYTES = 128 * 1024
 const HEARTBEAT_INTERVAL_MS = 25_000
 const HEARTBEAT_TIMEOUT_MS = 60_000
 
@@ -47,7 +49,10 @@ interface PendingExecOperation {
   executionId: string
   runnerId: string
   message: ServerToRunnerMessage
-  outputChunks: string[]
+  collectOutput: boolean
+  maxBufferedOutputBytes: number
+  bufferedOutputBytes: number
+  outputChunks: Buffer[]
   nextOffset: number
   onOutput?: (chunk: string, stream: 'stdout' | 'stderr') => void
   resolve: (result: RunnerExecResult) => void
@@ -127,6 +132,7 @@ export class RunnerService {
   private sessions = new Map<string, ActiveRunnerSession>()
   private pendingOps = new Map<string, PendingOperation>()
   private disconnectGraceTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  private credentialRevisions = new Map<string, number>()
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
   private reconnectGraceMs = DEFAULT_RECONNECT_GRACE_MS
 
@@ -192,16 +198,19 @@ export class RunnerService {
 
   async createRunner(teamId: string, req: CreateRunnerRequest): Promise<CreateRunnerResponse> {
     const name = req.name.trim()
-    const existingByName = await prisma.runner.findFirst({
-      where: { teamId, name },
-    })
-    if (existingByName) {
-      throw new HTTPException(409, { message: `Runner "${name}" already exists` })
-    }
-
     const { key, keyPrefix, keyHash } = generateRunnerKey()
 
     const runner = await prisma.$transaction(async (tx) => {
+      // Serialize per-team runner mutations so default invariants hold under READ COMMITTED
+      await tx.$queryRaw`SELECT id FROM teams WHERE id = ${teamId} FOR UPDATE`
+
+      const existingByName = await tx.runner.findFirst({
+        where: { teamId, name },
+      })
+      if (existingByName) {
+        throw new HTTPException(409, { message: `Runner "${name}" already exists` })
+      }
+
       const existingCount = await tx.runner.count({ where: { teamId } })
       const shouldBeDefault = existingCount === 0 || req.isDefault === true
 
@@ -236,25 +245,28 @@ export class RunnerService {
     runnerId: string,
     req: UpdateRunnerRequest,
   ): Promise<RunnerInfo> {
-    const existing = await prisma.runner.findFirst({
-      where: { id: runnerId, teamId },
-    })
-    if (!existing) {
-      throw new HTTPException(404, { message: 'Runner not found' })
-    }
-
-    const nextName = req.name !== undefined ? req.name.trim() : existing.name
-    if (nextName !== existing.name) {
-      const duplicate = await prisma.runner.findFirst({
-        where: { teamId, name: nextName },
-      })
-      if (duplicate && duplicate.id !== runnerId) {
-        throw new HTTPException(409, { message: `Runner "${nextName}" already exists` })
-      }
-    }
-
     const updated = await prisma.$transaction(async (tx) => {
-      let nextIsDefault = existing.isDefault
+      await tx.$queryRaw`SELECT id FROM teams WHERE id = ${teamId} FOR UPDATE`
+
+      const existing = await tx.runner.findFirst({
+        where: { id: runnerId, teamId },
+      })
+      if (!existing) {
+        throw new HTTPException(404, { message: 'Runner not found' })
+      }
+
+      const nextName = req.name !== undefined ? req.name.trim() : existing.name
+      if (nextName !== existing.name) {
+        const duplicate = await tx.runner.findFirst({
+          where: { teamId, name: nextName },
+        })
+        if (duplicate && duplicate.id !== runnerId) {
+          throw new HTTPException(409, { message: `Runner "${nextName}" already exists` })
+        }
+      }
+
+      let nextIsDefault: boolean | undefined
+      let promoteFallbackId: string | undefined
 
       if (req.isDefault === true && !existing.isDefault) {
         await tx.runner.updateMany({
@@ -268,27 +280,33 @@ export class RunnerService {
           orderBy: { id: 'desc' },
         })
         if (fallback) {
-          await tx.runner.update({
-            where: { id: fallback.id },
-            data: { isDefault: true },
-          })
           nextIsDefault = false
+          promoteFallbackId = fallback.id
         } else {
           // Only runner in team must remain default to preserve the invariant
           nextIsDefault = true
         }
       }
 
-      return await tx.runner.update({
+      const saved = await tx.runner.update({
         where: { id: runnerId },
         data: {
           name: nextName,
           ...(req.description !== undefined && {
             description: req.description ? req.description.trim() : null,
           }),
-          isDefault: nextIsDefault,
+          ...(nextIsDefault !== undefined && { isDefault: nextIsDefault }),
         },
       })
+
+      if (promoteFallbackId) {
+        await tx.runner.update({
+          where: { id: promoteFallbackId },
+          data: { isDefault: true },
+        })
+      }
+
+      return saved
     })
 
     const session = this.sessions.get(runnerId)
@@ -308,6 +326,7 @@ export class RunnerService {
       throw new HTTPException(404, { message: 'Runner not found' })
     }
 
+    this.bumpCredentialRevision(runnerId)
     const { key, keyPrefix, keyHash } = generateRunnerKey()
     const updated = await prisma.runner.update({
       where: { id: runnerId },
@@ -324,14 +343,18 @@ export class RunnerService {
   }
 
   async deleteRunner(teamId: string, runnerId: string): Promise<void> {
-    const existing = await prisma.runner.findFirst({
-      where: { id: runnerId, teamId },
-    })
-    if (!existing) {
-      throw new HTTPException(404, { message: 'Runner not found' })
-    }
+    this.bumpCredentialRevision(runnerId)
 
     await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM teams WHERE id = ${teamId} FOR UPDATE`
+
+      const existing = await tx.runner.findFirst({
+        where: { id: runnerId, teamId },
+      })
+      if (!existing) {
+        throw new HTTPException(404, { message: 'Runner not found' })
+      }
+
       await tx.runner.delete({
         where: { id: runnerId },
       })
@@ -420,9 +443,7 @@ export class RunnerService {
   // WebSocket Authentication & Session Management
   // ----------------------------------------------------------------------
 
-  async authenticateRunnerKey(
-    rawKey: string,
-  ): Promise<{ id: string; teamId: string; name: string } | null> {
+  async authenticateRunnerKey(rawKey: string): Promise<AuthenticatedRunner | null> {
     const trimmed = rawKey.trim()
     if (!trimmed.startsWith(RUNNER_KEY_PREFIX)) {
       return null
@@ -430,15 +451,31 @@ export class RunnerService {
     const keyHash = hashRunnerKey(trimmed)
     const runner = await prisma.runner.findUnique({
       where: { keyHash },
-      select: { id: true, teamId: true, name: true },
+      select: { id: true, teamId: true, name: true, keyHash: true },
     })
     return runner
   }
 
-  async registerConnection(
-    runner: { id: string; teamId: string; name: string },
-    ws: RunnerSocket,
-  ): Promise<void> {
+  async registerConnection(runner: AuthenticatedRunner, ws: RunnerSocket): Promise<void> {
+    const startRevision = this.credentialRevisions.get(runner.id) ?? 0
+    const verified = await prisma.runner.findFirst({
+      where: {
+        id: runner.id,
+        teamId: runner.teamId,
+        keyHash: runner.keyHash,
+      },
+      select: { id: true, teamId: true, name: true },
+    })
+    const currentRevision = this.credentialRevisions.get(runner.id) ?? 0
+    if (!verified || currentRevision !== startRevision) {
+      try {
+        ws.close(1008, 'Runner key rotated or revoked')
+      } catch {
+        // Ignore close errors
+      }
+      return
+    }
+
     const existingTimer = this.disconnectGraceTimers.get(runner.id)
     if (existingTimer) {
       clearTimeout(existingTimer)
@@ -458,9 +495,9 @@ export class RunnerService {
     }
 
     const session: ActiveRunnerSession = {
-      runnerId: runner.id,
-      teamId: runner.teamId,
-      runnerName: runner.name,
+      runnerId: verified.id,
+      teamId: verified.teamId,
+      runnerName: verified.name,
       ws,
       lastPongAt: Date.now(),
       stagedSkills: new Map(),
@@ -478,11 +515,15 @@ export class RunnerService {
         logger.warn({ err, runnerId: runner.id }, 'Failed to update runner lastConnectedAt')
       })
 
+    if (this.sessions.get(runner.id) !== session) {
+      return
+    }
+
     const inFlightExecutionIds = this.getInFlightExecutionIdsForRunner(runner.id)
     this.sendToSession(session, {
       type: 'welcome',
-      runnerId: runner.id,
-      runnerName: runner.name,
+      runnerId: verified.id,
+      runnerName: verified.name,
       serverTime: Date.now(),
       inFlightExecutionIds,
     })
@@ -607,6 +648,12 @@ export class RunnerService {
       ...(options.env && Object.keys(options.env).length > 0 ? { env: options.env } : {}),
     }
 
+    const collectOutput = options.collectOutput ?? true
+    const maxBufferedOutputBytes = Math.max(
+      0,
+      options.maxBufferedOutputBytes ?? DEFAULT_MAX_EXEC_OUTPUT_BYTES,
+    )
+
     return await new Promise<RunnerExecResult>((resolve, reject) => {
       const safetyTimeoutMs = Math.max((timeoutSec + 15) * 1000, 15_000)
       const timeoutTimer = setTimeout(() => {
@@ -619,7 +666,7 @@ export class RunnerService {
         }
         resolve({
           executionId,
-          output: pending.kind === 'exec' ? pending.outputChunks.join('') : '',
+          output: pending.kind === 'exec' ? this.readBufferedExecOutput(pending) : '',
           exitCode: null,
           signal: 'SIGKILL',
           timedOut: true,
@@ -641,7 +688,7 @@ export class RunnerService {
             this.cleanupPendingOp(executionId)
             resolve({
               executionId,
-              output: pending.kind === 'exec' ? pending.outputChunks.join('') : '',
+              output: pending.kind === 'exec' ? this.readBufferedExecOutput(pending) : '',
               exitCode: null,
               signal: 'SIGKILL',
               timedOut: false,
@@ -661,6 +708,9 @@ export class RunnerService {
         executionId,
         runnerId,
         message,
+        collectOutput,
+        maxBufferedOutputBytes,
+        bufferedOutputBytes: 0,
         outputChunks: [],
         nextOffset: 0,
         onOutput: options.onOutput,
@@ -952,9 +1002,10 @@ export class RunnerService {
     }
 
     const sliceStart = Math.max(0, pending.nextOffset - msg.offset)
-    const newText = buf.subarray(sliceStart).toString('utf-8')
+    const newBuf = buf.subarray(sliceStart)
+    const newText = newBuf.toString('utf-8')
     pending.nextOffset = endOffset
-    pending.outputChunks.push(newText)
+    this.appendBoundedExecOutput(pending, newBuf)
     pending.onOutput?.(newText, msg.stream)
   }
 
@@ -970,7 +1021,7 @@ export class RunnerService {
     this.cleanupPendingOp(msg.executionId)
     pending.resolve({
       executionId: msg.executionId,
-      output: pending.outputChunks.join(''),
+      output: this.readBufferedExecOutput(pending),
       exitCode: msg.exitCode,
       signal: msg.signal,
       timedOut: msg.timedOut,
@@ -1023,7 +1074,58 @@ export class RunnerService {
     return ids
   }
 
+  private bumpCredentialRevision(runnerId: string): void {
+    this.credentialRevisions.set(runnerId, (this.credentialRevisions.get(runnerId) ?? 0) + 1)
+  }
+
+  private appendBoundedExecOutput(pending: PendingExecOperation, chunk: Buffer): void {
+    if (!pending.collectOutput || pending.maxBufferedOutputBytes <= 0 || chunk.length === 0) {
+      return
+    }
+
+    const limit = pending.maxBufferedOutputBytes
+    if (chunk.length >= limit) {
+      pending.outputChunks = [chunk]
+      pending.bufferedOutputBytes = chunk.length
+    } else {
+      pending.outputChunks.push(chunk)
+      pending.bufferedOutputBytes += chunk.length
+    }
+
+    while (pending.bufferedOutputBytes > limit && pending.outputChunks.length > 0) {
+      const overflow = pending.bufferedOutputBytes - limit
+      const head = pending.outputChunks[0]
+      if (overflow >= head.length) {
+        pending.outputChunks.shift()
+        pending.bufferedOutputBytes -= head.length
+        continue
+      }
+
+      let start = overflow
+      while (start < head.length && (head[start] & 0xc0) === 0x80) {
+        start++
+      }
+      if (start >= head.length) {
+        pending.outputChunks.shift()
+        pending.bufferedOutputBytes -= head.length
+      } else {
+        pending.outputChunks[0] = head.subarray(start)
+        pending.bufferedOutputBytes -= start
+      }
+      break
+    }
+  }
+
+  private readBufferedExecOutput(pending: PendingExecOperation): string {
+    if (!pending.collectOutput || pending.outputChunks.length === 0) {
+      return ''
+    }
+    return Buffer.concat(pending.outputChunks).toString('utf-8')
+  }
+
   private revokeActiveSession(runnerId: string, reason: string): void {
+    this.bumpCredentialRevision(runnerId)
+
     const timer = this.disconnectGraceTimers.get(runnerId)
     if (timer) {
       clearTimeout(timer)

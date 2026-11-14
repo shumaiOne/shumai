@@ -73,7 +73,7 @@ export class OutputAccumulator {
     if (this.tempFileStream || this.shouldUseTempFile()) {
       this.ensureTempFile()
       this.tempFileStream?.write(data)
-    } else if (data.length > 0) {
+    } else if (!this.disableTempFile && data.length > 0) {
       this.rawChunks.push(data)
     }
   }

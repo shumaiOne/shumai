@@ -1,12 +1,8 @@
 import { Hono } from 'hono'
-import { runnerService, type RunnerSocket } from '@shumai/core/src/runner'
+import { type AuthenticatedRunner, runnerService, type RunnerSocket } from '@shumai/core/src/runner'
 
 export interface RunnerWsData {
-  runner: {
-    id: string
-    teamId: string
-    name: string
-  }
+  runner: AuthenticatedRunner
 }
 
 interface BunServerLike {

@@ -32,16 +32,19 @@ function setCreationMetadata(schema: ToolParametersSchema, options: AgentToolOpt
   }
 }
 
-function resolveGeneratedStorageKey(rawPath: string): string | null {
+function resolveGeneratedStorageKey(rawPath: string): {
+  storageKey: string
+  explicitStorageRef: boolean
+} | null {
   const cleaned = rawPath.replace(/\\/g, '/').replace(/^\.\//, '')
   if (cleaned.includes('..')) return null
   if (cleaned.startsWith('.pi/generated/')) {
     const rest = cleaned.slice('.pi/generated/'.length)
-    return rest ? `temp/generated/${rest}` : null
+    return rest ? { storageKey: `temp/generated/${rest}`, explicitStorageRef: false } : null
   }
   if (cleaned.startsWith('temp/generated/')) {
     const rest = cleaned.slice('temp/generated/'.length)
-    return rest ? cleaned : null
+    return rest ? { storageKey: cleaned, explicitStorageRef: true } : null
   }
   return null
 }
@@ -74,6 +77,24 @@ async function resolveTargetRunnerId(ctx?: AgentOperationContext): Promise<strin
   return runner.id
 }
 
+async function resolveStorageGeneratedSource(storageKey: string): Promise<{
+  kind: 'generated'
+  storageKey: string
+  name: string
+  contentType: string
+} | null> {
+  const head = await s3Service.headObject(storageBucket(), storageKey).catch(() => null)
+  if (!head) {
+    return null
+  }
+  const name = path.posix.basename(storageKey)
+  const contentType =
+    head.contentType && head.contentType !== 'application/octet-stream'
+      ? head.contentType
+      : getFileMimeType(null, name)
+  return { kind: 'generated', storageKey, name, contentType }
+}
+
 async function resolvePathSource(
   localPath: string,
   ctx?: AgentOperationContext,
@@ -81,18 +102,13 @@ async function resolvePathSource(
   | { kind: 'generated'; storageKey: string; name: string; contentType: string }
   | { kind: 'runner'; runnerId: string; runnerPath: string; name: string; contentType: string }
 > {
-  const generatedKey = resolveGeneratedStorageKey(localPath)
-  if (generatedKey) {
-    const head = await s3Service.headObject(storageBucket(), generatedKey).catch(() => null)
-    if (!head) {
+  const generatedRef = resolveGeneratedStorageKey(localPath)
+  if (generatedRef?.explicitStorageRef) {
+    const source = await resolveStorageGeneratedSource(generatedRef.storageKey)
+    if (!source) {
       throw new Error(`Local file not found at path: ${localPath}`)
     }
-    const name = path.posix.basename(generatedKey)
-    const contentType =
-      head.contentType && head.contentType !== 'application/octet-stream'
-        ? head.contentType
-        : getFileMimeType(null, name)
-    return { kind: 'generated', storageKey: generatedKey, name, contentType }
+    return source
   }
 
   const runnerPath = normalizeRunnerPath(localPath)
@@ -100,17 +116,37 @@ async function resolvePathSource(
     throw new Error(`Local file not found at path: ${localPath}`)
   }
 
-  const runnerId = await resolveTargetRunnerId(ctx)
-  const stat = await runnerService.statOnRunner(runnerId, runnerPath)
-  if (!stat.ok || !stat.exists || stat.isFile === false) {
-    throw new Error(`Local file not found at path: ${localPath}`)
+  let runnerError: unknown
+  try {
+    const runnerId = await resolveTargetRunnerId(ctx)
+    const stat = await runnerService.statOnRunner(runnerId, runnerPath)
+    if (stat.ok && stat.exists && stat.isFile !== false) {
+      const name = path.posix.basename(runnerPath)
+      const contentType =
+        stat.mimeType && stat.mimeType !== 'application/octet-stream'
+          ? stat.mimeType
+          : getFileMimeType(null, name)
+      return { kind: 'runner', runnerId, runnerPath, name, contentType }
+    }
+  } catch (err) {
+    if (!generatedRef) {
+      throw err
+    }
+    runnerError = err
   }
-  const name = path.posix.basename(runnerPath)
-  const contentType =
-    stat.mimeType && stat.mimeType !== 'application/octet-stream'
-      ? stat.mimeType
-      : getFileMimeType(null, name)
-  return { kind: 'runner', runnerId, runnerPath, name, contentType }
+
+  // Fallback for unstaged generated files stored in temporary S3
+  if (generatedRef) {
+    const source = await resolveStorageGeneratedSource(generatedRef.storageKey)
+    if (source) {
+      return source
+    }
+    if (runnerError) {
+      throw runnerError
+    }
+  }
+
+  throw new Error(`Local file not found at path: ${localPath}`)
 }
 
 /**

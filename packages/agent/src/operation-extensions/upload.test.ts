@@ -181,13 +181,17 @@ describe('create_file and create_version agent tools', () => {
       })
     })
 
-    it('creates a file directly from a server-staged .pi/generated/ path without using a runner', async () => {
+    it('falls back to temporary S3 storage when no runner is configured for .pi/generated/', async () => {
+      vi.mocked(runnerService.requireOnlineRunner).mockRejectedValueOnce(
+        new Error('No Runner is configured for this team.'),
+      )
+
       await invokeTool(tool('create_file'), 'call-1', {
         parent: 'folder-1',
         path: '.pi/generated/gen123/poster.png',
       } as never)
 
-      expect(runnerService.requireOnlineRunner).not.toHaveBeenCalled()
+      expect(runnerService.statOnRunner).not.toHaveBeenCalled()
       expect(s3Service.getObject).toHaveBeenCalledWith(bucket, 'temp/generated/gen123/poster.png')
       expect(s3Service.putObject).toHaveBeenCalled()
       expect(assetService.createFile).toHaveBeenCalledWith(
@@ -196,6 +200,69 @@ describe('create_file and create_version agent tools', () => {
           name: 'poster.png',
         }),
       )
+    })
+
+    it('falls back to temporary S3 storage when .pi/generated/ file is not staged on the online runner', async () => {
+      vi.mocked(runnerService.statOnRunner).mockResolvedValueOnce({
+        type: 'file.stat.result',
+        executionId: 'exec-stat-missing',
+        ok: true,
+        exists: false,
+      })
+
+      await invokeTool(tool('create_file'), 'call-1', {
+        parent: 'folder-1',
+        path: '.pi/generated/gen123/unstaged.png',
+      } as never)
+
+      expect(runnerService.statOnRunner).toHaveBeenCalledWith(
+        'runner-1',
+        '.pi/generated/gen123/unstaged.png',
+      )
+      expect(s3Service.getObject).toHaveBeenCalledWith(bucket, 'temp/generated/gen123/unstaged.png')
+      expect(runnerService.uploadFromRunner).not.toHaveBeenCalled()
+    })
+
+    it('prefers uploading edited or newly created .pi/generated/ files from the runner over S3', async () => {
+      vi.mocked(s3Service.headObject).mockImplementation(async (_bucket, key) => {
+        if (key === 'temp/generated/gen123/edited.png') {
+          throw new Error('NotFound')
+        }
+        return {
+          key,
+          size: 17,
+          lastModified: new Date(),
+          contentType: 'text/markdown',
+          eTag: '',
+        }
+      })
+
+      await invokeTool(tool('create_file'), 'call-1', {
+        parent: 'folder-1',
+        path: '.pi/generated/gen123/edited.png',
+      } as never)
+
+      expect(runnerService.statOnRunner).toHaveBeenCalledWith(
+        'runner-1',
+        '.pi/generated/gen123/edited.png',
+      )
+      expect(runnerService.uploadFromRunner).toHaveBeenCalledWith('runner-1', {
+        srcPath: '.pi/generated/gen123/edited.png',
+        url: 'https://storage.example/upload',
+        contentType: 'text/markdown',
+      })
+      expect(s3Service.getObject).not.toHaveBeenCalled()
+    })
+
+    it('reads explicit temp/generated/ paths directly from S3 without touching the runner', async () => {
+      await invokeTool(tool('create_file'), 'call-1', {
+        parent: 'folder-1',
+        path: 'temp/generated/gen123/direct.png',
+      } as never)
+
+      expect(runnerService.requireOnlineRunner).not.toHaveBeenCalled()
+      expect(runnerService.statOnRunner).not.toHaveBeenCalled()
+      expect(s3Service.getObject).toHaveBeenCalledWith(bucket, 'temp/generated/gen123/direct.png')
     })
 
     it('creates a text file from name and content', async () => {

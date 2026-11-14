@@ -1,5 +1,5 @@
 import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
-import { runnerService, type RunnerSocket } from '@shumai/core/src/runner'
+import { hashRunnerKey, runnerService, type RunnerSocket } from '@shumai/core/src/runner'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -58,10 +58,10 @@ describe('Concurrent Runner Sessions', () => {
     const team = await prisma.team.create({
       data: { name: 'Concurrent Runner Team' },
     })
-    const { runner } = await runnerService.createRunner(team.id, { name: 'Shared Runner' })
+    const { runner, key } = await runnerService.createRunner(team.id, { name: 'Shared Runner' })
     const conn = createMockWs()
     await runnerService.registerConnection(
-      { id: runner.id, teamId: team.id, name: runner.name },
+      { id: runner.id, teamId: team.id, name: runner.name, keyHash: hashRunnerKey(key) },
       conn.ws,
     )
 
@@ -172,11 +172,11 @@ describe('Concurrent Runner Sessions', () => {
     const team = await prisma.team.create({
       data: { name: 'Multi Runner Team' },
     })
-    const { runner: defaultRunner } = await runnerService.createRunner(team.id, {
+    const { runner: defaultRunner, key: defaultKey } = await runnerService.createRunner(team.id, {
       name: 'Default Runner',
       isDefault: true,
     })
-    const { runner: gpuRunner } = await runnerService.createRunner(team.id, {
+    const { runner: gpuRunner, key: gpuKey } = await runnerService.createRunner(team.id, {
       name: 'GPU Runner',
       isDefault: false,
     })
@@ -184,11 +184,21 @@ describe('Concurrent Runner Sessions', () => {
     const defaultConn = createMockWs()
     const gpuConn = createMockWs()
     await runnerService.registerConnection(
-      { id: defaultRunner.id, teamId: team.id, name: defaultRunner.name },
+      {
+        id: defaultRunner.id,
+        teamId: team.id,
+        name: defaultRunner.name,
+        keyHash: hashRunnerKey(defaultKey),
+      },
       defaultConn.ws,
     )
     await runnerService.registerConnection(
-      { id: gpuRunner.id, teamId: team.id, name: gpuRunner.name },
+      {
+        id: gpuRunner.id,
+        teamId: team.id,
+        name: gpuRunner.name,
+        keyHash: hashRunnerKey(gpuKey),
+      },
       gpuConn.ws,
     )
 

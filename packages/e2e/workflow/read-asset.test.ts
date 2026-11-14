@@ -2,7 +2,7 @@ import type { AssistantMessage } from '@earendil-works/pi-ai'
 import { initAgentWorkflows } from '@shumai/agent'
 import { getAssetRenderOp, readAssetOp, runOperation } from '@shumai/core/src/operations'
 import { projectService } from '@shumai/core/src/project/project'
-import { runnerService, type RunnerSocket } from '@shumai/core/src/runner'
+import { hashRunnerKey, runnerService, type RunnerSocket } from '@shumai/core/src/runner'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { prisma, type User } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
@@ -201,7 +201,7 @@ describe('Workflow E2E - read_asset', () => {
 
   it('gives the chat agent video frames as images', async () => {
     const { team, user, project } = await seed('agent')
-    const { runner } = await runnerService.createRunner(team.id, { name: 'E2E Runner' })
+    const { runner, key } = await runnerService.createRunner(team.id, { name: 'E2E Runner' })
     const runnerSocket: RunnerSocket = {
       send(data: string) {
         const msg = JSON.parse(data) as {
@@ -259,7 +259,7 @@ describe('Workflow E2E - read_asset', () => {
       close() {},
     }
     await runnerService.registerConnection(
-      { id: runner.id, teamId: team.id, name: runner.name },
+      { id: runner.id, teamId: team.id, name: runner.name, keyHash: hashRunnerKey(key) },
       runnerSocket,
     )
 

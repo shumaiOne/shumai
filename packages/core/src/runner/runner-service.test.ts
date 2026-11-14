@@ -112,6 +112,37 @@ describe('RunnerService', () => {
       expect(list[0].isDefault).toBe(true)
     })
 
+    it('preserves a concurrent default promotion during name-only updates and enforces single default in DB', async () => {
+      const older = await service.createRunner(teamId, { name: 'Older Runner' })
+      const newer = await service.createRunner(teamId, { name: 'Newer Default', isDefault: true })
+
+      // Simulate rename-only update alongside promoting older runner
+      await service.updateRunner(teamId, older.runner.id, { isDefault: true })
+      const renamedNewer = await service.updateRunner(teamId, newer.runner.id, {
+        name: 'Newer Default Renamed',
+      })
+      expect(renamedNewer.isDefault).toBe(false)
+
+      // Concurrent rename + promote should serialize cleanly and never produce two defaults
+      await Promise.all([
+        service.updateRunner(teamId, older.runner.id, { name: 'Older Renamed' }),
+        service.updateRunner(teamId, newer.runner.id, { isDefault: true }),
+      ])
+
+      const list = await service.listRunners(teamId)
+      expect(list.filter((r) => r.isDefault)).toHaveLength(1)
+      expect(list.find((r) => r.id === newer.runner.id)?.isDefault).toBe(true)
+      expect(list.find((r) => r.id === older.runner.id)?.name).toBe('Older Renamed')
+
+      // Partial unique index enforces single default even on direct DB writes
+      await expect(
+        prisma.runner.update({
+          where: { id: older.runner.id },
+          data: { isDefault: true },
+        }),
+      ).rejects.toThrow()
+    })
+
     it('authenticates runner keys and invalidates old key on rotation', async () => {
       const created = await service.createRunner(teamId, { name: 'Runner A' })
       const verified = await service.authenticateRunnerKey(created.key)
@@ -119,6 +150,7 @@ describe('RunnerService', () => {
         id: created.runner.id,
         teamId,
         name: 'Runner A',
+        keyHash: hashRunnerKey(created.key),
       })
 
       const rotated = await service.rotateRunnerKey(teamId, created.runner.id)
@@ -128,20 +160,28 @@ describe('RunnerService', () => {
         id: created.runner.id,
         teamId,
         name: 'Runner A',
+        keyHash: hashRunnerKey(rotated.key),
       })
     })
   })
 
   describe('WebSocket connection lifecycle & eviction', () => {
     it('evicts existing connection with 4000 when a new connection arrives', async () => {
-      const { runner } = await service.createRunner(teamId, { name: 'Runner WS' })
+      const { runner, key } = await service.createRunner(teamId, { name: 'Runner WS' })
+      const keyHash = hashRunnerKey(key)
       const conn1 = createMockWs()
       const conn2 = createMockWs()
 
-      await service.registerConnection({ id: runner.id, teamId, name: runner.name }, conn1.ws)
+      await service.registerConnection(
+        { id: runner.id, teamId, name: runner.name, keyHash },
+        conn1.ws,
+      )
       expect(service.isRunnerConnected(runner.id)).toBe(true)
 
-      await service.registerConnection({ id: runner.id, teamId, name: runner.name }, conn2.ws)
+      await service.registerConnection(
+        { id: runner.id, teamId, name: runner.name, keyHash },
+        conn2.ws,
+      )
       expect(conn1.getClosed()).toEqual({
         code: 4000,
         reason: 'Replaced by a newer connection',
@@ -150,18 +190,49 @@ describe('RunnerService', () => {
     })
 
     it('closes active connection with 1008 when key is rotated or runner is deleted', async () => {
-      const { runner } = await service.createRunner(teamId, { name: 'Runner Rotate' })
+      const { runner, key } = await service.createRunner(teamId, { name: 'Runner Rotate' })
       const conn1 = createMockWs()
-      await service.registerConnection({ id: runner.id, teamId, name: runner.name }, conn1.ws)
+      await service.registerConnection(
+        { id: runner.id, teamId, name: runner.name, keyHash: hashRunnerKey(key) },
+        conn1.ws,
+      )
 
-      await service.rotateRunnerKey(teamId, runner.id)
+      const rotated = await service.rotateRunnerKey(teamId, runner.id)
       expect(conn1.getClosed()?.code).toBe(1008)
       expect(service.isRunnerConnected(runner.id)).toBe(false)
 
       const conn2 = createMockWs()
-      await service.registerConnection({ id: runner.id, teamId, name: runner.name }, conn2.ws)
+      await service.registerConnection(
+        { id: runner.id, teamId, name: runner.name, keyHash: hashRunnerKey(rotated.key) },
+        conn2.ws,
+      )
       await service.deleteRunner(teamId, runner.id)
       expect(conn2.getClosed()?.code).toBe(1008)
+    })
+
+    it('rejects outstanding handshake if key was rotated or runner deleted before open()', async () => {
+      const { runner, key } = await service.createRunner(teamId, { name: 'Runner Race' })
+      const authenticated = await service.authenticateRunnerKey(key)
+      expect(authenticated).not.toBeNull()
+
+      // Key rotates before registerConnection finishes
+      await service.rotateRunnerKey(teamId, runner.id)
+      const staleConn = createMockWs()
+      await service.registerConnection(authenticated!, staleConn.ws)
+
+      expect(staleConn.getClosed()?.code).toBe(1008)
+      expect(service.isRunnerConnected(runner.id)).toBe(false)
+      expect(staleConn.sent).toHaveLength(0)
+
+      // Deleting runner after authentication also blocks registration
+      const { runner: rDel, key: kDel } = await service.createRunner(teamId, { name: 'Runner Del' })
+      const authedDel = await service.authenticateRunnerKey(kDel)
+      await service.deleteRunner(teamId, rDel.id)
+
+      const delConn = createMockWs()
+      await service.registerConnection(authedDel!, delConn.ws)
+      expect(delConn.getClosed()?.code).toBe(1008)
+      expect(service.isRunnerConnected(rDel.id)).toBe(false)
     })
   })
 
@@ -184,7 +255,10 @@ describe('RunnerService', () => {
       )
 
       const conn2 = createMockWs()
-      await service.registerConnection({ id: r2.runner.id, teamId, name: r2.runner.name }, conn2.ws)
+      await service.registerConnection(
+        { id: r2.runner.id, teamId, name: r2.runner.name, keyHash: hashRunnerKey(r2.key) },
+        conn2.ws,
+      )
       const online = await service.requireOnlineRunner(teamId, r2.runner.id)
       expect(online.id).toBe(r2.runner.id)
     })
@@ -192,9 +266,12 @@ describe('RunnerService', () => {
 
   describe('RPC Execution & File Operations over WebSocket', () => {
     it('executes bash commands, streams stdout/stderr, and returns exit result', async () => {
-      const { runner } = await service.createRunner(teamId, { name: 'Exec Runner' })
+      const { runner, key } = await service.createRunner(teamId, { name: 'Exec Runner' })
       const conn = createMockWs()
-      await service.registerConnection({ id: runner.id, teamId, name: runner.name }, conn.ws)
+      await service.registerConnection(
+        { id: runner.id, teamId, name: runner.name, keyHash: hashRunnerKey(key) },
+        conn.ws,
+      )
 
       const chunks: Array<{ stream: string; text: string }> = []
       const execPromise = service.exec(runner.id, {
@@ -262,10 +339,88 @@ describe('RunnerService', () => {
       ])
     })
 
-    it('sends exec.cancel when AbortSignal fires', async () => {
-      const { runner } = await service.createRunner(teamId, { name: 'Cancel Runner' })
+    it('omits retained output when collectOutput is false and bounds tail when maxBufferedOutputBytes is set', async () => {
+      const { runner, key } = await service.createRunner(teamId, { name: 'Bounded Runner' })
+      const keyHash = hashRunnerKey(key)
       const conn = createMockWs()
-      await service.registerConnection({ id: runner.id, teamId, name: runner.name }, conn.ws)
+      await service.registerConnection(
+        { id: runner.id, teamId, name: runner.name, keyHash },
+        conn.ws,
+      )
+
+      const streamed: string[] = []
+      const noCollectPromise = service.exec(runner.id, {
+        command: 'yes | head -n 100',
+        collectOutput: false,
+        onOutput: (chunk) => streamed.push(chunk),
+      })
+      const msg1 = conn.lastSentJson()
+      service.handleMessage(
+        runner.id,
+        conn.ws,
+        JSON.stringify({
+          type: 'exec.output',
+          executionId: msg1.executionId,
+          stream: 'stdout',
+          offset: 0,
+          data: 'a'.repeat(4096),
+        }),
+      )
+      service.handleMessage(
+        runner.id,
+        conn.ws,
+        JSON.stringify({
+          type: 'exec.result',
+          executionId: msg1.executionId,
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          aborted: false,
+        }),
+      )
+      const noCollectRes = await noCollectPromise
+      expect(noCollectRes.output).toBe('')
+      expect(streamed.join('')).toHaveLength(4096)
+
+      const boundedPromise = service.exec(runner.id, {
+        command: 'echo bounded',
+        maxBufferedOutputBytes: 6,
+      })
+      const msg2 = conn.lastSentJson()
+      service.handleMessage(
+        runner.id,
+        conn.ws,
+        JSON.stringify({
+          type: 'exec.output',
+          executionId: msg2.executionId,
+          stream: 'stdout',
+          offset: 0,
+          data: '1234567890',
+        }),
+      )
+      service.handleMessage(
+        runner.id,
+        conn.ws,
+        JSON.stringify({
+          type: 'exec.result',
+          executionId: msg2.executionId,
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          aborted: false,
+        }),
+      )
+      const boundedRes = await boundedPromise
+      expect(boundedRes.output).toBe('567890')
+    })
+
+    it('sends exec.cancel when AbortSignal fires', async () => {
+      const { runner, key } = await service.createRunner(teamId, { name: 'Cancel Runner' })
+      const conn = createMockWs()
+      await service.registerConnection(
+        { id: runner.id, teamId, name: runner.name, keyHash: hashRunnerKey(key) },
+        conn.ws,
+      )
 
       const abortController = new AbortController()
       const execPromise = service.exec(runner.id, {
@@ -301,9 +456,12 @@ describe('RunnerService', () => {
 
     it('handles downloadToRunner, uploadFromRunner, statOnRunner, and session caching', async () => {
       vi.spyOn(s3Service, 'presign').mockResolvedValue('https://signed.example.com/file')
-      const { runner } = await service.createRunner(teamId, { name: 'File Runner' })
+      const { runner, key } = await service.createRunner(teamId, { name: 'File Runner' })
       const conn = createMockWs()
-      await service.registerConnection({ id: runner.id, teamId, name: runner.name }, conn.ws)
+      await service.registerConnection(
+        { id: runner.id, teamId, name: runner.name, keyHash: hashRunnerKey(key) },
+        conn.ws,
+      )
 
       // 1. downloadToRunner
       const dlPromise = service.downloadToRunner(runner.id, {
@@ -416,9 +574,13 @@ describe('RunnerService', () => {
     })
 
     it('recovers in-flight execution across a brief disconnect when runner reconciles', async () => {
-      const { runner } = await service.createRunner(teamId, { name: 'Reconnect Runner' })
+      const { runner, key } = await service.createRunner(teamId, { name: 'Reconnect Runner' })
+      const keyHash = hashRunnerKey(key)
       const conn1 = createMockWs()
-      await service.registerConnection({ id: runner.id, teamId, name: runner.name }, conn1.ws)
+      await service.registerConnection(
+        { id: runner.id, teamId, name: runner.name, keyHash },
+        conn1.ws,
+      )
 
       const execPromise = service.exec(runner.id, { command: 'long-job' })
       const startMsg = conn1.lastSentJson()
@@ -428,7 +590,10 @@ describe('RunnerService', () => {
 
       // Reconnect conn2 within grace period and send reconcile with active executionId
       const conn2 = createMockWs()
-      await service.registerConnection({ id: runner.id, teamId, name: runner.name }, conn2.ws)
+      await service.registerConnection(
+        { id: runner.id, teamId, name: runner.name, keyHash },
+        conn2.ws,
+      )
       service.handleMessage(
         runner.id,
         conn2.ws,
