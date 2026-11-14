@@ -1,15 +1,11 @@
-import { SandboxManager, type SandboxAskCallback } from '@anthropic-ai/sandbox-runtime'
-import { BACKGROUND_CONTEXT as piContext } from '@earendil-works/chord/context'
-import { Harness } from '@earendil-works/pi-durable'
 import { appendSessionEntries } from '@shumai/core/src/agent/session-test-utils'
+import { agentService } from '@shumai/core/src/agent/agent'
 import { getAgentPrompt, getAgentTools, invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
 import { quotaService } from '@shumai/core/src/quota/quota-service'
+import { runnerService } from '@shumai/core/src/runner/runner-service'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import * as fs from 'fs'
-import * as childProcess from 'node:child_process'
-import * as path from 'path'
 import { type TSchema } from 'typebox'
 import { Value } from 'typebox/value'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -21,29 +17,10 @@ import {
   type DbProviderInfo,
 } from './index'
 import { closeAgentSessions } from './runtime'
-import { createSandboxedBashTool } from './tools/sandboxed-bash'
+
 afterEach(async () => {
   await closeAgentSessions()
 })
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let mockSpawn: any = null
-
-vi.mock('node:child_process', async () => {
-  const actual = (await vi.importActual('node:child_process')) as typeof childProcess
-  return {
-    ...actual,
-    spawn: (...args: Parameters<typeof childProcess.spawn>) => {
-      if (mockSpawn) {
-        return mockSpawn(...args)
-      }
-      return actual.spawn(...args)
-    },
-  }
-})
-
-// Mock fs so tests can stub skill content loading (matching read-skill.test.ts)
-vi.mock('fs')
 
 const mockProviders: DbProviderInfo[] = [
   {
@@ -71,7 +48,7 @@ describe('formatSkillsForPrompt', () => {
     expect(formatSkillsForPrompt([])).toBe('')
   })
 
-  it('should format skills into the XML structure with absolute paths and escaped characters', () => {
+  it('should format skills into the XML structure with runner workspace-relative paths and escaped characters', () => {
     const skills = [
       {
         id: 'skill-1',
@@ -80,7 +57,7 @@ describe('formatSkillsForPrompt', () => {
       },
     ]
 
-    const expectedLocation = path.join(process.cwd(), '.pi', 'skills', 'skill-1', 'SKILL.md')
+    const expectedLocation = '.pi/skills/skill-1/SKILL.md'
     const result = formatSkillsForPrompt(skills)
 
     // Verify lines and XML elements
@@ -97,621 +74,100 @@ describe('formatSkillsForPrompt', () => {
   })
 })
 
-describe('Sandbox Network isolation integration', () => {
+describe('Runner tool availability & skill staging integration', () => {
   setupTestDbHooks()
 
-  it('should register callback that pushes blocked hosts to database and propagates to bash tool', async () => {
-    // 1. Create a team and enabled sandbox
-    const team = await prisma.team.create({
-      data: { name: 'Test Sandbox Team' },
-    })
-    await prisma.sandbox.create({
-      data: {
-        teamId: team.id,
-        networkSandboxEnabled: true,
-      },
-    })
-
-    // Ensure agent user and agent exist in database to avoid foreign key violation
-    await prisma.user.create({
-      data: {
-        id: 'test-agent',
-        name: 'Ai Agent',
-        email: 'test-agent@shumai.ai',
-        type: 'agent',
-      },
-    })
-    await prisma.agent.create({
-      data: {
-        id: 'test-agent',
-        teamId: team.id,
-        type: 'chat',
-        config: {
-          provider: 'openai',
-          model: 'gpt-4',
-        },
-      },
-    })
-
-    // 2. Mock / spy SandboxManager
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    const wrapSpy = vi
-      .spyOn(SandboxManager, 'wrapWithSandbox')
-      .mockImplementation(async (cmd) => cmd)
-
-    // 3. Call createAgentSession
-    await createAgentSession({
-      teamId: team.id,
-      agentId: 'test-agent',
-      providerName: 'google',
-      modelId: 'gemini',
-      systemPrompt: 'prompt',
-      teamSkills: [],
-      allowedDomains: [],
-      providers: mockProviders,
-    })
-
-    // 4. Verify SandboxManager.initialize was called and extract the callback
-    expect(initializeSpy).toHaveBeenCalled()
-    const callback = initializeSpy.mock.calls[0][1]
-    expect(callback).toBeDefined()
-
-    // 5. Trigger the callback with a blocked host
-    const result = await callback!({ host: 'blocked-api.com', port: 443 })
-    expect(result).toBe(false) // should always return false to block
-
-    // 6. Verify it was pushed to database
-    const sandbox = await prisma.sandbox.findUnique({
-      where: { teamId: team.id },
-    })
-    expect(sandbox?.pendingDomains).toContain('blocked-api.com')
-
-    // 7. Verify that if the bash tool is run while a domain is blocked, it rejects with correct error
-    const sandboxState = { blockedHost: '' }
-    const bashTool = createSandboxedBashTool(
-      process.cwd(),
-      {},
-      {
-        getBlockedHost: () => sandboxState.blockedHost,
-        clearBlockedHost: () => {
-          sandboxState.blockedHost = ''
-        },
-      },
-    )
-
-    // Mock spawn to simulate process exit and trigger network block
-    mockSpawn = () => {
-      sandboxState.blockedHost = 'blocked-api.com'
-      const mockChild = {
-        pid: 123,
-        stdout: { on: vi.fn() },
-        stderr: { on: vi.fn() },
-        on: vi.fn((event: string, cb: (code: number) => void) => {
-          if (event === 'close') {
-            setTimeout(() => cb(1), 10)
-          }
-        }),
-      } as unknown as childProcess.ChildProcess
-      return mockChild
-    }
-
-    const bashPromise = invokeTool(bashTool, '1', {
-      command: 'curl blocked-api.com',
-      source: 'user',
-    })
-
-    try {
-      await expect(bashPromise).rejects.toThrow(
-        'Network request to blocked-api.com is blocked, please ask admin to allow it in sandbox settings.',
-      )
-    } finally {
-      mockSpawn = null
-      initializeSpy.mockRestore()
-      wrapSpy.mockRestore()
-    }
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
-  it('should correctly route sandbox callback to the active session when multiple sessions are created sequentially', async () => {
-    // 1. Create two teams
-    const team1 = await prisma.team.create({
-      data: { name: 'Team 1' },
-    })
-    const team2 = await prisma.team.create({
-      data: { name: 'Team 2' },
-    })
-    await prisma.sandbox.create({
-      data: { teamId: team1.id, networkSandboxEnabled: true },
-    })
-    await prisma.sandbox.create({
-      data: { teamId: team2.id, networkSandboxEnabled: true },
-    })
-
-    // Ensure agent user and agents exist in database
-    await prisma.user.create({
-      data: {
-        id: 'agent-1',
-        name: 'Ai Agent 1',
-        email: 'agent1@shumai.ai',
-        type: 'agent',
-      },
-    })
-    await prisma.user.create({
-      data: {
-        id: 'agent-2',
-        name: 'Ai Agent 2',
-        email: 'agent2@shumai.ai',
-        type: 'agent',
-      },
-    })
-    await prisma.agent.create({
-      data: {
-        id: 'agent-1',
-        teamId: team1.id,
-        type: 'chat',
-        config: { provider: 'openai', model: 'gpt-4' },
-      },
-    })
-    await prisma.agent.create({
-      data: {
-        id: 'agent-2',
-        teamId: team2.id,
-        type: 'chat',
-        config: { provider: 'openai', model: 'gpt-4' },
-      },
-    })
-
-    // Mock SandboxManager.initialize to behave like a process-global singleton
-    let registeredCallback: SandboxAskCallback | null = null
-    const initializeSpy = vi
-      .spyOn(SandboxManager, 'initialize')
-      .mockImplementation(async (config, cb) => {
-        if (!registeredCallback) {
-          registeredCallback = cb || null
-        }
-      })
-    const resetSpy = vi.spyOn(SandboxManager, 'reset').mockImplementation(async () => {
-      // In the real SandboxManager, reset clears the global initialization promise and servers,
-      // which allows subsequent initialize calls to register a new callback.
-      registeredCallback = null
-    })
-
-    try {
-      // 2. Call createAgentSession for Session 1
-      await createAgentSession({
-        teamId: team1.id,
-        agentId: 'agent-1',
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        allowedDomains: [],
-        providers: mockProviders,
-      })
-
-      // 3. Call createAgentSession for Session 2
-      await createAgentSession({
-        teamId: team2.id,
-        agentId: 'agent-2',
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        allowedDomains: [],
-        providers: mockProviders,
-      })
-
-      expect(registeredCallback).toBeDefined()
-
-      // 4. Trigger the globally registered callback (which is from Session 1)
-      const result = await registeredCallback!({ host: 'blocked-for-session-2.com', port: 443 })
-      expect(result).toBe(false)
-
-      // 5. Verify that the pending domain was pushed to the DB record of Team 2
-      const sandbox2 = await prisma.sandbox.findUnique({
-        where: { teamId: team2.id },
-      })
-      expect(sandbox2?.pendingDomains).toContain('blocked-for-session-2.com')
-    } finally {
-      initializeSpy.mockRestore()
-      resetSpy.mockRestore()
-    }
-  })
-
-  it('should bypass domain blocking and pending domain recording when networkSandboxEnabled is false', async () => {
+  it('omits bash and download_asset when team has no Runner configured in DB', async () => {
     const team = await prisma.team.create({
-      data: { name: 'Disabled Sandbox Team' },
+      data: { name: 'No Runner Team' },
     })
-    await prisma.sandbox.create({
-      data: { teamId: team.id, networkSandboxEnabled: false },
+    const owner = await prisma.user.create({
+      data: { name: 'Owner', email: 'owner-no-runner@shumai.ai' },
     })
-
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: owner.id, role: 'owner' },
+    })
     await prisma.user.create({
       data: {
-        id: 'agent-disabled',
-        name: 'Ai Agent Disabled',
-        email: 'disabled@shumai.ai',
+        id: 'no-runner-agent',
+        name: 'No Runner Agent',
+        email: 'no-runner-agent@shumai.ai',
         type: 'agent',
       },
     })
     await prisma.agent.create({
       data: {
-        id: 'agent-disabled',
-        teamId: team.id,
-        type: 'chat',
-        config: { provider: 'openai', model: 'gpt-4' },
-      },
-    })
-
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    vi.spyOn(SandboxManager, 'wrapWithSandbox').mockImplementation(async (cmd) => cmd)
-
-    await createAgentSession({
-      teamId: team.id,
-      agentId: 'agent-disabled',
-      providerName: 'google',
-      modelId: 'gemini',
-      systemPrompt: 'prompt',
-      teamSkills: [],
-      allowedDomains: ['*'],
-      providers: mockProviders,
-    })
-
-    expect(initializeSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        network: expect.objectContaining({
-          allowedDomains: ['*'],
-        }),
-      }),
-      expect.any(Function),
-    )
-
-    const callback = initializeSpy.mock.calls[0][1]
-    const res = await callback!({ host: 'any-external-domain.com', port: 443 })
-    expect(res).toBe(true)
-
-    const sandbox = await prisma.sandbox.findUnique({
-      where: { teamId: team.id },
-    })
-    expect(sandbox?.pendingDomains).toEqual([])
-  })
-
-  it('should pass thinkingLevel to AgentHarness and default to off', async () => {
-    const team = await prisma.team.create({
-      data: { name: 'Test Team' },
-    })
-
-    await prisma.user.create({
-      data: {
-        id: 'test-agent-1',
-        name: 'Agent 1',
-        email: 'agent1@test.com',
-        type: 'agent',
-      },
-    })
-    await prisma.agent.create({
-      data: {
-        id: 'test-agent-1',
+        id: 'no-runner-agent',
         teamId: team.id,
         type: 'chat',
         config: { provider: 'google', model: 'gemini' },
       },
     })
 
+    const { harness } = await createAgentSession({
+      teamId: team.id,
+      userId: owner.id,
+      agentId: 'no-runner-agent',
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [],
+      providers: mockProviders,
+    })
+
+    const toolNames = (await getAgentTools(harness)).map((t) => t.name)
+    expect(toolNames).not.toContain('bash')
+    expect(toolNames).not.toContain('download_asset')
+    expect(toolNames).toContain('read_skill')
+  })
+
+  it('includes bash and download_asset when team has a Runner configured in DB (even if offline)', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'With Runner Team' },
+    })
+    const owner = await prisma.user.create({
+      data: { name: 'Owner', email: 'owner-with-runner@shumai.ai' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: owner.id, role: 'owner' },
+    })
+    await runnerService.createRunner(team.id, { name: 'Mac Mini Runner' })
+
     await prisma.user.create({
       data: {
-        id: 'test-agent-2',
-        name: 'Agent 2',
-        email: 'agent2@test.com',
+        id: 'with-runner-agent',
+        name: 'With Runner Agent',
+        email: 'with-runner-agent@shumai.ai',
         type: 'agent',
       },
     })
     await prisma.agent.create({
       data: {
-        id: 'test-agent-2',
+        id: 'with-runner-agent',
         teamId: team.id,
         type: 'chat',
         config: { provider: 'google', model: 'gemini' },
       },
     })
 
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    try {
-      // Call createAgentSession with thinkingLevel
-      const { harness: harnessHigh } = await createAgentSession({
-        teamId: team.id,
-        agentId: 'test-agent-1',
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        allowedDomains: [],
-        providers: mockProviders,
-        thinkingLevel: 'high',
-      })
-      expect((await (await harnessHigh.root(piContext)).agent(piContext)).thinkingLevel).toBe(
-        'high',
-      )
-
-      // Call createAgentSession without thinkingLevel
-      const { harness: harnessDefault } = await createAgentSession({
-        teamId: team.id,
-        agentId: 'test-agent-2',
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        allowedDomains: [],
-        providers: mockProviders,
-      })
-      expect((await (await harnessDefault.root(piContext)).agent(piContext)).thinkingLevel).toBe(
-        'off',
-      )
-    } finally {
-      initializeSpy.mockRestore()
-    }
-  })
-
-  it('should pass retry configuration to AgentHarness', async () => {
-    const team = await prisma.team.create({
-      data: { name: 'Test Team Retry' },
-    })
-    await prisma.user.create({
-      data: {
-        id: 'test-agent-retry',
-        name: 'Agent Retry',
-        email: 'agent-retry@test.com',
-        type: 'agent',
-      },
-    })
-    await prisma.agent.create({
-      data: {
-        id: 'test-agent-retry',
-        teamId: team.id,
-        type: 'chat',
-        config: { provider: 'google', model: 'gemini' },
-      },
-    })
-
-    const openSpy = vi.spyOn(Harness, 'open')
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    try {
-      await createAgentSession({
-        teamId: team.id,
-        agentId: 'test-agent-retry',
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        allowedDomains: [],
-        providers: mockProviders,
-        maxRetries: 5,
-        baseDelayMs: 1500,
-      })
-
-      expect(openSpy.mock.calls.at(-1)?.[1].settings).toMatchObject({
-        retry: { maxRetries: 5, baseDelayMs: 1500 },
-      })
-    } finally {
-      initializeSpy.mockRestore()
-    }
-  })
-
-  it.each(['openai', 'custom-responses'])(
-    'authenticates %s Responses sessions using the configured API key',
-    async (providerName) => {
-      const team = await prisma.team.create({ data: { name: 'Responses team' } })
-      const user = await prisma.user.create({
-        data: { name: 'Responses agent', email: 'responses@test.com', type: 'agent' },
-      })
-      const modelId = 'gpt-4.1'
-      const agent = await prisma.agent.create({
-        data: {
-          id: user.id,
-          teamId: team.id,
-          type: 'chat',
-          config: { provider: providerName, model: modelId },
-        },
-      })
-      const baseUrl =
-        providerName === 'openai' ? 'https://api.openai.com/v1' : 'https://example.test/v1'
-      const openSpy = vi.spyOn(Harness, 'open')
-      vi.stubEnv('CLOUDFLARE_ACCOUNT_ID', '')
-      vi.stubEnv('CLOUDFLARE_GATEWAY_ID', '')
-      vi.stubEnv('TEST_RESPONSES_API_KEY', 'test-responses-key')
-      try {
-        await createAgentSession({
-          teamId: team.id,
-          agentId: agent.id,
-          providerName,
-          modelId,
-          systemPrompt: 'prompt',
-          teamSkills: [],
-          disableTools: true,
-          providers: [
-            {
-              name: providerName,
-              config: { api: 'openai-responses', baseUrl, apiKey: 'TEST_RESPONSES_API_KEY' },
-              models: [
-                {
-                  modelId,
-                  name: 'Responses model',
-                  config: { ...mockProviders[0].models[0].config, api: 'openai-responses' },
-                },
-              ],
-            },
-          ],
-        })
-        const configuredModels = openSpy.mock.lastCall?.[1].models
-        const models =
-          typeof configuredModels === 'function' ? configuredModels() : configuredModels
-        expect(models?.getModel(providerName, modelId)).toMatchObject({
-          api: 'openai-responses',
-          baseUrl,
-        })
-        await expect(models?.getAuth(providerName)).resolves.toMatchObject({
-          auth: { apiKey: 'test-responses-key' },
-        })
-      } finally {
-        openSpy.mockRestore()
-        vi.unstubAllEnvs()
-      }
-    },
-  )
-
-  it('should filter out denied tools from AgentHarness', async () => {
-    const team = await prisma.team.create({
-      data: { name: 'Test Team 3' },
-    })
-    await prisma.user.create({
-      data: {
-        id: 'test-agent-3',
-        name: 'Agent 3',
-        email: 'agent3@shumai.ai',
-        type: 'agent',
-      },
-    })
-    await prisma.agent.create({
-      data: {
-        id: 'test-agent-3',
-        teamId: team.id,
-        type: 'chat',
-        config: { provider: 'google', model: 'gemini', deniedTools: ['bash'] },
-      },
-    })
-
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    try {
-      const { harness } = await createAgentSession({
-        teamId: team.id,
-        agentId: 'test-agent-3',
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        allowedDomains: [],
-        providers: mockProviders,
-      })
-      const tools = await getAgentTools(harness)
-      const bashTool = tools.find((t) => t.name === 'bash')
-      expect(bashTool).toBeUndefined()
-      const readSkillTool = tools.find((t) => t.name === 'read_skill')
-      expect(readSkillTool).toBeDefined()
-    } finally {
-      initializeSpy.mockRestore()
-    }
-  })
-})
-
-describe('getModelFromDb', () => {
-  it('should correctly initialize non-built-in model with provider and id', () => {
-    const providers: DbProviderInfo[] = [
-      {
-        name: 'google',
-        config: { api: 'google-generative-ai', apiKey: 'GOOGLE_API_KEY' },
-        models: [
-          {
-            modelId: 'non-existent-or-future-model',
-            name: 'Future Model',
-            config: {
-              api: 'google-generative-ai',
-              reasoning: false,
-              input: ['text'],
-              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-              contextWindow: 8192,
-              maxTokens: 4096,
-            },
-          },
-        ],
-      },
-    ]
-
-    const model = getModelFromDb(providers, 'google', 'non-existent-or-future-model')
-
-    expect(model).toBeDefined()
-    expect(model?.id).toBe('non-existent-or-future-model')
-    expect(model?.provider).toBe('google')
-    expect(model?.api).toBe('google-generative-ai')
-  })
-
-  it('should throw an error when provider or model is not found in database configuration', () => {
-    expect(() => getModelFromDb([], 'google', 'non-existent')).toThrow(
-      'Provider "google" or model "non-existent" not found in database configuration',
-    )
-  })
-})
-
-describe('createAgentSession sandbox options', () => {
-  setupTestDbHooks()
-
-  it('should set enableWeakerNestedSandbox based on ENABLE_WEAKER_NESTED_SANDBOX env var', async () => {
-    const team = await prisma.team.create({
-      data: { name: 'Test Sandbox Team Env' },
-    })
-
-    await prisma.user.create({
-      data: {
-        id: 'test-agent-env',
-        name: 'Ai Agent Env',
-        email: 'test-agent-env@shumai.ai',
-        type: 'agent',
-      },
-    })
-    await prisma.agent.create({
-      data: {
-        id: 'test-agent-env',
-        teamId: team.id,
-        type: 'chat',
-        config: {
-          provider: 'openai',
-          model: 'gpt-4',
-        },
-      },
-    })
-
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    vi.spyOn(SandboxManager, 'wrapWithSandbox').mockImplementation(async (cmd) => cmd)
-
-    // Default should be false when env var is unset
-    const oldEnv = process.env.ENABLE_WEAKER_NESTED_SANDBOX
-    delete process.env.ENABLE_WEAKER_NESTED_SANDBOX
-    await createAgentSession({
+    const { harness } = await createAgentSession({
       teamId: team.id,
-      agentId: 'test-agent-env',
+      userId: owner.id,
+      agentId: 'with-runner-agent',
       providerName: 'google',
       modelId: 'gemini',
       systemPrompt: 'prompt',
       teamSkills: [],
-      allowedDomains: [],
       providers: mockProviders,
     })
-    expect(initializeSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ enableWeakerNestedSandbox: false }),
-      expect.any(Function),
-    )
 
-    // Should be true when env var is 'true'
-    process.env.ENABLE_WEAKER_NESTED_SANDBOX = 'true'
-    await createAgentSession({
-      teamId: team.id,
-      agentId: 'test-agent-env',
-      providerName: 'google',
-      modelId: 'gemini',
-      systemPrompt: 'prompt',
-      teamSkills: [],
-      allowedDomains: [],
-      providers: mockProviders,
-    })
-    expect(initializeSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({ enableWeakerNestedSandbox: true }),
-      expect.any(Function),
-    )
-
-    if (oldEnv !== undefined) {
-      process.env.ENABLE_WEAKER_NESTED_SANDBOX = oldEnv
-    } else {
-      delete process.env.ENABLE_WEAKER_NESTED_SANDBOX
-    }
-    initializeSpy.mockRestore()
+    const toolNames = (await getAgentTools(harness)).map((t) => t.name)
+    expect(toolNames).toContain('bash')
+    expect(toolNames).toContain('download_asset')
   })
 })
 
@@ -743,6 +199,7 @@ describe('createAgentSession bash restriction for non-owner users', () => {
     sessionId?: string
   }): Promise<{ team: { id: string }; userId?: string; harness: TestHarness }> {
     const team = await prisma.team.create({ data: { name: 'Bash Restriction Team' } })
+    await runnerService.createRunner(team.id, { name: 'Team Runner' })
 
     await prisma.user.create({
       data: {
@@ -781,24 +238,18 @@ describe('createAgentSession bash restriction for non-owner users', () => {
       userId = user.id
     }
 
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    try {
-      const { harness } = await createAgentSession({
-        teamId: team.id,
-        agentId: 'bash-agent',
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        allowedDomains: [],
-        providers: mockProviders,
-        userId,
-        sessionId: opts.sessionId,
-      })
-      return { team, userId, harness }
-    } finally {
-      initializeSpy.mockRestore()
-    }
+    const { harness } = await createAgentSession({
+      teamId: team.id,
+      agentId: 'bash-agent',
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [],
+      providers: mockProviders,
+      userId,
+      sessionId: opts.sessionId,
+    })
+    return { team, userId, harness }
   }
 
   it('should include the bash tool from the start for team owners', async () => {
@@ -832,6 +283,7 @@ describe('createAgentSession bash restriction for non-owner users', () => {
 
   it('should include the bash tool from the start when a skill was already loaded earlier in the session', async () => {
     const team = await prisma.team.create({ data: { name: 'Restore Team' } })
+    await runnerService.createRunner(team.id, { name: 'Restore Runner' })
     const user = await prisma.user.create({
       data: { name: 'Restore User', email: 'restore@shumai.ai' },
     })
@@ -880,24 +332,18 @@ describe('createAgentSession bash restriction for non-owner users', () => {
       },
     ])
 
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    try {
-      const { harness } = await createAgentSession({
-        teamId: team.id,
-        agentId: 'bash-agent-restore',
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        allowedDomains: [],
-        providers: mockProviders,
-        userId: user.id,
-        sessionId: session.id,
-      })
-      expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(true)
-    } finally {
-      initializeSpy.mockRestore()
-    }
+    const { harness } = await createAgentSession({
+      teamId: team.id,
+      agentId: 'bash-agent-restore',
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [],
+      providers: mockProviders,
+      userId: user.id,
+      sessionId: session.id,
+    })
+    expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(true)
   })
 
   it('should inject the bash tool after a skill is loaded via read_skill for restricted users', async () => {
@@ -906,24 +352,14 @@ describe('createAgentSession bash restriction for non-owner users', () => {
       data: { name: 'Inject Skill', assetId: 'asset1', hash: 'inject-hash', teamId: team.id },
     })
 
-    vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
-    vi.spyOn(fs, 'readFileSync').mockImplementation((p: any) => {
-      if (p.toString().endsWith('.hash')) return 'inject-hash'
-      if (p.toString().endsWith('SKILL.md')) return '# Inject Skill'
-      return ''
-    })
+    vi.spyOn(agentService, 'getSkillContent').mockResolvedValue('# Inject Skill')
 
     const readSkillTool = (await getAgentTools(harness)).find((t) => t.name === 'read_skill')
     expect(readSkillTool).toBeDefined()
     expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(false)
-    expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(false)
 
     await invokeTool(readSkillTool!, '1', { skillId: skill.id }, undefined, undefined)
 
-    expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(true)
-    // bash must be part of the ACTIVE tool set, not just the registry, or the model
-    // would never receive it on the next turn
     expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(true)
   })
 
@@ -933,13 +369,7 @@ describe('createAgentSession bash restriction for non-owner users', () => {
       data: { name: 'Denied Skill', assetId: 'asset1', hash: 'denied-hash', teamId: team.id },
     })
 
-    vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
-    vi.spyOn(fs, 'readFileSync').mockImplementation((p: any) => {
-      if (p.toString().endsWith('.hash')) return 'denied-hash'
-      if (p.toString().endsWith('SKILL.md')) return '# Denied Skill'
-      return ''
-    })
+    vi.spyOn(agentService, 'getSkillContent').mockResolvedValue('# Denied Skill')
 
     const readSkillTool = (await getAgentTools(harness)).find((t) => t.name === 'read_skill')
     expect(readSkillTool).toBeDefined()
@@ -1035,24 +465,18 @@ describe('createAgentSession typed metadata schema', () => {
       })
     }
 
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    try {
-      const { harness } = await createAgentSession({
-        teamId: team.id,
-        agentId: 'typed-metadata-agent',
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        allowedDomains: [],
-        providers: mockProviders,
-        userId: user.id,
-        projectId: project.id,
-      })
-      return { harness }
-    } finally {
-      initializeSpy.mockRestore()
-    }
+    const { harness } = await createAgentSession({
+      teamId: team.id,
+      agentId: 'typed-metadata-agent',
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [],
+      providers: mockProviders,
+      userId: user.id,
+      projectId: project.id,
+    })
+    return { harness }
   }
 
   it('should build create_file/create_version with the project CREATION_CONTEXT fields', async () => {
@@ -1143,24 +567,18 @@ describe('createAgentSession typed metadata schema', () => {
       },
     })
 
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    try {
-      const { harness } = await createAgentSession({
-        teamId: team.id,
-        agentId: 'del-agent',
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        allowedDomains: [],
-        providers: mockProviders,
-        userId: user.id,
-      })
-      const toolNames = (await getAgentTools(harness)).map((t) => t.name)
-      expect(toolNames).toContain('delete_asset')
-    } finally {
-      initializeSpy.mockRestore()
-    }
+    const { harness } = await createAgentSession({
+      teamId: team.id,
+      agentId: 'del-agent',
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [],
+      providers: mockProviders,
+      userId: user.id,
+    })
+    const toolNames = (await getAgentTools(harness)).map((t) => t.name)
+    expect(toolNames).toContain('delete_asset')
   })
 })
 
@@ -1211,53 +629,41 @@ describe('createAgentSession enabled skill filtering', () => {
       },
     })
 
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    try {
-      const { harness } = await createAgentSession({
-        teamId: team.id,
-        agentId: 'skill-filter-agent',
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [{ id: enabledSkill.id, name: enabledSkill.name }],
-        enabledSkillIds: [enabledSkill.id],
-        allowedDomains: [],
-        providers: mockProviders,
-      })
+    const { harness } = await createAgentSession({
+      teamId: team.id,
+      agentId: 'skill-filter-agent',
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [{ id: enabledSkill.id, name: enabledSkill.name }],
+      enabledSkillIds: [enabledSkill.id],
+      providers: mockProviders,
+    })
 
-      // The disabled skill must not be advertised in the available skills list
-      const prompt = await await getAgentPrompt(harness)
-      expect(prompt).toContain(enabledSkill.id)
-      expect(prompt).not.toContain(disabledSkill.id)
+    // The disabled skill must not be advertised in the available skills list
+    const prompt = await await getAgentPrompt(harness)
+    expect(prompt).toContain(enabledSkill.id)
+    expect(prompt).not.toContain(disabledSkill.id)
 
-      // read_skill must reject the disabled skill id
-      const readSkillTool = (await getAgentTools(harness)).find((t) => t.name === 'read_skill')
-      expect(readSkillTool).toBeDefined()
+    // read_skill must reject the disabled skill id
+    const readSkillTool = (await getAgentTools(harness)).find((t) => t.name === 'read_skill')
+    expect(readSkillTool).toBeDefined()
 
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
-      vi.spyOn(fs, 'readFileSync').mockImplementation((p: any) => {
-        if (p.toString().endsWith('.hash')) return 'enabled-hash'
-        if (p.toString().endsWith('SKILL.md')) return '# Enabled Skill'
-        return ''
-      })
+    vi.spyOn(agentService, 'getSkillContent').mockResolvedValue('# Enabled Skill')
 
-      await expect(
-        invokeTool(readSkillTool!, '1', { skillId: disabledSkill.id }, undefined, undefined),
-      ).rejects.toThrow('not enabled for this agent')
+    await expect(
+      invokeTool(readSkillTool!, '1', { skillId: disabledSkill.id }, undefined, undefined),
+    ).rejects.toThrow('not enabled for this agent')
 
-      const result = await invokeTool(
-        readSkillTool!,
-        '1',
-        { skillId: enabledSkill.id },
-        undefined,
-        undefined,
-      )
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect((result.content[0] as any).text).toBe('# Enabled Skill')
-    } finally {
-      initializeSpy.mockRestore()
-    }
+    const result = await invokeTool(
+      readSkillTool!,
+      '1',
+      { skillId: enabledSkill.id },
+      undefined,
+      undefined,
+    )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((result.content[0] as any).text).toBe('# Enabled Skill')
   })
 
   it('should reject all read_skill calls when no skills are enabled for the agent', async () => {
@@ -1283,29 +689,23 @@ describe('createAgentSession enabled skill filtering', () => {
       },
     })
 
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    try {
-      const { harness } = await createAgentSession({
-        teamId: team.id,
-        agentId: 'skill-none-agent',
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        enabledSkillIds: [],
-        allowedDomains: [],
-        providers: mockProviders,
-      })
+    const { harness } = await createAgentSession({
+      teamId: team.id,
+      agentId: 'skill-none-agent',
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [],
+      enabledSkillIds: [],
+      providers: mockProviders,
+    })
 
-      const readSkillTool = (await getAgentTools(harness)).find((t) => t.name === 'read_skill')
-      expect(readSkillTool).toBeDefined()
+    const readSkillTool = (await getAgentTools(harness)).find((t) => t.name === 'read_skill')
+    expect(readSkillTool).toBeDefined()
 
-      await expect(
-        invokeTool(readSkillTool!, '1', { skillId: skill.id }, undefined, undefined),
-      ).rejects.toThrow('not enabled for this agent')
-    } finally {
-      initializeSpy.mockRestore()
-    }
+    await expect(
+      invokeTool(readSkillTool!, '1', { skillId: skill.id }, undefined, undefined),
+    ).rejects.toThrow('not enabled for this agent')
   })
 
   it('enforces agent tool call count quota on tool execution', async () => {
@@ -1342,51 +742,45 @@ describe('createAgentSession enabled skill filtering', () => {
       enabled: true,
     })
 
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    try {
-      const { harness } = await createAgentSession({
-        teamId: team.id,
-        userId: user.id,
-        agentId: 'tool-quota-agent',
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        enabledSkillIds: [],
-        allowedDomains: [],
-        providers: mockProviders,
-      })
+    const { harness } = await createAgentSession({
+      teamId: team.id,
+      userId: user.id,
+      agentId: 'tool-quota-agent',
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [],
+      enabledSkillIds: [],
+      providers: mockProviders,
+    })
 
-      const readThreadTool = (await getAgentTools(harness)).find((t) => t.name === 'read_thread')
-      expect(readThreadTool).toBeDefined()
+    const readThreadTool = (await getAgentTools(harness)).find((t) => t.name === 'read_thread')
+    expect(readThreadTool).toBeDefined()
 
-      // First call executes and consumes quota
-      const res1 = await invokeTool(
-        readThreadTool!,
-        'call-1',
-        { threadId: 'non-existent' },
-        undefined,
-        undefined,
-      )
-      expect(res1).toBeDefined()
+    // First call executes and consumes quota
+    const res1 = await invokeTool(
+      readThreadTool!,
+      'call-1',
+      { threadId: 'non-existent' },
+      undefined,
+      undefined,
+    )
+    expect(res1).toBeDefined()
 
-      // Second call exceeds quota and returns error
-      const res2 = await invokeTool(
-        readThreadTool!,
-        'call-2',
-        { threadId: 'non-existent' },
-        undefined,
-        undefined,
-      )
-      expect(res2).toBeDefined()
-      const textContent = res2.content[0]
-      if (textContent && textContent.type === 'text') {
-        expect(textContent.text).toContain('Quota exceeded')
-      } else {
-        expect.unreachable('Expected text content')
-      }
-    } finally {
-      initializeSpy.mockRestore()
+    // Second call exceeds quota and returns error
+    const res2 = await invokeTool(
+      readThreadTool!,
+      'call-2',
+      { threadId: 'non-existent' },
+      undefined,
+      undefined,
+    )
+    expect(res2).toBeDefined()
+    const textContent = res2.content[0]
+    if (textContent && textContent.type === 'text') {
+      expect(textContent.text).toContain('Quota exceeded')
+    } else {
+      expect.unreachable('Expected text content')
     }
   })
 })
@@ -1452,27 +846,21 @@ describe('createAgentSession media generation tools injection', () => {
       providerKeys: {},
     })
 
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    try {
-      const { harness } = await createAgentSession({
-        teamId: team.id,
-        userId: user.id,
-        agentId: agent.id,
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        enabledSkillIds: [],
-        allowedDomains: [],
-        providers: mockProviders,
-      })
+    const { harness } = await createAgentSession({
+      teamId: team.id,
+      userId: user.id,
+      agentId: agent.id,
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [],
+      enabledSkillIds: [],
+      providers: mockProviders,
+    })
 
-      const tools = await getAgentTools(harness)
-      expect(tools.find((t) => t.name === 'generate_image')).toBeUndefined()
-      expect(tools.find((t) => t.name === 'generate_video')).toBeUndefined()
-    } finally {
-      initializeSpy.mockRestore()
-    }
+    const tools = await getAgentTools(harness)
+    expect(tools.find((t) => t.name === 'generate_image')).toBeUndefined()
+    expect(tools.find((t) => t.name === 'generate_video')).toBeUndefined()
   })
 
   it('injects generate_image and generate_video when valid models are present', async () => {
@@ -1526,27 +914,21 @@ describe('createAgentSession media generation tools injection', () => {
       },
     })
 
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    try {
-      const { harness } = await createAgentSession({
-        teamId: team.id,
-        userId: user.id,
-        agentId: agent.id,
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        enabledSkillIds: [],
-        allowedDomains: [],
-        providers: mockProviders,
-      })
+    const { harness } = await createAgentSession({
+      teamId: team.id,
+      userId: user.id,
+      agentId: agent.id,
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [],
+      enabledSkillIds: [],
+      providers: mockProviders,
+    })
 
-      const tools = await getAgentTools(harness)
-      expect(tools.find((t) => t.name === 'generate_image')).toBeDefined()
-      expect(tools.find((t) => t.name === 'generate_video')).toBeDefined()
-    } finally {
-      initializeSpy.mockRestore()
-    }
+    const tools = await getAgentTools(harness)
+    expect(tools.find((t) => t.name === 'generate_image')).toBeDefined()
+    expect(tools.find((t) => t.name === 'generate_video')).toBeDefined()
   })
 
   it('respects deniedTools when generate_image is denied in agent config', async () => {
@@ -1604,26 +986,20 @@ describe('createAgentSession media generation tools injection', () => {
       },
     })
 
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
-    try {
-      const { harness } = await createAgentSession({
-        teamId: team.id,
-        userId: user.id,
-        agentId: agent.id,
-        providerName: 'google',
-        modelId: 'gemini',
-        systemPrompt: 'prompt',
-        teamSkills: [],
-        enabledSkillIds: [],
-        allowedDomains: [],
-        providers: mockProviders,
-      })
+    const { harness } = await createAgentSession({
+      teamId: team.id,
+      userId: user.id,
+      agentId: agent.id,
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [],
+      enabledSkillIds: [],
+      providers: mockProviders,
+    })
 
-      const tools = await getAgentTools(harness)
-      expect(tools.find((t) => t.name === 'generate_image')).toBeUndefined()
-      expect(tools.find((t) => t.name === 'generate_video')).toBeDefined()
-    } finally {
-      initializeSpy.mockRestore()
-    }
+    const tools = await getAgentTools(harness)
+    expect(tools.find((t) => t.name === 'generate_image')).toBeUndefined()
+    expect(tools.find((t) => t.name === 'generate_video')).toBeDefined()
   })
 })

@@ -18,7 +18,6 @@ describe('ChatService', () => {
       data: {
         name: 'Test Team',
         settings: { transcode: { videoStrategy: 'best_match' }, chatbotAgentId: 'test-agent-id' },
-        sandbox: { create: {} },
       },
     })
 
@@ -537,7 +536,6 @@ describe('ChatService', () => {
         data: {
           name: 'Team Roles',
           settings: { transcode: { videoStrategy: 'best_match' }, chatbotAgentId: 'test-agent-id' },
-          sandbox: { create: {} },
         },
       })
       const project = await prisma.project.create({

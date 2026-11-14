@@ -1,10 +1,10 @@
 import type { ToolExecutionResult as AgentToolResult } from '@earendil-works/pi-durable'
 import { storageBucket } from '@shumai/core/src/asset-read'
 import { completeUploadOp, runOperation } from '@shumai/core/src/operations'
+import { runnerService } from '@shumai/core/src/runner'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { getFileMimeType, readFileMimeType } from '@shumai/core/src/utils/file-mime'
+import { getFileMimeType } from '@shumai/core/src/utils/file-mime'
 import { createFile, type StartedUploadOutput } from '@shumai/operations'
-import * as fs from 'fs'
 import * as path from 'path'
 import { Type } from 'typebox'
 import { z } from 'zod'
@@ -32,17 +32,90 @@ function setCreationMetadata(schema: ToolParametersSchema, options: AgentToolOpt
   }
 }
 
-function resolveLocalFile(localPath: string): string {
-  const absolutePath = path.resolve(process.cwd(), localPath)
-  if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+function resolveGeneratedStorageKey(rawPath: string): string | null {
+  const cleaned = rawPath.replace(/\\/g, '/').replace(/^\.\//, '')
+  if (cleaned.includes('..')) return null
+  if (cleaned.startsWith('.pi/generated/')) {
+    const rest = cleaned.slice('.pi/generated/'.length)
+    return rest ? `temp/generated/${rest}` : null
+  }
+  if (cleaned.startsWith('temp/generated/')) {
+    const rest = cleaned.slice('temp/generated/'.length)
+    return rest ? cleaned : null
+  }
+  return null
+}
+
+function normalizeRunnerPath(rawPath: string): string | null {
+  const cleaned = rawPath.replace(/\\/g, '/').replace(/^\.\//, '')
+  if (!cleaned || cleaned.startsWith('/') || cleaned.includes('..')) {
+    return null
+  }
+  const normalized = path.posix.normalize(cleaned)
+  if (normalized.startsWith('..') || normalized.startsWith('/')) {
+    return null
+  }
+  if (normalized === '.pi' || normalized.startsWith('.pi/')) {
+    return normalized
+  }
+  return `.pi/${normalized}`
+}
+
+async function resolveTargetRunnerId(ctx?: AgentOperationContext): Promise<string> {
+  if (ctx?.runnerId && !ctx.teamId) {
+    if (!runnerService.isRunnerConnected(ctx.runnerId)) {
+      throw new Error(
+        'Runner is currently offline. Please start your runner with "shumai runner start" and try again.',
+      )
+    }
+    return ctx.runnerId
+  }
+  const runner = await runnerService.requireOnlineRunner(ctx?.teamId || '', ctx?.runnerId)
+  return runner.id
+}
+
+async function resolvePathSource(
+  localPath: string,
+  ctx?: AgentOperationContext,
+): Promise<
+  | { kind: 'generated'; storageKey: string; name: string; contentType: string }
+  | { kind: 'runner'; runnerId: string; runnerPath: string; name: string; contentType: string }
+> {
+  const generatedKey = resolveGeneratedStorageKey(localPath)
+  if (generatedKey) {
+    const head = await s3Service.headObject(storageBucket(), generatedKey).catch(() => null)
+    if (!head) {
+      throw new Error(`Local file not found at path: ${localPath}`)
+    }
+    const name = path.posix.basename(generatedKey)
+    const contentType =
+      head.contentType && head.contentType !== 'application/octet-stream'
+        ? head.contentType
+        : getFileMimeType(null, name)
+    return { kind: 'generated', storageKey: generatedKey, name, contentType }
+  }
+
+  const runnerPath = normalizeRunnerPath(localPath)
+  if (!runnerPath) {
     throw new Error(`Local file not found at path: ${localPath}`)
   }
-  return absolutePath
+
+  const runnerId = await resolveTargetRunnerId(ctx)
+  const stat = await runnerService.statOnRunner(runnerId, runnerPath)
+  if (!stat.ok || !stat.exists || stat.isFile === false) {
+    throw new Error(`Local file not found at path: ${localPath}`)
+  }
+  const name = path.posix.basename(runnerPath)
+  const contentType =
+    stat.mimeType && stat.mimeType !== 'application/octet-stream'
+      ? stat.mimeType
+      : getFileMimeType(null, name)
+  return { kind: 'runner', runnerId, runnerPath, name, contentType }
 }
 
 /**
- * Writes the file straight to the upload's storage key (the agent runs next to storage, so
- * it doesn't need the upload URL), then completes the upload as the agent.
+ * Transfers the file from either temporary generated storage or the remote runner workspace
+ * into the upload's storage key, then completes the upload as the agent.
  */
 async function uploadAndComplete(
   raw: unknown,
@@ -53,14 +126,29 @@ async function uploadAndComplete(
   if (!started.key) throw new Error('The upload did not return a storage key')
 
   if (typeof extra.path === 'string') {
-    const absolutePath = resolveLocalFile(extra.path)
-    await s3Service.putObject(
-      storageBucket(),
-      started.key,
-      fs.createReadStream(absolutePath),
-      fs.statSync(absolutePath).size,
-      readFileMimeType(absolutePath),
-    )
+    const source =
+      (extra.__resolvedSource as Awaited<ReturnType<typeof resolvePathSource>> | undefined) ??
+      (await resolvePathSource(extra.path, ctx))
+
+    if (source.kind === 'generated') {
+      const obj = await s3Service.getObject(storageBucket(), source.storageKey)
+      await s3Service.putObject(
+        storageBucket(),
+        started.key,
+        obj.buffer,
+        obj.buffer.length,
+        source.contentType,
+      )
+    } else {
+      const uploadRes = await runnerService.uploadFromRunner(source.runnerId, {
+        srcPath: source.runnerPath,
+        url: started.uploadUrl,
+        contentType: source.contentType,
+      })
+      if (!uploadRes.ok) {
+        throw new Error(uploadRes.error || `Failed to upload file "${extra.path}" from runner`)
+      }
+    }
   } else {
     const content = Buffer.from(typeof extra.content === 'string' ? extra.content : '', 'utf-8')
     // The key ends with the file name, which gives the same type as the upload's.
@@ -85,7 +173,7 @@ async function uploadAndComplete(
 const createFileExtension: AgentToolExtension = {
   description:
     'Create a new file in a folder. Choose exactly ONE source: ' +
-    '(1) "path" to upload a local file (e.g. one you made in .pi), OR ' +
+    '(1) "path" to upload a file from .pi (e.g. a generated file in .pi/generated/... or a file created in .pi on the runner), OR ' +
     '(2) "name" and "content" to create a text file with that content. ' +
     METADATA_HINT,
   parameterOverrides: z.object({
@@ -100,7 +188,9 @@ const createFileExtension: AgentToolExtension = {
       .string()
       .min(1)
       .optional()
-      .describe('Absolute or relative path of a local file to upload. Omit when using "content".'),
+      .describe(
+        'Path of a file in .pi (e.g. ".pi/generated/..." or ".pi/output.mp4") to upload. Omit when using "content".',
+      ),
     content: z
       .string()
       .optional()
@@ -108,18 +198,19 @@ const createFileExtension: AgentToolExtension = {
   }),
   hiddenParameters: ['contentType'],
   adjustParameters: setCreationMetadata,
-  toInput(input, extra) {
+  async toInput(input, extra, ctx) {
     const hasPath = typeof extra.path === 'string'
     const hasContent = typeof extra.content === 'string'
     if (hasPath === hasContent) {
       throw new Error('Provide exactly one of "path" (a local file) or "content" (with "name").')
     }
     if (hasPath) {
-      const absolutePath = resolveLocalFile(extra.path as string)
+      const source = await resolvePathSource(extra.path as string, ctx)
+      extra.__resolvedSource = source
       return {
         ...input,
-        name: input.name ?? path.basename(absolutePath),
-        contentType: readFileMimeType(absolutePath),
+        name: input.name ?? source.name,
+        contentType: source.contentType,
       }
     }
     if (typeof input.name !== 'string' || !input.name.trim()) {
@@ -132,23 +223,26 @@ const createFileExtension: AgentToolExtension = {
 
 const createVersionExtension: AgentToolExtension = {
   description:
-    'Create a new version of an existing file (or version stack) from a local file path. ' +
+    'Create a new version of an existing file (or version stack) from a file path in .pi. ' +
     'The new version becomes the current one. ' +
     METADATA_HINT,
   extraParameters: z.object({
     path: z
       .string()
       .min(1)
-      .describe('Absolute or relative path of the local file to upload as the new version.'),
+      .describe(
+        'Path of the file in .pi (e.g. ".pi/generated/..." or ".pi/output.mp4") to upload as the new version.',
+      ),
   }),
   hiddenParameters: ['name', 'contentType'],
   adjustParameters: setCreationMetadata,
-  toInput(input, extra) {
-    const absolutePath = resolveLocalFile(extra.path as string)
+  async toInput(input, extra, ctx) {
+    const source = await resolvePathSource(extra.path as string, ctx)
+    extra.__resolvedSource = source
     return {
       ...input,
-      name: path.basename(absolutePath),
-      contentType: readFileMimeType(absolutePath),
+      name: source.name,
+      contentType: source.contentType,
     }
   },
   present: uploadAndComplete,

@@ -6,7 +6,7 @@ loadEnvConfig(process.cwd(), process.env.NODE_ENV !== 'production')
 import index from '@shumai/webui/index.html'
 
 import { closeAgentSessions, initAgentWorkflows } from '@shumai/agent'
-import { app } from '@shumai/api'
+import { app, runnerWebsocket } from '@shumai/api'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { migrateLegacyAgentAvatars } from '@shumai/core/src/agent/migration'
 import { assetService } from '@shumai/core/src/asset/asset'
@@ -15,7 +15,7 @@ import { validateArchiveStorageConfig } from '@shumai/core/src/s3/archive-storag
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { workflowService } from '@shumai/workflow-core'
 
-import { sandboxService } from '@shumai/core'
+import { runnerService } from '@shumai/core'
 import { autoArchiveJobService } from '@shumai/core/src/asset/auto-archive-job'
 import { authService } from '@shumai/core/src/auth/auth'
 import { notificationJobService } from '@shumai/core/src/notification/notification-job'
@@ -84,9 +84,7 @@ async function run() {
   // Initialize workflows and activities for local executor mode
   initAgentWorkflows()
   initTranscodeWorkflows()
-  await sandboxService.ensureInitialized().catch((err) => {
-    console.error('Failed to eagerly initialize sandbox in web app:', err)
-  })
+  runnerService.startHeartbeatMonitor()
 
   // Start services
   await metadataService.syncSystemFields().catch(console.error)
@@ -210,6 +208,7 @@ async function run() {
       : 1024 * 1024 * 1024 * 20, // Default 20GB
     development: !isProd,
     fetch: app.fetch,
+    websocket: runnerWebsocket,
     routes,
   })
 
@@ -218,6 +217,7 @@ async function run() {
   const shutdown = async () => {
     console.log('\nShutting down gracefully...')
     workflowService.stopStaleTaskRecovery()
+    runnerService.stopHeartbeatMonitor()
     await closeAgentSessions()
     await workflowService.shutdownWorkers().catch(() => {})
     assetService.stopCleanupJob()

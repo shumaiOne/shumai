@@ -13,6 +13,7 @@ export interface OutputAccumulatorOptions {
   maxLines?: number
   maxBytes?: number
   tempFilePrefix?: string
+  disableTempFile?: boolean
 }
 
 export interface OutputSnapshot {
@@ -35,6 +36,7 @@ export class OutputAccumulator {
   private readonly maxBytes: number
   private readonly maxRollingBytes: number
   private readonly tempFilePrefix: string
+  private readonly disableTempFile: boolean
   private readonly decoder = new TextDecoder()
 
   private rawChunks: Buffer[] = []
@@ -57,6 +59,7 @@ export class OutputAccumulator {
     this.maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES
     this.maxRollingBytes = Math.max(this.maxBytes * 2, 1)
     this.tempFilePrefix = options.tempFilePrefix ?? 'shumai-bash'
+    this.disableTempFile = options.disableTempFile ?? false
   }
 
   append(data: Buffer): void {
@@ -202,6 +205,9 @@ export class OutputAccumulator {
   }
 
   private shouldUseTempFile(): boolean {
+    if (this.disableTempFile) {
+      return false
+    }
     return (
       this.totalRawBytes > this.maxBytes ||
       this.totalDecodedBytes > this.maxBytes ||
@@ -210,7 +216,7 @@ export class OutputAccumulator {
   }
 
   private ensureTempFile(): void {
-    if (this.tempFilePath) {
+    if (this.disableTempFile || this.tempFilePath) {
       return
     }
     this.tempFilePath = defaultTempFilePath(this.tempFilePrefix)

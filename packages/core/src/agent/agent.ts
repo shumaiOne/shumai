@@ -19,8 +19,6 @@ import {
   UpdateAgentParams,
 } from '@shumai/dtos'
 import AdmZip from 'adm-zip'
-import * as fs from 'fs'
-import * as path from 'path'
 import { getAllowedAgentRoles } from './permissions'
 import { getPresetAvatarBuffer, getPresetAvatarStorageKey, isPresetAvatarId } from './presets'
 import { agentSessionService } from './session-service'
@@ -41,6 +39,7 @@ interface AgentInfoSource {
   permission: TeamMemberRole
   providerId: string | null
   modelId: string | null
+  runnerId?: string | null
   config: unknown
   soul: string | null
   user: { name: string; image: string | null }
@@ -57,6 +56,8 @@ function extractS3Key(urlOrKey?: string | null): string | null | undefined {
 }
 
 export class AgentService {
+  private skillContentCache = new Map<string, string>()
+
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
 
   async getSkillContent(skillId: string): Promise<string> {
@@ -68,54 +69,44 @@ export class AgentService {
       throw new Error(`Skill with ID ${skillId} not found.`)
     }
 
-    const skillDir = path.join(process.cwd(), '.pi', 'skills', skill.id)
-    const hashFile = path.join(skillDir, '.hash')
-    let needsDownload = true
-
-    if (fs.existsSync(hashFile)) {
-      const localHash = fs.readFileSync(hashFile, 'utf8')
-      if (localHash === skill.hash) {
-        needsDownload = false
-      }
+    const cacheKey = `${skill.id}:${skill.hash}`
+    const cached = this.skillContentCache.get(cacheKey)
+    if (cached !== undefined) {
+      return cached
     }
 
-    if (needsDownload) {
-      if (fs.existsSync(skillDir)) {
-        fs.rmSync(skillDir, { recursive: true, force: true })
-      }
-      fs.mkdirSync(skillDir, { recursive: true })
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: skill.assetId },
+      include: { storageKey: true },
+    })
 
-      const asset = await this.prismaClient.asset.findUnique({
-        where: { id: skill.assetId },
-        include: { storageKey: true },
-      })
+    if (!asset || !asset.storageKey?.key) {
+      throw new Error('Skill asset not found or has no key')
+    }
 
-      if (!asset || !asset.storageKey?.key) {
-        throw new Error('Skill asset not found or has no key')
-      }
+    const { buffer: zipBuffer } = await s3Service.getObject(
+      process.env.S3_BUCKET || 'shumai',
+      asset.storageKey.key,
+    )
 
-      const { buffer: zipBuffer } = await s3Service.getObject(
-        process.env.S3_BUCKET || 'shumai',
-        asset.storageKey.key,
+    const zip = new AdmZip(zipBuffer)
+    const entries = zip.getEntries()
+    const skillMdEntry =
+      entries.find((e) => !e.isDirectory && e.entryName === 'SKILL.md') ||
+      entries.find((e) => !e.isDirectory && e.entryName === 'skill.md') ||
+      entries.find(
+        (e) =>
+          !e.isDirectory &&
+          (e.entryName.endsWith('/SKILL.md') || e.entryName.endsWith('/skill.md')),
       )
 
-      const zip = new AdmZip(zipBuffer)
-      zip.extractAllTo(skillDir, true)
-
-      fs.writeFileSync(hashFile, skill.hash)
+    if (!skillMdEntry) {
+      throw new Error(`Skill downloaded but SKILL.md not found in skill ${skill.id}`)
     }
 
-    // Read SKILL.md
-    let skillMdPath = path.join(skillDir, 'SKILL.md')
-    if (!fs.existsSync(skillMdPath)) {
-      skillMdPath = path.join(skillDir, 'skill.md')
-    }
-
-    if (!fs.existsSync(skillMdPath)) {
-      throw new Error(`Skill downloaded but SKILL.md not found in ${skillDir}`)
-    }
-
-    return fs.readFileSync(skillMdPath, 'utf8')
+    const content = skillMdEntry.getData().toString('utf8')
+    this.skillContentCache.set(cacheKey, content)
+    return content
   }
 
   async getSkillEnvs(skillId: string): Promise<Record<string, string>> {
@@ -150,6 +141,7 @@ export class AgentService {
       avatar,
       providerId,
       modelId,
+      runnerId,
       thinkingLevel,
       systemPrompt,
       soul,
@@ -206,6 +198,15 @@ export class AgentService {
       })
       if (!team) throw new Error('team not found')
 
+      if (runnerId) {
+        const runner = await tx.runner.findFirst({
+          where: { id: runnerId, teamId },
+        })
+        if (!runner) {
+          throw new Error('runner not found in team')
+        }
+      }
+
       const agentConfig: PrismaJson.AgentConfig = {
         provider: providerId || '',
         model: modelId || '',
@@ -233,6 +234,7 @@ export class AgentService {
           permission: permission || 'reviewer',
           providerId: providerId || null,
           modelId: modelId || null,
+          runnerId: runnerId || null,
           soul,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           config: agentConfig as any,
@@ -280,6 +282,7 @@ export class AgentService {
       avatar,
       providerId,
       modelId,
+      runnerId,
       thinkingLevel,
       systemPrompt,
       soul,
@@ -380,6 +383,15 @@ export class AgentService {
         where: { agentId },
       })
 
+      if (runnerId) {
+        const runner = await tx.runner.findFirst({
+          where: { id: runnerId, teamId: agent.teamId },
+        })
+        if (!runner) {
+          throw new Error('runner not found in team')
+        }
+      }
+
       return tx.agent.update({
         where: { id: agentId },
         data: {
@@ -388,6 +400,7 @@ export class AgentService {
           ...(permission ? { permission } : {}),
           providerId: providerId || null,
           modelId: modelId || null,
+          ...(runnerId !== undefined ? { runnerId: runnerId || null } : {}),
           soul,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           config: agentConfig as any,
@@ -478,6 +491,7 @@ export class AgentService {
       avatarPreset: config.avatarPreset,
       providerId: agent.providerId || undefined,
       modelId: agent.modelId || undefined,
+      runnerId: agent.runnerId ?? null,
       thinkingLevel: config.thinkingLevel || 'off',
       systemPrompt: config.systemPrompt,
       soul: agent.soul || undefined,

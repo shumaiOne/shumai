@@ -1,12 +1,9 @@
 import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { vi } from 'vitest'
 
-vi.mock('fs')
-
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { EnabledMediaModel } from '@shumai/dtos'
-import * as fs from 'fs'
-import * as path from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import * as downloadAsset from './download-asset'
 import { createGenerateVideoTool } from './generate-video'
@@ -45,13 +42,9 @@ describe('generate_video tool', () => {
     google: { apiKey: 'mock-google-key' },
   }
 
-  const piDir = path.join(process.cwd(), '.pi')
-
   beforeEach(() => {
     vi.restoreAllMocks()
-    vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-    vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined)
-    vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {})
+    vi.spyOn(s3Service, 'putObject').mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -76,7 +69,7 @@ describe('generate_video tool', () => {
       buffer: mockBuffer,
       mimeType: 'video/mp4',
     })
-    const writeSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {})
+    const putSpy = vi.spyOn(s3Service, 'putObject').mockResolvedValue(undefined)
 
     const result = await invokeTool(
       tool,
@@ -115,14 +108,19 @@ describe('generate_video tool', () => {
       }),
     )
 
-    const expectedPath = path.join(piDir, 'test_nature.mp4')
-    expect(writeSpy).toHaveBeenCalledWith(expectedPath, mockBuffer)
+    expect(putSpy).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringMatching(/^temp\/generated\/.+\/test_nature\.mp4$/),
+      mockBuffer,
+      mockBuffer.length,
+      'video/mp4',
+    )
 
     const textContent = result.content[0]
     expect(textContent.type).toBe('text')
     if (textContent.type === 'text') {
       expect(textContent.text).toContain('Successfully generated video')
-      expect(textContent.text).toContain('.pi/test_nature.mp4')
+      expect(textContent.text).toMatch(/\.pi\/generated\/.+\/test_nature\.mp4/)
     }
     expect(result.details).toMatchObject({
       fileName: 'test_nature.mp4',

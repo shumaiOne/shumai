@@ -25,7 +25,6 @@ import {
   hook,
   type ToolRegistration as AgentTool,
 } from '@earendil-works/pi-durable'
-import { sandboxService } from '@shumai/core'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { hydrateRequest } from '@shumai/core/src/agent/session-content'
 import { agentSessionService } from '@shumai/core/src/agent/session-service'
@@ -34,9 +33,9 @@ import { logger } from '@shumai/core/src/logger'
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { QuotaExceededError, quotaService } from '@shumai/core/src/quota/quota-service'
+import { runnerService } from '@shumai/core/src/runner'
 import { prisma } from '@shumai/db'
 import { DEFAULT_DENIED_TOOLS } from '@shumai/dtos'
-import * as fs from 'fs'
 import * as path from 'path'
 import { Type, type TSchema } from 'typebox'
 import { createAutofillReadAssetTool } from './operation-extensions'
@@ -45,7 +44,7 @@ import { createGenerateImageTool } from './tools/generate-image'
 import { createGenerateVideoTool } from './tools/generate-video'
 import { createReadSkillTool } from './tools/read-skill'
 import { createReadThreadTool } from './tools/read-thread'
-import { createSandboxedBashTool } from './tools/sandboxed-bash'
+import { createSandboxedBashTool, type LoadedSkillRef } from './tools/sandboxed-bash'
 
 const activeHarnesses = new Set<Harness>()
 
@@ -177,7 +176,6 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     systemPrompt,
     teamSkills,
     enabledSkillIds,
-    allowedDomains,
     sessionId,
     userId,
     projectId,
@@ -202,13 +200,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   })
   const storage = opened.storage
   try {
-    const agentDir = path.join(process.cwd(), '.pi', 'agents', agentId)
-    if (!fs.existsSync(agentDir)) fs.mkdirSync(agentDir, { recursive: true })
-
     getModelFromDb(params.providers, providerName, modelId)
-
-    const piDir = path.join(process.cwd(), '.pi')
-    if (!fs.existsSync(piDir)) fs.mkdirSync(piDir, { recursive: true })
 
     const role = userId ? await resolveEffectiveRole(teamId, projectId, userId) : undefined
     const isOwner = !userId || role === 'owner'
@@ -262,16 +254,14 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       }
     }
 
-    if (allowedDomains !== undefined) {
-      await sandboxService.syncAllowedDomains(allowedDomains, teamId)
-    }
-
     const skillEnvs: Record<string, string> = {}
     const onEnvsAdded = (envs: Record<string, string>) => {
       Object.assign(skillEnvs, envs)
     }
 
-    // Restore env variables from previously loaded skills in this session
+    const loadedSkills = new Map<string, LoadedSkillRef>()
+
+    // Restore env variables and loaded skill refs from previously loaded skills in this session
     let skillLoadedInSession = false
     if (sessionId) {
       try {
@@ -293,6 +283,13 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
               ) {
                 skillLoadedInSession = true
                 onEnvsAdded(await agentService.getSkillEnvs(details.skillId))
+                const dbSkill = await prisma.skill.findUnique({
+                  where: { id: details.skillId },
+                  select: { id: true, assetId: true, hash: true },
+                })
+                if (dbSkill) {
+                  loadedSkills.set(dbSkill.id, dbSkill)
+                }
               }
             }
           }
@@ -307,6 +304,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     })
     const agentConfig = agent?.config as PrismaJson.AgentConfig | null | undefined
     const deniedTools = agentConfig?.deniedTools ?? [...DEFAULT_DENIED_TOOLS]
+
+    const resolvedRunner = await runnerService.resolveRunnerForAgent(teamId, agent?.runnerId)
+    const hasRunner = resolvedRunner.hasConfiguredRunner
 
     const mediaTools: AgentTool[] = []
     // Agents acting for a user get read_asset / get_asset_render from the Operation registry
@@ -337,24 +337,32 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
     const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs, {
       teamId,
+      agentRunnerId: agent?.runnerId,
       userId,
       role,
-      getBlockedHost: (commandId?: string) => sandboxService.getBlockedHost(commandId),
-      clearBlockedHost: () => {
-        sandboxService.clearBlockedHost()
-      },
       // Non-owner users can only run bash commands required by a loaded skill
       restrictedUser: restricted,
+      getLoadedSkills: () => loadedSkills.values(),
     })
 
+    // When a team has no Runner configured in DB, bash and download_asset are omitted.
     // For non-owner users, the bash tool is not injected initially. It becomes available
     // only after a skill is successfully loaded via the read_skill tool (or immediately when
     // a skill was already loaded earlier in this session).
     const registry = createRegistry()
-    const bashIncludedFromStart = isOwner || skillLoadedInSession
+    const bashIncludedFromStart = hasRunner && (isOwner || skillLoadedInSession)
     let bashInjected = bashIncludedFromStart
-    const onSkillLoaded = async () => {
-      if (bashInjected || deniedTools.includes('bash')) return
+    const onSkillLoaded = async (skill: LoadedSkillRef) => {
+      loadedSkills.set(skill.id, skill)
+      if (resolvedRunner.runner && runnerService.isRunnerConnected(resolvedRunner.runner.id)) {
+        await runnerService.ensureSkillOnRunner(resolvedRunner.runner.id, skill).catch((err) => {
+          logger.warn(
+            { err, skillId: skill.id, runnerId: resolvedRunner.runner?.id },
+            'Failed to eagerly stage skill on runner',
+          )
+        })
+      }
+      if (!restricted || !hasRunner || bashInjected || deniedTools.includes('bash')) return
       bashInjected = true
       registry.install(
         defineExtension({ name: 'shumai.bash', tools: [wrapToolWithQuota(sandboxedBash)] }),
@@ -370,7 +378,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     const readSkill = createReadSkillTool(
       userId,
       onEnvsAdded,
-      restricted ? onSkillLoaded : undefined,
+      onSkillLoaded,
       enabledSkillIds,
       projectId,
     )
@@ -381,7 +389,13 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       systemTools.push(
         // Shared Operations (also exposed via MCP and the CLI): browsing, searching, organizing,
         // reading and downloading assets, creating files and versions, comments and metadata
-        ...buildOperationTools({ userId, agentId, teamId, projectId }, { creationMetadataSchema }),
+        ...buildOperationTools(
+          { userId, agentId, teamId, projectId, runnerId: agent?.runnerId },
+          {
+            creationMetadataSchema,
+            excludeOperations: hasRunner ? [] : ['download_asset'],
+          },
+        ),
       )
     }
 
@@ -462,17 +476,17 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
         prompt += `\n\n${buildRestrictedUserInstructions()}`
       }
 
-      // Sandbox environment restrictions
-      prompt +=
-        '\n\n' +
-        [
-          '# Sandbox Environment Restrictions',
-          'Your shell environment (the `bash` tool) is highly sandboxed to protect the host system:',
-          '1. **Filesystem Isolation**: You only have read and write permissions to the `.pi` folder in the project root directory.',
-          '2. **Read/Write Restrictions**: All reading and writing to directories outside `.pi` (e.g. your home directory `~/`, `/tmp`, `/etc`, or the rest of the workspace) are strictly denied by the sandbox security policy.',
-          "3. **Avoid System Temp Directory Writes**: You must strictly avoid any commands or shell constructs that attempt to write to the system temporary directory `/tmp` or `/var/tmp`. For example, do not use Bash here documents (`<<EOF` or `<<'EOF'`) in your commands, as the bash shell internally implements here documents by writing temporary files to `/tmp`. If you need to create a file or write content, write it directly using file creation tools or write to files located inside the `.pi` directory without utilizing here documents.",
-          '4. **Temporary File Cleanup**: If you download workspace assets to `.pi` using the `download_asset` tool for local processing or script execution, you MUST delete the temporary downloaded files from `.pi` after finishing your task.',
-        ].join('\n')
+      if (hasRunner && !deniedTools.includes('bash')) {
+        prompt +=
+          '\n\n' +
+          [
+            '# Runner Environment & Workspace Rules',
+            'Your shell environment (`bash` tool) runs on a dedicated Runner workspace:',
+            '1. **Workspace Directory**: Read and write files inside the `.pi` folder in the current working directory.',
+            '2. **Generated Media Staging**: Files generated by `generate_image` or `generate_video` are returned at virtual paths `.pi/generated/<id>/<filename>`. You can pass those paths directly to `create_file` or `create_version` without using `bash`. If you need to process a generated file inside `bash`, pass its path in the `inputFiles` array parameter of the `bash` tool so it is staged into the runner workspace before the command runs.',
+            '3. **Temporary File Cleanup**: If you download workspace assets to `.pi` using the `download_asset` tool for local processing or script execution, you MUST delete the temporary downloaded files from `.pi` after finishing your task.',
+          ].join('\n')
+      }
 
       if (teamSkills.length > 0) {
         prompt += formatSkillsForPrompt(teamSkills)
@@ -643,13 +657,13 @@ export function formatSkillsForPrompt(
   const lines = [
     '\n\nThe following skills provide specialized instructions for specific tasks.',
     "Use the read_skill tool to load a skill's file when the task matches its description.",
-    'When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.',
+    'When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that relative path in tool commands.',
     '',
     '<available_skills>',
   ]
 
   for (const skill of skills) {
-    const filePath = path.join(process.cwd(), '.pi', 'skills', skill.id, 'SKILL.md')
+    const filePath = path.posix.join('.pi', 'skills', skill.id, 'SKILL.md')
     lines.push('  <skill>')
     lines.push(`    <id>${escapeXml(skill.id)}</id>`)
     lines.push(`    <name>${escapeXml(skill.name)}</name>`)

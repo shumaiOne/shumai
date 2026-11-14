@@ -1,58 +1,11 @@
-import type { SandboxConfig, SandboxProvider, WrapCommandOptions } from '@shumai/core'
-import { sandboxService } from '@shumai/core'
 import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
+import { runnerService, type RunnerSocket } from '@shumai/core/src/runner'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { spawn } from 'node:child_process'
-import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAgentSession, type DbProviderInfo } from './index'
 import { closeAgentSessions } from './runtime'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
-
-vi.mock('node:child_process')
-
-class TestSandboxProvider implements SandboxProvider {
-  initialized = false
-  config: SandboxConfig | null = null
-  initializeCalls = 0
-  updateConfigCalls = 0
-  resetCalls = 0
-  wrapCommandCalls: Array<{ command: string; options?: WrapCommandOptions }> = []
-  violationsByCommandId = new Map<string, string>()
-
-  async initialize(config: SandboxConfig): Promise<void> {
-    this.initialized = true
-    this.config = config
-    this.initializeCalls++
-  }
-
-  async wrapCommand(command: string, options?: WrapCommandOptions): Promise<string> {
-    this.wrapCommandCalls.push({ command, options })
-    return `sandboxed-${command}`
-  }
-
-  async updateConfig(config: Partial<SandboxConfig>): Promise<void> {
-    this.updateConfigCalls++
-    if (this.config && config.network) {
-      this.config.network = { ...this.config.network, ...config.network }
-    }
-  }
-
-  async reset(): Promise<void> {
-    this.resetCalls++
-    this.initialized = false
-    this.config = null
-  }
-
-  isInitialized(): boolean {
-    return this.initialized
-  }
-
-  getBlockedHostForCommand(commandId: string): string | null {
-    return this.violationsByCommandId.get(commandId) ?? null
-  }
-}
 
 const mockProviders: DbProviderInfo[] = [
   {
@@ -75,28 +28,43 @@ const mockProviders: DbProviderInfo[] = [
   },
 ]
 
-describe('Concurrent Sandbox Sessions', () => {
+function createMockWs() {
+  const sent: string[] = []
+  const ws: RunnerSocket = {
+    send: vi.fn((data: string) => {
+      sent.push(data)
+    }),
+    close: vi.fn(),
+  }
+  return {
+    ws,
+    sent,
+    lastSentJson: () => (sent.length > 0 ? JSON.parse(sent[sent.length - 1]) : null),
+  }
+}
+
+describe('Concurrent Runner Sessions', () => {
   setupTestDbHooks()
 
-  let testProvider: TestSandboxProvider
-
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks()
-    testProvider = new TestSandboxProvider()
-    sandboxService.setProvider(testProvider)
   })
 
-  it('does not reset sandbox when new sessions start while a command is running', async () => {
+  afterEach(async () => {
+    await closeAgentSessions()
+  })
+
+  it('executes concurrent bash commands on the same runner with isolated executionIds', async () => {
     const team = await prisma.team.create({
-      data: { name: 'Concurrent Test Team' },
+      data: { name: 'Concurrent Runner Team' },
     })
-    await prisma.sandbox.create({
-      data: {
-        teamId: team.id,
-        networkSandboxEnabled: true,
-        allowedDomains: ['api.github.com'],
-      },
-    })
+    const { runner } = await runnerService.createRunner(team.id, { name: 'Shared Runner' })
+    const conn = createMockWs()
+    await runnerService.registerConnection(
+      { id: runner.id, teamId: team.id, name: runner.name },
+      conn.ws,
+    )
+
     await prisma.user.create({
       data: {
         id: 'agent-1',
@@ -114,7 +82,6 @@ describe('Concurrent Sandbox Sessions', () => {
       },
     })
 
-    // 1. Session A starts and syncs domains
     await createAgentSession({
       teamId: team.id,
       agentId: 'agent-1',
@@ -122,207 +89,166 @@ describe('Concurrent Sandbox Sessions', () => {
       modelId: 'gemini',
       systemPrompt: 'Session A prompt',
       teamSkills: [],
-      allowedDomains: ['api.github.com'],
       providers: mockProviders,
     })
 
-    expect(testProvider.initializeCalls).toBe(1)
-    expect(testProvider.resetCalls).toBe(0)
+    const tool = createSandboxedBashTool('/mock/cwd', {}, { teamId: team.id })
 
-    // 2. Session A runs a bash command that takes time
-    const tool = createSandboxedBashTool('/mock/cwd')
-
-    const mockStdout = new EventEmitter()
-    const mockStderr = new EventEmitter()
-    const mockChild = Object.assign(new EventEmitter(), {
-      stdout: mockStdout,
-      stderr: mockStderr,
-      pid: 999,
-      kill: vi.fn(),
-    })
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock spawn return value
-    ;(spawn as any).mockReturnValue(mockChild)
-
-    const sessionExecutionA = invokeTool(tool, 'call-session-a-1', {
-      command: 'curl https://api.github.com/repos',
+    // Note: registerConnection sends a 'welcome' message first (conn.sent[0])
+    const execA = invokeTool(tool, 'call-a', {
+      command: 'echo session-a',
       source: 'skill',
     })
+    await vi.waitFor(() => expect(conn.sent.length).toBe(2))
+    const msgA = JSON.parse(conn.sent[1])
 
-    // 3. Concurrently, Session B starts with additional allowed domains
-    await createAgentSession({
-      teamId: team.id,
-      agentId: 'agent-1',
-      providerName: 'google',
-      modelId: 'gemini',
-      systemPrompt: 'Session B prompt',
-      teamSkills: [],
-      allowedDomains: ['api.github.com', 'pypi.org'],
-      providers: mockProviders,
+    const execB = invokeTool(tool, 'call-b', {
+      command: 'echo session-b',
+      source: 'skill',
     })
+    await vi.waitFor(() => expect(conn.sent.length).toBe(3))
+    const msgB = JSON.parse(conn.sent[2])
 
-    // Assert sandbox was hot-reloaded without any reset!
-    expect(testProvider.resetCalls).toBe(0)
-    expect(testProvider.updateConfigCalls).toBe(1)
-    expect(sandboxService.getCurrentAllowedDomains()).toEqual(['api.github.com', 'pypi.org'])
+    expect(msgA.executionId).not.toBe(msgB.executionId)
 
-    // 4. Concurrently, Session C starts with the same domains (should be no-op, no reset, no updateConfig)
-    await createAgentSession({
-      teamId: team.id,
-      agentId: 'agent-1',
-      providerName: 'google',
-      modelId: 'gemini',
-      systemPrompt: 'Session C prompt',
-      teamSkills: [],
-      allowedDomains: ['pypi.org', 'api.github.com'],
-      providers: mockProviders,
-    })
-
-    expect(testProvider.resetCalls).toBe(0)
-    expect(testProvider.updateConfigCalls).toBe(1) // Still 1, no duplicate update
-
-    // 5. Session A's command completes successfully
-    mockStdout.emit('data', Buffer.from('{"status":"ok"}'))
-    mockChild.emit('close', 0)
-
-    const result = await sessionExecutionA
-    expect(result.details).toEqual(
-      expect.objectContaining({
+    // Interleave output and completion for A and B
+    runnerService.handleMessage(
+      runner.id,
+      conn.ws,
+      JSON.stringify({
+        type: 'exec.output',
+        executionId: msgB.executionId,
+        stream: 'stdout',
+        offset: 0,
+        data: 'out-b',
+      }),
+    )
+    runnerService.handleMessage(
+      runner.id,
+      conn.ws,
+      JSON.stringify({
+        type: 'exec.output',
+        executionId: msgA.executionId,
+        stream: 'stdout',
+        offset: 0,
+        data: 'out-a',
+      }),
+    )
+    runnerService.handleMessage(
+      runner.id,
+      conn.ws,
+      JSON.stringify({
+        type: 'exec.result',
+        executionId: msgA.executionId,
         exitCode: 0,
+        signal: null,
+        timedOut: false,
+        aborted: false,
+      }),
+    )
+    runnerService.handleMessage(
+      runner.id,
+      conn.ws,
+      JSON.stringify({
+        type: 'exec.result',
+        executionId: msgB.executionId,
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        aborted: false,
       }),
     )
 
-    // Verify command was wrapped with options containing commandId: 'call-session-a-1'
-    expect(testProvider.wrapCommandCalls).toContainEqual({
-      command: 'curl https://api.github.com/repos',
-      options: { commandId: 'call-session-a-1' },
-    })
+    const [resA, resB] = await Promise.all([execA, execB])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ToolResponse content blocks
+    expect((resA as any).content[0].text).toContain('out-a')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ToolResponse content blocks
+    expect((resB as any).content[0].text).toContain('out-b')
+
+    runnerService.handleDisconnect(runner.id, conn.ws)
   })
 
-  it('isolates blocked host violations per commandId during concurrent execution', async () => {
-    await sandboxService.ensureInitialized({ allowedDomains: ['api.github.com'] })
-
-    // Command 1 and Command 2 run concurrently
-    await sandboxService.wrapCommand('curl http://blocked1.com', { commandId: 'cmd-1' })
-    await sandboxService.wrapCommand('curl http://blocked2.com', { commandId: 'cmd-2' })
-
-    testProvider.violationsByCommandId.set('cmd-1', 'blocked1.com')
-    testProvider.violationsByCommandId.set('cmd-2', 'blocked2.com')
-
-    // Blocked hosts should be accurately isolated
-    expect(sandboxService.getBlockedHost('cmd-1')).toBe('blocked1.com')
-    expect(sandboxService.getBlockedHost('cmd-2')).toBe('blocked2.com')
-    expect(sandboxService.getBlockedHost('cmd-unknown')).toBe('')
-  })
-
-  it('does not reject concurrent allowed command when another command is blocked', async () => {
-    await sandboxService.ensureInitialized({ allowedDomains: ['api.github.com'] })
-
-    const tool = createSandboxedBashTool('/mock/cwd', undefined, {
-      getBlockedHost: (commandId?: string) => sandboxService.getBlockedHost(commandId),
-      clearBlockedHost: () => sandboxService.clearBlockedHost(),
-    })
-
-    const childBlocked = Object.assign(new EventEmitter(), {
-      stdout: new EventEmitter(),
-      stderr: new EventEmitter(),
-      pid: 101,
-      kill: vi.fn(),
-    })
-    const childAllowed = Object.assign(new EventEmitter(), {
-      stdout: new EventEmitter(),
-      stderr: new EventEmitter(),
-      pid: 102,
-      kill: vi.fn(),
-    })
-
-    let spawnIndex = 0
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock spawn implementation
-    ;(spawn as any).mockImplementation(() => {
-      spawnIndex++
-      return spawnIndex === 1 ? childBlocked : childAllowed
-    })
-
-    // Record violation for the blocked command only
-    testProvider.violationsByCommandId.set('call-blocked', 'blocked-target.com')
-
-    const blockedExecution = invokeTool(tool, 'call-blocked', {
-      command: 'curl http://blocked-target.com',
-      source: 'skill',
-    })
-    const allowedExecution = invokeTool(tool, 'call-allowed', {
-      command: 'curl https://api.github.com/data',
-      source: 'skill',
-    })
-
-    await vi.waitFor(() => expect(spawn).toHaveBeenCalledTimes(2))
-
-    childBlocked.stdout.emit('data', Buffer.from('blocked output'))
-    childBlocked.emit('close', 0)
-
-    childAllowed.stdout.emit('data', Buffer.from('allowed output'))
-    childAllowed.emit('close', 0)
-
-    await expect(blockedExecution).rejects.toThrow(
-      'Network request to blocked-target.com is blocked',
-    )
-    const allowedResult = await allowedExecution
-    expect(allowedResult.details).toEqual(expect.objectContaining({ exitCode: 0 }))
-  })
-
-  it('does not synchronize or overwrite sandbox allowlist when allowedDomains is omitted (e.g. naming sessions)', async () => {
+  it('routes agent commands to their bound runner or team default runner independently', async () => {
     const team = await prisma.team.create({
-      data: { name: 'Omitted Domains Team' },
+      data: { name: 'Multi Runner Team' },
     })
-    await prisma.user.create({
-      data: {
-        id: 'agent-omitted',
-        name: 'Agent User',
-        email: 'agent-omitted@shumai.ai',
-        type: 'agent',
-      },
+    const { runner: defaultRunner } = await runnerService.createRunner(team.id, {
+      name: 'Default Runner',
+      isDefault: true,
     })
-    await prisma.agent.create({
-      data: {
-        id: 'agent-omitted',
+    const { runner: gpuRunner } = await runnerService.createRunner(team.id, {
+      name: 'GPU Runner',
+      isDefault: false,
+    })
+
+    const defaultConn = createMockWs()
+    const gpuConn = createMockWs()
+    await runnerService.registerConnection(
+      { id: defaultRunner.id, teamId: team.id, name: defaultRunner.name },
+      defaultConn.ws,
+    )
+    await runnerService.registerConnection(
+      { id: gpuRunner.id, teamId: team.id, name: gpuRunner.name },
+      gpuConn.ws,
+    )
+
+    const defaultTool = createSandboxedBashTool(
+      '/mock/cwd',
+      {},
+      {
         teamId: team.id,
-        type: 'chat',
-        config: { provider: 'google', model: 'gemini' },
+        agentRunnerId: null,
       },
+    )
+    const gpuTool = createSandboxedBashTool(
+      '/mock/cwd',
+      {},
+      {
+        teamId: team.id,
+        agentRunnerId: gpuRunner.id,
+      },
+    )
+
+    const pDefault = invokeTool(defaultTool, '1', { command: 'uname -a', source: 'user' })
+    const pGpu = invokeTool(gpuTool, '2', { command: 'nvidia-smi', source: 'user' })
+
+    await vi.waitFor(() => {
+      expect(defaultConn.lastSentJson()?.type).toBe('exec.start')
+      expect(gpuConn.lastSentJson()?.type).toBe('exec.start')
     })
 
-    // 1. First session sets allowedDomains to ['*.github.com']
-    await createAgentSession({
-      teamId: team.id,
-      agentId: 'agent-omitted',
-      providerName: 'google',
-      modelId: 'gemini',
-      systemPrompt: 'Main prompt',
-      teamSkills: [],
-      allowedDomains: ['*.github.com'],
-      providers: mockProviders,
-    })
+    const defaultMsg = defaultConn.lastSentJson()
+    const gpuMsg = gpuConn.lastSentJson()
+    expect(defaultMsg.command).toBe('uname -a')
+    expect(gpuMsg.command).toBe('nvidia-smi')
 
-    expect(sandboxService.getCurrentAllowedDomains()).toEqual(['*.github.com'])
-    const updateCallsBefore = testProvider.updateConfigCalls
+    runnerService.handleMessage(
+      defaultRunner.id,
+      defaultConn.ws,
+      JSON.stringify({
+        type: 'exec.result',
+        executionId: defaultMsg.executionId,
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        aborted: false,
+      }),
+    )
+    runnerService.handleMessage(
+      gpuRunner.id,
+      gpuConn.ws,
+      JSON.stringify({
+        type: 'exec.result',
+        executionId: gpuMsg.executionId,
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        aborted: false,
+      }),
+    )
 
-    // 2. Utility / naming session runs WITHOUT allowedDomains
-    await createAgentSession({
-      teamId: team.id,
-      agentId: 'agent-omitted',
-      providerName: 'google',
-      modelId: 'gemini',
-      systemPrompt: 'Title generator',
-      teamSkills: [],
-      // allowedDomains omitted
-      disableTools: true,
-      providers: mockProviders,
-    })
-
-    // Assert sandbox was NOT touched or overwritten
-    expect(testProvider.updateConfigCalls).toBe(updateCallsBefore)
-    expect(sandboxService.getCurrentAllowedDomains()).toEqual(['*.github.com'])
+    await Promise.all([pDefault, pGpu])
+    runnerService.handleDisconnect(defaultRunner.id, defaultConn.ws)
+    runnerService.handleDisconnect(gpuRunner.id, gpuConn.ws)
   })
 })
-
-afterEach(closeAgentSessions)
