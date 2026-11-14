@@ -1,6 +1,9 @@
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { describe, expect, test } from 'vitest'
+import AdmZip from 'adm-zip'
+import { describe, expect, test, vi } from 'vitest'
+import { runnerService } from '../runner/runner-service'
+import { s3Service } from '../s3/s3'
 import { AgentService } from './agent'
 import { appendSessionEntries } from './session-test-utils'
 
@@ -256,6 +259,109 @@ describe('AgentService', () => {
       })
 
       expect(updated.user.image).toBe('files/01JK23456789ABCDEF01234567')
+    })
+
+    test('Create and update Agent with runnerId and reset to null when runner is deleted', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { team, provider, model } = await setupTestData(db)
+
+      const { runner } = await runnerService.createRunner(team.id, { name: 'Bound Runner' })
+      const otherTeam = await db.team.create({ data: { name: 'Other Team' } })
+      const { runner: otherRunner } = await runnerService.createRunner(otherTeam.id, {
+        name: 'Foreign Runner',
+      })
+
+      // Rejects runner from another team
+      await expect(
+        svc.createAgent({
+          teamId: team.id,
+          name: 'Bad Runner Agent',
+          type: 'chat',
+          enabled: true,
+          providerId: provider.id,
+          modelId: model.id,
+          runnerId: otherRunner.id,
+          thinkingLevel: 'off',
+        }),
+      ).rejects.toThrow('runner not found in team')
+
+      const agent = await svc.createAgent({
+        teamId: team.id,
+        name: 'Runner Agent',
+        type: 'chat',
+        enabled: true,
+        providerId: provider.id,
+        modelId: model.id,
+        runnerId: runner.id,
+        thinkingLevel: 'off',
+      })
+      expect(agent?.runnerId).toBe(runner.id)
+
+      // Clear runnerId back to null (use team default)
+      const cleared = await svc.updateAgent({
+        agentId: agent!.id,
+        name: 'Runner Agent',
+        type: 'chat',
+        enabled: true,
+        providerId: provider.id,
+        modelId: model.id,
+        runnerId: null,
+        thinkingLevel: 'off',
+      })
+      expect(cleared.runnerId).toBeNull()
+
+      // Bind again and delete runner -> onDelete: SetNull sets agent.runnerId to null
+      await svc.updateAgent({
+        agentId: agent!.id,
+        name: 'Runner Agent',
+        type: 'chat',
+        enabled: true,
+        providerId: provider.id,
+        modelId: model.id,
+        runnerId: runner.id,
+        thinkingLevel: 'off',
+      })
+      await runnerService.deleteRunner(team.id, runner.id)
+      const afterDelete = await db.agent.findUniqueOrThrow({ where: { id: agent!.id } })
+      expect(afterDelete.runnerId).toBeNull()
+    })
+
+    test('getSkillContent extracts SKILL.md from S3 zip archive without local disk cache', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { team } = await setupTestData(db)
+
+      const asset = await db.asset.create({
+        data: {
+          name: 'skill.zip',
+          type: 'file',
+          status: 'uploaded',
+          storageKey: { create: { key: 'skills/zip-skill.zip' } },
+        },
+      })
+      const skill = await db.skill.create({
+        data: {
+          name: 'Zip Skill',
+          teamId: team.id,
+          assetId: asset.id,
+          hash: 'zip-hash',
+        },
+      })
+
+      const zip = new AdmZip()
+      zip.addFile('sub/SKILL.md', Buffer.from('# Zip Skill Docs', 'utf-8'))
+      const getObjectSpy = vi.spyOn(s3Service, 'getObject').mockResolvedValue({
+        buffer: zip.toBuffer(),
+        contentType: 'application/zip',
+      })
+
+      try {
+        const content = await svc.getSkillContent(skill.id)
+        expect(content).toBe('# Zip Skill Docs')
+      } finally {
+        getObjectSpy.mockRestore()
+      }
     })
 
     test('Update Agent preserves deniedTools when omitted, and allows explicit empty array', async () => {

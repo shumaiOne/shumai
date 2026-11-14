@@ -5,18 +5,22 @@ import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { getOperation } from '@shumai/core/src/operations'
+import { runnerService } from '@shumai/core/src/runner'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { AuditAction, type AssetInfo } from '@shumai/dtos'
-import * as fs from 'fs'
-import * as os from 'os'
-import * as path from 'path'
 import { Value } from 'typebox/value'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fieldsToTypeBoxSchema } from '../index'
 import { toAgentTool, type AgentToolOptions } from '../operation-tools'
 import './upload'
 
-const ctx = { userId: 'user-1', agentId: 'agent-1', teamId: 'team-1', projectId: 'proj-1' }
+const ctx = {
+  userId: 'user-1',
+  agentId: 'agent-1',
+  teamId: 'team-1',
+  projectId: 'proj-1',
+  runnerId: null,
+}
 const bucket = process.env.S3_BUCKET || 'shumai'
 
 function tool(name: 'create_file' | 'create_version', options: AgentToolOptions = {}) {
@@ -55,14 +59,6 @@ const promptField = {
 }
 
 describe('create_file and create_version agent tools', () => {
-  const tempFiles: string[] = []
-  const tempFile = (content: string, filename: string): string => {
-    const filePath = path.join(os.tmpdir(), filename)
-    fs.writeFileSync(filePath, content)
-    tempFiles.push(filePath)
-    return filePath
-  }
-
   beforeEach(() => {
     vi.spyOn(authzService, 'hasPermission').mockResolvedValue(undefined)
     vi.spyOn(auditLogService, 'logAction').mockResolvedValue(null)
@@ -83,7 +79,6 @@ describe('create_file and create_version agent tools', () => {
     vi.spyOn(assetService, 'createVersion').mockResolvedValue(assetInfo({ name: 'v2' }))
     vi.spyOn(metadataService, 'listProjectFields').mockResolvedValue([promptField] as never)
     vi.spyOn(s3Service, 'presign').mockResolvedValue('https://storage.example/upload')
-    // Read file streams to the end, as real storage would.
     vi.spyOn(s3Service, 'putObject').mockImplementation(async (_bucket, _key, body) => {
       if (body && typeof body === 'object' && Symbol.asyncIterator in body) {
         for await (const chunk of body as AsyncIterable<unknown>) void chunk
@@ -96,20 +91,46 @@ describe('create_file and create_version agent tools', () => {
       contentType: 'text/markdown',
       eTag: '',
     }))
+    vi.spyOn(s3Service, 'getObject').mockResolvedValue({
+      buffer: Buffer.from('# Generated content'),
+      contentType: 'text/markdown',
+    })
+    vi.spyOn(runnerService, 'requireOnlineRunner').mockResolvedValue({
+      id: 'runner-1',
+      teamId: 'team-1',
+      name: 'Local Mac Mini',
+      keyPrefix: 'shm_rn_12345678',
+      isDefault: true,
+      status: 'connected',
+      createdAt: '2026-11-14T00:00:00.000Z',
+      updatedAt: '2026-11-14T00:00:00.000Z',
+    })
+    vi.spyOn(runnerService, 'statOnRunner').mockResolvedValue({
+      type: 'file.stat.result',
+      executionId: 'exec-stat-1',
+      ok: true,
+      exists: true,
+      isFile: true,
+      size: 17,
+      mimeType: 'text/markdown',
+    })
+    vi.spyOn(runnerService, 'uploadFromRunner').mockResolvedValue({
+      type: 'file.upload.result',
+      executionId: 'exec-ul-1',
+      ok: true,
+      size: 17,
+    })
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
-    for (const f of tempFiles.splice(0)) fs.rmSync(f, { force: true })
   })
 
   describe('create_file', () => {
-    it('uploads a local file to storage and creates the file as the agent', async () => {
-      const filePath = tempFile('# Hello from disk', 'agent-create-file.md')
-
+    it('uploads a file from the runner to storage and creates the file as the agent', async () => {
       const result = await invokeTool(tool('create_file'), 'call-1', {
         parent: 'folder-1',
-        path: filePath,
+        path: '.pi/agent-create-file.md',
       } as never)
 
       expect(authzService.hasPermission).toHaveBeenCalledWith({
@@ -118,16 +139,21 @@ describe('create_file and create_version agent tools', () => {
         type: ResourceType.Asset,
         id: 'folder-1',
       })
-      const [putBucket, key, , size, contentType] = vi.mocked(s3Service.putObject).mock.calls[0]
-      expect(putBucket).toBe(bucket)
-      expect(key).toMatch(/^files\/.+\/agent-create-file\.md$/)
-      expect(size).toBe(Buffer.byteLength('# Hello from disk'))
-      expect(contentType).toBe('text/markdown')
+      expect(runnerService.requireOnlineRunner).toHaveBeenCalledWith('team-1', null)
+      expect(runnerService.statOnRunner).toHaveBeenCalledWith(
+        'runner-1',
+        '.pi/agent-create-file.md',
+      )
+      expect(runnerService.uploadFromRunner).toHaveBeenCalledWith('runner-1', {
+        srcPath: '.pi/agent-create-file.md',
+        url: 'https://storage.example/upload',
+        contentType: 'text/markdown',
+      })
 
       expect(assetService.createFile).toHaveBeenCalledWith({
         parentId: 'folder-1',
         name: 'agent-create-file.md',
-        key,
+        key: expect.stringMatching(/^files\/.+\/agent-create-file\.md$/),
         sizeByte: 17,
         contentType: 'text/markdown',
         creatorId: 'user-1',
@@ -153,6 +179,90 @@ describe('create_file and create_version agent tools', () => {
         size: 100,
         projectId: 'proj-1',
       })
+    })
+
+    it('falls back to temporary S3 storage when no runner is configured for .pi/generated/', async () => {
+      vi.mocked(runnerService.requireOnlineRunner).mockRejectedValueOnce(
+        new Error('No Runner is configured for this team.'),
+      )
+
+      await invokeTool(tool('create_file'), 'call-1', {
+        parent: 'folder-1',
+        path: '.pi/generated/gen123/poster.png',
+      } as never)
+
+      expect(runnerService.statOnRunner).not.toHaveBeenCalled()
+      expect(s3Service.getObject).toHaveBeenCalledWith(bucket, 'temp/generated/gen123/poster.png')
+      expect(s3Service.putObject).toHaveBeenCalled()
+      expect(assetService.createFile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          parentId: 'folder-1',
+          name: 'poster.png',
+        }),
+      )
+    })
+
+    it('falls back to temporary S3 storage when .pi/generated/ file is not staged on the online runner', async () => {
+      vi.mocked(runnerService.statOnRunner).mockResolvedValueOnce({
+        type: 'file.stat.result',
+        executionId: 'exec-stat-missing',
+        ok: true,
+        exists: false,
+      })
+
+      await invokeTool(tool('create_file'), 'call-1', {
+        parent: 'folder-1',
+        path: '.pi/generated/gen123/unstaged.png',
+      } as never)
+
+      expect(runnerService.statOnRunner).toHaveBeenCalledWith(
+        'runner-1',
+        '.pi/generated/gen123/unstaged.png',
+      )
+      expect(s3Service.getObject).toHaveBeenCalledWith(bucket, 'temp/generated/gen123/unstaged.png')
+      expect(runnerService.uploadFromRunner).not.toHaveBeenCalled()
+    })
+
+    it('prefers uploading edited or newly created .pi/generated/ files from the runner over S3', async () => {
+      vi.mocked(s3Service.headObject).mockImplementation(async (_bucket, key) => {
+        if (key === 'temp/generated/gen123/edited.png') {
+          throw new Error('NotFound')
+        }
+        return {
+          key,
+          size: 17,
+          lastModified: new Date(),
+          contentType: 'text/markdown',
+          eTag: '',
+        }
+      })
+
+      await invokeTool(tool('create_file'), 'call-1', {
+        parent: 'folder-1',
+        path: '.pi/generated/gen123/edited.png',
+      } as never)
+
+      expect(runnerService.statOnRunner).toHaveBeenCalledWith(
+        'runner-1',
+        '.pi/generated/gen123/edited.png',
+      )
+      expect(runnerService.uploadFromRunner).toHaveBeenCalledWith('runner-1', {
+        srcPath: '.pi/generated/gen123/edited.png',
+        url: 'https://storage.example/upload',
+        contentType: 'text/markdown',
+      })
+      expect(s3Service.getObject).not.toHaveBeenCalled()
+    })
+
+    it('reads explicit temp/generated/ paths directly from S3 without touching the runner', async () => {
+      await invokeTool(tool('create_file'), 'call-1', {
+        parent: 'folder-1',
+        path: 'temp/generated/gen123/direct.png',
+      } as never)
+
+      expect(runnerService.requireOnlineRunner).not.toHaveBeenCalled()
+      expect(runnerService.statOnRunner).not.toHaveBeenCalled()
+      expect(s3Service.getObject).toHaveBeenCalledWith(bucket, 'temp/generated/gen123/direct.png')
     })
 
     it('creates a text file from name and content', async () => {
@@ -199,11 +309,9 @@ describe('create_file and create_version agent tools', () => {
     })
 
     it('forwards Creation Context metadata, including new select options', async () => {
-      const filePath = tempFile('# Hello', 'agent-create-file-meta.md')
-
       await invokeTool(tool('create_file'), 'call-1', {
         parent: 'folder-1',
-        path: filePath,
+        path: '.pi/agent-create-file-meta.md',
         metadata: { prompt: { newOption: { value: 'Kling' } } },
       } as never)
 
@@ -213,11 +321,9 @@ describe('create_file and create_version agent tools', () => {
     })
 
     it('treats null metadata as omitted', async () => {
-      const filePath = tempFile('# Hello', 'agent-create-file-null.md')
-
       await invokeTool(tool('create_file'), 'call-1', {
         parent: 'folder-1',
-        path: filePath,
+        path: '.pi/agent-create-file-null.md',
         metadata: null,
       } as never)
 
@@ -225,17 +331,15 @@ describe('create_file and create_version agent tools', () => {
     })
 
     it('rejects metadata keys that are not Creation Context fields before uploading', async () => {
-      const filePath = tempFile('# Hello', 'agent-create-file-bad-meta.md')
-
       await expect(
         invokeTool(tool('create_file'), 'call-1', {
           parent: 'folder-1',
-          path: filePath,
+          path: '.pi/agent-create-file-bad-meta.md',
           metadata: { status: 'approved' },
         } as never),
       ).rejects.toThrow(/not allowed: status/)
 
-      expect(s3Service.putObject).not.toHaveBeenCalled()
+      expect(runnerService.uploadFromRunner).not.toHaveBeenCalled()
       expect(assetService.createFile).not.toHaveBeenCalled()
     })
 
@@ -260,14 +364,20 @@ describe('create_file and create_version agent tools', () => {
       ).rejects.toThrow('"name" is required')
     })
 
-    it('fails when the local file does not exist, without touching storage', async () => {
+    it('fails when the file does not exist on the runner, without touching storage', async () => {
+      vi.mocked(runnerService.statOnRunner).mockResolvedValue({
+        type: 'file.stat.result',
+        executionId: 'exec-stat-2',
+        ok: true,
+        exists: false,
+      })
       await expect(
         invokeTool(tool('create_file'), 'call-1', {
           parent: 'folder-1',
-          path: '/nonexistent/file.md',
+          path: '.pi/nonexistent.md',
         } as never),
-      ).rejects.toThrow('Local file not found at path: /nonexistent/file.md')
-      expect(s3Service.putObject).not.toHaveBeenCalled()
+      ).rejects.toThrow('Local file not found at path: .pi/nonexistent.md')
+      expect(runnerService.uploadFromRunner).not.toHaveBeenCalled()
       expect(assetService.createFile).not.toHaveBeenCalled()
     })
 
@@ -275,10 +385,12 @@ describe('create_file and create_version agent tools', () => {
       vi.mocked(authzService.hasPermission).mockRejectedValue(
         new Error('User is not a member of the team'),
       )
-      const filePath = tempFile('# Not allowed', 'agent-create-file-denied.md')
 
       await expect(
-        invokeTool(tool('create_file'), 'call-1', { parent: 'folder-1', path: filePath } as never),
+        invokeTool(tool('create_file'), 'call-1', {
+          parent: 'folder-1',
+          path: '.pi/agent-create-file-denied.md',
+        } as never),
       ).rejects.toThrow('User is not a member of the team')
       await expect(
         invokeTool(tool('create_file'), 'call-1', {
@@ -290,6 +402,7 @@ describe('create_file and create_version agent tools', () => {
 
       expect(s3Service.putObject).not.toHaveBeenCalled()
       expect(s3Service.presign).not.toHaveBeenCalled()
+      expect(runnerService.uploadFromRunner).not.toHaveBeenCalled()
       expect(assetService.createFile).not.toHaveBeenCalled()
     })
 
@@ -322,19 +435,21 @@ describe('create_file and create_version agent tools', () => {
   })
 
   describe('create_version', () => {
-    it('uploads a local file and creates a version as the agent', async () => {
-      const filePath = tempFile('# Hello from disk', 'agent-create-version.md')
-
+    it('uploads a file from the runner and creates a version as the agent', async () => {
       const result = await invokeTool(tool('create_version'), 'call-1', {
         parent: 'file-1',
-        path: filePath,
+        path: '.pi/agent-create-version.md',
       } as never)
 
-      const key = vi.mocked(s3Service.putObject).mock.calls[0][1]
+      expect(runnerService.uploadFromRunner).toHaveBeenCalledWith('runner-1', {
+        srcPath: '.pi/agent-create-version.md',
+        url: 'https://storage.example/upload',
+        contentType: 'text/markdown',
+      })
       expect(assetService.createVersion).toHaveBeenCalledWith({
         parentId: 'file-1',
         name: 'agent-create-version.md',
-        key,
+        key: expect.stringMatching(/^files\/.+\/agent-create-version\.md$/),
         sizeByte: 17,
         contentType: 'text/markdown',
         creatorId: 'user-1',
@@ -348,11 +463,9 @@ describe('create_file and create_version agent tools', () => {
     })
 
     it('forwards Creation Context metadata', async () => {
-      const filePath = tempFile('# Hello', 'agent-create-version-meta.md')
-
       await invokeTool(tool('create_version'), 'call-1', {
         parent: 'file-1',
-        path: filePath,
+        path: '.pi/agent-create-version-meta.md',
         metadata: { prompt: 'Generated using gemini' },
       } as never)
 
@@ -365,23 +478,31 @@ describe('create_file and create_version agent tools', () => {
       vi.mocked(authzService.hasPermission).mockRejectedValueOnce(
         new Error('User is not a member of the team'),
       )
-      const filePath = tempFile('# Not allowed', 'agent-create-version-denied.md')
 
       await expect(
-        invokeTool(tool('create_version'), 'call-1', { parent: 'file-1', path: filePath } as never),
+        invokeTool(tool('create_version'), 'call-1', {
+          parent: 'file-1',
+          path: '.pi/agent-create-version-denied.md',
+        } as never),
       ).rejects.toThrow('User is not a member of the team')
-      expect(s3Service.putObject).not.toHaveBeenCalled()
+      expect(runnerService.uploadFromRunner).not.toHaveBeenCalled()
       expect(assetService.createVersion).not.toHaveBeenCalled()
     })
 
     it('fails when the local file does not exist', async () => {
+      vi.mocked(runnerService.statOnRunner).mockResolvedValue({
+        type: 'file.stat.result',
+        executionId: 'exec-stat-3',
+        ok: true,
+        exists: false,
+      })
       await expect(
         invokeTool(tool('create_version'), 'call-1', {
           parent: 'file-1',
-          path: '/nonexistent/file.md',
+          path: '.pi/nonexistent.md',
         } as never),
-      ).rejects.toThrow('Local file not found at path: /nonexistent/file.md')
-      expect(s3Service.putObject).not.toHaveBeenCalled()
+      ).rejects.toThrow('Local file not found at path: .pi/nonexistent.md')
+      expect(runnerService.uploadFromRunner).not.toHaveBeenCalled()
     })
 
     it('shows the agent its own parameters', () => {

@@ -14,7 +14,7 @@ import { Checkbox } from '@/ui/components/ui/checkbox'
 import { client } from '@/ui/api/client'
 import { AgentsSettings } from '@/ui/components/settings/AgentsSettings'
 import { ProvidersSettings } from '@/ui/components/settings/ProvidersSettings'
-import { SandboxSettings } from '@/ui/components/settings/SandboxSettings'
+import { RunnerSettings } from '@/ui/components/settings/RunnerSettings'
 import { SkillsConfigCard } from '@/ui/components/settings/SkillsConfigCard'
 import { McpConfigCard } from '@/ui/components/settings/McpConfigCard'
 import { NotificationSettings } from '@/ui/components/settings/NotificationSettings'
@@ -78,7 +78,7 @@ type SettingsTab =
   | 'providers'
   | 'image-video'
   | 'agents'
-  | 'sandbox'
+  | 'runners'
   | 'notifications'
   | 'developer'
 
@@ -95,7 +95,7 @@ const VALID_SETTINGS_TABS: readonly SettingsTab[] = [
   'providers',
   'image-video',
   'agents',
-  'sandbox',
+  'runners',
   'notifications',
   'developer',
 ]
@@ -215,6 +215,7 @@ function useCoalescedLadderSettings<TLadder extends VideoResolutionLadder | HlsR
 function getTabFromHash(): SettingsTab {
   if (typeof window === 'undefined') return 'general'
   const hash = window.location.hash.replace(/^#/, '')
+  if (hash === 'sandbox') return 'runners'
   return (VALID_SETTINGS_TABS as readonly string[]).includes(hash)
     ? (hash as SettingsTab)
     : 'general'
@@ -312,7 +313,7 @@ export function TeamSettingsPage() {
       'skills',
       'mcp',
       'agents',
-      'sandbox',
+      'runners',
     ]
     if (me && me.role !== 'owner' && ownerOnlyTabs.includes(activeTab)) {
       handleTabChange('general')
@@ -780,17 +781,17 @@ export function TeamSettingsPage() {
                 </button>
 
                 <button
-                  onClick={() => handleTabChange('sandbox')}
+                  onClick={() => handleTabChange('runners')}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
-                    activeTab === 'sandbox'
+                    activeTab === 'runners'
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
                       : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                   )}
                 >
                   <Shield className="w-5 h-5" />
-                  {m.agent_sandbox()}
-                  {activeTab === 'sandbox' && (
+                  {m.agent_runners()}
+                  {activeTab === 'runners' && (
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
                   )}
                 </button>
@@ -817,7 +818,7 @@ export function TeamSettingsPage() {
                   {activeTab === 'providers' && m.ai_providers()}
                   {activeTab === 'image-video' && m.image_video_generation()}
                   {activeTab === 'agents' && m.ai_agents()}
-                  {activeTab === 'sandbox' && m.agent_sandbox_settings()}
+                  {activeTab === 'runners' && m.agent_runners_settings()}
                   {activeTab === 'notifications' && m.notification_settings()}
                   {activeTab === 'developer' && m.developer_settings()}
                 </h2>
@@ -834,7 +835,7 @@ export function TeamSettingsPage() {
                   {activeTab === 'providers' && m.providers_description()}
                   {activeTab === 'image-video' && m.media_generation_settings_description()}
                   {activeTab === 'agents' && m.agents_description()}
-                  {activeTab === 'sandbox' && m.sandbox_description()}
+                  {activeTab === 'runners' && m.runners_description()}
                   {activeTab === 'notifications' && m.notifications_description()}
                   {activeTab === 'developer' && m.developer_description()}
                 </p>
@@ -1219,9 +1220,9 @@ export function TeamSettingsPage() {
                 </div>
               )}
 
-              {activeTab === 'sandbox' && (
+              {activeTab === 'runners' && (
                 <div className="h-full overflow-y-auto pr-1">
-                  <SandboxSettings teamId={teamId} />
+                  <RunnerSettings teamId={teamId} />
                 </div>
               )}
 

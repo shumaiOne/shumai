@@ -64,6 +64,7 @@ const agentFormSchema = z.object({
   skills: z.array(z.string()).optional(),
   mcpServerIds: z.array(z.string()).optional(),
   deniedTools: z.array(z.string()).optional(),
+  runnerId: z.string().nullable().optional(),
 })
 
 const BUILTIN_TOOLS = [
@@ -256,6 +257,22 @@ export function AgentFormDialog({
 
   const allMcpServers = mcpData?.servers || []
 
+  // Fetch Runners
+  const { data: runnersData } = useQuery({
+    queryKey: ['teams', teamId, 'runners'],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].runners.$get({
+        param: { teamId },
+      })
+      if (!res.ok) throw new Error('Failed to fetch runners')
+      return await res.json()
+    },
+    enabled: isOpen,
+  })
+
+  const allRunners = runnersData || []
+  const defaultRunner = allRunners.find((r) => r.isDefault) || allRunners[0]
+
   const schema = useMemo(() => {
     return agentFormSchema.superRefine((data, ctx) => {
       if (data.type === 'chat' || data.type === 'autofill') {
@@ -291,6 +308,7 @@ export function AgentFormDialog({
       skills: initialValues?.skills?.map((s) => s.skillId) || ([] as string[]),
       mcpServerIds: initialValues?.mcpServerIds || ([] as string[]),
       deniedTools: initialValues?.deniedTools ?? [...DEFAULT_DENIED_TOOLS],
+      runnerId: initialValues?.runnerId ?? null,
     } as AgentFormValues,
     validators: {
       onChange: schema,
@@ -1052,8 +1070,66 @@ export function AgentFormDialog({
                         name="deniedTools"
                         children={(deniedToolsField) => {
                           const currentDenied = deniedToolsField.state.value || []
+                          const isBashEnabled = !currentDenied.includes('bash')
                           return (
                             <>
+                              {isBashEnabled && (
+                                <div className="p-3.5 mb-3 rounded-lg border border-border bg-muted/40 space-y-2">
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div>
+                                      <Label className="text-sm font-medium text-foreground">
+                                        {m.agent_runner_label()}
+                                      </Label>
+                                      <p className="text-[11px] text-muted-foreground">
+                                        {m.agent_runner_description()}
+                                      </p>
+                                    </div>
+                                    {allRunners.length > 0 && (
+                                      <form.Field
+                                        name="runnerId"
+                                        children={(runnerField) => (
+                                          <Select
+                                            value={runnerField.state.value || '__default__'}
+                                            onValueChange={(val) =>
+                                              runnerField.handleChange(
+                                                val === '__default__' ? null : val,
+                                              )
+                                            }
+                                            disabled={readOnly || !canAdmin}
+                                          >
+                                            <SelectTrigger className="w-full sm:w-[240px] h-8 text-xs bg-background">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="__default__">
+                                                {defaultRunner
+                                                  ? m.agent_runner_team_default_with_name({
+                                                      name: defaultRunner.name,
+                                                    })
+                                                  : m.agent_runner_team_default()}
+                                              </SelectItem>
+                                              {allRunners.map((r) => (
+                                                <SelectItem key={r.id} value={r.id}>
+                                                  {r.name} (
+                                                  {r.status === 'connected'
+                                                    ? m.runner_status_connected()
+                                                    : m.runner_status_disconnected()}
+                                                  )
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        )}
+                                      />
+                                    )}
+                                  </div>
+                                  {allRunners.length === 0 && (
+                                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                                      {m.agent_runner_none_configured_warning()}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
                               {BUILTIN_TOOLS.map((tool) => {
                                 const isEnabled = !currentDenied.includes(tool.id)
                                 return (

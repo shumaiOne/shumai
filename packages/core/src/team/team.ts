@@ -7,7 +7,6 @@ import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import { HTTPException } from 'hono/http-exception'
 import { getAllowedAgentRoles } from '@shumai/core/src/agent/permissions'
 import { AgentService, agentService } from '@shumai/core/src/agent/agent'
-import { sandboxService } from '@shumai/core/src/sandbox/sandbox-service'
 import { turntableService } from '@shumai/core/src/turntable/turntable'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import {
@@ -24,8 +23,6 @@ import {
   TeamInfo,
   GetMeResponse,
   UserInfo,
-  SandboxSettings,
-  UpdateSandboxSettingsRequest,
   TeamSettingsResponse,
   AutoArchiveMethod,
   AutoArchiveSettings,
@@ -50,7 +47,6 @@ export class TeamService {
               threads: 0,
             },
           },
-          sandbox: { create: {} },
         },
       })
       await providerService.initBuiltinProviders(team.id)
@@ -68,7 +64,6 @@ export class TeamService {
           name: req.name,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           settings: {} as any,
-          sandbox: { create: {} },
         },
       })
 
@@ -511,50 +506,6 @@ export class TeamService {
     })
 
     return this.getSettings(teamId)
-  }
-
-  async getSandboxSettings(teamId: string): Promise<SandboxSettings> {
-    const sandbox = await prisma.sandbox.findUnique({
-      where: { teamId },
-    })
-    return {
-      networkSandboxEnabled: sandbox?.networkSandboxEnabled ?? false,
-      allowedDomains: sandbox?.allowedDomains || [],
-      pendingDomains: sandbox?.pendingDomains || [],
-    }
-  }
-
-  async updateSandboxSettings(
-    teamId: string,
-    settings: UpdateSandboxSettingsRequest,
-  ): Promise<SandboxSettings> {
-    const sandbox = await prisma.sandbox.upsert({
-      where: { teamId },
-      create: {
-        teamId,
-        networkSandboxEnabled: settings.networkSandboxEnabled ?? false,
-        allowedDomains: settings.allowedDomains ?? [],
-        pendingDomains: settings.pendingDomains ?? [],
-      },
-      update: {
-        ...(settings.networkSandboxEnabled !== undefined && {
-          networkSandboxEnabled: settings.networkSandboxEnabled,
-        }),
-        ...(settings.allowedDomains !== undefined && {
-          allowedDomains: settings.allowedDomains,
-        }),
-        ...(settings.pendingDomains !== undefined && {
-          pendingDomains: settings.pendingDomains,
-        }),
-      },
-    })
-    const effectiveDomains = sandbox.networkSandboxEnabled ? sandbox.allowedDomains : ['*']
-    await sandboxService.syncAllowedDomains(effectiveDomains, teamId)
-    return {
-      networkSandboxEnabled: sandbox.networkSandboxEnabled,
-      allowedDomains: sandbox.allowedDomains,
-      pendingDomains: sandbox.pendingDomains,
-    }
   }
 
   async getSignupInfo() {

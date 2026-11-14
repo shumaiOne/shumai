@@ -75,6 +75,16 @@ vi.mock('@shumai/core/src/workflowTask/workflowTask', () => ({
   },
 }))
 
+vi.mock('@shumai/core/src/runner', () => ({
+  runnerService: {
+    listRunners: vi.fn(),
+    createRunner: vi.fn(),
+    updateRunner: vi.fn(),
+    rotateRunnerKey: vi.fn(),
+    deleteRunner: vi.fn(),
+  },
+}))
+
 describe('team api', () => {
   const app = new Hono().use('*', authMiddleware).route('/', teamRoute)
   let mockGetUserTeams: any // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -84,8 +94,6 @@ describe('team api', () => {
   let mockUpdateSettings: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockListUserMetadata: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockUpsertUserMetadata: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  let mockGetSandboxSettings: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  let mockUpdateSandboxSettings: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockUpdateMe: any // eslint-disable-line @typescript-eslint/no-explicit-any
 
   beforeEach(() => {
@@ -96,8 +104,6 @@ describe('team api', () => {
     mockUpdateSettings = vi.spyOn(teamService, 'updateSettings')
     mockListUserMetadata = vi.spyOn(userMetadataService, 'listMetadata')
     mockUpsertUserMetadata = vi.spyOn(userMetadataService, 'upsertMetadata')
-    mockGetSandboxSettings = vi.spyOn(teamService, 'getSandboxSettings')
-    mockUpdateSandboxSettings = vi.spyOn(teamService, 'updateSandboxSettings')
     mockUpdateMe = vi.spyOn(teamService, 'updateMe')
     vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
@@ -483,63 +489,151 @@ describe('team api', () => {
     expect(mockUpsertUserMetadata).toHaveBeenCalledWith('user1', 't1', 'key1', 'value1')
   })
 
-  it('GET /teams/:teamId/sandbox returns sandbox settings', async () => {
-    mockGetSandboxSettings.mockResolvedValue({
-      networkSandboxEnabled: false,
-      allowedDomains: ['example.com'],
-      pendingDomains: ['pending.com'],
+  describe('Runners', () => {
+    it('GET /teams/:teamId/runners returns team runners', async () => {
+      const { runnerService } = await import('@shumai/core/src/runner')
+      vi.mocked(runnerService.listRunners).mockResolvedValue([
+        {
+          id: 'r1',
+          teamId: 't1',
+          name: 'Local Mac Mini',
+          keyPrefix: 'shm_rn_12345678',
+          isDefault: true,
+          status: 'connected',
+          lastConnectedAt: '2026-11-14T00:00:00.000Z',
+          lastDisconnectedAt: null,
+          createdAt: '2026-11-14T00:00:00.000Z',
+          updatedAt: '2026-11-14T00:00:00.000Z',
+        },
+      ])
+
+      const res = await app.request('/teams/t1/runners')
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data).toHaveLength(1)
+      expect(data[0].name).toBe('Local Mac Mini')
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Team,
+          id: 't1',
+          permission: Permission.Read,
+        }),
+      )
+      expect(runnerService.listRunners).toHaveBeenCalledWith('t1')
     })
 
-    const res = await app.request('/teams/t1/sandbox')
+    it('POST /teams/:teamId/runners creates a runner and returns key', async () => {
+      const { runnerService } = await import('@shumai/core/src/runner')
+      vi.mocked(runnerService.createRunner).mockResolvedValue({
+        runner: {
+          id: 'r1',
+          teamId: 't1',
+          name: 'Local Mac Mini',
+          keyPrefix: 'shm_rn_12345678',
+          isDefault: true,
+          status: 'disconnected',
+          lastConnectedAt: null,
+          lastDisconnectedAt: null,
+          createdAt: '2026-11-14T00:00:00.000Z',
+          updatedAt: '2026-11-14T00:00:00.000Z',
+        },
+        key: 'shm_rn_1234567890abcdef1234567890abcdef1234567890abcdef',
+      })
 
-    expect(res.status).toBe(200)
-    const data = await res.json()
-    expect(data.networkSandboxEnabled).toBe(false)
-    expect(data.allowedDomains).toEqual(['example.com'])
-    expect(data.pendingDomains).toEqual(['pending.com'])
-    expect(authzService.hasPermission).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: ResourceType.Team,
-        id: 't1',
-        permission: Permission.Read,
-      }),
-    )
-    expect(mockGetSandboxSettings).toHaveBeenCalledWith('t1')
-  })
+      const res = await app.request('/teams/t1/runners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Local Mac Mini', isDefault: true }),
+      })
 
-  it('PUT /teams/:teamId/sandbox updates sandbox settings', async () => {
-    mockUpdateSandboxSettings.mockResolvedValue({
-      networkSandboxEnabled: true,
-      allowedDomains: ['new.com'],
-      pendingDomains: ['new-pending.com'],
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.runner.id).toBe('r1')
+      expect(data.key).toMatch(/^shm_rn_/)
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Team,
+          id: 't1',
+          permission: Permission.Admin,
+        }),
+      )
+      expect(runnerService.createRunner).toHaveBeenCalledWith('t1', {
+        name: 'Local Mac Mini',
+        isDefault: true,
+      })
     })
 
-    const res = await app.request('/teams/t1/sandbox', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        networkSandboxEnabled: true,
-        allowedDomains: ['new.com'],
-        pendingDomains: ['new-pending.com'],
-      }),
+    it('PATCH /teams/:teamId/runners/:runnerId updates a runner', async () => {
+      const { runnerService } = await import('@shumai/core/src/runner')
+      vi.mocked(runnerService.updateRunner).mockResolvedValue({
+        id: 'r1',
+        teamId: 't1',
+        name: 'Renamed Runner',
+        keyPrefix: 'shm_rn_12345678',
+        isDefault: true,
+        status: 'disconnected',
+        lastConnectedAt: null,
+        lastDisconnectedAt: null,
+        createdAt: '2026-11-14T00:00:00.000Z',
+        updatedAt: '2026-11-14T00:00:00.000Z',
+      })
+
+      const res = await app.request('/teams/t1/runners/r1', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Renamed Runner', isDefault: true }),
+      })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.name).toBe('Renamed Runner')
+      expect(runnerService.updateRunner).toHaveBeenCalledWith('t1', 'r1', {
+        name: 'Renamed Runner',
+        isDefault: true,
+      })
     })
 
-    expect(res.status).toBe(200)
-    const data = await res.json()
-    expect(data.networkSandboxEnabled).toBe(true)
-    expect(data.allowedDomains).toEqual(['new.com'])
-    expect(data.pendingDomains).toEqual(['new-pending.com'])
-    expect(authzService.hasPermission).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: ResourceType.Team,
-        id: 't1',
-        permission: Permission.Admin,
-      }),
-    )
-    expect(mockUpdateSandboxSettings).toHaveBeenCalledWith('t1', {
-      networkSandboxEnabled: true,
-      allowedDomains: ['new.com'],
-      pendingDomains: ['new-pending.com'],
+    it('POST /teams/:teamId/runners/:runnerId/rotate-key rotates runner key', async () => {
+      const { runnerService } = await import('@shumai/core/src/runner')
+      vi.mocked(runnerService.rotateRunnerKey).mockResolvedValue({
+        runner: {
+          id: 'r1',
+          teamId: 't1',
+          name: 'Local Mac Mini',
+          keyPrefix: 'shm_rn_abcdef12',
+          isDefault: true,
+          status: 'disconnected',
+          lastConnectedAt: null,
+          lastDisconnectedAt: null,
+          createdAt: '2026-11-14T00:00:00.000Z',
+          updatedAt: '2026-11-14T00:00:00.000Z',
+        },
+        key: 'shm_rn_abcdef1234567890abcdef1234567890abcdef1234567890',
+      })
+
+      const res = await app.request('/teams/t1/runners/r1/rotate-key', {
+        method: 'POST',
+      })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.key).toMatch(/^shm_rn_abcdef12/)
+      expect(runnerService.rotateRunnerKey).toHaveBeenCalledWith('t1', 'r1')
+    })
+
+    it('DELETE /teams/:teamId/runners/:runnerId deletes a runner', async () => {
+      const { runnerService } = await import('@shumai/core/src/runner')
+      vi.mocked(runnerService.deleteRunner).mockResolvedValue(undefined)
+
+      const res = await app.request('/teams/t1/runners/r1', {
+        method: 'DELETE',
+      })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.success).toBe(true)
+      expect(runnerService.deleteRunner).toHaveBeenCalledWith('t1', 'r1')
     })
   })
 

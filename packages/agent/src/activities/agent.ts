@@ -66,7 +66,7 @@ export interface AgentExecutionContext {
   teamSkills: Skill[]
   mcpServers: Prisma.McpServerGetPayload<Record<string, never>>[]
   enabledSkillIds: string[]
-  allowedDomains: string[]
+  allowedDomains?: string[]
 }
 
 export function formatProjectContextPrompt(
@@ -97,7 +97,7 @@ async function executeAgentPrompt(params: {
   context: AgentExecutionContext
   attachedAssets?: Array<{ id: string; name: string; type: string }>
 }): Promise<{ text: string; usage: Usage; sessionId: string }> {
-  const { agent, dbProviders, teamSkills, enabledSkillIds, allowedDomains } = params.context
+  const { agent, dbProviders, teamSkills, enabledSkillIds } = params.context
 
   if (!agent.provider) {
     throw ApplicationFailure.create({
@@ -242,7 +242,6 @@ User messages may contain a <context> block detailing the user, active asset loc
       description: s.description,
     })),
     enabledSkillIds,
-    allowedDomains,
     sessionId: persistedSessionId,
     userId: params.userId,
     projectId: params.projectId,
@@ -793,18 +792,12 @@ export const getAgentChatContextActivity = defineStep(
     })
     const mcpServers = assignments.map((a) => a.mcpServer)
 
-    const sandbox = await prisma.sandbox.findUnique({
-      where: { teamId: params.teamId },
-    })
-    const allowedDomains = sandbox?.networkSandboxEnabled ? sandbox.allowedDomains : ['*']
-
     return {
       agent,
       dbProviders,
       teamSkills: permittedSkills,
       mcpServers,
       enabledSkillIds,
-      allowedDomains,
     }
   },
 )
@@ -882,18 +875,12 @@ export const getAgentAutofillContextActivity = defineStep(
     // Autofill agents currently do not use MCP tools.
     const mcpServers: Prisma.McpServerGetPayload<Record<string, never>>[] = []
 
-    const sandbox = await prisma.sandbox.findUnique({
-      where: { teamId: params.teamId },
-    })
-    const allowedDomains = sandbox?.networkSandboxEnabled ? sandbox.allowedDomains : ['*']
-
     return {
       agent: agentWithDetails,
       dbProviders,
       teamSkills: enabledSkills,
       mcpServers,
       enabledSkillIds,
-      allowedDomains,
     }
   },
 )

@@ -8,12 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **agent**: Support binding external Runners per team so agents can execute shell commands and exchange files securely over WebSocket without requiring a built-in server sandbox, and allow assigning a default or dedicated Runner per agent in Team Settings.
+
 ### Fixed
 
 - **cli**: Fix release publication failing to find staged standalone downloads.
 
 ### Changed
 
+- **agent**: ⚠️ **Behavior Change**: Replace the built-in server-side bash sandbox and domain allowlist settings with external team Runners; agent `bash` and `download_asset` tools are enabled automatically once at least one Runner is configured for the team, while domain and OS-level sandboxing rules move to the Runner side.
 - **cli**: Show copyable commands and shell configuration instructions when the standalone CLI installation directory is missing from PATH.
 
 ## [0.6.6] - 2026-11-13

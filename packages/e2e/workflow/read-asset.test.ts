@@ -2,6 +2,7 @@ import type { AssistantMessage } from '@earendil-works/pi-ai'
 import { initAgentWorkflows } from '@shumai/agent'
 import { getAssetRenderOp, readAssetOp, runOperation } from '@shumai/core/src/operations'
 import { projectService } from '@shumai/core/src/project/project'
+import { hashRunnerKey, runnerService, type RunnerSocket } from '@shumai/core/src/runner'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { prisma, type User } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
@@ -56,15 +57,15 @@ describe('Workflow E2E - read_asset', () => {
       })
       const text = result.content.find((c) => c.type === 'text')?.text ?? ''
       const images = result.content.filter((c) => c.type === 'image' && c.data)
-      // download_asset saves the original into the agent's sandbox (.pi)
+      // download_asset saves the original into the runner workspace (.pi)
       const download = this.getTools().find((t) => t.name === 'download_asset') as unknown as
         ExecutableTool | undefined
       const downloaded = download
         ? await download.execute('call-2', { assetIds: [videoAssetId], proxy: false })
         : undefined
       const savedPath = (
-        downloaded as unknown as { details?: { files?: Array<{ absolutePath: string }> } }
-      )?.details?.files?.[0]?.absolutePath
+        downloaded as unknown as { details?: { files?: Array<{ filePath: string }> } }
+      )?.details?.files?.[0]?.filePath
       const summary = [
         `images:${images.length}`,
         `frames:${(text.match(/- Frame at /g) ?? []).length}`,
@@ -200,6 +201,68 @@ describe('Workflow E2E - read_asset', () => {
 
   it('gives the chat agent video frames as images', async () => {
     const { team, user, project } = await seed('agent')
+    const { runner, key } = await runnerService.createRunner(team.id, { name: 'E2E Runner' })
+    const runnerSocket: RunnerSocket = {
+      send(data: string) {
+        const msg = JSON.parse(data) as {
+          type: string
+          executionId?: string
+          url?: string
+          destPath?: string
+        }
+        if (msg.type === 'file.download' && msg.executionId && msg.url && msg.destPath) {
+          void (async () => {
+            try {
+              const parsed = new URL(msg.url!)
+              const localPrefix = `/files/${BUCKET}/`
+              let buf: Buffer
+              let mimeType = 'video/mp4'
+              if (parsed.pathname.startsWith(localPrefix)) {
+                const key = decodeURIComponent(parsed.pathname.slice(localPrefix.length))
+                const obj = await s3Service.getObject(BUCKET, key)
+                buf = obj.buffer
+                mimeType = obj.contentType || 'video/mp4'
+              } else {
+                const resp = await fetch(msg.url!)
+                buf = Buffer.from(await resp.arrayBuffer())
+                mimeType = resp.headers.get('content-type') || 'video/mp4'
+              }
+              const fullDest = path.resolve(process.cwd(), msg.destPath!)
+              fs.mkdirSync(path.dirname(fullDest), { recursive: true })
+              fs.writeFileSync(fullDest, buf)
+              runnerService.handleMessage(
+                runner.id,
+                runnerSocket,
+                JSON.stringify({
+                  type: 'file.download.result',
+                  executionId: msg.executionId,
+                  ok: true,
+                  size: buf.length,
+                  mimeType,
+                }),
+              )
+            } catch (err) {
+              runnerService.handleMessage(
+                runner.id,
+                runnerSocket,
+                JSON.stringify({
+                  type: 'file.download.result',
+                  executionId: msg.executionId,
+                  ok: false,
+                  error: err instanceof Error ? err.message : String(err),
+                }),
+              )
+            }
+          })()
+        }
+      },
+      close() {},
+    }
+    await runnerService.registerConnection(
+      { id: runner.id, teamId: team.id, name: runner.name, keyHash: hashRunnerKey(key) },
+      runnerSocket,
+    )
+
     const video = await createFileAsset(
       project.id,
       project.rootFolder!,
@@ -296,9 +359,12 @@ describe('Workflow E2E - read_asset', () => {
     const savedPath = /downloaded:([^|]+)/.exec(reply?.message ?? '')?.[1] ?? 'none'
     expect(savedPath).not.toBe('none')
     expect(
-      fs.readFileSync(savedPath).equals(fs.readFileSync(path.join(fixturesDir, 'small.mp4'))),
+      fs
+        .readFileSync(path.resolve(process.cwd(), savedPath))
+        .equals(fs.readFileSync(path.join(fixturesDir, 'small.mp4'))),
     ).toBe(true)
-    fs.rmSync(savedPath, { force: true })
+    fs.rmSync(path.resolve(process.cwd(), savedPath), { force: true })
+    runnerService.handleDisconnect(runner.id, runnerSocket)
 
     const render = await prisma.workflowTask.findFirstOrThrow({
       where: { assetId: video.id, type: 'transcode_screenshot' },

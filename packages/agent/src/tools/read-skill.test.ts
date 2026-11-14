@@ -2,21 +2,39 @@ import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { vi } from 'vitest'
 
 vi.mock('@shumai/core/src/s3/s3')
-vi.mock('fs')
 
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import AdmZip from 'adm-zip'
-import * as fs from 'fs'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createReadSkillTool } from './read-skill'
+
+function makeSkillZipBuffer(skillMdContent: string): Buffer {
+  const zip = new AdmZip()
+  zip.addFile('SKILL.md', Buffer.from(skillMdContent, 'utf-8'))
+  return zip.toBuffer()
+}
 
 describe('readSkillTool', () => {
   setupTestDbHooks()
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    await prisma.asset.create({
+      data: {
+        id: 'asset1',
+        name: 'skill.zip',
+        storageKey: { create: { key: 'skills/skill.zip' } },
+        type: 'file',
+        status: 'uploaded',
+      },
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking s3Service.getObject return value
+    ;(s3Service.getObject as any).mockResolvedValue({
+      buffer: makeSkillZipBuffer('# Content'),
+      contentType: 'application/zip',
+    })
   })
 
   it('should throw error if skill not found', async () => {
@@ -26,7 +44,7 @@ describe('readSkillTool', () => {
     ).rejects.toThrow('not found')
   })
 
-  it('should read skill from cache if hash matches', async () => {
+  it('should read SKILL.md directly from the skill zip in storage', async () => {
     const team = await prisma.team.create({ data: { name: 'Test Team' } })
     const skill = await prisma.skill.create({
       data: {
@@ -37,12 +55,10 @@ describe('readSkillTool', () => {
       },
     })
 
-    vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs calls
-    vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
-      if (path.toString().endsWith('.hash')) return 'match-hash'
-      if (path.toString().endsWith('SKILL.md')) return '# Test Skill Content'
-      return ''
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking s3Service return
+    ;(s3Service.getObject as any).mockResolvedValue({
+      buffer: makeSkillZipBuffer('# Test Skill Content'),
+      contentType: 'application/zip',
     })
 
     const readSkillTool = createReadSkillTool(undefined, () => {})
@@ -50,10 +66,10 @@ describe('readSkillTool', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((result.content[0] as any).text).toBe('# Test Skill Content')
-    expect(s3Service.getObject).not.toHaveBeenCalled()
+    expect(s3Service.getObject).toHaveBeenCalled()
   })
 
-  it('should download and extract skill if cache missing or hash mismatch', async () => {
+  it('should read nested SKILL.md inside zip archive', async () => {
     const team = await prisma.team.create({ data: { name: 'Test Team' } })
     const skill = await prisma.skill.create({
       data: {
@@ -64,31 +80,8 @@ describe('readSkillTool', () => {
       },
     })
 
-    await prisma.asset.create({
-      data: {
-        id: 'asset1',
-        name: 'skill.zip',
-        storageKey: { create: { key: 'skills/skill.zip' } },
-        type: 'file',
-        status: 'uploaded',
-      },
-    })
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs calls
-    vi.spyOn(fs, 'existsSync').mockImplementation((path: any) => {
-      if (path.toString().endsWith('.hash')) return false
-      if (path.toString().endsWith('SKILL.md')) return true
-      return true
-    })
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs calls
-    vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
-      if (path.toString().endsWith('SKILL.md')) return '# Extracted Content'
-      return ''
-    })
-
     const zip = new AdmZip()
-    zip.addFile('SKILL.md', Buffer.from('# Extracted Content'))
+    zip.addFile('nested/SKILL.md', Buffer.from('# Extracted Content'))
     const zipBuffer = zip.toBuffer()
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking s3Service return
@@ -103,7 +96,6 @@ describe('readSkillTool', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((result.content[0] as any).text).toBe('# Extracted Content')
     expect(s3Service.getObject).toHaveBeenCalled()
-    expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining('.hash'), 'new-hash')
   })
 
   describe('environment variables', () => {
@@ -133,14 +125,6 @@ describe('readSkillTool', () => {
 
       delete process.env.CONFIGURED_VAR
 
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
-      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
-        if (path.toString().endsWith('.hash')) return 'hash1'
-        if (path.toString().endsWith('SKILL.md')) return '# Content'
-        return ''
-      })
-
       let capturedEnvs: Record<string, string> = {}
       const readSkillTool = createReadSkillTool(undefined, (envs) => {
         capturedEnvs = { ...capturedEnvs, ...envs }
@@ -167,14 +151,6 @@ describe('readSkillTool', () => {
       })
 
       process.env.OVERRIDDEN_VAR = 'host-val'
-
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
-      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
-        if (path.toString().endsWith('.hash')) return 'hash2'
-        if (path.toString().endsWith('SKILL.md')) return '# Content'
-        return ''
-      })
 
       let capturedEnvs: Record<string, string> = {}
       const readSkillTool = createReadSkillTool(undefined, (envs) => {
@@ -203,14 +179,6 @@ describe('readSkillTool', () => {
 
       process.env.FALLBACK_VAR = 'host-val'
 
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
-      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
-        if (path.toString().endsWith('.hash')) return 'hash3'
-        if (path.toString().endsWith('SKILL.md')) return '# Content'
-        return ''
-      })
-
       let capturedEnvs: Record<string, string> = {}
       const readSkillTool = createReadSkillTool(undefined, (envs) => {
         capturedEnvs = { ...capturedEnvs, ...envs }
@@ -237,14 +205,6 @@ describe('readSkillTool', () => {
       })
 
       process.env.FALLBACK_VAR_UNDEF = 'host-val2'
-
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
-      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
-        if (path.toString().endsWith('.hash')) return 'hash4'
-        if (path.toString().endsWith('SKILL.md')) return '# Content'
-        return ''
-      })
 
       let capturedEnvs: Record<string, string> = {}
       const readSkillTool = createReadSkillTool(undefined, (envs) => {
@@ -285,12 +245,10 @@ describe('readSkillTool', () => {
         },
       })
 
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
-        if (path.toString().endsWith('.hash')) return 'hash-owner'
-        if (path.toString().endsWith('SKILL.md')) return '# Owner Skill'
-        return ''
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking s3Service return
+      ;(s3Service.getObject as any).mockResolvedValue({
+        buffer: makeSkillZipBuffer('# Owner Skill'),
+        contentType: 'application/zip',
       })
 
       const ownerTool = createReadSkillTool(ownerUser.id, () => {})
@@ -356,12 +314,10 @@ describe('readSkillTool', () => {
         data: { projectId: project.id, teamMemberId: projEditorTm.id, role: 'editor' },
       })
 
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs calls
-      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
-        if (path.toString().endsWith('.hash')) return 'proj-editor-hash'
-        if (path.toString().endsWith('SKILL.md')) return '# Editor Project Skill Content'
-        return ''
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking s3Service return
+      ;(s3Service.getObject as any).mockResolvedValue({
+        buffer: makeSkillZipBuffer('# Editor Project Skill Content'),
+        contentType: 'application/zip',
       })
 
       const projEditorTool = createReadSkillTool(
@@ -395,19 +351,16 @@ describe('readSkillTool', () => {
         },
       })
 
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
-      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
-        if (path.toString().endsWith('.hash')) return 'cb-hash'
-        if (path.toString().endsWith('SKILL.md')) return '# Callback Skill'
-        return ''
-      })
-
       const onSkillLoaded = vi.fn()
       const readSkillTool = createReadSkillTool(undefined, () => {}, onSkillLoaded)
       await invokeTool(readSkillTool, '1', { skillId: skill.id }, undefined, undefined)
 
       expect(onSkillLoaded).toHaveBeenCalledTimes(1)
+      expect(onSkillLoaded).toHaveBeenCalledWith({
+        id: skill.id,
+        assetId: 'asset1',
+        hash: 'cb-hash',
+      })
     })
 
     it('should not invoke onSkillLoaded when loading is denied', async () => {
@@ -469,12 +422,10 @@ describe('readSkillTool', () => {
         },
       })
 
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
-      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
-        if (path.toString().endsWith('.hash')) return 'enabled-agent-hash'
-        if (path.toString().endsWith('SKILL.md')) return '# Enabled For Agent Skill'
-        return ''
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking s3Service return
+      ;(s3Service.getObject as any).mockResolvedValue({
+        buffer: makeSkillZipBuffer('# Enabled For Agent Skill'),
+        contentType: 'application/zip',
       })
 
       const readSkillTool = createReadSkillTool(undefined, () => {}, undefined, [skill.id])
@@ -500,12 +451,10 @@ describe('readSkillTool', () => {
         },
       })
 
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
-      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
-        if (path.toString().endsWith('.hash')) return 'no-filter-hash'
-        if (path.toString().endsWith('SKILL.md')) return '# No Filter Skill'
-        return ''
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking s3Service return
+      ;(s3Service.getObject as any).mockResolvedValue({
+        buffer: makeSkillZipBuffer('# No Filter Skill'),
+        contentType: 'application/zip',
       })
 
       const readSkillTool = createReadSkillTool(undefined, () => {})

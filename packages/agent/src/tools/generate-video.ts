@@ -1,9 +1,9 @@
 import { type ToolRegistration as AgentTool } from '@earendil-works/pi-durable'
+import { storageBucket } from '@shumai/core/src/asset-read'
 import { mediaGenerationService } from '@shumai/core/src/media-generation/media-generation'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
 import { EnabledMediaModel } from '@shumai/dtos'
-import * as fs from 'fs'
-import * as path from 'path'
 import { Type, type Static, type TSchema } from 'typebox'
 import { ulid } from 'ulid'
 import { resolveS3MediaBuffer } from './download-asset'
@@ -262,22 +262,19 @@ export function createGenerateVideoTool(
         seed: p.seed !== null && p.seed !== undefined ? p.seed : undefined,
       })
 
-      const piDir = path.join(process.cwd(), '.pi')
-      if (!fs.existsSync(piDir)) {
-        fs.mkdirSync(piDir, { recursive: true })
-      }
-
+      const genId = ulid()
       let filename: string
       if (p.outputFileName) {
         const safe = sanitizeFilename(p.outputFileName)
         filename = safe.endsWith('.mp4') ? safe : `${safe}.mp4`
       } else {
-        filename = `generated_video_${ulid()}.mp4`
+        filename = `generated_video_${genId}.mp4`
       }
 
-      const targetPath = path.join(piDir, filename)
-      const relativePath = path.join('.pi', filename)
-      fs.writeFileSync(targetPath, buffer)
+      const safeMime = mimeType || 'video/mp4'
+      const storageKey = `temp/generated/${genId}/${filename}`
+      const relativePath = `.pi/generated/${genId}/${filename}`
+      await s3Service.putObject(storageBucket(), storageKey, buffer, buffer.length, safeMime)
 
       return {
         output: [
@@ -289,7 +286,7 @@ export function createGenerateVideoTool(
         details: {
           fileName: filename,
           filePath: relativePath,
-          absolutePath: targetPath,
+          storageKey,
           size: buffer.length,
           mimeType,
           provider: modelConfig.provider,
