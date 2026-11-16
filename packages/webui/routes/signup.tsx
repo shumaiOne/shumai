@@ -31,12 +31,12 @@ function SignupPage() {
   const inviteCode = (search as { inviteCode?: string }).inviteCode
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [locale, setLocaleState] = useState<'en' | 'zh'>(() => {
+  const [locale, setLocaleState] = useState<'en' | 'zh' | 'ko'>(() => {
     const activeLocale = getLocale()
-    return activeLocale === 'zh' ? 'zh' : 'en'
+    return activeLocale === 'zh' || activeLocale === 'ko' ? activeLocale : 'en'
   })
 
-  const handleLocaleChange = (newLocale: 'en' | 'zh') => {
+  const handleLocaleChange = (newLocale: 'en' | 'zh' | 'ko') => {
     setLocaleState(newLocale)
     setLocale(newLocale)
   }
@@ -279,6 +279,16 @@ function SignupPage() {
             }`}
           >
             中文
+          </button>
+          <span className="text-zinc-300 dark:text-zinc-850">/</span>
+          <button
+            type="button"
+            onClick={() => handleLocaleChange('ko')}
+            className={`cursor-pointer hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors ${
+              locale === 'ko' ? 'font-bold text-rose-500 dark:text-rose-400' : ''
+            }`}
+          >
+            한국어
           </button>
         </div>
       </div>

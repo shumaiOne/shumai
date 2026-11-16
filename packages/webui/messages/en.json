@@ -241,6 +241,7 @@
   "select_language": "Select Language",
   "english": "English",
   "chinese": "简体中文 (Chinese)",
+  "korean": "한국어 (Korean)",
   "language_updated": "Language updated successfully",
   "failed_update_language": "Failed to update language",
   "avatar_updated": "Avatar updated successfully",
