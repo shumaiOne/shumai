@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **file-browser**: Fix double-clicking a shortcut (symlink) to a folder opening the file viewer instead of the folder.
 - **cli**: Fix release publication failing to find staged standalone downloads.
 
 ### Changed
