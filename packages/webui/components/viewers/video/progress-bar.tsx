@@ -43,6 +43,10 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   // restarts the native seek and stalls playback on slow connections.
   const didDragMoveRef = useRef(false)
   const lastSeekPosRef = useRef<number | null>(null)
+  // After a touch interaction, mobile browsers fire synthetic mouse events
+  // (mousedown/mouseup) for the same tap. Suppress them so one tap does not
+  // trigger a second seek through the mouse path.
+  const lastTouchEndAtRef = useRef(0)
 
   const onSeekRef = useRef(onSeek)
   useEffect(() => {
@@ -97,6 +101,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return
+    if (Date.now() - lastTouchEndAtRef.current < 700) return
     e.preventDefault()
     setIsDragging(true)
     didDragMoveRef.current = false
@@ -202,6 +207,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
 
     const handleWindowTouchEnd = (e: TouchEvent) => {
       setIsDragging(false)
+      lastTouchEndAtRef.current = Date.now()
 
       const clientX = e.changedTouches.length > 0 ? e.changedTouches[0].clientX : null
       const clientY = e.changedTouches.length > 0 ? e.changedTouches[0].clientY : null
