@@ -38,6 +38,11 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   const [hoverPosition, setHoverPosition] = useState<number | null>(null) // 0 to 1
   const [isHovering, setIsHovering] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  // Tracks whether the pointer actually moved during a drag. A plain tap/click
+  // already seeks on pointer-down; re-seeking to the same frame on release
+  // restarts the native seek and stalls playback on slow connections.
+  const didDragMoveRef = useRef(false)
+  const lastSeekPosRef = useRef<number | null>(null)
 
   const onSeekRef = useRef(onSeek)
   useEffect(() => {
@@ -94,6 +99,8 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     if (e.button !== 0) return
     e.preventDefault()
     setIsDragging(true)
+    didDragMoveRef.current = false
+    lastSeekPosRef.current = e.clientX
     const percentage = getPercentageFromEvent(e.clientX)
     setHoverPosition(percentage)
     setIsHovering(true)
@@ -102,6 +109,8 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     setIsDragging(true)
+    didDragMoveRef.current = false
+    lastSeekPosRef.current = e.touches[0].clientX
     const percentage = getPercentageFromEvent(e.touches[0].clientX)
     setHoverPosition(percentage)
     setIsHovering(true)
@@ -112,6 +121,12 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     if (!isDragging) return
 
     const handleWindowMouseMove = (e: MouseEvent) => {
+      if (lastSeekPosRef.current !== null && Math.abs(e.clientX - lastSeekPosRef.current) >= 2) {
+        didDragMoveRef.current = true
+        lastSeekPosRef.current = e.clientX
+      } else if (!didDragMoveRef.current) {
+        return
+      }
       const percentage = getPercentageFromEvent(e.clientX)
       setHoverPosition(percentage)
       setIsHovering(true)
@@ -147,12 +162,27 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         setHoverPosition(null)
       }
 
-      const percentage = getPercentageFromEvent(e.clientX)
-      onSeekRef.current(percentage * totalFrames)
+      // A plain click already seeked on mousedown; only seek again if the
+      // pointer actually moved (drag release position differs from start).
+      if (didDragMoveRef.current) {
+        const percentage = getPercentageFromEvent(e.clientX)
+        onSeekRef.current(percentage * totalFrames)
+      }
+      didDragMoveRef.current = false
+      lastSeekPosRef.current = null
     }
 
     const handleWindowTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 0) return
+      if (
+        lastSeekPosRef.current !== null &&
+        Math.abs(e.touches[0].clientX - lastSeekPosRef.current) >= 2
+      ) {
+        didDragMoveRef.current = true
+        lastSeekPosRef.current = e.touches[0].clientX
+      } else if (!didDragMoveRef.current) {
+        return
+      }
       const percentage = getPercentageFromEvent(e.touches[0].clientX)
       setHoverPosition(percentage)
       setIsHovering(true)
@@ -191,10 +221,14 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         setHoverPosition(null)
       }
 
-      if (clientX !== null) {
+      if (clientX !== null && didDragMoveRef.current) {
+        // A plain tap already seeked on touchstart; only seek again after a
+        // real drag so a single tap doesn't restart the seek and stall.
         const percentage = getPercentageFromEvent(clientX)
         onSeekRef.current(percentage * totalFrames)
       }
+      didDragMoveRef.current = false
+      lastSeekPosRef.current = null
     }
 
     window.addEventListener('mousemove', handleWindowMouseMove)
