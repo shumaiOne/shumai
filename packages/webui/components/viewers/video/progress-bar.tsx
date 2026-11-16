@@ -237,16 +237,30 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       lastSeekPosRef.current = null
     }
 
+    const handleWindowTouchCancel = () => {
+      // OS gestures (app switch, palm rejection, notification pull) cancel
+      // the touch. Reset drag state without seeking so the bar doesn't stay
+      // stuck in dragging/hover mode.
+      setIsDragging(false)
+      setIsHovering(false)
+      setHoverPosition(null)
+      didDragMoveRef.current = false
+      lastSeekPosRef.current = null
+      lastTouchEndAtRef.current = Date.now()
+    }
+
     window.addEventListener('mousemove', handleWindowMouseMove)
     window.addEventListener('mouseup', handleWindowMouseUp)
     window.addEventListener('touchmove', handleWindowTouchMove, { passive: true })
     window.addEventListener('touchend', handleWindowTouchEnd)
+    window.addEventListener('touchcancel', handleWindowTouchCancel)
 
     return () => {
       window.removeEventListener('mousemove', handleWindowMouseMove)
       window.removeEventListener('mouseup', handleWindowMouseUp)
       window.removeEventListener('touchmove', handleWindowTouchMove)
       window.removeEventListener('touchend', handleWindowTouchEnd)
+      window.removeEventListener('touchcancel', handleWindowTouchCancel)
     }
   }, [isDragging, totalFrames, fps, getPercentageFromEvent])
 
