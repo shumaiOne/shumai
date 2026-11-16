@@ -323,7 +323,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         ref={previewVideoRef}
         src={previewUrl}
         className="hidden"
-        preload="auto"
+        preload="metadata"
         muted
         playsInline
       />
