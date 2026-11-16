@@ -199,7 +199,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         try {
           await fetchMetadata(teamId)
           const savedLocale = getMetadata<string>('locale')
-          if ((savedLocale === 'en' || savedLocale === 'zh') && savedLocale !== getLocale()) {
+          if (
+            (savedLocale === 'en' || savedLocale === 'zh' || savedLocale === 'ko') &&
+            savedLocale !== getLocale()
+          ) {
             setLocale(savedLocale, { reload: false })
           }
         } catch (e) {

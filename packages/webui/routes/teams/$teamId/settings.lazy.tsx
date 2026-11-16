@@ -254,7 +254,7 @@ export function TeamSettingsPage() {
   const currentLocale = getMetadata<string>('locale') || getLocale()
 
   const handleLanguageChange = async (newLocale: string) => {
-    if (newLocale === 'en' || newLocale === 'zh') {
+    if (newLocale === 'en' || newLocale === 'zh' || newLocale === 'ko') {
       try {
         await setMetadata(teamId, 'locale', newLocale)
         setLocale(newLocale)
@@ -957,6 +957,7 @@ export function TeamSettingsPage() {
                           <SelectContent>
                             <SelectItem value="en">{m.english()}</SelectItem>
                             <SelectItem value="zh">{m.chinese()}</SelectItem>
+                            <SelectItem value="ko">{m.korean()}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
