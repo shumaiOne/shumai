@@ -23,6 +23,21 @@ describe('runner bash execution', () => {
     command,
   })
 
+  it('runs with no executables on PATH when SRT is not requested', async () => {
+    vi.stubEnv('PATH', '')
+    await shell.initialize()
+    let output = ''
+    const result = await shell.run(
+      request('printf no-extra-runtime'),
+      new AbortController().signal,
+      (_stream, data) => {
+        output += data
+      },
+    )
+    expect(result).toMatchObject({ exitCode: 0 })
+    expect(output).toBe('no-extra-runtime')
+  })
+
   it('streams both outputs, returns the exit code, and saves a log in the runner workspace', async () => {
     const output: string[] = []
     const result = await shell.run(

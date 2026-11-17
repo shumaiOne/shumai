@@ -15,11 +15,13 @@
     "hono": "4.13.5",
     "ulid": "3.0.2",
     "ws": "8.22.2",
+    "yauzl": "3.4.0",
     "zod": "4.5.4"
   },
   "devDependencies": {
     "@types/adm-zip": "0.5.8",
     "@types/ws": "8.18.2",
+    "@types/yauzl": "3.4.0",
     "adm-zip": "0.6.1"
   }
 }

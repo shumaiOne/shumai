@@ -88,7 +88,7 @@ export SHUMAI_ALLOW_DELETE="true"
 
 ## Agent runner
 
-Create a runner in **Settings → Agent Runners** and copy its one-time key. On a macOS or Linux machine with `/bin/bash` and Python 3, start it in an existing dedicated workspace:
+Create a runner in **Settings → Agent Runners** and copy its one-time key. On a macOS or Linux machine with `/bin/bash`, start it in an existing dedicated workspace:
 
 ```sh
 export SHUMAI_API_SERVER="https://shumai.example.com"

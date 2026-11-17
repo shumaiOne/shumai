@@ -1,24 +1,37 @@
-import { Readable, Writable } from 'node:stream'
+import { createHash } from 'node:crypto'
+import { on } from 'node:events'
+import { constants, createWriteStream } from 'node:fs'
+import { lstat, mkdir, mkdtemp, open, rename, rm } from 'node:fs/promises'
+import path from 'node:path'
+import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
-import { z } from 'zod'
+import yauzl from 'yauzl'
 import type {
   RunnerFileDownloadMessage,
   RunnerFileUploadMessage,
   RunnerFileStatMessage,
   RunnerToServerMessage,
 } from '@shumai/dtos'
-import { findExecutable, spawnFileHelper } from './filesystem'
 
+const MAX_FILE_BYTES = 256 * 1024 * 1024
+const MAX_ZIP_ENTRIES = 10_000
 export type FileMessage =
   RunnerFileDownloadMessage | RunnerFileUploadMessage | RunnerFileStatMessage
-const metadataSchema = z.object({
-  exists: z.boolean().optional(),
-  isFile: z.boolean().optional(),
-  size: z.number().optional(),
-  name: z.string().optional(),
-  cached: z.boolean().optional(),
-  ready: z.boolean().optional(),
-})
+
+function pathParts(value: string): string[] {
+  const parts = value.split('/')
+  if (
+    value.includes('\\') ||
+    value.includes('\0') ||
+    parts.some((part) => !part || part === '.' || part === '..' || part.includes(':'))
+  )
+    throw new Error('Invalid workspace path.')
+  return parts
+}
+
+function isMissing(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === 'ENOENT'
+}
 
 function transferUrl(address: string): URL {
   const url = new URL(address)
@@ -28,146 +41,74 @@ function transferUrl(address: string): URL {
 }
 
 export class RunnerFiles {
-  private python?: Promise<string>
   constructor(readonly cwd: string) {}
 
-  async initialize() {
-    await (this.python ??= findExecutable('python3'))
+  /** Basic workspace validation. Concurrent hostile filesystem mutation is outside v1's scope. */
+  private async resolve(relative: string, createParents = false): Promise<string> {
+    const parts = pathParts(relative)
+    if (parts[0] !== '.pi' || parts.length < 2) throw new Error('File paths must stay inside .pi/.')
+    let current = this.cwd
+    for (let index = 0; index < parts.length; index++) {
+      current = path.join(current, parts[index])
+      const parent = index < parts.length - 1
+      if (parent && createParents) await mkdir(current, { recursive: true, mode: 0o700 })
+      try {
+        const info = await lstat(current)
+        if (info.isSymbolicLink() || (parent && !info.isDirectory()))
+          throw new Error('Workspace paths cannot contain symlinks or non-directory parents.')
+      } catch (error) {
+        if (!isMissing(error)) throw error
+      }
+    }
+    return current
   }
 
-  private async helper(operation: string, relative: string, expectedHash = '') {
-    await this.initialize()
-    const child = spawnFileHelper(await this.python!, this.cwd, operation, relative, expectedHash)
-    const control = child.stdio[3]
-    if (!(control instanceof Writable)) throw new Error('Missing filesystem commit channel.')
-    control.on('error', () => {})
-    if (operation === 'read' || operation === 'stat') control.end()
-    let stdout = ''
-    let stderr = ''
-    // Binary reads are consumed by fetch, all other operations return small JSON metadata.
-    if (operation !== 'read')
-      child.stdout.on('data', (chunk: Buffer) => {
-        stdout = (stdout + chunk.toString()).slice(-8192)
-      })
-    let firstLine: (value: string) => void
-    const ready = new Promise<string>((resolve) => {
-      firstLine = resolve
-    })
-    child.stderr.on('data', (chunk: Buffer) => {
-      stderr = (stderr + chunk.toString()).slice(-8192)
-      if (stderr.includes('\n')) firstLine(stderr.split('\n')[0]!)
-    })
-    // A failed helper must not produce an unhandled EPIPE while HTTP is still streaming.
-    child.stdin.on('error', () => {})
-    const done = new Promise<z.infer<typeof metadataSchema>>((resolve, reject) => {
-      child.once('error', (error) => {
-        firstLine('')
-        reject(error)
-      })
-      child.once('close', (code) => {
-        firstLine(stderr)
-        if (code !== 0)
-          reject(new Error(stderr.trim().split('\n').at(-1) || 'Runner file operation failed.'))
-        else if (operation === 'read') resolve({})
-        else {
-          try {
-            resolve(metadataSchema.parse(JSON.parse(stdout)))
-          } catch (error) {
-            reject(error)
-          }
-        }
-      })
-    })
-    void done.catch(() => {})
-    let stopping = false
-    const stop = () => {
-      if (stopping || child.exitCode !== null || child.signalCode !== null) return
-      stopping = true
-      control.end()
-      child.stdin.destroy()
-      child.kill('SIGTERM')
-      const fallback = setTimeout(() => child.kill('SIGKILL'), 5000)
-      void done.finally(() => clearTimeout(fallback)).catch(() => {})
-    }
-    return { child, done, ready, stop, commit: () => control.end('1') }
-  }
-
-  async createWriter(relative: string, expectedHash = '') {
-    const task = await this.helper('write', relative, expectedHash)
-    try {
-      const metadata = metadataSchema.parse(JSON.parse(await task.ready))
-      if (!metadata.ready) throw new Error('Runner file writer did not initialize.')
-    } catch (error) {
-      task.stop()
-      await task.done.catch(() => {})
-      throw error
-    }
+  async createWriter(relative: string) {
+    const file = await open(
+      await this.resolve(relative, true),
+      constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW,
+      0o600,
+    )
     return {
-      async write(data: string) {
-        await new Promise<void>((resolve, reject) =>
-          task.child.stdin.write(data, (error) => {
-            if (error) reject(error)
-            else resolve()
-          }),
-        )
+      write: async (data: string) => {
+        await file.writeFile(data)
       },
-      async close() {
-        task.child.stdin.end()
-        task.commit()
-        return await task.done
-      },
+      close: () => file.close(),
     }
   }
 
   async handle(message: FileMessage, signal: AbortSignal): Promise<RunnerToServerMessage> {
     try {
-      if (message.type === 'file.stat') {
-        const task = await this.helper('stat', message.srcPath)
-        task.child.stdin.end()
-        const result = await task.done
+      signal.throwIfAborted()
+      if (message.type === 'file.download')
+        return {
+          type: 'file.download.result',
+          executionId: message.executionId,
+          ok: true,
+          ...(await this.download(message, signal)),
+        }
+      const filename = await this.resolve(message.srcPath)
+      if (message.type === 'file.upload') return await this.upload(message, filename, signal)
+      try {
+        const info = await lstat(filename)
         return {
           type: 'file.stat.result',
           executionId: message.executionId,
           ok: true,
-          exists: result.exists ?? false,
-          ...result,
+          exists: true,
+          isFile: info.isFile(),
+          size: info.size,
+          name: path.basename(filename),
+        }
+      } catch (error) {
+        if (!isMissing(error)) throw error
+        return {
+          type: 'file.stat.result',
+          executionId: message.executionId,
+          ok: true,
+          exists: false,
         }
       }
-      if (message.type === 'file.download') {
-        const response = await fetch(transferUrl(message.url), { signal, redirect: 'error' })
-        if (!response.ok || !response.body) {
-          await response.body?.cancel()
-          throw new Error(`Download failed (HTTP ${response.status}).`)
-        }
-        const task = await this.helper(
-          message.extractZip ? 'extract' : 'write',
-          message.destPath,
-          message.expectedHash,
-        )
-        const abort = () => {
-          task.stop()
-        }
-        signal.addEventListener('abort', abort, { once: true })
-        try {
-          if (signal.aborted) signal.throwIfAborted()
-          await pipeline(response.body, task.child.stdin, { signal })
-          signal.throwIfAborted()
-          task.commit()
-          return {
-            type: 'file.download.result',
-            executionId: message.executionId,
-            ok: true,
-            ...(await task.done),
-          }
-        } catch (error) {
-          task.stop()
-          await task.done.catch(() => {})
-          throw error
-        } finally {
-          signal.removeEventListener('abort', abort)
-        }
-      }
-      return await this.upload(message, signal)
     } catch (error) {
       const result = {
         executionId: message.executionId,
@@ -187,20 +128,26 @@ export class RunnerFiles {
 
   private async upload(
     message: RunnerFileUploadMessage,
+    filename: string,
     signal: AbortSignal,
   ): Promise<RunnerToServerMessage> {
-    const task = await this.helper('read', message.srcPath)
-    task.child.stdin.end()
-    const abort = () => {
-      task.stop()
-    }
-    signal.addEventListener('abort', abort, { once: true })
+    const file = await open(
+      filename,
+      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
+    )
     try {
-      const info = metadataSchema.parse(JSON.parse(await task.ready))
-      if (!info.isFile || info.size === undefined) throw new Error('Invalid upload file.')
+      const info = await file.stat()
+      if (!info.isFile() || info.size > MAX_FILE_BYTES)
+        throw new Error('Upload must be a regular file no larger than 256 MiB.')
+      // Node and Bun declare different DOM stream types for the same fetch-compatible stream.
+      const body = info.size
+        ? (Readable.toWeb(
+            file.createReadStream({ autoClose: false, end: info.size - 1 }),
+          ) as unknown as ReadableStream<Uint8Array>)
+        : new Uint8Array()
       const response = await fetch(transferUrl(message.url), {
         method: 'PUT',
-        body: Readable.toWeb(task.child.stdout) as unknown as ReadableStream<Uint8Array>,
+        body,
         ...{ duplex: 'half' },
         headers: {
           'content-type': message.contentType ?? 'application/octet-stream',
@@ -211,18 +158,122 @@ export class RunnerFiles {
       })
       await response.body?.cancel()
       if (!response.ok) throw new Error(`Upload failed (HTTP ${response.status}).`)
-      await task.done
       return {
         type: 'file.upload.result',
         executionId: message.executionId,
         ok: true,
         size: info.size,
-        name: info.name,
+        name: path.basename(filename),
       }
     } finally {
-      signal.removeEventListener('abort', abort)
-      task.stop()
-      await task.done.catch(() => {})
+      await file.close()
+    }
+  }
+
+  private async download(message: RunnerFileDownloadMessage, signal: AbortSignal) {
+    const destination = await this.resolve(message.destPath, true)
+    const temporary = await mkdtemp(path.join(path.dirname(destination), '.shumai-'))
+    let preserveBackup = false
+    try {
+      const response = await fetch(transferUrl(message.url), { signal, redirect: 'error' })
+      if (!response.ok || !response.body) {
+        await response.body?.cancel()
+        throw new Error(`Download failed (HTTP ${response.status}).`)
+      }
+      const hash = createHash('sha256')
+      let size = 0
+      const archive = path.join(temporary, 'download')
+      await pipeline(
+        response.body,
+        new Transform({
+          transform(chunk: Buffer, _encoding, callback) {
+            size += chunk.length
+            if (size > MAX_FILE_BYTES) {
+              callback(new Error('Download exceeds 256 MiB.'))
+              return
+            }
+            hash.update(chunk)
+            callback(null, chunk)
+          },
+        }),
+        createWriteStream(archive, { flags: 'wx', mode: 0o600 }),
+        { signal },
+      )
+      if (message.expectedHash && hash.digest('hex') !== message.expectedHash)
+        throw new Error('Downloaded file hash does not match.')
+      let source = archive
+      if (message.extractZip) {
+        source = path.join(temporary, 'extracted')
+        await mkdir(source, { mode: 0o700 })
+        await this.extract(archive, source, signal)
+      }
+      signal.throwIfAborted()
+      await this.resolve(message.destPath)
+      if (message.extractZip) {
+        const backup = path.join(temporary, 'previous')
+        let backedUp = false
+        try {
+          await rename(destination, backup)
+          backedUp = true
+        } catch (error) {
+          if (!isMissing(error)) throw error
+        }
+        try {
+          await rename(source, destination)
+        } catch (error) {
+          if (backedUp) {
+            preserveBackup = true
+            await rename(backup, destination)
+            preserveBackup = false
+          }
+          throw error
+        }
+      } else await rename(source, destination)
+      return { size, cached: false }
+    } finally {
+      if (!preserveBackup) await rm(temporary, { recursive: true, force: true })
+    }
+  }
+
+  private async extract(archive: string, directory: string, signal: AbortSignal) {
+    const zip = await new Promise<yauzl.ZipFile>((resolve, reject) =>
+      yauzl.open(
+        archive,
+        { lazyEntries: true, strictFileNames: true, autoClose: false },
+        (error, opened) => (error ? reject(error) : resolve(opened)),
+      ),
+    )
+    let size = 0
+    let count = 0
+    try {
+      const entries = on(zip, 'entry', { close: ['end'], signal }) as AsyncIterable<[yauzl.Entry]>
+      zip.readEntry()
+      for await (const [entry] of entries) {
+        if (++count > MAX_ZIP_ENTRIES) throw new Error('ZIP contains too many entries.')
+        const parts = pathParts(entry.fileName.replace(/\/$/, ''))
+        const mode = entry.externalFileAttributes >>> 16
+        const kind = mode & 0o170000
+        if (kind && kind !== 0o100000 && kind !== 0o040000)
+          throw new Error('ZIP links and special files are forbidden.')
+        size += entry.uncompressedSize
+        if (size > MAX_FILE_BYTES) throw new Error('Extracted ZIP exceeds 256 MiB.')
+        const destination = path.join(directory, ...parts)
+        if (entry.fileName.endsWith('/')) await mkdir(destination, { recursive: true, mode: 0o700 })
+        else {
+          await mkdir(path.dirname(destination), { recursive: true, mode: 0o700 })
+          const input = await new Promise<Readable>((resolve, reject) =>
+            zip.openReadStream(entry, (error, stream) => (error ? reject(error) : resolve(stream))),
+          )
+          await pipeline(
+            input,
+            createWriteStream(destination, { flags: 'wx', mode: 0o600 | (mode & 0o155) }),
+            { signal },
+          )
+        }
+        zip.readEntry()
+      }
+    } finally {
+      zip.close()
     }
   }
 }

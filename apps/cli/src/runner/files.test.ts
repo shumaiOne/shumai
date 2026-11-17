@@ -1,16 +1,6 @@
 import { createHash } from 'node:crypto'
 import { createServer, type Server } from 'node:http'
-import {
-  mkdtemp,
-  mkdir,
-  readFile,
-  readdir,
-  rename,
-  rm,
-  stat,
-  symlink,
-  writeFile,
-} from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import AdmZip from 'adm-zip'
@@ -214,18 +204,6 @@ describe('runner workspace file transfers', () => {
     await expect(readFile(path.join(cwd, '.pi/skills/bad/link'))).rejects.toThrow()
   })
 
-  it('keeps writes on the opened directory when a command replaces it with a symlink', async () => {
-    await mkdir(path.join(cwd, '.pi/work'), { recursive: true })
-    await mkdir(path.join(cwd, 'outside'))
-    const writer = await files.createWriter('.pi/work/safe.txt')
-    await rename(path.join(cwd, '.pi/work'), path.join(cwd, '.pi/held'))
-    await symlink(path.join(cwd, 'outside'), path.join(cwd, '.pi/work'))
-    await writer.write('safe contents')
-    await writer.close()
-    expect(await readFile(path.join(cwd, '.pi/held/safe.txt'), 'utf8')).toBe('safe contents')
-    await expect(readFile(path.join(cwd, 'outside/safe.txt'))).rejects.toThrow()
-  })
-
   it('preserves executable script permissions and rejects oversized ZIP entries', async () => {
     const zip = new AdmZip()
     zip.addFile('run.sh', Buffer.from('#!/bin/sh\necho executable\n'))
@@ -308,7 +286,9 @@ describe('runner workspace file transfers', () => {
           name.startsWith('.shumai-'),
         )
         expect(temporary).toBeDefined()
-        expect((await readdir(path.join(cwd, '.pi/skills', temporary!))).length).toBeGreaterThan(0)
+        expect(
+          (await readdir(path.join(cwd, '.pi/skills', temporary!, 'extracted'))).length,
+        ).toBeGreaterThan(0)
       },
       { interval: 5, timeout: 5000 },
     )

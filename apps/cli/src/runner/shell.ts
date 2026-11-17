@@ -6,7 +6,7 @@ import path from 'node:path'
 import type { RunnerExecResultMessage, RunnerExecStartMessage } from '@shumai/dtos'
 import { commandEnv } from './config'
 import { RunnerFiles } from './files'
-import { findExecutable } from './filesystem'
+import { findExecutable } from './executable'
 
 const MAX_OUTPUT_BYTES = 64 * 1024 * 1024
 const MAX_TIMEOUT_SEC = 3600
@@ -21,7 +21,6 @@ export class RunnerShell {
   ) {}
 
   async initialize() {
-    await this.files.initialize()
     if (!this.srtPath) return
     // Snapshot once: a command editing the source config cannot weaken later commands.
     this.settings = await readFile(this.srtPath, 'utf8')

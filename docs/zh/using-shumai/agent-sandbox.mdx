@@ -8,7 +8,7 @@ description: 连接可选的 Bash 运行器，并在运行器机器上配置沙�
 ## 连接运行器
 
 1. 在 **设置 → 智能体运行器** 中创建运行器，复制仅显示一次的密钥。只有团队所有者可以管理运行器和轮换密钥。
-2. 在有 `/bin/bash` 和 Python 3 的 macOS 或 Linux 机器上安装 [Shumai CLI](https://github.com/shumaiOne/shumai/tree/main/apps/cli#installation)。
+2. 在有 `/bin/bash` 的 macOS 或 Linux 机器上安装 [Shumai CLI](https://github.com/shumaiOne/shumai/tree/main/apps/cli#installation)。
 3. 在已有的专用工作目录中启动：
 
 ```bash
@@ -74,6 +74,6 @@ docker run --rm --init --name shumai-runner \
 
 ## 限制与生命周期
 
-默认超时 120 秒，最长一小时。超时或取消会终止命令进程组。单条命令最多在 `.pi/logs` 保存 64 MiB 输出，请按工作区维护需求清理日志。文件传输和技能解压限制为 256 MiB。协议文件操作拒绝 `.pi` 外路径、符号链接及不安全的压缩包条目。
+默认超时 120 秒，最长一小时。超时或取消会终止命令进程组。单条命令最多在 `.pi/logs` 保存 64 MiB 输出，请按工作区维护需求清理日志。文件传输和技能解压限制为 256 MiB。协议文件操作拒绝 `.pi` 外路径、已有符号链接及不安全的压缩包条目。V1 假定命令不会在文件传输期间故意修改工作区路径。
 
 临时重连会同步执行中及近期完成的命令，避免主动重复执行。重启运行器进程不会恢复旧进程中的命令。
