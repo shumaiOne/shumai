@@ -201,7 +201,7 @@ export const auth = betterAuth({
             }
 
             const locale = body?.locale
-            if (locale === 'en' || locale === 'zh') {
+            if (locale === 'en' || locale === 'zh' || locale === 'ko') {
               const joinedTeams = await prisma.teamMember.findMany({
                 where: { userId: user.id },
                 select: { teamId: true },

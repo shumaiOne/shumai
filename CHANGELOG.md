@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **agent**: Support binding external Runners per team so agents can execute shell commands and exchange files securely over WebSocket without requiring a built-in server sandbox, and allow assigning a default or dedicated Runner per agent in Team Settings.
+- **i18n**: Add Korean as a display language, selectable on the sign-up page and in team settings.
 
 ### Fixed
 

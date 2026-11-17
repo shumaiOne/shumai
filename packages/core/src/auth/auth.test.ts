@@ -20,43 +20,46 @@ describe('Auth Signup Locale Hook', () => {
     vi.restoreAllMocks()
   })
 
-  it('should save locale metadata for the user upon signup', async () => {
-    const email = `signup-locale-${Date.now()}@example.com`
+  it.each(['zh', 'ko'])(
+    'should save %s locale metadata for the user upon signup',
+    async (locale) => {
+      const email = `signup-locale-${locale}-${Date.now()}@example.com`
 
-    // We must use any here because 'locale' is a custom property we extract in
-    // our auth hooks, but better-auth's signUpEmail typescript interface does
-    // not recognize it.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await (auth.api.signUpEmail as any)({
-      headers: new Headers(),
-      body: {
-        email,
-        password: 'testpassword',
-        name: 'Locale Tester',
-        locale: 'zh',
-      },
-    })
+      // We must use any here because 'locale' is a custom property we extract in
+      // our auth hooks, but better-auth's signUpEmail typescript interface does
+      // not recognize it.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = await (auth.api.signUpEmail as any)({
+        headers: new Headers(),
+        body: {
+          email,
+          password: 'testpassword',
+          name: 'Locale Tester',
+          locale,
+        },
+      })
 
-    if (res.error) {
-      console.error('SIGNUP ERROR:', res.error)
-    }
+      if (res.error) {
+        console.error('SIGNUP ERROR:', res.error)
+      }
 
-    expect(res).toBeDefined()
-    expect(res.user).toBeDefined()
-    expect(res.user.email).toBe(email)
+      expect(res).toBeDefined()
+      expect(res.user).toBeDefined()
+      expect(res.user.email).toBe(email)
 
-    // Check that the userMetadata record was created with key 'locale' and value 'zh'
-    const teamMembers = await prisma.teamMember.findMany({
-      where: { userId: res.user.id },
-    })
-    expect(teamMembers.length).toBeGreaterThan(0)
+      // Check that the userMetadata record was created with key 'locale' and the requested value
+      const teamMembers = await prisma.teamMember.findMany({
+        where: { userId: res.user.id },
+      })
+      expect(teamMembers.length).toBeGreaterThan(0)
 
-    for (const member of teamMembers) {
-      const meta = await userMetadataService.getMetadata(res.user.id, member.teamId, 'locale')
-      expect(meta).toBeDefined()
-      expect(meta?.value).toBe('zh')
-    }
-  })
+      for (const member of teamMembers) {
+        const meta = await userMetadataService.getMetadata(res.user.id, member.teamId, 'locale')
+        expect(meta).toBeDefined()
+        expect(meta?.value).toBe(locale)
+      }
+    },
+  )
 
   it('should not save locale metadata if locale is invalid or missing', async () => {
     const email = `signup-no-locale-${Date.now()}@example.com`

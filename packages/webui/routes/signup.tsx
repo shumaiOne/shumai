@@ -31,12 +31,12 @@ function SignupPage() {
   const inviteCode = (search as { inviteCode?: string }).inviteCode
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [locale, setLocaleState] = useState<'en' | 'zh'>(() => {
+  const [locale, setLocaleState] = useState<'en' | 'zh' | 'ko'>(() => {
     const activeLocale = getLocale()
-    return activeLocale === 'zh' ? 'zh' : 'en'
+    return activeLocale === 'zh' || activeLocale === 'ko' ? activeLocale : 'en'
   })
 
-  const handleLocaleChange = (newLocale: 'en' | 'zh') => {
+  const handleLocaleChange = (newLocale: 'en' | 'zh' | 'ko') => {
     setLocaleState(newLocale)
     setLocale(newLocale)
   }
@@ -249,7 +249,7 @@ function SignupPage() {
         </Button>
       </form>
 
-      <div className="mt-12 pt-10 border-t border-zinc-200/30 dark:border-zinc-800/30 text-center text-sm flex flex justify-between gap-4">
+      <div className="mt-6 pt-4 border-t border-zinc-200/30 dark:border-zinc-800/30 text-center text-sm flex flex-col gap-16">
         <div>
           <span className="text-zinc-500 dark:text-zinc-400">{m.already_have_account()} </span>
           <a
@@ -260,7 +260,7 @@ function SignupPage() {
           </a>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+        <div className="flex items-center self-end gap-2 text-[11px] text-zinc-400 dark:text-zinc-500">
           <button
             type="button"
             onClick={() => handleLocaleChange('en')}
@@ -279,6 +279,16 @@ function SignupPage() {
             }`}
           >
             中文
+          </button>
+          <span className="text-zinc-300 dark:text-zinc-850">/</span>
+          <button
+            type="button"
+            onClick={() => handleLocaleChange('ko')}
+            className={`cursor-pointer hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors ${
+              locale === 'ko' ? 'font-bold text-rose-500 dark:text-rose-400' : ''
+            }`}
+          >
+            한국어
           </button>
         </div>
       </div>
