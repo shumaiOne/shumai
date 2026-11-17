@@ -13,6 +13,7 @@
     "@shumai/operations": "workspace:*",
     "@shumai/tableprinter": "workspace:*",
     "commander": "15.0.0",
+    "execa": "10.2.1",
     "hono": "4.13.5",
     "ulid": "3.0.2",
     "ws": "8.22.2",

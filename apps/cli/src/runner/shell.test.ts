@@ -107,6 +107,53 @@ describe('runner bash execution', () => {
     await expect(readFile(path.join(cwd, 'unwanted'))).rejects.toThrow()
   })
 
+  it('finishes draining after a timely root exit even if a background process holds the pipes', async () => {
+    const source = `const {spawn} = require('node:child_process'); const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], {detached: true, stdio: ['ignore', 1, 2]}); console.log(child.pid); child.unref()`
+    const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
+    const result = await shell.run(
+      { ...request(`${quote(process.execPath)} -e ${quote(source)}`), timeoutSec: 0.5 },
+      new AbortController().signal,
+      () => {},
+    )
+    const pid = Number((await readFile(path.join(cwd, '.pi/logs/bash-test.log'), 'utf8')).trim())
+    try {
+      expect(result).toMatchObject({ exitCode: 0, timedOut: false, aborted: false })
+      expect(result.error).toBeUndefined()
+    } finally {
+      if (pid > 0) process.kill(pid, 'SIGKILL')
+    }
+  })
+
+  it('reports launch failure without including command text or skill secrets', async () => {
+    shell.environment.shell = path.join(cwd, 'missing-shell')
+    const result = await shell.run(
+      request('echo private-command'),
+      new AbortController().signal,
+      () => {},
+    )
+    expect(result).toMatchObject({
+      exitCode: null,
+      signal: null,
+      error: 'Command execution failed (ENOENT).',
+    })
+    expect(result.error).not.toContain('private-command')
+  })
+
+  it('terminates a running process if the output consumer fails', async () => {
+    let pid = 0
+    const result = await shell.run(
+      request('printf "%s\\n" "$$"; sleep 30'),
+      new AbortController().signal,
+      (_stream, data) => {
+        pid = Number(data.trim())
+        throw new Error('Output consumer failed')
+      },
+    )
+    expect(result.error).toBe('Output consumer failed')
+    expect(pid).toBeGreaterThan(0)
+    expect(() => process.kill(pid, 0)).toThrow()
+  })
+
   it('rejects invalid timeouts and caps runaway output', async () => {
     expect(
       await shell.run(

@@ -1,6 +1,5 @@
-import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import path from 'node:path'
+import { execa } from 'execa'
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
 import {
   runnerEnvironmentSchema,
@@ -87,8 +86,9 @@ export class RunnerShell {
       const log = await this.files.createWriter(logPath)
       try {
         const windows = process.platform === 'win32'
-        let args = windows ? ['/d', '/s', '/c', message.command] : ['-c', message.command]
-        let executable = this.environment.shell
+        let args: string[] = []
+        let executable = message.command
+        let shell: string | false = this.environment.shell
         let env = commandEnv(message.env)
         if (this.srtPath) {
           if (!this.initialized) throw new Error('SRT has not been initialized.')
@@ -103,13 +103,14 @@ export class RunnerShell {
               ].join('\n')
           const wrapped = await SandboxManager.wrapWithSandboxArgv(
             command,
-            executable,
+            this.environment.shell,
             undefined,
             signal,
             this.files.cwd,
             { commandId: message.executionId, commandText: message.command },
           )
           ;[executable, ...args] = wrapped.argv
+          shell = false
           if (windows) {
             // SRT's broker starts a fresh sandbox-user environment. Explicit skill
             // values belong in its child overlay, never in the broker's startup env.
@@ -124,120 +125,83 @@ export class RunnerShell {
           } else env = commandEnv()
         }
         if (signal.aborted) return { ...result, aborted: true }
-        const nativeWindows = windows && !this.srtPath
-        const child = spawn(
-          nativeWindows ? message.command : executable,
-          nativeWindows ? [] : args,
-          {
-            cwd: this.files.cwd,
-            env,
-            detached: !windows,
-            windowsHide: true,
-            shell: nativeWindows ? executable : false,
-            stdio: ['ignore', 'pipe', 'pipe'],
-          },
-        )
-        // Bun can change child.pid after exit; retain the actual process group ID.
-        const processGroupId = child.pid
-        let termination: Promise<void> | undefined
-        const kill = () => {
-          if (!processGroupId || processGroupId <= 0) return
-          if (windows) {
-            if (child.exitCode !== null || child.signalCode !== null) return
-            termination ??= new Promise<void>((resolve) => {
-              const taskkill = spawn(
-                path.win32.join(
-                  process.env.SystemRoot ?? 'C:\\Windows',
-                  'System32',
-                  'taskkill.exe',
-                ),
-                ['/pid', String(processGroupId), '/t', '/f'],
-                { windowsHide: true, stdio: 'ignore', env: commandEnv(), timeout: 5000 },
-              )
-              taskkill.once('error', () => {
-                child.kill('SIGKILL')
-                resolve()
-              })
-              taskkill.once('close', (code) => {
-                if (code !== 0) child.kill('SIGKILL')
-                resolve()
-              })
-            })
-            return
-          }
-          try {
-            process.kill(-processGroupId, 'SIGKILL')
-          } catch (error) {
-            if (!(
-              error instanceof Error &&
-              'code' in error &&
-              (error.code === 'ESRCH' ||
-                (error.code === 'EPERM' && (child.exitCode !== null || child.signalCode !== null)))
-            ))
-              throw error
-          }
-        }
-        const onAbort = () => {
-          result.aborted = true
-          kill()
-        }
-        signal.addEventListener('abort', onAbort, { once: true })
-        const timer = setTimeout(() => {
-          result.timedOut = true
-          kill()
-        }, timeout * 1000)
+        const deadline = Date.now() + Math.ceil(timeout * 1000)
+        const child = execa(executable, args, {
+          cwd: this.files.cwd,
+          env,
+          extendEnv: false,
+          shell,
+          stdin: 'ignore',
+          buffer: false,
+          reject: false,
+          stripFinalNewline: false,
+          verbose: 'none',
+          windowsHide: true,
+          killDescendants: true,
+          killSignal: 'SIGKILL',
+          cancelSignal: signal,
+          timeout: Math.ceil(timeout * 1000),
+        })
         let bytes = 0
         let writes = Promise.resolve()
         let drainTimer: ReturnType<typeof setTimeout> | undefined
+        let drainExpired = false
+        let exitedWithinDeadline = false
+        child.nodeChildProcess.once('exit', (exitCode) => {
+          exitedWithinDeadline = exitCode !== null && Date.now() < deadline
+          // Execa cleans up descendants where the OS still permits it. Bound
+          // draining if a background child keeps inherited output pipes open.
+          child.kill('SIGKILL')
+          drainTimer = setTimeout(() => {
+            drainExpired = true
+            child.stdout.destroy()
+            child.stderr.destroy()
+          }, 1000)
+        })
         try {
-          await new Promise<void>((resolve, reject) => {
-            child.once('error', reject)
-            child.once('exit', (code, exitSignal) => {
-              clearTimeout(timer)
-              result.exitCode = code
-              result.signal = exitSignal
-              if (nativeWindows) {
-                // A background process can inherit pipes after cmd.exe exits.
-                // Plain Windows execution has no job object; bound output draining.
-                drainTimer = setTimeout(() => {
-                  child.stdout.destroy()
-                  child.stderr.destroy()
-                }, 1000)
-              } else kill()
-            })
-            child.once('close', () => resolve())
-            for (const stream of ['stdout', 'stderr'] as const) {
-              child[stream].setEncoding('utf8')
-              child[stream].on('error', reject)
-              child[stream].on('data', (data: string) => {
+          const readers = (['stdout', 'stderr'] as const).map(async (stream) => {
+            child[stream].setEncoding('utf8')
+            try {
+              for await (const data of child[stream]) {
                 bytes += Buffer.byteLength(data)
-                if (bytes > MAX_OUTPUT_BYTES) {
-                  if (!result.error) {
-                    result.error = 'Command exceeded the 64 MiB output limit.'
-                    kill()
-                  }
-                  return
-                }
-                child[stream].pause()
-                writes = writes
-                  .then(async () => {
-                    await log.write(data)
-                    output(stream, data)
-                    child[stream].resume()
-                  })
-                  .catch(reject)
-              })
+                if (bytes > MAX_OUTPUT_BYTES)
+                  throw new Error('Command exceeded the 64 MiB output limit.')
+                await (writes = writes.then(async () => {
+                  await log.write(data)
+                  output(stream, data)
+                }))
+              }
+            } catch (error) {
+              if (
+                drainExpired &&
+                error instanceof Error &&
+                'code' in error &&
+                error.code === 'ERR_STREAM_PREMATURE_CLOSE'
+              )
+                return
+              result.error ??= error instanceof Error ? error.message : 'Output streaming failed.'
+              child.kill('SIGKILL')
             }
-            if (signal.aborted) onAbort()
           })
+          const [completed] = await Promise.all([child, Promise.all(readers)])
           await writes
+          result.exitCode = completed.exitCode ?? null
+          result.signal = completed.signal ?? null
+          // Execa's timeout includes stream draining. Report the command's
+          // runtime, so a timely exit does not become a timeout while draining.
+          result.timedOut = completed.timedOut && !exitedWithinDeadline
+          result.aborted = completed.isCanceled
+          if (
+            completed.failed &&
+            completed.exitCode === undefined &&
+            !result.timedOut &&
+            !result.aborted &&
+            !completed.signal
+          )
+            result.error = `Command execution failed (${completed.code ?? 'unknown error'}).`
           result.fullOutputPath = logPath
         } finally {
-          clearTimeout(timer)
           clearTimeout(drainTimer)
-          signal.removeEventListener('abort', onAbort)
-          kill()
-          await termination
         }
       } finally {
         await log.close()

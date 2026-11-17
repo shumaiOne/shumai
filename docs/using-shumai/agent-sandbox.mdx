@@ -90,7 +90,7 @@ For development, HTTP is accepted for `localhost`, `127.0.0.1`, `[::1]`, and Doc
 
 ## Limits and lifecycle
 
-Commands default to 120 seconds and accept a maximum timeout of one hour. Timeout and cancellation terminate the process group. Each command saves up to 64 MiB of output in `.pi/logs`; manage retained logs as part of workspace maintenance. Transfers and extracted archives are limited to 256 MiB. Protocol file operations reject paths outside `.pi`, existing symlinks, and unsafe archive entries. V1 assumes commands do not deliberately change workspace paths while transfers are running.
+Commands default to 120 seconds and accept a maximum timeout of one hour. Timeout and cancellation attempt to terminate the command and its process tree. Each command saves up to 64 MiB of output in `.pi/logs`; manage retained logs as part of workspace maintenance. Transfers and extracted archives are limited to 256 MiB. Protocol file operations reject paths outside `.pi`, existing symlinks, and unsafe archive entries. V1 assumes commands do not deliberately change workspace paths while transfers are running.
 
 Temporary reconnects reconcile active and recently completed commands without deliberately executing them again. Restarting the runner process does not resume commands from the previous process.
 
