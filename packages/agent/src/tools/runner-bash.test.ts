@@ -40,6 +40,16 @@ describe('createRunnerBashTool', () => {
 
   const createMockOnUpdate = () => vi.fn()
 
+  it('tells the agent to use the runner OS and shell syntax', () => {
+    const tool = createRunnerBashTool(
+      {},
+      { environment: { platform: 'win32', shell: 'C:\\Windows\\System32\\cmd.exe' } },
+    )
+    expect(tool.description).toContain('Runner OS: win32')
+    expect(tool.description).toContain('cmd.exe')
+    expect(tool.description).toContain('Use syntax and programs compatible with this environment')
+  })
+
   it('should execute a command on the runner with injected env vars', async () => {
     const tool = createRunnerBashTool(
       { TEST_ENV: 'test-value' },

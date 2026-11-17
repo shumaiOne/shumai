@@ -55,6 +55,41 @@ describe('RunnerService', () => {
   })
 
   describe('Key & workspace path helpers', () => {
+    it('keeps validated OS and shell metadata only for the current connection', async () => {
+      const { runner, key } = await service.createRunner(teamId, { name: 'Windows runner' })
+      const connection = createMockWs()
+      const authenticated = {
+        id: runner.id,
+        teamId,
+        name: runner.name,
+        keyHash: hashRunnerKey(key),
+      }
+      expect(service.getRunnerEnvironment(runner.id)).toBeUndefined()
+      await service.registerConnection(authenticated, connection.ws)
+      const environment = { platform: 'win32', shell: 'C:\\Windows\\System32\\cmd.exe' }
+      const reconcile = {
+        type: 'reconcile',
+        environment,
+        activeExecutions: [],
+        completedExecutions: [],
+      }
+      service.handleMessage(runner.id, connection.ws, JSON.stringify(reconcile))
+      expect(service.getRunnerEnvironment(runner.id)).toEqual(environment)
+      service.handleMessage(
+        runner.id,
+        connection.ws,
+        JSON.stringify({ ...reconcile, environment: { platform: 'invalid', shell: '' } }),
+      )
+      expect(service.getRunnerEnvironment(runner.id)).toEqual(environment)
+      const replacement = createMockWs()
+      await service.registerConnection(authenticated, replacement.ws)
+      service.handleMessage(runner.id, connection.ws, JSON.stringify(reconcile))
+      expect(service.getRunnerEnvironment(runner.id)).toBeUndefined()
+      service.handleMessage(runner.id, replacement.ws, JSON.stringify(reconcile))
+      service.handleDisconnect(runner.id, replacement.ws)
+      expect(service.getRunnerEnvironment(runner.id)).toBeUndefined()
+    })
+
     it('generates and hashes runner keys', () => {
       const { key, keyPrefix, keyHash } = generateRunnerKey()
       expect(key).toMatch(/^shm_rn_[0-9a-f]{48}$/)
@@ -599,6 +634,7 @@ describe('RunnerService', () => {
         conn2.ws,
         JSON.stringify({
           type: 'reconcile',
+          environment: { platform: 'linux', shell: '/bin/sh' },
           activeExecutions: [{ executionId: startMsg.executionId, nextOffset: 0 }],
           completedExecutions: [],
         }),

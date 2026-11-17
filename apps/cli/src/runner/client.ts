@@ -150,6 +150,7 @@ export class RunnerClient {
     }
     this.send({
       type: 'reconcile',
+      environment: this.shell.environment,
       activeExecutions: [...this.executions]
         .filter(([id, execution]) => expected.has(id) && !execution.result)
         .map(([executionId, execution]) => ({ executionId, nextOffset: execution.offset })),
@@ -290,6 +291,8 @@ export class RunnerClient {
 
 export async function startRunner(options: RunnerOptions) {
   const config = await resolveRunnerConfig(options)
+  // SRT resolves relative policy paths against the runner workspace.
+  process.chdir(config.cwd)
   const files = new RunnerFiles(config.cwd)
   const shell = new RunnerShell(files, config.srt)
   await shell.initialize()
@@ -303,5 +306,6 @@ export async function startRunner(options: RunnerOptions) {
   } finally {
     process.removeListener('SIGINT', shutdown)
     process.removeListener('SIGTERM', shutdown)
+    await shell.close()
   }
 }

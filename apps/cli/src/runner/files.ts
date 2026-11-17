@@ -23,7 +23,15 @@ function pathParts(value: string): string[] {
   if (
     value.includes('\\') ||
     value.includes('\0') ||
-    parts.some((part) => !part || part === '.' || part === '..' || part.includes(':'))
+    parts.some(
+      (part) =>
+        !part ||
+        part === '.' ||
+        part === '..' ||
+        part.includes(':') ||
+        /[. ]$/.test(part) ||
+        /^(?:con|prn|aux|nul|conin\$|conout\$|com[1-9¹²³]|lpt[1-9¹²³])(?: *\.|$)/i.test(part),
+    )
   )
     throw new Error('Invalid workspace path.')
   return parts

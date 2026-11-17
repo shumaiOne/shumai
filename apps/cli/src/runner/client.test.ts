@@ -72,6 +72,12 @@ describe('runner WebSocket client', () => {
   const send = (message: unknown) => socket.send(JSON.stringify(message))
 
   it('responds to heartbeat, executes a command once and streams byte offsets', async () => {
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        type: 'reconcile',
+        environment: { platform: process.platform, shell: '/bin/sh' },
+      }),
+    )
     send({ type: 'ping', ts: 123 })
     const command = {
       type: 'exec.start',

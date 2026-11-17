@@ -1,9 +1,29 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { commandEnv, resolveRunnerConfig } from './config'
+import { commandEnv, resolveRunnerConfig, runnerShell } from './config'
 
 afterEach(() => vi.unstubAllEnvs())
 
 describe('runner configuration', () => {
+  it('uses the platform shell without requiring Bash on Windows', () => {
+    vi.stubEnv('SystemRoot', 'D:\\Windows')
+    expect(runnerShell('win32')).toBe('D:\\Windows\\System32\\cmd.exe')
+    expect(runnerShell('linux')).toBe('/bin/sh')
+    expect(runnerShell('darwin')).toBe('/bin/sh')
+  })
+
+  it('preserves Windows OS settings, normalizes explicit overrides, and excludes credentials', () => {
+    vi.stubEnv('Path', 'C:\\Windows\\System32')
+    vi.stubEnv('SystemRoot', 'C:\\Windows')
+    vi.stubEnv('USERPROFILE', 'C:\\Users\\runner')
+    const env = commandEnv({ PATH: 'C:\\tools', ['shumai_runner_key']: 'secret' })
+    expect(env).toMatchObject({
+      PATH: 'C:\\tools',
+      SystemRoot: 'C:\\Windows',
+      USERPROFILE: 'C:\\Users\\runner',
+    })
+    expect(env).not.toHaveProperty('Path')
+    expect(env).not.toHaveProperty('shumai_runner_key')
+  })
   it('uses a dedicated runner key and preserves a server path prefix', async () => {
     vi.stubEnv('SHUMAI_API_SERVER', 'https://example.com/shumai/')
     vi.stubEnv('SHUMAI_RUNNER_KEY', 'runner-secret')

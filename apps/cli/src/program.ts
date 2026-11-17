@@ -46,16 +46,13 @@ export function createProgram(options: ProgramOptions = {}): Command {
 
   program
     .command('runner')
-    .description('Connect a local bash runner to Shumai.')
+    .description('Connect a local command runner to Shumai.')
     .command('start')
     .description('Run in the foreground using a key created in Settings → Agent Runners.')
     .option('--url <url>', 'Shumai server URL (or SHUMAI_API_SERVER).')
     .option('--key <key>', 'Runner key (prefer SHUMAI_RUNNER_KEY to avoid shell history).')
     .option('--cwd <directory>', 'Runner workspace directory (defaults to the current directory).')
-    .option(
-      '--srt <file>',
-      'Wrap bash commands with locally installed srt using this JSON settings file.',
-    )
+    .option('--srt <file>', 'Sandbox commands with bundled SRT using this JSON settings file.')
     .action(startRunner)
 
   program

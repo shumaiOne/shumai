@@ -6,6 +6,7 @@ import { logger } from '@shumai/core/src/logger'
 import { quotaService } from '@shumai/core/src/quota/quota-service'
 import { runnerService } from '@shumai/core/src/runner'
 import type { TeamMemberRole } from '@shumai/db'
+import type { RunnerEnvironment } from '@shumai/dtos'
 import { Type } from 'typebox'
 import { OutputAccumulator } from '../utils/output-accumulator'
 import {
@@ -16,7 +17,7 @@ import {
 } from '../utils/truncate'
 
 const BashParameters = Type.Object({
-  command: Type.String({ description: 'The bash command to execute.' }),
+  command: Type.String({ description: "The command to execute using the runner's shell." }),
   timeout: Type.Optional(Type.Number({ description: 'Maximum execution time in seconds.' })),
   inputFiles: Type.Optional(
     Type.Union([
@@ -47,6 +48,7 @@ export interface RunnerBashOptions {
   runnerId?: string
   userId?: string
   role?: TeamMemberRole | null
+  environment?: RunnerEnvironment
   getLoadedSkills?: () => Iterable<LoadedSkillRef>
 }
 
@@ -56,7 +58,7 @@ export const createRunnerBashTool = (
 ): AgentTool<typeof BashParameters, BashDetails> => {
   return {
     name: 'bash',
-    description: `Execute a bash command on the configured runner environment. Returns stdout and stderr. Output is truncated to last ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). If truncated, full output is saved to a log file in .pi/logs/ on the runner. Optionally provide a timeout in seconds, or inputFiles to stage generated files (.pi/generated/...) into the runner workspace before running.`,
+    description: `Execute a shell command on the configured runner. ${options?.environment ? `Runner OS: ${options.environment.platform}. Shell: ${options.environment.shell}. Use syntax and programs compatible with this environment.` : 'The runner reports its OS and shell when connected.'} Returns stdout and stderr. Output is truncated to last ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). If truncated, full output is saved to a log file in .pi/logs/ on the runner. Optionally provide a timeout in seconds, or inputFiles to stage generated files (.pi/generated/...) into the runner workspace before running.`,
     parameters: BashParameters,
     outputLimits: { maxBytes: DEFAULT_MAX_BYTES, maxLines: DEFAULT_MAX_LINES, retain: 'tail' },
     execute: async (

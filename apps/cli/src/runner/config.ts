@@ -41,21 +41,34 @@ export async function resolveRunnerConfig(options: RunnerOptions) {
   url.pathname = `${url.pathname.replace(/\/+$/, '')}/api/runners/ws`
   const cwd = await realpath(path.resolve(options.cwd ?? process.cwd()))
   if (!(await stat(cwd)).isDirectory()) throw new CliError('Runner workspace must be a directory.')
-  if (process.platform === 'win32')
-    throw new CliError('Runner execution requires macOS or Linux with bash.')
   return { url, key: key.trim(), cwd, srt: options.srt ? path.resolve(options.srt) : undefined }
 }
 
+export function runnerShell(platform = process.platform): string {
+  return platform === 'win32'
+    ? path.win32.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'cmd.exe')
+    : '/bin/sh'
+}
+
 /** Commands inherit baseline OS settings and explicitly supplied skill variables, never CLI credentials. */
-export function commandEnv(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
+export function commandEnv(extra: Record<string, string> = {}, inherit = true): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {}
-  for (const [key, value] of Object.entries(process.env)) {
-    if (/^(PATH|HOME|USER|LOGNAME|LANG|TERM|TMPDIR|LC_.*)$/.test(key)) env[key] = value
+  for (const [key, value] of Object.entries(inherit ? process.env : {})) {
+    if (
+      /^(PATH|PATHEXT|HOME|USER|LOGNAME|LANG|TERM|TMPDIR|TEMP|TMP|SYSTEMROOT|SYSTEMDRIVE|COMSPEC|USERPROFILE|USERNAME|APPDATA|LOCALAPPDATA|PROGRAMDATA|PROGRAMFILES|PROGRAMFILES\(X86\)|LC_.*)$/i.test(
+        key,
+      )
+    )
+      env[key] = value
   }
   for (const [key, value] of Object.entries(extra)) {
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key))
       throw new Error('Invalid skill environment variable name.')
-    if (['SHUMAI_RUNNER_KEY', 'SHUMAI_API_KEY'].includes(key)) continue
+    if (['SHUMAI_RUNNER_KEY', 'SHUMAI_API_KEY'].includes(key.toUpperCase())) continue
+    // Windows treats environment names as case-insensitive.
+    for (const existing of Object.keys(env)) {
+      if (existing.toUpperCase() === key.toUpperCase()) delete env[existing]
+    }
     env[key] = value
   }
   return env

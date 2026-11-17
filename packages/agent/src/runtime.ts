@@ -319,6 +319,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     const runnerBash = createRunnerBashTool(skillEnvs, {
       teamId,
       agentRunnerId: agent?.runnerId,
+      environment: resolvedRunner.runner
+        ? runnerService.getRunnerEnvironment(resolvedRunner.runner.id)
+        : undefined,
       userId,
       role,
       getLoadedSkills: () => loadedSkills.values(),

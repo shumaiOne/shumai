@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
 import { RunnerFiles } from './files'
 import { RunnerShell } from './shell'
 
@@ -11,8 +12,16 @@ describe('runner bash execution', () => {
   beforeEach(async () => {
     cwd = await mkdtemp(path.join(tmpdir(), 'shumai-shell-test-'))
     shell = new RunnerShell(new RunnerFiles(cwd))
+    vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    vi.spyOn(SandboxManager, 'reset').mockResolvedValue()
+    vi.spyOn(SandboxManager, 'wrapWithSandboxArgv').mockImplementation(async (command) => ({
+      argv: ['/bin/sh', '-c', command],
+      env: process.env,
+    }))
   })
   afterEach(async () => {
+    await shell.close()
+    vi.restoreAllMocks()
     vi.unstubAllEnvs()
     await rm(cwd, { recursive: true, force: true })
   })
@@ -117,47 +126,45 @@ describe('runner bash execution', () => {
 
   it('uses the exact SRT JSON snapshot and validates SRT before connecting', async () => {
     const settings = path.join(cwd, 'sandbox.json')
-    const capture = path.join(cwd, 'captured.json')
-    const json = JSON.stringify({
-      network: { allowedDomains: [] },
-      filesystem: { allowWrite: ['.pi'] },
-    })
+    const config = {
+      network: { allowedDomains: [], deniedDomains: [] },
+      filesystem: { denyRead: [], allowWrite: ['.pi'], denyWrite: [] },
+    }
+    const json = JSON.stringify(config)
     await writeFile(settings, json)
-    await writeFile(
-      path.join(cwd, 'srt'),
-      `#!/bin/bash\ncp "$2" '${capture}'\nshift 3\nexec "$@"\n`,
-      { mode: 0o700 },
-    )
-    vi.stubEnv('PATH', `${cwd}:${process.env.PATH}`)
+    vi.stubEnv('PATH', '')
     shell = new RunnerShell(new RunnerFiles(cwd), settings)
     await shell.initialize()
     await writeFile(settings, '{}')
     expect(
       await shell.run(request('echo sandboxed'), new AbortController().signal, () => {}),
     ).toMatchObject({ exitCode: 0 })
-    expect(await readFile(capture, 'utf8')).toBe(json)
-    vi.stubEnv('PATH', '/missing-srt')
-    await expect(new RunnerShell(new RunnerFiles(cwd), settings).initialize()).rejects.toThrow(
-      'required on the runner machine',
+    expect(SandboxManager.initialize).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining(config),
     )
+    expect(SandboxManager.wrapWithSandboxArgv).toHaveBeenCalledWith(
+      expect.stringContaining('echo sandboxed'),
+      '/bin/sh',
+      undefined,
+      expect.any(AbortSignal),
+      cwd,
+      { commandId: 'test', commandText: 'echo sandboxed' },
+    )
+    expect(SandboxManager.reset).not.toHaveBeenCalled()
   })
 
   it('keeps skill PATH and Node startup settings out of the SRT launcher', async () => {
     const settings = path.join(cwd, 'sandbox.json')
     const marker = path.join(cwd, 'injected')
     const evil = path.join(cwd, 'evil.cjs')
-    await writeFile(settings, '{}')
-    await writeFile(evil, `require('node:fs').writeFileSync('${marker}', 'escaped')`)
     await writeFile(
-      path.join(cwd, 'srt'),
-      `#!/usr/bin/env node
-const {spawnSync} = require('node:child_process');
-const result = spawnSync(process.argv[5], process.argv.slice(6), {stdio: 'inherit'});
-process.exit(result.status ?? 1);
-`,
-      { mode: 0o700 },
+      settings,
+      JSON.stringify({
+        network: { allowedDomains: [], deniedDomains: [] },
+        filesystem: { denyRead: [], allowWrite: ['.pi'], denyWrite: [] },
+      }),
     )
-    vi.stubEnv('PATH', `${cwd}:${process.env.PATH}`)
+    await writeFile(evil, `require('node:fs').writeFileSync('${marker}', 'escaped')`)
     shell = new RunnerShell(new RunnerFiles(cwd), settings)
     await shell.initialize()
     const result = await shell.run(
@@ -172,6 +179,62 @@ process.exit(result.status ?? 1);
     await expect(readFile(marker)).rejects.toThrow()
   })
 
+  it('initializes one sandbox for parallel commands and resets only at shutdown', async () => {
+    const settings = path.join(cwd, 'sandbox.json')
+    await writeFile(
+      settings,
+      JSON.stringify({
+        network: { allowedDomains: [], deniedDomains: [] },
+        filesystem: { denyRead: [], allowWrite: ['.pi'], denyWrite: [] },
+      }),
+    )
+    shell = new RunnerShell(new RunnerFiles(cwd), settings)
+    await shell.initialize()
+    const value = "quoted ' value\n$(echo should-not-expand)"
+    let output = ''
+    const results = await Promise.all(
+      ['one', 'two'].map((id) =>
+        shell.run(
+          { ...request('printf "%s" "$SKILL_TOKEN"', id), env: { SKILL_TOKEN: value } },
+          new AbortController().signal,
+          (_stream, data) => {
+            output += data
+          },
+        ),
+      ),
+    )
+    expect(results.every((result) => result.exitCode === 0)).toBe(true)
+    expect(output).toBe(value.repeat(2))
+    expect(SandboxManager.initialize).toHaveBeenCalledTimes(1)
+    expect(SandboxManager.reset).not.toHaveBeenCalled()
+    await shell.close()
+    expect(SandboxManager.reset).toHaveBeenCalledTimes(1)
+  })
+
+  it('fails startup and cleans up if sandbox initialization or execution fails', async () => {
+    const settings = path.join(cwd, 'sandbox.json')
+    await writeFile(
+      settings,
+      JSON.stringify({
+        network: { allowedDomains: [], deniedDomains: [] },
+        filesystem: { denyRead: [], allowWrite: ['.pi'], denyWrite: [] },
+      }),
+    )
+    shell = new RunnerShell(new RunnerFiles(cwd), settings)
+    vi.mocked(SandboxManager.initialize).mockRejectedValueOnce(
+      new Error('Run windows-install first'),
+    )
+    await expect(shell.initialize()).rejects.toThrow('windows-install')
+    expect(SandboxManager.reset).toHaveBeenCalledTimes(1)
+    expect(
+      await shell.run(request('echo unsafe'), new AbortController().signal, () => {}),
+    ).toHaveProperty('error', 'SRT has not been initialized.')
+    vi.mocked(SandboxManager.wrapWithSandboxArgv).mockRejectedValueOnce(
+      new Error('sandbox unavailable'),
+    )
+    await expect(shell.initialize()).rejects.toThrow('SRT preflight failed: sandbox unavailable')
+  })
+
   it('fails closed for missing or malformed SRT settings', async () => {
     const settings = path.join(cwd, 'sandbox.json')
     await expect(new RunnerShell(new RunnerFiles(cwd), settings).initialize()).rejects.toThrow()
@@ -179,7 +242,10 @@ process.exit(result.status ?? 1);
     await expect(new RunnerShell(new RunnerFiles(cwd), settings).initialize()).rejects.toThrow()
     await writeFile(settings, '[]')
     await expect(new RunnerShell(new RunnerFiles(cwd), settings).initialize()).rejects.toThrow(
-      'JSON object',
+      /object/,
     )
+    await writeFile(settings, JSON.stringify({ network: { allowedDomains: 42 } }))
+    await expect(new RunnerShell(new RunnerFiles(cwd), settings).initialize()).rejects.toThrow()
+    expect(SandboxManager.initialize).not.toHaveBeenCalled()
   })
 })

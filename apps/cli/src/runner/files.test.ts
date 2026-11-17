@@ -117,6 +117,13 @@ describe('runner workspace file transfers', () => {
     '.pi//file',
     '.pi/a:b',
     '.pi/a\0b',
+    '.pi/.. /outside',
+    '.pi/folder./file',
+    '.pi/CON.txt',
+    '.pi/nul .txt',
+    '.pi/COM1',
+    '.pi/lpt¹.log',
+    '.pi/CONOUT$',
   ])('rejects unsafe protocol path %s', async (srcPath) => {
     expect(
       await files.handle({ type: 'file.stat', executionId: 'unsafe', srcPath }, signal()),
