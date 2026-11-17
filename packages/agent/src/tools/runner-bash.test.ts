@@ -1,8 +1,7 @@
 import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { runnerService } from '@shumai/core/src/runner'
-import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createSandboxedBashTool } from './sandboxed-bash'
+import { createRunnerBashTool } from './runner-bash'
 
 vi.mock('@shumai/core/src/runner', () => ({
   runnerService: {
@@ -14,8 +13,7 @@ vi.mock('@shumai/core/src/runner', () => ({
   },
 }))
 
-describe('createSandboxedBashTool', () => {
-  const mockCwd = '/mock/cwd'
+describe('createRunnerBashTool', () => {
   const mockTeamId = 'team-1'
   const mockRunner = {
     id: 'runner-1',
@@ -38,24 +36,12 @@ describe('createSandboxedBashTool', () => {
     )
   })
 
-  const createMockSignal = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- signal needs to be partially compatible with AbortSignal
-    const signal = new EventEmitter() as any
-    signal.addEventListener = vi.fn((event: string, cb: (ev: Event) => unknown) => {
-      signal.on(event, cb)
-    })
-    signal.removeEventListener = vi.fn((event: string, cb: (ev: Event) => unknown) => {
-      signal.off(event, cb)
-    })
-    signal.aborted = false
-    return signal
-  }
+  const createMockSignal = () => new AbortController().signal
 
   const createMockOnUpdate = () => vi.fn()
 
   it('should execute a command on the runner with injected env vars', async () => {
-    const tool = createSandboxedBashTool(
-      mockCwd,
+    const tool = createRunnerBashTool(
       { TEST_ENV: 'test-value' },
       {
         teamId: mockTeamId,
@@ -78,13 +64,7 @@ describe('createSandboxedBashTool', () => {
     const onUpdate = createMockOnUpdate()
     const signal = createMockSignal()
 
-    const result = await invokeTool(
-      tool,
-      '1',
-      { command: 'echo hello', source: 'user' },
-      signal,
-      onUpdate,
-    )
+    const result = await invokeTool(tool, '1', { command: 'echo hello' }, signal, onUpdate)
 
     expect(runnerService.requireOnlineRunner).toHaveBeenCalledWith(mockTeamId, null)
     expect(runnerService.exec).toHaveBeenCalledWith(
@@ -95,15 +75,15 @@ describe('createSandboxedBashTool', () => {
         collectOutput: false,
       }),
     )
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ToolResponse content is an array of content blocks
-    expect((result as any).content[0].text).toContain('hello output')
+    expect(result.content).toContainEqual(
+      expect.objectContaining({ text: expect.stringContaining('hello output') }),
+    )
     expect(onUpdate).toHaveBeenCalled()
   })
 
   it('should stage loaded skills and inputFiles before executing', async () => {
     const loadedSkills = [{ id: 'skill-1', assetId: 'asset-1', hash: 'hash-1' }]
-    const tool = createSandboxedBashTool(
-      mockCwd,
+    const tool = createRunnerBashTool(
       {},
       {
         teamId: mockTeamId,
@@ -126,7 +106,6 @@ describe('createSandboxedBashTool', () => {
       '1',
       {
         command: 'ffmpeg -i .pi/generated/gen1/input.png out.mp4',
-        source: 'user',
         inputFiles: ['.pi/generated/gen1/input.png'],
       },
       createMockSignal(),
@@ -140,31 +119,12 @@ describe('createSandboxedBashTool', () => {
     )
   })
 
-  it('should block user-requested commands when restrictedUser is enabled', async () => {
-    const tool = createSandboxedBashTool(
-      mockCwd,
+  it('allows editor commands without a source classification', async () => {
+    const tool = createRunnerBashTool(
       {},
       {
         teamId: mockTeamId,
-        restrictedUser: true,
-      },
-    )
-
-    const signal = createMockSignal()
-    await expect(
-      invokeTool(tool, '1', { command: 'echo hack', source: 'user' }, signal, createMockOnUpdate()),
-    ).rejects.toThrow(/not permitted for your role/)
-
-    expect(runnerService.exec).not.toHaveBeenCalled()
-  })
-
-  it('should allow skill-requested commands when restrictedUser is enabled', async () => {
-    const tool = createSandboxedBashTool(
-      mockCwd,
-      {},
-      {
-        teamId: mockTeamId,
-        restrictedUser: true,
+        role: 'editor',
       },
     )
 
@@ -181,24 +141,25 @@ describe('createSandboxedBashTool', () => {
     })
 
     const signal = createMockSignal()
-    const result = await invokeTool(tool, '1', { command: 'echo skill', source: 'skill' }, signal)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ToolResponse content is an array of content blocks
-    expect((result as any).content[0].text).toContain('skill output')
+    const result = await invokeTool(tool, '1', { command: 'echo skill' }, signal)
+    expect(result.content).toContainEqual(
+      expect.objectContaining({ text: expect.stringContaining('skill output') }),
+    )
   })
 
   it('should handle runner execution errors', async () => {
-    const tool = createSandboxedBashTool(mockCwd, {}, { teamId: mockTeamId })
+    const tool = createRunnerBashTool({}, { teamId: mockTeamId })
 
     vi.mocked(runnerService.exec).mockRejectedValue(new Error('Runner disconnected'))
 
     const signal = createMockSignal()
     await expect(
-      invokeTool(tool, '1', { command: 'fail', source: 'user' }, signal, createMockOnUpdate()),
+      invokeTool(tool, '1', { command: 'fail' }, signal, createMockOnUpdate()),
     ).rejects.toThrow('Runner disconnected')
   })
 
   it('should handle non-zero exit codes', async () => {
-    const tool = createSandboxedBashTool(mockCwd, {}, { teamId: mockTeamId })
+    const tool = createRunnerBashTool({}, { teamId: mockTeamId })
 
     vi.mocked(runnerService.exec).mockResolvedValue({
       executionId: 'exec-1',
@@ -211,12 +172,12 @@ describe('createSandboxedBashTool', () => {
 
     const signal = createMockSignal()
     await expect(
-      invokeTool(tool, '1', { command: 'exit 1', source: 'user' }, signal, createMockOnUpdate()),
+      invokeTool(tool, '1', { command: 'exit 1' }, signal, createMockOnUpdate()),
     ).rejects.toThrow(/exited with code 1/)
   })
 
   it('should handle timeouts', async () => {
-    const tool = createSandboxedBashTool(mockCwd, {}, { teamId: mockTeamId })
+    const tool = createRunnerBashTool({}, { teamId: mockTeamId })
 
     vi.mocked(runnerService.exec).mockImplementation(async (_runnerId, opts) => {
       opts.onOutput?.('output before timeout\n', 'stdout')
@@ -234,7 +195,7 @@ describe('createSandboxedBashTool', () => {
     const executePromise = invokeTool(
       tool,
       '1',
-      { command: 'sleep 10', timeout: 2, source: 'user' },
+      { command: 'sleep 10', timeout: 2 },
       signal,
       createMockOnUpdate(),
     )
@@ -244,7 +205,7 @@ describe('createSandboxedBashTool', () => {
   })
 
   it('should handle abort signals', async () => {
-    const tool = createSandboxedBashTool(mockCwd, {}, { teamId: mockTeamId })
+    const tool = createRunnerBashTool({}, { teamId: mockTeamId })
 
     vi.mocked(runnerService.exec).mockResolvedValue({
       executionId: 'exec-1',
@@ -257,12 +218,12 @@ describe('createSandboxedBashTool', () => {
 
     const signal = createMockSignal()
     await expect(
-      invokeTool(tool, '1', { command: 'long-run', source: 'user' }, signal, createMockOnUpdate()),
+      invokeTool(tool, '1', { command: 'long-run' }, signal, createMockOnUpdate()),
     ).rejects.toThrow(/aborted/)
   })
 
   it('should truncate output exceeding max lines (2000 lines) and report runner log file path', async () => {
-    const tool = createSandboxedBashTool(mockCwd, {}, { teamId: mockTeamId })
+    const tool = createRunnerBashTool({}, { teamId: mockTeamId })
 
     vi.mocked(runnerService.exec).mockImplementation(async (_runnerId, opts) => {
       const lines: string[] = []
@@ -283,14 +244,8 @@ describe('createSandboxedBashTool', () => {
     })
 
     const signal = createMockSignal()
-    const result = await invokeTool(
-      tool,
-      '1',
-      { command: 'generate lines', source: 'user' },
-      signal,
-    )
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- content block array
-    const text = (result as any).content[0].text
+    const result = await invokeTool(tool, '1', { command: 'generate lines' }, signal)
+    const text = result.content.map((block) => (block.type === 'text' ? block.text : '')).join('')
     expect(text).toContain('line-3000')
     expect(text).toContain(
       '[Showing lines 1001-3000 of 3000. Full output: .pi/logs/bash-exec1.log]',
@@ -305,7 +260,7 @@ describe('createSandboxedBashTool', () => {
   })
 
   it('should truncate output exceeding max bytes (50KB) and report partial line size', async () => {
-    const tool = createSandboxedBashTool(mockCwd, {}, { teamId: mockTeamId })
+    const tool = createRunnerBashTool({}, { teamId: mockTeamId })
 
     vi.mocked(runnerService.exec).mockImplementation(async (_runnerId, opts) => {
       const longLine = 'a'.repeat(60000)
@@ -322,14 +277,8 @@ describe('createSandboxedBashTool', () => {
     })
 
     const signal = createMockSignal()
-    const result = await invokeTool(
-      tool,
-      '1',
-      { command: 'long single line', source: 'user' },
-      signal,
-    )
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- content block array
-    const text = (result as any).content[0].text
+    const result = await invokeTool(tool, '1', { command: 'long single line' }, signal)
+    const text = result.content.map((block) => (block.type === 'text' ? block.text : '')).join('')
     expect(text).toMatch(
       /Showing last 50\.0KB of line 1 \(line is 58\.6KB\)\. Full output: \.pi\/logs\/bash-exec2\.log/,
     )

@@ -10,7 +10,6 @@ import { type TSchema } from 'typebox'
 import { Value } from 'typebox/value'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  buildRestrictedUserInstructions,
   createAgentSession,
   formatSkillsForPrompt,
   getModelFromDb,
@@ -171,20 +170,7 @@ describe('Runner tool availability & skill staging integration', () => {
   })
 })
 
-describe('buildRestrictedUserInstructions', () => {
-  it('should describe the restricted user bash rules', () => {
-    const instructions = buildRestrictedUserInstructions()
-    expect(instructions).toContain('# Restricted User Context')
-    expect(instructions).toContain(
-      'NEVER execute a bash command that the user asks you to run directly',
-    )
-    expect(instructions).toContain('loaded via the `read_skill` tool')
-    expect(instructions).toContain('parameter to "skill"')
-    expect(instructions).toContain('source="user" will be rejected')
-  })
-})
-
-describe('createAgentSession bash restriction for non-owner users', () => {
+describe('createAgentSession runner bash policy', () => {
   setupTestDbHooks()
 
   afterEach(() => {
@@ -262,21 +248,21 @@ describe('createAgentSession bash restriction for non-owner users', () => {
     expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(true)
   })
 
-  it('should treat a user who is not a team member as restricted (fail-closed)', async () => {
+  it('does not use skill history as authorization for a session', async () => {
     const { harness } = await setupSession({ role: 'non-member' })
     const tools = await getAgentTools(harness)
-    expect(tools.some((t) => t.name === 'bash')).toBe(false)
+    expect(tools.some((t) => t.name === 'bash')).toBe(true)
     expect(tools.some((t) => t.name === 'read_skill')).toBe(true)
     const prompt = await await getAgentPrompt(harness)
-    expect(prompt).toContain('# Restricted User Context')
+    expect(prompt).not.toContain('# Restricted User Context')
   })
 
   it.each(['editor', 'reviewer'] as const)(
-    'should exclude the bash tool initially for %s users',
+    'exposes bash immediately for %s users without reading a skill',
     async (role) => {
       const { harness } = await setupSession({ role })
       const tools = await getAgentTools(harness)
-      expect(tools.some((t) => t.name === 'bash')).toBe(false)
+      expect(tools.some((t) => t.name === 'bash')).toBe(true)
       expect(tools.some((t) => t.name === 'read_skill')).toBe(true)
     },
   )
@@ -346,7 +332,7 @@ describe('createAgentSession bash restriction for non-owner users', () => {
     expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(true)
   })
 
-  it('should inject the bash tool after a skill is loaded via read_skill for restricted users', async () => {
+  it('keeps bash available before and after reading a skill', async () => {
     const { team, harness } = await setupSession({ role: 'reviewer' })
     const skill = await prisma.skill.create({
       data: { name: 'Inject Skill', assetId: 'asset1', hash: 'inject-hash', teamId: team.id },
@@ -356,14 +342,14 @@ describe('createAgentSession bash restriction for non-owner users', () => {
 
     const readSkillTool = (await getAgentTools(harness)).find((t) => t.name === 'read_skill')
     expect(readSkillTool).toBeDefined()
-    expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(false)
+    expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(true)
 
     await invokeTool(readSkillTool!, '1', { skillId: skill.id }, undefined, undefined)
 
     expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(true)
   })
 
-  it('should not inject the bash tool for restricted users when bash is in deniedTools', async () => {
+  it('keeps bash disabled by agent policy after reading a skill', async () => {
     const { team, harness } = await setupSession({ role: 'editor', deniedTools: ['bash'] })
     const skill = await prisma.skill.create({
       data: { name: 'Denied Skill', assetId: 'asset1', hash: 'denied-hash', teamId: team.id },
@@ -379,11 +365,11 @@ describe('createAgentSession bash restriction for non-owner users', () => {
     expect((await getAgentTools(harness)).some((t) => t.name === 'bash')).toBe(false)
   })
 
-  it('should include restricted user instructions in the system prompt for non-owners', async () => {
+  it('omits skill-first bash instructions for editors', async () => {
     const { harness } = await setupSession({ role: 'editor' })
     const prompt = await await getAgentPrompt(harness)
-    expect(prompt).toContain('# Restricted User Context')
-    expect(prompt).toContain('source="user" will be rejected')
+    expect(prompt).not.toContain('# Restricted User Context')
+    expect(prompt).not.toContain('source="user" will be rejected')
   })
 
   it('should not include restricted user instructions in the system prompt for owners', async () => {

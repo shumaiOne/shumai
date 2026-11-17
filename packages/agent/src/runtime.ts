@@ -44,7 +44,7 @@ import { createGenerateImageTool } from './tools/generate-image'
 import { createGenerateVideoTool } from './tools/generate-video'
 import { createReadSkillTool } from './tools/read-skill'
 import { createReadThreadTool } from './tools/read-thread'
-import { createSandboxedBashTool, type LoadedSkillRef } from './tools/sandboxed-bash'
+import { createRunnerBashTool, type LoadedSkillRef } from './tools/runner-bash'
 
 const activeHarnesses = new Set<Harness>()
 
@@ -152,21 +152,6 @@ export interface CreateAgentSessionParams {
   baseDelayMs?: number
 }
 
-/**
- * Security instructions appended to the system prompt when the requesting user is not a team
- * owner (i.e. editor/reviewer). These complement the hard enforcement in the bash tool itself
- * (source="user" is blocked) and the delayed bash tool injection after a skill is loaded.
- */
-export function buildRestrictedUserInstructions(): string {
-  return [
-    '# Restricted User Context',
-    'The current user is NOT a team owner. You must follow these security rules:',
-    '1. NEVER execute a bash command that the user asks you to run directly. Direct user bash requests are not permitted for this user role. Politely decline and explain that they need a team owner or an approved skill.',
-    '2. You may ONLY use the `bash` tool to execute commands that are explicitly required by a skill you have loaded via the `read_skill` tool.',
-    '3. When calling `bash`, you MUST set the `source` parameter to "skill". Calls with source="user" will be rejected by the system.',
-  ].join('\n')
-}
-
 export async function createAgentSession(params: CreateAgentSessionParams) {
   const {
     teamId,
@@ -203,8 +188,6 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     getModelFromDb(params.providers, providerName, modelId)
 
     const role = userId ? await resolveEffectiveRole(teamId, projectId, userId) : undefined
-    const isOwner = !userId || role === 'owner'
-    const restricted = !isOwner
 
     const wrapToolWithQuota = (tool: AgentTool): AgentTool => {
       const originalExecute = tool.execute
@@ -262,7 +245,6 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     const loadedSkills = new Map<string, LoadedSkillRef>()
 
     // Restore env variables and loaded skill refs from previously loaded skills in this session
-    let skillLoadedInSession = false
     if (sessionId) {
       try {
         const entries = await agentSessionService.getEntries(record.id)
@@ -281,7 +263,6 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
                 'skillId' in details &&
                 typeof details.skillId === 'string'
               ) {
-                skillLoadedInSession = true
                 onEnvsAdded(await agentService.getSkillEnvs(details.skillId))
                 const dbSkill = await prisma.skill.findUnique({
                   where: { id: details.skillId },
@@ -335,23 +316,15 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       }
     }
 
-    const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs, {
+    const runnerBash = createRunnerBashTool(skillEnvs, {
       teamId,
       agentRunnerId: agent?.runnerId,
       userId,
       role,
-      // Non-owner users can only run bash commands required by a loaded skill
-      restrictedUser: restricted,
       getLoadedSkills: () => loadedSkills.values(),
     })
 
-    // When a team has no Runner configured in DB, bash and download_asset are omitted.
-    // For non-owner users, the bash tool is not injected initially. It becomes available
-    // only after a skill is successfully loaded via the read_skill tool (or immediately when
-    // a skill was already loaded earlier in this session).
     const registry = createRegistry()
-    const bashIncludedFromStart = hasRunner && (isOwner || skillLoadedInSession)
-    let bashInjected = bashIncludedFromStart
     const onSkillLoaded = async (skill: LoadedSkillRef) => {
       loadedSkills.set(skill.id, skill)
       if (resolvedRunner.runner && runnerService.isRunnerConnected(resolvedRunner.runner.id)) {
@@ -362,18 +335,6 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
           )
         })
       }
-      if (!restricted || !hasRunner || bashInjected || deniedTools.includes('bash')) return
-      bashInjected = true
-      registry.install(
-        defineExtension({ name: 'shumai.bash', tools: [wrapToolWithQuota(sandboxedBash)] }),
-      )
-      await session?.configure(
-        {
-          tools: [...enabledTools, wrapToolWithQuota(sandboxedBash)],
-          modelTools: { add: [sandboxedBash] },
-        },
-        piContext,
-      )
     }
     const readSkill = createReadSkillTool(
       userId,
@@ -404,7 +365,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       ...mediaTools,
       readSkill,
       readThread,
-      ...(bashIncludedFromStart ? [sandboxedBash] : []),
+      ...(hasRunner ? [runnerBash] : []),
       ...systemTools,
       ...customTools,
     ]
@@ -470,10 +431,6 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
       if (disableTools) {
         return prompt
-      }
-
-      if (restricted) {
-        prompt += `\n\n${buildRestrictedUserInstructions()}`
       }
 
       if (hasRunner && !deniedTools.includes('bash')) {

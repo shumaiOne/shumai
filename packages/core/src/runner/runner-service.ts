@@ -428,11 +428,11 @@ export class RunnerService {
     if (!this.isRunnerConnected(resolved.runner.id)) {
       if (resolved.isBoundToAgent) {
         throw new Error(
-          `Runner "${resolved.runner.name}" is currently offline. Please start the runner ("shumai runner start") and try again.`,
+          `Runner "${resolved.runner.name}" is currently offline. Please start the runner ("shumai-cli runner start") and try again.`,
         )
       }
       throw new Error(
-        `Default runner "${resolved.runner.name}" is currently offline. Please start the runner ("shumai runner start") and try again.`,
+        `Default runner "${resolved.runner.name}" is currently offline. Please start the runner ("shumai-cli runner start") and try again.`,
       )
     }
 

@@ -67,7 +67,7 @@ export const createReadSkillTool = (
     // Retrieve skill content using agentService
     const skillMdContent = await agentService.getSkillContent(params.skillId)
 
-    // Notify that a skill was successfully loaded (e.g. to enable restricted tools and stage skill on runner)
+    // Notify that a skill was successfully loaded (e.g. to stage the skill on the runner)
     await onSkillLoaded?.({ id: skill.id, assetId: skill.assetId, hash: skill.hash })
 
     return {
