@@ -249,7 +249,7 @@ function SignupPage() {
         </Button>
       </form>
 
-      <div className="mt-12 pt-10 border-t border-zinc-200/30 dark:border-zinc-800/30 text-center text-sm flex flex justify-between gap-4">
+      <div className="mt-6 pt-4 border-t border-zinc-200/30 dark:border-zinc-800/30 text-center text-sm flex flex-col gap-16">
         <div>
           <span className="text-zinc-500 dark:text-zinc-400">{m.already_have_account()} </span>
           <a
@@ -260,7 +260,7 @@ function SignupPage() {
           </a>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+        <div className="flex items-center self-end gap-2 text-[11px] text-zinc-400 dark:text-zinc-500">
           <button
             type="button"
             onClick={() => handleLocaleChange('en')}
