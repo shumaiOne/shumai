@@ -513,7 +513,7 @@ export function RunnerSettings({ teamId }: { teamId: string }) {
                 <div className="flex items-center gap-2">
                   <Input
                     readOnly
-                    value={`shumai runner start --url ${serverOrigin} --key ${revealedKeyData.key}`}
+                    value={`shumai-cli runner start --url ${serverOrigin} --key ${revealedKeyData.key}`}
                     className="font-mono text-xs bg-muted"
                   />
                   <Button
@@ -522,7 +522,7 @@ export function RunnerSettings({ teamId }: { teamId: string }) {
                     size="icon"
                     onClick={() =>
                       handleCopy(
-                        `shumai runner start --url ${serverOrigin} --key ${revealedKeyData.key}`,
+                        `shumai-cli runner start --url ${serverOrigin} --key ${revealedKeyData.key}`,
                         'cmd',
                       )
                     }
@@ -543,7 +543,7 @@ export function RunnerSettings({ teamId }: { teamId: string }) {
                 <div className="flex items-center gap-2">
                   <Input
                     readOnly
-                    value={`shumai runner start --url ${serverOrigin} --key ${revealedKeyData.key} --sandbox`}
+                    value={`shumai-cli runner start --url ${serverOrigin} --key ${revealedKeyData.key} --srt sandbox.json`}
                     className="font-mono text-xs bg-muted"
                   />
                   <Button
@@ -552,7 +552,7 @@ export function RunnerSettings({ teamId }: { teamId: string }) {
                     size="icon"
                     onClick={() =>
                       handleCopy(
-                        `shumai runner start --url ${serverOrigin} --key ${revealedKeyData.key} --sandbox`,
+                        `shumai-cli runner start --url ${serverOrigin} --key ${revealedKeyData.key} --srt sandbox.json`,
                         'sandboxCmd',
                       )
                     }

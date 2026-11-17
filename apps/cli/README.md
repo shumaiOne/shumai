@@ -86,6 +86,29 @@ export SHUMAI_ALLOW_DELETE="true"
 
 ---
 
+## Agent runner
+
+Create a runner in **Settings → Agent Runners** and copy its one-time key. On a macOS or Linux machine with `/bin/bash` and Python 3, start it in an existing dedicated workspace:
+
+```sh
+export SHUMAI_API_SERVER="https://shumai.example.com"
+export SHUMAI_RUNNER_KEY="your-runner-key"
+shumai-cli runner start --cwd /path/to/workspace
+```
+
+Use `--url` or `--key` to override those variables. A runner key is separate from `SHUMAI_API_KEY`. The runner stays in the foreground; Ctrl+C stops it and its active commands. Remote servers require HTTPS; localhost and `host.docker.internal` support HTTP for development. No inbound port is opened.
+
+Bash runs with the local user's permissions unless SRT is requested. Install [Anthropic Sandbox Runtime](https://github.com/anthropics/sandbox-runtime) and its platform prerequisites separately, then pass its native JSON settings:
+
+```sh
+npm install -g @anthropic-ai/sandbox-runtime
+shumai-cli runner start --srt sandbox.json
+```
+
+SRT settings are snapshotted at startup. Invalid settings or unavailable sandbox prerequisites stop startup; commands never fall back to unrestricted execution. Only Bash and its children are sandboxed. Runner connections and server-directed file transfers stay outside SRT, and no server domain is automatically allowed. The `runner start` command currently supports macOS and Linux; other CLI commands remain available on Windows.
+
+See [Agent Runners](../../docs/using-shumai/agent-sandbox.mdx) for configuration, Docker usage, limits, and security boundaries.
+
 ## Usage
 
 > [!IMPORTANT]
