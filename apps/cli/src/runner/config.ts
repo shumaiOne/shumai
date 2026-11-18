@@ -7,9 +7,18 @@ export interface RunnerOptions {
   key?: string
   cwd?: string
   srt?: string
+  verbose?: boolean
 }
 
-export async function resolveRunnerConfig(options: RunnerOptions) {
+export interface RunnerConfig {
+  url: URL
+  key: string
+  cwd: string
+  srt?: string
+  verbose?: boolean
+}
+
+export async function resolveRunnerConfig(options: RunnerOptions): Promise<RunnerConfig> {
   const address = options.url ?? process.env.SHUMAI_API_SERVER
   const key = options.key ?? process.env.SHUMAI_RUNNER_KEY
   if (!address) throw new CliError('Set SHUMAI_API_SERVER or pass --url.')
@@ -41,7 +50,13 @@ export async function resolveRunnerConfig(options: RunnerOptions) {
   url.pathname = `${url.pathname.replace(/\/+$/, '')}/api/runners/ws`
   const cwd = await realpath(path.resolve(options.cwd ?? process.cwd()))
   if (!(await stat(cwd)).isDirectory()) throw new CliError('Runner workspace must be a directory.')
-  return { url, key: key.trim(), cwd, srt: options.srt ? path.resolve(options.srt) : undefined }
+  return {
+    url,
+    key: key.trim(),
+    cwd,
+    srt: options.srt ? path.resolve(options.srt) : undefined,
+    verbose: Boolean(options.verbose),
+  }
 }
 
 /** Commands inherit baseline OS settings and explicitly supplied skill variables, never CLI credentials. */

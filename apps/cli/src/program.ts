@@ -8,10 +8,12 @@ import { registerOperationCommands } from './operations/generate'
 import type { Output } from './operations/render'
 import { version } from '../package.json'
 import { startRunner } from './runner/client'
+import type { RunnerOptions } from './runner/config'
 
 export interface ProgramOptions {
   callOperation?: CallOperation
   output?: Output
+  startRunner?: (options: RunnerOptions) => Promise<void>
 }
 
 function isDeleteAllowed(): boolean {
@@ -53,7 +55,8 @@ export function createProgram(options: ProgramOptions = {}): Command {
     .option('--key <key>', 'Runner key (prefer SHUMAI_RUNNER_KEY to avoid shell history).')
     .option('--cwd <directory>', 'Runner workspace directory (defaults to the current directory).')
     .option('--srt <file>', 'Sandbox commands with bundled SRT using this JSON settings file.')
-    .action(startRunner)
+    .option('-v, --verbose', 'Show command details, output sizes, and file transfer paths.')
+    .action((opts: RunnerOptions) => (options.startRunner ?? startRunner)(opts))
 
   program
     .command('upload')

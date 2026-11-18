@@ -24,6 +24,8 @@ describe('runner configuration', () => {
     expect(config.url.href).toBe('wss://example.com/shumai/api/runners/ws')
     expect(config.key).toBe('runner-secret')
     expect(config.cwd).toBe(process.cwd())
+    expect(config.verbose).toBe(false)
+    expect((await resolveRunnerConfig({ verbose: true })).verbose).toBe(true)
   })
 
   it.each([
