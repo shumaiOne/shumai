@@ -3,21 +3,20 @@ import { execa } from 'execa'
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
 import {
   runnerEnvironmentSchema,
+  type RunnerEnvironment,
   type RunnerExecResultMessage,
   type RunnerExecStartMessage,
 } from '@shumai/dtos'
-import { commandEnv, runnerShell } from './config'
+import { commandEnv } from './config'
 import { RunnerFiles } from './files'
+import { resolveRunnerShell } from './shell-config'
 import { loadSandbox } from './srt'
 
 const MAX_OUTPUT_BYTES = 64 * 1024 * 1024
 const MAX_TIMEOUT_SEC = 3600
 
 export class RunnerShell {
-  readonly environment = runnerEnvironmentSchema.parse({
-    platform: process.platform,
-    shell: runnerShell(),
-  })
+  readonly environment: RunnerEnvironment
   private sandbox?: Awaited<ReturnType<typeof loadSandbox>>
   private initialized = false
   private active = 0
@@ -25,10 +24,20 @@ export class RunnerShell {
   constructor(
     private readonly files: RunnerFiles,
     private readonly srtPath?: string,
-  ) {}
+    private readonly config = resolveRunnerShell(),
+  ) {
+    this.environment = runnerEnvironmentSchema.parse({
+      platform: process.platform,
+      shell: config.executable,
+    })
+  }
 
   async initialize() {
     if (!this.srtPath) return
+    if (this.config.commandTransport === 'stdin')
+      throw new Error(
+        'SRT cannot run the legacy WSL Bash launcher. Install Git for Windows to use Bash with SRT.',
+      )
     // Read and validate once; commands cannot weaken the policy by editing the file.
     this.sandbox = await loadSandbox(this.srtPath)
     try {
@@ -86,9 +95,12 @@ export class RunnerShell {
       const log = await this.files.createWriter(logPath)
       try {
         const windows = process.platform === 'win32'
-        let args: string[] = []
-        let executable = message.command
-        let shell: string | false = this.environment.shell
+        const { commandTransport } = this.config
+        const useShell = commandTransport === 'shell'
+        const sendCommandOnStdin = commandTransport === 'stdin'
+        let executable = useShell ? message.command : this.config.executable
+        let args = useShell ? [] : sendCommandOnStdin ? ['-s'] : ['-c', message.command]
+        let shell: string | false = useShell && this.config.executable
         let env = commandEnv(message.env)
         if (this.srtPath) {
           if (!this.initialized) throw new Error('SRT has not been initialized.')
@@ -103,7 +115,7 @@ export class RunnerShell {
               ].join('\n')
           const wrapped = await SandboxManager.wrapWithSandboxArgv(
             command,
-            this.environment.shell,
+            this.config.executable,
             undefined,
             signal,
             this.files.cwd,
@@ -131,7 +143,7 @@ export class RunnerShell {
           env,
           extendEnv: false,
           shell,
-          stdin: 'ignore',
+          stdin: sendCommandOnStdin ? [Buffer.from(message.command)] : 'ignore',
           buffer: false,
           reject: false,
           stripFinalNewline: false,

@@ -47,7 +47,7 @@ Windows 使用 SRT 的实验性 Windows 支持。启用沙箱前执行一次初�
 npx @anthropic-ai/sandbox-runtime windows-install
 ```
 
-SRT 会在启动时检查安装状态，缺少初始化时返回错误。未使用 `--srt` 的运行器不需要此步骤。`bash` 工具使用运行器的原生 Shell：macOS/Linux 为 `/bin/sh`，Windows 为 `cmd.exe`。智能体会收到系统和 Shell 信息，以生成匹配的命令。Windows 无需安装 Bash 或 Git。
+SRT 会在启动时检查安装状态，缺少初始化时返回错误。未使用 `--srt` 的运行器不需要此步骤。`bash` 工具在 macOS 和 Linux 上使用 `/bin/sh`。在 Windows 上，运行器先在标准安装目录查找 Git Bash，再在 PATH 中查找 `bash.exe`，找不到时使用 `cmd.exe`。运行器在启动时显示所选 Shell，并将其报告给智能体，让智能体使用匹配的命令语法。在 Windows 上搭配 SRT 使用 Bash 时，请用 Git Bash 代替旧版 WSL Bash 启动器。
 
 直接使用上游 SRT JSON 格式，例如：
 

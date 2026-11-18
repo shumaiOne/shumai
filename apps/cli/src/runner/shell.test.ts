@@ -47,6 +47,57 @@ describe('runner bash execution', () => {
     expect(output).toBe('no-extra-runtime')
   })
 
+  // Adapted from Pi's tools.test.ts. See apps/cli/THIRD-PARTY-NOTICES.txt.
+  it('sends the complete command over stdin for the legacy Bash launcher', async () => {
+    shell = new RunnerShell(new RunnerFiles(cwd), undefined, {
+      executable: '/bin/sh',
+      commandTransport: 'stdin',
+    })
+    const command = [
+      'name="Hello, 世界"',
+      'for choice in "one two" \'three "four"\'; do',
+      '  printf \'%s / %s\\n\' "$name" "$choice"',
+      'done',
+    ].join('\n')
+    let output = ''
+    const result = await shell.run(
+      request(command),
+      new AbortController().signal,
+      (_stream, data) => {
+        output += data
+      },
+    )
+    expect(result).toMatchObject({ exitCode: 0 })
+    expect(output).toBe('Hello, 世界 / one two\nHello, 世界 / three "four"\n')
+  })
+
+  it('passes a command with shell quoting directly to the selected executable', async () => {
+    shell = new RunnerShell(new RunnerFiles(cwd), undefined, {
+      executable: '/bin/sh',
+      commandTransport: 'argv',
+    })
+    const command = "printf '%s' '$literal \"quotes\"'"
+    let output = ''
+    const result = await shell.run(
+      request(command),
+      new AbortController().signal,
+      (_stream, data) => {
+        output += data
+      },
+    )
+    expect(result).toMatchObject({ exitCode: 0 })
+    expect(output).toBe('$literal "quotes"')
+  })
+
+  it('rejects the legacy WSL launcher before starting SRT', async () => {
+    shell = new RunnerShell(new RunnerFiles(cwd), path.join(cwd, 'sandbox.json'), {
+      executable: 'C:\\Windows\\System32\\bash.exe',
+      commandTransport: 'stdin',
+    })
+    await expect(shell.initialize()).rejects.toThrow('SRT cannot run the legacy WSL Bash launcher')
+    expect(SandboxManager.initialize).not.toHaveBeenCalled()
+  })
+
   it('streams both outputs, returns the exit code, and saves a log in the runner workspace', async () => {
     const output: string[] = []
     const result = await shell.run(
@@ -125,7 +176,10 @@ describe('runner bash execution', () => {
   })
 
   it('reports launch failure without including command text or skill secrets', async () => {
-    shell.environment.shell = path.join(cwd, 'missing-shell')
+    shell = new RunnerShell(new RunnerFiles(cwd), undefined, {
+      executable: path.join(cwd, 'missing-shell'),
+      commandTransport: 'shell',
+    })
     const result = await shell.run(
       request('echo private-command'),
       new AbortController().signal,

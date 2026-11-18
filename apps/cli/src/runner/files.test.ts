@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import AdmZip from 'adm-zip'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import yauzl from 'yauzl'
 import { RunnerFiles } from './files'
 
 describe('runner workspace file transfers', () => {
@@ -304,6 +305,44 @@ describe('runner workspace file transfers', () => {
     expect(await readFile(path.join(cwd, '.pi/skills/installed/SKILL.md'), 'utf8')).toBe('original')
     expect(await readdir(path.join(cwd, '.pi/skills'))).toEqual(['installed'])
   }, 10000)
+
+  it('waits for an in-flight ZIP entry read before closing on cancellation', async () => {
+    const zip = new AdmZip()
+    zip.addFile('SKILL.md', Buffer.from('skill'))
+    body = zip.toBuffer()
+    const controller = new AbortController()
+    const pendingRead = Promise.withResolvers<() => void>()
+    const readEntry = yauzl.ZipFile.prototype.readEntry
+    const read = vi.spyOn(yauzl.ZipFile.prototype, 'readEntry').mockImplementationOnce(function (
+      this: yauzl.ZipFile,
+    ) {
+      pendingRead.resolve(() => readEntry.call(this))
+    })
+    const close = vi.spyOn(yauzl.ZipFile.prototype, 'close')
+    try {
+      const transfer = files.handle(
+        {
+          type: 'file.download',
+          executionId: 'zip-entry-cancel',
+          url,
+          destPath: '.pi/skills/new',
+          extractZip: true,
+        },
+        controller.signal,
+      )
+      const finishRead = await pendingRead.promise
+      controller.abort()
+      await new Promise<void>((resolve) => setImmediate(resolve))
+      const closedDuringRead = close.mock.calls.length > 0
+      if (!closedDuringRead) finishRead()
+      expect(await transfer).toHaveProperty('ok', false)
+      expect(closedDuringRead).toBe(false)
+      expect(await readdir(path.join(cwd, '.pi/skills'))).toEqual([])
+    } finally {
+      read.mockRestore()
+      close.mockRestore()
+    }
+  })
 
   it('handles cancelled transfers and refuses uploads of directories', async () => {
     const controller = new AbortController()

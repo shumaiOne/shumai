@@ -2,10 +2,11 @@ import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { basename, join, resolve } from 'node:path'
 import { promisify, parseArgs } from 'node:util'
 import { randomBytes } from 'node:crypto'
 import { version } from '../package.json'
+import { runnerToServerMessageSchema } from '../packages/dtos/src/runner'
 import { archiveName, packCliBinary, parseCliTarget, sha256 } from './build-cli'
 
 const execFileAsync = promisify(execFile)
@@ -14,8 +15,105 @@ function assertRecord(value: unknown): asserts value is Record<string, unknown> 
   assert.ok(value && typeof value === 'object' && !Array.isArray(value))
 }
 
+async function testRunnerShell(binary: string, cwd: string, env: NodeJS.ProcessEnv, srt?: string) {
+  const key = 'fixture-runner-key'
+  const executionId = srt ? 'srt-shell-quotes' : 'shell-quotes'
+  let output = ''
+  let completed = false
+  let fixtureFailure: unknown
+  await writeFile(join(cwd, 'runner input.txt'), 'input with spaces\n')
+  const server = Bun.serve({
+    hostname: '127.0.0.1',
+    port: 0,
+    fetch(request, server) {
+      if (new URL(request.url).pathname !== '/api/runners/ws')
+        return new Response(null, { status: 404 })
+      if (request.headers.get('authorization') !== 'Bearer ' + key)
+        return new Response(null, { status: 401 })
+      if (!server.upgrade(request)) return new Response(null, { status: 426 })
+    },
+    websocket: {
+      open(socket) {
+        socket.send(
+          JSON.stringify({
+            type: 'welcome',
+            runnerId: 'runner-test',
+            runnerName: 'Native CLI',
+            serverTime: Date.now(),
+            inFlightExecutionIds: [],
+          }),
+        )
+      },
+      message(socket, raw) {
+        try {
+          const message = runnerToServerMessageSchema.parse(JSON.parse(raw.toString()))
+          if (message.type === 'reconcile') {
+            assert.equal(message.environment.platform, process.platform)
+            const shell = basename(message.environment.shell).toLowerCase()
+            assert.equal(shell, process.platform === 'win32' ? 'bash.exe' : 'sh')
+            socket.send(
+              JSON.stringify({
+                type: 'exec.start',
+                executionId,
+                command:
+                  'IFS= read -r line < "runner input.txt"\nprintf \'%s | %s\' "$line" \'$literal "quotes"\'',
+                timeoutSec: 15,
+              }),
+            )
+          } else if (message.type === 'exec.output') {
+            assert.equal(message.executionId, executionId)
+            assert.equal(message.stream, 'stdout')
+            output += message.data
+          } else if (message.type === 'exec.result') {
+            assert.equal(message.executionId, executionId)
+            assert.equal(message.exitCode, 0, JSON.stringify(message))
+            assert.equal(output, 'input with spaces | $literal "quotes"')
+            completed = true
+            socket.close(1008)
+          }
+        } catch (error) {
+          fixtureFailure ??= error
+          socket.close(1008)
+        }
+      },
+    },
+  })
+  try {
+    const child = Bun.spawn(
+      [
+        binary,
+        'runner',
+        'start',
+        '--cwd',
+        cwd,
+        '--url',
+        server.url.origin,
+        ...(srt ? ['--srt', srt] : []),
+      ],
+      {
+        env: {
+          ...env,
+          ...(process.platform === 'win32' || srt ? { PATH: process.env.PATH } : {}),
+          SHUMAI_RUNNER_KEY: key,
+        },
+        signal: AbortSignal.timeout(60_000),
+        stderr: 'pipe',
+        stdout: 'ignore',
+      },
+    )
+    const [exitCode, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()])
+    if (fixtureFailure) throw fixtureFailure
+    assert.ok(completed, 'Runner did not complete the shell command:\n' + stderr)
+    assert.equal(exitCode, 1, stderr)
+    assert.match(stderr, /Runner shell: .+/)
+    assert.match(stderr, /Runner access was revoked/)
+  } finally {
+    server.stop(true)
+  }
+}
+
 /** Exercises the packaged installer and executable against HTTP, without a runtime on PATH. */
-export async function testCliRelease(outdir: string) {
+export async function testCliRelease(outdir: string, srt?: string) {
   const windows = process.platform === 'win32'
   const target = parseCliTarget(`${windows ? 'windows' : process.platform}-${process.arch}`)
   const bytes = randomBytes(65536)
@@ -200,6 +298,10 @@ export async function testCliRelease(outdir: string) {
     await install()
     assert.equal((await run(['--version'])).trim(), version)
     assert.match(await run(['--help']), /Command line interface/)
+    const workspace = join(temporary, 'runner workspace')
+    await mkdir(workspace)
+    await testRunnerShell(binary, workspace, cliEnv)
+    if (srt) await testRunnerShell(binary, workspace, cliEnv, srt)
     const projects = JSON.parse(await run(['--json', 'project', 'ls'])) as {
       data: { id: string }[]
     }
@@ -273,7 +375,7 @@ export async function testCliRelease(outdir: string) {
     await assert.rejects(install(), /unmanaged installation/)
     assert.equal(sha256(await readFile(binary)), installedHash)
     console.log(
-      `PASS ${target}: install, API auth, mkdir, upload/download 65536 bytes, upgrade/rollback, and failure preservation`,
+      `PASS ${target}: install, runner shell, API auth, mkdir, upload/download 65536 bytes, upgrade/rollback, and failure preservation`,
     )
   } finally {
     server.stop(true)
@@ -282,6 +384,8 @@ export async function testCliRelease(outdir: string) {
 }
 
 if (import.meta.main) {
-  const { values } = parseArgs({ options: { out: { type: 'string', default: 'out/cli-release' } } })
-  await testCliRelease(resolve(values.out))
+  const { values } = parseArgs({
+    options: { out: { type: 'string', default: 'out/cli-release' }, srt: { type: 'string' } },
+  })
+  await testCliRelease(resolve(values.out), values.srt ? resolve(values.srt) : undefined)
 }

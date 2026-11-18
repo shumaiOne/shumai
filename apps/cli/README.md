@@ -106,7 +106,7 @@ shumai-cli runner start --cwd C:\workspace
 
 Use `--url` or `--key` to override those variables. A runner key is separate from `SHUMAI_API_KEY`. The runner stays in the foreground; Ctrl+C stops it and its active commands. Remote servers require HTTPS; localhost and `host.docker.internal` support HTTP for development. No inbound port is opened.
 
-Commands use `/bin/sh` on macOS/Linux and `cmd.exe` on Windows. The agent receives the runner's OS and shell so it can use the appropriate syntax. Commands run with the local user's permissions unless SRT is requested.
+Commands use `/bin/sh` on macOS and Linux. On Windows, the runner checks for Git Bash in the standard installation directories, then for `bash.exe` on PATH, then falls back to `cmd.exe`. It prints the selected shell at startup and reports it to the agent. Commands run with the local user's permissions unless SRT is requested.
 
 [Anthropic Sandbox Runtime](https://github.com/anthropics/sandbox-runtime) is bundled with the CLI. Install its platform prerequisites (Linux: bubblewrap, socat, and ripgrep; macOS: ripgrep), then pass its native JSON settings:
 
@@ -114,7 +114,7 @@ Commands use `/bin/sh` on macOS/Linux and `cmd.exe` on Windows. The agent receiv
 shumai-cli runner start --srt sandbox.json
 ```
 
-Windows sandboxing uses SRT's alpha Windows support. Run its one-time setup before starting a sandboxed runner (it requests administrator permission):
+Windows sandboxing uses SRT's alpha Windows support. Use Git Bash if your selected shell is the legacy WSL Bash launcher. Run the one-time SRT setup before starting a sandboxed runner (it requests administrator permission):
 
 ```powershell
 npx @anthropic-ai/sandbox-runtime windows-install
@@ -368,7 +368,7 @@ bun run build:cli --target darwin-arm64 # or darwin-x64, linux-arm64, linux-x64,
 bun run test:cli-release
 ```
 
-Without `--target`, the build produces all six targets. Output defaults to `out/cli-release`; both commands accept `--out /absolute/path`. Unix archives require `tar`; creating Windows archives on Unix also requires `zip`. The test runs the generated installer against local HTTP fixtures, then authenticates, creates a folder, uploads and downloads random bytes, and checks failure recovery with no runtime on the executable's PATH.
+Without `--target`, the build produces all six targets. Output defaults to `out/cli-release`. Set `--out /absolute/path` on either command to change it. Unix archives require `tar`. Creating Windows archives on Unix also requires `zip`. The test exercises installation, runner shell quoting, authenticated API calls, file transfers, and failure recovery. Install Git Bash to run the quoting check on Windows. With SRT configured, pass `--srt /absolute/path/to/settings.json` to repeat the quoting check in the sandbox.
 
 The Native CLI workflow builds and tests each target on a matching runner. The npm release workflow assembles those tested archives, stages a draft GitHub Release, publishes npm packages, then publishes the completed release. Its `validate_only` dispatch input builds and tests without publishing. Published assets are verified and preserved on retries; draft assets can be replaced while resuming a failed run. Prerelease npm packages use the `next` tag and prerelease GitHub Releases do not become latest.
 

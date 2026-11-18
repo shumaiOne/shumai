@@ -1,16 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { commandEnv, resolveRunnerConfig, runnerShell } from './config'
+import { commandEnv, resolveRunnerConfig } from './config'
 
 afterEach(() => vi.unstubAllEnvs())
 
 describe('runner configuration', () => {
-  it('uses the platform shell without requiring Bash on Windows', () => {
-    vi.stubEnv('SystemRoot', 'D:\\Windows')
-    expect(runnerShell('win32')).toBe('D:\\Windows\\System32\\cmd.exe')
-    expect(runnerShell('linux')).toBe('/bin/sh')
-    expect(runnerShell('darwin')).toBe('/bin/sh')
-  })
-
   it('preserves Windows OS settings, normalizes explicit overrides, and excludes credentials', () => {
     vi.stubEnv('Path', 'C:\\Windows\\System32')
     vi.stubEnv('SystemRoot', 'C:\\Windows')

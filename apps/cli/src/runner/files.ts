@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto'
-import { on } from 'node:events'
 import { constants, createWriteStream } from 'node:fs'
 import { lstat, mkdir, mkdtemp, open, rename, rm } from 'node:fs/promises'
 import path from 'node:path'
@@ -244,19 +243,18 @@ export class RunnerFiles {
   }
 
   private async extract(archive: string, directory: string, signal: AbortSignal) {
-    const zip = await new Promise<yauzl.ZipFile>((resolve, reject) =>
-      yauzl.open(
-        archive,
-        { lazyEntries: true, strictFileNames: true, autoClose: false },
-        (error, opened) => (error ? reject(error) : resolve(opened)),
-      ),
-    )
+    const zip = await yauzl.openPromise(archive, {
+      lazyEntries: true,
+      strictFileNames: true,
+      autoClose: false,
+    })
     let size = 0
     let count = 0
     try {
-      const entries = on(zip, 'entry', { close: ['end'], signal }) as AsyncIterable<[yauzl.Entry]>
-      zip.readEntry()
-      for await (const [entry] of entries) {
+      signal.throwIfAborted()
+      // Let each metadata read finish before cancellation can close the ZIP descriptor.
+      for await (const entry of zip.eachEntry()) {
+        signal.throwIfAborted()
         if (++count > MAX_ZIP_ENTRIES) throw new Error('ZIP contains too many entries.')
         const parts = pathParts(entry.fileName.replace(/\/$/, ''))
         const mode = entry.externalFileAttributes >>> 16
@@ -269,16 +267,13 @@ export class RunnerFiles {
         if (entry.fileName.endsWith('/')) await mkdir(destination, { recursive: true, mode: 0o700 })
         else {
           await mkdir(path.dirname(destination), { recursive: true, mode: 0o700 })
-          const input = await new Promise<Readable>((resolve, reject) =>
-            zip.openReadStream(entry, (error, stream) => (error ? reject(error) : resolve(stream))),
-          )
+          const input = await zip.openReadStreamPromise(entry)
           await pipeline(
             input,
             createWriteStream(destination, { flags: 'wx', mode: 0o600 | (mode & 0o155) }),
             { signal },
           )
         }
-        zip.readEntry()
       }
     } finally {
       zip.close()

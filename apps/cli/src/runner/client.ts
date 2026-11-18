@@ -291,11 +291,12 @@ export class RunnerClient {
 
 export async function startRunner(options: RunnerOptions) {
   const config = await resolveRunnerConfig(options)
-  // SRT resolves relative policy paths against the runner workspace.
-  process.chdir(config.cwd)
   const files = new RunnerFiles(config.cwd)
   const shell = new RunnerShell(files, config.srt)
+  // SRT resolves relative policy paths against the runner workspace.
+  process.chdir(config.cwd)
   await shell.initialize()
+  console.error(`Runner shell: ${shell.environment.shell}`)
   const runner = new RunnerClient(config, files, shell)
   const controller = new AbortController()
   const shutdown = () => controller.abort()

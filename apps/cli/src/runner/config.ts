@@ -44,12 +44,6 @@ export async function resolveRunnerConfig(options: RunnerOptions) {
   return { url, key: key.trim(), cwd, srt: options.srt ? path.resolve(options.srt) : undefined }
 }
 
-export function runnerShell(platform = process.platform): string {
-  return platform === 'win32'
-    ? path.win32.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'cmd.exe')
-    : '/bin/sh'
-}
-
 /** Commands inherit baseline OS settings and explicitly supplied skill variables, never CLI credentials. */
 export function commandEnv(extra: Record<string, string> = {}, inherit = true): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {}

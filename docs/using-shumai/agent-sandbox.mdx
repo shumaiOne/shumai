@@ -29,7 +29,7 @@ Use a runner key, not a personal API token. Prefer the environment variable over
 
 The first runner becomes the team default. Each agent can use that default or a dedicated runner selected in its settings. Without a configured runner, `bash` and `download_asset` are hidden. With one configured, authorized editors and reviewers can run commands immediately without reading a skill first. Disabled-tool policies still apply. An offline runner produces an execution error.
 
-The `bash` tool uses the runner's native shell: `/bin/sh` on macOS/Linux and `cmd.exe` on Windows. The agent receives the OS and shell information and must use compatible commands. Windows does not require Bash or Git.
+The `bash` tool uses `/bin/sh` on macOS and Linux. On Windows, the runner looks for Git Bash in the standard installation directories, then for `bash.exe` on PATH, and falls back to `cmd.exe`. The runner prints its selected shell at startup and reports it to the agent so it can use compatible syntax. For Bash with SRT on Windows, use Git Bash in place of the legacy WSL Bash launcher.
 
 Commands start in the workspace directory. Skills, downloaded assets, generated files, and output logs live under `.pi`. Commands inherit baseline OS settings and explicit skill variables, rather than the runner's full environment, including its runner key and personal API token.
 

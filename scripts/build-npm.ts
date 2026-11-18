@@ -521,6 +521,8 @@ async function buildCliPackage() {
     target: 'node',
     outdir: binOutDir,
     minify: true,
+    banner:
+      '/*\n' + readFileSync(path.join(rootDir, 'apps/cli/THIRD-PARTY-NOTICES.txt'), 'utf8') + '*/',
     naming: 'shumai-cli.js',
     plugins: [srtBundlePlugin()],
     external: [],
