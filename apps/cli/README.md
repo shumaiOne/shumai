@@ -104,7 +104,7 @@ $env:SHUMAI_RUNNER_KEY = "your-runner-key"
 shumai-cli runner start --cwd C:\workspace
 ```
 
-Use `--url` or `--key` to override those variables. A runner key is separate from `SHUMAI_API_KEY`. The runner stays in the foreground; Ctrl+C stops it and its active commands. Remote servers require HTTPS; localhost and `host.docker.internal` support HTTP for development. No inbound port is opened.
+Use `--url` or `--key` to override those variables. Pass `-v` or `--verbose` to log executed commands, output sizes, and file transfer paths (by default, only lifecycle events, execution IDs, exit status, and durations are printed to stderr). A runner key is separate from `SHUMAI_API_KEY`. The runner stays in the foreground; Ctrl+C stops it and its active commands. Remote servers require HTTPS; localhost and `host.docker.internal` support HTTP for development. No inbound port is opened.
 
 Commands use `/bin/sh` on macOS and Linux. On Windows, the runner checks for Git Bash in the standard installation directories, then for `bash.exe` on PATH, then falls back to `cmd.exe`. It prints the selected shell at startup and reports it to the agent. Commands run with the local user's permissions unless SRT is requested.
 

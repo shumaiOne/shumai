@@ -9,8 +9,16 @@ import {
   type ServerToRunnerMessage,
 } from '@shumai/dtos'
 import { CliError } from '../operations/errors'
-import { resolveRunnerConfig, type RunnerOptions } from './config'
+import { resolveRunnerConfig, type RunnerConfig, type RunnerOptions } from './config'
 import { RunnerFiles, type FileMessage } from './files'
+import {
+  createRunnerLogger,
+  formatBytes,
+  formatDuration,
+  formatLogString,
+  shortId,
+  type RunnerLogger,
+} from './log'
 import { RunnerShell } from './shell'
 
 const MAX_REPLAY_BYTES = 1024 * 1024
@@ -22,6 +30,9 @@ interface Execution {
   chunks: RunnerExecOutputMessage[]
   bytes: number
   offset: number
+  startedAt: number
+  stdoutBytes: number
+  stderrBytes: number
   result?: RunnerExecResultMessage
 }
 
@@ -33,13 +44,16 @@ export class RunnerClient {
   private transfers = new Map<string, AbortController>()
   private completedFiles = new Map<string, RunnerToServerMessage>()
   private pending = new Set<Promise<void>>()
+  private readonly logger: RunnerLogger
 
   constructor(
-    private readonly config: Awaited<ReturnType<typeof resolveRunnerConfig>>,
+    private readonly config: RunnerConfig,
     private readonly files: RunnerFiles,
     private readonly shell: RunnerShell,
-    private readonly log: (message: string) => void = console.error,
-  ) {}
+    log: (message: string) => void = console.error,
+  ) {
+    this.logger = createRunnerLogger(log, Boolean(config.verbose))
+  }
 
   async run(signal?: AbortSignal): Promise<void> {
     const stop = () => this.stop()
@@ -51,7 +65,7 @@ export class RunnerClient {
         const wasReady = await this.connect()
         if (this.stopped.signal.aborted) break
         attempt = wasReady ? 0 : Math.min(attempt + 1, 5)
-        this.log('Runner disconnected; reconnecting…')
+        this.logger.warn('Runner disconnected; reconnecting…')
         await delay(Math.min(1000 * 2 ** attempt, 30_000), undefined, {
           signal: this.stopped.signal,
         }).catch(() => {})
@@ -119,7 +133,7 @@ export class RunnerClient {
             welcomed = true
             this.ready = true
             this.reconcile(parsed.inFlightExecutionIds)
-            this.log(`Runner connected: ${parsed.runnerName} (${parsed.runnerId})`)
+            this.logger.info(`Runner connected: ${parsed.runnerName} (${parsed.runnerId})`)
           } else {
             if (!welcomed) throw new Error('Expected welcome before runner requests.')
             this.handle(parsed)
@@ -176,13 +190,23 @@ export class RunnerClient {
         if (previous.result) this.send(previous.result)
         return
       }
+      const id = shortId(message.executionId)
+      const startedAt = Date.now()
       const execution: Execution = {
         controller: new AbortController(),
         chunks: [],
         bytes: 0,
         offset: 0,
+        startedAt,
+        stdoutBytes: 0,
+        stderrBytes: 0,
       }
       this.executions.set(message.executionId, execution)
+      this.logger.info(
+        this.logger.verbose
+          ? `Bash started [${id}] command=${formatLogString(message.command)}`
+          : `Bash started [${id}]`,
+      )
       this.track(
         (async () => {
           const busy = this.activeCount() > MAX_ACTIVE
@@ -208,6 +232,8 @@ export class RunnerClient {
                   const bytes = Buffer.byteLength(part)
                   execution.offset += bytes
                   execution.bytes += bytes
+                  if (stream === 'stdout') execution.stdoutBytes += bytes
+                  else execution.stderrBytes += bytes
                   execution.chunks.push(chunk)
                   while (execution.bytes > MAX_REPLAY_BYTES) {
                     const removed = execution.chunks.shift()!
@@ -222,14 +248,43 @@ export class RunnerClient {
                 }
               })
           execution.result = result
+          this.logExecResult(id, execution, result)
           this.send(result)
           const completed = [...this.executions].filter(([, value]) => value.result)
-          for (const [id] of completed.slice(0, -MAX_COMPLETED)) this.executions.delete(id)
+          for (const [completedId] of completed.slice(0, -MAX_COMPLETED))
+            this.executions.delete(completedId)
         })(),
       )
       return
     }
     this.handleFile(message)
+  }
+
+  private logExecResult(id: string, execution: Execution, result: RunnerExecResultMessage) {
+    const duration = formatDuration(Date.now() - execution.startedAt)
+    const sizes = this.logger.verbose
+      ? ` stdout=${formatBytes(execution.stdoutBytes)} stderr=${formatBytes(execution.stderrBytes)}`
+      : ''
+    if (result.timedOut) {
+      const error =
+        this.logger.verbose && result.error ? ` error=${formatLogString(result.error)}` : ''
+      this.logger.warn(`Bash timed out [${id}] duration=${duration}${sizes}${error}`)
+      return
+    }
+    if (result.aborted) {
+      this.logger.info(`Bash cancelled [${id}] duration=${duration}${sizes}`)
+      return
+    }
+    if (result.error) {
+      const error = this.logger.verbose ? ` error=${formatLogString(result.error)}` : ''
+      this.logger.warn(`Bash failed [${id}] duration=${duration}${sizes}${error}`)
+      return
+    }
+    if (result.exitCode === null && result.signal) {
+      this.logger.warn(`Bash killed [${id}] signal=${result.signal} duration=${duration}${sizes}`)
+      return
+    }
+    this.logger.info(`Bash completed [${id}] exit=${result.exitCode} duration=${duration}${sizes}`)
   }
 
   private activeCount() {
@@ -249,6 +304,13 @@ export class RunnerClient {
     const controller = new AbortController()
     this.transfers.set(message.executionId, controller)
     const timer = setTimeout(() => controller.abort(), 120_000)
+    const id = shortId(message.executionId)
+    const startedAt = Date.now()
+    const transferPath = message.type === 'file.download' ? message.destPath : message.srcPath
+    if (this.logger.verbose && message.type !== 'file.stat') {
+      const kind = message.type === 'file.download' ? 'download' : 'upload'
+      this.logger.info(`File ${kind} started [${id}] path=${formatLogString(transferPath)}`)
+    }
     this.track(
       (async () => {
         try {
@@ -259,6 +321,7 @@ export class RunnerClient {
           this.completedFiles.set(message.executionId, result)
           if (this.completedFiles.size > MAX_COMPLETED)
             this.completedFiles.delete(this.completedFiles.keys().next().value!)
+          this.logFileResult(id, transferPath, startedAt, result)
           this.send(result)
         } finally {
           clearTimeout(timer)
@@ -266,6 +329,41 @@ export class RunnerClient {
         }
       })(),
     )
+  }
+
+  private logFileResult(
+    id: string,
+    transferPath: string,
+    startedAt: number,
+    result: RunnerToServerMessage,
+  ) {
+    if (result.type === 'file.stat.result') {
+      if (!this.logger.verbose) return
+      const pathPart = `path=${formatLogString(transferPath)}`
+      if (!result.ok) {
+        this.logger.warn(
+          `File stat failed [${id}] ${pathPart} error=${formatLogString(result.error ?? 'Unknown error')}`,
+        )
+        return
+      }
+      const sizePart = result.exists ? ` size=${formatBytes(result.size ?? 0)}` : ''
+      this.logger.info(`File stat [${id}] ${pathPart} exists=${result.exists}${sizePart}`)
+      return
+    }
+    if (result.type !== 'file.download.result' && result.type !== 'file.upload.result') return
+    const kind = result.type === 'file.download.result' ? 'download' : 'upload'
+    const duration = formatDuration(Date.now() - startedAt)
+    const pathPart = this.logger.verbose ? ` path=${formatLogString(transferPath)}` : ''
+    if (result.ok) {
+      this.logger.info(
+        `File ${kind} completed [${id}]${pathPart} size=${formatBytes(result.size ?? 0)} duration=${duration}`,
+      )
+      return
+    }
+    const errorPart = this.logger.verbose
+      ? ` error=${formatLogString(result.error ?? 'Unknown error')}`
+      : ''
+    this.logger.warn(`File ${kind} failed [${id}]${pathPart} duration=${duration}${errorPart}`)
   }
 
   private fileBusy(message: FileMessage): RunnerToServerMessage {
@@ -297,7 +395,9 @@ export async function startRunner(options: RunnerOptions) {
   // SRT resolves relative policy paths against the runner workspace.
   process.chdir(config.cwd)
   await shell.initialize()
-  console.error(`Runner shell: ${shell.environment.shell}`)
+  createRunnerLogger(console.error, Boolean(config.verbose)).info(
+    `Runner shell: ${shell.environment.shell}`,
+  )
   const runner = new RunnerClient(config, files, shell)
   const controller = new AbortController()
   const shutdown = () => controller.abort()

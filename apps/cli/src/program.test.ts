@@ -33,8 +33,10 @@ function setup() {
   let stdout = ''
   let stderr = ''
   const callOperation = vi.fn<CallOperation>()
+  const startRunner = vi.fn(async () => {})
   const program = createProgram({
     callOperation,
+    startRunner,
     output: { out: { write: (s) => void (stdout += s) }, isTty: true, columns: 120 },
   })
   const configure = (cmd: Command) => {
@@ -47,6 +49,7 @@ function setup() {
   configure(program)
   return {
     callOperation,
+    startRunner,
     run: (...argv: string[]) => program.parseAsync(['node', 'shumai-cli', ...argv]),
     stdout: () => stdout,
     stderr: () => stderr,
@@ -854,6 +857,23 @@ describe('shumai-cli', () => {
 
       expect(cli.callOperation).toHaveBeenCalledWith(getFolderInstructions, { folderId: 'f-1' })
       expect(cli.stdout()).toBe('# Rules\n(This folder has no instructions.)\n')
+    })
+  })
+
+  describe('runner start', () => {
+    it('documents and forwards the -v, --verbose flag', async () => {
+      const cli = setup()
+      await expect(cli.run('runner', 'start', '--help')).rejects.toThrow()
+      expect(cli.stdout()).toContain('-v, --verbose')
+
+      await cli.run('runner', 'start')
+      expect(cli.startRunner).toHaveBeenLastCalledWith({})
+
+      await cli.run('runner', 'start', '-v')
+      expect(cli.startRunner).toHaveBeenLastCalledWith({ verbose: true })
+
+      await cli.run('runner', 'start', '--verbose')
+      expect(cli.startRunner).toHaveBeenLastCalledWith({ verbose: true })
     })
   })
 

@@ -1,3 +1,4 @@
+import { createServer } from 'node:http'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -18,7 +19,7 @@ describe('runner WebSocket client', () => {
   let welcomeInFlight: string[]
   let connections: number
   let replacePrevious: boolean
-  let connectRunner: () => RunnerClient
+  let connectRunner: (options?: { verbose?: boolean; log?: (line: string) => void }) => RunnerClient
   beforeEach(async () => {
     cwd = await mkdtemp(path.join(tmpdir(), 'shumai-client-test-'))
     messages = []
@@ -47,7 +48,7 @@ describe('runner WebSocket client', () => {
         }),
       )
     })
-    connectRunner = () => {
+    connectRunner = (options) => {
       const files = new RunnerFiles(cwd)
       return new RunnerClient(
         {
@@ -55,10 +56,11 @@ describe('runner WebSocket client', () => {
           key: 'runner-key',
           cwd,
           srt: undefined,
+          verbose: options?.verbose ?? false,
         },
         files,
         new RunnerShell(files),
-        () => {},
+        options?.log ?? (() => {}),
       )
     }
     runner = connectRunner()
@@ -191,5 +193,177 @@ describe('runner WebSocket client', () => {
     send({ type: 'exec.start', executionId: '../escape', command: 'echo unsafe' })
     await expect(running).rejects.toThrow('invalid runner protocol')
     expect(messages.some((message) => message.type === 'exec.output')).toBe(false)
+  })
+
+  it('logs compact lifecycle, bash, and transfer summaries in default mode', async () => {
+    runner.stop()
+    await running.catch(() => {})
+    const logs: string[] = []
+    messages = []
+    runner = connectRunner({ verbose: false, log: (line) => logs.push(line) })
+    running = runner.run()
+    void running.catch(() => {})
+    await vi.waitFor(() =>
+      expect(messages.some((message) => message.type === 'reconcile')).toBe(true),
+    )
+
+    send({ type: 'exec.start', executionId: '01JTEST0000A8F2', command: 'printf "hello"' })
+    await vi.waitFor(() =>
+      expect(messages.some((message) => message.type === 'exec.result')).toBe(true),
+    )
+
+    send({
+      type: 'exec.start',
+      executionId: '01JTEST0000TOUT',
+      command: 'sleep 5',
+      timeoutSec: 0.1,
+    })
+    await vi.waitFor(() =>
+      expect(
+        messages.some(
+          (message) => message.type === 'exec.result' && message.executionId === '01JTEST0000TOUT',
+        ),
+      ).toBe(true),
+    )
+
+    send({ type: 'file.stat', executionId: '01JTEST0000STAT', srcPath: '.pi/missing' })
+    await vi.waitFor(() =>
+      expect(messages.some((message) => message.type === 'file.stat.result')).toBe(true),
+    )
+
+    const httpServer = createServer((_request, response) => {
+      response.end('payload')
+    })
+    await new Promise<void>((resolve) => httpServer.listen(0, '127.0.0.1', resolve))
+    try {
+      const httpAddress = httpServer.address()
+      if (!httpAddress || typeof httpAddress === 'string') throw new Error('No HTTP address')
+      send({
+        type: 'file.download',
+        executionId: '01JTEST0000C3D9',
+        url: `http://127.0.0.1:${httpAddress.port}/file`,
+        destPath: '.pi/assets/file.txt',
+      })
+      await vi.waitFor(() =>
+        expect(messages.some((message) => message.type === 'file.download.result')).toBe(true),
+      )
+    } finally {
+      httpServer.closeAllConnections()
+      await new Promise<void>((resolve) => httpServer.close(() => resolve()))
+    }
+
+    expect(
+      logs.some((line) =>
+        /^\d{2}:\d{2}:\d{2} INFO {2}Runner connected: Test \(runner\)$/.test(line),
+      ),
+    ).toBe(true)
+    expect(
+      logs.some((line) => /^\d{2}:\d{2}:\d{2} INFO {2}Bash started \[a8f2\]$/.test(line)),
+    ).toBe(true)
+    expect(
+      logs.some((line) =>
+        /^\d{2}:\d{2}:\d{2} INFO {2}Bash completed \[a8f2\] exit=0 duration=\d+\.\ds$/.test(line),
+      ),
+    ).toBe(true)
+    expect(
+      logs.some((line) =>
+        /^\d{2}:\d{2}:\d{2} WARN {2}Bash timed out \[tout\] duration=\d+\.\ds$/.test(line),
+      ),
+    ).toBe(true)
+    expect(
+      logs.some((line) =>
+        /^\d{2}:\d{2}:\d{2} INFO {2}File download completed \[c3d9\] size=7B duration=\d+\.\ds$/.test(
+          line,
+        ),
+      ),
+    ).toBe(true)
+    expect(logs.join('\n')).not.toContain('command=')
+    expect(logs.join('\n')).not.toContain('File stat')
+    expect(logs.join('\n')).not.toContain('.pi/assets/file.txt')
+  })
+
+  it('logs commands, stream sizes, and file paths in verbose mode', async () => {
+    runner.stop()
+    await running.catch(() => {})
+    const logs: string[] = []
+    messages = []
+    runner = connectRunner({ verbose: true, log: (line) => logs.push(line) })
+    running = runner.run()
+    void running.catch(() => {})
+    await vi.waitFor(() =>
+      expect(messages.some((message) => message.type === 'reconcile')).toBe(true),
+    )
+
+    send({
+      type: 'exec.start',
+      executionId: '01JTEST0000B9E1',
+      command: 'printf "hi"; printf "err" >&2',
+    })
+    await vi.waitFor(() =>
+      expect(messages.some((message) => message.type === 'exec.result')).toBe(true),
+    )
+
+    send({ type: 'file.stat', executionId: '01JTEST0000B1A4', srcPath: '.pi/missing' })
+    await vi.waitFor(() =>
+      expect(messages.some((message) => message.type === 'file.stat.result')).toBe(true),
+    )
+
+    const httpServer = createServer((_request, response) => {
+      response.writeHead(500)
+      response.end()
+    })
+    await new Promise<void>((resolve) => httpServer.listen(0, '127.0.0.1', resolve))
+    try {
+      const httpAddress = httpServer.address()
+      if (!httpAddress || typeof httpAddress === 'string') throw new Error('No HTTP address')
+      send({
+        type: 'file.download',
+        executionId: '01JTEST0000E5F1',
+        url: `http://127.0.0.1:${httpAddress.port}/fail`,
+        destPath: '.pi/assets/fail.txt',
+      })
+      await vi.waitFor(() =>
+        expect(messages.some((message) => message.type === 'file.download.result')).toBe(true),
+      )
+    } finally {
+      httpServer.closeAllConnections()
+      await new Promise<void>((resolve) => httpServer.close(() => resolve()))
+    }
+
+    expect(
+      logs.some((line) =>
+        /^\d{2}:\d{2}:\d{2} INFO {2}Bash started \[b9e1\] command="printf \\"hi\\"; printf \\"err\\" >&2"$/.test(
+          line,
+        ),
+      ),
+    ).toBe(true)
+    expect(
+      logs.some((line) =>
+        /^\d{2}:\d{2}:\d{2} INFO {2}Bash completed \[b9e1\] exit=0 duration=\d+\.\ds stdout=2B stderr=3B$/.test(
+          line,
+        ),
+      ),
+    ).toBe(true)
+    expect(
+      logs.some((line) =>
+        /^\d{2}:\d{2}:\d{2} INFO {2}File stat \[b1a4\] path="\.pi\/missing" exists=false$/.test(
+          line,
+        ),
+      ),
+    ).toBe(true)
+    expect(
+      logs.some((line) =>
+        /^\d{2}:\d{2}:\d{2} INFO {2}File download started \[e5f1\] path="\.pi\/assets\/fail\.txt"$/.test(
+          line,
+        ),
+      ),
+    ).toBe(true)
+    expect(
+      logs.some((line) =>
+        /^\d{2}:\d{2}:\d{2} WARN {2}File download failed \[e5f1\] path="\.pi\/assets\/fail\.txt" duration=\d+\.\ds error="Download failed \(HTTP 500\)\."$/.test(
+          line,
+        ),
+      ),
+    ).toBe(true)
   })
 })
