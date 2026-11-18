@@ -366,4 +366,81 @@ describe('runner WebSocket client', () => {
       ),
     ).toBe(true)
   })
+
+  it.each([false, true])(
+    'logs a single busy rejection without false starts at capacity (verbose=%s)',
+    async (verbose) => {
+      runner.stop()
+      await running.catch(() => {})
+      const logs: string[] = []
+      messages = []
+      runner = connectRunner({ verbose, log: (line) => logs.push(line) })
+      running = runner.run()
+      void running.catch(() => {})
+      await vi.waitFor(() =>
+        expect(messages.some((message) => message.type === 'reconcile')).toBe(true),
+      )
+
+      for (let index = 0; index < 8; index++) {
+        send({
+          type: 'exec.start',
+          executionId: `01JACTIVE00000${index}`,
+          command: 'sleep 30',
+        })
+      }
+      await vi.waitFor(() =>
+        expect(logs.filter((line) => line.includes('Bash started'))).toHaveLength(8),
+      )
+
+      send({
+        type: 'exec.start',
+        executionId: '01JBUSYCMD00B123',
+        command: 'echo rejected',
+      })
+      send({
+        type: 'file.upload',
+        executionId: '01JBUSYFILE0U456',
+        srcPath: '.pi/out.bin',
+        url: 'http://127.0.0.1:9/upload',
+      })
+
+      await vi.waitFor(() => {
+        expect(messages).toContainEqual(
+          expect.objectContaining({
+            type: 'exec.result',
+            executionId: '01JBUSYCMD00B123',
+            error: 'Runner is busy. Try again later.',
+          }),
+        )
+        expect(messages).toContainEqual(
+          expect.objectContaining({
+            type: 'file.upload.result',
+            executionId: '01JBUSYFILE0U456',
+            ok: false,
+            error: 'Runner is busy. Try again later.',
+          }),
+        )
+      })
+
+      const bashLogs = logs.filter((line) => line.includes('[b123]'))
+      const uploadLogs = logs.filter((line) => line.includes('[u456]'))
+      expect(bashLogs).toHaveLength(1)
+      expect(uploadLogs).toHaveLength(1)
+      if (verbose) {
+        expect(bashLogs[0]).toMatch(
+          /^\d{2}:\d{2}:\d{2} WARN {2}Bash rejected \[b123\] command="echo rejected" error="Runner is busy\. Try again later\."$/,
+        )
+        expect(uploadLogs[0]).toMatch(
+          /^\d{2}:\d{2}:\d{2} WARN {2}File upload rejected \[u456\] path="\.pi\/out\.bin" error="Runner is busy\. Try again later\."$/,
+        )
+      } else {
+        expect(bashLogs[0]).toMatch(
+          /^\d{2}:\d{2}:\d{2} WARN {2}Bash rejected \[b123\] \(runner is busy\)$/,
+        )
+        expect(uploadLogs[0]).toMatch(
+          /^\d{2}:\d{2}:\d{2} WARN {2}File upload rejected \[u456\] \(runner is busy\)$/,
+        )
+      }
+    },
+  )
 })

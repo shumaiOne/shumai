@@ -24,6 +24,12 @@ import { RunnerShell } from './shell'
 const MAX_REPLAY_BYTES = 1024 * 1024
 const MAX_COMPLETED = 16
 const MAX_ACTIVE = 8
+const RUNNER_BUSY_ERROR = 'Runner is busy. Try again later.'
+const FILE_OPERATION_KINDS: Record<FileMessage['type'], 'download' | 'upload' | 'stat'> = {
+  'file.download': 'download',
+  'file.upload': 'upload',
+  'file.stat': 'stat',
+}
 
 interface Execution {
   controller: AbortController
@@ -191,13 +197,30 @@ export class RunnerClient {
         return
       }
       const id = shortId(message.executionId)
-      const startedAt = Date.now()
+      if (this.activeCount() >= MAX_ACTIVE) {
+        const result: RunnerExecResultMessage = {
+          type: 'exec.result',
+          executionId: message.executionId,
+          exitCode: null,
+          signal: null,
+          timedOut: false,
+          error: RUNNER_BUSY_ERROR,
+        }
+        this.recordCompletedExecution(message.executionId, result)
+        this.logger.warn(
+          this.logger.verbose
+            ? `Bash rejected [${id}] command=${formatLogString(message.command)} error=${formatLogString(RUNNER_BUSY_ERROR)}`
+            : `Bash rejected [${id}] (runner is busy)`,
+        )
+        this.send(result)
+        return
+      }
       const execution: Execution = {
         controller: new AbortController(),
         chunks: [],
         bytes: 0,
         offset: 0,
-        startedAt,
+        startedAt: performance.now(),
         stdoutBytes: 0,
         stderrBytes: 0,
       }
@@ -209,50 +232,42 @@ export class RunnerClient {
       )
       this.track(
         (async () => {
-          const busy = this.activeCount() > MAX_ACTIVE
-          const result = busy
-            ? {
-                type: 'exec.result' as const,
-                executionId: message.executionId,
-                exitCode: null,
-                signal: null,
-                timedOut: false,
-                error: 'Runner is busy. Try again later.',
-              }
-            : await this.shell.run(message, execution.controller.signal, (stream, data) => {
-                // Small frames keep reconnect replay and WebSocket buffering bounded.
-                for (const part of data.match(/[\s\S]{1,8192}/gu) ?? []) {
-                  const chunk: RunnerExecOutputMessage = {
-                    type: 'exec.output',
-                    executionId: message.executionId,
-                    stream,
-                    data: part,
-                    offset: execution.offset,
-                  }
-                  const bytes = Buffer.byteLength(part)
-                  execution.offset += bytes
-                  execution.bytes += bytes
-                  if (stream === 'stdout') execution.stdoutBytes += bytes
-                  else execution.stderrBytes += bytes
-                  execution.chunks.push(chunk)
-                  while (execution.bytes > MAX_REPLAY_BYTES) {
-                    const removed = execution.chunks.shift()!
-                    execution.bytes -= Buffer.byteLength(removed.data)
-                    if (!this.ready) execution.controller.abort()
-                  }
-                  if ((this.socket?.bufferedAmount ?? 0) > MAX_REPLAY_BYTES) {
-                    this.ready = false
-                    this.socket?.terminate()
-                  }
-                  this.send(chunk)
+          const result = await this.shell.run(
+            message,
+            execution.controller.signal,
+            (stream, data) => {
+              // Small frames keep reconnect replay and WebSocket buffering bounded.
+              for (const part of data.match(/[\s\S]{1,8192}/gu) ?? []) {
+                const chunk: RunnerExecOutputMessage = {
+                  type: 'exec.output',
+                  executionId: message.executionId,
+                  stream,
+                  data: part,
+                  offset: execution.offset,
                 }
-              })
+                const bytes = Buffer.byteLength(part)
+                execution.offset += bytes
+                execution.bytes += bytes
+                if (stream === 'stdout') execution.stdoutBytes += bytes
+                else execution.stderrBytes += bytes
+                execution.chunks.push(chunk)
+                while (execution.bytes > MAX_REPLAY_BYTES) {
+                  const removed = execution.chunks.shift()!
+                  execution.bytes -= Buffer.byteLength(removed.data)
+                  if (!this.ready) execution.controller.abort()
+                }
+                if ((this.socket?.bufferedAmount ?? 0) > MAX_REPLAY_BYTES) {
+                  this.ready = false
+                  this.socket?.terminate()
+                }
+                this.send(chunk)
+              }
+            },
+          )
           execution.result = result
           this.logExecResult(id, execution, result)
           this.send(result)
-          const completed = [...this.executions].filter(([, value]) => value.result)
-          for (const [completedId] of completed.slice(0, -MAX_COMPLETED))
-            this.executions.delete(completedId)
+          this.pruneCompletedExecutions()
         })(),
       )
       return
@@ -260,8 +275,28 @@ export class RunnerClient {
     this.handleFile(message)
   }
 
+  private recordCompletedExecution(executionId: string, result: RunnerExecResultMessage) {
+    this.executions.set(executionId, {
+      controller: new AbortController(),
+      chunks: [],
+      bytes: 0,
+      offset: 0,
+      startedAt: performance.now(),
+      stdoutBytes: 0,
+      stderrBytes: 0,
+      result,
+    })
+    this.pruneCompletedExecutions()
+  }
+
+  private pruneCompletedExecutions() {
+    const completed = [...this.executions].filter(([, value]) => value.result)
+    for (const [completedId] of completed.slice(0, -MAX_COMPLETED))
+      this.executions.delete(completedId)
+  }
+
   private logExecResult(id: string, execution: Execution, result: RunnerExecResultMessage) {
-    const duration = formatDuration(Date.now() - execution.startedAt)
+    const duration = formatDuration(performance.now() - execution.startedAt)
     const sizes = this.logger.verbose
       ? ` stdout=${formatBytes(execution.stdoutBytes)} stderr=${formatBytes(execution.stderrBytes)}`
       : ''
@@ -301,12 +336,24 @@ export class RunnerClient {
       return
     }
     if (this.transfers.has(message.executionId)) return
+    const id = shortId(message.executionId)
+    const transferPath = message.type === 'file.download' ? message.destPath : message.srcPath
+    if (this.activeCount() >= MAX_ACTIVE) {
+      const result = this.fileBusy(message)
+      this.recordCompletedFile(message.executionId, result)
+      const kind = FILE_OPERATION_KINDS[message.type]
+      this.logger.warn(
+        this.logger.verbose
+          ? `File ${kind} rejected [${id}] path=${formatLogString(transferPath)} error=${formatLogString(RUNNER_BUSY_ERROR)}`
+          : `File ${kind} rejected [${id}] (runner is busy)`,
+      )
+      this.send(result)
+      return
+    }
     const controller = new AbortController()
     this.transfers.set(message.executionId, controller)
     const timer = setTimeout(() => controller.abort(), 120_000)
-    const id = shortId(message.executionId)
-    const startedAt = Date.now()
-    const transferPath = message.type === 'file.download' ? message.destPath : message.srcPath
+    const startedAt = performance.now()
     if (this.logger.verbose && message.type !== 'file.stat') {
       const kind = message.type === 'file.download' ? 'download' : 'upload'
       this.logger.info(`File ${kind} started [${id}] path=${formatLogString(transferPath)}`)
@@ -314,13 +361,8 @@ export class RunnerClient {
     this.track(
       (async () => {
         try {
-          const result =
-            this.activeCount() > MAX_ACTIVE
-              ? this.fileBusy(message)
-              : await this.files.handle(message, controller.signal)
-          this.completedFiles.set(message.executionId, result)
-          if (this.completedFiles.size > MAX_COMPLETED)
-            this.completedFiles.delete(this.completedFiles.keys().next().value!)
+          const result = await this.files.handle(message, controller.signal)
+          this.recordCompletedFile(message.executionId, result)
           this.logFileResult(id, transferPath, startedAt, result)
           this.send(result)
         } finally {
@@ -329,6 +371,12 @@ export class RunnerClient {
         }
       })(),
     )
+  }
+
+  private recordCompletedFile(executionId: string, result: RunnerToServerMessage) {
+    this.completedFiles.set(executionId, result)
+    if (this.completedFiles.size > MAX_COMPLETED)
+      this.completedFiles.delete(this.completedFiles.keys().next().value!)
   }
 
   private logFileResult(
@@ -352,7 +400,7 @@ export class RunnerClient {
     }
     if (result.type !== 'file.download.result' && result.type !== 'file.upload.result') return
     const kind = result.type === 'file.download.result' ? 'download' : 'upload'
-    const duration = formatDuration(Date.now() - startedAt)
+    const duration = formatDuration(performance.now() - startedAt)
     const pathPart = this.logger.verbose ? ` path=${formatLogString(transferPath)}` : ''
     if (result.ok) {
       this.logger.info(
@@ -370,7 +418,7 @@ export class RunnerClient {
     const result = {
       executionId: message.executionId,
       ok: false,
-      error: 'Runner is busy. Try again later.',
+      error: RUNNER_BUSY_ERROR,
     }
     switch (message.type) {
       case 'file.download':
