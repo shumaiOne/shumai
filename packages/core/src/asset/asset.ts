@@ -1585,7 +1585,9 @@ export class AssetService {
   private cleanupJobsRunning = false
 
   async startCleanupJob() {
+    if (this.cleanupJobsRunning) return
     this.cleanupJobsRunning = true
+    let nextGeneratedCleanupAt = 0
 
     const runCleanup = async () => {
       if (!this.cleanupJobsRunning) return
@@ -1594,8 +1596,12 @@ export class AssetService {
         await this.expireTrashedAssets()
         await this.purgePendingAssets()
         await this.purgeUnreferencedStorageKeys()
-        await this.purgeExpiredGeneratedFiles()
         await watermarkService.purgeOrphanWatermarkConfigs()
+        const now = Date.now()
+        if (now >= nextGeneratedCleanupAt) {
+          nextGeneratedCleanupAt = now + 60 * 60 * 1000
+          await this.purgeExpiredGeneratedFiles()
+        }
       } catch (e: unknown) {
         console.error('Error in asset cleanup job:', e)
       }

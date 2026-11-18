@@ -17,17 +17,21 @@ describe('runner WebSocket client', () => {
   let messages: RunnerToServerMessage[]
   let welcomeInFlight: string[]
   let connections: number
+  let replacePrevious: boolean
+  let connectRunner: () => RunnerClient
   beforeEach(async () => {
     cwd = await mkdtemp(path.join(tmpdir(), 'shumai-client-test-'))
     messages = []
     welcomeInFlight = []
     connections = 0
+    replacePrevious = false
     server = new WebSocketServer({ host: '127.0.0.1', port: 0 })
     await new Promise<void>((resolve) => server.once('listening', resolve))
     const address = server.address()
     if (!address || typeof address === 'string') throw new Error('No WebSocket address')
     server.on('connection', (connection, request) => {
       expect(request.headers.authorization).toBe('Bearer runner-key')
+      if (replacePrevious) socket.close(4000, 'Replaced by a newer connection')
       socket = connection
       connections++
       connection.on('message', (raw) =>
@@ -43,18 +47,21 @@ describe('runner WebSocket client', () => {
         }),
       )
     })
-    const files = new RunnerFiles(cwd)
-    runner = new RunnerClient(
-      {
-        url: new URL(`ws://127.0.0.1:${address.port}/api/runners/ws`),
-        key: 'runner-key',
-        cwd,
-        srt: undefined,
-      },
-      files,
-      new RunnerShell(files),
-      () => {},
-    )
+    connectRunner = () => {
+      const files = new RunnerFiles(cwd)
+      return new RunnerClient(
+        {
+          url: new URL(`ws://127.0.0.1:${address.port}/api/runners/ws`),
+          key: 'runner-key',
+          cwd,
+          srt: undefined,
+        },
+        files,
+        new RunnerShell(files),
+        () => {},
+      )
+    }
+    runner = connectRunner()
     running = runner.run()
     // Attach an error handler immediately, including for tests exercising terminal errors.
     void running.catch(() => {})
@@ -159,6 +166,25 @@ describe('runner WebSocket client', () => {
     socket.close(1008, 'revoked')
     await expect(running).rejects.toThrow('revoked')
     expect(connections).toBe(1)
+  })
+
+  it('stops the superseded client when a second runner connects with the same key', async () => {
+    replacePrevious = true
+    let replaced: unknown
+    void running.catch((error: unknown) => {
+      replaced = error
+    })
+    const replacement = connectRunner()
+    const replacementRun = replacement.run()
+    void replacementRun.catch(() => {})
+    try {
+      await vi.waitFor(() => expect(replaced).toBeInstanceOf(Error))
+      await expect(running).rejects.toThrow('replaced')
+      expect(connections).toBe(2)
+    } finally {
+      replacement.stop()
+      await replacementRun.catch(() => {})
+    }
   })
 
   it('rejects invalid messages and path-like execution IDs', async () => {

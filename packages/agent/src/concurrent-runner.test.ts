@@ -43,6 +43,19 @@ function createMockWs() {
   }
 }
 
+function reconcile(runnerId: string, ws: RunnerSocket) {
+  runnerService.handleMessage(
+    runnerId,
+    ws,
+    JSON.stringify({
+      type: 'reconcile',
+      environment: { platform: 'linux', shell: '/bin/sh' },
+      activeExecutions: [],
+      completedExecutions: [],
+    }),
+  )
+}
+
 describe('Concurrent Runner Sessions', () => {
   setupTestDbHooks()
 
@@ -64,6 +77,7 @@ describe('Concurrent Runner Sessions', () => {
       { id: runner.id, teamId: team.id, name: runner.name, keyHash: hashRunnerKey(key) },
       conn.ws,
     )
+    reconcile(runner.id, conn.ws)
 
     await prisma.user.create({
       data: {
@@ -201,6 +215,8 @@ describe('Concurrent Runner Sessions', () => {
       },
       gpuConn.ws,
     )
+    reconcile(defaultRunner.id, defaultConn.ws)
+    reconcile(gpuRunner.id, gpuConn.ws)
 
     const defaultTool = createRunnerBashTool(
       {},

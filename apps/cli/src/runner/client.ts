@@ -1,6 +1,7 @@
 import WebSocket from 'ws'
 import { setTimeout as delay } from 'node:timers/promises'
 import {
+  RUNNER_REPLACED_CLOSE_CODE,
   serverToRunnerMessageSchema,
   type RunnerExecOutputMessage,
   type RunnerExecResultMessage,
@@ -101,7 +102,7 @@ export class RunnerClient {
       socket.on('close', (code) => {
         clearInterval(heartbeat)
         this.ready = false
-        if (code === 1008 && !this.stopped.signal.aborted)
+        if ((code === 1008 || code === RUNNER_REPLACED_CLOSE_CODE) && !this.stopped.signal.aborted)
           reject(
             new CliError('Runner access was revoked or another connection replaced this runner.'),
           )

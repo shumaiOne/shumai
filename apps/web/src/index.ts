@@ -81,6 +81,16 @@ if (regenCmdIndex !== -1) {
 
 async function run() {
   validateArchiveStorageConfig()
+  const runnerLease = await runnerService.startServerTopology()
+  runnerLease.addEventListener(
+    'abort',
+    () => {
+      console.error('Lost the runner server lease:', runnerLease.reason)
+      process.exit(1)
+    },
+    { once: true },
+  )
+  runnerLease.throwIfAborted()
   // Initialize workflows and activities for local executor mode
   initAgentWorkflows()
   initTranscodeWorkflows()
@@ -222,6 +232,7 @@ async function run() {
     await workflowService.shutdownWorkers().catch(() => {})
     assetService.stopCleanupJob()
     server.stop(true)
+    await runnerService.stopServerTopology().catch(console.error)
     process.exit(0)
   }
 

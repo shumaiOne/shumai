@@ -262,6 +262,16 @@ describe('Workflow E2E - read_asset', () => {
       { id: runner.id, teamId: team.id, name: runner.name, keyHash: hashRunnerKey(key) },
       runnerSocket,
     )
+    runnerService.handleMessage(
+      runner.id,
+      runnerSocket,
+      JSON.stringify({
+        type: 'reconcile',
+        environment: { platform: 'linux', shell: '/bin/sh' },
+        activeExecutions: [],
+        completedExecutions: [],
+      }),
+    )
 
     const video = await createFileAsset(
       project.id,

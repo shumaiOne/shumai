@@ -5,6 +5,8 @@ description: Connect an optional command runner and configure sandboxing on its 
 
 Agents use Shumai's built-in tools without a runner. To execute shell commands or download assets into a shell workspace, connect a **runner** on a machine you control. The runner opens an authenticated outbound WebSocket connection; no inbound port is needed.
 
+Agent runners require one main Shumai server per database. Multiple main servers can share a database while it has no configured runners. Stop the other main servers before creating a runner. Transcode workers can run separately.
+
 ## Connect a runner
 
 1. In **Settings → Agent Runners**, create a runner and copy its one-time key. Only team owners can manage runners and rotate their keys.
@@ -32,6 +34,8 @@ The first runner becomes the team default. Each agent can use that default or a 
 The `bash` tool uses `/bin/sh` on macOS and Linux. On Windows, the runner looks for Git Bash in the standard installation directories, then for `bash.exe` on PATH, and falls back to `cmd.exe`. The runner prints its selected shell at startup and reports it to the agent so it can use compatible syntax. For Bash with SRT on Windows, use Git Bash in place of the legacy WSL Bash launcher.
 
 Commands start in the workspace directory. Skills, downloaded assets, generated files, and output logs live under `.pi`. Commands inherit baseline OS settings and explicit skill variables, rather than the runner's full environment, including its runner key and personal API token.
+
+Everyone with shell access to the same runner can read files left in its workspace, including assets and logs from other projects. Shumai project permissions apply when assets are downloaded. Share a runner only among users who may read all files in that workspace. For separate trust groups, use separate runner accounts or virtual machines and restrict access to the agents bound to each runner.
 
 ## Optional SRT sandbox
 

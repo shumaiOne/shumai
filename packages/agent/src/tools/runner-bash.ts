@@ -208,6 +208,14 @@ export const createRunnerBashTool = (
         throw new Error(appendStatus(outputText, execResult.error))
       }
 
+      if (execResult.signal) {
+        logger.error(
+          { signal: execResult.signal, command, outputText },
+          'Bash command was terminated',
+        )
+        throw new Error(appendStatus(outputText, 'Bash command terminated by ' + execResult.signal))
+      }
+
       if (execResult.exitCode !== 0 && execResult.exitCode !== null) {
         logger.error(
           { exitCode: execResult.exitCode, command, outputText },

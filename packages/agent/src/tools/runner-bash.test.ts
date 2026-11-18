@@ -186,6 +186,21 @@ describe('createRunnerBashTool', () => {
     ).rejects.toThrow(/exited with code 1/)
   })
 
+  it('reports signal termination as a command failure', async () => {
+    const tool = createRunnerBashTool({}, { teamId: mockTeamId })
+    vi.mocked(runnerService.exec).mockResolvedValue({
+      executionId: 'signaled',
+      output: '',
+      exitCode: null,
+      signal: 'SIGTERM',
+      timedOut: false,
+      aborted: false,
+    })
+    await expect(invokeTool(tool, '1', { command: 'command' }, createMockSignal())).rejects.toThrow(
+      'terminated by SIGTERM',
+    )
+  })
+
   it('should handle timeouts', async () => {
     const tool = createRunnerBashTool({}, { teamId: mockTeamId })
 

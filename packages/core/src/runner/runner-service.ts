@@ -12,6 +12,7 @@ import {
   RunnerFileUploadResultMessage,
   RunnerInfo,
   RunnerEnvironment,
+  RUNNER_REPLACED_CLOSE_CODE,
   RunnerToServerMessage,
   runnerToServerMessageSchema,
   ServerToRunnerMessage,
@@ -26,6 +27,7 @@ import type {
   RunnerExecResult,
   RunnerSocket,
 } from './types'
+import { RunnerTopology } from './runner-topology'
 
 const RUNNER_KEY_PREFIX = 'shm_rn_'
 const DEFAULT_RECONNECT_GRACE_MS = 30_000
@@ -60,6 +62,8 @@ interface PendingExecOperation {
   resolve: (result: RunnerExecResult) => void
   reject: (err: Error) => void
   timeoutTimer?: ReturnType<typeof setTimeout>
+  abortTimer?: ReturnType<typeof setTimeout>
+  cancelRequested?: boolean
   cleanupSignal?: () => void
 }
 
@@ -132,11 +136,23 @@ export function validateRunnerWorkspacePath(targetPath: string): string {
 
 export class RunnerService {
   private sessions = new Map<string, ActiveRunnerSession>()
+  private closedSockets = new WeakSet<RunnerSocket>()
   private pendingOps = new Map<string, PendingOperation>()
   private disconnectGraceTimers = new Map<string, ReturnType<typeof setTimeout>>()
   private credentialRevisions = new Map<string, number>()
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
   private reconnectGraceMs = DEFAULT_RECONNECT_GRACE_MS
+  private serverTopology?: RunnerTopology
+
+  async startServerTopology(): Promise<AbortSignal> {
+    this.serverTopology ??= await RunnerTopology.start()
+    return this.serverTopology.signal
+  }
+
+  async stopServerTopology(): Promise<void> {
+    await this.serverTopology?.close()
+    this.serverTopology = undefined
+  }
 
   setReconnectGraceMs(ms: number): void {
     this.reconnectGraceMs = ms
@@ -157,7 +173,7 @@ export class RunnerService {
           this.handleDisconnect(runnerId, session.ws, 1001)
           continue
         }
-        this.sendToSession(session, { type: 'ping', ts: now })
+        if (session.environment) this.sendToSession(session, { type: 'ping', ts: now })
       }
     }, HEARTBEAT_INTERVAL_MS)
     if (typeof this.heartbeatTimer.unref === 'function') {
@@ -173,7 +189,7 @@ export class RunnerService {
   }
 
   isRunnerConnected(runnerId: string): boolean {
-    return this.sessions.has(runnerId)
+    return this.getReadySession(runnerId) !== undefined
   }
 
   getRunnerEnvironment(runnerId: string): RunnerEnvironment | undefined {
@@ -203,6 +219,14 @@ export class RunnerService {
   }
 
   async createRunner(teamId: string, req: CreateRunnerRequest): Promise<CreateRunnerResponse> {
+    const create = () => this.persistRunner(teamId, req)
+    return this.serverTopology ? this.serverTopology.changeRunners(create, true) : create()
+  }
+
+  private async persistRunner(
+    teamId: string,
+    req: CreateRunnerRequest,
+  ): Promise<CreateRunnerResponse> {
     const name = req.name.trim()
     const { key, keyPrefix, keyHash } = generateRunnerKey()
 
@@ -349,6 +373,11 @@ export class RunnerService {
   }
 
   async deleteRunner(teamId: string, runnerId: string): Promise<void> {
+    const remove = () => this.removeRunner(teamId, runnerId)
+    await (this.serverTopology ? this.serverTopology.changeRunners(remove) : remove())
+  }
+
+  private async removeRunner(teamId: string, runnerId: string): Promise<void> {
     this.bumpCredentialRevision(runnerId)
 
     await prisma.$transaction(async (tx) => {
@@ -472,6 +501,7 @@ export class RunnerService {
       },
       select: { id: true, teamId: true, name: true },
     })
+    if (this.closedSockets.has(ws)) return
     const currentRevision = this.credentialRevisions.get(runner.id) ?? 0
     if (!verified || currentRevision !== startRevision) {
       try {
@@ -482,19 +512,13 @@ export class RunnerService {
       return
     }
 
-    const existingTimer = this.disconnectGraceTimers.get(runner.id)
-    if (existingTimer) {
-      clearTimeout(existingTimer)
-      this.disconnectGraceTimers.delete(runner.id)
-    }
-
     const existingSession = this.sessions.get(runner.id)
     if (existingSession && existingSession.ws !== ws) {
       logger.info({ runnerId: runner.id }, 'Evicting previous runner WebSocket connection')
       // Remove from sessions before closing so handleDisconnect is a no-op for the old socket
       this.sessions.delete(runner.id)
       try {
-        existingSession.ws.close(4000, 'Replaced by a newer connection')
+        existingSession.ws.close(RUNNER_REPLACED_CLOSE_CODE, 'Replaced by a newer connection')
       } catch {
         // Ignore close errors
       }
@@ -511,19 +535,6 @@ export class RunnerService {
     }
     this.sessions.set(runner.id, session)
     this.startHeartbeatMonitor()
-
-    await prisma.runner
-      .update({
-        where: { id: runner.id },
-        data: { lastConnectedAt: new Date() },
-      })
-      .catch((err) => {
-        logger.warn({ err, runnerId: runner.id }, 'Failed to update runner lastConnectedAt')
-      })
-
-    if (this.sessions.get(runner.id) !== session) {
-      return
-    }
 
     const inFlightExecutionIds = this.getInFlightExecutionIdsForRunner(runner.id)
     this.sendToSession(session, {
@@ -565,8 +576,13 @@ export class RunnerService {
       case 'pong':
         break
       case 'reconcile':
-        session.environment = msg.environment
+        if (session.environment) break
         this.handleReconcileMessage(session, msg)
+        session.environment = msg.environment
+        this.clearDisconnectGraceTimer(runnerId)
+        void prisma.runner
+          .update({ where: { id: runnerId }, data: { lastConnectedAt: new Date() } })
+          .catch((err) => logger.warn({ err, runnerId }, 'Failed to update runner lastConnectedAt'))
         break
       case 'exec.output':
         this.handleExecOutputMessage(runnerId, msg)
@@ -587,6 +603,7 @@ export class RunnerService {
   }
 
   handleDisconnect(runnerId: string, ws: RunnerSocket, code?: number): void {
+    this.closedSockets.add(ws)
     const session = this.sessions.get(runnerId)
     if (!session || session.ws !== ws) {
       return
@@ -608,6 +625,7 @@ export class RunnerService {
     }
 
     if (code === 1008 || this.reconnectGraceMs <= 0) {
+      this.clearDisconnectGraceTimer(runnerId)
       this.failPendingOperationsForRunner(
         runnerId,
         new Error('Runner disconnected while operation was in progress'),
@@ -615,6 +633,7 @@ export class RunnerService {
       return
     }
 
+    if (this.disconnectGraceTimers.has(runnerId)) return
     const timer = setTimeout(() => {
       this.disconnectGraceTimers.delete(runnerId)
       if (!this.isRunnerConnected(runnerId)) {
@@ -636,10 +655,7 @@ export class RunnerService {
   // ----------------------------------------------------------------------
 
   async exec(runnerId: string, options: RunnerExecOptions): Promise<RunnerExecResult> {
-    const session = this.sessions.get(runnerId)
-    if (!session) {
-      throw new Error('Runner is not connected')
-    }
+    const session = this.requireReadySession(runnerId)
 
     if (options.signal?.aborted) {
       throw new Error('Command aborted before execution started')
@@ -665,50 +681,21 @@ export class RunnerService {
       const safetyTimeoutMs = Math.max((timeoutSec + 15) * 1000, 15_000)
       const timeoutTimer = setTimeout(() => {
         const pending = this.pendingOps.get(executionId)
-        if (!pending) return
+        if (pending?.kind !== 'exec') return
         this.cleanupPendingOp(executionId)
-        const currentSession = this.sessions.get(runnerId)
+        const currentSession = this.getReadySession(runnerId)
         if (currentSession) {
           this.sendToSession(currentSession, { type: 'exec.cancel', executionId })
         }
         resolve({
           executionId,
-          output: pending.kind === 'exec' ? this.readBufferedExecOutput(pending) : '',
+          output: this.readBufferedExecOutput(pending),
           exitCode: null,
           signal: 'SIGKILL',
-          timedOut: true,
-          aborted: false,
+          timedOut: !pending.cancelRequested,
+          aborted: pending.cancelRequested ?? false,
         })
       }, safetyTimeoutMs)
-
-      let cleanupSignal: (() => void) | undefined
-      if (options.signal) {
-        const onAbort = () => {
-          const currentSession = this.sessions.get(runnerId)
-          if (currentSession) {
-            this.sendToSession(currentSession, { type: 'exec.cancel', executionId })
-          }
-          // Give runner a short window to report exec.result, otherwise resolve as aborted
-          const abortTimer = setTimeout(() => {
-            const pending = this.pendingOps.get(executionId)
-            if (!pending) return
-            this.cleanupPendingOp(executionId)
-            resolve({
-              executionId,
-              output: pending.kind === 'exec' ? this.readBufferedExecOutput(pending) : '',
-              exitCode: null,
-              signal: 'SIGKILL',
-              timedOut: false,
-              aborted: true,
-            })
-          }, 2_000)
-          if (typeof abortTimer.unref === 'function') {
-            abortTimer.unref()
-          }
-        }
-        options.signal.addEventListener('abort', onAbort, { once: true })
-        cleanupSignal = () => options.signal?.removeEventListener('abort', onAbort)
-      }
 
       const pendingOp: PendingExecOperation = {
         kind: 'exec',
@@ -724,7 +711,26 @@ export class RunnerService {
         resolve,
         reject,
         timeoutTimer,
-        cleanupSignal,
+      }
+      if (options.signal) {
+        const signal = options.signal
+        const onAbort = () => {
+          pendingOp.cancelRequested = true
+          // Release the caller after a short grace period. Retain cancellation for reconnects.
+          pendingOp.abortTimer = setTimeout(() => {
+            this.reportCancelledExecution(pendingOp)
+            pendingOp.onOutput = undefined
+            pendingOp.collectOutput = false
+            pendingOp.outputChunks = []
+            pendingOp.bufferedOutputBytes = 0
+          }, 2_000)
+          pendingOp.abortTimer.unref?.()
+          const currentSession = this.getReadySession(runnerId)
+          if (currentSession)
+            this.sendToSession(currentSession, { type: 'exec.cancel', executionId })
+        }
+        signal.addEventListener('abort', onAbort, { once: true })
+        pendingOp.cleanupSignal = () => signal.removeEventListener('abort', onAbort)
       }
 
       this.pendingOps.set(executionId, pendingOp)
@@ -742,10 +748,7 @@ export class RunnerService {
       timeoutMs?: number
     },
   ): Promise<RunnerFileDownloadResultMessage> {
-    const session = this.sessions.get(runnerId)
-    if (!session) {
-      throw new Error('Runner is not connected')
-    }
+    const session = this.requireReadySession(runnerId)
 
     const normalizedDestPath = validateRunnerWorkspacePath(options.destPath)
     const executionId = ulid()
@@ -784,10 +787,7 @@ export class RunnerService {
     srcPath: string,
     timeoutMs = DEFAULT_FILE_OP_TIMEOUT_MS,
   ): Promise<RunnerFileStatResultMessage> {
-    const session = this.sessions.get(runnerId)
-    if (!session) {
-      throw new Error('Runner is not connected')
-    }
+    const session = this.requireReadySession(runnerId)
 
     const normalizedSrcPath = validateRunnerWorkspacePath(srcPath)
     const executionId = ulid()
@@ -826,10 +826,7 @@ export class RunnerService {
       timeoutMs?: number
     },
   ): Promise<RunnerFileUploadResultMessage> {
-    const session = this.sessions.get(runnerId)
-    if (!session) {
-      throw new Error('Runner is not connected')
-    }
+    const session = this.requireReadySession(runnerId)
 
     const normalizedSrcPath = validateRunnerWorkspacePath(options.srcPath)
     const executionId = ulid()
@@ -866,10 +863,7 @@ export class RunnerService {
     runnerId: string,
     skill: { id: string; assetId: string; hash: string },
   ): Promise<string> {
-    const session = this.sessions.get(runnerId)
-    if (!session) {
-      throw new Error('Runner is not connected')
-    }
+    const session = this.requireReadySession(runnerId)
 
     const destPath = `.pi/skills/${skill.id}`
     if (session.stagedSkills.get(skill.id) === skill.hash) {
@@ -910,10 +904,7 @@ export class RunnerService {
   }
 
   async ensureGeneratedFileOnRunner(runnerId: string, virtualPath: string): Promise<string> {
-    const session = this.sessions.get(runnerId)
-    if (!session) {
-      throw new Error('Runner is not connected')
-    }
+    const session = this.requireReadySession(runnerId)
 
     const normalizedPath = validateRunnerWorkspacePath(virtualPath)
     if (!normalizedPath.startsWith('.pi/generated/')) {
@@ -923,7 +914,10 @@ export class RunnerService {
     }
 
     if (session.stagedGeneratedFiles.has(normalizedPath)) {
-      return normalizedPath
+      const stat = await this.statOnRunner(runnerId, normalizedPath)
+      if (stat.ok && stat.exists && stat.isFile && this.getReadySession(runnerId) === session) {
+        return normalizedPath
+      }
     }
 
     // Virtual path .pi/generated/<ulid>/<filename> maps to storage key temp/generated/<ulid>/<filename>
@@ -961,34 +955,54 @@ export class RunnerService {
   // Internal Helpers
   // ----------------------------------------------------------------------
 
+  private getReadySession(runnerId: string): ActiveRunnerSession | undefined {
+    const session = this.sessions.get(runnerId)
+    return session?.environment ? session : undefined
+  }
+
+  private requireReadySession(runnerId: string): ActiveRunnerSession {
+    const session = this.getReadySession(runnerId)
+    if (!session) throw new Error('Runner is not connected')
+    return session
+  }
+
   private handleReconcileMessage(
     session: ActiveRunnerSession,
     msg: Extract<RunnerToServerMessage, { type: 'reconcile' }>,
   ): void {
-    const completedIds = new Set<string>()
     for (const completed of msg.completedExecutions) {
-      completedIds.add(completed.executionId)
       this.handleExecResultMessage(session.runnerId, completed)
     }
 
     const activeIds = new Set(msg.activeExecutions.map((a) => a.executionId))
+    for (const executionId of activeIds) {
+      const pending = this.pendingOps.get(executionId)
+      if (
+        pending?.runnerId !== session.runnerId ||
+        pending.kind !== 'exec' ||
+        pending.cancelRequested
+      ) {
+        // A timeout or cancellation may have occurred after the welcome snapshot.
+        this.sendToSession(session, { type: 'exec.cancel', executionId })
+      }
+    }
 
     for (const [executionId, pending] of this.pendingOps.entries()) {
       if (pending.runnerId !== session.runnerId) continue
-      if (completedIds.has(executionId) || activeIds.has(executionId)) {
-        continue
-      }
-
-      if (pending.kind === 'exec') {
+      if (pending.kind !== 'exec') {
+        // Re-send idempotent file control operations on reconnect.
+        this.sendToSession(session, pending.message)
+      } else if (!activeIds.has(executionId)) {
         this.cleanupPendingOp(executionId)
+        if (pending.cancelRequested) {
+          this.reportCancelledExecution(pending)
+          continue
+        }
         pending.reject(
           new Error(
             `Runner reconnected without active execution ${executionId} (runner process may have restarted)`,
           ),
         )
-      } else {
-        // Re-send idempotent file control operations on reconnect
-        this.sendToSession(session, pending.message)
       }
     }
   }
@@ -1031,8 +1045,8 @@ export class RunnerService {
       output: this.readBufferedExecOutput(pending),
       exitCode: msg.exitCode,
       signal: msg.signal,
-      timedOut: msg.timedOut,
-      aborted: msg.aborted ?? false,
+      timedOut: msg.timedOut && !pending.cancelRequested,
+      aborted: pending.cancelRequested || (msg.aborted ?? false),
       fullOutputPath: msg.fullOutputPath,
       error: msg.error,
     })
@@ -1133,11 +1147,7 @@ export class RunnerService {
   private revokeActiveSession(runnerId: string, reason: string): void {
     this.bumpCredentialRevision(runnerId)
 
-    const timer = this.disconnectGraceTimers.get(runnerId)
-    if (timer) {
-      clearTimeout(timer)
-      this.disconnectGraceTimers.delete(runnerId)
-    }
+    this.clearDisconnectGraceTimer(runnerId)
 
     const session = this.sessions.get(runnerId)
     if (session) {
@@ -1150,6 +1160,24 @@ export class RunnerService {
     }
 
     this.failPendingOperationsForRunner(runnerId, new Error(reason))
+  }
+
+  private clearDisconnectGraceTimer(runnerId: string): void {
+    const timer = this.disconnectGraceTimers.get(runnerId)
+    if (!timer) return
+    clearTimeout(timer)
+    this.disconnectGraceTimers.delete(runnerId)
+  }
+
+  private reportCancelledExecution(pending: PendingExecOperation): void {
+    pending.resolve({
+      executionId: pending.executionId,
+      output: this.readBufferedExecOutput(pending),
+      exitCode: null,
+      signal: 'SIGKILL',
+      timedOut: false,
+      aborted: true,
+    })
   }
 
   private failPendingOperationsForRunner(runnerId: string, error: Error): void {
@@ -1168,8 +1196,9 @@ export class RunnerService {
     if (pending.timeoutTimer) {
       clearTimeout(pending.timeoutTimer)
     }
-    if (pending.kind === 'exec' && pending.cleanupSignal) {
-      pending.cleanupSignal()
+    if (pending.kind === 'exec') {
+      clearTimeout(pending.abortTimer)
+      pending.cleanupSignal?.()
     }
   }
 

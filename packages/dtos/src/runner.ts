@@ -48,6 +48,8 @@ export type RotateRunnerKeyResponse = z.infer<typeof rotateRunnerKeyResponseSche
 // WebSocket Wire Protocol Schemas
 // ----------------------------------------------------------------------
 
+export const RUNNER_REPLACED_CLOSE_CODE = 4000
+
 export const runnerWelcomeMessageSchema = z.object({
   type: z.literal('welcome'),
   runnerId: z.string(),

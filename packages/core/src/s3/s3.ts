@@ -1012,16 +1012,33 @@ export class LocalStorageService implements S3Service {
   async listObjects(bucket: string, prefix: string): Promise<string[]> {
     const bucketDir = path.join(this.basePath, bucket)
     const keys: string[] = []
-
-    if (!fs.existsSync(bucketDir)) {
+    const directoryPrefix = prefix.slice(0, prefix.lastIndexOf('/') + 1)
+    const directory = path.join(bucketDir, directoryPrefix.slice(0, -1))
+    const relativeDirectory = path.relative(bucketDir, directory).split(path.sep).join('/')
+    if (
+      directoryPrefix &&
+      (!relativeDirectory ||
+        relativeDirectory === '..' ||
+        relativeDirectory.startsWith('../') ||
+        relativeDirectory + '/' !== directoryPrefix)
+    )
       return keys
-    }
 
+    const ignoreMissing = (error: unknown) => {
+      if (
+        error instanceof Error &&
+        'code' in error &&
+        (error.code === 'ENOENT' || error.code === 'ENOTDIR')
+      )
+        return undefined
+      throw error
+    }
     const walkDir = async (currentDir: string) => {
-      const files = await fs.promises.readdir(currentDir)
+      const files = (await fs.promises.readdir(currentDir).catch(ignoreMissing)) ?? []
       for (const file of files) {
         const fullPath = path.join(currentDir, file)
-        const stat = await fs.promises.stat(fullPath)
+        const stat = await fs.promises.stat(fullPath).catch(ignoreMissing)
+        if (!stat) continue
 
         if (stat.isDirectory()) {
           await walkDir(fullPath)
@@ -1037,7 +1054,7 @@ export class LocalStorageService implements S3Service {
       }
     }
 
-    await walkDir(bucketDir)
+    await walkDir(directory)
     return keys
   }
 

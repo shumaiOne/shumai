@@ -1,4 +1,5 @@
 import { prisma } from '@shumai/db'
+import * as advisoryLocks from '@shumai/db/src/advisory-lock'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { s3Service } from '../s3/s3'
@@ -32,6 +33,24 @@ function createMockWs() {
   }
 }
 
+function reconcile(
+  service: RunnerService,
+  runnerId: string,
+  ws: RunnerSocket,
+  activeIds: string[] = [],
+) {
+  service.handleMessage(
+    runnerId,
+    ws,
+    JSON.stringify({
+      type: 'reconcile',
+      environment: { platform: 'linux', shell: '/bin/sh' },
+      activeExecutions: activeIds.map((executionId) => ({ executionId, nextOffset: 0 })),
+      completedExecutions: [],
+    }),
+  )
+}
+
 describe('RunnerService', () => {
   setupTestDbHooks()
 
@@ -49,9 +68,46 @@ describe('RunnerService', () => {
     teamId = team.id
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     service.stopHeartbeatMonitor()
+    await service.stopServerTopology()
     vi.restoreAllMocks()
+  })
+
+  it('allows replicas without runners and enforces a single server while runners exist', async () => {
+    const replica = new RunnerService()
+    try {
+      await service.startServerTopology()
+      await replica.startServerTopology()
+      await expect(service.createRunner(teamId, { name: 'Blocked' })).rejects.toMatchObject({
+        status: 409,
+        message: expect.stringContaining('single main Shumai server'),
+      })
+      expect(await service.listRunners(teamId)).toEqual([])
+
+      await replica.stopServerTopology()
+      const { runner } = await service.createRunner(teamId, { name: 'Exclusive runner' })
+      await expect(replica.startServerTopology()).rejects.toThrow('single main Shumai server')
+
+      await service.stopServerTopology()
+      await replica.startServerTopology()
+      await expect(service.startServerTopology()).rejects.toThrow('single main Shumai server')
+
+      const acquireLease = advisoryLocks.tryAcquireUpgradeableAdvisoryLock
+      vi.spyOn(advisoryLocks, 'tryAcquireUpgradeableAdvisoryLock').mockImplementationOnce(
+        async (lockKey, exclusive) => {
+          // The newcomer has already looked up the existing runner.
+          await replica.deleteRunner(teamId, runner.id)
+          return acquireLease(lockKey, exclusive)
+        },
+      )
+      await service.startServerTopology()
+      await expect(replica.createRunner(teamId, { name: 'Blocked again' })).rejects.toMatchObject({
+        status: 409,
+      })
+    } finally {
+      await replica.stopServerTopology()
+    }
   })
 
   describe('Key & workspace path helpers', () => {
@@ -201,6 +257,25 @@ describe('RunnerService', () => {
   })
 
   describe('WebSocket connection lifecycle & eviction', () => {
+    it('waits for reconciliation before reporting online or dispatching a command', async () => {
+      const { runner, key } = await service.createRunner(teamId, { name: 'Handshaking runner' })
+      const conn = createMockWs()
+      await service.registerConnection(
+        { id: runner.id, teamId, name: runner.name, keyHash: hashRunnerKey(key) },
+        conn.ws,
+      )
+
+      expect(conn.lastSentJson()).toHaveProperty('type', 'welcome')
+      expect(service.isRunnerConnected(runner.id)).toBe(false)
+      await expect(service.exec(runner.id, { command: 'echo ready' })).rejects.toThrow(
+        'Runner is not connected',
+      )
+      expect(conn.sent).toHaveLength(1)
+
+      reconcile(service, runner.id, conn.ws)
+      expect(service.isRunnerConnected(runner.id)).toBe(true)
+    })
+
     it('evicts existing connection with 4000 when a new connection arrives', async () => {
       const { runner, key } = await service.createRunner(teamId, { name: 'Runner WS' })
       const keyHash = hashRunnerKey(key)
@@ -211,6 +286,7 @@ describe('RunnerService', () => {
         { id: runner.id, teamId, name: runner.name, keyHash },
         conn1.ws,
       )
+      reconcile(service, runner.id, conn1.ws)
       expect(service.isRunnerConnected(runner.id)).toBe(true)
 
       await service.registerConnection(
@@ -221,6 +297,7 @@ describe('RunnerService', () => {
         code: 4000,
         reason: 'Replaced by a newer connection',
       })
+      reconcile(service, runner.id, conn2.ws)
       expect(service.isRunnerConnected(runner.id)).toBe(true)
     })
 
@@ -294,6 +371,7 @@ describe('RunnerService', () => {
         { id: r2.runner.id, teamId, name: r2.runner.name, keyHash: hashRunnerKey(r2.key) },
         conn2.ws,
       )
+      reconcile(service, r2.runner.id, conn2.ws)
       const online = await service.requireOnlineRunner(teamId, r2.runner.id)
       expect(online.id).toBe(r2.runner.id)
     })
@@ -307,6 +385,7 @@ describe('RunnerService', () => {
         { id: runner.id, teamId, name: runner.name, keyHash: hashRunnerKey(key) },
         conn.ws,
       )
+      reconcile(service, runner.id, conn.ws)
 
       const chunks: Array<{ stream: string; text: string }> = []
       const execPromise = service.exec(runner.id, {
@@ -383,6 +462,7 @@ describe('RunnerService', () => {
         conn.ws,
       )
 
+      reconcile(service, runner.id, conn.ws)
       const streamed: string[] = []
       const noCollectPromise = service.exec(runner.id, {
         command: 'yes | head -n 100',
@@ -456,6 +536,7 @@ describe('RunnerService', () => {
         { id: runner.id, teamId, name: runner.name, keyHash: hashRunnerKey(key) },
         conn.ws,
       )
+      reconcile(service, runner.id, conn.ws)
 
       const abortController = new AbortController()
       const execPromise = service.exec(runner.id, {
@@ -489,6 +570,121 @@ describe('RunnerService', () => {
       expect(res.aborted).toBe(true)
     })
 
+    it.each([false, true])(
+      'replays cancellation on reconnect after notifying caller=%s',
+      async (reported) => {
+        const { runner, key } = await service.createRunner(teamId, {
+          name: 'Cancelled while offline',
+        })
+        const authenticated = {
+          id: runner.id,
+          teamId,
+          name: runner.name,
+          keyHash: hashRunnerKey(key),
+        }
+        const conn = createMockWs()
+        await service.registerConnection(authenticated, conn.ws)
+        reconcile(service, runner.id, conn.ws)
+        const abort = new AbortController()
+        const execution = service.exec(runner.id, { command: 'sleep 30', signal: abort.signal })
+        const { executionId } = conn.lastSentJson()
+
+        service.handleDisconnect(runner.id, conn.ws)
+        abort.abort()
+        if (reported) await expect(execution).resolves.toMatchObject({ aborted: true })
+        const reconnected = createMockWs()
+        await service.registerConnection(authenticated, reconnected.ws)
+        expect(reconnected.lastSentJson()).toMatchObject({ inFlightExecutionIds: [executionId] })
+        reconcile(service, runner.id, reconnected.ws, [executionId])
+        const forwarded = reconnected.lastSentJson()
+
+        service.handleMessage(
+          runner.id,
+          reconnected.ws,
+          JSON.stringify({
+            type: 'exec.result',
+            executionId,
+            exitCode: 0,
+            signal: null,
+            timedOut: false,
+          }),
+        )
+        expect(forwarded).toEqual({ type: 'exec.cancel', executionId })
+        await expect(execution).resolves.toMatchObject({ aborted: true })
+      },
+    )
+
+    it('restages a generated input that was removed from the runner workspace', async () => {
+      vi.spyOn(s3Service, 'headObject').mockResolvedValue({
+        key: 'temp/generated/example/input.jpg',
+        size: 100,
+        lastModified: new Date(),
+        contentType: 'image/jpeg',
+        eTag: 'fixture',
+      })
+      vi.spyOn(s3Service, 'presign').mockResolvedValue('https://signed.example.com/input.jpg')
+      const { runner, key } = await service.createRunner(teamId, { name: 'Generated file runner' })
+      const conn = createMockWs()
+      await service.registerConnection(
+        { id: runner.id, teamId, name: runner.name, keyHash: hashRunnerKey(key) },
+        conn.ws,
+      )
+      reconcile(service, runner.id, conn.ws)
+
+      const destPath = '.pi/generated/example/input.jpg'
+      const acknowledgeDownload = () => {
+        const download = conn.lastSentJson()
+        expect(download).toMatchObject({ type: 'file.download', destPath })
+        service.handleMessage(
+          runner.id,
+          conn.ws,
+          JSON.stringify({
+            type: 'file.download.result',
+            executionId: download.executionId,
+            ok: true,
+          }),
+        )
+      }
+      const first = service.ensureGeneratedFileOnRunner(runner.id, destPath)
+      await vi.waitFor(() => expect(conn.lastSentJson()?.type).toBe('file.download'))
+      acknowledgeDownload()
+      await expect(first).resolves.toBe(destPath)
+
+      const second = service.ensureGeneratedFileOnRunner(runner.id, destPath)
+      const stat = conn.lastSentJson()
+      expect(stat).toMatchObject({ type: 'file.stat', srcPath: destPath })
+      service.handleMessage(
+        runner.id,
+        conn.ws,
+        JSON.stringify({
+          type: 'file.stat.result',
+          executionId: stat.executionId,
+          ok: true,
+          exists: false,
+        }),
+      )
+      await vi.waitFor(() => expect(conn.lastSentJson()?.type).toBe('file.download'))
+      acknowledgeDownload()
+      await expect(second).resolves.toBe(destPath)
+
+      const third = service.ensureGeneratedFileOnRunner(runner.id, destPath)
+      const present = conn.lastSentJson()
+      expect(present).toMatchObject({ type: 'file.stat', srcPath: destPath })
+      service.handleMessage(
+        runner.id,
+        conn.ws,
+        JSON.stringify({
+          type: 'file.stat.result',
+          executionId: present.executionId,
+          ok: true,
+          exists: true,
+          isFile: true,
+        }),
+      )
+      await expect(third).resolves.toBe(destPath)
+      expect(conn.lastSentJson()).toEqual(present)
+    })
+
     it('handles downloadToRunner, uploadFromRunner, statOnRunner, and session caching', async () => {
       vi.spyOn(s3Service, 'presign').mockResolvedValue('https://signed.example.com/file')
       const { runner, key } = await service.createRunner(teamId, { name: 'File Runner' })
@@ -497,6 +693,7 @@ describe('RunnerService', () => {
         { id: runner.id, teamId, name: runner.name, keyHash: hashRunnerKey(key) },
         conn.ws,
       )
+      reconcile(service, runner.id, conn.ws)
 
       // 1. downloadToRunner
       const dlPromise = service.downloadToRunner(runner.id, {
@@ -616,6 +813,7 @@ describe('RunnerService', () => {
         { id: runner.id, teamId, name: runner.name, keyHash },
         conn1.ws,
       )
+      reconcile(service, runner.id, conn1.ws)
 
       const execPromise = service.exec(runner.id, { command: 'long-job' })
       const startMsg = conn1.lastSentJson()
