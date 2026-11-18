@@ -72,6 +72,8 @@ When running multiple replicas of the transcode workers or main servers across m
 - **Custom Worker ID**: Set `SHUMAI_WORKERS_ID` (or `SHUMAI_WORKER_ID`) if you wish to assign an explicit identifier.
 - **Kubernetes**: In Kubernetes Pods, set `POD_NAME` (via Downward API `fieldRef: { fieldPath: metadata.name }`) to provide stable, unique per-pod identity across pod restarts.
 
+Agent runners require a single main server per database. With runners configured, stop the old main server before starting its replacement. For Kubernetes, use a single main server replica with the Recreate deployment strategy. Transcode workers can still scale independently.
+
 ---
 
 ## Scalable Deployment on Kubernetes & AWS EKS

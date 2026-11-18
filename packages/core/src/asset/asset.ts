@@ -66,6 +66,7 @@ import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { uploadService } from '@shumai/core/src/upload/upload'
 import path from 'path'
+import { decodeTime } from 'ulid'
 import { stemFromKey } from '@shumai/core/src/utils/filename'
 import { rewriteM3u8WithPresignedUrls } from '@shumai/core/src/transcode/transcode'
 
@@ -1584,7 +1585,9 @@ export class AssetService {
   private cleanupJobsRunning = false
 
   async startCleanupJob() {
+    if (this.cleanupJobsRunning) return
     this.cleanupJobsRunning = true
+    let nextGeneratedCleanupAt = 0
 
     const runCleanup = async () => {
       if (!this.cleanupJobsRunning) return
@@ -1594,6 +1597,11 @@ export class AssetService {
         await this.purgePendingAssets()
         await this.purgeUnreferencedStorageKeys()
         await watermarkService.purgeOrphanWatermarkConfigs()
+        const now = Date.now()
+        if (now >= nextGeneratedCleanupAt) {
+          nextGeneratedCleanupAt = now + 60 * 60 * 1000
+          await this.purgeExpiredGeneratedFiles()
+        }
       } catch (e: unknown) {
         console.error('Error in asset cleanup job:', e)
       }
@@ -1770,6 +1778,37 @@ export class AssetService {
         { purgedCount, physicalFilesDeleted },
         `Garbage collection: purged ${purgedCount} storage keys and ${physicalFilesDeleted} physical files`,
       )
+    }
+  }
+
+  private async purgeExpiredGeneratedFiles(retentionMs = 24 * 60 * 60 * 1000) {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const keys = await s3Service.listObjects(bucket, 'temp/generated/')
+    if (keys.length === 0) return
+
+    const now = Date.now()
+    for (const key of keys) {
+      try {
+        const parts = key.split('/')
+        const idSegment = parts[2]
+        let createdAtMs: number | null = null
+        if (idSegment && /^[0-9A-HJKMNP-TV-Z]{26}$/i.test(idSegment)) {
+          try {
+            createdAtMs = decodeTime(idSegment.toUpperCase())
+          } catch {
+            createdAtMs = null
+          }
+        }
+        if (createdAtMs === null) {
+          const info = await s3Service.headObject(bucket, key)
+          createdAtMs = info.lastModified.getTime()
+        }
+        if (now - createdAtMs > retentionMs) {
+          await s3Service.deleteObject(bucket, key)
+        }
+      } catch (err) {
+        logger.warn({ err, key }, 'Failed to purge expired generated file')
+      }
     }
   }
 

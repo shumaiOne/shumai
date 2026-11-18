@@ -86,6 +86,44 @@ export SHUMAI_ALLOW_DELETE="true"
 
 ---
 
+## Agent runner
+
+Create a runner in **Settings → Agent Runners** and copy its one-time key. On macOS, Linux, or Windows, start it in an existing dedicated workspace:
+
+```sh
+export SHUMAI_API_SERVER="https://shumai.example.com"
+export SHUMAI_RUNNER_KEY="your-runner-key"
+shumai-cli runner start --cwd /path/to/workspace
+```
+
+For Windows PowerShell:
+
+```powershell
+$env:SHUMAI_API_SERVER = "https://shumai.example.com"
+$env:SHUMAI_RUNNER_KEY = "your-runner-key"
+shumai-cli runner start --cwd C:\workspace
+```
+
+Use `--url` or `--key` to override those variables. Pass `-v` or `--verbose` to log executed commands, output sizes, and file transfer paths (by default, only lifecycle events, execution IDs, exit status, and durations are printed to stderr). A runner key is separate from `SHUMAI_API_KEY`. The runner stays in the foreground; Ctrl+C stops it and its active commands. Remote servers require HTTPS; localhost and `host.docker.internal` support HTTP for development. No inbound port is opened.
+
+Commands use `/bin/sh` on macOS and Linux. On Windows, the runner checks for Git Bash in the standard installation directories, then for `bash.exe` on PATH, then falls back to `cmd.exe`. It prints the selected shell at startup and reports it to the agent. Commands run with the local user's permissions unless SRT is requested.
+
+[Anthropic Sandbox Runtime](https://github.com/anthropics/sandbox-runtime) is bundled with the CLI. Install its platform prerequisites (Linux: bubblewrap, socat, and ripgrep; macOS: ripgrep), then pass its native JSON settings:
+
+```sh
+shumai-cli runner start --srt sandbox.json
+```
+
+Windows sandboxing uses SRT's alpha Windows support. Use Git Bash if your selected shell is the legacy WSL Bash launcher. Run the one-time SRT setup before starting a sandboxed runner (it requests administrator permission):
+
+```powershell
+npx @anthropic-ai/sandbox-runtime windows-install
+```
+
+SRT settings are read and validated at startup. Invalid settings or unavailable sandbox prerequisites stop startup; commands never fall back to unrestricted execution. Only shell commands and their children are sandboxed. Runner connections and server-directed file transfers stay outside SRT, and no server domain is automatically allowed. The shared SRT runtime is cleaned up when the runner stops.
+
+See [Agent Runners](../../docs/using-shumai/agent-sandbox.mdx) for configuration, Docker usage, limits, and security boundaries.
+
 ## Usage
 
 > [!IMPORTANT]
@@ -330,7 +368,7 @@ bun run build:cli --target darwin-arm64 # or darwin-x64, linux-arm64, linux-x64,
 bun run test:cli-release
 ```
 
-Without `--target`, the build produces all six targets. Output defaults to `out/cli-release`; both commands accept `--out /absolute/path`. Unix archives require `tar`; creating Windows archives on Unix also requires `zip`. The test runs the generated installer against local HTTP fixtures, then authenticates, creates a folder, uploads and downloads random bytes, and checks failure recovery with no runtime on the executable's PATH.
+Without `--target`, the build produces all six targets. Output defaults to `out/cli-release`. Set `--out /absolute/path` on either command to change it. Unix archives require `tar`. Creating Windows archives on Unix also requires `zip`. The test exercises installation, runner shell quoting, authenticated API calls, file transfers, and failure recovery. Install Git Bash to run the quoting check on Windows. With SRT configured, pass `--srt /absolute/path/to/settings.json` to repeat the quoting check in the sandbox.
 
 The Native CLI workflow builds and tests each target on a matching runner. The npm release workflow assembles those tested archives, stages a draft GitHub Release, publishes npm packages, then publishes the completed release. Its `validate_only` dispatch input builds and tests without publishing. Published assets are verified and preserved on retries; draft assets can be replaced while resuming a failed run. Prerelease npm packages use the `next` tag and prerelease GitHub Releases do not become latest.
 

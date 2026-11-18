@@ -717,6 +717,50 @@ describe('S3Service implementations', () => {
       expect(keysAll.length).toBe(3)
     })
 
+    it('lists a nested prefix without scanning unrelated directories', async () => {
+      await localS3.putObject('test-bucket', 'temp/generated/one.jpg', 'one', 3)
+      await localS3.putObject('test-bucket', 'files/unrelated.txt', 'abc', 3)
+      const readDirectory = vi.spyOn(fs.promises, 'readdir')
+      try {
+        await expect(localS3.listObjects('test-bucket', 'temp/generated/')).resolves.toEqual([
+          'temp/generated/one.jpg',
+        ])
+        expect(readDirectory.mock.calls.map(([directory]) => directory)).toEqual([
+          path.join(TEST_BASE_PATH, 'test-bucket', 'temp', 'generated'),
+        ])
+        readDirectory.mockClear()
+        await expect(localS3.listObjects('test-bucket', 'temp/missing/')).resolves.toEqual([])
+        expect(readDirectory.mock.calls.map(([directory]) => directory)).not.toContain(
+          path.join(TEST_BASE_PATH, 'test-bucket'),
+        )
+        await expect(localS3.listObjects('test-bucket', 'temp/generated/on')).resolves.toEqual([
+          'temp/generated/one.jpg',
+        ])
+      } finally {
+        readDirectory.mockRestore()
+      }
+    })
+
+    it('continues listing when a file disappears during a local prefix scan', async () => {
+      const removedKey = 'temp/generated/removed.jpg'
+      const remainingKey = 'temp/generated/remaining.jpg'
+      await localS3.putObject('test-bucket', removedKey, 'old', 3)
+      await localS3.putObject('test-bucket', remainingKey, 'new', 3)
+      const stat = fs.promises.stat
+      const removedPath = path.join(TEST_BASE_PATH, 'test-bucket', removedKey)
+      const statSpy = vi.spyOn(fs.promises, 'stat').mockImplementation(async (target, options) => {
+        if (target === removedPath) await fs.promises.unlink(removedPath)
+        return stat(target, options)
+      })
+      try {
+        await expect(localS3.listObjects('test-bucket', 'temp/generated/')).resolves.toEqual([
+          remainingKey,
+        ])
+      } finally {
+        statSpy.mockRestore()
+      }
+    })
+
     it('should handle headObject correctly', async () => {
       await localS3.putObject('test-bucket', 'test.txt', 'hello world', 11)
       const head = await localS3.headObject('test-bucket', 'test.txt')

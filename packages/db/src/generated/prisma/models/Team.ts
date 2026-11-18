@@ -198,7 +198,7 @@ export type TeamWhereInput = {
   providers?: Prisma.ProviderListRelationFilter
   skills?: Prisma.SkillListRelationFilter
   mcpServers?: Prisma.McpServerListRelationFilter
-  sandbox?: Prisma.XOR<Prisma.SandboxNullableScalarRelationFilter, Prisma.SandboxWhereInput> | null
+  runners?: Prisma.RunnerListRelationFilter
   agents?: Prisma.AgentListRelationFilter
   aiUsages?: Prisma.AiUsageListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
@@ -226,7 +226,7 @@ export type TeamOrderByWithRelationInput = {
   providers?: Prisma.ProviderOrderByRelationAggregateInput
   skills?: Prisma.SkillOrderByRelationAggregateInput
   mcpServers?: Prisma.McpServerOrderByRelationAggregateInput
-  sandbox?: Prisma.SandboxOrderByWithRelationInput
+  runners?: Prisma.RunnerOrderByRelationAggregateInput
   agents?: Prisma.AgentOrderByRelationAggregateInput
   aiUsages?: Prisma.AiUsageOrderByRelationAggregateInput
   auditLogs?: Prisma.AuditLogOrderByRelationAggregateInput
@@ -257,7 +257,7 @@ export type TeamWhereUniqueInput = Prisma.AtLeast<{
   providers?: Prisma.ProviderListRelationFilter
   skills?: Prisma.SkillListRelationFilter
   mcpServers?: Prisma.McpServerListRelationFilter
-  sandbox?: Prisma.XOR<Prisma.SandboxNullableScalarRelationFilter, Prisma.SandboxWhereInput> | null
+  runners?: Prisma.RunnerListRelationFilter
   agents?: Prisma.AgentListRelationFilter
   aiUsages?: Prisma.AiUsageListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
@@ -308,7 +308,7 @@ export type TeamCreateInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -335,7 +335,7 @@ export type TeamUncheckedCreateInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -362,7 +362,7 @@ export type TeamUpdateInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -389,7 +389,7 @@ export type TeamUncheckedUpdateInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -461,18 +461,18 @@ export type TeamNullableScalarRelationFilter = {
   isNot?: Prisma.TeamWhereInput | null
 }
 
-export type TeamCreateNestedOneWithoutSandboxInput = {
-  create?: Prisma.XOR<Prisma.TeamCreateWithoutSandboxInput, Prisma.TeamUncheckedCreateWithoutSandboxInput>
-  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutSandboxInput
+export type TeamCreateNestedOneWithoutRunnersInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutRunnersInput, Prisma.TeamUncheckedCreateWithoutRunnersInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutRunnersInput
   connect?: Prisma.TeamWhereUniqueInput
 }
 
-export type TeamUpdateOneRequiredWithoutSandboxNestedInput = {
-  create?: Prisma.XOR<Prisma.TeamCreateWithoutSandboxInput, Prisma.TeamUncheckedCreateWithoutSandboxInput>
-  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutSandboxInput
-  upsert?: Prisma.TeamUpsertWithoutSandboxInput
+export type TeamUpdateOneRequiredWithoutRunnersNestedInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutRunnersInput, Prisma.TeamUncheckedCreateWithoutRunnersInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutRunnersInput
+  upsert?: Prisma.TeamUpsertWithoutRunnersInput
   connect?: Prisma.TeamWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutSandboxInput, Prisma.TeamUpdateWithoutSandboxInput>, Prisma.TeamUncheckedUpdateWithoutSandboxInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutRunnersInput, Prisma.TeamUpdateWithoutRunnersInput>, Prisma.TeamUncheckedUpdateWithoutRunnersInput>
 }
 
 export type TeamCreateNestedOneWithoutSkillsInput = {
@@ -749,7 +749,7 @@ export type TeamUpdateOneRequiredWithoutKanbanTasksNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutKanbanTasksInput, Prisma.TeamUpdateWithoutKanbanTasksInput>, Prisma.TeamUncheckedUpdateWithoutKanbanTasksInput>
 }
 
-export type TeamCreateWithoutSandboxInput = {
+export type TeamCreateWithoutRunnersInput = {
   id?: string
   name: string
   settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
@@ -775,7 +775,7 @@ export type TeamCreateWithoutSandboxInput = {
   kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutTeamInput
 }
 
-export type TeamUncheckedCreateWithoutSandboxInput = {
+export type TeamUncheckedCreateWithoutRunnersInput = {
   id?: string
   name: string
   settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
@@ -801,23 +801,23 @@ export type TeamUncheckedCreateWithoutSandboxInput = {
   kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutTeamInput
 }
 
-export type TeamCreateOrConnectWithoutSandboxInput = {
+export type TeamCreateOrConnectWithoutRunnersInput = {
   where: Prisma.TeamWhereUniqueInput
-  create: Prisma.XOR<Prisma.TeamCreateWithoutSandboxInput, Prisma.TeamUncheckedCreateWithoutSandboxInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutRunnersInput, Prisma.TeamUncheckedCreateWithoutRunnersInput>
 }
 
-export type TeamUpsertWithoutSandboxInput = {
-  update: Prisma.XOR<Prisma.TeamUpdateWithoutSandboxInput, Prisma.TeamUncheckedUpdateWithoutSandboxInput>
-  create: Prisma.XOR<Prisma.TeamCreateWithoutSandboxInput, Prisma.TeamUncheckedCreateWithoutSandboxInput>
+export type TeamUpsertWithoutRunnersInput = {
+  update: Prisma.XOR<Prisma.TeamUpdateWithoutRunnersInput, Prisma.TeamUncheckedUpdateWithoutRunnersInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutRunnersInput, Prisma.TeamUncheckedCreateWithoutRunnersInput>
   where?: Prisma.TeamWhereInput
 }
 
-export type TeamUpdateToOneWithWhereWithoutSandboxInput = {
+export type TeamUpdateToOneWithWhereWithoutRunnersInput = {
   where?: Prisma.TeamWhereInput
-  data: Prisma.XOR<Prisma.TeamUpdateWithoutSandboxInput, Prisma.TeamUncheckedUpdateWithoutSandboxInput>
+  data: Prisma.XOR<Prisma.TeamUpdateWithoutRunnersInput, Prisma.TeamUncheckedUpdateWithoutRunnersInput>
 }
 
-export type TeamUpdateWithoutSandboxInput = {
+export type TeamUpdateWithoutRunnersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
@@ -843,7 +843,7 @@ export type TeamUpdateWithoutSandboxInput = {
   kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutTeamNestedInput
 }
 
-export type TeamUncheckedUpdateWithoutSandboxInput = {
+export type TeamUncheckedUpdateWithoutRunnersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
@@ -884,7 +884,7 @@ export type TeamCreateWithoutSkillsInput = {
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -910,7 +910,7 @@ export type TeamUncheckedCreateWithoutSkillsInput = {
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -952,7 +952,7 @@ export type TeamUpdateWithoutSkillsInput = {
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -978,7 +978,7 @@ export type TeamUncheckedUpdateWithoutSkillsInput = {
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -1004,7 +1004,7 @@ export type TeamCreateWithoutMembersInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -1030,7 +1030,7 @@ export type TeamUncheckedCreateWithoutMembersInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -1072,7 +1072,7 @@ export type TeamUpdateWithoutMembersInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -1098,7 +1098,7 @@ export type TeamUncheckedUpdateWithoutMembersInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -1124,7 +1124,7 @@ export type TeamCreateWithoutProjectsInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -1150,7 +1150,7 @@ export type TeamUncheckedCreateWithoutProjectsInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -1192,7 +1192,7 @@ export type TeamUpdateWithoutProjectsInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -1218,7 +1218,7 @@ export type TeamUncheckedUpdateWithoutProjectsInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -1245,7 +1245,7 @@ export type TeamCreateWithoutWatermarkTemplatesInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -1271,7 +1271,7 @@ export type TeamUncheckedCreateWithoutWatermarkTemplatesInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -1313,7 +1313,7 @@ export type TeamUpdateWithoutWatermarkTemplatesInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -1339,7 +1339,7 @@ export type TeamUncheckedUpdateWithoutWatermarkTemplatesInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -1364,7 +1364,7 @@ export type TeamCreateWithoutRootFolderInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -1390,7 +1390,7 @@ export type TeamUncheckedCreateWithoutRootFolderInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -1432,7 +1432,7 @@ export type TeamUpdateWithoutRootFolderInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -1458,7 +1458,7 @@ export type TeamUncheckedUpdateWithoutRootFolderInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -1484,7 +1484,7 @@ export type TeamCreateWithoutInvitesInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -1510,7 +1510,7 @@ export type TeamUncheckedCreateWithoutInvitesInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -1552,7 +1552,7 @@ export type TeamUpdateWithoutInvitesInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -1578,7 +1578,7 @@ export type TeamUncheckedUpdateWithoutInvitesInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -1604,7 +1604,7 @@ export type TeamCreateWithoutMetadataFieldsInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -1630,7 +1630,7 @@ export type TeamUncheckedCreateWithoutMetadataFieldsInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -1672,7 +1672,7 @@ export type TeamUpdateWithoutMetadataFieldsInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -1698,7 +1698,7 @@ export type TeamUncheckedUpdateWithoutMetadataFieldsInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -1724,7 +1724,7 @@ export type TeamCreateWithoutNotificationsInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -1750,7 +1750,7 @@ export type TeamUncheckedCreateWithoutNotificationsInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -1792,7 +1792,7 @@ export type TeamUpdateWithoutNotificationsInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -1818,7 +1818,7 @@ export type TeamUncheckedUpdateWithoutNotificationsInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -1845,7 +1845,7 @@ export type TeamCreateWithoutAgentsInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
@@ -1871,7 +1871,7 @@ export type TeamUncheckedCreateWithoutAgentsInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
@@ -1913,7 +1913,7 @@ export type TeamUpdateWithoutAgentsInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
@@ -1939,7 +1939,7 @@ export type TeamUncheckedUpdateWithoutAgentsInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
@@ -1964,7 +1964,7 @@ export type TeamCreateWithoutMcpServersInput = {
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -1990,7 +1990,7 @@ export type TeamUncheckedCreateWithoutMcpServersInput = {
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -2032,7 +2032,7 @@ export type TeamUpdateWithoutMcpServersInput = {
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -2058,7 +2058,7 @@ export type TeamUncheckedUpdateWithoutMcpServersInput = {
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -2084,7 +2084,7 @@ export type TeamCreateWithoutUserMetadataInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -2110,7 +2110,7 @@ export type TeamUncheckedCreateWithoutUserMetadataInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -2152,7 +2152,7 @@ export type TeamUpdateWithoutUserMetadataInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -2178,7 +2178,7 @@ export type TeamUncheckedUpdateWithoutUserMetadataInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -2204,7 +2204,7 @@ export type TeamCreateWithoutProvidersInput = {
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -2230,7 +2230,7 @@ export type TeamUncheckedCreateWithoutProvidersInput = {
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -2272,7 +2272,7 @@ export type TeamUpdateWithoutProvidersInput = {
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -2298,7 +2298,7 @@ export type TeamUncheckedUpdateWithoutProvidersInput = {
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -2325,7 +2325,7 @@ export type TeamCreateWithoutAiUsagesInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
@@ -2351,7 +2351,7 @@ export type TeamUncheckedCreateWithoutAiUsagesInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
@@ -2393,7 +2393,7 @@ export type TeamUpdateWithoutAiUsagesInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
@@ -2419,7 +2419,7 @@ export type TeamUncheckedUpdateWithoutAiUsagesInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
@@ -2445,7 +2445,7 @@ export type TeamCreateWithoutAuditLogsInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
@@ -2471,7 +2471,7 @@ export type TeamUncheckedCreateWithoutAuditLogsInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
@@ -2513,7 +2513,7 @@ export type TeamUpdateWithoutAuditLogsInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
@@ -2539,7 +2539,7 @@ export type TeamUncheckedUpdateWithoutAuditLogsInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
@@ -2565,7 +2565,7 @@ export type TeamCreateWithoutQuotaRulesInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -2591,7 +2591,7 @@ export type TeamUncheckedCreateWithoutQuotaRulesInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -2633,7 +2633,7 @@ export type TeamUpdateWithoutQuotaRulesInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -2659,7 +2659,7 @@ export type TeamUncheckedUpdateWithoutQuotaRulesInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -2685,7 +2685,7 @@ export type TeamCreateWithoutQuotaRecordsInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -2711,7 +2711,7 @@ export type TeamUncheckedCreateWithoutQuotaRecordsInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -2753,7 +2753,7 @@ export type TeamUpdateWithoutQuotaRecordsInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -2779,7 +2779,7 @@ export type TeamUncheckedUpdateWithoutQuotaRecordsInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -2805,7 +2805,7 @@ export type TeamCreateWithoutKanbanGoalsInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -2831,7 +2831,7 @@ export type TeamUncheckedCreateWithoutKanbanGoalsInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -2873,7 +2873,7 @@ export type TeamUpdateWithoutKanbanGoalsInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -2899,7 +2899,7 @@ export type TeamUncheckedUpdateWithoutKanbanGoalsInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -2925,7 +2925,7 @@ export type TeamCreateWithoutKanbanTasksInput = {
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
@@ -2951,7 +2951,7 @@ export type TeamUncheckedCreateWithoutKanbanTasksInput = {
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
   mcpServers?: Prisma.McpServerUncheckedCreateNestedManyWithoutTeamInput
-  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
+  runners?: Prisma.RunnerUncheckedCreateNestedManyWithoutTeamInput
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
@@ -2993,7 +2993,7 @@ export type TeamUpdateWithoutKanbanTasksInput = {
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
@@ -3019,7 +3019,7 @@ export type TeamUncheckedUpdateWithoutKanbanTasksInput = {
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
   mcpServers?: Prisma.McpServerUncheckedUpdateManyWithoutTeamNestedInput
-  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
+  runners?: Prisma.RunnerUncheckedUpdateManyWithoutTeamNestedInput
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
@@ -3044,6 +3044,7 @@ export type TeamCountOutputType = {
   providers: number
   skills: number
   mcpServers: number
+  runners: number
   agents: number
   aiUsages: number
   auditLogs: number
@@ -3064,6 +3065,7 @@ export type TeamCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   providers?: boolean | TeamCountOutputTypeCountProvidersArgs
   skills?: boolean | TeamCountOutputTypeCountSkillsArgs
   mcpServers?: boolean | TeamCountOutputTypeCountMcpServersArgs
+  runners?: boolean | TeamCountOutputTypeCountRunnersArgs
   agents?: boolean | TeamCountOutputTypeCountAgentsArgs
   aiUsages?: boolean | TeamCountOutputTypeCountAiUsagesArgs
   auditLogs?: boolean | TeamCountOutputTypeCountAuditLogsArgs
@@ -3150,6 +3152,13 @@ export type TeamCountOutputTypeCountMcpServersArgs<ExtArgs extends runtime.Types
 /**
  * TeamCountOutputType without action
  */
+export type TeamCountOutputTypeCountRunnersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RunnerWhereInput
+}
+
+/**
+ * TeamCountOutputType without action
+ */
 export type TeamCountOutputTypeCountAgentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AgentWhereInput
 }
@@ -3221,7 +3230,7 @@ export type TeamSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   providers?: boolean | Prisma.Team$providersArgs<ExtArgs>
   skills?: boolean | Prisma.Team$skillsArgs<ExtArgs>
   mcpServers?: boolean | Prisma.Team$mcpServersArgs<ExtArgs>
-  sandbox?: boolean | Prisma.Team$sandboxArgs<ExtArgs>
+  runners?: boolean | Prisma.Team$runnersArgs<ExtArgs>
   agents?: boolean | Prisma.Team$agentsArgs<ExtArgs>
   aiUsages?: boolean | Prisma.Team$aiUsagesArgs<ExtArgs>
   auditLogs?: boolean | Prisma.Team$auditLogsArgs<ExtArgs>
@@ -3274,7 +3283,7 @@ export type TeamInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   providers?: boolean | Prisma.Team$providersArgs<ExtArgs>
   skills?: boolean | Prisma.Team$skillsArgs<ExtArgs>
   mcpServers?: boolean | Prisma.Team$mcpServersArgs<ExtArgs>
-  sandbox?: boolean | Prisma.Team$sandboxArgs<ExtArgs>
+  runners?: boolean | Prisma.Team$runnersArgs<ExtArgs>
   agents?: boolean | Prisma.Team$agentsArgs<ExtArgs>
   aiUsages?: boolean | Prisma.Team$aiUsagesArgs<ExtArgs>
   auditLogs?: boolean | Prisma.Team$auditLogsArgs<ExtArgs>
@@ -3305,7 +3314,7 @@ export type $TeamPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     providers: Prisma.$ProviderPayload<ExtArgs>[]
     skills: Prisma.$SkillPayload<ExtArgs>[]
     mcpServers: Prisma.$McpServerPayload<ExtArgs>[]
-    sandbox: Prisma.$SandboxPayload<ExtArgs> | null
+    runners: Prisma.$RunnerPayload<ExtArgs>[]
     agents: Prisma.$AgentPayload<ExtArgs>[]
     aiUsages: Prisma.$AiUsagePayload<ExtArgs>[]
     auditLogs: Prisma.$AuditLogPayload<ExtArgs>[]
@@ -3729,7 +3738,7 @@ export interface Prisma__TeamClient<T, Null = never, ExtArgs extends runtime.Typ
   providers<T extends Prisma.Team$providersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$providersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProviderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   skills<T extends Prisma.Team$skillsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$skillsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SkillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   mcpServers<T extends Prisma.Team$mcpServersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$mcpServersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$McpServerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  sandbox<T extends Prisma.Team$sandboxArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$sandboxArgs<ExtArgs>>): Prisma.Prisma__SandboxClient<runtime.Types.Result.GetResult<Prisma.$SandboxPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  runners<T extends Prisma.Team$runnersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$runnersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RunnerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   agents<T extends Prisma.Team$agentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$agentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   aiUsages<T extends Prisma.Team$aiUsagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$aiUsagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiUsagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   auditLogs<T extends Prisma.Team$auditLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -4409,22 +4418,27 @@ export type Team$mcpServersArgs<ExtArgs extends runtime.Types.Extensions.Interna
 }
 
 /**
- * Team.sandbox
+ * Team.runners
  */
-export type Team$sandboxArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Team$runnersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Sandbox
+   * Select specific fields to fetch from the Runner
    */
-  select?: Prisma.SandboxSelect<ExtArgs> | null
+  select?: Prisma.RunnerSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Sandbox
+   * Omit specific fields from the Runner
    */
-  omit?: Prisma.SandboxOmit<ExtArgs> | null
+  omit?: Prisma.RunnerOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.SandboxInclude<ExtArgs> | null
-  where?: Prisma.SandboxWhereInput
+  include?: Prisma.RunnerInclude<ExtArgs> | null
+  where?: Prisma.RunnerWhereInput
+  orderBy?: Prisma.RunnerOrderByWithRelationInput | Prisma.RunnerOrderByWithRelationInput[]
+  cursor?: Prisma.RunnerWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RunnerScalarFieldEnum | Prisma.RunnerScalarFieldEnum[]
 }
 
 /**

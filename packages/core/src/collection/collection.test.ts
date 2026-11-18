@@ -17,7 +17,6 @@ describe('CollectionService', () => {
         settings: {
           transcode: { videoStrategy: 'best_match' },
         },
-        sandbox: { create: {} },
       },
     })
     await prisma.teamMember.create({

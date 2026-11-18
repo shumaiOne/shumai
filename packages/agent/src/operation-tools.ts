@@ -14,7 +14,9 @@ import { Compile } from 'typebox/compile'
 import { z } from 'zod'
 
 /** Context for agent-invoked Operations; `via` is always `agent`. */
-export type AgentOperationContext = Omit<OperationContext, 'via'>
+export type AgentOperationContext = Omit<OperationContext, 'via'> & {
+  runnerId?: string | null
+}
 
 /** Per-session settings for building tools, e.g. schemas that depend on the project. */
 export interface AgentToolOptions {
@@ -23,6 +25,10 @@ export interface AgentToolOptions {
    * parameter of tools that create files. Undefined when the project has none.
    */
   creationMetadataSchema?: TSchema
+  /**
+   * Operation names to exclude from the built tool list (e.g. `download_asset` when no runner is configured).
+   */
+  excludeOperations?: string[]
 }
 
 /** The JSON Schema of a tool's parameters (an object schema). */
@@ -54,7 +60,11 @@ export interface AgentToolExtension {
   /** Adjust the parameters' JSON Schema for this session (e.g. a project-specific field). */
   adjustParameters?(schema: ToolParametersSchema, options: AgentToolOptions): void
   /** Adjust the Operation input using the extra parameters. */
-  toInput?(input: Record<string, unknown>, extra: Record<string, unknown>): Record<string, unknown>
+  toInput?(
+    input: Record<string, unknown>,
+    extra: Record<string, unknown>,
+    ctx?: AgentOperationContext,
+  ): Promise<Record<string, unknown>> | Record<string, unknown>
   /**
    * Handle an agent-only mode without running the Operation (e.g. a storage key instead of
    * an asset). Return undefined to run the Operation.
@@ -110,11 +120,12 @@ export function toToolParameters(
 }
 
 /** Split agent-only parameters from the Operation input. */
-export function splitAgentParams(
+export async function splitAgentParams(
   op: Operation,
   extension: AgentToolExtension | undefined,
   params: unknown,
-): { input: unknown; extra: Record<string, unknown> } {
+  ctx?: AgentOperationContext,
+): Promise<{ input: unknown; extra: Record<string, unknown> }> {
   const cleaned = dropNullOptionals(toolInputSchema(op, extension), params)
   if (!extension?.extraParameters || !cleaned || typeof cleaned !== 'object') {
     return { input: cleaned, extra: {} }
@@ -125,7 +136,10 @@ export function splitAgentParams(
   for (const [key, value] of Object.entries(cleaned)) {
     ;(extraKeys.has(key) ? extra : input)[key] = value
   }
-  return { input: extension.toInput ? extension.toInput(input, extra) : input, extra }
+  return {
+    input: extension.toInput ? await extension.toInput(input, extra, ctx) : input,
+    extra,
+  }
 }
 
 /** Expose an Operation as a native agent tool that runs through `runOperation`. */
@@ -141,7 +155,7 @@ export function toAgentTool(
     description: extension?.description ?? definition.description,
     parameters: toToolParameters(op, extension, options),
     execute: async (params) => {
-      const { input, extra } = splitAgentParams(op, extension, params)
+      const { input, extra } = await splitAgentParams(op, extension, params, ctx)
       if (extension?.intercept) {
         const handled = await extension.intercept(input as Record<string, unknown>, extra, ctx)
         if (handled) return handled
@@ -163,5 +177,8 @@ export function buildOperationTools(
   ctx: AgentOperationContext,
   options: AgentToolOptions = {},
 ): AgentTool[] {
-  return getOperationsForSurface('agent').map((op) => toAgentTool(op, ctx, options))
+  const excluded = new Set(options.excludeOperations ?? [])
+  return getOperationsForSurface('agent')
+    .filter((op) => !excluded.has(op.definition.name))
+    .map((op) => toAgentTool(op, ctx, options))
 }

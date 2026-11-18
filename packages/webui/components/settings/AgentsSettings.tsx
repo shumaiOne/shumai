@@ -148,6 +148,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
       soul?: string
       skills?: string[]
       deniedTools?: string[]
+      runnerId?: string | null
     }) => {
       const res = await client.api.agents[':agentId'].$put({
         param: { agentId: params.agentId },
@@ -163,6 +164,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
           soul: params.soul,
           skills: params.skills,
           deniedTools: params.deniedTools,
+          runnerId: params.runnerId,
         },
       })
       if (!res.ok) throw new Error('failed to update agent')
@@ -434,6 +436,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                                       soul: agent.soul,
                                       skills: agent.skills?.map((s) => s.skillId),
                                       deniedTools: agent.deniedTools,
+                                      runnerId: agent.runnerId,
                                     })
                                   }}
                                 />

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **cli**: Run remote shell commands and exchange files with `shumai-cli runner start` on macOS, Linux, and Windows, with optional SRT sandboxing. On Windows, the runner automatically uses Bash when available and falls back to Command Prompt.
+- **agent**: Connect remote runners on single-server deployments to run shell commands and exchange files. Assign the team's default runner or a dedicated runner in Agent Settings. A runner's workspace is shared by everyone who can use it.
 - **i18n**: Add Korean as a display language, selectable on the sign-up page and in team settings.
 
 ### Fixed
@@ -16,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **agent**: Make bash available to editors and reviewers as soon as a runner is configured, without first reading a skill.
+- **agent**: ⚠️ **Behavior Change**: Replace the built-in server-side bash sandbox and domain allowlist settings with external team Runners; agent `bash` and `download_asset` tools are enabled automatically once at least one Runner is configured for the team, while domain and OS-level sandboxing rules move to the Runner side.
 - **cli**: Show copyable commands and shell configuration instructions when the standalone CLI installation directory is missing from PATH.
 
 ## [0.6.6] - 2026-11-13

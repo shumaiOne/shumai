@@ -30,6 +30,9 @@ import uploadRoute, { localUploadRoute } from './upload'
 import versionStackRoute from './versionStack'
 import kanbanRoute from './kanban'
 import mediaGenerationRoute from './media-generation'
+import runnerWsRoute, { runnerWebsocket } from './runner-ws'
+
+export { runnerWebsocket }
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -42,6 +45,7 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', publicShareRoute)
   .route('/', localUploadRoute)
   .route('/', mcpOauthCallbackRoute)
+  .route('/', runnerWsRoute)
 
   // Programmatic endpoint for the CLI: API token required, session cookies not accepted
   .use('/ops/*', requireApiTokenMiddleware)

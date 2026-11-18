@@ -8,6 +8,7 @@ import { s3Service, getStorageBackend } from '@shumai/core/src/s3/s3'
 import * as archiveStorageModule from '@shumai/core/src/s3/archive-storage'
 import { uploadService } from '@shumai/core/src/upload/upload'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
+import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { AssetService } from './asset'
 
 import { ensureJpegInStorage } from '@shumai/core/src/s3/preview-converter'
@@ -22,6 +23,7 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
     deletePrefix: vi.fn().mockResolvedValue(1),
     copyObject: vi.fn().mockResolvedValue(undefined),
     getStoragePath: vi.fn((bucket: string, key: string) => `/mock/data/${bucket}/${key}`),
+    listObjects: vi.fn().mockResolvedValue([]),
   },
   getStorageBackend: vi.fn().mockReturnValue('local'),
 }))
@@ -45,6 +47,31 @@ describe('AssetService', () => {
 
   afterEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('checks generated file expiration hourly while continuing regular cleanup', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
+    const startedAt = Date.now()
+    const regularCleanup = vi
+      .spyOn(watermarkService, 'purgeOrphanWatermarkConfigs')
+      .mockResolvedValue(0)
+    try {
+      await assetService.startCleanupJob()
+      await vi.waitFor(() => expect(s3Service.listObjects).toHaveBeenCalledTimes(1))
+      expect(s3Service.listObjects).toHaveBeenCalledWith(expect.any(String), 'temp/generated/')
+
+      await vi.advanceTimersByTimeAsync(5_000)
+      await vi.waitFor(() => expect(regularCleanup).toHaveBeenCalledTimes(2))
+      expect(s3Service.listObjects).toHaveBeenCalledTimes(1)
+
+      vi.setSystemTime(startedAt + 60 * 60 * 1000)
+      await vi.advanceTimersByTimeAsync(5_000)
+      await vi.waitFor(() => expect(s3Service.listObjects).toHaveBeenCalledTimes(2))
+    } finally {
+      assetService.stopCleanupJob()
+      regularCleanup.mockRestore()
+      vi.useRealTimers()
+    }
   })
 
   const setupBasicAssets = async () => {

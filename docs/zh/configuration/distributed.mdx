@@ -53,6 +53,8 @@ Worker 根据可配置的并发上限从 PostgreSQL 队列中拉取任务：
 - **自定义 Worker ID**：若需显式指定标识符，可设置 `SHUMAI_WORKERS_ID`（或 `SHUMAI_WORKER_ID`）。
 - **Kubernetes 环境**：在 Kubernetes Pod 中，可通过 Downward API（`fieldRef: { fieldPath: metadata.name }`）设置 `POD_NAME`，以在 Pod 重启期间保持稳定且唯一的单 Pod 身份标识。
 
+使用智能体运行器时，每个数据库只允许运行一个主服务器。已配置运行器时，请先停止旧主服务器，再启动替换实例。在 Kubernetes 中，主服务器应使用单副本和 Recreate 部署策略。转码 Worker 仍可独立扩展。
+
 ---
 
 ## 基于 Kubernetes 与 AWS EKS 的弹性扩展部署

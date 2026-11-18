@@ -20,7 +20,6 @@ describe('AssetService - Recently Viewed', () => {
         settings: {
           transcode: { videoStrategy: 'best_match' },
         },
-        sandbox: { create: {} },
       },
     })
     await prisma.teamMember.create({

@@ -34,6 +34,7 @@ export type AgentMinAggregateOutputType = {
   soul: string | null
   providerId: string | null
   modelId: string | null
+  runnerId: string | null
   teamId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -47,6 +48,7 @@ export type AgentMaxAggregateOutputType = {
   soul: string | null
   providerId: string | null
   modelId: string | null
+  runnerId: string | null
   teamId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -60,6 +62,7 @@ export type AgentCountAggregateOutputType = {
   soul: number
   providerId: number
   modelId: number
+  runnerId: number
   teamId: number
   config: number
   createdAt: number
@@ -76,6 +79,7 @@ export type AgentMinAggregateInputType = {
   soul?: true
   providerId?: true
   modelId?: true
+  runnerId?: true
   teamId?: true
   createdAt?: true
   updatedAt?: true
@@ -89,6 +93,7 @@ export type AgentMaxAggregateInputType = {
   soul?: true
   providerId?: true
   modelId?: true
+  runnerId?: true
   teamId?: true
   createdAt?: true
   updatedAt?: true
@@ -102,6 +107,7 @@ export type AgentCountAggregateInputType = {
   soul?: true
   providerId?: true
   modelId?: true
+  runnerId?: true
   teamId?: true
   config?: true
   createdAt?: true
@@ -189,6 +195,7 @@ export type AgentGroupByOutputType = {
   soul: string | null
   providerId: string | null
   modelId: string | null
+  runnerId: string | null
   teamId: string
   config:PrismaJson.AgentConfig
   createdAt: Date
@@ -224,6 +231,7 @@ export type AgentWhereInput = {
   soul?: Prisma.StringNullableFilter<"Agent"> | string | null
   providerId?: Prisma.StringNullableFilter<"Agent"> | string | null
   modelId?: Prisma.StringNullableFilter<"Agent"> | string | null
+  runnerId?: Prisma.StringNullableFilter<"Agent"> | string | null
   teamId?: Prisma.StringFilter<"Agent"> | string
   config?: Prisma.JsonFilter<"Agent">
   createdAt?: Prisma.DateTimeFilter<"Agent"> | Date | string
@@ -231,6 +239,7 @@ export type AgentWhereInput = {
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   provider?: Prisma.XOR<Prisma.ProviderNullableScalarRelationFilter, Prisma.ProviderWhereInput> | null
   modelRef?: Prisma.XOR<Prisma.ModelNullableScalarRelationFilter, Prisma.ModelWhereInput> | null
+  runner?: Prisma.XOR<Prisma.RunnerNullableScalarRelationFilter, Prisma.RunnerWhereInput> | null
   team?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
   agentSessions?: Prisma.AgentSessionListRelationFilter
   skills?: Prisma.AgentSkillListRelationFilter
@@ -247,6 +256,7 @@ export type AgentOrderByWithRelationInput = {
   soul?: Prisma.SortOrderInput | Prisma.SortOrder
   providerId?: Prisma.SortOrderInput | Prisma.SortOrder
   modelId?: Prisma.SortOrderInput | Prisma.SortOrder
+  runnerId?: Prisma.SortOrderInput | Prisma.SortOrder
   teamId?: Prisma.SortOrder
   config?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -254,6 +264,7 @@ export type AgentOrderByWithRelationInput = {
   user?: Prisma.UserOrderByWithRelationInput
   provider?: Prisma.ProviderOrderByWithRelationInput
   modelRef?: Prisma.ModelOrderByWithRelationInput
+  runner?: Prisma.RunnerOrderByWithRelationInput
   team?: Prisma.TeamOrderByWithRelationInput
   agentSessions?: Prisma.AgentSessionOrderByRelationAggregateInput
   skills?: Prisma.AgentSkillOrderByRelationAggregateInput
@@ -273,6 +284,7 @@ export type AgentWhereUniqueInput = Prisma.AtLeast<{
   soul?: Prisma.StringNullableFilter<"Agent"> | string | null
   providerId?: Prisma.StringNullableFilter<"Agent"> | string | null
   modelId?: Prisma.StringNullableFilter<"Agent"> | string | null
+  runnerId?: Prisma.StringNullableFilter<"Agent"> | string | null
   teamId?: Prisma.StringFilter<"Agent"> | string
   config?: Prisma.JsonFilter<"Agent">
   createdAt?: Prisma.DateTimeFilter<"Agent"> | Date | string
@@ -280,6 +292,7 @@ export type AgentWhereUniqueInput = Prisma.AtLeast<{
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   provider?: Prisma.XOR<Prisma.ProviderNullableScalarRelationFilter, Prisma.ProviderWhereInput> | null
   modelRef?: Prisma.XOR<Prisma.ModelNullableScalarRelationFilter, Prisma.ModelWhereInput> | null
+  runner?: Prisma.XOR<Prisma.RunnerNullableScalarRelationFilter, Prisma.RunnerWhereInput> | null
   team?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
   agentSessions?: Prisma.AgentSessionListRelationFilter
   skills?: Prisma.AgentSkillListRelationFilter
@@ -296,6 +309,7 @@ export type AgentOrderByWithAggregationInput = {
   soul?: Prisma.SortOrderInput | Prisma.SortOrder
   providerId?: Prisma.SortOrderInput | Prisma.SortOrder
   modelId?: Prisma.SortOrderInput | Prisma.SortOrder
+  runnerId?: Prisma.SortOrderInput | Prisma.SortOrder
   teamId?: Prisma.SortOrder
   config?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -316,6 +330,7 @@ export type AgentScalarWhereWithAggregatesInput = {
   soul?: Prisma.StringNullableWithAggregatesFilter<"Agent"> | string | null
   providerId?: Prisma.StringNullableWithAggregatesFilter<"Agent"> | string | null
   modelId?: Prisma.StringNullableWithAggregatesFilter<"Agent"> | string | null
+  runnerId?: Prisma.StringNullableWithAggregatesFilter<"Agent"> | string | null
   teamId?: Prisma.StringWithAggregatesFilter<"Agent"> | string
   config?: Prisma.JsonWithAggregatesFilter<"Agent">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Agent"> | Date | string
@@ -333,6 +348,7 @@ export type AgentCreateInput = {
   user: Prisma.UserCreateNestedOneWithoutAgentInput
   provider?: Prisma.ProviderCreateNestedOneWithoutAgentsInput
   modelRef?: Prisma.ModelCreateNestedOneWithoutAgentsInput
+  runner?: Prisma.RunnerCreateNestedOneWithoutAgentsInput
   team: Prisma.TeamCreateNestedOneWithoutAgentsInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
@@ -349,6 +365,7 @@ export type AgentUncheckedCreateInput = {
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
+  runnerId?: string | null
   teamId: string
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -371,6 +388,7 @@ export type AgentUpdateInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutAgentNestedInput
   provider?: Prisma.ProviderUpdateOneWithoutAgentsNestedInput
   modelRef?: Prisma.ModelUpdateOneWithoutAgentsNestedInput
+  runner?: Prisma.RunnerUpdateOneWithoutAgentsNestedInput
   team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
@@ -387,6 +405,7 @@ export type AgentUncheckedUpdateInput = {
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -406,6 +425,7 @@ export type AgentCreateManyInput = {
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
+  runnerId?: string | null
   teamId: string
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -430,6 +450,7 @@ export type AgentUncheckedUpdateManyInput = {
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -459,6 +480,7 @@ export type AgentCountOrderByAggregateInput = {
   soul?: Prisma.SortOrder
   providerId?: Prisma.SortOrder
   modelId?: Prisma.SortOrder
+  runnerId?: Prisma.SortOrder
   teamId?: Prisma.SortOrder
   config?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -473,6 +495,7 @@ export type AgentMaxOrderByAggregateInput = {
   soul?: Prisma.SortOrder
   providerId?: Prisma.SortOrder
   modelId?: Prisma.SortOrder
+  runnerId?: Prisma.SortOrder
   teamId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -486,6 +509,7 @@ export type AgentMinOrderByAggregateInput = {
   soul?: Prisma.SortOrder
   providerId?: Prisma.SortOrder
   modelId?: Prisma.SortOrder
+  runnerId?: Prisma.SortOrder
   teamId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -567,6 +591,48 @@ export type AgentUncheckedUpdateManyWithoutTeamNestedInput = {
   connect?: Prisma.AgentWhereUniqueInput | Prisma.AgentWhereUniqueInput[]
   update?: Prisma.AgentUpdateWithWhereUniqueWithoutTeamInput | Prisma.AgentUpdateWithWhereUniqueWithoutTeamInput[]
   updateMany?: Prisma.AgentUpdateManyWithWhereWithoutTeamInput | Prisma.AgentUpdateManyWithWhereWithoutTeamInput[]
+  deleteMany?: Prisma.AgentScalarWhereInput | Prisma.AgentScalarWhereInput[]
+}
+
+export type AgentCreateNestedManyWithoutRunnerInput = {
+  create?: Prisma.XOR<Prisma.AgentCreateWithoutRunnerInput, Prisma.AgentUncheckedCreateWithoutRunnerInput> | Prisma.AgentCreateWithoutRunnerInput[] | Prisma.AgentUncheckedCreateWithoutRunnerInput[]
+  connectOrCreate?: Prisma.AgentCreateOrConnectWithoutRunnerInput | Prisma.AgentCreateOrConnectWithoutRunnerInput[]
+  createMany?: Prisma.AgentCreateManyRunnerInputEnvelope
+  connect?: Prisma.AgentWhereUniqueInput | Prisma.AgentWhereUniqueInput[]
+}
+
+export type AgentUncheckedCreateNestedManyWithoutRunnerInput = {
+  create?: Prisma.XOR<Prisma.AgentCreateWithoutRunnerInput, Prisma.AgentUncheckedCreateWithoutRunnerInput> | Prisma.AgentCreateWithoutRunnerInput[] | Prisma.AgentUncheckedCreateWithoutRunnerInput[]
+  connectOrCreate?: Prisma.AgentCreateOrConnectWithoutRunnerInput | Prisma.AgentCreateOrConnectWithoutRunnerInput[]
+  createMany?: Prisma.AgentCreateManyRunnerInputEnvelope
+  connect?: Prisma.AgentWhereUniqueInput | Prisma.AgentWhereUniqueInput[]
+}
+
+export type AgentUpdateManyWithoutRunnerNestedInput = {
+  create?: Prisma.XOR<Prisma.AgentCreateWithoutRunnerInput, Prisma.AgentUncheckedCreateWithoutRunnerInput> | Prisma.AgentCreateWithoutRunnerInput[] | Prisma.AgentUncheckedCreateWithoutRunnerInput[]
+  connectOrCreate?: Prisma.AgentCreateOrConnectWithoutRunnerInput | Prisma.AgentCreateOrConnectWithoutRunnerInput[]
+  upsert?: Prisma.AgentUpsertWithWhereUniqueWithoutRunnerInput | Prisma.AgentUpsertWithWhereUniqueWithoutRunnerInput[]
+  createMany?: Prisma.AgentCreateManyRunnerInputEnvelope
+  set?: Prisma.AgentWhereUniqueInput | Prisma.AgentWhereUniqueInput[]
+  disconnect?: Prisma.AgentWhereUniqueInput | Prisma.AgentWhereUniqueInput[]
+  delete?: Prisma.AgentWhereUniqueInput | Prisma.AgentWhereUniqueInput[]
+  connect?: Prisma.AgentWhereUniqueInput | Prisma.AgentWhereUniqueInput[]
+  update?: Prisma.AgentUpdateWithWhereUniqueWithoutRunnerInput | Prisma.AgentUpdateWithWhereUniqueWithoutRunnerInput[]
+  updateMany?: Prisma.AgentUpdateManyWithWhereWithoutRunnerInput | Prisma.AgentUpdateManyWithWhereWithoutRunnerInput[]
+  deleteMany?: Prisma.AgentScalarWhereInput | Prisma.AgentScalarWhereInput[]
+}
+
+export type AgentUncheckedUpdateManyWithoutRunnerNestedInput = {
+  create?: Prisma.XOR<Prisma.AgentCreateWithoutRunnerInput, Prisma.AgentUncheckedCreateWithoutRunnerInput> | Prisma.AgentCreateWithoutRunnerInput[] | Prisma.AgentUncheckedCreateWithoutRunnerInput[]
+  connectOrCreate?: Prisma.AgentCreateOrConnectWithoutRunnerInput | Prisma.AgentCreateOrConnectWithoutRunnerInput[]
+  upsert?: Prisma.AgentUpsertWithWhereUniqueWithoutRunnerInput | Prisma.AgentUpsertWithWhereUniqueWithoutRunnerInput[]
+  createMany?: Prisma.AgentCreateManyRunnerInputEnvelope
+  set?: Prisma.AgentWhereUniqueInput | Prisma.AgentWhereUniqueInput[]
+  disconnect?: Prisma.AgentWhereUniqueInput | Prisma.AgentWhereUniqueInput[]
+  delete?: Prisma.AgentWhereUniqueInput | Prisma.AgentWhereUniqueInput[]
+  connect?: Prisma.AgentWhereUniqueInput | Prisma.AgentWhereUniqueInput[]
+  update?: Prisma.AgentUpdateWithWhereUniqueWithoutRunnerInput | Prisma.AgentUpdateWithWhereUniqueWithoutRunnerInput[]
+  updateMany?: Prisma.AgentUpdateManyWithWhereWithoutRunnerInput | Prisma.AgentUpdateManyWithWhereWithoutRunnerInput[]
   deleteMany?: Prisma.AgentScalarWhereInput | Prisma.AgentScalarWhereInput[]
 }
 
@@ -742,6 +808,7 @@ export type AgentCreateWithoutUserInput = {
   updatedAt?: Date | string
   provider?: Prisma.ProviderCreateNestedOneWithoutAgentsInput
   modelRef?: Prisma.ModelCreateNestedOneWithoutAgentsInput
+  runner?: Prisma.RunnerCreateNestedOneWithoutAgentsInput
   team: Prisma.TeamCreateNestedOneWithoutAgentsInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
@@ -757,6 +824,7 @@ export type AgentUncheckedCreateWithoutUserInput = {
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
+  runnerId?: string | null
   teamId: string
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -794,6 +862,7 @@ export type AgentUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.ProviderUpdateOneWithoutAgentsNestedInput
   modelRef?: Prisma.ModelUpdateOneWithoutAgentsNestedInput
+  runner?: Prisma.RunnerUpdateOneWithoutAgentsNestedInput
   team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
@@ -809,6 +878,7 @@ export type AgentUncheckedUpdateWithoutUserInput = {
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -831,6 +901,7 @@ export type AgentCreateWithoutTeamInput = {
   user: Prisma.UserCreateNestedOneWithoutAgentInput
   provider?: Prisma.ProviderCreateNestedOneWithoutAgentsInput
   modelRef?: Prisma.ModelCreateNestedOneWithoutAgentsInput
+  runner?: Prisma.RunnerCreateNestedOneWithoutAgentsInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerCreateNestedManyWithoutAgentInput
@@ -846,6 +917,7 @@ export type AgentUncheckedCreateWithoutTeamInput = {
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
+  runnerId?: string | null
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -893,10 +965,75 @@ export type AgentScalarWhereInput = {
   soul?: Prisma.StringNullableFilter<"Agent"> | string | null
   providerId?: Prisma.StringNullableFilter<"Agent"> | string | null
   modelId?: Prisma.StringNullableFilter<"Agent"> | string | null
+  runnerId?: Prisma.StringNullableFilter<"Agent"> | string | null
   teamId?: Prisma.StringFilter<"Agent"> | string
   config?: Prisma.JsonFilter<"Agent">
   createdAt?: Prisma.DateTimeFilter<"Agent"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Agent"> | Date | string
+}
+
+export type AgentCreateWithoutRunnerInput = {
+  type: $Enums.AgentType
+  enabled?: boolean
+  permission?: $Enums.TeamMemberRole
+  soul?: string | null
+  config:PrismaJson.AgentConfig
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutAgentInput
+  provider?: Prisma.ProviderCreateNestedOneWithoutAgentsInput
+  modelRef?: Prisma.ModelCreateNestedOneWithoutAgentsInput
+  team: Prisma.TeamCreateNestedOneWithoutAgentsInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
+  skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
+  mcpServers?: Prisma.AgentMcpServerCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutAgentInput
+}
+
+export type AgentUncheckedCreateWithoutRunnerInput = {
+  id: string
+  type: $Enums.AgentType
+  enabled?: boolean
+  permission?: $Enums.TeamMemberRole
+  soul?: string | null
+  providerId?: string | null
+  modelId?: string | null
+  teamId: string
+  config:PrismaJson.AgentConfig
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAgentInput
+  skills?: Prisma.AgentSkillUncheckedCreateNestedManyWithoutAgentInput
+  mcpServers?: Prisma.AgentMcpServerUncheckedCreateNestedManyWithoutAgentInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutAgentInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutAgentInput
+}
+
+export type AgentCreateOrConnectWithoutRunnerInput = {
+  where: Prisma.AgentWhereUniqueInput
+  create: Prisma.XOR<Prisma.AgentCreateWithoutRunnerInput, Prisma.AgentUncheckedCreateWithoutRunnerInput>
+}
+
+export type AgentCreateManyRunnerInputEnvelope = {
+  data: Prisma.AgentCreateManyRunnerInput | Prisma.AgentCreateManyRunnerInput[]
+  skipDuplicates?: boolean
+}
+
+export type AgentUpsertWithWhereUniqueWithoutRunnerInput = {
+  where: Prisma.AgentWhereUniqueInput
+  update: Prisma.XOR<Prisma.AgentUpdateWithoutRunnerInput, Prisma.AgentUncheckedUpdateWithoutRunnerInput>
+  create: Prisma.XOR<Prisma.AgentCreateWithoutRunnerInput, Prisma.AgentUncheckedCreateWithoutRunnerInput>
+}
+
+export type AgentUpdateWithWhereUniqueWithoutRunnerInput = {
+  where: Prisma.AgentWhereUniqueInput
+  data: Prisma.XOR<Prisma.AgentUpdateWithoutRunnerInput, Prisma.AgentUncheckedUpdateWithoutRunnerInput>
+}
+
+export type AgentUpdateManyWithWhereWithoutRunnerInput = {
+  where: Prisma.AgentScalarWhereInput
+  data: Prisma.XOR<Prisma.AgentUpdateManyMutationInput, Prisma.AgentUncheckedUpdateManyWithoutRunnerInput>
 }
 
 export type AgentCreateWithoutAssetsInput = {
@@ -910,6 +1047,7 @@ export type AgentCreateWithoutAssetsInput = {
   user: Prisma.UserCreateNestedOneWithoutAgentInput
   provider?: Prisma.ProviderCreateNestedOneWithoutAgentsInput
   modelRef?: Prisma.ModelCreateNestedOneWithoutAgentsInput
+  runner?: Prisma.RunnerCreateNestedOneWithoutAgentsInput
   team: Prisma.TeamCreateNestedOneWithoutAgentsInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
@@ -925,6 +1063,7 @@ export type AgentUncheckedCreateWithoutAssetsInput = {
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
+  runnerId?: string | null
   teamId: string
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -962,6 +1101,7 @@ export type AgentUpdateWithoutAssetsInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutAgentNestedInput
   provider?: Prisma.ProviderUpdateOneWithoutAgentsNestedInput
   modelRef?: Prisma.ModelUpdateOneWithoutAgentsNestedInput
+  runner?: Prisma.RunnerUpdateOneWithoutAgentsNestedInput
   team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
@@ -977,6 +1117,7 @@ export type AgentUncheckedUpdateWithoutAssetsInput = {
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -998,6 +1139,7 @@ export type AgentCreateWithoutSkillsInput = {
   user: Prisma.UserCreateNestedOneWithoutAgentInput
   provider?: Prisma.ProviderCreateNestedOneWithoutAgentsInput
   modelRef?: Prisma.ModelCreateNestedOneWithoutAgentsInput
+  runner?: Prisma.RunnerCreateNestedOneWithoutAgentsInput
   team: Prisma.TeamCreateNestedOneWithoutAgentsInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerCreateNestedManyWithoutAgentInput
@@ -1013,6 +1155,7 @@ export type AgentUncheckedCreateWithoutSkillsInput = {
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
+  runnerId?: string | null
   teamId: string
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -1050,6 +1193,7 @@ export type AgentUpdateWithoutSkillsInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutAgentNestedInput
   provider?: Prisma.ProviderUpdateOneWithoutAgentsNestedInput
   modelRef?: Prisma.ModelUpdateOneWithoutAgentsNestedInput
+  runner?: Prisma.RunnerUpdateOneWithoutAgentsNestedInput
   team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUpdateManyWithoutAgentNestedInput
@@ -1065,6 +1209,7 @@ export type AgentUncheckedUpdateWithoutSkillsInput = {
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1086,6 +1231,7 @@ export type AgentCreateWithoutMcpServersInput = {
   user: Prisma.UserCreateNestedOneWithoutAgentInput
   provider?: Prisma.ProviderCreateNestedOneWithoutAgentsInput
   modelRef?: Prisma.ModelCreateNestedOneWithoutAgentsInput
+  runner?: Prisma.RunnerCreateNestedOneWithoutAgentsInput
   team: Prisma.TeamCreateNestedOneWithoutAgentsInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
@@ -1101,6 +1247,7 @@ export type AgentUncheckedCreateWithoutMcpServersInput = {
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
+  runnerId?: string | null
   teamId: string
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -1138,6 +1285,7 @@ export type AgentUpdateWithoutMcpServersInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutAgentNestedInput
   provider?: Prisma.ProviderUpdateOneWithoutAgentsNestedInput
   modelRef?: Prisma.ModelUpdateOneWithoutAgentsNestedInput
+  runner?: Prisma.RunnerUpdateOneWithoutAgentsNestedInput
   team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
@@ -1153,6 +1301,7 @@ export type AgentUncheckedUpdateWithoutMcpServersInput = {
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1174,6 +1323,7 @@ export type AgentCreateWithoutAgentSessionsInput = {
   user: Prisma.UserCreateNestedOneWithoutAgentInput
   provider?: Prisma.ProviderCreateNestedOneWithoutAgentsInput
   modelRef?: Prisma.ModelCreateNestedOneWithoutAgentsInput
+  runner?: Prisma.RunnerCreateNestedOneWithoutAgentsInput
   team: Prisma.TeamCreateNestedOneWithoutAgentsInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
   mcpServers?: Prisma.AgentMcpServerCreateNestedManyWithoutAgentInput
@@ -1189,6 +1339,7 @@ export type AgentUncheckedCreateWithoutAgentSessionsInput = {
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
+  runnerId?: string | null
   teamId: string
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -1226,6 +1377,7 @@ export type AgentUpdateWithoutAgentSessionsInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutAgentNestedInput
   provider?: Prisma.ProviderUpdateOneWithoutAgentsNestedInput
   modelRef?: Prisma.ModelUpdateOneWithoutAgentsNestedInput
+  runner?: Prisma.RunnerUpdateOneWithoutAgentsNestedInput
   team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUpdateManyWithoutAgentNestedInput
@@ -1241,6 +1393,7 @@ export type AgentUncheckedUpdateWithoutAgentSessionsInput = {
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1261,6 +1414,7 @@ export type AgentCreateWithoutModelRefInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutAgentInput
   provider?: Prisma.ProviderCreateNestedOneWithoutAgentsInput
+  runner?: Prisma.RunnerCreateNestedOneWithoutAgentsInput
   team: Prisma.TeamCreateNestedOneWithoutAgentsInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
@@ -1276,6 +1430,7 @@ export type AgentUncheckedCreateWithoutModelRefInput = {
   permission?: $Enums.TeamMemberRole
   soul?: string | null
   providerId?: string | null
+  runnerId?: string | null
   teamId: string
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -1323,6 +1478,7 @@ export type AgentCreateWithoutProviderInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutAgentInput
   modelRef?: Prisma.ModelCreateNestedOneWithoutAgentsInput
+  runner?: Prisma.RunnerCreateNestedOneWithoutAgentsInput
   team: Prisma.TeamCreateNestedOneWithoutAgentsInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
@@ -1338,6 +1494,7 @@ export type AgentUncheckedCreateWithoutProviderInput = {
   permission?: $Enums.TeamMemberRole
   soul?: string | null
   modelId?: string | null
+  runnerId?: string | null
   teamId: string
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -1386,6 +1543,7 @@ export type AgentCreateWithoutAuditLogsInput = {
   user: Prisma.UserCreateNestedOneWithoutAgentInput
   provider?: Prisma.ProviderCreateNestedOneWithoutAgentsInput
   modelRef?: Prisma.ModelCreateNestedOneWithoutAgentsInput
+  runner?: Prisma.RunnerCreateNestedOneWithoutAgentsInput
   team: Prisma.TeamCreateNestedOneWithoutAgentsInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAgentInput
   skills?: Prisma.AgentSkillCreateNestedManyWithoutAgentInput
@@ -1401,6 +1559,7 @@ export type AgentUncheckedCreateWithoutAuditLogsInput = {
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
+  runnerId?: string | null
   teamId: string
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -1438,6 +1597,7 @@ export type AgentUpdateWithoutAuditLogsInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutAgentNestedInput
   provider?: Prisma.ProviderUpdateOneWithoutAgentsNestedInput
   modelRef?: Prisma.ModelUpdateOneWithoutAgentsNestedInput
+  runner?: Prisma.RunnerUpdateOneWithoutAgentsNestedInput
   team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
@@ -1453,6 +1613,7 @@ export type AgentUncheckedUpdateWithoutAuditLogsInput = {
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1471,6 +1632,7 @@ export type AgentCreateManyTeamInput = {
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
+  runnerId?: string | null
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1487,6 +1649,7 @@ export type AgentUpdateWithoutTeamInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutAgentNestedInput
   provider?: Prisma.ProviderUpdateOneWithoutAgentsNestedInput
   modelRef?: Prisma.ModelUpdateOneWithoutAgentsNestedInput
+  runner?: Prisma.RunnerUpdateOneWithoutAgentsNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
   mcpServers?: Prisma.AgentMcpServerUpdateManyWithoutAgentNestedInput
@@ -1502,6 +1665,7 @@ export type AgentUncheckedUpdateWithoutTeamInput = {
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1520,6 +1684,73 @@ export type AgentUncheckedUpdateManyWithoutTeamInput = {
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  config?:PrismaJson.AgentConfig
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type AgentCreateManyRunnerInput = {
+  id: string
+  type: $Enums.AgentType
+  enabled?: boolean
+  permission?: $Enums.TeamMemberRole
+  soul?: string | null
+  providerId?: string | null
+  modelId?: string | null
+  teamId: string
+  config:PrismaJson.AgentConfig
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type AgentUpdateWithoutRunnerInput = {
+  type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
+  soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  config?:PrismaJson.AgentConfig
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutAgentNestedInput
+  provider?: Prisma.ProviderUpdateOneWithoutAgentsNestedInput
+  modelRef?: Prisma.ModelUpdateOneWithoutAgentsNestedInput
+  team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
+  skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
+  mcpServers?: Prisma.AgentMcpServerUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutAgentNestedInput
+}
+
+export type AgentUncheckedUpdateWithoutRunnerInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
+  soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  config?:PrismaJson.AgentConfig
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAgentNestedInput
+  skills?: Prisma.AgentSkillUncheckedUpdateManyWithoutAgentNestedInput
+  mcpServers?: Prisma.AgentMcpServerUncheckedUpdateManyWithoutAgentNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutAgentNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutAgentNestedInput
+}
+
+export type AgentUncheckedUpdateManyWithoutRunnerInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
+  soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1532,6 +1763,7 @@ export type AgentCreateManyModelRefInput = {
   permission?: $Enums.TeamMemberRole
   soul?: string | null
   providerId?: string | null
+  runnerId?: string | null
   teamId: string
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -1548,6 +1780,7 @@ export type AgentUpdateWithoutModelRefInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutAgentNestedInput
   provider?: Prisma.ProviderUpdateOneWithoutAgentsNestedInput
+  runner?: Prisma.RunnerUpdateOneWithoutAgentsNestedInput
   team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
@@ -1563,6 +1796,7 @@ export type AgentUncheckedUpdateWithoutModelRefInput = {
   permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1581,6 +1815,7 @@ export type AgentUncheckedUpdateManyWithoutModelRefInput = {
   permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1594,6 +1829,7 @@ export type AgentCreateManyProviderInput = {
   permission?: $Enums.TeamMemberRole
   soul?: string | null
   modelId?: string | null
+  runnerId?: string | null
   teamId: string
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -1610,6 +1846,7 @@ export type AgentUpdateWithoutProviderInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutAgentNestedInput
   modelRef?: Prisma.ModelUpdateOneWithoutAgentsNestedInput
+  runner?: Prisma.RunnerUpdateOneWithoutAgentsNestedInput
   team?: Prisma.TeamUpdateOneRequiredWithoutAgentsNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutAgentNestedInput
   skills?: Prisma.AgentSkillUpdateManyWithoutAgentNestedInput
@@ -1625,6 +1862,7 @@ export type AgentUncheckedUpdateWithoutProviderInput = {
   permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1643,6 +1881,7 @@ export type AgentUncheckedUpdateManyWithoutProviderInput = {
   permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1724,6 +1963,7 @@ export type AgentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   soul?: boolean
   providerId?: boolean
   modelId?: boolean
+  runnerId?: boolean
   teamId?: boolean
   config?: boolean
   createdAt?: boolean
@@ -1731,6 +1971,7 @@ export type AgentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   provider?: boolean | Prisma.Agent$providerArgs<ExtArgs>
   modelRef?: boolean | Prisma.Agent$modelRefArgs<ExtArgs>
+  runner?: boolean | Prisma.Agent$runnerArgs<ExtArgs>
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   agentSessions?: boolean | Prisma.Agent$agentSessionsArgs<ExtArgs>
   skills?: boolean | Prisma.Agent$skillsArgs<ExtArgs>
@@ -1748,6 +1989,7 @@ export type AgentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   soul?: boolean
   providerId?: boolean
   modelId?: boolean
+  runnerId?: boolean
   teamId?: boolean
   config?: boolean
   createdAt?: boolean
@@ -1755,6 +1997,7 @@ export type AgentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   provider?: boolean | Prisma.Agent$providerArgs<ExtArgs>
   modelRef?: boolean | Prisma.Agent$modelRefArgs<ExtArgs>
+  runner?: boolean | Prisma.Agent$runnerArgs<ExtArgs>
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["agent"]>
 
@@ -1766,6 +2009,7 @@ export type AgentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   soul?: boolean
   providerId?: boolean
   modelId?: boolean
+  runnerId?: boolean
   teamId?: boolean
   config?: boolean
   createdAt?: boolean
@@ -1773,6 +2017,7 @@ export type AgentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   provider?: boolean | Prisma.Agent$providerArgs<ExtArgs>
   modelRef?: boolean | Prisma.Agent$modelRefArgs<ExtArgs>
+  runner?: boolean | Prisma.Agent$runnerArgs<ExtArgs>
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["agent"]>
 
@@ -1784,17 +2029,19 @@ export type AgentSelectScalar = {
   soul?: boolean
   providerId?: boolean
   modelId?: boolean
+  runnerId?: boolean
   teamId?: boolean
   config?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type AgentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "enabled" | "permission" | "soul" | "providerId" | "modelId" | "teamId" | "config" | "createdAt" | "updatedAt", ExtArgs["result"]["agent"]>
+export type AgentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "enabled" | "permission" | "soul" | "providerId" | "modelId" | "runnerId" | "teamId" | "config" | "createdAt" | "updatedAt", ExtArgs["result"]["agent"]>
 export type AgentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   provider?: boolean | Prisma.Agent$providerArgs<ExtArgs>
   modelRef?: boolean | Prisma.Agent$modelRefArgs<ExtArgs>
+  runner?: boolean | Prisma.Agent$runnerArgs<ExtArgs>
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   agentSessions?: boolean | Prisma.Agent$agentSessionsArgs<ExtArgs>
   skills?: boolean | Prisma.Agent$skillsArgs<ExtArgs>
@@ -1807,12 +2054,14 @@ export type AgentIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   provider?: boolean | Prisma.Agent$providerArgs<ExtArgs>
   modelRef?: boolean | Prisma.Agent$modelRefArgs<ExtArgs>
+  runner?: boolean | Prisma.Agent$runnerArgs<ExtArgs>
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
 }
 export type AgentIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   provider?: boolean | Prisma.Agent$providerArgs<ExtArgs>
   modelRef?: boolean | Prisma.Agent$modelRefArgs<ExtArgs>
+  runner?: boolean | Prisma.Agent$runnerArgs<ExtArgs>
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
 }
 
@@ -1822,6 +2071,7 @@ export type $AgentPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     user: Prisma.$UserPayload<ExtArgs>
     provider: Prisma.$ProviderPayload<ExtArgs> | null
     modelRef: Prisma.$ModelPayload<ExtArgs> | null
+    runner: Prisma.$RunnerPayload<ExtArgs> | null
     team: Prisma.$TeamPayload<ExtArgs>
     agentSessions: Prisma.$AgentSessionPayload<ExtArgs>[]
     skills: Prisma.$AgentSkillPayload<ExtArgs>[]
@@ -1837,6 +2087,7 @@ export type $AgentPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     soul: string | null
     providerId: string | null
     modelId: string | null
+    runnerId: string | null
     teamId: string
     /**
      * [AgentConfig]
@@ -2241,6 +2492,7 @@ export interface Prisma__AgentClient<T, Null = never, ExtArgs extends runtime.Ty
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   provider<T extends Prisma.Agent$providerArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$providerArgs<ExtArgs>>): Prisma.Prisma__ProviderClient<runtime.Types.Result.GetResult<Prisma.$ProviderPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   modelRef<T extends Prisma.Agent$modelRefArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$modelRefArgs<ExtArgs>>): Prisma.Prisma__ModelClient<runtime.Types.Result.GetResult<Prisma.$ModelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  runner<T extends Prisma.Agent$runnerArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$runnerArgs<ExtArgs>>): Prisma.Prisma__RunnerClient<runtime.Types.Result.GetResult<Prisma.$RunnerPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   team<T extends Prisma.TeamDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TeamDefaultArgs<ExtArgs>>): Prisma.Prisma__TeamClient<runtime.Types.Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   agentSessions<T extends Prisma.Agent$agentSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$agentSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   skills<T extends Prisma.Agent$skillsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$skillsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentSkillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2283,6 +2535,7 @@ export interface AgentFieldRefs {
   readonly soul: Prisma.FieldRef<"Agent", 'String'>
   readonly providerId: Prisma.FieldRef<"Agent", 'String'>
   readonly modelId: Prisma.FieldRef<"Agent", 'String'>
+  readonly runnerId: Prisma.FieldRef<"Agent", 'String'>
   readonly teamId: Prisma.FieldRef<"Agent", 'String'>
   readonly config: Prisma.FieldRef<"Agent", 'Json'>
   readonly createdAt: Prisma.FieldRef<"Agent", 'DateTime'>
@@ -2723,6 +2976,25 @@ export type Agent$modelRefArgs<ExtArgs extends runtime.Types.Extensions.Internal
    */
   include?: Prisma.ModelInclude<ExtArgs> | null
   where?: Prisma.ModelWhereInput
+}
+
+/**
+ * Agent.runner
+ */
+export type Agent$runnerArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Runner
+   */
+  select?: Prisma.RunnerSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Runner
+   */
+  omit?: Prisma.RunnerOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RunnerInclude<ExtArgs> | null
+  where?: Prisma.RunnerWhereInput
 }
 
 /**

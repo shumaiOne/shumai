@@ -1,45 +1,101 @@
 ---
-title: Agent Sandbox
-description: Secure execution environment and network domain restrictions for AI agent scripts.
+title: Agent Runners
+description: Connect an optional command runner and configure sandboxing on its machine.
 ---
 
-Running automated scripts poses security risks. Shumai resolves this by executing all agent skills inside a secure, isolated **Sandbox** environment.
+Agents use Shumai's built-in tools without a runner. To execute shell commands or download assets into a shell workspace, connect a **runner** on a machine you control. The runner opens an authenticated outbound WebSocket connection; no inbound port is needed.
 
----
+Agent runners require one main Shumai server per database. Multiple main servers can share a database while it has no configured runners. Stop the other main servers before creating a runner. Transcode workers can run separately.
 
-## Sandbox Security
+## Connect a runner
 
-The sandbox restricts the execution process from accessing the host filesystem, system processes, and internal networks:
+1. In **Settings → Agent Runners**, create a runner and copy its one-time key. Only team owners can manage runners and rotate their keys.
+2. Install [Shumai CLI](https://github.com/shumaiOne/shumai/tree/main/apps/cli#installation) on macOS, Linux, or Windows.
+3. Start it in a dedicated, existing workspace:
 
-- **Isolation**: Scripts run in a virtualized workspace container that prevents them from modifying critical system files or reading other project data.
-- **Network Bridging**: External network calls from inside the sandbox are strictly monitored.
+```bash
+export SHUMAI_API_SERVER="https://shumai.example.com"
+export SHUMAI_RUNNER_KEY="your-runner-key"
+shumai-cli runner start --cwd /path/to/workspace
+```
 
-### File System Restrictions
+On Windows, set the variables in PowerShell:
 
-To protect your workspace environments and sensitive data, the sandbox enforces strict file-level access controls:
+```powershell
+$env:SHUMAI_API_SERVER = "https://shumai.example.com"
+$env:SHUMAI_RUNNER_KEY = "your-runner-key"
+shumai-cli runner start --cwd C:\workspace
+```
 
-- **Read Access**: The sandbox is allowed to read files within the workspace, with a strict exception for sensitive environment and certificate files. It cannot read: `['.env', '.env.*', '*.pem', '*.key']`.
-- **Write Access**: The sandbox is heavily restricted and may only write to the `.pi` folder located in the current working directory (cwd). Even within this allowed directory, the sandbox is explicitly blocked from writing or creating sensitive files matching: `['.env', '.env.*', '*.pem', '*.key']`.
+Use a runner key, not a personal API token. Prefer the environment variable over `--key` to keep the key out of shell history. The runner stays in the foreground; Ctrl+C stops it and its active commands. Temporary connection losses trigger reconnection. Revoked or replaced connections stop instead of reconnecting.
 
----
+The first runner becomes the team default. Each agent can use that default or a dedicated runner selected in its settings. Without a configured runner, `bash` and `download_asset` are hidden. With one configured, authorized editors and reviewers can run commands immediately without reading a skill first. Disabled-tool policies still apply. An offline runner produces an execution error.
 
-## Domain Whitelisting
+The `bash` tool uses `/bin/sh` on macOS and Linux. On Windows, the runner looks for Git Bash in the standard installation directories, then for `bash.exe` on PATH, and falls back to `cmd.exe`. The runner prints its selected shell at startup and reports it to the agent so it can use compatible syntax. For Bash with SRT on Windows, use Git Bash in place of the legacy WSL Bash launcher.
 
-By default, Network Sandbox is **disabled** (allowing all outbound network requests). Team Owners can toggle Network Sandbox **ON** in Sandbox Settings to enforce strict domain whitelisting:
+Commands start in the workspace directory. Skills, downloaded assets, generated files, and output logs live under `.pi`. Commands inherit baseline OS settings and explicit skill variables, rather than the runner's full environment, including its runner key and personal API token.
 
-### Allowed Domains
+Everyone with shell access to the same runner can read files left in its workspace, including assets and logs from other projects. Shumai project permissions apply when assets are downloaded. Share a runner only among users who may read all files in that workspace. For separate trust groups, use separate runner accounts or virtual machines and restrict access to the agents bound to each runner.
 
-A list of domains that sandboxed scripts are permitted to access.
+## Optional SRT sandbox
 
-- Default whitelisted domains include standard package registries (like npm or python package hosts) and repository hosts (like `github.com`).
-- If a script needs to call an external API (e.g. `api.slack.com`), the administrator must add it to the allowed list.
+Without `--srt`, commands have the runner operating-system user's permissions. Connect only to a trusted Shumai server; use a dedicated container, VM, or account when appropriate.
 
-### Pending Domains
+[Anthropic Sandbox Runtime](https://github.com/anthropics/sandbox-runtime) is bundled as a library in Shumai CLI. Install its platform prerequisites on the runner machine (Linux: bubblewrap, socat, and ripgrep; macOS: ripgrep), then start with its JSON settings:
 
-When an agent script attempts to reach a domain that is not currently authorized:
+```bash
+shumai-cli runner start --cwd /path/to/workspace --srt sandbox.json
+```
 
-1.  The network connection is blocked immediately.
-2.  The target domain is logged and added to the **Pending Domains** list.
-3.  Admins can review this list and click **Approve** to authorize the domain, or **Reject** to keep it blocked.
+Windows uses SRT's alpha Windows support. Run the one-time setup before starting a sandboxed runner; it requests administrator permission:
 
-![Agent Sandbox Settings](../sandbox.webp)
+```powershell
+npx @anthropic-ai/sandbox-runtime windows-install
+```
+
+SRT verifies the setup at startup and reports an error if it is missing. A runner without `--srt` does not need this setup.
+
+The JSON uses upstream SRT settings directly. For example:
+
+```json
+{
+  "filesystem": {
+    "denyRead": ["~/.ssh", "~/.aws", ".env", ".env.*"],
+    "allowWrite": [".pi"],
+    "denyWrite": []
+  },
+  "network": {
+    "allowedDomains": [],
+    "deniedDomains": []
+  }
+}
+```
+
+This example allows writes only in `.pi`, denies reads of the listed credential locations, and blocks command network access. Review read permissions and network rules for your environment using SRT's documentation. Relative filesystem paths use the runner workspace. Settings are snapshotted at startup; restart after changing them. Missing or invalid settings, missing SRT prerequisites, and sandbox initialization failures stop startup. Commands never fall back to unrestricted execution.
+
+SRT wraps shell commands and their child processes. One shared SRT runtime handles concurrent commands and is reset when the runner stops. The runner's WebSocket and server-directed file transfers operate outside SRT. **The Shumai server address is not automatically added to allowed domains.** If a script itself needs network access, explicitly allow its destination in the JSON.
+
+Shumai has no server-side sandbox or domain settings. SRT is initialized only on runners that opt into it. SRT in Docker may require namespace permissions on that dedicated runner container; these permissions are not needed by the Shumai server.
+
+## Runner in Docker
+
+An ordinary runner can run in its own container without extra capabilities or an exposed port:
+
+```bash
+docker run --rm --init --name shumai-runner \
+  --cap-drop ALL --security-opt no-new-privileges \
+  -e SHUMAI_API_SERVER -e SHUMAI_RUNNER_KEY \
+  -v shumai-runner-workspace:/workspace -w /workspace \
+  node:22-bookworm sh -c \
+  'npm install -g @shumai-one/shumai-cli && exec shumai-cli runner start'
+```
+
+For development, HTTP is accepted for `localhost`, `127.0.0.1`, `[::1]`, and Docker's `host.docker.internal`. Remote servers require HTTPS. Avoid mounting sensitive host directories or the Docker socket into the runner workspace.
+
+## Limits and lifecycle
+
+Commands default to 120 seconds and accept a maximum timeout of one hour. Timeout and cancellation attempt to terminate the command and its process tree. Each command saves up to 64 MiB of output in `.pi/logs`; manage retained logs as part of workspace maintenance. Transfers and extracted archives are limited to 256 MiB. Protocol file operations reject paths outside `.pi`, existing symlinks, and unsafe archive entries. V1 assumes commands do not deliberately change workspace paths while transfers are running.
+
+Temporary reconnects reconcile active and recently completed commands without deliberately executing them again. Restarting the runner process does not resume commands from the previous process.
+
+Up to eight commands and file transfers can run concurrently in the shared workspace. Additional requests return a busy error. On Windows without SRT, background processes may survive after the command's shell exits; remaining output pipes are closed after one second. Use foreground commands for predictable timeout and cancellation. SRT manages the sandboxed Windows process tree.

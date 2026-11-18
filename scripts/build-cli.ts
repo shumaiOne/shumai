@@ -6,6 +6,7 @@ import { parseArgs } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import { version } from '../package.json'
 import { version as cliVersion } from '../apps/cli/package.json'
+import { srtBundlePlugin } from './srt-bundle'
 
 export const cliTargets = {
   'darwin-arm64': 'bun-darwin-arm64',
@@ -80,6 +81,7 @@ export async function assembleCliRelease(outdir: string, targets = cliTargetName
 export async function buildCliRelease(outdir: string, targets = cliTargetNames) {
   validateCliVersion(version)
   if (cliVersion !== version) throw new Error('Root and CLI package versions must match')
+  const notices = await readFile(join(repoRoot, 'apps/cli/THIRD-PARTY-NOTICES.txt'), 'utf8')
   await mkdir(outdir, { recursive: true })
   const staging = await mkdtemp(join(outdir, '.build-'))
   try {
@@ -90,6 +92,8 @@ export async function buildCliRelease(outdir: string, targets = cliTargetNames) 
         entrypoints: [join(repoRoot, 'apps/cli/src/index.ts')],
         target: 'bun',
         minify: true,
+        banner: '/*\n' + notices + '*/',
+        plugins: [srtBundlePlugin(...target.split('-'))],
         compile: {
           target: cliTargets[target],
           outfile: binary,

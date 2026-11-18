@@ -46,9 +46,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ripgrep \
     procps \
     lsof \
-    socat \
     ca-certificates \
-    bubblewrap \
     gosu \
     poppler-utils \
     imagemagick \

@@ -342,7 +342,7 @@ model Team {
   providers      Provider[]      @relation("TeamToProvider")
   skills         Skill[]         @relation("TeamToSkill")
   mcpServers     McpServer[]      @relation("TeamToMcpServer")
-  sandbox        Sandbox?        @relation("TeamToSandbox")
+  runners        Runner[]        @relation("TeamToRunner")
   agents         Agent[]         @relation("TeamToAgent")
   aiUsages       AiUsage[]       @relation("TeamToAiUsage")
   auditLogs      AuditLog[]      @relation("TeamToAuditLog")
@@ -355,18 +355,26 @@ model Team {
   @@map("teams")
 }
 
-model Sandbox {
-  id                    String   @id @default(ulid())
-  networkSandboxEnabled Boolean  @default(false) @map("network_sandbox_enabled")
-  allowedDomains        String[] @default(["npmjs.org", "*.npmjs.org", "registry.npmjs.org", "registry.yarnpkg.com", "pypi.org", "*.pypi.org", "github.com", "*.github.com", "api.github.com", "raw.githubusercontent.com"])
-  pendingDomains        String[] @default([]) @map("pending_domains")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+model Runner {
+  id                 String    @id @default(ulid())
+  name               String
+  description        String?
+  keyPrefix          String    @map("key_prefix")
+  keyHash            String    @unique @map("key_hash")
+  isDefault          Boolean   @default(false) @map("is_default")
+  lastConnectedAt    DateTime? @map("last_connected_at")
+  lastDisconnectedAt DateTime? @map("last_disconnected_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
-  teamId String @unique @map("team_id")
-  team   Team   @relation("TeamToSandbox", fields: [teamId], references: [id], onDelete: Cascade)
+  teamId String @map("team_id")
+  team   Team   @relation("TeamToRunner", fields: [teamId], references: [id], onDelete: Cascade)
 
-  @@map("sandboxes")
+  agents Agent[] @relation("RunnerToAgent")
+
+  @@unique([teamId, name])
+  @@index([teamId])
+  @@map("runners")
 }
 
 model Skill {
@@ -891,6 +899,8 @@ model Agent {
   provider   Provider? @relation("ProviderToAgent", fields: [providerId], references: [id], onDelete: SetNull)
   modelId    String?   @map("model_id")
   modelRef   Model?    @relation("ModelToAgent", fields: [modelId], references: [id], onDelete: SetNull)
+  runnerId   String?   @map("runner_id")
+  runner     Runner?   @relation("RunnerToAgent", fields: [runnerId], references: [id], onDelete: SetNull)
 
   teamId String @map("team_id")
   team   Team   @relation("TeamToAgent", fields: [teamId], references: [id], onDelete: Cascade)

@@ -481,65 +481,6 @@ describe('TeamService', () => {
     })
   })
 
-  it('should create sandbox when team is created', async () => {
-    const user = await prisma.user.create({
-      data: { name: 'Test User', email: `test-sandbox-${Date.now()}@example.com`, password: 'pw' },
-    })
-
-    const team = await teamService.createTeam(user, {
-      name: 'Sandbox Team',
-    })
-
-    const sandbox = await prisma.sandbox.findUnique({
-      where: { teamId: team.id },
-    })
-
-    expect(sandbox).toBeDefined()
-    expect(sandbox?.allowedDomains).toContain('github.com')
-  })
-
-  it('should get and update sandbox settings', async () => {
-    const user = await prisma.user.create({
-      data: { name: 'Test User', email: `test-settings-${Date.now()}@example.com`, password: 'pw' },
-    })
-    const team = await teamService.createTeam(user, {
-      name: 'Settings Team',
-    })
-
-    // Should have default settings (networkSandboxEnabled is false by default for new teams)
-    const settings = await teamService.getSandboxSettings(team.id)
-    expect(settings.networkSandboxEnabled).toBe(false)
-    expect(settings.allowedDomains).toContain('github.com')
-    expect(settings.pendingDomains).toEqual([])
-
-    // Should update settings
-    const updated = await teamService.updateSandboxSettings(team.id, {
-      networkSandboxEnabled: true,
-      allowedDomains: ['example.com'],
-      pendingDomains: ['pending.com'],
-    })
-    expect(updated.networkSandboxEnabled).toBe(true)
-    expect(updated.allowedDomains).toEqual(['example.com'])
-    expect(updated.pendingDomains).toEqual(['pending.com'])
-
-    // Should persist to DB
-    const persisted = await teamService.getSandboxSettings(team.id)
-    expect(persisted.networkSandboxEnabled).toBe(true)
-    expect(persisted.allowedDomains).toEqual(['example.com'])
-    expect(persisted.pendingDomains).toEqual(['pending.com'])
-  })
-
-  it('should return default settings if sandbox is missing for old team', async () => {
-    const team = await prisma.team.create({
-      data: { name: 'Old Team' },
-    })
-
-    const settings = await teamService.getSandboxSettings(team.id)
-    expect(settings.networkSandboxEnabled).toBe(false)
-    expect(settings.allowedDomains).toEqual([])
-    expect(settings.pendingDomains).toEqual([])
-  })
-
   describe('hasWritableRoleInAnyTeam', () => {
     it('should return true for user with owner role', async () => {
       const user = await prisma.user.create({

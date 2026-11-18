@@ -1,11 +1,11 @@
 import { invokeTool } from '@shumai/core/src/agent/tool-test-utils'
 import { authzService } from '@shumai/core/src/authz/authz'
 import { getOperation } from '@shumai/core/src/operations'
+import { runnerService } from '@shumai/core/src/runner'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { prisma, type Asset, type StorageKey } from '@shumai/db'
-import * as fs from 'fs'
 import * as path from 'path'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { toAgentTool } from '../operation-tools'
 import './download-asset'
 
@@ -32,18 +32,28 @@ vi.mock('@shumai/core/src/s3/s3', async (importOriginal) => {
   }
 })
 
+vi.mock('@shumai/core/src/runner', () => ({
+  runnerService: {
+    requireOnlineRunner: vi.fn(),
+    isRunnerConnected: vi.fn(),
+    downloadToRunner: vi.fn(),
+  },
+}))
+
 vi.mock('@shumai/core/src/authz/authz', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@shumai/core/src/authz/authz')>()
   return { ...actual, authzService: { hasPermission: vi.fn() } }
 })
 
 type Head = Awaited<ReturnType<typeof s3Service.headObject>>
-type Saved = { filePath: string; absolutePath: string; contentType: string; size: number }
-
-const piDir = path.join(process.cwd(), '.pi')
+type Saved = { filePath: string; contentType: string; size: number }
 
 function downloadTool(userId = 'user-1') {
-  return toAgentTool(getOperation('download_asset')!, { userId })
+  return toAgentTool(getOperation('download_asset')!, {
+    userId,
+    teamId: 'team-1',
+    runnerId: null,
+  })
 }
 
 function textOf(result: { content: unknown[] }): string {
@@ -57,10 +67,14 @@ function mockAssets(...assets: Array<Record<string, unknown>>) {
   )
 }
 
-function mockStorage(contentType: string, write = 'bytes') {
-  vi.mocked(s3Service.headObject).mockResolvedValue({ size: 1234, contentType } as Head)
-  vi.mocked(s3Service.downloadToFile).mockImplementation(async (_bucket, _key, dest) => {
-    await fs.promises.writeFile(dest, write)
+function mockStorage(contentType: string, size = 11) {
+  vi.mocked(s3Service.headObject).mockResolvedValue({ size, contentType } as Head)
+  vi.mocked(runnerService.downloadToRunner).mockResolvedValue({
+    type: 'file.download.result',
+    executionId: 'exec-dl-1',
+    ok: true,
+    size,
+    mimeType: contentType,
   })
 }
 
@@ -74,15 +88,19 @@ const photo = {
 }
 
 describe('download_asset agent tool', () => {
-  const created: string[] = []
-
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(authzService.hasPermission).mockResolvedValue()
-  })
-
-  afterEach(() => {
-    for (const file of created.splice(0)) fs.rmSync(file, { force: true })
+    vi.mocked(runnerService.requireOnlineRunner).mockResolvedValue({
+      id: 'runner-1',
+      teamId: 'team-1',
+      name: 'Local Mac Mini',
+      keyPrefix: 'shm_rn_12345678',
+      isDefault: true,
+      status: 'connected',
+      createdAt: '2026-11-14T00:00:00.000Z',
+      updatedAt: '2026-11-14T00:00:00.000Z',
+    })
   })
 
   it('offers assetIds, proxy, and the agent-only key parameter', () => {
@@ -93,35 +111,32 @@ describe('download_asset agent tool', () => {
     expect(tool.description).toContain('.pi directory')
   })
 
-  it('saves the web preview into .pi by default, named after the asset', async () => {
+  it('saves the web preview into .pi on the runner by default, named after the asset', async () => {
     mockAssets(photo)
-    mockStorage('image/webp', 'proxy-bytes')
+    mockStorage('image/webp', 11)
 
     const result = await invokeTool(downloadTool(), 'call-1', { assetIds: ['img-1'] })
 
-    const expectedPath = path.join(piDir, 'img-1_sample_photo.webp')
-    created.push(expectedPath)
     expect(authzService.hasPermission).toHaveBeenCalledWith({
       user: { id: 'user-1' },
       permission: 'Read',
       type: 'asset',
       id: 'img-1',
     })
-    expect(s3Service.downloadToFile).toHaveBeenCalledWith(
-      'shumai',
-      'files/img-1/proxy.webp',
-      expectedPath,
-    )
-    expect(fs.readFileSync(expectedPath, 'utf-8')).toBe('proxy-bytes')
+    expect(runnerService.requireOnlineRunner).toHaveBeenCalledWith('team-1', null)
+    expect(runnerService.downloadToRunner).toHaveBeenCalledWith('runner-1', {
+      url: 'https://signed.example/file',
+      destPath: path.posix.join('.pi', 'img-1_sample_photo.webp'),
+    })
     expect(textOf(result)).toBe(
       [
-        `Downloaded "sample_photo.webp" (ID: img-1, proxy, image/webp, 11 B) to "${path.join('.pi', 'img-1_sample_photo.webp')}".`,
+        `Downloaded "sample_photo.webp" (ID: img-1, proxy, image/webp, 11 B) to "${path.posix.join('.pi', 'img-1_sample_photo.webp')}".`,
         'Remember to delete these temporary files when finished.',
       ].join('\n'),
     )
     const details = result.details as { files: Saved[] }
     expect(details.files[0]).toMatchObject({
-      filePath: path.join('.pi', 'img-1_sample_photo.webp'),
+      filePath: path.posix.join('.pi', 'img-1_sample_photo.webp'),
       contentType: 'image/webp',
       size: 11,
     })
@@ -129,17 +144,23 @@ describe('download_asset agent tool', () => {
 
   it('saves the original with proxy false', async () => {
     mockAssets(photo)
-    mockStorage('image/jpeg')
+    mockStorage('image/jpeg', 1234)
 
     await invokeTool(downloadTool(), 'call-1', { assetIds: ['img-1'], proxy: false })
 
-    const expectedPath = path.join(piDir, 'img-1_sample_photo.jpg')
-    created.push(expectedPath)
-    expect(s3Service.downloadToFile).toHaveBeenCalledWith(
+    expect(s3Service.presign).toHaveBeenCalledWith(
       'shumai',
       'files/up-1/sample_photo.jpg',
-      expectedPath,
+      'GET',
+      false,
+      undefined,
+      false,
+      600,
     )
+    expect(runnerService.downloadToRunner).toHaveBeenCalledWith('runner-1', {
+      url: 'https://signed.example/file',
+      destPath: path.posix.join('.pi', 'img-1_sample_photo.jpg'),
+    })
   })
 
   it('downloads several files and the latest version of a version stack', async () => {
@@ -159,16 +180,12 @@ describe('download_asset agent tool', () => {
       key: null,
     })
 
-    created.push(
-      path.join(piDir, 'img-1_sample_photo.webp'),
-      path.join(piDir, 'file-v2_banana_pig.webp'),
-    )
     expect(prisma.asset.findFirst).toHaveBeenCalledWith({
       where: { parentId: 'stack-1', isDeleted: false },
       orderBy: { sortIndex: 'asc' },
       include: { storageKey: true },
     })
-    expect(s3Service.downloadToFile).toHaveBeenCalledTimes(2)
+    expect(runnerService.downloadToRunner).toHaveBeenCalledTimes(2)
     expect(textOf(result)).toContain('Downloaded "banana_pig.webp" (ID: file-v2, proxy')
   })
 
@@ -177,7 +194,7 @@ describe('download_asset agent tool', () => {
     await expect(invokeTool(downloadTool(), 'call-1', { assetIds: ['folder-1'] })).rejects.toThrow(
       'Asset folder-1 ("Renders") is a folder. Download the files inside it instead.',
     )
-    expect(s3Service.downloadToFile).not.toHaveBeenCalled()
+    expect(runnerService.downloadToRunner).not.toHaveBeenCalled()
   })
 
   it('checks Read on every asset before downloading anything', async () => {
@@ -188,7 +205,7 @@ describe('download_asset agent tool', () => {
     await expect(
       invokeTool(downloadTool(), 'call-1', { assetIds: ['img-1', 'secret'] }),
     ).rejects.toThrow('Forbidden')
-    expect(s3Service.downloadToFile).not.toHaveBeenCalled()
+    expect(runnerService.downloadToRunner).not.toHaveBeenCalled()
   })
 
   it('requires assetIds or key', async () => {
@@ -240,27 +257,28 @@ describe('download_asset agent tool', () => {
         type: 'asset',
         id: 'other-project-asset',
       })
-      expect(s3Service.downloadToFile).not.toHaveBeenCalled()
+      expect(runnerService.downloadToRunner).not.toHaveBeenCalled()
     })
 
-    it('downloads a read_asset artifact into .pi', async () => {
+    it('downloads a read_asset artifact into .pi on the runner', async () => {
       mockAssets({ id: 'ast-123' })
-      mockStorage('image/webp', 'frame-bytes')
+      mockStorage('image/webp', 11)
 
       const result = await invokeTool(downloadTool(), 'call-1', {
         key: 'files/ast-123/screenshots/shot_5.0s.webp',
       })
 
-      const expectedPath = path.join(piDir, 'shot_5.0s.webp')
-      created.push(expectedPath)
-      expect(fs.readFileSync(expectedPath, 'utf-8')).toBe('frame-bytes')
+      expect(runnerService.downloadToRunner).toHaveBeenCalledWith('runner-1', {
+        url: 'https://signed.example/file',
+        destPath: path.posix.join('.pi', 'shot_5.0s.webp'),
+      })
       expect(textOf(result)).toBe(
-        `Downloaded storage key "files/ast-123/screenshots/shot_5.0s.webp" to "${path.join('.pi', 'shot_5.0s.webp')}". Remember to delete this temporary file when finished.`,
+        `Downloaded storage key "files/ast-123/screenshots/shot_5.0s.webp" to "${path.posix.join('.pi', 'shot_5.0s.webp')}". Remember to delete this temporary file when finished.`,
       )
       expect(result.details).toMatchObject({
         key: 'files/ast-123/screenshots/shot_5.0s.webp',
         assetId: 'ast-123',
-        size: Buffer.from('frame-bytes').length,
+        size: 11,
       })
     })
 
@@ -271,24 +289,25 @@ describe('download_asset agent tool', () => {
         key: 'files/upload-ulid-456/photo.png',
         assets: [{ id: 'asset-photo-1' }],
       } as unknown as StorageKey & { assets: Asset[] })
-      const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
       vi.mocked(s3Service.headObject).mockResolvedValue({
         size: 8,
         contentType: 'application/octet-stream',
       } as Head)
-      vi.mocked(s3Service.downloadToFile).mockImplementation(async (_b, _k, dest) => {
-        await fs.promises.writeFile(dest, pngHeader)
+      vi.mocked(runnerService.downloadToRunner).mockResolvedValue({
+        type: 'file.download.result',
+        executionId: 'exec-dl-2',
+        ok: true,
+        size: 8,
+        mimeType: 'image/png',
       })
 
       const result = await invokeTool(downloadTool(), 'call-1', {
         key: 'files/upload-ulid-456/photo.png',
       })
 
-      created.push(path.join(piDir, 'photo.png'))
       expect(authzService.hasPermission).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'asset-photo-1' }),
       )
-      // Falls back to detecting the type from the bytes
       expect(result.details).toMatchObject({ assetId: 'asset-photo-1', contentType: 'image/png' })
     })
   })

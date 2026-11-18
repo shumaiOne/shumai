@@ -1,13 +1,15 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { runnerService } from '@shumai/core/src/runner'
 import { teamService } from '@shumai/core/src/team/team'
 import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
 import {
   getUserTeamsRequestSchema,
   updateTeamSettingsRequestSchema,
   listMembersQuerySchema,
-  updateSandboxSettingsRequestSchema,
+  createRunnerRequestSchema,
+  updateRunnerRequestSchema,
   updateTurntableSettingsRequestSchema,
   updateGotenbergSettingsRequestSchema,
   updateMeRequestSchema,
@@ -210,7 +212,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.json(settings)
     },
   )
-  .get('/teams/:teamId/sandbox', async (c) => {
+  .get('/teams/:teamId/runners', async (c) => {
     const user = c.get('user')
     const teamId = c.req.param('teamId')
 
@@ -221,15 +223,31 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: teamId,
     })
 
-    const sandbox = await teamService.getSandboxSettings(teamId)
-    return c.json(sandbox)
+    const runners = await runnerService.listRunners(teamId)
+    return c.json(runners)
   })
-  .put(
-    '/teams/:teamId/sandbox',
-    zValidator('json', updateSandboxSettingsRequestSchema),
+  .post('/teams/:teamId/runners', zValidator('json', createRunnerRequestSchema), async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+    const req = c.req.valid('json')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const created = await runnerService.createRunner(teamId, req)
+    return c.json(created)
+  })
+  .patch(
+    '/teams/:teamId/runners/:runnerId',
+    zValidator('json', updateRunnerRequestSchema),
     async (c) => {
       const user = c.get('user')
       const teamId = c.req.param('teamId')
+      const runnerId = c.req.param('runnerId')
       const req = c.req.valid('json')
 
       await authzService.hasPermission({
@@ -239,10 +257,40 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: teamId,
       })
 
-      const sandbox = await teamService.updateSandboxSettings(teamId, req)
-      return c.json(sandbox)
+      const updated = await runnerService.updateRunner(teamId, runnerId, req)
+      return c.json(updated)
     },
   )
+  .post('/teams/:teamId/runners/:runnerId/rotate-key', async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+    const runnerId = c.req.param('runnerId')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const rotated = await runnerService.rotateRunnerKey(teamId, runnerId)
+    return c.json(rotated)
+  })
+  .delete('/teams/:teamId/runners/:runnerId', async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+    const runnerId = c.req.param('runnerId')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    await runnerService.deleteRunner(teamId, runnerId)
+    return c.json({ success: true })
+  })
   .get('/teams/:teamId/turntable-settings', async (c) => {
     const user = c.get('user')
     const teamId = c.req.param('teamId')

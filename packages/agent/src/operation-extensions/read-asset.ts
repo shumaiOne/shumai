@@ -142,7 +142,7 @@ export function createAutofillReadAssetTool(access: {
     description: readAsset.description,
     parameters: toToolParameters(op, readAssetExtension),
     execute: async (params) => {
-      const { input, extra } = splitAgentParams(op, readAssetExtension, params)
+      const { input, extra } = await splitAgentParams(op, readAssetExtension, params)
       const parsed = readAsset.input.safeParse(input)
       if (!parsed.success) {
         throw new Error(`Invalid input for read_asset: ${z.prettifyError(parsed.error)}`)
