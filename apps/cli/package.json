@@ -7,7 +7,7 @@
     "shumai-cli": "./src/index.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sandbox-runtime": "0.0.82",
+    "@anthropic-ai/sandbox-runtime": "0.0.83",
     "@shumai/api": "workspace:*",
     "@shumai/dtos": "workspace:*",
     "@shumai/operations": "workspace:*",
