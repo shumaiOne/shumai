@@ -5,7 +5,7 @@ import { setupTestDbHooks } from '@shumai/db/test'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAgentSession, type DbProviderInfo } from './index'
 import { closeAgentSessions } from './runtime'
-import { createSandboxedBashTool } from './tools/sandboxed-bash'
+import { createRunnerBashTool } from './tools/runner-bash'
 
 const mockProviders: DbProviderInfo[] = [
   {
@@ -92,19 +92,17 @@ describe('Concurrent Runner Sessions', () => {
       providers: mockProviders,
     })
 
-    const tool = createSandboxedBashTool('/mock/cwd', {}, { teamId: team.id })
+    const tool = createRunnerBashTool({}, { teamId: team.id })
 
     // Note: registerConnection sends a 'welcome' message first (conn.sent[0])
     const execA = invokeTool(tool, 'call-a', {
       command: 'echo session-a',
-      source: 'skill',
     })
     await vi.waitFor(() => expect(conn.sent.length).toBe(2))
     const msgA = JSON.parse(conn.sent[1])
 
     const execB = invokeTool(tool, 'call-b', {
       command: 'echo session-b',
-      source: 'skill',
     })
     await vi.waitFor(() => expect(conn.sent.length).toBe(3))
     const msgB = JSON.parse(conn.sent[2])
@@ -160,10 +158,12 @@ describe('Concurrent Runner Sessions', () => {
     )
 
     const [resA, resB] = await Promise.all([execA, execB])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ToolResponse content blocks
-    expect((resA as any).content[0].text).toContain('out-a')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ToolResponse content blocks
-    expect((resB as any).content[0].text).toContain('out-b')
+    expect(resA.content).toContainEqual(
+      expect.objectContaining({ text: expect.stringContaining('out-a') }),
+    )
+    expect(resB.content).toContainEqual(
+      expect.objectContaining({ text: expect.stringContaining('out-b') }),
+    )
 
     runnerService.handleDisconnect(runner.id, conn.ws)
   })
@@ -202,16 +202,14 @@ describe('Concurrent Runner Sessions', () => {
       gpuConn.ws,
     )
 
-    const defaultTool = createSandboxedBashTool(
-      '/mock/cwd',
+    const defaultTool = createRunnerBashTool(
       {},
       {
         teamId: team.id,
         agentRunnerId: null,
       },
     )
-    const gpuTool = createSandboxedBashTool(
-      '/mock/cwd',
+    const gpuTool = createRunnerBashTool(
       {},
       {
         teamId: team.id,
@@ -219,8 +217,8 @@ describe('Concurrent Runner Sessions', () => {
       },
     )
 
-    const pDefault = invokeTool(defaultTool, '1', { command: 'uname -a', source: 'user' })
-    const pGpu = invokeTool(gpuTool, '2', { command: 'nvidia-smi', source: 'user' })
+    const pDefault = invokeTool(defaultTool, '1', { command: 'uname -a' })
+    const pGpu = invokeTool(gpuTool, '2', { command: 'nvidia-smi' })
 
     await vi.waitFor(() => {
       expect(defaultConn.lastSentJson()?.type).toBe('exec.start')

@@ -6,6 +6,7 @@ import { parseArgs } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import { version } from '../package.json'
 import { version as cliVersion } from '../apps/cli/package.json'
+import { srtBundlePlugin } from './srt-bundle'
 
 export const cliTargets = {
   'darwin-arm64': 'bun-darwin-arm64',
@@ -90,6 +91,7 @@ export async function buildCliRelease(outdir: string, targets = cliTargetNames) 
         entrypoints: [join(repoRoot, 'apps/cli/src/index.ts')],
         target: 'bun',
         minify: true,
+        plugins: [srtBundlePlugin(...target.split('-'))],
         compile: {
           target: cliTargets[target],
           outfile: binary,

@@ -68,7 +68,7 @@ async function resolveTargetRunnerId(ctx?: AgentOperationContext): Promise<strin
   if (ctx?.runnerId && !ctx.teamId) {
     if (!runnerService.isRunnerConnected(ctx.runnerId)) {
       throw new Error(
-        'Runner is currently offline. Please start your runner with "shumai runner start" and try again.',
+        'Runner is currently offline. Please start your runner with "shumai-cli runner start" and try again.',
       )
     }
     return ctx.runnerId

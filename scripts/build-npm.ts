@@ -2,6 +2,7 @@ import tailwindPlugin from 'bun-plugin-tailwind'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { srtBundlePlugin } from './srt-bundle'
 
 console.log('\n🚀 Starting NPM packaging build process for all applications...\n')
 
@@ -521,6 +522,7 @@ async function buildCliPackage() {
     outdir: binOutDir,
     minify: true,
     naming: 'shumai-cli.js',
+    plugins: [srtBundlePlugin()],
     external: [],
     define: {
       'process.env.NODE_ENV': JSON.stringify('production'),

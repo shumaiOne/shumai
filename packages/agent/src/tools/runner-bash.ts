@@ -6,6 +6,7 @@ import { logger } from '@shumai/core/src/logger'
 import { quotaService } from '@shumai/core/src/quota/quota-service'
 import { runnerService } from '@shumai/core/src/runner'
 import type { TeamMemberRole } from '@shumai/db'
+import type { RunnerEnvironment } from '@shumai/dtos'
 import { Type } from 'typebox'
 import { OutputAccumulator } from '../utils/output-accumulator'
 import {
@@ -15,19 +16,9 @@ import {
   type TruncationResult,
 } from '../utils/truncate'
 
-const BashSource = Type.String({
-  enum: ['user', 'skill'],
-  description:
-    'Indicates who requested this bash command. Set to "user" when the end user directly ' +
-    'requested the command. Set to "skill" when the command is required by a skill you loaded ' +
-    'via the read_skill tool. Users without the owner role can only execute commands with ' +
-    'source="skill"; source="user" will be blocked.',
-})
-
 const BashParameters = Type.Object({
-  command: Type.String({ description: 'The bash command to execute.' }),
+  command: Type.String({ description: "The command to execute using the runner's shell." }),
   timeout: Type.Optional(Type.Number({ description: 'Maximum execution time in seconds.' })),
-  source: BashSource,
   inputFiles: Type.Optional(
     Type.Union([
       Type.Array(Type.String(), {
@@ -51,42 +42,31 @@ export interface LoadedSkillRef {
   hash: string
 }
 
-export interface SandboxedBashOptions {
+export interface RunnerBashOptions {
   teamId?: string
   agentRunnerId?: string | null
   runnerId?: string
   userId?: string
   role?: TeamMemberRole | null
-  /**
-   * When true, the tool only allows commands requested by a loaded skill (source="skill").
-   * Commands requested directly by the end user (source="user") are blocked.
-   */
-  restrictedUser?: boolean
+  environment?: RunnerEnvironment
   getLoadedSkills?: () => Iterable<LoadedSkillRef>
 }
 
-export const createSandboxedBashTool = (
-  _cwd: string,
+export const createRunnerBashTool = (
   skillEnvs: Record<string, string> = {},
-  options?: SandboxedBashOptions,
+  options?: RunnerBashOptions,
 ): AgentTool<typeof BashParameters, BashDetails> => {
   return {
     name: 'bash',
-    description: `Execute a bash command on the configured runner environment. Returns stdout and stderr. Output is truncated to last ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). If truncated, full output is saved to a log file in .pi/logs/ on the runner. Optionally provide a timeout in seconds, or inputFiles to stage generated files (.pi/generated/...) into the runner workspace before running. When in a restricted (non-owner) user context, only commands required by a skill loaded via the read_skill tool are allowed, and you must set source="skill".`,
+    description: `Execute a shell command on the configured runner. ${options?.environment ? `Runner OS: ${options.environment.platform}. Shell: ${options.environment.shell}. Use syntax and programs compatible with this environment.` : 'The runner reports its OS and shell when connected.'} Returns stdout and stderr. Output is truncated to last ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). If truncated, full output is saved to a log file in .pi/logs/ on the runner. Optionally provide a timeout in seconds, or inputFiles to stage generated files (.pi/generated/...) into the runner workspace before running.`,
     parameters: BashParameters,
     outputLimits: { maxBytes: DEFAULT_MAX_BYTES, maxLines: DEFAULT_MAX_LINES, retain: 'tail' },
     execute: async (
-      { command, timeout, source, inputFiles },
+      { command, timeout, inputFiles },
       api,
       context,
     ): Promise<AgentToolResult<BashDetails>> => {
       const signal = context.abortSignal
-      if (options?.restrictedUser && source !== 'skill') {
-        throw new Error(
-          'Bash commands requested directly by the user (source="user") are not permitted for your role. ' +
-            'Only commands required by a loaded skill (source="skill") can be executed.',
-        )
-      }
       if (options?.teamId) {
         await quotaService.checkQuota(
           {
@@ -104,7 +84,7 @@ export const createSandboxedBashTool = (
       if (options?.runnerId) {
         if (!runnerService.isRunnerConnected(options.runnerId)) {
           throw new Error(
-            'Runner is currently offline. Please start your runner with "shumai runner start" and try again.',
+            'Runner is currently offline. Please start your runner with "shumai-cli runner start" and try again.',
           )
         }
         targetRunnerId = options.runnerId
@@ -211,21 +191,19 @@ export const createSandboxedBashTool = (
       }
 
       if (signal?.aborted || execResult.aborted) {
-        logger.error({ command, outputText }, 'Sandboxed bash command aborted')
+        logger.error({ command, outputText }, 'Bash command aborted')
         throw new Error(appendStatus(outputText, 'Command aborted'))
       }
 
       if (execResult.timedOut) {
-        logger.error({ timeout, command, outputText }, 'Sandboxed bash command timed out')
-        throw new Error(
-          appendStatus(outputText, `Sandboxed bash command timed out after ${timeout} seconds`),
-        )
+        logger.error({ timeout, command, outputText }, 'Bash command timed out')
+        throw new Error(appendStatus(outputText, `Bash command timed out after ${timeout} seconds`))
       }
 
       if (execResult.error) {
         logger.error(
           { error: execResult.error, command, outputText },
-          'Sandboxed bash command encountered runner error',
+          'Bash command encountered runner error',
         )
         throw new Error(appendStatus(outputText, execResult.error))
       }
@@ -233,13 +211,10 @@ export const createSandboxedBashTool = (
       if (execResult.exitCode !== 0 && execResult.exitCode !== null) {
         logger.error(
           { exitCode: execResult.exitCode, command, outputText },
-          'Sandboxed bash command exited with failure code',
+          'Bash command exited with failure code',
         )
         throw new Error(
-          appendStatus(
-            outputText,
-            `Sandboxed bash command exited with code ${execResult.exitCode}`,
-          ),
+          appendStatus(outputText, `Bash command exited with code ${execResult.exitCode}`),
         )
       }
 

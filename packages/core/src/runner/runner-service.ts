@@ -11,6 +11,7 @@ import {
   RunnerFileStatResultMessage,
   RunnerFileUploadResultMessage,
   RunnerInfo,
+  RunnerEnvironment,
   RunnerToServerMessage,
   runnerToServerMessageSchema,
   ServerToRunnerMessage,
@@ -42,6 +43,7 @@ interface ActiveRunnerSession {
   lastPongAt: number
   stagedSkills: Map<string, string>
   stagedGeneratedFiles: Set<string>
+  environment?: RunnerEnvironment
 }
 
 interface PendingExecOperation {
@@ -172,6 +174,10 @@ export class RunnerService {
 
   isRunnerConnected(runnerId: string): boolean {
     return this.sessions.has(runnerId)
+  }
+
+  getRunnerEnvironment(runnerId: string): RunnerEnvironment | undefined {
+    return this.sessions.get(runnerId)?.environment
   }
 
   // ----------------------------------------------------------------------
@@ -428,11 +434,11 @@ export class RunnerService {
     if (!this.isRunnerConnected(resolved.runner.id)) {
       if (resolved.isBoundToAgent) {
         throw new Error(
-          `Runner "${resolved.runner.name}" is currently offline. Please start the runner ("shumai runner start") and try again.`,
+          `Runner "${resolved.runner.name}" is currently offline. Please start the runner ("shumai-cli runner start") and try again.`,
         )
       }
       throw new Error(
-        `Default runner "${resolved.runner.name}" is currently offline. Please start the runner ("shumai runner start") and try again.`,
+        `Default runner "${resolved.runner.name}" is currently offline. Please start the runner ("shumai-cli runner start") and try again.`,
       )
     }
 
@@ -559,6 +565,7 @@ export class RunnerService {
       case 'pong':
         break
       case 'reconcile':
+        session.environment = msg.environment
         this.handleReconcileMessage(session, msg)
         break
       case 'exec.output':

@@ -136,8 +136,15 @@ export const runnerExecResultMessageSchema = z.object({
 })
 export type RunnerExecResultMessage = z.infer<typeof runnerExecResultMessageSchema>
 
+export const runnerEnvironmentSchema = z.object({
+  platform: z.enum(['darwin', 'linux', 'win32']),
+  shell: z.string().min(1).max(1024),
+})
+export type RunnerEnvironment = z.infer<typeof runnerEnvironmentSchema>
+
 export const runnerReconcileMessageSchema = z.object({
   type: z.literal('reconcile'),
+  environment: runnerEnvironmentSchema,
   activeExecutions: z.array(
     z.object({
       executionId: z.string(),

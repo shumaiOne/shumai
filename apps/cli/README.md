@@ -86,6 +86,44 @@ export SHUMAI_ALLOW_DELETE="true"
 
 ---
 
+## Agent runner
+
+Create a runner in **Settings → Agent Runners** and copy its one-time key. On macOS, Linux, or Windows, start it in an existing dedicated workspace:
+
+```sh
+export SHUMAI_API_SERVER="https://shumai.example.com"
+export SHUMAI_RUNNER_KEY="your-runner-key"
+shumai-cli runner start --cwd /path/to/workspace
+```
+
+For Windows PowerShell:
+
+```powershell
+$env:SHUMAI_API_SERVER = "https://shumai.example.com"
+$env:SHUMAI_RUNNER_KEY = "your-runner-key"
+shumai-cli runner start --cwd C:\workspace
+```
+
+Use `--url` or `--key` to override those variables. A runner key is separate from `SHUMAI_API_KEY`. The runner stays in the foreground; Ctrl+C stops it and its active commands. Remote servers require HTTPS; localhost and `host.docker.internal` support HTTP for development. No inbound port is opened.
+
+Commands use `/bin/sh` on macOS/Linux and `cmd.exe` on Windows. The agent receives the runner's OS and shell so it can use the appropriate syntax. Commands run with the local user's permissions unless SRT is requested.
+
+[Anthropic Sandbox Runtime](https://github.com/anthropics/sandbox-runtime) is bundled with the CLI. Install its platform prerequisites (Linux: bubblewrap, socat, and ripgrep; macOS: ripgrep), then pass its native JSON settings:
+
+```sh
+shumai-cli runner start --srt sandbox.json
+```
+
+Windows sandboxing uses SRT's alpha Windows support. Run its one-time setup before starting a sandboxed runner (it requests administrator permission):
+
+```powershell
+npx @anthropic-ai/sandbox-runtime windows-install
+```
+
+SRT settings are read and validated at startup. Invalid settings or unavailable sandbox prerequisites stop startup; commands never fall back to unrestricted execution. Only shell commands and their children are sandboxed. Runner connections and server-directed file transfers stay outside SRT, and no server domain is automatically allowed. The shared SRT runtime is cleaned up when the runner stops.
+
+See [Agent Runners](../../docs/using-shumai/agent-sandbox.mdx) for configuration, Docker usage, limits, and security boundaries.
+
 ## Usage
 
 > [!IMPORTANT]

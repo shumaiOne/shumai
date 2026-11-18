@@ -7,13 +7,23 @@
     "shumai-cli": "./src/index.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sandbox-runtime": "0.0.82",
     "@shumai/api": "workspace:*",
     "@shumai/dtos": "workspace:*",
     "@shumai/operations": "workspace:*",
     "@shumai/tableprinter": "workspace:*",
     "commander": "15.0.0",
+    "execa": "10.2.1",
     "hono": "4.13.5",
     "ulid": "3.0.2",
+    "ws": "8.22.2",
+    "yauzl": "3.4.0",
     "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "0.5.8",
+    "@types/ws": "8.18.2",
+    "@types/yauzl": "3.4.0",
+    "adm-zip": "0.6.1"
   }
 }

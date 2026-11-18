@@ -7,6 +7,7 @@ import { cliExtensions } from './operations/extensions'
 import { registerOperationCommands } from './operations/generate'
 import type { Output } from './operations/render'
 import { version } from '../package.json'
+import { startRunner } from './runner/client'
 
 export interface ProgramOptions {
   callOperation?: CallOperation
@@ -42,6 +43,17 @@ export function createProgram(options: ProgramOptions = {}): Command {
     allowDestructive: isDeleteAllowed,
     extensions: cliExtensions,
   })
+
+  program
+    .command('runner')
+    .description('Connect a local command runner to Shumai.')
+    .command('start')
+    .description('Run in the foreground using a key created in Settings → Agent Runners.')
+    .option('--url <url>', 'Shumai server URL (or SHUMAI_API_SERVER).')
+    .option('--key <key>', 'Runner key (prefer SHUMAI_RUNNER_KEY to avoid shell history).')
+    .option('--cwd <directory>', 'Runner workspace directory (defaults to the current directory).')
+    .option('--srt <file>', 'Sandbox commands with bundled SRT using this JSON settings file.')
+    .action(startRunner)
 
   program
     .command('upload')

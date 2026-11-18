@@ -1,45 +1,95 @@
 ---
-title: 智能体沙箱
-description: AI 智能体脚本的安全执行环境与网络域名限制规范。
+title: 智能体运行器
+description: 连接可选的命令运行器，并在运行器机器上配置沙箱。
 ---
 
-运行自动化脚本存在潜在的安全风险。Shumai 通过在安全且隔离的**沙箱（Sandbox）**环境中执行所有智能体技能来化解这一隐患。
+智能体无需运行器即可使用内置工具。如需执行命令或将素材下载到命令工作区，请在自己管理的机器上连接**运行器**。运行器主动通过经过身份验证的 WebSocket 连接 Shumai，无需开放入站端口。
 
----
+## 连接运行器
 
-## 沙箱安全机制
+1. 在 **设置 → 智能体运行器** 中创建运行器，复制仅显示一次的密钥。只有团队所有者可以管理运行器和轮换密钥。
+2. 在 macOS、Linux 或 Windows 机器上安装 [Shumai CLI](https://github.com/shumaiOne/shumai/tree/main/apps/cli#installation)。
+3. 在已有的专用工作目录中启动：
 
-沙箱严格限制执行进程访问宿主机文件系统、系统进程及内部网络：
+```bash
+export SHUMAI_API_SERVER="https://shumai.example.com"
+export SHUMAI_RUNNER_KEY="your-runner-key"
+shumai-cli runner start --cwd /path/to/workspace
+```
 
-- **环境隔离**：脚本在虚拟化的工作区容器中运行，无法篡改系统核心文件或读取其他项目数据。
-- **网络桥接管控**：来自沙箱内部的外部网络请求会受到严格监控。
+Windows 用户可在 PowerShell 中设置变量：
 
-### 文件系统访问限制
+```powershell
+$env:SHUMAI_API_SERVER = "https://shumai.example.com"
+$env:SHUMAI_RUNNER_KEY = "your-runner-key"
+shumai-cli runner start --cwd C:\workspace
+```
 
-为保障工作区环境与敏感数据安全，沙箱实施了严密的文件级访问控制策略：
+使用运行器密钥，而非个人 API 令牌。建议通过环境变量传入，避免 `--key` 将密钥留在命令历史中。运行器在前台执行，Ctrl+C 会停止运行器及其活动命令。临时断线后自动重连；密钥撤销或连接被替换时退出。
 
-- **读取权限**：沙箱允许读取工作区内的普通文件，但严格禁止访问敏感环境配置与证书密钥文件。禁止读取的文件模式包括：`['.env', '.env.*', '*.pem', '*.key']`。
-- **写入权限**：沙箱的写入权限受到极为严苛的限制，仅允许写入当前工作目录（cwd）下的 `.pi` 文件夹。即便在该受信任的目录内部，沙箱也严禁写入或创建匹配以下模式的敏感文件：`['.env', '.env.*', '*.pem', '*.key']`。
+第一个运行器是团队默认运行器，也可在智能体设置中指定专用运行器。未配置运行器时隐藏 `bash` 和 `download_asset`。配置后，具有智能体使用权限的编辑者和审阅者可立即使用 Bash，无需先读取技能；禁用工具设置仍然生效。运行器离线时执行命令会返回错误。
 
----
+命令从工作目录启动，技能、下载素材、生成文件和日志位于 `.pi` 中。子进程只继承基础系统环境及明确配置的技能变量，不自动继承运行器密钥、个人 API 令牌或其他任意环境变量。
 
-## 域名白名单
+## 可选 SRT 沙箱
 
-默认情况下，网络沙箱处于**关闭**状态（允许所有出站网络请求）。团队所有者可在沙箱设置中开启网络沙箱，以强制推行严格的域名白名单管控：
+未使用 `--srt` 时，命令具有运行器系统用户的权限。只连接可信 Shumai 服务器，可按需使用独立容器、虚拟机或账号。
 
-### 允许的域名 (Allowed Domains)
+[Anthropic Sandbox Runtime](https://github.com/anthropics/sandbox-runtime) 已作为库内置于 Shumai CLI。安装平台依赖（Linux：bubblewrap、socat 和 ripgrep；macOS：ripgrep）后传入 JSON 配置：
 
-允许沙箱内脚本正常访问的域名清单。
+```bash
+shumai-cli runner start --cwd /path/to/workspace --srt sandbox.json
+```
 
-- 默认白名单包含标准软件包注册表（如 npm、Python 官方源等）以及代码托管平台（如 `github.com`）。
-- 若脚本需要调用外部 API（如 `api.slack.com`），管理员须预先将其添加至白名单中。
+Windows 使用 SRT 的实验性 Windows 支持。启用沙箱前执行一次初始化；此命令会请求管理员权限：
 
-### 待审批域名 (Pending Domains)
+```powershell
+npx @anthropic-ai/sandbox-runtime windows-install
+```
 
-当智能体脚本尝试访问未经授权的域名时：
+SRT 会在启动时检查安装状态，缺少初始化时返回错误。未使用 `--srt` 的运行器不需要此步骤。`bash` 工具使用运行器的原生 Shell：macOS/Linux 为 `/bin/sh`，Windows 为 `cmd.exe`。智能体会收到系统和 Shell 信息，以生成匹配的命令。Windows 无需安装 Bash 或 Git。
 
-1. 网络连接将被即刻拦截。
-2. 系统会记录目标域名并将其加入**待审批域名**列表。
-3. 管理员可审阅该列表，点击**批准**将其加白，或点击**拒绝**保持拦截。
+直接使用上游 SRT JSON 格式，例如：
 
-![智能体沙箱设置](/sandbox.webp)
+```json
+{
+  "filesystem": {
+    "denyRead": ["~/.ssh", "~/.aws", ".env", ".env.*"],
+    "allowWrite": [".pi"],
+    "denyWrite": []
+  },
+  "network": {
+    "allowedDomains": [],
+    "deniedDomains": []
+  }
+}
+```
+
+此例只允许写入 `.pi`，禁止读取所列凭证位置，并禁止命令访问网络。请参考 SRT 文档审查适合自己环境的读取权限和域名规则。相对路径以运行器工作目录为基准。配置在启动时读取并保存快照，修改后需要重启。配置缺失或无效、SRT 依赖缺失、沙箱初始化失败都会阻止启动，不会回退到无沙箱执行。
+
+SRT 只包裹 Shell 命令及其子进程。并发命令共享同一个 SRT 运行时，运行器停止时统一清理。运行器 WebSocket 和服务器发起的文件传输在 SRT 外运行。**不会自动将 Shumai 服务器地址添加到允许域名中。** 如果脚本自身需要网络，请在 JSON 中明确允许目标域名。
+
+Shumai 服务器不管理沙箱和域名规则。只有启用沙箱的运行器才初始化 SRT。在 Docker 中使用 SRT 可能需要为专用运行器容器增加命名空间权限，Shumai 服务器不需要这些权限。
+
+## Docker 运行器
+
+普通运行器可在独立容器中执行，无需额外权限或暴露端口：
+
+```bash
+docker run --rm --init --name shumai-runner \
+  --cap-drop ALL --security-opt no-new-privileges \
+  -e SHUMAI_API_SERVER -e SHUMAI_RUNNER_KEY \
+  -v shumai-runner-workspace:/workspace -w /workspace \
+  node:22-bookworm sh -c \
+  'npm install -g @shumai-one/shumai-cli && exec shumai-cli runner start'
+```
+
+本地开发允许 `localhost`、`127.0.0.1`、`[::1]`、Docker 的 `host.docker.internal` HTTP 地址；远程连接必须使用 HTTPS。不要将敏感宿主机目录或 Docker socket 挂载到运行器工作区。
+
+## 限制与生命周期
+
+默认超时 120 秒，最长一小时。超时或取消会尝试终止命令及其子进程。单条命令最多在 `.pi/logs` 保存 64 MiB 输出，请按工作区维护需求清理日志。文件传输和技能解压限制为 256 MiB。协议文件操作拒绝 `.pi` 外路径、已有符号链接及不安全的压缩包条目。V1 假定命令不会在文件传输期间故意修改工作区路径。
+
+临时重连会同步执行中及近期完成的命令，避免主动重复执行。重启运行器进程不会恢复旧进程中的命令。
+
+共享工作区最多同时执行八个命令或文件传输，超出时返回繁忙错误。Windows 未启用 SRT 时，后台进程可能在命令 Shell 退出后继续运行，剩余输出管道会在一秒后关闭。请使用前台命令，以确保超时和取消可预测。启用 SRT 时由 SRT 管理 Windows 沙箱进程树。
