@@ -97,7 +97,17 @@ export function SearchImagePicker({ onSelect }: { onSelect: (image: SearchImage)
           <ImagePlus className="size-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent
+        onPaste={(event) => {
+          event.stopPropagation()
+          const image = Array.from(event.clipboardData.files).find((file) =>
+            file.type.startsWith('image/'),
+          )
+          if (!image) return
+          event.preventDefault()
+          void selectFile(image)
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{m.image_search_attach()}</DialogTitle>
           <DialogDescription>{m.image_search_select_description()}</DialogDescription>

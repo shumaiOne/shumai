@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **search**: Find similar images and video segments from a project image, or attach an image in semantic search.
+- **search**: Find similar images and video segments from a project image, or choose, drop, or paste an image in semantic search.
 
 ### Fixed
 

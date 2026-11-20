@@ -1105,7 +1105,7 @@
   "image_search_videos": "Videos",
   "image_search_media_filter": "Media type",
   "image_search_attach": "Attach an image",
-  "image_search_select_description": "Choose an image or drag it here.",
+  "image_search_select_description": "Choose an image, drag it here, or paste it from your clipboard.",
   "image_search_choose_image": "Choose image",
   "image_search_remove": "Remove image",
   "image_search_invalid_image": "Choose a supported image file.",

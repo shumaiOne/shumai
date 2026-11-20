@@ -1105,7 +1105,7 @@
   "image_search_videos": "视频",
   "image_search_media_filter": "媒体类型",
   "image_search_attach": "添加图片",
-  "image_search_select_description": "选择图片或将图片拖到此处。",
+  "image_search_select_description": "选择图片、将图片拖到此处，或从剪贴板粘贴图片。",
   "image_search_choose_image": "选择图片",
   "image_search_remove": "移除图片",
   "image_search_invalid_image": "请选择支持的图片文件。",

@@ -236,6 +236,7 @@ test.describe('image search', () => {
 
   test('owner submits a resized image with filters and can remove the attachment', async ({
     project,
+    browserName,
   }) => {
     const { page, teamId, projectId, rootFolderId } = project
     await page.route(`**/api/teams/${teamId}/settings`, async (route) => {
@@ -320,8 +321,32 @@ test.describe('image search', () => {
     await transfer.dispose()
     await expect(dialog.getByText('dropped.png')).toBeVisible()
 
+    if (browserName === 'chromium') {
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+      await page.evaluate(async (base64) => {
+        const bytes = Uint8Array.from(atob(base64), (byte) => byte.charCodeAt(0))
+        const image = new Blob([bytes], { type: 'image/png' })
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': image })])
+      }, png)
+      await dialog.getByRole('button', { name: 'Attach an image' }).click()
+      await expect(picker).toBeVisible()
+      await page.keyboard.press('ControlOrMeta+V')
+      await expect(picker).toBeHidden()
+      await expect(dialog.getByText('dropped.png')).toHaveCount(0)
+      await expect(thumbnail).toHaveJSProperty('naturalWidth', 1280)
+      await expect(thumbnail).toHaveJSProperty('naturalHeight', 720)
+      await dialog.getByRole('button', { name: 'Search', exact: true }).click()
+      await expect.poll(() => requests.length).toBe(2)
+      expect(requests[1]).toMatchObject({
+        image: expect.stringMatching(/^\/9j\//),
+        conditions: [{ field: 'sizeByte', operator: 'gt', value: 100 }],
+      })
+    }
+
     await dialog.getByRole('button', { name: 'Remove image' }).click()
     await expect(dialog.getByPlaceholder('Search records by content...')).toBeVisible()
     await expect(dialog.getByText('1 active')).toBeVisible()
+    await dialog.getByRole('button', { name: 'Close', exact: true }).last().click()
+    await expect(page.getByText('This folder is empty')).toBeVisible()
   })
 })
