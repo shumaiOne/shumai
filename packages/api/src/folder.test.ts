@@ -60,6 +60,7 @@ describe('folder api', () => {
     vi.spyOn(assetService, 'restoreAssets').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'listChildren').mockImplementation(vi.fn())
     vi.spyOn(searchService, 'search').mockImplementation(vi.fn())
+    vi.spyOn(searchService, 'searchByImage').mockResolvedValue({ data: [], pageInfo: { total: 0 } })
   })
 
   afterEach(() => {
@@ -327,6 +328,83 @@ describe('folder api', () => {
       'test-id',
       expect.objectContaining({ previewFormat: 'jpeg' }),
     )
+  })
+
+  describe('POST /folders/:folderId/image-search', () => {
+    function request(body: Record<string, unknown>) {
+      const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
+      return app.request('/folders/scope-id/image-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    }
+
+    it('checks both permissions and passes a stored image search to Core', async () => {
+      const res = await request({ sourceAssetId: 'image-id', mediaType: 'video', first: 20 })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ data: [], pageInfo: { total: 0 } })
+      expect(vi.mocked(authzService.hasPermission).mock.calls.map(([input]) => input.id)).toEqual([
+        'scope-id',
+        'image-id',
+      ])
+      expect(authzService.hasPermission).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          id: 'image-id',
+          permission: Permission.Read,
+          type: ResourceType.Asset,
+        }),
+      )
+      expect(searchService.searchByImage).toHaveBeenCalledWith('scope-id', {
+        sourceAssetId: 'image-id',
+        mediaType: 'video',
+        first: 20,
+        operator: 'AND',
+        conditions: [],
+      })
+    })
+
+    it('checks folder read access before passing image data to Core', async () => {
+      const conditions = [{ field: 'status', operator: 'eq', value: 'approved' }]
+      const res = await request({ image: 'aW1hZ2U=', conditions })
+      expect(res.status).toBe(200)
+      expect(authzService.hasPermission).toHaveBeenCalledTimes(1)
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'scope-id',
+          permission: Permission.Read,
+          type: ResourceType.Asset,
+        }),
+      )
+      expect(searchService.searchByImage).toHaveBeenCalledWith('scope-id', {
+        image: 'aW1hZ2U=',
+        conditions,
+        operator: 'AND',
+      })
+    })
+
+    it('rejects a denied folder or source before running the search', async () => {
+      vi.mocked(authzService.hasPermission).mockRejectedValueOnce(new HTTPException(403))
+      expect((await request({ image: 'aW1hZ2U=' })).status).toBe(403)
+      vi.mocked(authzService.hasPermission)
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new HTTPException(403))
+      expect((await request({ sourceAssetId: 'image-id' })).status).toBe(403)
+      expect(searchService.searchByImage).not.toHaveBeenCalled()
+    })
+
+    it('rejects incomplete, ambiguous, and invalid search inputs', async () => {
+      for (const body of [
+        {},
+        { image: 'aW1hZ2U=', sourceAssetId: 'both' },
+        { image: 'invalid!' },
+        { sourceAssetId: 'image-id', mediaType: 'audio' },
+      ]) {
+        expect((await request(body)).status).toBe(400)
+      }
+      expect((await request({ image: 'A'.repeat(1_600_000) })).status).toBe(413)
+      expect(searchService.searchByImage).not.toHaveBeenCalled()
+    })
   })
 
   it('PATCH /folders/:folderId/order', async () => {

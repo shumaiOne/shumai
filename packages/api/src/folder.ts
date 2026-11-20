@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
+import { bodyLimit } from 'hono/body-limit'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { searchService } from '@shumai/core/src/search/search'
@@ -11,7 +12,11 @@ import {
   updateAgentsMdRequestSchema,
 } from '@shumai/dtos'
 import { listChildrenRequestSchema, updateAssetOrderRequestSchema, AuditAction } from '@shumai/dtos'
-import { searchRequestSchema } from '@shumai/dtos'
+import {
+  imageSearchRequestSchema,
+  MAX_SEARCH_IMAGE_BASE64_LENGTH,
+  searchRequestSchema,
+} from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import {
@@ -154,6 +159,33 @@ const route = new Hono<{ Variables: { user: User } }>()
     const result = await searchService.search(folderId, req)
     return c.json(result)
   })
+  .post(
+    '/folders/:folderId/image-search',
+    bodyLimit({ maxSize: MAX_SEARCH_IMAGE_BASE64_LENGTH + 64 * 1024 }),
+    zValidator('json', imageSearchRequestSchema),
+    async (c) => {
+      const folderId = c.req.param('folderId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Asset,
+        id: folderId,
+      })
+      if (req.sourceAssetId) {
+        await authzService.hasPermission({
+          user,
+          permission: Permission.Read,
+          type: ResourceType.Asset,
+          id: req.sourceAssetId,
+        })
+      }
+
+      return c.json(await searchService.searchByImage(folderId, req))
+    },
+  )
   .get('/folders/:folderId/agentsmd', async (c) => {
     const { content } = await runOperation(
       getFolderInstructionsOp,

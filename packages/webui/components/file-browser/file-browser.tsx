@@ -29,6 +29,8 @@ import { ManageVersionsDialog } from '../manage-versions-dialog'
 import { FilePreviewDialog } from '../file-preview-dialog'
 import { FileBrowserContentSkeleton } from '../loading-skeletons'
 import { FileBrowserContextMenu } from './context-menu'
+import { FindSimilarDialog } from '../search/find-similar-dialog'
+import { useSemanticSearchEnabled } from '../search/use-semantic-search-enabled'
 
 import {
   AlertDialog,
@@ -156,6 +158,13 @@ export function FileBrowser({
   allowDownload = true,
 }: FileBrowserProps) {
   const [contextMenuItem, setContextMenuItem] = useState<AssetInfo | null>(null)
+  const [similarImage, setSimilarImage] = useState<AssetInfo | null>(null)
+  const semanticSearchEnabled = useSemanticSearchEnabled(
+    teamId,
+    Boolean(
+      rootFolderId && !isShareView && !isPublic && !isRecents && !isRecentlyDeleted && !collection,
+    ),
+  )
   const [manageVersionsStackId, setManageVersionsStackId] = useState<string | null>(null)
   const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy' | null>(null)
   const [itemsToMoveCopy, setItemsToMoveCopy] = useState<AssetInfo[]>([])
@@ -1179,6 +1188,7 @@ export function FileBrowser({
           onDelete={handleDelete}
           onDownload={handleDownload}
           onCopy={handleCopy}
+          onFindSimilar={semanticSearchEnabled && rootFolderId ? setSimilarImage : undefined}
           onNewFolder={handleNewFolder}
           onUploadFile={handleUploadFilesClick}
           onUploadFolder={handleUploadFolderClick}
@@ -1238,6 +1248,16 @@ export function FileBrowser({
         </>
       )}
       {renderContent()}
+
+      {semanticSearchEnabled && similarImage && rootFolderId && (
+        <FindSimilarDialog
+          image={similarImage}
+          folderId={rootFolderId}
+          teamId={teamId}
+          projectId={projectId}
+          onClose={() => setSimilarImage(null)}
+        />
+      )}
 
       {moveCopyMode && (
         <MoveCopyDialog

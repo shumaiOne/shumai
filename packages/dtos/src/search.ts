@@ -63,3 +63,21 @@ export type SearchFilter = z.infer<typeof searchFilterSchema>
 
 export const searchRequestSchema = searchFilterSchema.extend(paginationParamsSchema.shape)
 export type SearchRequest = z.infer<typeof searchRequestSchema>
+
+export const MAX_SEARCH_IMAGE_BASE64_LENGTH = 1_500_000
+export const imageSearchMediaTypeSchema = z.enum(['image', 'video'])
+export type ImageSearchMediaType = z.infer<typeof imageSearchMediaTypeSchema>
+
+export const imageSearchRequestSchema = searchFilterSchema
+  .pick({ conditions: true, operator: true, previewFormat: true })
+  .extend({
+    ...paginationParamsSchema.shape,
+    mediaType: imageSearchMediaTypeSchema.optional(),
+    image: z.base64().min(1).max(MAX_SEARCH_IMAGE_BASE64_LENGTH).optional(),
+    sourceAssetId: z.string().min(1).optional(),
+  })
+  .refine(({ image, sourceAssetId }) => Boolean(image) !== Boolean(sourceAssetId), {
+    message: 'Provide one search image or source asset.',
+  })
+
+export type ImageSearchRequest = z.infer<typeof imageSearchRequestSchema>

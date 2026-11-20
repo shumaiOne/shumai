@@ -9,15 +9,17 @@ import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import { Switch } from '@/ui/components/ui/switch'
 import { cn } from '@/ui/lib/utils'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { AlertCircle, ChevronDown, ChevronUp, Loader2, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
-import { FileCard } from '@/ui/components/file-browser/file-card'
-import { FolderCard } from '@/ui/components/file-browser/folder-card'
 import { FilterPanel } from './filter-panel'
+import { SearchImagePicker, type SearchImage } from './search-image-picker'
+import { SearchResultCards } from './search-result-cards'
+import { useSemanticSearchEnabled } from './use-semantic-search-enabled'
+import { searchByImage } from './search-by-image'
 import { m } from '@/ui/paraglide/messages.js'
 
 interface SearchFilterDialogProps {
@@ -59,22 +61,15 @@ export function SearchFilterDialog({
   const [triggerQuery, setTriggerQuery] = useState(initialKeyword)
   const [isSemantic, setIsSemantic] = useState<boolean>(false)
 
-  const { data: teamSettings } = useQuery({
-    queryKey: ['team-settings', teamId],
-    queryFn: async () => {
-      const res = await client.api.teams[':teamId'].settings.$get({
-        param: { teamId },
-      })
-      if (!res.ok) throw new Error(m.failed_load_settings())
-      return (await res.json()) as { semanticSearchEnabled: boolean }
-    },
-    enabled: open,
-  })
-
-  const semanticSearchEnabled = teamSettings?.semanticSearchEnabled ?? false
+  const [attachedImage, setAttachedImage] = useState<SearchImage | null>(null)
+  const [imageSubmitted, setImageSubmitted] = useState(false)
+  const submittedImage = imageSubmitted ? attachedImage : null
+  const semanticSearchEnabled = useSemanticSearchEnabled(teamId, open)
 
   // Sync back if changed from outside, clear on close
   useEffect(() => {
+    setAttachedImage(null)
+    setImageSubmitted(false)
     if (open) {
       setSearchInput(initialKeyword)
       setTriggerQuery(initialKeyword)
@@ -101,10 +96,9 @@ export function SearchFilterDialog({
     return result
   }, [isSemantic, triggerQuery, conditions])
 
-  const hasActiveCriteria = useMemo(() => {
-    const activeText = triggerQuery
-    return activeText.trim() !== '' || conditions.some((c) => String(c.value || '').trim() !== '')
-  }, [triggerQuery, conditions])
+  const hasActiveCriteria = attachedImage
+    ? Boolean(submittedImage && semanticSearchEnabled)
+    : triggerQuery.trim() !== '' || conditions.some((c) => String(c.value || '').trim() !== '')
 
   const { mutate: saveAsCollection, isPending: isSaving } = useMutation({
     mutationFn: async () => {
@@ -157,11 +151,33 @@ export function SearchFilterDialog({
     isLoading,
     isFetchingNextPage,
     fetchNextPage,
+    refetch,
     hasNextPage,
     error: searchError,
   } = useInfiniteQuery({
-    queryKey: ['search-preview', teamId, assetId, combinedConditions, isSemantic, triggerQuery],
-    queryFn: async ({ pageParam }) => {
+    queryKey: [
+      'search-preview',
+      teamId,
+      assetId,
+      combinedConditions,
+      isSemantic,
+      triggerQuery,
+      submittedImage?.id,
+    ],
+    queryFn: async ({ pageParam, signal }) => {
+      if (submittedImage) {
+        return searchByImage(
+          assetId,
+          {
+            image: submittedImage.base64,
+            conditions: combinedConditions,
+            operator: 'AND',
+            first: 20,
+            after: pageParam || undefined,
+          },
+          signal,
+        )
+      }
       const activeText = triggerQuery
       const res = await client.api.folders[':folderId'].search.$post({
         param: { folderId: assetId },
@@ -186,16 +202,17 @@ export function SearchFilterDialog({
     },
     enabled: open && hasActiveCriteria,
     staleTime: 500,
+    gcTime: submittedImage ? 0 : undefined,
     retry: false,
     initialPageParam: '',
     getNextPageParam: (lastPage) => lastPage.pageInfo?.cursor || undefined,
   })
 
   useEffect(() => {
-    if (inView && hasNextPage && !isFetchingNextPage) {
+    if (inView && hasNextPage && !isFetchingNextPage && !searchError) {
       fetchNextPage()
     }
-  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage])
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage, searchError])
 
   const flattenedResults = useMemo(() => {
     return searchResults?.pages.flatMap((page) => page.data) || []
@@ -217,20 +234,6 @@ export function SearchFilterDialog({
     setConditions([])
   }
 
-  const handleResultClick = (item: AssetInfo) => {
-    if (item.type === 'folder') {
-      window.open(`/projects/${projectId}/folders/${item.id}`, '_blank', 'noopener,noreferrer')
-    } else {
-      const fileId = item.versionStack ? item.versionStack.id : item.id!
-      const searchParams = new URLSearchParams()
-      if (item.startTime !== undefined && item.startTime !== null && item.startTime > 0) {
-        searchParams.set('start', String(item.startTime))
-      }
-      const query = searchParams.toString() ? `?${searchParams.toString()}` : ''
-      window.open(`/projects/${projectId}/files/${fileId}${query}`, '_blank', 'noopener,noreferrer')
-    }
-  }
-
   const activeFiltersCount = conditions.filter((c) => c.value !== '').length
 
   return (
@@ -244,37 +247,72 @@ export function SearchFilterDialog({
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              setTriggerQuery(searchInput.trim())
+              if (attachedImage) {
+                if (!semanticSearchEnabled) return
+                if (imageSubmitted) void refetch()
+                else setImageSubmitted(true)
+              } else {
+                setTriggerQuery(searchInput.trim())
+              }
             }}
             className="flex flex-col gap-3 mt-2"
           >
             <div className="relative">
-              <Input
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder={
-                  isSemantic ? m.search_by_content_placeholder() : m.search_by_name_placeholder()
-                }
-                className="w-full pl-4 pr-24 py-3 bg-background border-border rounded-xl text-sm h-12 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm"
-              />
-              {searchInput && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchInput('')
-                    setTriggerQuery('')
-                  }}
-                  className="absolute right-20 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+              {attachedImage ? (
+                <div className="flex h-12 items-center gap-2 rounded-xl border bg-background pl-2 pr-36 shadow-sm">
+                  <img
+                    alt=""
+                    src={`data:image/jpeg;base64,${attachedImage.base64}`}
+                    className="size-8 rounded-sm object-cover"
+                  />
+                  <span className="truncate text-sm">{attachedImage.name}</span>
+                </div>
+              ) : (
+                <Input
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder={
+                    isSemantic ? m.search_by_content_placeholder() : m.search_by_name_placeholder()
+                  }
+                  className={cn(
+                    'h-12 w-full rounded-xl border-border bg-background py-3 pl-4 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20',
+                    isSemantic && semanticSearchEnabled ? 'pr-36' : 'pr-28',
+                  )}
+                />
               )}
-              <button
-                type="submit"
-                className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold rounded-lg flex items-center justify-center transition-colors shadow-sm"
-              >
-                {m.search_button()}
-              </button>
+              <div className="absolute inset-y-1.5 right-1.5 flex items-center gap-1">
+                {(searchInput || attachedImage) && (
+                  <button
+                    type="button"
+                    aria-label={attachedImage ? m.image_search_remove() : m.clear_search()}
+                    onClick={() => {
+                      setAttachedImage(null)
+                      setImageSubmitted(false)
+                      setSearchInput('')
+                      setTriggerQuery('')
+                    }}
+                    className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <X className="size-4" />
+                  </button>
+                )}
+                {isSemantic && semanticSearchEnabled && (
+                  <SearchImagePicker
+                    onSelect={(image) => {
+                      setAttachedImage(image)
+                      setImageSubmitted(false)
+                      setSearchInput('')
+                      setTriggerQuery('')
+                    }}
+                  />
+                )}
+                <button
+                  type="submit"
+                  className="flex h-full items-center justify-center rounded-lg bg-primary px-4 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  {m.search_button()}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center gap-3 py-1">
@@ -286,6 +324,8 @@ export function SearchFilterDialog({
                     setIsSemantic(checked)
                     setSearchInput('')
                     setTriggerQuery('')
+                    setAttachedImage(null)
+                    setImageSubmitted(false)
                     setConditions([])
                   }}
                   disabled={!semanticSearchEnabled}
@@ -380,9 +420,9 @@ export function SearchFilterDialog({
                 <Search className="w-10 h-10 text-muted-foreground/30 mb-2" />
                 <h3 className="text-sm font-semibold text-foreground/80">{m.ready_to_search()}</h3>
                 <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
-                  {m.type_query_instruction()}
+                  {attachedImage ? m.image_search_submit_instruction() : m.type_query_instruction()}
                 </p>
-                {isSemantic && (
+                {isSemantic && !attachedImage && (
                   <p className="text-xs text-muted-foreground/80 max-w-md mt-4 mx-auto border-t border-border/60 pt-3">
                     {m.semantic_search_note()}
                   </p>
@@ -420,42 +460,16 @@ export function SearchFilterDialog({
                   {m.no_records_matched()}
                 </h3>
                 <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
-                  {m.try_adjusting_spelling()}
+                  {!attachedImage && m.try_adjusting_spelling()}
                 </p>
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {flattenedResults.map((record) => {
-                    const itemKey =
-                      record.startTime != null && record.endTime != null
-                        ? `${record.id}-${record.startTime}-${record.endTime}`
-                        : record.id
-                    if (record.type === 'folder') {
-                      return (
-                        <FolderCard
-                          key={itemKey}
-                          item={record}
-                          hideCheckbox
-                          hideActions
-                          disabled
-                          onSelect={() => handleResultClick(record)}
-                        />
-                      )
-                    }
-                    return (
-                      <FileCard
-                        key={itemKey}
-                        teamId={teamId}
-                        item={record}
-                        hideCheckbox
-                        hideActions
-                        disabled
-                        onSelect={() => handleResultClick(record)}
-                      />
-                    )
-                  })}
-                </div>
+                <SearchResultCards
+                  results={flattenedResults}
+                  teamId={teamId}
+                  projectId={projectId}
+                />
                 {(hasNextPage || isFetchingNextPage) && (
                   <div ref={ref} className="p-4 flex justify-center items-center">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

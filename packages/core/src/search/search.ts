@@ -1,11 +1,11 @@
 import { prisma } from '@shumai/db'
 import { Prisma, AssetType } from '@shumai/db'
 import { AssetService, assetService } from '@shumai/core/src/asset/asset'
-import { AssetInfo } from '@shumai/dtos'
-import { SearchRequest } from '@shumai/dtos'
+import type { AssetInfo, ImageSearchRequest, SearchRequest } from '@shumai/dtos'
 import { PaginatedData, decodeCursor, encodeCursor, PageInfo } from '@shumai/core/src/pagination'
 import { generateSearchNgrams } from '@shumai/core/src/utils/ngram'
 import { HTTPException } from 'hono/http-exception'
+import { getImageEmbeddingDimensions, imageEmbeddingService } from './image-embedding'
 import { SqlQueryBuilder } from './sql-query-builder'
 import { TextEmbeddingService, textEmbeddingService } from './text-embedding'
 
@@ -23,202 +23,37 @@ export class SearchService {
     const targetTypes =
       req.assetType === 'folder' ? [AssetType.folder] : [AssetType.file, AssetType.version_stack]
 
-    // ----------------------------------------------------------------------
-    // AI Semantic search
-    // ----------------------------------------------------------------------
     if (req.query && req.isSemantic) {
-      // 1. Check if embedding agent exists and is enabled
-      const team = await this.prismaClient.asset.findUnique({
+      const folder = await this.prismaClient.asset.findUnique({
         where: { id: folderId },
         select: { project: { select: { teamId: true } } },
       })
-      const teamId = team?.project?.teamId
+      const teamId = folder?.project?.teamId
       if (!teamId) throw new Error('Team ID not found for folder')
+      await this.requireEmbeddingAgent(teamId)
 
-      if (process.env.ENABLE_EMBEDDING_AGENT === 'false') {
-        throw new HTTPException(422, {
-          message: 'Embedding agent not configured or disabled for this team.',
-        })
-      }
-
-      const embeddingAgent = await this.prismaClient.agent.findFirst({
-        where: { teamId, type: 'embedding', enabled: true },
-      })
-
-      if (!embeddingAgent) {
-        throw new HTTPException(422, {
-          message: 'Embedding agent not configured or disabled for this team.',
-        })
-      }
-
-      // 2. Generate query embedding directly using configured environment provider
-      let queryVector: number[]
+      let vector: number[]
       try {
-        const result = await this.embeddingSvc.generateEmbedding(req.query, {
-          teamId,
-        })
-        queryVector = result.embedding
+        const result = await this.embeddingSvc.generateEmbedding(req.query, { teamId })
+        vector = result.embedding
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         throw new HTTPException(502, {
           message: `Failed to generate query embedding: ${msg}`,
         })
       }
-
-      if (!queryVector || queryVector.length === 0) {
+      if (!vector || vector.length === 0) {
         throw new HTTPException(502, {
           message: 'Failed to generate query embedding: empty vector returned',
         })
       }
 
-      // 3. Construct raw SQL using SqlQueryBuilder
-      const vectorJson = JSON.stringify(queryVector)
-      const is768 = queryVector.length === 768
-      const distanceExpr = is768
-        ? Prisma.sql`(ae.embedding_768 <=> ${vectorJson}::vector)`
-        : Prisma.sql`(ae.embedding <=> ${vectorJson}::vector)`
-      const notNullCond = is768
-        ? Prisma.sql`ae.embedding_768 IS NOT NULL`
-        : Prisma.sql`ae.embedding IS NOT NULL`
-
-      const builder = new SqlQueryBuilder()
-        .select(
-          Prisma.sql`a.id as "assetId", ae.start_time as "startTime", ae.end_time as "endTime", ${distanceExpr} as "distance"`,
-        )
-        .from(Prisma.sql`assets a JOIN asset_embeddings ae ON a.id = ae.asset_id`)
-        .addWhere(Prisma.sql`a.is_deleted = false`)
-        .addWhere(notNullCond)
-
-      if (targetFolderIds.length > 0) {
-        builder.addWhere(Prisma.sql`a.parent_id = ANY(${targetFolderIds})`)
-      }
-
-      if (req.showSymlink) {
-        builder.addWhere(Prisma.sql`
-          (a.type = ANY(${targetTypes}::"AssetType"[]) OR (a.type = 'symlink' AND a.target_id IN (SELECT id FROM assets WHERE type = ANY(${targetTypes}::"AssetType"[]))))
-        `)
-      } else {
-        builder.addWhere(Prisma.sql`a.type = ANY(${targetTypes}::"AssetType"[])`)
-      }
-
-      if (req.conditions && req.conditions.length > 0) {
-        builder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
-      }
-
-      const nameCond = req.conditions?.find((c) => c.field === 'name' && c.operator === 'contains')
-      if (nameCond) {
-        const valStr = String(nameCond.value)
-        const ngrams = generateSearchNgrams(valStr)
-
-        if (ngrams.length > 0) {
-          builder.addWhere(Prisma.sql`a.name_ngram @> ${ngrams}::text[]`)
-          builder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
-        } else {
-          builder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
-        }
-      }
-
-      builder.orderBy(Prisma.sql`distance ASC`)
-
-      // 4. Paginate in SQL using limit/offset
-      let limit = req.first || 20
-      if (limit <= 0 || limit > 200) {
-        limit = 20
-      }
-
-      let offset = 0
-      if (req.after) {
-        offset = decodeCursor(req.after)
-      }
-
-      builder.limit(limit + 1).offset(offset)
-
-      // 5. Execute raw SQL query
-      const query = builder.build()
-      const semanticMatches = await this.prismaClient.$queryRaw<
-        {
-          assetId: string
-          startTime: number | null
-          endTime: number | null
-          distance: number
-        }[]
-      >(query)
-
-      const hasNextPage = semanticMatches.length > limit
-      const finalMatches = hasNextPage ? semanticMatches.slice(0, limit) : semanticMatches
-
-      // 6. Map back to full rich metadata and return time-based duplicate segments
-      const uniqueIds = Array.from(new Set(finalMatches.map((m) => m.assetId)))
-      const fetchedInfos = await this.assetSvc.listAssetsByIds(uniqueIds, req.previewFormat)
-      const assetInfosMap = new Map<string, AssetInfo>()
-      for (const info of fetchedInfos) {
-        assetInfosMap.set(info.id, info)
-      }
-
-      const data: AssetInfo[] = []
-      for (const match of finalMatches) {
-        const baseInfo = assetInfosMap.get(match.assetId)
-        if (baseInfo) {
-          data.push({
-            ...baseInfo,
-            startTime: match.startTime,
-            endTime: match.endTime,
-          })
-        }
-      }
-
-      const pageInfo: PageInfo = {}
-      const countBuilder = new SqlQueryBuilder()
-        .select(Prisma.sql`COUNT(*)`)
-        .from(Prisma.sql`assets a JOIN asset_embeddings ae ON a.id = ae.asset_id`)
-        .addWhere(Prisma.sql`a.is_deleted = false`)
-        .addWhere(notNullCond)
-
-      if (targetFolderIds.length > 0) {
-        countBuilder.addWhere(Prisma.sql`a.parent_id = ANY(${targetFolderIds})`)
-      }
-      if (req.showSymlink) {
-        countBuilder.addWhere(Prisma.sql`
-          (a.type = ANY(${targetTypes}::"AssetType"[]) OR (a.type = 'symlink' AND a.target_id IN (SELECT id FROM assets WHERE type = ANY(${targetTypes}::"AssetType"[]))))
-        `)
-      } else {
-        countBuilder.addWhere(Prisma.sql`a.type = ANY(${targetTypes}::"AssetType"[])`)
-      }
-
-      if (req.conditions && req.conditions.length > 0) {
-        countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
-      }
-
-      if (nameCond) {
-        const valStr = String(nameCond.value)
-        const ngrams = generateSearchNgrams(valStr)
-        if (ngrams.length > 0) {
-          countBuilder.addWhere(Prisma.sql`a.name_ngram @> ${ngrams}::text[]`)
-          countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
-        } else {
-          countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
-        }
-      }
-
-      const countRes = await this.prismaClient.$queryRaw<{ count: bigint }[]>(countBuilder.build())
-      const totalCount = Number(countRes[0]?.count || 0)
-      pageInfo.total = totalCount
-
-      if (totalCount < 2000) {
-        countBuilder.select(Prisma.sql`SUM(COALESCE(a.size_byte, 0))::bigint as sum`)
-        const sumRes = await this.prismaClient.$queryRaw<{ sum: bigint | null }[]>(
-          countBuilder.build(),
-        )
-        pageInfo.totalSize = Number(sumRes[0]?.sum || 0)
-      } else {
-        pageInfo.totalSize = -1
-      }
-
-      if (hasNextPage) {
-        pageInfo.cursor = encodeCursor(offset + limit)
-      }
-
-      return { data, pageInfo }
+      return this.searchByEmbedding(
+        targetFolderIds,
+        req,
+        JSON.stringify(vector),
+        vector.length === 768 ? 768 : 1536,
+      )
     }
 
     // ----------------------------------------------------------------------
@@ -445,6 +280,168 @@ export class SearchService {
       pageInfo.cursor = encodeCursor(offset + limit)
     }
 
+    return { data, pageInfo }
+  }
+
+  async searchByImage(
+    folderId: string,
+    req: ImageSearchRequest,
+  ): Promise<PaginatedData<AssetInfo[]>> {
+    const folder = await this.prismaClient.asset.findFirst({
+      where: { id: folderId, type: { in: [AssetType.root, AssetType.folder] }, isDeleted: false },
+      select: { project: { select: { id: true, teamId: true, rootFolderId: true } } },
+    })
+    const project = folder?.project
+    if (!project) throw new HTTPException(404, { message: 'Project folder not found.' })
+
+    await this.requireEmbeddingAgent(project.teamId)
+    const dimensions = getImageEmbeddingDimensions()
+    let vector: string
+    if (req.sourceAssetId) {
+      if (folderId !== project.rootFolderId) {
+        throw new HTTPException(400, { message: 'Find similar requires the project root folder.' })
+      }
+
+      const column = dimensions === 768 ? Prisma.sql`embedding_768` : Prisma.sql`embedding`
+      const [source] = await this.prismaClient.$queryRaw<{ vector: string | null }[]>`
+        SELECT (
+          SELECT ${column}::text
+          FROM asset_embeddings
+          WHERE asset_id = a.id AND ${column} IS NOT NULL
+          ORDER BY id DESC
+          LIMIT 1
+        ) AS vector
+        FROM assets a
+        WHERE a.id = ${req.sourceAssetId} AND a.project_id = ${project.id}
+          AND a.type = 'file' AND a.media_type LIKE 'image/%' AND a.is_deleted = false
+      `
+      if (!source) throw new HTTPException(404, { message: 'Source image not found.' })
+      if (!source.vector) {
+        throw new HTTPException(409, { message: 'The source image is waiting to be indexed.' })
+      }
+      vector = source.vector
+    } else if (req.image) {
+      vector = JSON.stringify(
+        await imageEmbeddingService.generateEmbedding(req.image, project.teamId),
+      )
+    } else {
+      throw new HTTPException(400, { message: 'Provide a search image or source asset.' })
+    }
+
+    const folders = await this.assetSvc.getDescendantFolderIds(folderId)
+    return this.searchByEmbedding(folders, req, vector, dimensions, {
+      projectId: project.id,
+      mediaType: req.mediaType,
+      sourceAssetId: req.sourceAssetId,
+    })
+  }
+
+  private async requireEmbeddingAgent(teamId: string): Promise<void> {
+    const agent =
+      process.env.ENABLE_EMBEDDING_AGENT === 'false'
+        ? null
+        : await this.prismaClient.agent.findFirst({
+            where: { teamId, type: 'embedding', enabled: true },
+            select: { id: true },
+          })
+
+    if (!agent) {
+      throw new HTTPException(422, {
+        message: 'Embedding agent not configured or disabled for this team.',
+      })
+    }
+  }
+
+  private async searchByEmbedding(
+    folderIds: string[],
+    req: Pick<
+      SearchRequest,
+      'assetType' | 'showSymlink' | 'conditions' | 'operator' | 'first' | 'after' | 'previewFormat'
+    >,
+    vector: string,
+    dimensions: 768 | 1536,
+    visual?: {
+      projectId: string
+      mediaType?: ImageSearchRequest['mediaType']
+      sourceAssetId?: string
+    },
+  ): Promise<PaginatedData<AssetInfo[]>> {
+    const column = dimensions === 768 ? Prisma.sql`ae.embedding_768` : Prisma.sql`ae.embedding`
+    const distance = Prisma.sql`(${column} <=> ${vector}::vector)`
+    const builder = new SqlQueryBuilder()
+      .from(Prisma.sql`assets a JOIN asset_embeddings ae ON a.id = ae.asset_id`)
+      .addWhere(Prisma.sql`a.is_deleted = false`)
+      .addWhere(Prisma.sql`${column} IS NOT NULL`)
+
+    if (folderIds.length > 0) {
+      builder.addWhere(Prisma.sql`a.parent_id = ANY(${folderIds})`)
+    }
+
+    if (visual) {
+      builder
+        .addWhere(Prisma.sql`a.project_id = ${visual.projectId} AND a.type = 'file'`)
+        .addWhere(
+          visual.mediaType
+            ? Prisma.sql`a.media_type LIKE ${visual.mediaType + '/%'}`
+            : Prisma.sql`(a.media_type LIKE 'image/%' OR a.media_type LIKE 'video/%')`,
+        )
+      if (visual.sourceAssetId) {
+        builder.addWhere(Prisma.sql`a.id <> ${visual.sourceAssetId}`)
+      }
+    } else {
+      const targetTypes =
+        req.assetType === 'folder' ? [AssetType.folder] : [AssetType.file, AssetType.version_stack]
+      builder.addWhere(
+        req.showSymlink
+          ? Prisma.sql`(a.type = ANY(${targetTypes}::"AssetType"[]) OR (a.type = 'symlink' AND a.target_id IN (SELECT id FROM assets WHERE type = ANY(${targetTypes}::"AssetType"[]))))`
+          : Prisma.sql`a.type = ANY(${targetTypes}::"AssetType"[])`,
+      )
+    }
+
+    builder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
+    const nameCond = req.conditions?.find((c) => c.field === 'name' && c.operator === 'contains')
+    if (nameCond) {
+      const name = String(nameCond.value)
+      const ngrams = generateSearchNgrams(name)
+      if (ngrams.length > 0) builder.addWhere(Prisma.sql`a.name_ngram @> ${ngrams}::text[]`)
+      builder.addWhere(Prisma.sql`a.name ILIKE ${'%' + name + '%'}`)
+    }
+
+    const countQuery = builder.select(Prisma.sql`COUNT(*)`).build()
+    const sizeQuery = builder
+      .select(Prisma.sql`SUM(COALESCE(a.size_byte, 0))::bigint as sum`)
+      .build()
+    const requestedLimit = req.first || 20
+    const limit = requestedLimit <= 0 || requestedLimit > 200 ? 20 : requestedLimit
+    const offset = req.after ? decodeCursor(req.after) : 0
+    const resultQuery = builder
+      .select(
+        Prisma.sql`a.id as "assetId", ae.start_time as "startTime", ae.end_time as "endTime", ${distance} as "distance"`,
+      )
+      .orderBy(visual ? Prisma.sql`distance ASC, ae.id ASC` : Prisma.sql`distance ASC`)
+      .limit(limit + 1)
+      .offset(offset)
+      .build()
+
+    const matches =
+      await this.prismaClient.$queryRaw<
+        { assetId: string; startTime: number | null; endTime: number | null }[]
+      >(resultQuery)
+    const page = matches.slice(0, limit)
+    const assetIds = [...new Set(page.map((match) => match.assetId))]
+    const infos = await this.assetSvc.listAssetsByIds(assetIds, req.previewFormat)
+    const byId = new Map(infos.map((item) => [item.id, item]))
+    const data = page.flatMap(({ assetId, startTime, endTime }) => {
+      const item = byId.get(assetId)
+      return item ? [{ ...item, startTime, endTime }] : []
+    })
+
+    const counts = await this.prismaClient.$queryRaw<{ count: bigint }[]>(countQuery)
+    const total = Number(counts[0]?.count ?? 0)
+    const sizes =
+      total < 2000 ? await this.prismaClient.$queryRaw<{ sum: bigint | null }[]>(sizeQuery) : []
+    const pageInfo: PageInfo = { total, totalSize: total < 2000 ? Number(sizes[0]?.sum ?? 0) : -1 }
+    if (matches.length > limit) pageInfo.cursor = encodeCursor(offset + limit)
     return { data, pageInfo }
   }
 }

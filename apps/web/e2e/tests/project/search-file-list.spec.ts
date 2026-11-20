@@ -1,4 +1,5 @@
 import type { APIRequestContext } from '@playwright/test'
+import type { AssetInfo, ImageSearchRequest } from '@shumai/dtos'
 import { expect, test } from '../../fixtures'
 import { apiUploadFile, fileCard } from '../../helpers/files'
 
@@ -38,7 +39,7 @@ test('owner searches the file list by an English name keyword', async ({ project
 
   // Keyword-only search (no filter conditions)
   await dialog.getByPlaceholder('Search records by name...').fill('report')
-  await dialog.getByRole('button', { name: 'Search' }).click()
+  await dialog.getByRole('button', { name: 'Search', exact: true }).click()
 
   await expect(dialog.getByText(report2024, { exact: true })).toBeVisible()
   await expect(dialog.getByText(report2025, { exact: true })).toBeVisible()
@@ -75,7 +76,7 @@ test('owner searches the file list by Chinese, Japanese, and Korean name keyword
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
     await dialog.getByPlaceholder('Search records by name...').fill(keyword)
-    await dialog.getByRole('button', { name: 'Search' }).click()
+    await dialog.getByRole('button', { name: 'Search', exact: true }).click()
     for (const name of visible) {
       await expect(dialog.getByText(name, { exact: true })).toBeVisible()
     }
@@ -149,7 +150,7 @@ test('owner searches the file list with a keyword and a filter condition', async
   // confirms the filter became active before we run the search.
   await expect(dialog.getByText('1 active')).toBeVisible()
 
-  await dialog.getByRole('button', { name: 'Search' }).click()
+  await dialog.getByRole('button', { name: 'Search', exact: true }).click()
   await expect(dialog.getByText(bigReport, { exact: true })).toBeVisible()
   await expect(dialog.getByText(smallReport, { exact: true })).not.toBeVisible()
 
@@ -159,4 +160,168 @@ test('owner searches the file list with a keyword and a filter condition', async
 
   await expect(fileCard(page, bigReport)).toBeVisible()
   await expect(fileCard(page, smallReport)).not.toBeVisible()
+})
+
+test.describe('image search', () => {
+  test.use({ fileOptions: { mediaType: 'image' } })
+
+  test('owner finds similar media and filters the results by type', async ({ file }) => {
+    const { page, teamId, projectId, rootFolderId, fileId, fileName } = file
+    const source = fileCard(page, fileName)
+    await page.goto(`/projects/${projectId}`)
+    await source.click({ button: 'right' })
+    await expect(page.getByRole('menu')).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: 'Find similar' })).toHaveCount(0)
+
+    await page.route(`**/api/teams/${teamId}/settings`, async (route) => {
+      const response = await route.fetch()
+      await route.fulfill({
+        response,
+        json: { ...(await response.json()), semanticSearchEnabled: true },
+      })
+    })
+    const image: AssetInfo = {
+      id: 'image-result',
+      name: 'result.jpg',
+      type: 'file',
+      sizeByte: 100,
+      fileCount: 1,
+      status: 'processed',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      proxyType: 'image',
+    }
+    const video: AssetInfo = {
+      ...image,
+      id: 'video-result',
+      name: 'result.mp4',
+      proxyType: 'video',
+      startTime: 65,
+      endTime: 120,
+    }
+    const requests: ImageSearchRequest[] = []
+    await page.route(`**/api/folders/${rootFolderId}/image-search`, async (route) => {
+      const request = route.request().postDataJSON() as ImageSearchRequest
+      requests.push(request)
+      const data =
+        request.mediaType === 'image'
+          ? [image]
+          : request.mediaType === 'video'
+            ? [video]
+            : [image, video]
+      await route.fulfill({ json: { data, pageInfo: { total: data.length } } })
+    })
+
+    const settingsLoaded = page.waitForResponse(`**/api/teams/${teamId}/settings`)
+    await page.reload()
+    await settingsLoaded
+    await source.click({ button: 'right' })
+    await page.getByRole('menuitem', { name: 'Find similar' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Find similar' })
+    await expect(dialog.getByText(image.name)).toBeVisible()
+    await expect(dialog.getByText(video.name)).toBeVisible()
+    await expect(dialog.getByTestId('file-preview-matched-duration')).toHaveText('01:05 - 02:00')
+    expect(requests.at(-1)).toMatchObject({ sourceAssetId: fileId, first: 20 })
+
+    await dialog.getByText('Videos', { exact: true }).click()
+    await expect(dialog.getByText(video.name)).toBeVisible()
+    await expect(dialog.getByText(image.name)).toHaveCount(0)
+    expect(requests.at(-1)).toMatchObject({ sourceAssetId: fileId, mediaType: 'video' })
+
+    await dialog.getByText('Images', { exact: true }).click()
+    await expect(dialog.getByText(image.name)).toBeVisible()
+    await expect(dialog.getByText(video.name)).toHaveCount(0)
+    expect(requests.at(-1)).toMatchObject({ sourceAssetId: fileId, mediaType: 'image' })
+  })
+
+  test('owner submits a resized image with filters and can remove the attachment', async ({
+    project,
+  }) => {
+    const { page, teamId, projectId, rootFolderId } = project
+    await page.route(`**/api/teams/${teamId}/settings`, async (route) => {
+      const response = await route.fetch()
+      await route.fulfill({
+        response,
+        json: { ...(await response.json()), semanticSearchEnabled: true },
+      })
+    })
+    const requests: ImageSearchRequest[] = []
+    await page.route(`**/api/folders/${rootFolderId}/image-search`, async (route) => {
+      requests.push(route.request().postDataJSON() as ImageSearchRequest)
+      await route.fulfill({ json: { data: [], pageInfo: { total: 0 } } })
+    })
+
+    await page.goto(`/projects/${projectId}`)
+    await page.getByRole('button', { name: 'Search' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Search', exact: true })
+    const semantic = dialog.getByRole('switch', { name: 'Semantic Search' })
+    await expect(semantic).toBeEnabled()
+    await semantic.click()
+    await dialog.getByPlaceholder('Search records by content...').fill('text draft')
+
+    await dialog.getByRole('button', { name: '+ Add condition' }).click()
+    const comboboxes = dialog.getByRole('combobox')
+    await comboboxes.first().click()
+    await page.getByRole('option', { name: 'Size', exact: true }).click()
+    await comboboxes.nth(1).click()
+    await page.getByRole('option', { name: '>', exact: true }).click()
+    await dialog.locator('input[type="number"]').fill('100')
+    await expect(dialog.getByText('1 active')).toBeVisible()
+
+    await dialog.getByRole('button', { name: 'Attach an image' }).click()
+    const picker = page.getByRole('dialog', { name: 'Attach an image' })
+    await expect(picker).toBeVisible()
+    const png = await page.evaluate(() => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 2560
+      canvas.height = 1440
+      return canvas.toDataURL('image/png').split(',')[1]
+    })
+    const chooser = page.waitForEvent('filechooser')
+    await picker.getByRole('button', { name: 'Choose image' }).click()
+    await (
+      await chooser
+    ).setFiles({ name: 'reference.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') })
+    await expect(dialog.getByText('reference.png')).toBeVisible()
+    await expect(dialog.getByPlaceholder('Search records by content...')).toHaveCount(0)
+    const thumbnail = dialog.locator('img').first()
+    await expect
+      .poll(() =>
+        thumbnail.evaluate((image: HTMLImageElement) => ({
+          width: image.naturalWidth,
+          height: image.naturalHeight,
+        })),
+      )
+      .toEqual({ width: 1280, height: 720 })
+    expect(requests).toHaveLength(0)
+
+    await dialog.getByRole('button', { name: 'Search', exact: true }).click()
+    await expect.poll(() => requests.length).toBe(1)
+    expect(requests[0]).toMatchObject({
+      image: expect.stringMatching(/^\/9j\//),
+      conditions: [{ field: 'sizeByte', operator: 'gt', value: 100 }],
+    })
+    expect(requests[0]).not.toHaveProperty('query')
+
+    await dialog.getByRole('button', { name: 'Attach an image' }).click()
+    const transfer = await page.evaluateHandle(() => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 720
+      canvas.height = 1280
+      const png = atob(canvas.toDataURL('image/png').split(',')[1])
+      const bytes = Uint8Array.from(png, (byte) => byte.charCodeAt(0))
+      const transfer = new DataTransfer()
+      transfer.items.add(new File([bytes], 'dropped.png', { type: 'image/png' }))
+      return transfer
+    })
+    await picker
+      .getByRole('button', { name: 'Choose image' })
+      .dispatchEvent('drop', { dataTransfer: transfer })
+    await transfer.dispose()
+    await expect(dialog.getByText('dropped.png')).toBeVisible()
+
+    await dialog.getByRole('button', { name: 'Remove image' }).click()
+    await expect(dialog.getByPlaceholder('Search records by content...')).toBeVisible()
+    await expect(dialog.getByText('1 active')).toBeVisible()
+  })
 })

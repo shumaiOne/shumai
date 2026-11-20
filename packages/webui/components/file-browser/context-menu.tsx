@@ -25,9 +25,10 @@ import {
   ArrowRight,
   Copy,
   Layers,
+  ScanSearch,
 } from 'lucide-react'
 import { CopyContextMenuSub } from './copy-submenu'
-import type { CopyKind } from './copy-options'
+import { isImageItem, type CopyKind } from './copy-options'
 
 interface FileBrowserContextMenuProps {
   item: AssetInfo | null
@@ -36,6 +37,7 @@ interface FileBrowserContextMenuProps {
   onDelete: (items: AssetInfo[]) => void
   onDownload: (items: AssetInfo[]) => void
   onCopy?: (kind: CopyKind, items: AssetInfo[]) => void
+  onFindSimilar?: (item: AssetInfo) => void
   onRestore: (items: AssetInfo[]) => void
   onArchive?: (items: AssetInfo[]) => void
   onRestoreArchive?: (items: AssetInfo[]) => void
@@ -69,6 +71,7 @@ export function FileBrowserContextMenu({
   onDelete,
   onDownload,
   onCopy,
+  onFindSimilar,
   onRestore,
   onArchive,
   onRestoreArchive,
@@ -222,6 +225,15 @@ export function FileBrowserContextMenu({
     )
   }
 
+  const findSimilarItem = onFindSimilar &&
+    (item.type === 'file' || item.type === 'version_stack') &&
+    isImageItem(item) && (
+      <ContextMenuItem onSelect={() => onFindSimilar(item)}>
+        <ScanSearch className="mr-2 h-4 w-4" />
+        <span>{m.find_similar()}</span>
+      </ContextMenuItem>
+    )
+
   const contextMenuContent =
     isItemSelected && selectedIds.size > 1 ? (
       <ContextMenuContent
@@ -234,6 +246,7 @@ export function FileBrowserContextMenu({
           <Download className="mr-2 h-4 w-4" />
           <span>{m.download()}</span>
         </ContextMenuItem>
+        {findSimilarItem}
         <CopyContextMenuSub
           items={itemsToModify}
           context={{
@@ -331,6 +344,7 @@ export function FileBrowserContextMenu({
           <Download className="mr-2 h-4 w-4" />
           <span>{m.download()}</span>
         </ContextMenuItem>
+        {findSimilarItem}
         <CopyContextMenuSub
           items={itemsToModify}
           context={{
