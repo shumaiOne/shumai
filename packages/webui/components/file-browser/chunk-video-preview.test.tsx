@@ -1,56 +1,35 @@
 // @vitest-environment happy-dom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import { ChunkVideoPreview } from './chunk-video-preview'
+import { FilePreview } from './file-preview'
 
-const { request, poll } = vi.hoisted(() => ({ request: vi.fn(), poll: vi.fn() }))
-vi.mock('@/ui/api/client', () => ({
-  client: {
-    api: {
-      files: { ':fileId': { 'chunk-previews': { ':matchId': { $post: request, $get: poll } } } },
-    },
-  },
-}))
+afterEach(cleanup)
 
-afterEach(() => {
-  cleanup()
-  vi.resetAllMocks()
-})
-
-it('requests a legacy preview on hover and shows its in-range poster when ready', async () => {
-  request.mockResolvedValue(Response.json({ status: 'pending' }))
-  poll.mockResolvedValue(
-    Response.json({
-      status: 'ready',
-      preview: {
-        posterUrl: '/chunk-poster.webp',
-        spriteUrl: '/chunk-sprite.webp',
-        columns: 2,
-        rows: 1,
-        frameWidth: 320,
-        frameHeight: 180,
-        timestamps: [10, 19],
-      },
-    }),
-  )
-  const queryClient = new QueryClient()
+it.each([true, false])('scrubs the full-video sprite with poster available: %s', (hasPoster) => {
   render(
-    <QueryClientProvider client={queryClient}>
-      <ChunkVideoPreview
-        assetId="video-1"
-        chunk={{ matchId: 'match-1' }}
-        startTime={10}
-        endTime={20}
-      />
-    </QueryClientProvider>,
+    <FilePreview
+      item={{
+        preview: {
+          proxyType: 'video',
+          duration: 1200,
+          spriteUrl: '/full-sprite.webp',
+          ...(hasPoster && {
+            thumbnailUrl: '/full-poster.webp',
+            originalWidth: 320,
+            originalHeight: 180,
+          }),
+        },
+      }}
+      matchDuration={{ startTime: 10, endTime: 20 }}
+    />,
   )
-  expect(request).not.toHaveBeenCalled()
-  expect(screen.queryByAltText('Thumbnail')).toBeNull()
-  fireEvent.mouseEnter(screen.getByTestId('chunk-video-preview'))
-  expect(screen.queryByTestId('sprite-scrubber')).toBeNull()
-  await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
-  const poster = await screen.findByAltText('Thumbnail', {}, { timeout: 3000 })
-  expect(poster.getAttribute('src')).toBe('/chunk-poster.webp')
-  expect(poll).toHaveBeenCalledTimes(1)
+
+  expect(screen.getByTestId('file-preview-matched-duration').textContent).toBe('00:10 - 00:20')
+  expect(screen.queryByAltText('Thumbnail')?.getAttribute('src')).toBe(
+    hasPoster ? '/full-poster.webp' : undefined,
+  )
+  const scrubber = screen.getByTestId('sprite-scrubber')
+  vi.spyOn(scrubber, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 100, 100))
+  fireEvent.mouseMove(scrubber, { clientX: 99 })
+  expect(scrubber.getAttribute('data-frame')).toBe('99')
 })

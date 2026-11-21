@@ -7,7 +7,6 @@ import { projectService } from '@shumai/core/src/project/project'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { videoChunkPreviewService } from '@shumai/core/src/search/video-chunk-preview'
 import { transcodeService } from '@shumai/core'
 import { authMiddleware } from './middleware/auth'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
@@ -130,21 +129,6 @@ describe('file api', () => {
       type: ResourceType.Asset,
       id: 'test-id',
     })
-  })
-
-  it.each(['GET', 'POST'])('authorizes %s video chunk preview requests', async (method) => {
-    const getPreview = vi.spyOn(videoChunkPreviewService, 'getForMatch').mockResolvedValue({
-      status: 'pending',
-    })
-    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
-    vi.mocked(authzService.hasPermission).mockRejectedValueOnce(new HTTPException(403))
-    const denied = await app.request('/files/file-id/chunk-previews/match-id', { method })
-    expect(denied.status).toBe(403)
-    expect(getPreview).not.toHaveBeenCalled()
-
-    const allowed = await app.request('/files/file-id/chunk-previews/match-id', { method })
-    expect(await allowed.json()).toEqual({ status: 'pending' })
-    expect(getPreview).toHaveBeenCalledWith('file-id', 'match-id', method === 'POST')
   })
 
   describe('POST /files/batch', () => {

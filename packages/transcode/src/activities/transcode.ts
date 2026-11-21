@@ -1189,14 +1189,17 @@ export const updateAssetMediaActivity = defineStep(async function updateAssetMed
   const buffer = Buffer.from(JSON.stringify(params.mediaInfo))
   await s3Service.putObject(bucket, infoKey, buffer, buffer.length, 'application/json')
 
-  const { count } = await prisma.asset.updateMany({
-    where: {
-      id: params.assetId,
-      status: { not: AssetStatus.pending_purge },
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data: { media: params.mediaInfo as any, hasJpegPreview: false },
-  })
+  // A preview batch can publish while the transcode is producing this media snapshot.
+  const count = await prisma.$executeRaw`
+    UPDATE assets
+    SET media = ${buffer.toString()}::jsonb || CASE
+          WHEN media ? 'chunkPreviews' THEN jsonb_build_object('chunkPreviews', media->'chunkPreviews')
+          ELSE '{}'::jsonb
+        END,
+        has_jpeg_preview = FALSE,
+        updated_at = NOW()
+    WHERE id = ${params.assetId} AND status <> 'pending_purge'
+  `
   if (count === 0) {
     logger.info(
       { assetId: params.assetId },

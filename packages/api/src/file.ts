@@ -3,7 +3,6 @@ import { assetService } from '@shumai/core/src/asset/asset'
 import { projectService } from '@shumai/core/src/project/project'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { commentService } from '@shumai/core/src/comment/comment'
-import { videoChunkPreviewService } from '@shumai/core/src/search/video-chunk-preview'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
@@ -45,10 +44,6 @@ import { ulid } from 'ulid'
 import { z } from 'zod'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
-const chunkPreviewParams = z.object({
-  fileId: z.string().min(1),
-  matchId: z.string().min(1).max(128),
-})
 
 const route = new Hono<{ Variables: { user: User } }>()
   .post('/files/batch', zValidator('json', batchGetFilesRequestSchema), async (c) => {
@@ -99,34 +94,6 @@ const route = new Hono<{ Variables: { user: User } }>()
     const asset = await assetService.getAsset({ assetId: fileId })
     return c.json(asset)
   })
-  .get(
-    '/files/:fileId/chunk-previews/:matchId',
-    zValidator('param', chunkPreviewParams),
-    async (c) => {
-      const { fileId, matchId } = c.req.valid('param')
-      await authzService.hasPermission({
-        user: c.get('user'),
-        permission: Permission.Read,
-        type: ResourceType.Asset,
-        id: fileId,
-      })
-      return c.json(await videoChunkPreviewService.getForMatch(fileId, matchId, false))
-    },
-  )
-  .post(
-    '/files/:fileId/chunk-previews/:matchId',
-    zValidator('param', chunkPreviewParams),
-    async (c) => {
-      const { fileId, matchId } = c.req.valid('param')
-      await authzService.hasPermission({
-        user: c.get('user'),
-        permission: Permission.Read,
-        type: ResourceType.Asset,
-        id: fileId,
-      })
-      return c.json(await videoChunkPreviewService.getForMatch(fileId, matchId, true))
-    },
-  )
   .patch('/files/:fileId/order', zValidator('json', updateAssetOrderRequestSchema), async (c) => {
     const fileId = c.req.param('fileId')
     const user = c.get('user')

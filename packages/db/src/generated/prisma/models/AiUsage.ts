@@ -612,6 +612,14 @@ export type AiUsageUncheckedUpdateManyWithoutTeamNestedInput = {
   deleteMany?: Prisma.AiUsageScalarWhereInput | Prisma.AiUsageScalarWhereInput[]
 }
 
+export type FloatFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type AiUsageCreateWithoutUserInput = {
   id?: string
   periodStart: Date | string

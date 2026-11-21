@@ -2653,6 +2653,7 @@ export class AssetService {
       let media = latestVersion.media
         ? (structuredClone(latestVersion.media) as PrismaJson.MediaInfo)
         : null
+      if (media) delete media.chunkPreviews
       if (media && media.videoPreview?.key) {
         media.videoPreview.url = await s3Service.presign(
           process.env.S3_BUCKET || 'shumai',

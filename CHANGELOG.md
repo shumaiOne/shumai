@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- **search**: Preview just the matched section of a video when scrubbing results in Semantic Search or Find Similar.
+- **search**: Preview the matched section when a segment preview is available in Semantic Search or Find Similar.
 
 ### Changed
 

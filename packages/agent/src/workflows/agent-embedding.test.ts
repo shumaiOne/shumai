@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest'
 import { agentEmbeddingMedia } from './agent-embedding'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
@@ -32,6 +32,7 @@ vi.mock('../activities/ai', async () => {
     getEmbeddingContextActivity: vi.fn(),
     generateImageEmbeddingActivity: vi.fn(),
     generateVideoChunkEmbeddingActivity: vi.fn(),
+    enqueueVideoChunkPreviewsActivity: vi.fn(),
     saveAssetEmbeddingsActivity: vi.fn(),
     deleteAssetEmbeddingsActivity: vi.fn(),
     transcodeVideoChunkActivity: vi.fn(),
@@ -56,6 +57,7 @@ describe('Agent Embedding Workflow', () => {
         aiActivities.generateVideoChunkEmbeddingActivity,
       ),
       saveAssetEmbeddingsActivity: vi.mocked(aiActivities.saveAssetEmbeddingsActivity),
+      enqueueVideoChunkPreviewsActivity: vi.mocked(aiActivities.enqueueVideoChunkPreviewsActivity),
       deleteAssetEmbeddingsActivity: vi.mocked(aiActivities.deleteAssetEmbeddingsActivity),
       updateTaskUsageActivity: vi.mocked(workflowCore.updateTaskUsageActivity),
       createCommentActivity: vi.mocked(agentActivities.createCommentActivity),
@@ -98,8 +100,11 @@ describe('Agent Embedding Workflow', () => {
       },
     )
     mockActivities.deleteS3ObjectActivity.mockResolvedValue(undefined)
+    mockActivities.enqueueVideoChunkPreviewsActivity.mockResolvedValue([])
     mockActivities.cleanupTmpDirActivity.mockResolvedValue(undefined)
   })
+
+  afterEach(() => vi.restoreAllMocks())
 
   it('should run agent embedding workflow successfully for image', async () => {
     const task = await prisma.workflowTask.create({
@@ -257,6 +262,20 @@ describe('Agent Embedding Workflow', () => {
   })
 
   it('should run agent embedding workflow successfully for video in chunks', async () => {
+    let finishPreview!: () => void
+    const waitForPreview = vi
+      .spyOn(workflowCore.DBOS, 'getResult')
+      .mockRejectedValueOnce(new Error('An overlapping batch failed'))
+      .mockImplementationOnce(
+        () =>
+          new Promise<null>((resolve) => {
+            finishPreview = () => resolve(null)
+          }),
+      )
+    mockActivities.enqueueVideoChunkPreviewsActivity.mockResolvedValue([
+      'failed-task',
+      'preview-task',
+    ])
     mockActivities.getEmbeddingContextActivity.mockResolvedValue({
       agent: { id: 'b1' },
       asset: {
@@ -285,9 +304,16 @@ describe('Agent Embedding Workflow', () => {
       },
     })
 
-    await agentEmbeddingMedia(task)
+    const embedding = agentEmbeddingMedia(task)
+    await vi.waitFor(() => expect(waitForPreview).toHaveBeenCalledTimes(2))
+    expect(mockActivities.updateTaskStatusActivity).not.toHaveBeenCalledWith({
+      taskId: task.id,
+      status: 'completed',
+    })
+    finishPreview()
+    await embedding
 
-    // Verify video chunk slicing activity called 3 times on transcode queue
+    // Verify video chunk slicing activity called for each embedding input.
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledTimes(3)
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(1, {
       assetId: 'a1',
@@ -295,7 +321,6 @@ describe('Agent Embedding Workflow', () => {
       startTime: 0,
       endTime: 60,
       format: 'video',
-      previewSourceKey: 'test.mp4',
     })
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(2, {
       assetId: 'a1',
@@ -303,7 +328,6 @@ describe('Agent Embedding Workflow', () => {
       startTime: 55,
       endTime: 115,
       format: 'video',
-      previewSourceKey: 'test.mp4',
     })
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(3, {
       assetId: 'a1',
@@ -311,7 +335,6 @@ describe('Agent Embedding Workflow', () => {
       startTime: 110,
       endTime: 150,
       format: 'video',
-      previewSourceKey: 'test.mp4',
     })
 
     // Verify video chunk embedding generation (3 chunks) on agent queue
@@ -357,6 +380,21 @@ describe('Agent Embedding Workflow', () => {
       assetId: 'a1',
       embeddings: [{ embedding: [0.3, 0.4], startTime: 110, endTime: 150 }],
     })
+    expect(mockActivities.enqueueVideoChunkPreviewsActivity).toHaveBeenCalledExactlyOnceWith('a1', [
+      { startTime: 0, endTime: 60 },
+      { startTime: 55, endTime: 115 },
+      { startTime: 110, endTime: 150 },
+    ])
+    expect(waitForPreview).toHaveBeenNthCalledWith(1, 'failed-task')
+    expect(waitForPreview).toHaveBeenNthCalledWith(2, 'preview-task')
+    const enqueueOrder =
+      mockActivities.enqueueVideoChunkPreviewsActivity.mock.invocationCallOrder[0]
+    expect(enqueueOrder).toBeGreaterThan(
+      mockActivities.saveAssetEmbeddingsActivity.mock.invocationCallOrder[2],
+    )
+    expect(mockActivities.updateTaskStatusActivity.mock.invocationCallOrder.at(-1)).toBeGreaterThan(
+      waitForPreview.mock.invocationCallOrder[1],
+    )
   })
 
   it('should throw if task has no teamId', async () => {
@@ -543,9 +581,7 @@ describe('Agent Embedding Workflow', () => {
 
     // Verify only 1 chunk was created instead of 2 (0-60 and 55-60)
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledTimes(1)
-    expect(mockActivities.transcodeVideoChunkActivity.mock.calls[0][0]).not.toHaveProperty(
-      'previewSourceKey',
-    )
+    expect(mockActivities.enqueueVideoChunkPreviewsActivity).not.toHaveBeenCalled()
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledWith(
       expect.objectContaining({
         startTime: 0,
@@ -643,6 +679,11 @@ describe('Agent Embedding Workflow', () => {
     )
 
     expect(mockActivities.saveAssetEmbeddingsActivity).toHaveBeenCalledTimes(2)
+    expect(mockActivities.enqueueVideoChunkPreviewsActivity).toHaveBeenCalledWith('a1', [
+      { startTime: 0, endTime: 60 },
+      { startTime: 55, endTime: 115 },
+      { startTime: 110, endTime: 150 },
+    ])
   })
 
   it('should purge incompatible embeddings before processing', async () => {

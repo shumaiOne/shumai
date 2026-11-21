@@ -20,7 +20,7 @@ describe('video chunk previews', () => {
     expect(isPartialVideoRange({ startTime, endTime }, duration)).toBe(partial)
   })
 
-  async function createMatches() {
+  async function createVideo() {
     const team = await prisma.team.create({ data: { name: 'Preview team' } })
     const project = await prisma.project.create({ data: { name: 'Previews', teamId: team.id } })
     const asset = await prisma.asset.create({
@@ -34,42 +34,32 @@ describe('video chunk previews', () => {
         media: { duration: 1200 } as PrismaJson.MediaInfo,
       },
     })
-    const match = await prisma.assetEmbedding.create({
-      data: { assetId: asset.id, startTime: 10, endTime: 20 },
-    })
-    const full = await prisma.assetEmbedding.create({
-      data: { assetId: asset.id, startTime: 0, endTime: 1200 },
-    })
-    return { asset, match, full }
+    return asset
   }
 
-  it('only enqueues a job for a partial match belonging to the requested video', async () => {
-    const { asset, match, full } = await createMatches()
-    await expect(
-      videoChunkPreviewService.getForMatch('other-asset', match.id, true),
-    ).rejects.toMatchObject({ status: 404 })
-    await expect(videoChunkPreviewService.getForMatch(asset.id, full.id, true)).resolves.toEqual({
-      status: 'unavailable',
-    })
-    await expect(videoChunkPreviewService.getForMatch(asset.id, match.id, false)).resolves.toEqual({
-      status: 'unavailable',
-    })
-    expect(await prisma.workflowTask.count({ where: { assetId: asset.id } })).toBe(0)
+  it('schedules one preview batch for the missing partial ranges and reuses pending work', async () => {
+    const asset = await createVideo()
+    const full = { startTime: 0, endTime: 1200 }
+    const first = { startTime: 10, endTime: 20 }
+    const second = { startTime: 15, endTime: 25 }
+    expect(await videoChunkPreviewService.requestPreviews('missing', [first])).toEqual([])
+    expect(await videoChunkPreviewService.requestPreviews(asset.id, [full])).toEqual([])
 
-    for (const request of [true, true, false]) {
-      expect(await videoChunkPreviewService.getForMatch(asset.id, match.id, request)).toEqual({
-        status: 'pending',
-      })
-    }
-    expect(
-      await prisma.workflowTask.count({
-        where: { assetId: asset.id, type: 'transcode_video_chunk_preview' },
-      }),
-    ).toBe(1)
+    const [one, two] = await Promise.all([
+      videoChunkPreviewService.requestPreviews(asset.id, [first, second, full, first]),
+      videoChunkPreviewService.requestPreviews(asset.id, [first, second]),
+    ])
+    expect(one).toHaveLength(1)
+    expect(two).toEqual(one)
+    const jobs = await prisma.workflowTask.findMany({
+      where: { assetId: asset.id, type: 'transcode_video_chunk_preview' },
+    })
+    expect(jobs.map((job) => job.id)).toEqual(one)
+    expect(jobs[0].payload?.videoChunkPreviewRanges).toEqual([first, second])
   })
 
   it('publishes only complete preview uploads and reuses the stored preview after a retry', async () => {
-    const { asset } = await createMatches()
+    const asset = await createVideo()
     const sourceKey = 'files/montage/source.mp4'
     const range = { assetId: asset.id, startTime: 10, endTime: 20 }
     const render = vi.fn().mockResolvedValue({
@@ -87,17 +77,61 @@ describe('video chunk previews', () => {
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('Upload failed'))
     const remove = vi.spyOn(s3Service, 'deleteObject').mockResolvedValue(1)
-    await expect(videoChunkPreviewService.store(range, sourceKey, render)).rejects.toThrow(
-      'Upload failed',
-    )
+    await expect(
+      videoChunkPreviewService.store(asset.id, sourceKey, [range], render),
+    ).rejects.toThrow('Upload failed')
     expect(await videoChunkPreviewService.listReady([range])).toHaveProperty('size', 0)
     expect(remove).toHaveBeenCalledTimes(2)
 
-    await videoChunkPreviewService.store(range, sourceKey, render)
-    await videoChunkPreviewService.store(range, sourceKey, render)
+    await videoChunkPreviewService.store(asset.id, sourceKey, [range], render)
+    await videoChunkPreviewService.store(asset.id, sourceKey, [range], render)
     expect(render).toHaveBeenCalledTimes(2)
     expect(put).toHaveBeenCalledTimes(4)
     const ready = await videoChunkPreviewService.listReady([range])
     expect(ready.get(chunkKey(range))).toMatchObject({ timestamps: [10, 15] })
+    expect(await prisma.asset.findUnique({ where: { id: asset.id } })).toMatchObject({
+      media: { duration: 1200, chunkPreviews: { '[10,20]': { timestamps: [10, 15] } } },
+    })
+    expect(await videoChunkPreviewService.requestPreviews(asset.id, [range])).toEqual([])
+  })
+
+  it('keeps the first published preview and cleans up overlapping uploads', async () => {
+    const asset = await createVideo()
+    const sourceKey = 'files/montage/source.mp4'
+    const range = { startTime: 10, endTime: 20 }
+    const rendered = {
+      sprite: Buffer.from('sprite'),
+      poster: Buffer.from('poster'),
+      timestamps: [10, 15],
+      columns: 2,
+      rows: 1,
+      frameWidth: 320,
+      frameHeight: 180,
+    }
+    const put = vi.spyOn(s3Service, 'putObject').mockResolvedValue(undefined)
+    const remove = vi.spyOn(s3Service, 'deleteObject').mockResolvedValue(1)
+    let finishRender!: () => void
+    const lateRender = vi.fn(
+      () =>
+        new Promise<typeof rendered>((resolve) => {
+          finishRender = () => resolve(rendered)
+        }),
+    )
+
+    const late = videoChunkPreviewService.store(asset.id, sourceKey, [range], lateRender)
+    await vi.waitFor(() => expect(lateRender).toHaveBeenCalledTimes(1))
+    await videoChunkPreviewService.store(asset.id, sourceKey, [range], async () => rendered)
+    finishRender()
+    await late
+
+    const updated = await prisma.asset.findUniqueOrThrow({ where: { id: asset.id } })
+    expect(updated.media?.chunkPreviews?.['[10,20]']).toMatchObject({
+      posterKey: put.mock.calls[0][1],
+      spriteKey: put.mock.calls[1][1],
+    })
+    expect(remove.mock.calls.map(([, key]) => key)).toEqual([
+      put.mock.calls[2][1],
+      put.mock.calls[3][1],
+    ])
   })
 })

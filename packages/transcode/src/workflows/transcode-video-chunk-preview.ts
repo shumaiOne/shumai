@@ -6,6 +6,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import {
   renderVideoChunkPreview,
   samplePreviewFrames,
+  type VideoRange,
 } from '@shumai/core/src/transcode/video-chunk-preview'
 import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import { prisma, type WorkflowTask } from '@shumai/db'
@@ -14,27 +15,26 @@ import { completeTask } from './common'
 
 const generateVideoChunkPreview = defineStep(async function generateVideoChunkPreview(
   assetId: string,
-  previewId: string,
+  ranges: VideoRange[],
 ) {
-  const preview = await prisma.videoChunkPreview.findFirst({
-    where: { id: previewId, assetId, asset: { isDeleted: false } },
-    include: { asset: { include: { storageKey: true } } },
+  const asset = await prisma.asset.findFirst({
+    where: { id: assetId, isDeleted: false, status: { not: 'pending_purge' } },
+    include: { storageKey: true },
   })
-  const source = preview?.asset.storageKey
-  const inputKey = source && getPreviewInput(preview.asset.media, source)
-  if (!preview || !source || !inputKey) {
+  const source = asset?.storageKey
+  const inputKey = asset && source && getPreviewInput(asset.media, source)
+  if (!source || !inputKey) {
     throw ApplicationFailure.create({
       message: 'Source video for the chunk preview is unavailable',
       nonRetryable: true,
     })
   }
 
-  const range = { assetId, startTime: preview.startTime, endTime: preview.endTime }
-  await videoChunkPreviewService.store(range, source.key, async () => {
+  const input = await s3Service.resolveInput(process.env.S3_BUCKET || 'shumai', inputKey)
+  await videoChunkPreviewService.store(assetId, source.key, ranges, async (range) => {
     const dir = transcodeService.createTempDir('chunk-preview-')
     try {
-      const input = await s3Service.resolveInput(process.env.S3_BUCKET || 'shumai', inputKey)
-      const frames = await samplePreviewFrames(input, dir, range, range.startTime)
+      const frames = await samplePreviewFrames(input, dir, range)
       return await renderVideoChunkPreview(frames, range)
     } finally {
       transcodeService.removeDir(dir)
@@ -43,13 +43,13 @@ const generateVideoChunkPreview = defineStep(async function generateVideoChunkPr
 })
 
 export async function transcodeVideoChunkPreviewWorkflow(task: WorkflowTask): Promise<void> {
-  const previewId = task.payload?.videoChunkPreviewId
-  if (!previewId) {
+  const ranges = task.payload?.videoChunkPreviewRanges
+  if (!ranges?.length) {
     throw ApplicationFailure.create({
-      message: 'Missing video chunk preview ID',
+      message: 'Missing video chunk preview ranges',
       nonRetryable: true,
     })
   }
-  await generateVideoChunkPreview(task.assetId, previewId)
+  await generateVideoChunkPreview(task.assetId, ranges)
   await completeTask(task.id)
 }

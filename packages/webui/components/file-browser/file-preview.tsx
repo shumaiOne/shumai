@@ -1,15 +1,13 @@
 import { File, Folder, AudioLines } from 'lucide-react'
-import type { AssetInfo, PreviewInfo } from '@shumai/dtos'
+import type { ChunkPreview, PreviewInfo } from '@shumai/dtos'
 import { SpriteScrubber } from '../sprite-scrubber'
 import { formatTime } from '../viewers/video/utils'
-import { ChunkVideoPreview } from './chunk-video-preview'
 
 type FilePreviewItem = {
-  id?: string
   type?: string | null
   proxyType?: 'image' | 'video' | 'audio' | 'pdf' | '3d' | null
   preview?: PreviewInfo | null
-  chunkPreview?: AssetInfo['chunkPreview']
+  chunkPreview?: ChunkPreview
 }
 
 interface FilePreviewProps {
@@ -57,16 +55,25 @@ export const FilePreview = ({
     </span>
   ) : null
 
-  if (item.id && item.chunkPreview && hasMatchedChunk) {
+  if (item.chunkPreview && hasMatchedChunk) {
+    const { posterUrl, spriteUrl, frameWidth, frameHeight, columns, rows, timestamps } =
+      item.chunkPreview
+    const startTime = matchDuration.startTime!
+    const duration = matchDuration.endTime! - startTime
     return (
       <>
-        <ChunkVideoPreview
-          key={item.chunkPreview.matchId}
-          assetId={item.id}
-          chunk={item.chunkPreview}
-          startTime={matchDuration.startTime!}
-          endTime={matchDuration.endTime!}
-          focused={focused}
+        <SpriteScrubber
+          active={focused || undefined}
+          spriteUrl={spriteUrl}
+          thumbnailUrl={posterUrl}
+          videoWidth={frameWidth}
+          videoHeight={frameHeight}
+          columns={columns}
+          rows={rows}
+          frames={timestamps.map((timestamp, index) => ({
+            index,
+            position: (timestamp - startTime) / duration,
+          }))}
         />
         {overlay}
       </>
@@ -76,18 +83,18 @@ export const FilePreview = ({
   const isMediaWithSprite =
     (isVideo || isPdf || is3D) &&
     item.preview?.spriteUrl &&
-    item.preview.thumbnailUrl &&
-    item.preview.originalWidth &&
-    item.preview.originalHeight
+    ((isVideo && hasMatchedChunk) ||
+      (item.preview.thumbnailUrl && item.preview.originalWidth && item.preview.originalHeight))
 
   if (isMediaWithSprite && item.preview) {
     return (
       <>
         <SpriteScrubber
+          active={focused || undefined}
           spriteUrl={item.preview.spriteUrl!}
-          thumbnailUrl={item.preview.thumbnailUrl!}
-          videoWidth={item.preview.originalWidth!}
-          videoHeight={item.preview.originalHeight!}
+          thumbnailUrl={item.preview.thumbnailUrl}
+          videoWidth={item.preview.originalWidth ?? 16}
+          videoHeight={item.preview.originalHeight ?? 9}
           reverse={is3D}
         />
         {overlay}

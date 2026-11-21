@@ -237,6 +237,7 @@ declare global {
       videoPreview?: VideoTranscode
       pdfTranscode?: PdfTranscode
       sprite?: SpriteInfo
+      chunkPreviews?: Record<string, VideoChunkPreviewMedia>
       poster?: PosterInfo
       thumbnail?: ImageTranscode
       finishedAt: string
@@ -378,7 +379,7 @@ declare global {
         text: string
       }
       screenshot?: ScreenshotSpec
-      videoChunkPreviewId?: string
+      videoChunkPreviewRanges?: Array<{ startTime: number; endTime: number }>
       imageAnnotation?: ImageAnnotationSpec
       pdfPages?: PdfPagesSpec
       /** Render that produced this result, if any (set by the read_asset pipeline). */

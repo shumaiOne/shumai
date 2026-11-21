@@ -1,7 +1,13 @@
-import { isPartialVideoRange } from '@shumai/core/src/transcode/video-chunk-preview'
+import { logger } from '@shumai/core/src/logger'
+import {
+  isPartialVideoRange,
+  type VideoRange,
+} from '@shumai/core/src/transcode/video-chunk-preview'
 import type { WorkflowTask } from '@shumai/db'
 import {
   ApplicationFailure,
+  DBOS,
+  isDbosWorkflowCancelledError,
   updateTaskStatusActivity,
   updateTaskUsageActivity,
 } from '@shumai/workflow-core'
@@ -9,6 +15,7 @@ import { createCommentActivity } from '../activities/agent'
 import {
   deleteAssetEmbeddingsActivity,
   deleteS3ObjectActivity,
+  enqueueVideoChunkPreviewsActivity,
   generateImageEmbeddingActivity,
   generateVideoChunkEmbeddingActivity,
   getEmbeddingContextActivity,
@@ -146,6 +153,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       const limit = chunkDuration || 60.0
       const overlap = chunkOverlap ?? 5.0
       const step = Math.max(1, limit - overlap)
+      const previewRanges: VideoRange[] = []
 
       for (let start = 0.0; start < duration; start += step) {
         let end = start + limit
@@ -154,7 +162,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
         }
 
         // Check if this chunk is already completed
-        const chunkExists = validExistingChunks.some(
+        const existingChunk = validExistingChunks.find(
           (c) =>
             c.startTime !== null &&
             c.endTime !== null &&
@@ -162,7 +170,9 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
             Math.abs(c.endTime - end) < 0.1,
         )
 
-        if (chunkExists) {
+        if (existingChunk) {
+          const range = { startTime: existingChunk.startTime!, endTime: existingChunk.endTime! }
+          if (isPartialVideoRange(range, duration)) previewRanges.push(range)
           // If this chunk reached the end of the video, stop
           if (end >= duration) {
             break
@@ -170,16 +180,13 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
           continue
         }
 
-        // Step A: Slice chunk on transcode worker and upload to S3
+        // Prepare the embedding input and upload it to S3.
         const chunkRes = await transcodeVideoChunkActivity({
           assetId: asset.id,
           assetKey: embeddingKey,
           startTime: start,
           endTime: end,
           format: isGemmaProvider ? 'frames' : 'video',
-          ...(isPartialVideoRange({ startTime: start, endTime: end }, duration)
-            ? { previewSourceKey: asset.storageKey?.key || embeddingKey }
-            : {}),
         })
         const { chunkKey } = chunkRes
 
@@ -201,6 +208,8 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
               },
             ],
           })
+          const range = { startTime: start, endTime: end }
+          if (isPartialVideoRange(range, duration)) previewRanges.push(range)
 
           if (chunkResult.usage) {
             usage.inputTokens += chunkResult.usage.inputTokens || 0
@@ -216,6 +225,28 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
         // If this chunk reached the end of the video, stop to avoid redundant overlapping chunks
         if (end >= duration) {
           break
+        }
+      }
+
+      if (previewRanges.length) {
+        const previewTaskIds = await enqueueVideoChunkPreviewsActivity(
+          asset.id,
+          previewRanges,
+        ).catch((err: unknown) => {
+          if (isDbosWorkflowCancelledError(err)) throw err
+          logger.warn({ err, assetId: asset.id }, 'Could not schedule video chunk previews')
+          return []
+        })
+        for (const taskId of previewTaskIds) {
+          try {
+            await DBOS.getResult(taskId)
+          } catch (err) {
+            if (isDbosWorkflowCancelledError(err)) throw err
+            logger.warn(
+              { err, taskId, assetId: asset.id },
+              'Could not complete video chunk previews',
+            )
+          }
         }
       }
     }

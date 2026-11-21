@@ -4,7 +4,7 @@ interface SpriteScrubberProps {
   /** The URL of the sprite sheet, which defaults to a 10x10 layout. */
   spriteUrl: string
   /** The URL of the static thumbnail */
-  thumbnailUrl: string
+  thumbnailUrl?: string
   /** The width of the original video source */
   videoWidth: number
   /** The height of the original video source */
@@ -178,14 +178,16 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
     >
-      <img
-        src={thumbnailUrl}
-        alt="Thumbnail"
-        className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-200 ${
-          showingPreview && naturalSize ? 'opacity-0' : 'opacity-100'
-        }`}
-        draggable={false}
-      />
+      {thumbnailUrl && (
+        <img
+          src={thumbnailUrl}
+          alt="Thumbnail"
+          className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-200 ${
+            showingPreview && naturalSize ? 'opacity-0' : 'opacity-100'
+          }`}
+          draggable={false}
+        />
+      )}
 
       {showingPreview && !naturalSize && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 pointer-events-none">

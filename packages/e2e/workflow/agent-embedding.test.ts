@@ -5,7 +5,6 @@ import { workflowService, TaskQueueAgent, TaskQueueTranscode } from '@shumai/wor
 import { initAgentWorkflows } from '@shumai/agent'
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { videoChunkPreviewService } from '@shumai/core/src/search/video-chunk-preview'
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 import * as path from 'path'
@@ -382,70 +381,47 @@ describe('Workflow E2E - agentEmbeddingMedia', () => {
       ORDER BY start_time ASC
     `) as { id: string; startTime: number | null; endTime: number | null }[]
       expect(dbEmbeddings.map(({ startTime, endTime }) => [startTime, endTime])).toEqual(ranges)
-      const previews = await prisma.videoChunkPreview.findMany({
-        where: { assetId: asset.id },
-        orderBy: { startTime: 'asc' },
+      const updated = await prisma.asset.findUniqueOrThrow({ where: { id: asset.id } })
+      const jobs = await prisma.workflowTask.findMany({
+        where: { assetId: asset.id, type: 'transcode_video_chunk_preview' },
       })
-      expect(previews.map(({ startTime, endTime }) => [startTime, endTime])).toEqual(
-        duration === 1 ? [] : ranges,
+      const requested = duration === 1 ? [] : ranges
+      const previews = updated.media?.chunkPreviews ?? {}
+      expect(Object.keys(previews).sort()).toEqual(
+        requested.map((range) => JSON.stringify(range)).sort(),
       )
-      for (const { media, startTime, endTime } of previews) {
-        expect(media?.timestamps.length).toBeGreaterThanOrEqual(1)
-        expect(media?.timestamps.length).toBeLessThanOrEqual(10)
+      expect(jobs).toHaveLength(duration === 1 ? 0 : 1)
+      if (jobs.length) {
+        expect(jobs[0].status).toBe('completed')
+        expect(jobs[0].payload?.videoChunkPreviewRanges).toEqual(
+          requested.map(([startTime, endTime]) => ({ startTime, endTime })),
+        )
+        const client = await workflowService.getExecutor().getClient()
+        const status = await client.retrieveWorkflow(jobs[0].id).getStatus()
+        expect(status?.queueName).toBe(TaskQueueTranscode)
+      }
+
+      for (const [startTime, endTime] of requested) {
+        const media = previews[JSON.stringify([startTime, endTime])]
+        expect(media.timestamps.length).toBeGreaterThanOrEqual(1)
+        expect(media.timestamps.length).toBeLessThanOrEqual(10)
         expect(
-          media?.timestamps.every((timestamp) => timestamp >= startTime && timestamp < endTime),
+          media.timestamps.every((timestamp) => timestamp >= startTime && timestamp < endTime),
         ).toBe(true)
         const { buffer } = await s3Service.getObject(
           'shumai-e2e-test-bucket-embedding',
-          media!.spriteKey,
+          media.spriteKey,
         )
         expect(await sharp(buffer).metadata()).toMatchObject({
           format: 'webp',
-          width: media!.columns * media!.frameWidth,
-          height: media!.rows * media!.frameHeight,
+          width: media.columns * media.frameWidth,
+          height: media.rows * media.frameHeight,
         })
         const poster = await s3Service.getObject(
           'shumai-e2e-test-bucket-embedding',
-          media!.posterKey,
+          media.posterKey,
         )
         expect(await sharp(poster.buffer).metadata()).toMatchObject({ format: 'webp' })
-      }
-
-      if (mode === 'Gemini chunks') {
-        const legacy = await prisma.assetEmbedding.create({
-          data: { assetId: asset.id, startTime: 3, endTime: 8 },
-        })
-        const requests = await Promise.all([
-          videoChunkPreviewService.getForMatch(asset.id, legacy.id, true),
-          videoChunkPreviewService.getForMatch(asset.id, legacy.id, true),
-        ])
-        expect(requests.every(({ status }) => status === 'pending' || status === 'ready')).toBe(
-          true,
-        )
-        const jobs = await prisma.workflowTask.findMany({
-          where: { assetId: asset.id, type: 'transcode_video_chunk_preview' },
-        })
-        expect(jobs).toHaveLength(1)
-        await vi.waitFor(
-          async () => {
-            const poll = await videoChunkPreviewService.getForMatch(asset.id, legacy.id, false)
-            expect(poll).toMatchObject({ status: 'ready' })
-            if (poll.status === 'ready') {
-              expect(
-                poll.preview.timestamps.every((timestamp) => timestamp >= 3 && timestamp < 8),
-              ).toBe(true)
-            }
-          },
-          { timeout: 20_000 },
-        )
-        expect(await videoChunkPreviewService.getForMatch(asset.id, legacy.id, true)).toMatchObject(
-          { status: 'ready' },
-        )
-        expect(
-          await prisma.workflowTask.count({
-            where: { assetId: asset.id, type: 'transcode_video_chunk_preview' },
-          }),
-        ).toBe(1)
       }
     },
     50000,

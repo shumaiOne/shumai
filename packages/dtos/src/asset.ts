@@ -36,13 +36,6 @@ export const chunkPreviewSchema = z.object({
 })
 export type ChunkPreview = z.infer<typeof chunkPreviewSchema>
 
-export const chunkPreviewStateSchema = z.discriminatedUnion('status', [
-  z.object({ status: z.literal('ready'), preview: chunkPreviewSchema }),
-  z.object({ status: z.literal('pending') }),
-  z.object({ status: z.literal('unavailable') }),
-])
-export type ChunkPreviewState = z.infer<typeof chunkPreviewStateSchema>
-
 export const childPreviewSchema = z.object({
   type: z.string().nullable(),
   preview: previewInfoSchema.nullable(),
@@ -108,9 +101,7 @@ export const assetInfoSchema = z.object({
   sortIndex: z.string().optional().nullable(),
   startTime: z.number().optional().nullable(),
   endTime: z.number().optional().nullable(),
-  chunkPreview: z
-    .object({ matchId: z.string(), preview: chunkPreviewSchema.optional() })
-    .optional(),
+  chunkPreview: chunkPreviewSchema.optional(),
   hasAgentsMd: z.boolean().optional(),
   commentsCount: z.number().optional(),
 

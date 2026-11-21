@@ -31,25 +31,22 @@ export function isPartialVideoRange(range: VideoRange, duration?: number | null)
   return !duration || startTime > 0 || endTime < duration - 0.001
 }
 
-/**
- * Seek once, then extract evenly spaced frames from the requested range. The input offset
- * differs from the source timestamp when rendering an already-trimmed embedding clip.
- */
+/** Seek once, then extract evenly spaced frames from the requested range. */
 export async function samplePreviewFrames(
   input: string,
   outputDir: string,
   range: VideoRange,
-  inputStart: number,
-  maxFps = Infinity,
 ): Promise<PreviewFrame[]> {
   const duration = range.endTime - range.startTime
-  const fps = Math.min(MAX_FRAMES / duration, maxFps)
+  const fps = MAX_FRAMES / duration
   await execFileAsync('ffmpeg', [
     '-y',
     '-loglevel',
     'error',
     '-ss',
-    String(inputStart),
+    String(range.startTime),
+    '-t',
+    String(duration),
     '-i',
     input,
     '-map',

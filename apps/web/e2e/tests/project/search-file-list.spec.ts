@@ -198,22 +198,26 @@ test.describe('image search', () => {
       proxyType: 'video',
       startTime: 10,
       endTime: 20,
-      preview: { proxyType: 'video', duration: 1200 },
+      preview: {
+        proxyType: 'video',
+        duration: 1200,
+        thumbnailUrl: '/assets/full-poster.webp',
+        spriteUrl: '/assets/full-sprite.webp',
+        originalWidth: 320,
+        originalHeight: 180,
+      },
       chunkPreview: {
-        matchId: 'video-match',
-        preview: {
-          posterUrl: '/assets/chunk-poster.webp',
-          spriteUrl: '/assets/chunk-sprite.webp',
-          columns: 2,
-          rows: 1,
-          frameWidth: 320,
-          frameHeight: 180,
-          timestamps: [10, 18],
-        },
+        posterUrl: '/assets/chunk-poster.webp',
+        spriteUrl: '/assets/chunk-sprite.webp',
+        columns: 2,
+        rows: 1,
+        frameWidth: 320,
+        frameHeight: 180,
+        timestamps: [10, 18],
       },
     }
     const requests: ImageSearchRequest[] = []
-    await page.route('**/assets/chunk-*.webp', (route) =>
+    await page.route(/\/assets\/(?:chunk|full)-(?:sprite|poster)\.webp$/, (route) =>
       route.fulfill({
         contentType: 'image/png',
         body: Buffer.from(
@@ -229,7 +233,7 @@ test.describe('image search', () => {
         request.mediaType === 'image'
           ? [image]
           : request.mediaType === 'video'
-            ? [video]
+            ? [{ ...video, chunkPreview: undefined }]
             : [image, video]
       await route.fulfill({ json: { data, pageInfo: { total: data.length } } })
     })
@@ -256,6 +260,10 @@ test.describe('image search', () => {
     await expect(dialog.getByText(video.name)).toBeVisible()
     await expect(dialog.getByText(image.name)).toHaveCount(0)
     expect(requests.at(-1)).toMatchObject({ sourceAssetId: fileId, mediaType: 'video' })
+    await expect(scrubber.getByRole('img')).toHaveAttribute('src', '/assets/full-poster.webp')
+    const fallbackBounds = (await scrubber.boundingBox())!
+    await scrubber.hover({ position: { x: fallbackBounds.width - 2, y: 10 } })
+    await expect(scrubber).toHaveAttribute('data-frame', /^9[0-9]$/)
 
     await dialog.getByText('Images', { exact: true }).click()
     await expect(dialog.getByText(image.name)).toBeVisible()

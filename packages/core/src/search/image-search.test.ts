@@ -101,19 +101,30 @@ describe('image search', () => {
     await insertEmbedding(source.id, vector(1536, 1))
     await insertEmbedding(video.id, vector(1536, 1), 4, 12)
     await insertEmbedding(video.id, vector(1536, 0, 1), 12, 20)
-    await prisma.videoChunkPreview.create({
+    await prisma.asset.update({
+      where: { id: video.id },
       data: {
-        assetId: video.id,
-        startTime: 4,
-        endTime: 12,
         media: {
-          posterKey: 'files/video/chunk-previews/poster.webp',
-          spriteKey: 'files/video/chunk-previews/sprite.webp',
-          columns: 2,
-          rows: 1,
-          frameWidth: 320,
-          frameHeight: 180,
-          timestamps: [4, 8],
+          duration: 1200,
+          frames: 36_000,
+          filesize: 100,
+          proxyType: 'video',
+          videoTranscodes: [],
+          imageTranscodes: [],
+          metadata: null,
+          original: null,
+          finishedAt: new Date().toISOString(),
+          chunkPreviews: {
+            '[4,12]': {
+              posterKey: 'files/video/chunk-previews/poster.webp',
+              spriteKey: 'files/video/chunk-previews/sprite.webp',
+              columns: 2,
+              rows: 1,
+              frameWidth: 320,
+              frameHeight: 180,
+              timestamps: [4, 8],
+            },
+          },
         },
       },
     })
@@ -132,14 +143,12 @@ describe('image search', () => {
       startTime: 4,
       endTime: 12,
       chunkPreview: {
-        matchId: expect.any(String),
-        preview: {
-          posterUrl: expect.any(String),
-          spriteUrl: expect.any(String),
-          timestamps: [4, 8],
-        },
+        posterUrl: expect.any(String),
+        spriteUrl: expect.any(String),
+        timestamps: [4, 8],
       },
     })
+    expect(first.data[0].media).not.toHaveProperty('chunkPreviews')
     expect(first.data[1].chunkPreview).toBeUndefined()
     expect(first.pageInfo).toMatchObject({ total: 3, cursor: expect.any(String) })
     const next = await searchService.searchByImage(
@@ -147,8 +156,7 @@ describe('image search', () => {
       imageSearchRequestSchema.parse({ ...request, first: 2, after: first.pageInfo.cursor }),
     )
     expect(next.data).toMatchObject([{ id: video.id, startTime: 12, endTime: 20 }])
-    expect(next.data[0].chunkPreview?.matchId).not.toEqual(first.data[0].chunkPreview?.matchId)
-    expect(next.data[0].chunkPreview?.preview).toBeUndefined()
+    expect(next.data[0].chunkPreview).toBeUndefined()
     expect(next.pageInfo.cursor).toBeUndefined()
 
     const images = await searchService.searchByImage(

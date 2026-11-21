@@ -720,6 +720,53 @@ describe('Transcode Activities', () => {
     expect(s3Service.putObject).toHaveBeenCalled()
   })
 
+  it('preserves chunk previews published while the transcode writes its media snapshot', async () => {
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'preview-race.mp4',
+        storageKey: { create: { key: 'preview-race.mp4' } },
+        status: 'uploaded',
+        type: 'file',
+      },
+    })
+    const chunkPreviews = {
+      '[10,20]': {
+        posterKey: 'previews/poster.webp',
+        spriteKey: 'previews/sprite.webp',
+        columns: 2,
+        rows: 1,
+        frameWidth: 320,
+        frameHeight: 180,
+        timestamps: [10, 15],
+      },
+    }
+    const media: PrismaJson.MediaInfo = {
+      duration: 120,
+      frames: 3600,
+      filesize: 100,
+      proxyType: 'video',
+      videoTranscodes: [],
+      imageTranscodes: [],
+      metadata: null,
+      original: null,
+      finishedAt: new Date().toISOString(),
+    }
+    vi.mocked(s3Service.putObject).mockImplementationOnce(async () => {
+      await prisma.asset.update({
+        where: { id: asset.id },
+        data: { media: { ...media, chunkPreviews } },
+      })
+    })
+
+    await updateAssetMediaActivity({
+      assetId: asset.id,
+      mediaInfo: { ...media, duration: 123 },
+    })
+    expect(await prisma.asset.findUnique({ where: { id: asset.id } })).toMatchObject({
+      media: { duration: 123, chunkPreviews },
+    })
+  })
+
   it('should throw non-retryable ApplicationFailure and not upload when asset is pending_purge in updateAssetMediaActivity', async () => {
     const asset = await prisma.asset.create({
       data: {

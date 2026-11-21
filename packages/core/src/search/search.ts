@@ -418,7 +418,7 @@ export class SearchService {
     const offset = req.after ? decodeCursor(req.after) : 0
     const resultQuery = builder
       .select(
-        Prisma.sql`a.id as "assetId", ae.id as "matchId", a.media_type LIKE 'video/%' as "isVideo",
+        Prisma.sql`a.id as "assetId", a.media_type LIKE 'video/%' as "isVideo",
           ae.start_time as "startTime", ae.end_time as "endTime", ${distance} as "distance"`,
       )
       .orderBy(visual ? Prisma.sql`distance ASC, ae.id ASC` : Prisma.sql`distance ASC`)
@@ -429,7 +429,6 @@ export class SearchService {
     const matches = await this.prismaClient.$queryRaw<
       {
         assetId: string
-        matchId: string
         isVideo: boolean | null
         startTime: number | null
         endTime: number | null
@@ -439,25 +438,20 @@ export class SearchService {
     const assetIds = [...new Set(page.map((match) => match.assetId))]
     const infos = await this.assetSvc.listAssetsByIds(assetIds, req.previewFormat)
     const byId = new Map(infos.map((item) => [item.id, item]))
-    const chunkMatches = page.flatMap(({ assetId, matchId, isVideo, startTime, endTime }) => {
+    const chunkMatches = page.flatMap(({ assetId, isVideo, startTime, endTime }) => {
       if (!isVideo || startTime === null || endTime === null) return []
       const item = byId.get(assetId)
       if (!item || !isPartialVideoRange({ startTime, endTime }, item.preview?.duration)) return []
-      return [{ matchId, range: { assetId, startTime, endTime } }]
+      return [{ assetId, startTime, endTime }]
     })
-    const previews = await videoChunkPreviewService.listReady(
-      chunkMatches.map(({ range }) => range),
-    )
-    const matchPreviews = new Map(
-      chunkMatches.map(({ matchId, range }) => [
-        matchId,
-        { matchId, preview: previews.get(chunkKey(range)) },
-      ]),
-    )
-    const data = page.flatMap(({ assetId, matchId, startTime, endTime }) => {
+    const previews = await videoChunkPreviewService.listReady(chunkMatches)
+    const data = page.flatMap(({ assetId, startTime, endTime }) => {
       const item = byId.get(assetId)
       if (!item) return []
-      const chunkPreview = matchPreviews.get(matchId)
+      const chunkPreview =
+        startTime !== null && endTime !== null
+          ? previews.get(chunkKey({ assetId, startTime, endTime }))
+          : undefined
       return [{ ...item, startTime, endTime, ...(chunkPreview && { chunkPreview }) }]
     })
 

@@ -74,7 +74,6 @@ export const ModelName = {
   AssetCommentAttachment: 'AssetCommentAttachment',
   AssetCommentReaction: 'AssetCommentReaction',
   AssetEmbedding: 'AssetEmbedding',
-  VideoChunkPreview: 'VideoChunkPreview',
   Invite: 'Invite',
   MetadataField: 'MetadataField',
   Notification: 'Notification',
@@ -463,20 +462,6 @@ export const AssetEmbeddingScalarFieldEnum = {
 } as const
 
 export type AssetEmbeddingScalarFieldEnum = (typeof AssetEmbeddingScalarFieldEnum)[keyof typeof AssetEmbeddingScalarFieldEnum]
-
-
-export const VideoChunkPreviewScalarFieldEnum = {
-  id: 'id',
-  assetId: 'assetId',
-  startTime: 'startTime',
-  endTime: 'endTime',
-  taskId: 'taskId',
-  media: 'media',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type VideoChunkPreviewScalarFieldEnum = (typeof VideoChunkPreviewScalarFieldEnum)[keyof typeof VideoChunkPreviewScalarFieldEnum]
 
 
 export const InviteScalarFieldEnum = {

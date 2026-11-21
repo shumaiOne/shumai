@@ -6,161 +6,175 @@ import {
   type VideoRange,
 } from '@shumai/core/src/transcode/video-chunk-preview'
 import { getDerivedArtifactDirectory } from '@shumai/core/src/utils/filename'
-import {
-  Prisma,
-  prisma,
-  triggerWorkflowTask,
-  WorkflowTaskStatus,
-  WorkflowTaskType,
-} from '@shumai/db'
-import type { ChunkPreview, ChunkPreviewState } from '@shumai/dtos'
-import { HTTPException } from 'hono/http-exception'
+import { prisma, triggerWorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
+import type { ChunkPreview } from '@shumai/dtos'
 
 type ChunkKey = VideoRange & { assetId: string }
 type RenderedPreview = Awaited<ReturnType<typeof renderVideoChunkPreview>>
-const RETRY_DELAY_MS = 60_000
+const PREVIEW_TASK = WorkflowTaskType.transcode_video_chunk_preview
+const ACTIVE_STATUS = [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing]
 
 export class VideoChunkPreviewService {
   constructor(private readonly db: typeof prisma = prisma) {}
 
   async listReady(ranges: ChunkKey[]) {
     if (!ranges.length) return new Map<string, ChunkPreview>()
-    const records = await this.db.videoChunkPreview.findMany({
-      where: { OR: ranges, media: { not: Prisma.DbNull } },
+    const assets = await this.db.asset.findMany({
+      where: { id: { in: [...new Set(ranges.map(({ assetId }) => assetId))] } },
+      select: { id: true, media: true },
     })
+    const byId = new Map(assets.map(({ id, media }) => [id, media?.chunkPreviews]))
     const previews = new Map<string, ChunkPreview>()
     await Promise.all(
-      records.map(async (record) => {
-        if (record.media) previews.set(chunkKey(record), await this.toPreview(record.media))
+      [...new Map(ranges.map((range) => [chunkKey(range), range]))].map(async ([key, range]) => {
+        const media = byId.get(range.assetId)?.[previewRangeKey(range)]
+        if (media) previews.set(key, await this.toPreview(media))
       }),
     )
     return previews
   }
 
-  async getForMatch(
-    assetId: string,
-    matchId: string,
-    request: boolean,
-  ): Promise<ChunkPreviewState> {
-    const match = await this.db.assetEmbedding.findFirst({
-      where: {
-        id: matchId,
-        assetId,
-        asset: { isDeleted: false, mediaType: { startsWith: 'video/' } },
-      },
-      select: {
-        startTime: true,
-        endTime: true,
-        asset: { select: { projectId: true, media: true, storageKey: true } },
-      },
-    })
-    if (!match) throw new HTTPException(404, { message: 'Video match not found' })
+  async requestPreviews(assetId: string, ranges: VideoRange[]): Promise<string[]> {
+    if (!ranges.length) return []
+    const { task, ids } = await this.db.$transaction(async (tx) => {
+      // Serialize scheduling for concurrent embedding runs on the same video version.
+      await tx.$queryRaw`SELECT id FROM assets WHERE id = ${assetId} FOR UPDATE`
+      const asset = await tx.asset.findFirst({
+        where: { id: assetId, isDeleted: false, status: { not: 'pending_purge' } },
+        select: { projectId: true, media: true, storageKey: true },
+      })
+      if (
+        !asset?.projectId ||
+        !asset.storageKey ||
+        !getPreviewInput(asset.media, asset.storageKey)
+      ) {
+        return { ids: [] }
+      }
+      const duration = asset.media?.duration || asset.media?.metadata?.duration
+      const missing = new Map(
+        ranges
+          .filter(
+            (range) =>
+              isPartialVideoRange(range, duration) &&
+              !asset.media?.chunkPreviews?.[previewRangeKey(range)],
+          )
+          .map((range) => [previewRangeKey(range), range]),
+      )
+      if (!missing.size) return { ids: [] }
 
-    const { startTime, endTime, asset } = match
-    const duration = asset.media?.duration || asset.media?.metadata?.duration
-    if (
-      startTime === null ||
-      endTime === null ||
-      !isPartialVideoRange({ startTime, endTime }, duration)
-    ) {
-      return { status: 'unavailable' }
-    }
-
-    const range = { assetId, startTime, endTime }
-    const existing = await this.db.videoChunkPreview.findUnique({
-      where: { assetRange: range },
-    })
-    if (existing?.media) return { status: 'ready', preview: await this.toPreview(existing.media) }
-    if (!request) {
-      const task =
-        existing?.taskId &&
-        (await this.db.workflowTask.findUnique({ where: { id: existing.taskId } }))
-      return { status: task && isActive(task.status) ? 'pending' : 'unavailable' }
-    }
-
-    if (!asset.projectId || !asset.storageKey || !getPreviewInput(asset.media, asset.storageKey)) {
-      return { status: 'unavailable' }
-    }
-    return this.requestPreview(range, asset.projectId)
-  }
-
-  private async requestPreview(range: ChunkKey, projectId: string): Promise<ChunkPreviewState> {
-    const { preview, task, pending } = await this.db.$transaction(async (tx) => {
-      await tx.videoChunkPreview.createMany({ data: [range], skipDuplicates: true })
-      const [record] = await tx.$queryRaw<{ id: string; taskId: string | null }[]>`
-        SELECT id, task_id AS "taskId" FROM video_chunk_previews
-        WHERE asset_id = ${range.assetId} AND start_time = ${range.startTime} AND end_time = ${range.endTime}
-        FOR UPDATE
-      `
-      const current = await tx.videoChunkPreview.findUniqueOrThrow({ where: { id: record.id } })
-      if (current.media) return { preview: current.media }
-      if (record.taskId) {
-        const existing = await tx.workflowTask.findUnique({ where: { id: record.taskId } })
-        if (existing && isActive(existing.status)) return { pending: true }
-        if (existing && Date.now() - existing.updatedAt.getTime() < RETRY_DELAY_MS) {
-          return { pending: false }
+      const jobs = await tx.workflowTask.findMany({
+        where: { assetId, type: PREVIEW_TASK, status: { in: ACTIVE_STATUS } },
+        orderBy: { id: 'desc' },
+      })
+      const ids = new Set<string>()
+      for (const job of jobs) {
+        for (const range of job.payload?.videoChunkPreviewRanges ?? []) {
+          if (missing.delete(previewRangeKey(range))) ids.add(job.id)
         }
       }
 
-      // The normal create hook submits immediately. Publish this task after its transaction commits.
+      if (!missing.size) return { ids: [...ids] }
+      // The create hook submits immediately. Publish this task after the transaction commits.
       const [task] = await tx.workflowTask.createManyAndReturn({
         data: [
           {
-            assetId: range.assetId,
-            projectId,
-            type: WorkflowTaskType.transcode_video_chunk_preview,
+            assetId,
+            projectId: asset.projectId,
+            type: PREVIEW_TASK,
             status: WorkflowTaskStatus.pending,
-            payload: { projectId, videoChunkPreviewId: record.id },
+            payload: { projectId: asset.projectId, videoChunkPreviewRanges: [...missing.values()] },
           },
         ],
       })
-      await tx.videoChunkPreview.update({ where: { id: record.id }, data: { taskId: task.id } })
-      return { task, pending: true }
+      return { task, ids: [...ids, task.id] }
     })
     if (task) {
       triggerWorkflowTask(task).catch((err: unknown) =>
         logger.error({ err, taskId: task.id }, 'Could not submit video chunk preview task'),
       )
     }
-    if (preview) return { status: 'ready', preview: await this.toPreview(preview) }
-    return { status: pending ? 'pending' : 'unavailable' }
+    return ids
   }
 
-  async store(range: ChunkKey, sourceKey: string, render: () => Promise<RenderedPreview>) {
-    await this.db.videoChunkPreview.createMany({ data: [range], skipDuplicates: true })
-    const record = await this.db.videoChunkPreview.findUniqueOrThrow({
-      where: { assetRange: range },
+  async store(
+    assetId: string,
+    sourceKey: string,
+    ranges: VideoRange[],
+    render: (range: VideoRange) => Promise<RenderedPreview>,
+  ) {
+    const asset = await this.db.asset.findUnique({
+      where: { id: assetId },
+      select: { media: true },
     })
-    if (record.media) return
-
-    const { poster, sprite, ...metadata } = await render()
+    const existing = asset?.media?.chunkPreviews ?? {}
     const bucket = process.env.S3_BUCKET || 'shumai'
-    const prefix = `${getDerivedArtifactDirectory(sourceKey, range.assetId)}/chunk-previews/${record.id}/${crypto.randomUUID()}`
-    const posterKey = `${prefix}/poster.webp`
-    const spriteKey = `${prefix}/sprite.webp`
-    let published = false
-    try {
-      await s3Service.putObject(bucket, posterKey, poster, poster.length, 'image/webp')
-      await s3Service.putObject(bucket, spriteKey, sprite, sprite.length, 'image/webp')
-      const result = await this.db.videoChunkPreview.updateMany({
-        where: { id: record.id, media: { equals: Prisma.DbNull } },
-        data: { media: { ...metadata, posterKey, spriteKey } },
-      })
-      published = result.count === 1
-    } finally {
-      if (!published) {
-        const outcomes = await Promise.allSettled([
-          s3Service.deleteObject(bucket, posterKey),
-          s3Service.deleteObject(bucket, spriteKey),
-        ])
-        for (const outcome of outcomes) {
-          if (outcome.status === 'rejected') {
-            logger.warn(
-              { err: outcome.reason, previewId: record.id },
-              'Could not clean up unpublished preview',
-            )
-          }
-        }
+    const prefix = `${getDerivedArtifactDirectory(sourceKey, assetId)}/chunk-previews/${assetId}/${crypto.randomUUID()}`
+    const generated: Record<string, PrismaJson.VideoChunkPreviewMedia> = {}
+    const failures: unknown[] = []
+    for (const [key, range] of new Map(ranges.map((range) => [previewRangeKey(range), range]))) {
+      if (existing[key]) continue
+      const posterKey = `${prefix}/${range.startTime}-${range.endTime}/poster.webp`
+      const spriteKey = `${prefix}/${range.startTime}-${range.endTime}/sprite.webp`
+      try {
+        const { poster, sprite, ...metadata } = await render(range)
+        await s3Service.putObject(bucket, posterKey, poster, poster.length, 'image/webp')
+        await s3Service.putObject(bucket, spriteKey, sprite, sprite.length, 'image/webp')
+        generated[key] = { ...metadata, posterKey, spriteKey }
+      } catch (err) {
+        failures.push(err)
+        await this.cleanup(bucket, [posterKey, spriteKey], assetId)
+      }
+    }
+
+    const entries = Object.entries(generated)
+    if (entries.length) {
+      let published = new Set<string>()
+      try {
+        published = await this.publish(assetId, entries)
+      } finally {
+        const unpublished = entries
+          .filter(([key]) => !published.has(key))
+          .flatMap(([, { posterKey, spriteKey }]) => [posterKey, spriteKey])
+        if (unpublished.length) await this.cleanup(bucket, unpublished, assetId)
+      }
+    }
+
+    if (failures.length) throw failures[0]
+  }
+
+  private async publish(assetId: string, entries: [string, PrismaJson.VideoChunkPreviewMedia][]) {
+    return this.db.$transaction(async (tx) => {
+      const [asset] = await tx.$queryRaw<{ media: PrismaJson.MediaInfo | null }[]>`
+        SELECT media FROM assets
+        WHERE id = ${assetId} AND NOT is_deleted AND status <> 'pending_purge'
+        FOR UPDATE
+      `
+      if (!asset) return new Set<string>()
+      const missing = entries.filter(([key]) => !asset.media?.chunkPreviews?.[key])
+      if (!missing.length) return new Set<string>()
+
+      await tx.$executeRaw`
+        UPDATE assets
+        SET media = jsonb_set(
+              COALESCE(media, '{}'::jsonb),
+              '{chunkPreviews}',
+              COALESCE(media->'chunkPreviews', '{}'::jsonb) ||
+                ${JSON.stringify(Object.fromEntries(missing))}::jsonb
+            ),
+            updated_at = NOW()
+        WHERE id = ${assetId}
+      `
+      return new Set(missing.map(([key]) => key))
+    })
+  }
+
+  private async cleanup(bucket: string, keys: string[], assetId: string) {
+    const outcomes = await Promise.allSettled(
+      keys.map((key) => s3Service.deleteObject(bucket, key)),
+    )
+    for (const outcome of outcomes) {
+      if (outcome.status === 'rejected') {
+        logger.warn({ err: outcome.reason, assetId }, 'Could not clean up unpublished preview')
       }
     }
   }
@@ -176,12 +190,12 @@ export class VideoChunkPreviewService {
   }
 }
 
-function isActive(status: WorkflowTaskStatus | null): boolean {
-  return status === WorkflowTaskStatus.pending || status === WorkflowTaskStatus.processing
-}
-
 export function chunkKey({ assetId, startTime, endTime }: ChunkKey) {
   return JSON.stringify([assetId, startTime, endTime])
+}
+
+export function previewRangeKey({ startTime, endTime }: VideoRange) {
+  return JSON.stringify([startTime, endTime])
 }
 
 export function getPreviewInput(
