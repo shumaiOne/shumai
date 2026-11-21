@@ -18,7 +18,12 @@ export function SearchResultCards({
       return
     }
     const fileId = item.versionStack?.id ?? item.id
-    const query = item.startTime != null && item.startTime > 0 ? `?start=${item.startTime}` : ''
+    const params = new URLSearchParams()
+    if (item.startTime != null) {
+      if (item.startTime > 0) params.set('start', String(item.startTime))
+      if (item.versionStack && item.id !== fileId) params.set('version', item.id)
+    }
+    const query = params.size ? `?${params}` : ''
     window.open(`${projectPath}/files/${fileId}${query}`, '_blank', 'noopener,noreferrer')
   }
 
@@ -46,7 +51,7 @@ export function SearchResultCards({
             hideCheckbox
             hideActions
             disabled
-            onSelect={() => openResult(item)}
+            onOpen={() => openResult(item)}
           />
         )
       })}

@@ -157,6 +157,11 @@ export type AssetCommentReaction = Prisma.AssetCommentReactionModel
  */
 export type AssetEmbedding = Prisma.AssetEmbeddingModel
 /**
+ * Model VideoChunkPreview
+ *
+ */
+export type VideoChunkPreview = Prisma.VideoChunkPreviewModel
+/**
  * Model Invite
  * 
  */

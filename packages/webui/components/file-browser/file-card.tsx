@@ -59,6 +59,7 @@ interface FileCardProps {
   isChecked?: boolean
   isEditing?: boolean
   onSelect?: (item: AssetInfo, event: React.MouseEvent, meta?: { isCheckbox?: boolean }) => void
+  onOpen?: () => void
   onDoubleClick?: (item: AssetInfo) => void
   onContextMenu?: (e: React.MouseEvent, item: AssetInfo) => void
   // Deprecated manual drag handlers replaced by dnd-kit
@@ -104,6 +105,7 @@ export function FileCard({
   isChecked = false,
   isEditing = false,
   onSelect = () => {},
+  onOpen,
   onDoubleClick = () => {},
   onContextMenu = () => {},
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -133,6 +135,7 @@ export function FileCard({
   const [name, setName] = useState(item.name)
   const inputRef = useRef<HTMLInputElement>(null)
   const [isCreatorTooltipOpen, setIsCreatorTooltipOpen] = useState(false)
+  const [previewFocused, setPreviewFocused] = useState(false)
   const creatorRef = useRef<HTMLParagraphElement>(null)
 
   const fileUploadState = useUploadStore((state) => state.fileProgress[item.id || ''])
@@ -156,6 +159,7 @@ export function FileCard({
 
   const displayItem = useMemo(() => {
     if (
+      onOpen ||
       item.status === 'processed' ||
       item.status === 'archived' ||
       item.status === 'error' ||
@@ -178,7 +182,7 @@ export function FileCard({
       return polledItem
     }
     return polledItem || item
-  }, [item, polledItem])
+  }, [item, onOpen, polledItem])
 
   // dnd-kit hooks
   const { ref: setDraggableRef, isDragging: isDraggableDragging } = useDraggable({
@@ -308,7 +312,9 @@ export function FileCard({
 
   // A preview (poster thumbnail and/or sprite) can be available before transcoding finishes,
   // since the poster/sprite are generated and persisted ahead of the proxy transcodes.
-  const hasPreview = Boolean(displayItem.preview?.thumbnailUrl || displayItem.preview?.spriteUrl)
+  const hasPreview = Boolean(
+    displayItem.chunkPreview || displayItem.preview?.thumbnailUrl || displayItem.preview?.spriteUrl,
+  )
   const isFailed = displayItem.status === 'failed'
   const isLocalUploader = Boolean(fileUploadState)
   const isUploadFailed = fileUploadState?.status === 'failed'
@@ -393,7 +399,25 @@ export function FileCard({
     <div
       ref={setNodeRef}
       style={{ opacity }}
-      onClick={handleClick}
+      onClick={onOpen ?? handleClick}
+      role={onOpen ? 'link' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onFocus={
+        onOpen
+          ? (event) => setPreviewFocused(event.currentTarget.matches(':focus-visible'))
+          : undefined
+      }
+      onBlur={onOpen ? () => setPreviewFocused(false) : undefined}
+      onKeyDown={
+        onOpen
+          ? (event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                onOpen()
+              }
+            }
+          : undefined
+      }
       onDoubleClick={isPublic ? undefined : () => onDoubleClick(displayItem)}
       onContextMenu={(e) => onContextMenu(e, displayItem)}
       onMouseDown={(e) => {
@@ -406,6 +430,7 @@ export function FileCard({
         'group relative flex cursor-pointer select-none flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-primary h-full m-1 outline-none focus:outline-none focus-visible:outline-none',
         (isSelected || isChecked) && 'outline-1 outline-primary border-primary',
         showDropFeedback && 'border-primary outline-1 outline-primary',
+        onOpen && 'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
       )}
     >
       {!hideCheckbox && (
@@ -519,6 +544,7 @@ export function FileCard({
             >
               <FilePreview
                 item={displayItem}
+                focused={previewFocused}
                 showDuration={!isProcessing && !isFailed}
                 matchDuration={
                   displayItem.startTime != null && displayItem.endTime != null

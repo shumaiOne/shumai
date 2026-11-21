@@ -1,3 +1,4 @@
+import { isPartialVideoRange } from '@shumai/core/src/transcode/video-chunk-preview'
 import type { WorkflowTask } from '@shumai/db'
 import {
   ApplicationFailure,
@@ -141,9 +142,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
         }
       }
     } else if (isVideo) {
-      // Get video duration
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const duration = (asset.media as any)?.duration || 0
+      const duration = mediaInfo?.duration || mediaInfo?.metadata?.duration || 0
       const limit = chunkDuration || 60.0
       const overlap = chunkOverlap ?? 5.0
       const step = Math.max(1, limit - overlap)
@@ -178,6 +177,9 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
           startTime: start,
           endTime: end,
           format: isGemmaProvider ? 'frames' : 'video',
+          ...(isPartialVideoRange({ startTime: start, endTime: end }, duration)
+            ? { previewSourceKey: asset.storageKey?.key || embeddingKey }
+            : {}),
         })
         const { chunkKey } = chunkRes
 

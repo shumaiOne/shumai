@@ -3250,7 +3250,11 @@ export class AssetService {
       originalHeight: asset.media.metadata?.originalHeight,
       originalWidth: asset.media.metadata?.originalWidth,
       spriteUrl,
-      duration: proxyType === '3d' ? undefined : asset.media.metadata?.duration,
+      duration:
+        proxyType === '3d'
+          ? undefined
+          : (asset.mediaType?.startsWith('video/') ? asset.media.duration : undefined) ||
+            asset.media.metadata?.duration,
       pageCount: asset.media.metadata?.totalFrames,
     }
   }

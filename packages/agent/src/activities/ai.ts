@@ -1,5 +1,11 @@
 import { GoogleGenAI } from '@google/genai'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { logger } from '@shumai/core/src/logger'
+import { videoChunkPreviewService } from '@shumai/core/src/search/video-chunk-preview'
+import {
+  renderVideoChunkPreview,
+  samplePreviewFrames,
+} from '@shumai/core/src/transcode/video-chunk-preview'
 import { transcodeService } from '@shumai/core'
 import * as fs from 'fs'
 import * as os from 'os'
@@ -576,6 +582,21 @@ export interface TranscodeVideoChunkParams {
   startTime: number
   endTime: number
   format?: 'video' | 'frames'
+  previewSourceKey?: string
+}
+
+async function saveVideoChunkPreview(
+  params: TranscodeVideoChunkParams,
+  render: () => ReturnType<typeof renderVideoChunkPreview>,
+) {
+  if (!params.previewSourceKey) return
+  const { assetId, startTime, endTime, previewSourceKey } = params
+  const range = { assetId, startTime, endTime }
+  try {
+    await videoChunkPreviewService.store(range, previewSourceKey, render)
+  } catch (err) {
+    logger.warn({ err, ...range }, 'Could not generate preview during embedding')
+  }
 }
 
 export const transcodeVideoChunkActivity = defineStep(async function transcodeVideoChunkActivity(
@@ -649,6 +670,16 @@ export const transcodeVideoChunkActivity = defineStep(async function transcodeVi
       )
       const key = `files/${params.assetId}/tmp-embedding-chunks/frames-${params.startTime}-${params.endTime}-${ulid()}.tar`
       await s3Service.putObject(bucket, key, archiveData, archiveData.length, 'application/x-tar')
+      const fps = duration > 16 ? 16 / duration : 1
+      await saveVideoChunkPreview(params, () =>
+        renderVideoChunkPreview(
+          frameFiles.map((file, index) => ({
+            file: path.join(tmpDir, file),
+            timestamp: params.startTime + index / fps,
+          })),
+          params,
+        ),
+      )
 
       return { chunkKey: key }
     } catch (err) {
@@ -713,6 +744,15 @@ export const transcodeVideoChunkActivity = defineStep(async function transcodeVi
     const key = `files/${params.assetId}/tmp-embedding-chunks/chunk-${params.startTime}-${params.endTime}-${ulid()}.mp4`
 
     await s3Service.putObject(bucket, key, chunkData, chunkData.length, 'video/mp4')
+    await saveVideoChunkPreview(params, async () => {
+      const dir = transcodeService.createTempDir('embedding-preview-')
+      try {
+        const frames = await samplePreviewFrames(chunkTmp, dir, params, 0, 1)
+        return await renderVideoChunkPreview(frames, params)
+      } finally {
+        transcodeService.removeDir(dir)
+      }
+    })
 
     return { chunkKey: key }
   } catch (err) {

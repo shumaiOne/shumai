@@ -7,6 +7,7 @@ import {
   registerWorkflowTrigger,
   WorkflowTask,
   WorkflowTaskStatus,
+  WorkflowTaskType,
 } from '@shumai/db'
 import { DbosExecutor, getQueueForTaskType, getRegisteredWorkflows } from './dbos-executor'
 
@@ -146,8 +147,14 @@ export class WorkflowService {
 
     const staleTasks = await prisma.workflowTask.findMany({
       where: {
-        status: WorkflowTaskStatus.processing,
-        heartbeat: { lt: cutoff },
+        OR: [
+          { status: WorkflowTaskStatus.processing, heartbeat: { lt: cutoff } },
+          {
+            type: WorkflowTaskType.transcode_video_chunk_preview,
+            status: WorkflowTaskStatus.pending,
+            updatedAt: { lt: cutoff },
+          },
+        ],
       },
     })
 
@@ -161,6 +168,19 @@ export class WorkflowService {
         const currentTask = await prisma.workflowTask.findUnique({
           where: { id: task.id },
         })
+        if (
+          currentTask?.type === WorkflowTaskType.transcode_video_chunk_preview &&
+          currentTask.status === WorkflowTaskStatus.pending &&
+          currentTask.updatedAt < cutoff
+        ) {
+          // The request may have ended between committing the task and submitting to DBOS.
+          const handle = client.retrieveWorkflow(task.id)
+          if (!(await handle.getStatus())) {
+            await this.submit(currentTask)
+            recoveredCount++
+          }
+          continue
+        }
         if (
           !currentTask ||
           currentTask.status !== WorkflowTaskStatus.processing ||
@@ -189,7 +209,11 @@ export class WorkflowService {
               },
             },
           })
-          if (task.assetId && task.type && task.type.startsWith('transcode')) {
+          if (
+            task.assetId &&
+            task.type?.startsWith('transcode') &&
+            task.type !== WorkflowTaskType.transcode_video_chunk_preview
+          ) {
             await prisma.asset.updateMany({
               where: { id: task.assetId, status: AssetStatus.processing },
               data: { status: AssetStatus.failed },

@@ -147,6 +147,7 @@ export type TeamMemberScope = (typeof TeamMemberScope)[keyof typeof TeamMemberSc
 export const WorkflowTaskType = {
   transcode: 'transcode',
   transcode_video: 'transcode_video',
+  transcode_video_chunk_preview: 'transcode_video_chunk_preview',
   transcode_image: 'transcode_image',
   transcode_pdf: 'transcode_pdf',
   transcode_pdf_pages: 'transcode_pdf_pages',

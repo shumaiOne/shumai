@@ -173,6 +173,18 @@ describe('SearchFilterDialog', () => {
       status: 'processed',
       startTime: 45,
       endTime: 90,
+      chunkPreview: {
+        matchId: 'video-match',
+        preview: {
+          posterUrl: 'https://example.com/chunk-poster.webp',
+          spriteUrl: 'https://example.com/chunk-sprite.webp',
+          frameWidth: 320,
+          frameHeight: 180,
+          columns: 2,
+          rows: 1,
+          timestamps: [45, 78],
+        },
+      },
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-01T00:00:00Z',
       preview: {
@@ -192,21 +204,35 @@ describe('SearchFilterDialog', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <SearchFilterDialog
-          {...defaultProps}
-          onOpenChange={onOpenChange}
-          initialConditions={[{ field: 'name', operator: 'contains', value: 'interview' }]}
-        />
+        <SearchFilterDialog {...defaultProps} onOpenChange={onOpenChange} />
       </QueryClientProvider>,
     )
 
+    const semantic = screen.getByRole('switch', { name: 'Semantic Search' })
+    await waitFor(() => expect(semantic.hasAttribute('disabled')).toBe(false))
+    fireEvent.click(semantic)
+    fireEvent.change(screen.getByPlaceholderText('Search records by content...'), {
+      target: { value: 'interview' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Search$/ }))
     await waitFor(() => {
       expect(screen.getByText('interview.mp4')).toBeTruthy()
     })
+    expect(mockSearchPost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        json: expect.objectContaining({ isSemantic: true, query: 'interview' }),
+      }),
+    )
 
     // Matched chunk duration replaces total duration in preview
     const matchedBadge = screen.getByTestId('file-preview-matched-duration')
     expect(matchedBadge.textContent).toBe('00:45 - 01:30')
+    expect(screen.getByAltText('Thumbnail').getAttribute('src')).toContain('chunk-poster.webp')
+
+    const scrubber = screen.getByTestId('sprite-scrubber')
+    vi.spyOn(scrubber, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 100, 100))
+    fireEvent.mouseMove(scrubber, { clientX: 99 })
+    expect(scrubber.getAttribute('data-frame')).toBe('1')
 
     // Single click on file card
     const card = screen.getByText('interview.mp4').closest('[data-testid="file-card"]')!

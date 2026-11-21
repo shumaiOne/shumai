@@ -18,6 +18,10 @@ export function registerWorkflowTrigger(cb: WorkflowTriggerCallback) {
   onWorkflowTaskCreated = cb
 }
 
+export async function triggerWorkflowTask(task: WorkflowTask): Promise<void> {
+  if (task.status === 'pending') await onWorkflowTaskCreated?.(task)
+}
+
 // Global callback for workflow task cancellation (decouples db/core packages from workflow engine)
 type WorkflowCancelCallback = (taskId: string) => Promise<void>
 let onWorkflowTaskCancelled: WorkflowCancelCallback | null = null
@@ -149,9 +153,7 @@ function createPrismaClient() {
       workflowTask: {
         async create({ args, query }) {
           const result = await query(args)
-          if (onWorkflowTaskCreated && (result as WorkflowTask).status === 'pending') {
-            onWorkflowTaskCreated(result as WorkflowTask).catch(console.error)
-          }
+          triggerWorkflowTask(result as WorkflowTask).catch(console.error)
           return result
         },
       },

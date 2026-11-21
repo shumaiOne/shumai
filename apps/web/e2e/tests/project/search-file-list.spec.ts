@@ -196,10 +196,32 @@ test.describe('image search', () => {
       id: 'video-result',
       name: 'result.mp4',
       proxyType: 'video',
-      startTime: 65,
-      endTime: 120,
+      startTime: 10,
+      endTime: 20,
+      preview: { proxyType: 'video', duration: 1200 },
+      chunkPreview: {
+        matchId: 'video-match',
+        preview: {
+          posterUrl: '/assets/chunk-poster.webp',
+          spriteUrl: '/assets/chunk-sprite.webp',
+          columns: 2,
+          rows: 1,
+          frameWidth: 320,
+          frameHeight: 180,
+          timestamps: [10, 18],
+        },
+      },
     }
     const requests: ImageSearchRequest[] = []
+    await page.route('**/assets/chunk-*.webp', (route) =>
+      route.fulfill({
+        contentType: 'image/png',
+        body: Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jH4EAAAAASUVORK5CYII=',
+          'base64',
+        ),
+      }),
+    )
     await page.route(`**/api/folders/${rootFolderId}/image-search`, async (route) => {
       const request = route.request().postDataJSON() as ImageSearchRequest
       requests.push(request)
@@ -220,7 +242,14 @@ test.describe('image search', () => {
     const dialog = page.getByRole('dialog', { name: 'Find similar' })
     await expect(dialog.getByText(image.name)).toBeVisible()
     await expect(dialog.getByText(video.name)).toBeVisible()
-    await expect(dialog.getByTestId('file-preview-matched-duration')).toHaveText('01:05 - 02:00')
+    await expect(dialog.getByTestId('file-preview-matched-duration')).toHaveText('00:10 - 00:20')
+    const scrubber = dialog.getByTestId('sprite-scrubber')
+    await expect(scrubber.getByRole('img')).toHaveAttribute('src', '/assets/chunk-poster.webp')
+    await scrubber.hover({ position: { x: 1, y: 10 } })
+    await expect(scrubber).toHaveAttribute('data-frame', '0')
+    const bounds = (await scrubber.boundingBox())!
+    await scrubber.hover({ position: { x: bounds.width - 2, y: 10 } })
+    await expect(scrubber).toHaveAttribute('data-frame', '1')
     expect(requests.at(-1)).toMatchObject({ sourceAssetId: fileId, first: 20 })
 
     await dialog.getByText('Videos', { exact: true }).click()

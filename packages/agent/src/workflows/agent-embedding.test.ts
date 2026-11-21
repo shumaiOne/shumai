@@ -295,6 +295,7 @@ describe('Agent Embedding Workflow', () => {
       startTime: 0,
       endTime: 60,
       format: 'video',
+      previewSourceKey: 'test.mp4',
     })
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(2, {
       assetId: 'a1',
@@ -302,6 +303,7 @@ describe('Agent Embedding Workflow', () => {
       startTime: 55,
       endTime: 115,
       format: 'video',
+      previewSourceKey: 'test.mp4',
     })
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(3, {
       assetId: 'a1',
@@ -309,6 +311,7 @@ describe('Agent Embedding Workflow', () => {
       startTime: 110,
       endTime: 150,
       format: 'video',
+      previewSourceKey: 'test.mp4',
     })
 
     // Verify video chunk embedding generation (3 chunks) on agent queue
@@ -540,6 +543,9 @@ describe('Agent Embedding Workflow', () => {
 
     // Verify only 1 chunk was created instead of 2 (0-60 and 55-60)
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledTimes(1)
+    expect(mockActivities.transcodeVideoChunkActivity.mock.calls[0][0]).not.toHaveProperty(
+      'previewSourceKey',
+    )
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledWith(
       expect.objectContaining({
         startTime: 0,

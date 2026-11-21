@@ -1,6 +1,7 @@
 import { WorkflowTaskType } from '@shumai/db'
 import { registerWorkflow } from '@shumai/workflow-core'
 import { transcodeVideoWorkflow } from './workflows/transcode-video'
+import { transcodeVideoChunkPreviewWorkflow } from './workflows/transcode-video-chunk-preview'
 import { transcodeImageWorkflow } from './workflows/transcode-image'
 import { transcodePdfWorkflow } from './workflows/transcode-pdf'
 import { renderPdfPagesWorkflow } from './workflows/render-pdf-pages'
@@ -15,6 +16,10 @@ import { restoreAssetWorkflow } from './workflows/restore-asset'
 export function initTranscodeWorkflows() {
   registerWorkflow(WorkflowTaskType.transcode, transcodeMedia)
   registerWorkflow(WorkflowTaskType.transcode_video, transcodeVideoWorkflow)
+  registerWorkflow(
+    WorkflowTaskType.transcode_video_chunk_preview,
+    transcodeVideoChunkPreviewWorkflow,
+  )
   registerWorkflow(WorkflowTaskType.transcode_image, transcodeImageWorkflow)
   registerWorkflow(WorkflowTaskType.transcode_pdf, transcodePdfWorkflow)
   registerWorkflow(WorkflowTaskType.transcode_3d, transcode3dWorkflow)

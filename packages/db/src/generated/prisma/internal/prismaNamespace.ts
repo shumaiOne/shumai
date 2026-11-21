@@ -420,6 +420,7 @@ export const ModelName = {
   AssetCommentAttachment: 'AssetCommentAttachment',
   AssetCommentReaction: 'AssetCommentReaction',
   AssetEmbedding: 'AssetEmbedding',
+  VideoChunkPreview: 'VideoChunkPreview',
   Invite: 'Invite',
   MetadataField: 'MetadataField',
   Notification: 'Notification',
@@ -473,7 +474,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "runner" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetCommentReaction" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionCommit" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord" | "kanbanGoal" | "kanbanTask" | "kanbanTaskLink" | "kanbanTaskAsset" | "kanbanTaskComment" | "kanbanTaskEvent" | "recentFileItem" | "jwks" | "oauthClient" | "oauthResource" | "oauthClientResource" | "oauthRefreshToken" | "oauthAccessToken" | "oauthConsent" | "oauthClientAssertion"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "runner" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetCommentReaction" | "assetEmbedding" | "videoChunkPreview" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionCommit" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord" | "kanbanGoal" | "kanbanTask" | "kanbanTaskLink" | "kanbanTaskAsset" | "kanbanTaskComment" | "kanbanTaskEvent" | "recentFileItem" | "jwks" | "oauthClient" | "oauthResource" | "oauthClientResource" | "oauthRefreshToken" | "oauthAccessToken" | "oauthConsent" | "oauthClientAssertion"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2176,6 +2177,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.AssetEmbeddingCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.AssetEmbeddingCountAggregateOutputType> | number
+        }
+      }
+    }
+    VideoChunkPreview: {
+      payload: Prisma.$VideoChunkPreviewPayload<ExtArgs>
+      fields: Prisma.VideoChunkPreviewFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.VideoChunkPreviewFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VideoChunkPreviewPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.VideoChunkPreviewFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VideoChunkPreviewPayload>
+        }
+        findFirst: {
+          args: Prisma.VideoChunkPreviewFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VideoChunkPreviewPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.VideoChunkPreviewFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VideoChunkPreviewPayload>
+        }
+        findMany: {
+          args: Prisma.VideoChunkPreviewFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VideoChunkPreviewPayload>[]
+        }
+        create: {
+          args: Prisma.VideoChunkPreviewCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VideoChunkPreviewPayload>
+        }
+        createMany: {
+          args: Prisma.VideoChunkPreviewCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.VideoChunkPreviewCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VideoChunkPreviewPayload>[]
+        }
+        delete: {
+          args: Prisma.VideoChunkPreviewDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VideoChunkPreviewPayload>
+        }
+        update: {
+          args: Prisma.VideoChunkPreviewUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VideoChunkPreviewPayload>
+        }
+        deleteMany: {
+          args: Prisma.VideoChunkPreviewDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.VideoChunkPreviewUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.VideoChunkPreviewUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VideoChunkPreviewPayload>[]
+        }
+        upsert: {
+          args: Prisma.VideoChunkPreviewUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VideoChunkPreviewPayload>
+        }
+        aggregate: {
+          args: Prisma.VideoChunkPreviewAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateVideoChunkPreview>
+        }
+        groupBy: {
+          args: Prisma.VideoChunkPreviewGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VideoChunkPreviewGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.VideoChunkPreviewCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VideoChunkPreviewCountAggregateOutputType> | number
         }
       }
     }
@@ -5364,6 +5439,20 @@ export const AssetEmbeddingScalarFieldEnum = {
 export type AssetEmbeddingScalarFieldEnum = (typeof AssetEmbeddingScalarFieldEnum)[keyof typeof AssetEmbeddingScalarFieldEnum]
 
 
+export const VideoChunkPreviewScalarFieldEnum = {
+  id: 'id',
+  assetId: 'assetId',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  taskId: 'taskId',
+  media: 'media',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type VideoChunkPreviewScalarFieldEnum = (typeof VideoChunkPreviewScalarFieldEnum)[keyof typeof VideoChunkPreviewScalarFieldEnum]
+
+
 export const InviteScalarFieldEnum = {
   id: 'id',
   code: 'code',
@@ -6641,6 +6730,7 @@ export type GlobalOmitConfig = {
   assetCommentAttachment?: Prisma.AssetCommentAttachmentOmit
   assetCommentReaction?: Prisma.AssetCommentReactionOmit
   assetEmbedding?: Prisma.AssetEmbeddingOmit
+  videoChunkPreview?: Prisma.VideoChunkPreviewOmit
   invite?: Prisma.InviteOmit
   metadataField?: Prisma.MetadataFieldOmit
   notification?: Prisma.NotificationOmit
