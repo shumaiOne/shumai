@@ -343,7 +343,10 @@ export default function FileSystemManager({
     if (isRecentlyDeleted) {
       return
     }
-    if (item.type === 'folder') {
+    // Symlinks render as their target type (see FileBrowser), so route them by the effective
+    // type too: a folder symlink must open the folder route, not the file viewer.
+    const effectiveType = item.type === 'symlink' ? item.targetType || 'file' : item.type
+    if (effectiveType === 'folder') {
       setFilterConditions([])
       navigate({
         to: '/projects/$projectId/folders/$folderId',
