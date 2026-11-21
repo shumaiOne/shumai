@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai'
 import { LruTtlCache } from '@shumai/core/src/cache/lru-ttl-cache'
 import { logger } from '@shumai/core/src/logger'
+import { getGemmaEmbeddingEndpoint } from './gemma-embedding-endpoint'
 
 export interface TextEmbeddingUsage {
   model: string
@@ -143,15 +144,7 @@ export class TextEmbeddingService {
     model: string,
     signal: AbortSignal,
   ): Promise<TextEmbeddingResult> {
-    const rawBaseUrl = process.env.GEMMA_EMBEDDING_OPENAI_BASE_URL || 'http://localhost:9379/v1'
-    const normalized = rawBaseUrl.replace(/\/+$/, '')
-    const endpoint = normalized.endsWith('/embeddings')
-      ? normalized
-      : normalized.endsWith('/v1')
-        ? `${normalized}/embeddings`
-        : `${normalized}/v1/embeddings`
-
-    const response = await fetch(endpoint, {
+    const response = await fetch(getGemmaEmbeddingEndpoint(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

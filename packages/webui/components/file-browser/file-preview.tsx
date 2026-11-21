@@ -112,8 +112,9 @@ export const FilePreview = ({ item, showDuration = false, matchDuration }: FileP
   }
 
   return (
-    <div className="w-full h-full flex items-center justify-center">
+    <div className="relative w-full h-full flex items-center justify-center">
       <File className="w-8 h-8 fill-primary/60 stroke-0" />
+      {overlay}
     </div>
   )
 }

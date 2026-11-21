@@ -28,7 +28,7 @@ test('owner saves a search result as a collection', async ({ project, prisma }) 
   await expect(dialog).toBeVisible()
 
   await dialog.getByPlaceholder('Search records by name...').fill('report')
-  await dialog.getByRole('button', { name: 'Search' }).click()
+  await dialog.getByRole('button', { name: 'Search', exact: true }).click()
   await expect(dialog.getByText(matching, { exact: true })).toBeVisible()
   await expect(dialog.getByText(other, { exact: true })).not.toBeVisible()
 
