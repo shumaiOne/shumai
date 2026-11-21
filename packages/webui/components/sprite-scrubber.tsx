@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 interface SpriteScrubberProps {
-  /** The URL of the 10x10 sprite sheet */
+  /** The URL of the sprite sheet, which defaults to a 10x10 layout. */
   spriteUrl: string
   /** The URL of the static thumbnail */
   thumbnailUrl: string
@@ -15,16 +15,16 @@ interface SpriteScrubberProps {
   className?: string
   /** Whether to reverse scrubbing order (e.g. for 3D model rotation so moving right rotates right) */
   reverse?: boolean
+  active?: boolean
+  columns?: number
+  rows?: number
+  frames?: ReadonlyArray<{ index: number; position: number }>
 }
 
 interface Dimensions {
   width: number
   height: number
 }
-
-const GRID_COLS = 10
-const GRID_ROWS = 10
-const TOTAL_FRAMES = GRID_COLS * GRID_ROWS
 
 export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
   spriteUrl,
@@ -33,22 +33,35 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
   videoHeight,
   className = '',
   reverse = false,
+  active,
+  columns = 10,
+  rows = 10,
+  frames,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerSize, setContainerSize] = useState<Dimensions>({
     width: 0,
     height: 0,
   })
-  const [naturalSize, setNaturalSize] = useState<Dimensions>({
-    width: 0,
-    height: 0,
-  })
-
   const [isHovering, setIsHovering] = useState(false)
-  const [spriteLoaded, setSpriteLoaded] = useState(false)
-  const [loadingSprite, setLoadingSprite] = useState(false)
-  const [currentFrame, setCurrentFrame] = useState(0)
+  const [loadedSprite, setLoadedSprite] = useState<(Dimensions & { url: string }) | null>(null)
+  const [position, setPosition] = useState<number | null>(null)
   const [cursorX, setCursorX] = useState(0)
+  const showingPreview = active ?? isHovering
+  const naturalSize = loadedSprite?.url === spriteUrl ? loadedSprite : null
+  const totalFrames = columns * rows
+  let currentFrame = 0
+  if (frames?.length) {
+    const cursorPosition = position ?? 0.5
+    currentFrame = frames.reduce((closest, frame) =>
+      Math.abs(cursorPosition - frame.position) < Math.abs(cursorPosition - closest.position)
+        ? frame
+        : closest,
+    ).index
+  } else if (position !== null) {
+    const frame = Math.min(Math.floor(position * totalFrames), totalFrames - 1)
+    currentFrame = reverse ? totalFrames - 1 - frame : frame
+  }
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -66,26 +79,24 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
     return () => observer.disconnect()
   }, [])
 
-  const loadSprite = useCallback(() => {
-    if (spriteLoaded || loadingSprite) return
-
-    setLoadingSprite(true)
+  useEffect(() => {
+    if (!showingPreview || naturalSize) return
     const img = new Image()
-    img.src = spriteUrl
     img.onload = () => {
-      setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight })
-      setSpriteLoaded(true)
-      setLoadingSprite(false)
+      setLoadedSprite({ url: spriteUrl, width: img.naturalWidth, height: img.naturalHeight })
     }
     img.onerror = () => {
       console.error('Failed to load sprite image')
-      setLoadingSprite(false)
     }
-  }, [spriteUrl, spriteLoaded, loadingSprite])
+    img.src = spriteUrl
+    return () => {
+      img.onload = null
+      img.onerror = null
+    }
+  }, [spriteUrl, showingPreview, naturalSize])
 
   const handleMouseEnter = () => {
     setIsHovering(true)
-    loadSprite()
   }
 
   const handleMouseLeave = () => {
@@ -96,16 +107,13 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
     if (!containerRef.current) return
 
     const rect = containerRef.current.getBoundingClientRect()
+    if (rect.width <= 0) return
     const x = e.clientX - rect.left
 
     const clampedX = Math.max(0, Math.min(x, rect.width))
     setCursorX(clampedX)
 
-    const percentage = clampedX / rect.width
-    const rawFrame = Math.min(Math.floor(percentage * TOTAL_FRAMES), TOTAL_FRAMES - 1)
-    const frameIndex = reverse ? TOTAL_FRAMES - 1 - rawFrame : rawFrame
-
-    setCurrentFrame(frameIndex)
+    setPosition(clampedX / rect.width)
   }
 
   // Calculate styles for the inner sprite frame box
@@ -113,9 +121,9 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
     if (containerSize.width === 0 || containerSize.height === 0) return {}
 
     let sourceAspect = videoWidth / videoHeight
-    if (naturalSize.width > 0 && naturalSize.height > 0) {
-      const singleFrameNaturalW = naturalSize.width / GRID_COLS
-      const singleFrameNaturalH = naturalSize.height / GRID_ROWS
+    if (naturalSize && naturalSize.width > 0 && naturalSize.height > 0) {
+      const singleFrameNaturalW = naturalSize.width / columns
+      const singleFrameNaturalH = naturalSize.height / rows
       sourceAspect = singleFrameNaturalW / singleFrameNaturalH
     }
 
@@ -139,11 +147,11 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
     // IMPORTANT: We calculate the sheet size based on the SNAPPED frame size.
     // This slightly stretches the sprite if needed but ensures that every frame
     // falls exactly on an integer pixel boundary, preventing "shaking" during playback.
-    const bgWidth = finalW * GRID_COLS
-    const bgHeight = finalH * GRID_ROWS
+    const bgWidth = finalW * columns
+    const bgHeight = finalH * rows
 
-    const colIndex = currentFrame % GRID_COLS
-    const rowIndex = Math.floor(currentFrame / GRID_COLS)
+    const colIndex = currentFrame % columns
+    const rowIndex = Math.floor(currentFrame / columns)
 
     const bgPosX = -(colIndex * finalW)
     const bgPosY = -(rowIndex * finalH)
@@ -158,7 +166,7 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
       // Optional: helps with crisp edges on some screens, though default is usually fine
       imageRendering: 'auto',
     }
-  }, [containerSize, videoWidth, videoHeight, currentFrame, spriteUrl, naturalSize])
+  }, [containerSize, videoWidth, videoHeight, currentFrame, spriteUrl, naturalSize, columns, rows])
 
   return (
     <div
@@ -174,21 +182,21 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
         src={thumbnailUrl}
         alt="Thumbnail"
         className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-200 ${
-          isHovering && spriteLoaded ? 'opacity-0' : 'opacity-100'
+          showingPreview && naturalSize ? 'opacity-0' : 'opacity-100'
         }`}
         draggable={false}
       />
 
-      {isHovering && !spriteLoaded && (
+      {showingPreview && !naturalSize && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 pointer-events-none">
           <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         </div>
       )}
 
-      {spriteLoaded && (
+      {naturalSize && (
         <div
           className={`absolute inset-0 flex items-center justify-center transition-opacity duration-75 ${
-            isHovering ? 'opacity-100' : 'opacity-0'
+            showingPreview ? 'opacity-100' : 'opacity-0'
           }`}
         >
           <div style={spriteStyle} />

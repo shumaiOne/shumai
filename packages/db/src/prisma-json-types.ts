@@ -173,6 +173,16 @@ declare global {
       key: string
     }
 
+    export interface VideoChunkPreviewMedia {
+      posterKey: string
+      spriteKey: string
+      columns: number
+      rows: number
+      frameWidth: number
+      frameHeight: number
+      timestamps: number[]
+    }
+
     export interface Metadata {
       originalHeight: number
       originalWidth: number
@@ -368,6 +378,7 @@ declare global {
         text: string
       }
       screenshot?: ScreenshotSpec
+      videoChunkPreviewId?: string
       imageAnnotation?: ImageAnnotationSpec
       pdfPages?: PdfPagesSpec
       /** Render that produced this result, if any (set by the read_asset pipeline). */

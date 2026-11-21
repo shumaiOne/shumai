@@ -245,6 +245,60 @@ describe('WorkflowService', () => {
     })
   })
   describe('Stale Task Recovery', () => {
+    it('submits a stale preview task that was committed before it reached DBOS', async () => {
+      const [task] = await prisma.workflowTask.createManyAndReturn({
+        data: [
+          {
+            assetId: 'stale-preview-asset',
+            type: WorkflowTaskType.transcode_video_chunk_preview,
+            status: WorkflowTaskStatus.pending,
+            updatedAt: new Date(Date.now() - 100_000),
+          },
+        ],
+      })
+      const getStatus = vi
+        .fn()
+        .mockResolvedValueOnce(null)
+        .mockResolvedValue({ status: 'ENQUEUED' })
+      const executor = workflowService.getExecutor()
+      vi.spyOn(executor, 'getClient').mockResolvedValue({
+        retrieveWorkflow: () => ({ getStatus }),
+      } as unknown as Awaited<ReturnType<typeof executor.getClient>>)
+      const submit = vi.spyOn(workflowService, 'submit').mockResolvedValue(task.id)
+
+      expect(await workflowService.recoverStaleTasks()).toBe(1)
+      expect(submit).toHaveBeenCalledWith(expect.objectContaining({ id: task.id }))
+      expect(await workflowService.recoverStaleTasks()).toBe(0)
+      expect(submit).toHaveBeenCalledTimes(1)
+    })
+
+    it('exhausts preview recovery without failing the source video', async () => {
+      const asset = await prisma.asset.create({
+        data: { name: 'source.mp4', type: 'file', status: 'processing' },
+      })
+      const task = await prisma.workflowTask.create({
+        data: {
+          assetId: asset.id,
+          type: WorkflowTaskType.transcode_video_chunk_preview,
+          status: WorkflowTaskStatus.processing,
+          heartbeat: new Date(Date.now() - 100_000),
+          output: { recoveryAttempts: 3 },
+        },
+      })
+      const executor = workflowService.getExecutor()
+      vi.spyOn(executor, 'getClient').mockResolvedValue({
+        retrieveWorkflow: vi.fn(),
+      } as unknown as Awaited<ReturnType<typeof executor.getClient>>)
+
+      expect(await workflowService.recoverStaleTasks()).toBe(1)
+      expect(await prisma.workflowTask.findUnique({ where: { id: task.id } })).toMatchObject({
+        status: 'failed',
+      })
+      expect(await prisma.asset.findUnique({ where: { id: asset.id } })).toMatchObject({
+        status: 'processing',
+      })
+    })
+
     it('should resume stale pending workflow task in DBOS and increment recoveryAttempts', async () => {
       const task = await prisma.workflowTask.create({
         data: {

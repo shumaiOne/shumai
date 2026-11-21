@@ -131,6 +131,7 @@ export class AssetArchiveService {
           in: [
             WorkflowTaskType.transcode,
             WorkflowTaskType.transcode_video,
+            WorkflowTaskType.transcode_video_chunk_preview,
             WorkflowTaskType.transcode_image,
             WorkflowTaskType.transcode_pdf,
             WorkflowTaskType.transcode_pdf_pages,

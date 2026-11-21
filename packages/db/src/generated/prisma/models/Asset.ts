@@ -380,6 +380,7 @@ export type AssetWhereInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   embeddings?: Prisma.AssetEmbeddingListRelationFilter
+  videoChunkPreviews?: Prisma.VideoChunkPreviewListRelationFilter
   teamRootFolder?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
   projectRootFolder?: Prisma.XOR<Prisma.ProjectNullableScalarRelationFilter, Prisma.ProjectWhereInput> | null
   projectShareRoot?: Prisma.XOR<Prisma.ProjectNullableScalarRelationFilter, Prisma.ProjectWhereInput> | null
@@ -431,6 +432,7 @@ export type AssetOrderByWithRelationInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
   embeddings?: Prisma.AssetEmbeddingOrderByRelationAggregateInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewOrderByRelationAggregateInput
   teamRootFolder?: Prisma.TeamOrderByWithRelationInput
   projectRootFolder?: Prisma.ProjectOrderByWithRelationInput
   projectShareRoot?: Prisma.ProjectOrderByWithRelationInput
@@ -486,6 +488,7 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<{
   commentAttachments?: Prisma.AssetCommentAttachmentListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   embeddings?: Prisma.AssetEmbeddingListRelationFilter
+  videoChunkPreviews?: Prisma.VideoChunkPreviewListRelationFilter
   teamRootFolder?: Prisma.XOR<Prisma.TeamNullableScalarRelationFilter, Prisma.TeamWhereInput> | null
   projectRootFolder?: Prisma.XOR<Prisma.ProjectNullableScalarRelationFilter, Prisma.ProjectWhereInput> | null
   projectShareRoot?: Prisma.XOR<Prisma.ProjectNullableScalarRelationFilter, Prisma.ProjectWhereInput> | null
@@ -592,6 +595,7 @@ export type AssetCreateInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -636,6 +640,7 @@ export type AssetUncheckedCreateInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -680,6 +685,7 @@ export type AssetUpdateInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -724,6 +730,7 @@ export type AssetUncheckedUpdateInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -1351,6 +1358,20 @@ export type AssetUpdateOneRequiredWithoutEmbeddingsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.AssetUpdateToOneWithWhereWithoutEmbeddingsInput, Prisma.AssetUpdateWithoutEmbeddingsInput>, Prisma.AssetUncheckedUpdateWithoutEmbeddingsInput>
 }
 
+export type AssetCreateNestedOneWithoutVideoChunkPreviewsInput = {
+  create?: Prisma.XOR<Prisma.AssetCreateWithoutVideoChunkPreviewsInput, Prisma.AssetUncheckedCreateWithoutVideoChunkPreviewsInput>
+  connectOrCreate?: Prisma.AssetCreateOrConnectWithoutVideoChunkPreviewsInput
+  connect?: Prisma.AssetWhereUniqueInput
+}
+
+export type AssetUpdateOneRequiredWithoutVideoChunkPreviewsNestedInput = {
+  create?: Prisma.XOR<Prisma.AssetCreateWithoutVideoChunkPreviewsInput, Prisma.AssetUncheckedCreateWithoutVideoChunkPreviewsInput>
+  connectOrCreate?: Prisma.AssetCreateOrConnectWithoutVideoChunkPreviewsInput
+  upsert?: Prisma.AssetUpsertWithoutVideoChunkPreviewsInput
+  connect?: Prisma.AssetWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AssetUpdateToOneWithWhereWithoutVideoChunkPreviewsInput, Prisma.AssetUpdateWithoutVideoChunkPreviewsInput>, Prisma.AssetUncheckedUpdateWithoutVideoChunkPreviewsInput>
+}
+
 export type AssetCreateNestedOneWithoutNotificationsInput = {
   create?: Prisma.XOR<Prisma.AssetCreateWithoutNotificationsInput, Prisma.AssetUncheckedCreateWithoutNotificationsInput>
   connectOrCreate?: Prisma.AssetCreateOrConnectWithoutNotificationsInput
@@ -1542,6 +1563,7 @@ export type AssetCreateWithoutCreatorInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -1585,6 +1607,7 @@ export type AssetUncheckedCreateWithoutCreatorInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -1685,6 +1708,7 @@ export type AssetCreateWithoutTeamRootFolderInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
@@ -1728,6 +1752,7 @@ export type AssetUncheckedCreateWithoutTeamRootFolderInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
@@ -1787,6 +1812,7 @@ export type AssetUpdateWithoutTeamRootFolderInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
@@ -1830,6 +1856,7 @@ export type AssetUncheckedUpdateWithoutTeamRootFolderInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
@@ -1873,6 +1900,7 @@ export type AssetCreateWithoutProjectRootFolderInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
@@ -1916,6 +1944,7 @@ export type AssetUncheckedCreateWithoutProjectRootFolderInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
@@ -1964,6 +1993,7 @@ export type AssetCreateWithoutProjectShareRootInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
@@ -2007,6 +2037,7 @@ export type AssetUncheckedCreateWithoutProjectShareRootInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
@@ -2054,6 +2085,7 @@ export type AssetCreateWithoutProjectInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -2097,6 +2129,7 @@ export type AssetUncheckedCreateWithoutProjectInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -2162,6 +2195,7 @@ export type AssetUpdateWithoutProjectRootFolderInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
@@ -2205,6 +2239,7 @@ export type AssetUncheckedUpdateWithoutProjectRootFolderInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
@@ -2259,6 +2294,7 @@ export type AssetUpdateWithoutProjectShareRootInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
@@ -2302,6 +2338,7 @@ export type AssetUncheckedUpdateWithoutProjectShareRootInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
@@ -2361,6 +2398,7 @@ export type AssetCreateWithoutShareLinkRootFolderInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -2404,6 +2442,7 @@ export type AssetUncheckedCreateWithoutShareLinkRootFolderInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -2463,6 +2502,7 @@ export type AssetUpdateWithoutShareLinkRootFolderInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -2506,6 +2546,7 @@ export type AssetUncheckedUpdateWithoutShareLinkRootFolderInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -2549,6 +2590,7 @@ export type AssetCreateWithoutWatermarkFilesInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -2592,6 +2634,7 @@ export type AssetUncheckedCreateWithoutWatermarkFilesInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -2651,6 +2694,7 @@ export type AssetUpdateWithoutWatermarkFilesInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -2694,6 +2738,7 @@ export type AssetUncheckedUpdateWithoutWatermarkFilesInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -2736,6 +2781,7 @@ export type AssetCreateWithoutChildrenInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -2779,6 +2825,7 @@ export type AssetUncheckedCreateWithoutChildrenInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -2827,6 +2874,7 @@ export type AssetCreateWithoutParentInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -2870,6 +2918,7 @@ export type AssetUncheckedCreateWithoutParentInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -2923,6 +2972,7 @@ export type AssetCreateWithoutSymlinksInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -2966,6 +3016,7 @@ export type AssetUncheckedCreateWithoutSymlinksInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -3014,6 +3065,7 @@ export type AssetCreateWithoutTargetInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -3057,6 +3109,7 @@ export type AssetUncheckedCreateWithoutTargetInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -3121,6 +3174,7 @@ export type AssetUpdateWithoutChildrenInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -3164,6 +3218,7 @@ export type AssetUncheckedUpdateWithoutChildrenInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -3234,6 +3289,7 @@ export type AssetUpdateWithoutSymlinksInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -3277,6 +3333,7 @@ export type AssetUncheckedUpdateWithoutSymlinksInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -3336,6 +3393,7 @@ export type AssetCreateWithoutStorageKeyInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -3379,6 +3437,7 @@ export type AssetUncheckedCreateWithoutStorageKeyInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -3448,6 +3507,7 @@ export type AssetCreateWithoutMetadataValuesInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -3491,6 +3551,7 @@ export type AssetUncheckedCreateWithoutMetadataValuesInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -3550,6 +3611,7 @@ export type AssetUpdateWithoutMetadataValuesInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -3593,6 +3655,7 @@ export type AssetUncheckedUpdateWithoutMetadataValuesInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -3637,6 +3700,7 @@ export type AssetCreateWithoutAgentMdInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -3680,6 +3744,7 @@ export type AssetUncheckedCreateWithoutAgentMdInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -3739,6 +3804,7 @@ export type AssetUpdateWithoutAgentMdInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -3782,6 +3848,7 @@ export type AssetUncheckedUpdateWithoutAgentMdInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -3824,6 +3891,7 @@ export type AssetCreateWithoutCommentsInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -3867,6 +3935,7 @@ export type AssetUncheckedCreateWithoutCommentsInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -3926,6 +3995,7 @@ export type AssetUpdateWithoutCommentsInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -3969,6 +4039,7 @@ export type AssetUncheckedUpdateWithoutCommentsInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -4012,6 +4083,7 @@ export type AssetCreateWithoutCommentAttachmentsInput = {
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -4055,6 +4127,7 @@ export type AssetUncheckedCreateWithoutCommentAttachmentsInput = {
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -4114,6 +4187,7 @@ export type AssetUpdateWithoutCommentAttachmentsInput = {
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -4157,6 +4231,7 @@ export type AssetUncheckedUpdateWithoutCommentAttachmentsInput = {
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -4200,6 +4275,7 @@ export type AssetCreateWithoutEmbeddingsInput = {
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -4243,6 +4319,7 @@ export type AssetUncheckedCreateWithoutEmbeddingsInput = {
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutAssetInput
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -4302,6 +4379,7 @@ export type AssetUpdateWithoutEmbeddingsInput = {
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -4345,6 +4423,199 @@ export type AssetUncheckedUpdateWithoutEmbeddingsInput = {
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutAssetNestedInput
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
+  teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
+  projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
+  projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
+  shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
+  watermarkFiles?: Prisma.WatermarkFileUncheckedUpdateManyWithoutAssetNestedInput
+  agentMd?: Prisma.AssetAgentMdUncheckedUpdateOneWithoutAssetNestedInput
+  kanbanTargetTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutTargetFolderNestedInput
+  kanbanTasks?: Prisma.KanbanTaskAssetUncheckedUpdateManyWithoutAssetNestedInput
+  recentFiles?: Prisma.RecentFileItemUncheckedUpdateManyWithoutAssetNestedInput
+}
+
+export type AssetCreateWithoutVideoChunkPreviewsInput = {
+  id?: string
+  name?: string
+  nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
+  type: $Enums.AssetType
+  mediaType?: string | null
+  fileCount?: number
+  sizeByte?: bigint | number
+  status: $Enums.AssetStatus
+  transcodeTaskId?: string | null
+  uploadId?: string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
+  isDeleted?: boolean
+  deletedAt?: Date | string | null
+  sortIndex?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
+  children?: Prisma.AssetCreateNestedManyWithoutParentInput
+  target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
+  symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
+  metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
+  creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  agent?: Prisma.AgentCreateNestedOneWithoutAssetsInput
+  task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
+  project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
+  commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
+  embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
+  projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
+  projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
+  shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
+  watermarkFiles?: Prisma.WatermarkFileCreateNestedManyWithoutAssetInput
+  agentMd?: Prisma.AssetAgentMdCreateNestedOneWithoutAssetInput
+  kanbanTargetTasks?: Prisma.KanbanTaskCreateNestedManyWithoutTargetFolderInput
+  kanbanTasks?: Prisma.KanbanTaskAssetCreateNestedManyWithoutAssetInput
+  recentFiles?: Prisma.RecentFileItemCreateNestedManyWithoutAssetInput
+}
+
+export type AssetUncheckedCreateWithoutVideoChunkPreviewsInput = {
+  id?: string
+  name?: string
+  nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
+  type: $Enums.AssetType
+  mediaType?: string | null
+  fileCount?: number
+  sizeByte?: bigint | number
+  status: $Enums.AssetStatus
+  transcodeTaskId?: string | null
+  uploadId?: string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: boolean
+  isDeleted?: boolean
+  deletedAt?: Date | string | null
+  sortIndex?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parentId?: string | null
+  targetId?: string | null
+  storageKeyId?: string | null
+  creatorId?: string | null
+  agentId?: string | null
+  taskId?: string | null
+  projectId?: string | null
+  children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
+  symlinks?: Prisma.AssetUncheckedCreateNestedManyWithoutTargetInput
+  metadataValues?: Prisma.AssetMetadataValueUncheckedCreateNestedManyWithoutAssetInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutAssetInput
+  commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
+  embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
+  projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
+  projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
+  shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
+  watermarkFiles?: Prisma.WatermarkFileUncheckedCreateNestedManyWithoutAssetInput
+  agentMd?: Prisma.AssetAgentMdUncheckedCreateNestedOneWithoutAssetInput
+  kanbanTargetTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutTargetFolderInput
+  kanbanTasks?: Prisma.KanbanTaskAssetUncheckedCreateNestedManyWithoutAssetInput
+  recentFiles?: Prisma.RecentFileItemUncheckedCreateNestedManyWithoutAssetInput
+}
+
+export type AssetCreateOrConnectWithoutVideoChunkPreviewsInput = {
+  where: Prisma.AssetWhereUniqueInput
+  create: Prisma.XOR<Prisma.AssetCreateWithoutVideoChunkPreviewsInput, Prisma.AssetUncheckedCreateWithoutVideoChunkPreviewsInput>
+}
+
+export type AssetUpsertWithoutVideoChunkPreviewsInput = {
+  update: Prisma.XOR<Prisma.AssetUpdateWithoutVideoChunkPreviewsInput, Prisma.AssetUncheckedUpdateWithoutVideoChunkPreviewsInput>
+  create: Prisma.XOR<Prisma.AssetCreateWithoutVideoChunkPreviewsInput, Prisma.AssetUncheckedCreateWithoutVideoChunkPreviewsInput>
+  where?: Prisma.AssetWhereInput
+}
+
+export type AssetUpdateToOneWithWhereWithoutVideoChunkPreviewsInput = {
+  where?: Prisma.AssetWhereInput
+  data: Prisma.XOR<Prisma.AssetUpdateWithoutVideoChunkPreviewsInput, Prisma.AssetUncheckedUpdateWithoutVideoChunkPreviewsInput>
+}
+
+export type AssetUpdateWithoutVideoChunkPreviewsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
+  type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
+  mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
+  transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
+  children?: Prisma.AssetUpdateManyWithoutParentNestedInput
+  target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
+  symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
+  metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
+  creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutAssetsNestedInput
+  task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
+  project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
+  commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
+  embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
+  projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
+  projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
+  shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
+  watermarkFiles?: Prisma.WatermarkFileUpdateManyWithoutAssetNestedInput
+  agentMd?: Prisma.AssetAgentMdUpdateOneWithoutAssetNestedInput
+  kanbanTargetTasks?: Prisma.KanbanTaskUpdateManyWithoutTargetFolderNestedInput
+  kanbanTasks?: Prisma.KanbanTaskAssetUpdateManyWithoutAssetNestedInput
+  recentFiles?: Prisma.RecentFileItemUpdateManyWithoutAssetNestedInput
+}
+
+export type AssetUncheckedUpdateWithoutVideoChunkPreviewsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
+  type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
+  mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sizeByte?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
+  transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  uploadId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  hasJpegPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
+  symlinks?: Prisma.AssetUncheckedUpdateManyWithoutTargetNestedInput
+  metadataValues?: Prisma.AssetMetadataValueUncheckedUpdateManyWithoutAssetNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutAssetNestedInput
+  commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
+  embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -4388,6 +4659,7 @@ export type AssetCreateWithoutNotificationsInput = {
   comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -4431,6 +4703,7 @@ export type AssetUncheckedCreateWithoutNotificationsInput = {
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutAssetInput
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -4490,6 +4763,7 @@ export type AssetUpdateWithoutNotificationsInput = {
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -4533,6 +4807,7 @@ export type AssetUncheckedUpdateWithoutNotificationsInput = {
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutAssetNestedInput
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -4576,6 +4851,7 @@ export type AssetCreateWithoutTaskInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -4619,6 +4895,7 @@ export type AssetUncheckedCreateWithoutTaskInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -4688,6 +4965,7 @@ export type AssetCreateWithoutAgentInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -4731,6 +5009,7 @@ export type AssetUncheckedCreateWithoutAgentInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -4801,6 +5080,7 @@ export type AssetCreateWithoutAgentSessionsInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -4844,6 +5124,7 @@ export type AssetUncheckedCreateWithoutAgentSessionsInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -4903,6 +5184,7 @@ export type AssetUpdateWithoutAgentSessionsInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -4946,6 +5228,7 @@ export type AssetUncheckedUpdateWithoutAgentSessionsInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -4989,6 +5272,7 @@ export type AssetCreateWithoutKanbanTargetTasksInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -5032,6 +5316,7 @@ export type AssetUncheckedCreateWithoutKanbanTargetTasksInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -5091,6 +5376,7 @@ export type AssetUpdateWithoutKanbanTargetTasksInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -5134,6 +5420,7 @@ export type AssetUncheckedUpdateWithoutKanbanTargetTasksInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -5177,6 +5464,7 @@ export type AssetCreateWithoutKanbanTasksInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -5220,6 +5508,7 @@ export type AssetUncheckedCreateWithoutKanbanTasksInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -5279,6 +5568,7 @@ export type AssetUpdateWithoutKanbanTasksInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -5322,6 +5612,7 @@ export type AssetUncheckedUpdateWithoutKanbanTasksInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -5365,6 +5656,7 @@ export type AssetCreateWithoutRecentFilesInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
@@ -5408,6 +5700,7 @@ export type AssetUncheckedCreateWithoutRecentFilesInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
   embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedCreateNestedManyWithoutAssetInput
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
@@ -5467,6 +5760,7 @@ export type AssetUpdateWithoutRecentFilesInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -5510,6 +5804,7 @@ export type AssetUncheckedUpdateWithoutRecentFilesInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -5578,6 +5873,7 @@ export type AssetUpdateWithoutCreatorInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -5621,6 +5917,7 @@ export type AssetUncheckedUpdateWithoutCreatorInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -5716,6 +6013,7 @@ export type AssetUpdateWithoutProjectInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -5759,6 +6057,7 @@ export type AssetUncheckedUpdateWithoutProjectInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -5880,6 +6179,7 @@ export type AssetUpdateWithoutParentInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -5923,6 +6223,7 @@ export type AssetUncheckedUpdateWithoutParentInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -5992,6 +6293,7 @@ export type AssetUpdateWithoutTargetInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -6035,6 +6337,7 @@ export type AssetUncheckedUpdateWithoutTargetInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -6130,6 +6433,7 @@ export type AssetUpdateWithoutStorageKeyInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -6173,6 +6477,7 @@ export type AssetUncheckedUpdateWithoutStorageKeyInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -6268,6 +6573,7 @@ export type AssetUpdateWithoutTaskInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -6311,6 +6617,7 @@ export type AssetUncheckedUpdateWithoutTaskInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -6406,6 +6713,7 @@ export type AssetUpdateWithoutAgentInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
@@ -6449,6 +6757,7 @@ export type AssetUncheckedUpdateWithoutAgentInput = {
   commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
   embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  videoChunkPreviews?: Prisma.VideoChunkPreviewUncheckedUpdateManyWithoutAssetNestedInput
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
@@ -6500,6 +6809,7 @@ export type AssetCountOutputType = {
   commentAttachments: number
   notifications: number
   embeddings: number
+  videoChunkPreviews: number
   agentSessions: number
   watermarkFiles: number
   kanbanTargetTasks: number
@@ -6515,6 +6825,7 @@ export type AssetCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.
   commentAttachments?: boolean | AssetCountOutputTypeCountCommentAttachmentsArgs
   notifications?: boolean | AssetCountOutputTypeCountNotificationsArgs
   embeddings?: boolean | AssetCountOutputTypeCountEmbeddingsArgs
+  videoChunkPreviews?: boolean | AssetCountOutputTypeCountVideoChunkPreviewsArgs
   agentSessions?: boolean | AssetCountOutputTypeCountAgentSessionsArgs
   watermarkFiles?: boolean | AssetCountOutputTypeCountWatermarkFilesArgs
   kanbanTargetTasks?: boolean | AssetCountOutputTypeCountKanbanTargetTasksArgs
@@ -6579,6 +6890,13 @@ export type AssetCountOutputTypeCountNotificationsArgs<ExtArgs extends runtime.T
  */
 export type AssetCountOutputTypeCountEmbeddingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AssetEmbeddingWhereInput
+}
+
+/**
+ * AssetCountOutputType without action
+ */
+export type AssetCountOutputTypeCountVideoChunkPreviewsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.VideoChunkPreviewWhereInput
 }
 
 /**
@@ -6656,6 +6974,7 @@ export type AssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   commentAttachments?: boolean | Prisma.Asset$commentAttachmentsArgs<ExtArgs>
   notifications?: boolean | Prisma.Asset$notificationsArgs<ExtArgs>
   embeddings?: boolean | Prisma.Asset$embeddingsArgs<ExtArgs>
+  videoChunkPreviews?: boolean | Prisma.Asset$videoChunkPreviewsArgs<ExtArgs>
   teamRootFolder?: boolean | Prisma.Asset$teamRootFolderArgs<ExtArgs>
   projectRootFolder?: boolean | Prisma.Asset$projectRootFolderArgs<ExtArgs>
   projectShareRoot?: boolean | Prisma.Asset$projectShareRootArgs<ExtArgs>
@@ -6780,6 +7099,7 @@ export type AssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   commentAttachments?: boolean | Prisma.Asset$commentAttachmentsArgs<ExtArgs>
   notifications?: boolean | Prisma.Asset$notificationsArgs<ExtArgs>
   embeddings?: boolean | Prisma.Asset$embeddingsArgs<ExtArgs>
+  videoChunkPreviews?: boolean | Prisma.Asset$videoChunkPreviewsArgs<ExtArgs>
   teamRootFolder?: boolean | Prisma.Asset$teamRootFolderArgs<ExtArgs>
   projectRootFolder?: boolean | Prisma.Asset$projectRootFolderArgs<ExtArgs>
   projectShareRoot?: boolean | Prisma.Asset$projectShareRootArgs<ExtArgs>
@@ -6828,6 +7148,7 @@ export type $AssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     commentAttachments: Prisma.$AssetCommentAttachmentPayload<ExtArgs>[]
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
     embeddings: Prisma.$AssetEmbeddingPayload<ExtArgs>[]
+    videoChunkPreviews: Prisma.$VideoChunkPreviewPayload<ExtArgs>[]
     teamRootFolder: Prisma.$TeamPayload<ExtArgs> | null
     projectRootFolder: Prisma.$ProjectPayload<ExtArgs> | null
     projectShareRoot: Prisma.$ProjectPayload<ExtArgs> | null
@@ -7275,6 +7596,7 @@ export interface Prisma__AssetClient<T, Null = never, ExtArgs extends runtime.Ty
   commentAttachments<T extends Prisma.Asset$commentAttachmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$commentAttachmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetCommentAttachmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notifications<T extends Prisma.Asset$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   embeddings<T extends Prisma.Asset$embeddingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$embeddingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetEmbeddingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  videoChunkPreviews<T extends Prisma.Asset$videoChunkPreviewsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$videoChunkPreviewsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$VideoChunkPreviewPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   teamRootFolder<T extends Prisma.Asset$teamRootFolderArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$teamRootFolderArgs<ExtArgs>>): Prisma.Prisma__TeamClient<runtime.Types.Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   projectRootFolder<T extends Prisma.Asset$projectRootFolderArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$projectRootFolderArgs<ExtArgs>>): Prisma.Prisma__ProjectClient<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   projectShareRoot<T extends Prisma.Asset$projectShareRootArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$projectShareRootArgs<ExtArgs>>): Prisma.Prisma__ProjectClient<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -8037,6 +8359,30 @@ export type Asset$embeddingsArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.AssetEmbeddingScalarFieldEnum | Prisma.AssetEmbeddingScalarFieldEnum[]
+}
+
+/**
+ * Asset.videoChunkPreviews
+ */
+export type Asset$videoChunkPreviewsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the VideoChunkPreview
+   */
+  select?: Prisma.VideoChunkPreviewSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the VideoChunkPreview
+   */
+  omit?: Prisma.VideoChunkPreviewOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.VideoChunkPreviewInclude<ExtArgs> | null
+  where?: Prisma.VideoChunkPreviewWhereInput
+  orderBy?: Prisma.VideoChunkPreviewOrderByWithRelationInput | Prisma.VideoChunkPreviewOrderByWithRelationInput[]
+  cursor?: Prisma.VideoChunkPreviewWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.VideoChunkPreviewScalarFieldEnum | Prisma.VideoChunkPreviewScalarFieldEnum[]
 }
 
 /**

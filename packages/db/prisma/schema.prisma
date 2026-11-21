@@ -118,6 +118,7 @@ enum TeamMemberScope {
 enum WorkflowTaskType {
   transcode
   transcode_video
+  transcode_video_chunk_preview
   transcode_image
   transcode_pdf
   transcode_pdf_pages
@@ -592,6 +593,7 @@ model Asset {
   commentAttachments AssetCommentAttachment[] @relation("AssetToCommentAttachment")
   notifications     Notification[]           @relation("AssetToNotification")
   embeddings        AssetEmbedding[]         @relation("AssetToEmbedding")
+  videoChunkPreviews VideoChunkPreview[]
 
   teamRootFolder       Team?        @relation("TeamToRootFolder")
   projectRootFolder    Project?     @relation("ProjectToRootFolder")
@@ -741,6 +743,22 @@ model AssetEmbedding {
   @@index([embedding], name: "AssetEmbedding_embedding_idx")
   @@index([embedding768], name: "AssetEmbedding_embedding_768_idx")
   @@map("asset_embeddings")
+}
+
+model VideoChunkPreview {
+  id        String   @id @default(ulid())
+  assetId   String   @map("asset_id")
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  startTime Float    @map("start_time")
+  endTime   Float    @map("end_time")
+  taskId    String?  @map("task_id")
+  /// [VideoChunkPreviewMedia]
+  media     Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([assetId, startTime, endTime], name: "assetRange")
+  @@map("video_chunk_previews")
 }
 
 model Invite {

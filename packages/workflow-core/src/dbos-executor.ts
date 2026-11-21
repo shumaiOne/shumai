@@ -62,6 +62,7 @@ export function getQueueForTaskType(type: string | null | undefined): string {
       return TaskQueueAgent
     case WorkflowTaskType.transcode:
     case WorkflowTaskType.transcode_video:
+    case WorkflowTaskType.transcode_video_chunk_preview:
     case WorkflowTaskType.transcode_image:
     case WorkflowTaskType.transcode_pdf:
     case WorkflowTaskType.transcode_pdf_pages:

@@ -71,6 +71,25 @@ describe('image search', () => {
     vi.restoreAllMocks()
   })
 
+  it('uses the source sprite for a full match when duration is stored on the media record', async () => {
+    const { root, source, file } = await createProjectAssets()
+    const video = await file('short.mp4', 'video/mp4')
+    await prisma.asset.update({
+      where: { id: video.id },
+      data: { media: { proxyType: 'video', duration: 60 } as PrismaJson.MediaInfo },
+    })
+    await insertEmbedding(source.id, vector(1536, 1))
+    await insertEmbedding(video.id, vector(1536, 1), 0, 60)
+    const results = await searchService.searchByImage(
+      root.id,
+      imageSearchRequestSchema.parse({ sourceAssetId: source.id }),
+    )
+    expect(results.data).toMatchObject([
+      { id: video.id, preview: { duration: 60 }, startTime: 0, endTime: 60 },
+    ])
+    expect(results.data[0].chunkPreview).toBeUndefined()
+  })
+
   it('finds images and video segments across the project using the stored image vector', async () => {
     const { root, source, file } = await createProjectAssets()
     const image = await file('result.jpg', 'image/jpeg')
@@ -82,6 +101,22 @@ describe('image search', () => {
     await insertEmbedding(source.id, vector(1536, 1))
     await insertEmbedding(video.id, vector(1536, 1), 4, 12)
     await insertEmbedding(video.id, vector(1536, 0, 1), 12, 20)
+    await prisma.videoChunkPreview.create({
+      data: {
+        assetId: video.id,
+        startTime: 4,
+        endTime: 12,
+        media: {
+          posterKey: 'files/video/chunk-previews/poster.webp',
+          spriteKey: 'files/video/chunk-previews/sprite.webp',
+          columns: 2,
+          rows: 1,
+          frameWidth: 320,
+          frameHeight: 180,
+          timestamps: [4, 8],
+        },
+      },
+    })
     await insertEmbedding(image.id, vector(1536, 1, 1))
     await insertEmbedding(deleted.id, vector(1536, 1))
     await insertEmbedding(audio.id, vector(1536, 1))
@@ -93,13 +128,27 @@ describe('image search', () => {
       imageSearchRequestSchema.parse({ ...request, first: 2 }),
     )
     expect(first.data.map((item) => item.id)).toEqual([video.id, image.id])
-    expect(first.data[0]).toMatchObject({ startTime: 4, endTime: 12 })
+    expect(first.data[0]).toMatchObject({
+      startTime: 4,
+      endTime: 12,
+      chunkPreview: {
+        matchId: expect.any(String),
+        preview: {
+          posterUrl: expect.any(String),
+          spriteUrl: expect.any(String),
+          timestamps: [4, 8],
+        },
+      },
+    })
+    expect(first.data[1].chunkPreview).toBeUndefined()
     expect(first.pageInfo).toMatchObject({ total: 3, cursor: expect.any(String) })
     const next = await searchService.searchByImage(
       root.id,
       imageSearchRequestSchema.parse({ ...request, first: 2, after: first.pageInfo.cursor }),
     )
     expect(next.data).toMatchObject([{ id: video.id, startTime: 12, endTime: 20 }])
+    expect(next.data[0].chunkPreview?.matchId).not.toEqual(first.data[0].chunkPreview?.matchId)
+    expect(next.data[0].chunkPreview?.preview).toBeUndefined()
     expect(next.pageInfo.cursor).toBeUndefined()
 
     const images = await searchService.searchByImage(

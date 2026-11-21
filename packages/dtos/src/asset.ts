@@ -25,6 +25,24 @@ export const previewInfoSchema = z.object({
 })
 export type PreviewInfo = z.infer<typeof previewInfoSchema>
 
+export const chunkPreviewSchema = z.object({
+  posterUrl: z.string(),
+  spriteUrl: z.string(),
+  columns: z.number().int().positive(),
+  rows: z.number().int().positive(),
+  frameWidth: z.number().int().positive(),
+  frameHeight: z.number().int().positive(),
+  timestamps: z.array(z.number()).min(1).max(10),
+})
+export type ChunkPreview = z.infer<typeof chunkPreviewSchema>
+
+export const chunkPreviewStateSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('ready'), preview: chunkPreviewSchema }),
+  z.object({ status: z.literal('pending') }),
+  z.object({ status: z.literal('unavailable') }),
+])
+export type ChunkPreviewState = z.infer<typeof chunkPreviewStateSchema>
+
 export const childPreviewSchema = z.object({
   type: z.string().nullable(),
   preview: previewInfoSchema.nullable(),
@@ -90,6 +108,9 @@ export const assetInfoSchema = z.object({
   sortIndex: z.string().optional().nullable(),
   startTime: z.number().optional().nullable(),
   endTime: z.number().optional().nullable(),
+  chunkPreview: z
+    .object({ matchId: z.string(), preview: chunkPreviewSchema.optional() })
+    .optional(),
   hasAgentsMd: z.boolean().optional(),
   commentsCount: z.number().optional(),
 

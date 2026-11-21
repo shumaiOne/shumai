@@ -1,32 +1,33 @@
 import { File, Folder, AudioLines } from 'lucide-react'
+import type { AssetInfo, PreviewInfo } from '@shumai/dtos'
 import { SpriteScrubber } from '../sprite-scrubber'
 import { formatTime } from '../viewers/video/utils'
+import { ChunkVideoPreview } from './chunk-video-preview'
 
 type FilePreviewItem = {
+  id?: string
   type?: string | null
   proxyType?: 'image' | 'video' | 'audio' | 'pdf' | '3d' | null
-  preview?: {
-    mediaType?: string | null
-    proxyType?: 'image' | 'video' | 'audio' | 'pdf' | '3d' | null
-    spriteUrl?: string
-    thumbnailUrl?: string
-    originalWidth?: number
-    originalHeight?: number
-    duration?: number
-    pageCount?: number
-  } | null
+  preview?: PreviewInfo | null
+  chunkPreview?: AssetInfo['chunkPreview']
 }
 
 interface FilePreviewProps {
   item: FilePreviewItem
   showDuration?: boolean
+  focused?: boolean
   matchDuration?: {
     startTime?: number | null
     endTime?: number | null
   } | null
 }
 
-export const FilePreview = ({ item, showDuration = false, matchDuration }: FilePreviewProps) => {
+export const FilePreview = ({
+  item,
+  showDuration = false,
+  matchDuration,
+  focused,
+}: FilePreviewProps) => {
   const proxyType = item.preview?.proxyType || item.proxyType
   const isVideo = proxyType === 'video'
   const isAudio = proxyType === 'audio'
@@ -55,6 +56,22 @@ export const FilePreview = ({ item, showDuration = false, matchDuration }: FileP
       {pageCount} P
     </span>
   ) : null
+
+  if (item.id && item.chunkPreview && hasMatchedChunk) {
+    return (
+      <>
+        <ChunkVideoPreview
+          key={item.chunkPreview.matchId}
+          assetId={item.id}
+          chunk={item.chunkPreview}
+          startTime={matchDuration.startTime!}
+          endTime={matchDuration.endTime!}
+          focused={focused}
+        />
+        {overlay}
+      </>
+    )
+  }
 
   const isMediaWithSprite =
     (isVideo || isPdf || is3D) &&
