@@ -1,4 +1,4 @@
-import type { APIRequestContext } from '@playwright/test'
+import type { APIRequestContext, Locator } from '@playwright/test'
 import type { AssetInfo, ImageSearchRequest, SearchRequest } from '@shumai/dtos'
 import { expect, test } from '../../fixtures'
 import { apiUploadFile, fileCard } from '../../helpers/files'
@@ -167,6 +167,7 @@ test.describe('image search', () => {
 
   test('owner previews matched video ranges in both search dialogs', async ({ file }) => {
     const { page, teamId, projectId, rootFolderId, fileName } = file
+    const layout = { columns: 5, rows: 2, frameCount: 7 }
     const video: AssetInfo = {
       id: 'video-result',
       name: 'result.mp4',
@@ -185,13 +186,19 @@ test.describe('image search', () => {
       },
       startTime: 0,
       endTime: 30,
-      matchedSprite: { url: '/test-sprites/chunk.svg', columns: 5, rows: 2, frameCount: 7 },
+      matchedSprite: { ...layout, url: '/test-sprites/chunk.svg' },
     }
     const brokenMatch: AssetInfo = {
       ...video,
+      startTime: 55,
+      endTime: 85,
+      matchedSprite: { ...layout, url: '/test-sprites/broken.svg' },
+    }
+    const secondMatch: AssetInfo = {
+      ...video,
       startTime: 25,
-      endTime: 40,
-      matchedSprite: { url: '/test-sprites/broken.svg', columns: 5, rows: 2, frameCount: 7 },
+      endTime: 55,
+      matchedSprite: { ...layout, url: '/test-sprites/second.svg' },
     }
     await page.route(`**/api/teams/${teamId}/settings`, async (route) => {
       const response = await route.fetch()
@@ -200,7 +207,7 @@ test.describe('image search', () => {
         json: { ...(await response.json()), semanticSearchEnabled: true },
       })
     })
-    const results = { json: { data: [video, brokenMatch], pageInfo: { total: 2 } } }
+    const results = { json: { data: [video, secondMatch, brokenMatch], pageInfo: { total: 3 } } }
     await page.route(`**/api/folders/${rootFolderId}/image-search`, (route) =>
       route.fulfill(results),
     )
@@ -217,14 +224,34 @@ test.describe('image search', () => {
           }),
     )
 
+    async function verifyPreviews(dialog: Locator) {
+      const heading = dialog.getByRole('heading').first()
+      await heading.hover()
+      const cards = dialog.getByTestId('sprite-scrubber')
+      const firstFrame = cards.nth(0).locator('.opacity-100 > [style*="/test-sprites/chunk.svg"]')
+      const secondFrame = cards.nth(1).locator('.opacity-100 > [style*="/test-sprites/second.svg"]')
+      await expect(firstFrame).toHaveCSS('background-position', '0px 0px')
+      await expect(secondFrame).toHaveCSS('background-position', '0px 0px')
+      await expect(cards.nth(2).getByAltText('Thumbnail')).toHaveClass(/opacity-100/)
+      await expect(dialog.locator('[style*="/test-sprites/full.svg"]')).toHaveCount(0)
+
+      await cards.nth(0).hover()
+      await expect(cards.nth(0)).not.toHaveAttribute('data-frame', '0')
+      await heading.hover()
+      await expect(firstFrame).toHaveCSS('background-position', '0px 0px')
+
+      await cards.nth(2).hover()
+      await expect(
+        cards.nth(2).locator('.opacity-100 > [style*="/test-sprites/full.svg"]'),
+      ).toBeVisible()
+      await heading.hover()
+      await expect(cards.nth(2).getByAltText('Thumbnail')).toHaveClass(/opacity-100/)
+    }
+
     await page.goto(`/projects/${projectId}`)
     await fileCard(page, fileName).click({ button: 'right' })
     await page.getByRole('menuitem', { name: 'Find similar' }).click()
-    const findSimilar = page.getByRole('dialog', { name: 'Find similar' })
-    await findSimilar.getByTestId('sprite-scrubber').nth(0).hover()
-    await expect(findSimilar.locator('[style*="/test-sprites/chunk.svg"]')).toHaveCount(1)
-    await findSimilar.getByTestId('sprite-scrubber').nth(1).hover()
-    await expect(findSimilar.locator('[style*="/test-sprites/full.svg"]')).toHaveCount(1)
+    await verifyPreviews(page.getByRole('dialog', { name: 'Find similar' }))
 
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Search' }).click()
@@ -233,10 +260,7 @@ test.describe('image search', () => {
     const searchInput = semanticSearch.getByPlaceholder('Search records by content...')
     await searchInput.fill('video scene')
     await searchInput.press('Enter')
-    await semanticSearch.getByTestId('sprite-scrubber').nth(0).hover()
-    await expect(semanticSearch.locator('[style*="/test-sprites/chunk.svg"]')).toHaveCount(1)
-    await semanticSearch.getByTestId('sprite-scrubber').nth(1).hover()
-    await expect(semanticSearch.locator('[style*="/test-sprites/full.svg"]')).toHaveCount(1)
+    await verifyPreviews(semanticSearch)
   })
 
   test('owner finds similar media and filters the results by type', async ({ file }) => {

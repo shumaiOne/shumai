@@ -77,6 +77,7 @@ export const FilePreview = ({
         <SpriteScrubber
           spriteUrl={spriteUrl}
           spriteLayout={chunkSprite}
+          showFirstFrame={Boolean(chunkSprite)}
           fallbackSpriteUrl={chunkSprite && fullSpriteUrl ? fullSpriteUrl : undefined}
           thumbnailUrl={item.preview?.thumbnailUrl}
           videoWidth={item.preview?.originalWidth}

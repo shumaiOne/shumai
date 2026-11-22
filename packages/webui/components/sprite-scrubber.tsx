@@ -1,9 +1,12 @@
 import type { SpriteLayout } from '@shumai/dtos'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useInView } from 'react-intersection-observer'
 
 interface SpriteScrubberProps {
   spriteUrl: string
   spriteLayout?: SpriteLayout
+  /** Load the primary sprite when visible and show its first frame at rest. */
+  showFirstFrame?: boolean
   /** A full-asset 10x10 sprite to try when the primary sprite fails. */
   fallbackSpriteUrl?: string
   /** The URL of the static thumbnail */
@@ -27,15 +30,33 @@ interface Dimensions {
 
 const FULL_SPRITE_LAYOUT: SpriteLayout = { columns: 10, rows: 10, frameCount: 100 }
 
-interface SpriteLoadResult {
-  primaryUrl: string
-  fallbackUrl?: string
-  image?: Dimensions & { url: string; isFallback: boolean }
+interface SpriteImage extends Dimensions {
+  url: string
+}
+
+function useSpriteImage(url: string | undefined) {
+  const [result, setResult] = useState<{ url: string; image: SpriteImage | null }>()
+
+  useEffect(() => {
+    if (!url) return
+    const img = new Image()
+    img.onload = () =>
+      setResult({ url, image: { url, width: img.naturalWidth, height: img.naturalHeight } })
+    img.onerror = () => setResult({ url, image: null })
+    img.src = url
+    return () => {
+      img.onload = null
+      img.onerror = null
+    }
+  }, [url])
+
+  return result?.url === url ? result?.image : undefined
 }
 
 export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
   spriteUrl,
   spriteLayout = FULL_SPRITE_LAYOUT,
+  showFirstFrame = false,
   fallbackSpriteUrl,
   thumbnailUrl,
   videoWidth = 1,
@@ -44,24 +65,42 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
   reverse = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
+  const { ref: observeVisibility, inView } = useInView({
+    skip: !showFirstFrame,
+    triggerOnce: true,
+    fallbackInView: true,
+  })
+  const setContainerRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      containerRef.current = element
+      observeVisibility(element)
+    },
+    [observeVisibility],
+  )
   const [containerSize, setContainerSize] = useState<Dimensions>({
     width: 0,
     height: 0,
   })
   const [isHovering, setIsHovering] = useState(false)
   const [hasHovered, setHasHovered] = useState(false)
-  const [loadResult, setLoadResult] = useState<SpriteLoadResult>()
   const [cursorX, setCursorX] = useState(0)
   const [progress, setProgress] = useState<number>()
 
-  const result =
-    loadResult?.primaryUrl === spriteUrl && loadResult.fallbackUrl === fallbackSpriteUrl
-      ? loadResult
+  const loadPrimary = hasHovered || (showFirstFrame && inView)
+  const primary = useSpriteImage(loadPrimary ? spriteUrl : undefined)
+  const fallbackUrl =
+    hasHovered && primary === null && fallbackSpriteUrl !== spriteUrl
+      ? fallbackSpriteUrl
       : undefined
-  const sprite = result?.image
-  const { columns, rows, frameCount } = sprite?.isFallback ? FULL_SPRITE_LAYOUT : spriteLayout
+  const fallback = useSpriteImage(fallbackUrl)
+  const sprite = primary ?? fallback
+  const spriteVisible = Boolean(sprite && (isHovering || (showFirstFrame && primary)))
+  const spriteLoading =
+    primary === undefined || (fallbackUrl !== undefined && fallback === undefined)
+  const { columns, rows, frameCount } = fallback ? FULL_SPRITE_LAYOUT : spriteLayout
   const frame = Math.min(Math.floor((progress ?? 0) * frameCount), frameCount - 1)
-  const currentFrame = reverse && progress !== undefined ? frameCount - 1 - frame : frame
+  const cursorFrame = reverse && progress !== undefined ? frameCount - 1 - frame : frame
+  const currentFrame = showFirstFrame && !isHovering ? 0 : cursorFrame
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -78,33 +117,6 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
     observer.observe(containerRef.current)
     return () => observer.disconnect()
   }, [])
-
-  useEffect(() => {
-    if (!hasHovered) return
-    const img = new Image()
-    const request = { primaryUrl: spriteUrl, fallbackUrl: fallbackSpriteUrl }
-    const load = (url: string, isFallback: boolean) => {
-      img.onload = () => {
-        setLoadResult({
-          ...request,
-          image: { url, isFallback, width: img.naturalWidth, height: img.naturalHeight },
-        })
-      }
-      img.onerror = () => {
-        if (!isFallback && fallbackSpriteUrl && fallbackSpriteUrl !== spriteUrl) {
-          load(fallbackSpriteUrl, true)
-          return
-        }
-        setLoadResult(request)
-      }
-      img.src = url
-    }
-    load(spriteUrl, false)
-    return () => {
-      img.onload = null
-      img.onerror = null
-    }
-  }, [fallbackSpriteUrl, hasHovered, spriteUrl])
 
   const handleMouseEnter = () => {
     setIsHovering(true)
@@ -180,7 +192,7 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
 
   return (
     <div
-      ref={containerRef}
+      ref={setContainerRef}
       data-testid="sprite-scrubber"
       data-frame={currentFrame}
       className={`relative w-full h-full overflow-hidden cursor-pointer group bg-black select-none ${className}`}
@@ -188,18 +200,18 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
     >
-      {thumbnailUrl && (
+      {thumbnailUrl && (!showFirstFrame || primary === null) && (
         <img
           src={thumbnailUrl}
           alt="Thumbnail"
           className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-200 ${
-            isHovering && sprite ? 'opacity-0' : 'opacity-100'
+            spriteVisible ? 'opacity-0' : 'opacity-100'
           }`}
           draggable={false}
         />
       )}
 
-      {isHovering && !result && (
+      {isHovering && spriteLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 pointer-events-none">
           <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         </div>
@@ -208,14 +220,14 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
       {sprite && (
         <div
           className={`absolute inset-0 flex items-center justify-center transition-opacity duration-75 ${
-            isHovering ? 'opacity-100' : 'opacity-0'
+            spriteVisible ? 'opacity-100' : 'opacity-0'
           }`}
         >
           <div style={spriteStyle} />
         </div>
       )}
 
-      {isHovering && (!result || sprite) && (
+      {isHovering && (spriteLoading || sprite) && (
         <div
           className="absolute top-0 bottom-0 w-0.5 bg-red-500 shadow-[0_0_4px_rgba(255,0,0,0.8)] z-20 pointer-events-none"
           style={{ transform: `translateX(${cursorX}px)` }}
