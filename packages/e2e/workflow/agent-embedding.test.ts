@@ -334,6 +334,13 @@ describe('Workflow E2E - agentEmbeddingMedia', () => {
     expect(dbEmbeddings.length).toBeGreaterThan(0)
     expect(dbEmbeddings[0].startTime).toBe(0)
     expect(dbEmbeddings[0].endTime).toBe(1)
+
+    // Verify all temporary embedding chunk files were cleaned up from S3
+    const remainingTmpChunks = await s3Service.listObjects(
+      'shumai-e2e-test-bucket-embedding',
+      `files/${asset.id}/tmp-embedding-chunks/`,
+    )
+    expect(remainingTmpChunks).toEqual([])
   }, 50000)
 
   it('should fail agentEmbeddingMedia workflow for an unsupported audio asset', async () => {

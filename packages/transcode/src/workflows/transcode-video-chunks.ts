@@ -1,3 +1,4 @@
+import { logger } from '@shumai/core/src/logger'
 import type { WorkflowTask } from '@shumai/db'
 import { ApplicationFailure } from '@shumai/workflow-core'
 import { deleteS3ObjectActivity, transcodeVideoChunkActivity } from '../activities/transcode'
@@ -47,6 +48,7 @@ export async function transcodeVideoChunksWorkflow(task: WorkflowTask): Promise<
     const chunks: TranscodedVideoChunkItem[] = []
     for (const range of payload.videoChunks.chunks) {
       const { chunkKey } = await transcodeVideoChunkActivity({
+        taskId: task.id,
         assetId: asset.id,
         assetKey: targetKey,
         startTime: range.startTime,
@@ -63,12 +65,15 @@ export async function transcodeVideoChunksWorkflow(task: WorkflowTask): Promise<
 
     await completeTask(task.id, { chunks })
   } catch (err) {
-    console.error(`transcodeVideoChunksWorkflow failed for task ${task.id}:`, err)
+    logger.error({ taskId: task.id, err }, 'transcodeVideoChunksWorkflow failed')
     for (const chunkKey of uploadedChunkKeys) {
       try {
         await deleteS3ObjectActivity({ key: chunkKey })
       } catch (cleanupErr) {
-        console.error(`Failed to clean up partial chunk ${chunkKey}:`, cleanupErr)
+        logger.error(
+          { taskId: task.id, chunkKey, err: cleanupErr },
+          'Failed to clean up partial chunk',
+        )
       }
     }
     await failTask(task.id, err)

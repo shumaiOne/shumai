@@ -1,3 +1,4 @@
+import { logger } from '@shumai/core/src/logger'
 import type { WorkflowTask } from '@shumai/db'
 import {
   ApplicationFailure,
@@ -225,7 +226,10 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
             try {
               await deleteS3ObjectActivity({ key })
             } catch (cleanupErr) {
-              console.error(`Failed to delete temporary chunk ${key} from S3:`, cleanupErr)
+              logger.error(
+                { taskId: task.id, chunkKey: key, err: cleanupErr },
+                'Failed to delete temporary chunk from S3',
+              )
             }
           }
         }

@@ -1,7 +1,11 @@
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { prisma } from '@shumai/db'
+import { prisma, AssetStatus, AssetType } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
+import {
+  registerLocalTaskAbortController,
+  unregisterLocalTaskAbortController,
+} from '@shumai/workflow-core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { transcodeService } from '@shumai/core/src/transcode/transcode'
@@ -1462,6 +1466,109 @@ describe('Transcode Activities', () => {
         expect((err as any).nonRetryable).toBe(false)
         expect((err as Error).message).toContain('Failed to transcode video chunk')
       }
+    })
+
+    it('should fail fast with non-retryable error when task is already cancelled', async () => {
+      const taskId = 'task-chunk-pre-aborted'
+      const abortController = new AbortController()
+      abortController.abort()
+      registerLocalTaskAbortController(taskId, abortController)
+
+      try {
+        expect.assertions(3)
+        try {
+          await transcodeVideoChunkActivity({
+            taskId,
+            assetId: 'asset-abc',
+            filePath: '/tmp/test.mp4',
+            startTime: 0,
+            endTime: 10,
+          })
+        } catch (err: unknown) {
+          expect((err as { nonRetryable?: boolean }).nonRetryable).toBe(true)
+          expect((err as Error).message).toContain('Video chunk transcoding cancelled')
+        }
+        expect(child_process.execFile).not.toHaveBeenCalled()
+      } finally {
+        unregisterLocalTaskAbortController(taskId)
+      }
+    })
+
+    it('should pass AbortSignal to ffmpeg and throw non-retryable error on in-flight cancellation', async () => {
+      const taskId = 'task-chunk-inflight-abort'
+      const abortController = new AbortController()
+      registerLocalTaskAbortController(taskId, abortController)
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- execFile mockImplementation uses 4-arg overload with options
+      ;(child_process.execFile as any).mockImplementation(
+        (
+          _file: string,
+          _args: string[],
+          options: { signal?: AbortSignal },
+          cb: (err: Error | null, result: { stdout: string; stderr: string }) => void,
+        ) => {
+          expect(options?.signal).toBe(abortController.signal)
+          abortController.abort()
+          const abortErr = new Error('The operation was aborted') as Error & { code?: string }
+          abortErr.code = 'ABORT_ERR'
+          cb(abortErr, { stdout: '', stderr: '' })
+        },
+      )
+
+      try {
+        expect.assertions(4)
+        try {
+          await transcodeVideoChunkActivity({
+            taskId,
+            assetId: 'asset-abc',
+            filePath: '/tmp/test.mp4',
+            startTime: 0,
+            endTime: 10,
+          })
+        } catch (err: unknown) {
+          expect((err as { nonRetryable?: boolean }).nonRetryable).toBe(true)
+          expect((err as Error).message).toContain('Video chunk transcoding cancelled')
+        }
+        expect(s3Service.putObject).not.toHaveBeenCalled()
+      } finally {
+        unregisterLocalTaskAbortController(taskId)
+      }
+    })
+
+    it('should fail with non-retryable error before S3 upload if asset is pending_purge', async () => {
+      const purgingAsset = await prisma.asset.create({
+        data: {
+          name: 'purging-video.mp4',
+          type: AssetType.file,
+          status: AssetStatus.pending_purge,
+          mediaType: 'video/mp4',
+        },
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- execFile mockImplementation returns void rather than ChildProcess
+      ;(child_process.execFile as any).mockImplementation(
+        (
+          _file: string,
+          _args: string[],
+          cb: (err: Error | null, result: { stdout: string; stderr: string }) => void,
+        ) => {
+          cb(null, { stdout: '', stderr: '' })
+        },
+      )
+
+      expect.assertions(3)
+      try {
+        await transcodeVideoChunkActivity({
+          assetId: purgingAsset.id,
+          assetKey: 'files/proxy-720p.mp4',
+          startTime: 0,
+          endTime: 10,
+        })
+      } catch (err: unknown) {
+        expect((err as { nonRetryable?: boolean }).nonRetryable).toBe(true)
+        expect((err as Error).message).toContain('pending purge')
+      }
+      expect(s3Service.putObject).not.toHaveBeenCalled()
     })
 
     it('should return existing poster if already present in S3', async () => {

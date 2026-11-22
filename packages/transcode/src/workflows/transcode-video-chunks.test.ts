@@ -73,8 +73,7 @@ describe('transcodeVideoChunksWorkflow', () => {
       status: 'processed',
       storageKey: { key: 'files/asset-video/raw.mp4', isArchived: false },
       mediaType: 'video/mp4',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any)
+    } as unknown as Awaited<ReturnType<typeof getAssetActivity>>)
 
     mockActivities.transcodeVideoChunkActivity
       .mockResolvedValueOnce({
@@ -88,6 +87,7 @@ describe('transcodeVideoChunksWorkflow', () => {
 
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledTimes(2)
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(1, {
+      taskId: 'task-video-chunks',
       assetId: 'asset-video',
       assetKey: 'files/asset-video/proxy.mp4',
       startTime: 0,
@@ -95,6 +95,7 @@ describe('transcodeVideoChunksWorkflow', () => {
       format: 'video',
     })
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(2, {
+      taskId: 'task-video-chunks',
       assetId: 'asset-video',
       assetKey: 'files/asset-video/proxy.mp4',
       startTime: 55,
@@ -116,6 +117,57 @@ describe('transcodeVideoChunksWorkflow', () => {
             startTime: 55,
             endTime: 110,
             chunkKey: 'files/asset-video/tmp-embedding-chunks/chunk-55-110.mp4',
+          },
+        ],
+      },
+    })
+  })
+
+  it('should fall back to videoTranscodes proxy when assetKey is omitted and support frames format on archived assets', async () => {
+    const task = createMockTask({
+      payload: {
+        projectId: 'proj-1',
+        videoChunks: {
+          parentTaskId: 'parent-emb-2',
+          format: 'frames',
+          chunks: [{ startTime: 0, endTime: 30 }],
+        },
+      },
+    })
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-video',
+      status: 'archived',
+      storageKey: { key: 'files/asset-video/raw.mp4', isArchived: true },
+      mediaType: 'video/mp4',
+      media: {
+        videoTranscodes: [{ key: 'files/asset-video/proxy-720p.mp4' }],
+      },
+    } as unknown as Awaited<ReturnType<typeof getAssetActivity>>)
+
+    mockActivities.transcodeVideoChunkActivity.mockResolvedValueOnce({
+      chunkKey: 'files/asset-video/tmp-embedding-chunks/frames-0-30.tar',
+    })
+
+    await transcodeVideoChunksWorkflow(task)
+
+    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledWith({
+      taskId: 'task-video-chunks',
+      assetId: 'asset-video',
+      assetKey: 'files/asset-video/proxy-720p.mp4',
+      startTime: 0,
+      endTime: 30,
+      format: 'frames',
+    })
+    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
+      taskId: 'task-video-chunks',
+      status: WorkflowTaskStatus.completed,
+      output: {
+        chunks: [
+          {
+            startTime: 0,
+            endTime: 30,
+            chunkKey: 'files/asset-video/tmp-embedding-chunks/frames-0-30.tar',
           },
         ],
       },
@@ -160,8 +212,7 @@ describe('transcodeVideoChunksWorkflow', () => {
       media: {
         videoTranscodes: [],
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any)
+    } as unknown as Awaited<ReturnType<typeof getAssetActivity>>)
 
     await expect(transcodeVideoChunksWorkflow(task)).rejects.toThrow(
       'Original video file is archived and no proxy is available. Restore the asset to generate embeddings.',
@@ -186,8 +237,7 @@ describe('transcodeVideoChunksWorkflow', () => {
       status: 'processed',
       storageKey: { key: 'files/asset-video/raw.mp4', isArchived: false },
       mediaType: 'video/mp4',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any)
+    } as unknown as Awaited<ReturnType<typeof getAssetActivity>>)
 
     mockActivities.transcodeVideoChunkActivity
       .mockResolvedValueOnce({

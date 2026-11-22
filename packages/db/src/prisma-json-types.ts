@@ -362,7 +362,7 @@ declare global {
 
     export interface VideoChunksSpec {
       parentTaskId?: string
-      assetKey: string
+      assetKey?: string
       format?: 'video' | 'frames'
       chunks: Array<{
         startTime: number

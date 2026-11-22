@@ -569,7 +569,7 @@ export const transcodeVideoChunksActivity = defineStep(async function transcodeV
 
   let childTask = null
   if (params.parentTaskId) {
-    const candidates = await prisma.workflowTask.findMany({
+    childTask = await prisma.workflowTask.findFirst({
       where: {
         assetId: params.assetId,
         type: WorkflowTaskType.transcode_video_chunks,
@@ -580,11 +580,13 @@ export const transcodeVideoChunksActivity = defineStep(async function transcodeV
             WorkflowTaskStatus.completed,
           ],
         },
+        payload: {
+          path: ['videoChunks', 'parentTaskId'],
+          equals: params.parentTaskId,
+        },
       },
       orderBy: { id: 'desc' },
     })
-    childTask =
-      candidates.find((t) => t.payload?.videoChunks?.parentTaskId === params.parentTaskId) ?? null
   }
 
   if (!childTask) {
@@ -623,20 +625,57 @@ export const transcodeVideoChunksActivity = defineStep(async function transcodeV
   abortSignal?.addEventListener('abort', onAbort, { once: true })
 
   try {
-    const completedTask = await workflowService.executeWait(childTask, getTranscodeWaitTimeoutMs())
+    const { task: completedTask, done } = await workflowService.waitFor(
+      childTask,
+      getTranscodeWaitTimeoutMs(),
+    )
+    if (!done) {
+      await cancelChildTranscodeTask(childTask.id)
+      throw ApplicationFailure.create({
+        message: `Transcode video chunks task ${childTask.id} timed out`,
+        nonRetryable: true,
+      })
+    }
+
     const output = completedTask.output as { chunks?: TranscodedVideoChunk[] } | null
     if (!output?.chunks || !Array.isArray(output.chunks)) {
       throw ApplicationFailure.create({
         message: `Transcode video chunks task ${childTask.id} completed without valid chunks output`,
-        nonRetryable: false,
+        nonRetryable: true,
       })
     }
+
+    if (abortSignal?.aborted) {
+      const bucket = process.env.S3_BUCKET || 'shumai'
+      for (const chunk of output.chunks) {
+        try {
+          await s3Service.deleteObject(bucket, chunk.chunkKey)
+        } catch {
+          // Best-effort cleanup on cancellation race
+        }
+      }
+      throw ApplicationFailure.create({
+        message: 'Parent embedding workflow was cancelled before transcode completed',
+        nonRetryable: true,
+      })
+    }
+
     return { chunks: output.chunks }
   } catch (err) {
     if (abortSignal?.aborted || isDbosWorkflowCancelledError(err)) {
       await cancelChildTranscodeTask(childTask.id)
+      throw err
     }
-    throw err
+    if (err instanceof ApplicationFailure) {
+      throw err
+    }
+    // The child transcode workflow already applies its own step retry policy;
+    // fail fast here instead of spawning duplicate child tasks on parent retries.
+    throw ApplicationFailure.create({
+      message: err instanceof Error ? err.message : String(err),
+      nonRetryable: true,
+      cause: err instanceof Error ? err : undefined,
+    })
   } finally {
     abortSignal?.removeEventListener('abort', onAbort)
   }

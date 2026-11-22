@@ -782,9 +782,9 @@ describe('AI Database Activities Integration', () => {
     })
 
     it('should create a transcode_video_chunks WorkflowTask and await completion', async () => {
-      const executeWaitSpy = vi
-        .spyOn(workflowService, 'executeWait')
-        .mockImplementation(async (task) => ({
+      const waitForSpy = vi.spyOn(workflowService, 'waitFor').mockImplementation(async (task) => ({
+        done: true,
+        task: {
           ...task,
           status: WorkflowTaskStatus.completed,
           output: {
@@ -796,7 +796,8 @@ describe('AI Database Activities Integration', () => {
               },
             ],
           },
-        }))
+        },
+      }))
 
       const res = await transcodeVideoChunksActivity({
         parentTaskId: 'parent-123',
@@ -815,8 +816,8 @@ describe('AI Database Activities Integration', () => {
           chunkKey: `files/${asset.id}/tmp-embedding-chunks/chunk-0-60.mp4`,
         },
       ])
-      expect(executeWaitSpy).toHaveBeenCalledTimes(1)
-      expect(executeWaitSpy).toHaveBeenCalledWith(
+      expect(waitForSpy).toHaveBeenCalledTimes(1)
+      expect(waitForSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           assetId: asset.id,
           type: WorkflowTaskType.transcode_video_chunks,
@@ -834,6 +835,36 @@ describe('AI Database Activities Integration', () => {
         format: 'video',
         chunks: [{ startTime: 0, endTime: 60 }],
       })
+    })
+
+    it('should honor custom EMBEDDING_TRANSCODE_WAIT_TIMEOUT_MS env var', async () => {
+      process.env.EMBEDDING_TRANSCODE_WAIT_TIMEOUT_MS = '12345'
+      const waitForSpy = vi.spyOn(workflowService, 'waitFor').mockImplementation(async (task) => ({
+        done: true,
+        task: {
+          ...task,
+          status: WorkflowTaskStatus.completed,
+          output: {
+            chunks: [
+              {
+                startTime: 0,
+                endTime: 60,
+                chunkKey: `files/${asset.id}/tmp-embedding-chunks/chunk-0-60.mp4`,
+              },
+            ],
+          },
+        },
+      }))
+
+      await transcodeVideoChunksActivity({
+        parentTaskId: 'parent-timeout-env',
+        teamId: team.id,
+        assetId: asset.id,
+        assetKey: 'media/video.mp4',
+        chunks: [{ startTime: 0, endTime: 60 }],
+      })
+
+      expect(waitForSpy).toHaveBeenCalledWith(expect.anything(), 12345)
     })
 
     it('should reuse an existing transcode_video_chunks task with the same parentTaskId on retry', async () => {
@@ -855,9 +886,9 @@ describe('AI Database Activities Integration', () => {
         },
       })
 
-      const executeWaitSpy = vi
-        .spyOn(workflowService, 'executeWait')
-        .mockImplementation(async (task) => ({
+      const waitForSpy = vi.spyOn(workflowService, 'waitFor').mockImplementation(async (task) => ({
+        done: true,
+        task: {
           ...task,
           status: WorkflowTaskStatus.completed,
           output: {
@@ -869,7 +900,8 @@ describe('AI Database Activities Integration', () => {
               },
             ],
           },
-        }))
+        },
+      }))
 
       await transcodeVideoChunksActivity({
         parentTaskId: 'parent-retry-1',
@@ -880,7 +912,7 @@ describe('AI Database Activities Integration', () => {
         chunks: [{ startTime: 0, endTime: 60 }],
       })
 
-      expect(executeWaitSpy).toHaveBeenCalledWith(
+      expect(waitForSpy).toHaveBeenCalledWith(
         expect.objectContaining({ id: existingChild.id }),
         expect.any(Number),
       )
@@ -892,7 +924,7 @@ describe('AI Database Activities Integration', () => {
     })
 
     it('should return empty chunks immediately when chunks array is empty', async () => {
-      const executeWaitSpy = vi.spyOn(workflowService, 'executeWait')
+      const waitForSpy = vi.spyOn(workflowService, 'waitFor')
 
       const res = await transcodeVideoChunksActivity({
         assetId: asset.id,
@@ -901,7 +933,7 @@ describe('AI Database Activities Integration', () => {
       })
 
       expect(res.chunks).toEqual([])
-      expect(executeWaitSpy).not.toHaveBeenCalled()
+      expect(waitForSpy).not.toHaveBeenCalled()
     })
 
     it('should throw non-retryable ApplicationFailure when assetKey is empty', async () => {
@@ -914,13 +946,88 @@ describe('AI Database Activities Integration', () => {
       ).rejects.toThrow('assetKey is required for video chunks transcoding')
     })
 
+    it('should wrap child task failure as non-retryable ApplicationFailure to avoid duplicate child tasks', async () => {
+      vi.spyOn(workflowService, 'waitFor').mockRejectedValue(
+        new Error(
+          'Original video file is archived and no proxy is available. Restore the asset to generate embeddings.',
+        ),
+      )
+
+      expect.assertions(2)
+      try {
+        await transcodeVideoChunksActivity({
+          parentTaskId: 'parent-child-fail',
+          teamId: team.id,
+          assetId: asset.id,
+          assetKey: 'media/video.mp4',
+          chunks: [{ startTime: 0, endTime: 60 }],
+        })
+      } catch (err: unknown) {
+        expect((err as { nonRetryable?: boolean }).nonRetryable).toBe(true)
+        expect((err as Error).message).toContain('Original video file is archived')
+      }
+    })
+
+    it('should cancel child task and throw non-retryable ApplicationFailure on timeout', async () => {
+      const cancelSpy = vi.spyOn(workflowService, 'cancel').mockResolvedValue(undefined)
+      vi.spyOn(workflowService, 'waitFor').mockImplementation(async (task) => ({
+        done: false,
+        task,
+      }))
+
+      expect.assertions(4)
+      try {
+        await transcodeVideoChunksActivity({
+          parentTaskId: 'parent-timeout-fail',
+          teamId: team.id,
+          assetId: asset.id,
+          assetKey: 'media/video.mp4',
+          chunks: [{ startTime: 0, endTime: 60 }],
+        })
+      } catch (err: unknown) {
+        expect((err as { nonRetryable?: boolean }).nonRetryable).toBe(true)
+        expect((err as Error).message).toContain('timed out')
+      }
+
+      const childTask = await prisma.workflowTask.findFirst({
+        where: { assetId: asset.id, type: WorkflowTaskType.transcode_video_chunks },
+      })
+      expect(cancelSpy).toHaveBeenCalledWith(childTask!.id)
+      expect(childTask?.status).toBe(WorkflowTaskStatus.failed)
+    })
+
+    it('should throw non-retryable ApplicationFailure when completed child task has invalid chunks output', async () => {
+      vi.spyOn(workflowService, 'waitFor').mockImplementation(async (task) => ({
+        done: true,
+        task: {
+          ...task,
+          status: WorkflowTaskStatus.completed,
+          output: {},
+        },
+      }))
+
+      expect.assertions(2)
+      try {
+        await transcodeVideoChunksActivity({
+          parentTaskId: 'parent-invalid-output',
+          teamId: team.id,
+          assetId: asset.id,
+          assetKey: 'media/video.mp4',
+          chunks: [{ startTime: 0, endTime: 60 }],
+        })
+      } catch (err: unknown) {
+        expect((err as { nonRetryable?: boolean }).nonRetryable).toBe(true)
+        expect((err as Error).message).toContain('completed without valid chunks output')
+      }
+    })
+
     it('should cancel child transcode_video_chunks task when parent workflow is cancelled', async () => {
       const parentTaskId = 'parent-cancel-test'
       const abortController = new AbortController()
       registerLocalTaskAbortController(parentTaskId, abortController)
 
       const cancelSpy = vi.spyOn(workflowService, 'cancel').mockResolvedValue(undefined)
-      vi.spyOn(workflowService, 'executeWait').mockImplementation(async () => {
+      vi.spyOn(workflowService, 'waitFor').mockImplementation(async () => {
         abortController.abort()
         throw new DBOSError.DBOSWorkflowCancelledError(parentTaskId)
       })
@@ -942,6 +1049,52 @@ describe('AI Database Activities Integration', () => {
         expect(childTask).toBeDefined()
         expect(cancelSpy).toHaveBeenCalledWith(childTask!.id)
         expect(childTask?.status).toBe(WorkflowTaskStatus.failed)
+      } finally {
+        unregisterLocalTaskAbortController(parentTaskId)
+      }
+    })
+
+    it('should clean up uploaded chunks from S3 if parent workflow is cancelled just as child completes', async () => {
+      const parentTaskId = 'parent-cancel-race'
+      const abortController = new AbortController()
+      registerLocalTaskAbortController(parentTaskId, abortController)
+
+      vi.spyOn(workflowService, 'cancel').mockResolvedValue(undefined)
+      vi.spyOn(workflowService, 'waitFor').mockImplementation(async (task) => {
+        abortController.abort()
+        return {
+          done: true,
+          task: {
+            ...task,
+            status: WorkflowTaskStatus.completed,
+            output: {
+              chunks: [
+                {
+                  startTime: 0,
+                  endTime: 60,
+                  chunkKey: `files/${asset.id}/tmp-embedding-chunks/chunk-0-60.mp4`,
+                },
+              ],
+            },
+          },
+        }
+      })
+
+      try {
+        await expect(
+          transcodeVideoChunksActivity({
+            parentTaskId,
+            teamId: team.id,
+            assetId: asset.id,
+            assetKey: 'media/video.mp4',
+            chunks: [{ startTime: 0, endTime: 60 }],
+          }),
+        ).rejects.toThrow('Parent embedding workflow was cancelled before transcode completed')
+
+        expect(s3Service.deleteObject).toHaveBeenCalledWith(
+          'shumai',
+          `files/${asset.id}/tmp-embedding-chunks/chunk-0-60.mp4`,
+        )
       } finally {
         unregisterLocalTaskAbortController(parentTaskId)
       }
