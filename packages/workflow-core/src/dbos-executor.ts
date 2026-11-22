@@ -69,6 +69,7 @@ export function getQueueForTaskType(type: string | null | undefined): string {
     case WorkflowTaskType.transcode_image_annotation:
     case WorkflowTaskType.transcode_watermark:
     case WorkflowTaskType.transcode_3d:
+    case WorkflowTaskType.transcode_video_chunks:
       return TaskQueueTranscode
     case WorkflowTaskType.archive_asset:
     case WorkflowTaskType.restore_asset:

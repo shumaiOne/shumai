@@ -137,6 +137,7 @@ export class AssetArchiveService {
             WorkflowTaskType.transcode_screenshot,
             WorkflowTaskType.transcode_image_annotation,
             WorkflowTaskType.transcode_watermark,
+            WorkflowTaskType.transcode_video_chunks,
           ],
         },
       },

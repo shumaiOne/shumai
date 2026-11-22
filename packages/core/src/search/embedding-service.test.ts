@@ -166,6 +166,15 @@ describe('EmbeddingService', () => {
         projectId: project.id,
       },
     })
+    const staleChunkTask = await prisma.workflowTask.create({
+      data: {
+        assetId: videoAsset.id,
+        type: WorkflowTaskType.transcode_video_chunks,
+        status: WorkflowTaskStatus.processing,
+        teamId: team.id,
+        projectId: project.id,
+      },
+    })
 
     const initialEmbeddings = await prisma.assetEmbedding.count({
       where: { assetId: videoAsset.id },
@@ -178,6 +187,12 @@ describe('EmbeddingService', () => {
     expect(result.totalAssets).toBe(3)
     expect(result.tasksCreated).toBe(3)
     expect(result.skippedTeams).not.toContain('Active Embedding Team')
+
+    // Verify old transcode_video_chunks task was also wiped upfront
+    const remainingChunkTask = await prisma.workflowTask.findUnique({
+      where: { id: staleChunkTask.id },
+    })
+    expect(remainingChunkTask).toBeNull()
 
     // Verify old embeddings were wiped upfront
     const remainingEmbeddings = await prisma.assetEmbedding.count({

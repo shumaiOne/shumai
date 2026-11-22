@@ -1,36 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   generateTextEmbeddingActivity,
-  extractAiMetadataActivity,
   getEmbeddingContextActivity,
   saveAssetEmbeddingsActivity,
   deleteAssetEmbeddingsActivity,
   generateImageEmbeddingActivity,
   generateVideoChunkEmbeddingActivity,
   getGemmaEmbeddingTargetFrameCount,
+  transcodeVideoChunksActivity,
 } from './ai'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { transcodeService } from '@shumai/core'
-import { prisma, AssetType, AssetStatus } from '@shumai/db'
+import { prisma, AssetType, AssetStatus, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
+import {
+  DBOSError,
+  registerLocalTaskAbortController,
+  unregisterLocalTaskAbortController,
+  workflowService,
+} from '@shumai/workflow-core'
 import sharp from 'sharp'
-
-vi.mock('fs', async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- importOriginal returns the raw fs module, typed dynamically as any here
-  const actual = await importOriginal<any>()
-  const mockRead = vi.fn((path, options) => {
-    if (typeof path === 'string' && (path.includes('video-chunk') || path.includes('out1.webp'))) {
-      return Buffer.from('chunk-data')
-    }
-    return actual.readFileSync(path, options)
-  })
-  return {
-    ...actual,
-    writeFileSync: vi.fn(),
-    readFileSync: mockRead,
-    unlinkSync: vi.fn(),
-  }
-})
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
@@ -39,34 +27,10 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
     headObject: vi.fn(),
     listObjects: vi.fn(),
     downloadToFile: vi.fn(),
+    deleteObject: vi.fn(),
     resolveInput: vi.fn().mockImplementation(async (_bucket, key) => `https://mock-storage/${key}`),
   },
 }))
-
-vi.mock('@shumai/core/src/transcode/transcode', () => ({
-  transcodeService: {
-    extractVideoFrames: vi.fn(),
-    createTempDir: vi.fn().mockReturnValue('/tmp'),
-    removeDir: vi.fn(),
-  },
-}))
-
-vi.mock('child_process', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock functions dynamically return varying types based on test command calls
-  const execFileMock: any = vi.fn((file: any, args: any, cb: any) => {
-    cb(null, '120.0\n', '')
-  })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock functions dynamically return varying types based on test command calls
-  execFileMock[Symbol.for('nodejs.util.promisify.custom')] = vi.fn(async (file: any) => {
-    if (file === 'ffprobe') {
-      return { stdout: '120.0\n', stderr: '' }
-    }
-    return { stdout: '', stderr: '' }
-  })
-  return {
-    execFile: execFileMock,
-  }
-})
 
 const mockEmbedContent = vi.fn().mockResolvedValue({
   embeddings: [
@@ -503,82 +467,6 @@ describe('AI Activities Unit Tests', () => {
       }),
     ).rejects.toThrow('is empty (0 bytes)')
   })
-
-  describe('extractAiMetadataActivity', () => {
-    it('should return existing images if they are already in S3 storage', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock returned object cast as any due to partial implementation
-      vi.mocked(s3Service.headObject).mockResolvedValue({} as any)
-      vi.mocked(s3Service.listObjects).mockResolvedValue([
-        'project/ai_metadata/1.webp',
-        'project/ai_metadata/2.webp',
-      ])
-
-      const res = await extractAiMetadataActivity({
-        assetKey: 'project/video.mp4',
-        filePath: '/tmp/video.mp4',
-        type: 'autofill',
-        isImage: false,
-      })
-
-      expect(res).toEqual(['project/ai_metadata/1.webp', 'project/ai_metadata/2.webp'])
-      expect(s3Service.headObject).toHaveBeenCalledWith('shumai', 'project/ai_metadata/1.webp')
-      expect(transcodeService.extractVideoFrames).not.toHaveBeenCalled()
-    })
-
-    it('should extract frames and upload to S3 if not already present', async () => {
-      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not Found'))
-      vi.mocked(transcodeService.extractVideoFrames).mockResolvedValue(['/tmp/out1.webp'])
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock returned object cast as any due to partial implementation
-      vi.mocked(s3Service.putObject).mockResolvedValue({} as any)
-
-      const res = await extractAiMetadataActivity({
-        assetKey: 'project/video.mp4',
-        filePath: '/tmp/video.mp4',
-        type: 'autofill',
-        isImage: false,
-      })
-
-      expect(res).toEqual(['project/ai_metadata/out1.webp'])
-      expect(transcodeService.extractVideoFrames).toHaveBeenCalledWith({
-        inputFile: '/tmp/video.mp4',
-        outputDir: '/tmp',
-        numFrames: 30,
-        frameHeight: 720,
-        isImage: false,
-      })
-      expect(s3Service.putObject).toHaveBeenCalledWith(
-        'shumai',
-        'project/ai_metadata/out1.webp',
-        expect.any(Buffer),
-        expect.any(Number),
-        'image/webp',
-      )
-    })
-
-    it('should resolveInput from s3Service when filePath is not provided', async () => {
-      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not Found'))
-      vi.mocked(s3Service.resolveInput).mockResolvedValue('https://mock-storage/project/video.mp4')
-      vi.mocked(transcodeService.extractVideoFrames).mockResolvedValue(['/tmp/out1.webp'])
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(s3Service.putObject).mockResolvedValue({} as any)
-
-      const res = await extractAiMetadataActivity({
-        assetKey: 'project/video.mp4',
-        type: 'autofill',
-        isImage: false,
-      })
-
-      expect(res).toEqual(['project/ai_metadata/out1.webp'])
-      expect(s3Service.resolveInput).toHaveBeenCalledWith('shumai', 'project/video.mp4')
-      expect(transcodeService.extractVideoFrames).toHaveBeenCalledWith({
-        inputFile: 'https://mock-storage/project/video.mp4',
-        outputDir: expect.any(String),
-        numFrames: 30,
-        frameHeight: 720,
-        isImage: false,
-      })
-    })
-  })
 })
 
 describe('AI Database Activities Integration', () => {
@@ -885,6 +773,178 @@ describe('AI Database Activities Integration', () => {
         where: { assetId: asset.id },
       })
       expect(after).toHaveLength(0)
+    })
+  })
+
+  describe('transcodeVideoChunksActivity', () => {
+    afterEach(() => {
+      delete process.env.EMBEDDING_TRANSCODE_WAIT_TIMEOUT_MS
+    })
+
+    it('should create a transcode_video_chunks WorkflowTask and await completion', async () => {
+      const executeWaitSpy = vi
+        .spyOn(workflowService, 'executeWait')
+        .mockImplementation(async (task) => ({
+          ...task,
+          status: WorkflowTaskStatus.completed,
+          output: {
+            chunks: [
+              {
+                startTime: 0,
+                endTime: 60,
+                chunkKey: `files/${asset.id}/tmp-embedding-chunks/chunk-0-60.mp4`,
+              },
+            ],
+          },
+        }))
+
+      const res = await transcodeVideoChunksActivity({
+        parentTaskId: 'parent-123',
+        teamId: team.id,
+        projectId: 'proj-123',
+        assetId: asset.id,
+        assetKey: 'media/video.mp4',
+        format: 'video',
+        chunks: [{ startTime: 0, endTime: 60 }],
+      })
+
+      expect(res.chunks).toEqual([
+        {
+          startTime: 0,
+          endTime: 60,
+          chunkKey: `files/${asset.id}/tmp-embedding-chunks/chunk-0-60.mp4`,
+        },
+      ])
+      expect(executeWaitSpy).toHaveBeenCalledTimes(1)
+      expect(executeWaitSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          assetId: asset.id,
+          type: WorkflowTaskType.transcode_video_chunks,
+        }),
+        60 * 60 * 1000,
+      )
+
+      const createdTask = await prisma.workflowTask.findFirst({
+        where: { assetId: asset.id, type: WorkflowTaskType.transcode_video_chunks },
+      })
+      expect(createdTask).toBeDefined()
+      expect(createdTask?.payload?.videoChunks).toEqual({
+        parentTaskId: 'parent-123',
+        assetKey: 'media/video.mp4',
+        format: 'video',
+        chunks: [{ startTime: 0, endTime: 60 }],
+      })
+    })
+
+    it('should reuse an existing transcode_video_chunks task with the same parentTaskId on retry', async () => {
+      const existingChild = await prisma.workflowTask.create({
+        data: {
+          assetId: asset.id,
+          teamId: team.id,
+          type: WorkflowTaskType.transcode_video_chunks,
+          status: WorkflowTaskStatus.processing,
+          payload: {
+            projectId: '',
+            videoChunks: {
+              parentTaskId: 'parent-retry-1',
+              assetKey: 'media/video.mp4',
+              format: 'video',
+              chunks: [{ startTime: 0, endTime: 60 }],
+            },
+          },
+        },
+      })
+
+      const executeWaitSpy = vi
+        .spyOn(workflowService, 'executeWait')
+        .mockImplementation(async (task) => ({
+          ...task,
+          status: WorkflowTaskStatus.completed,
+          output: {
+            chunks: [
+              {
+                startTime: 0,
+                endTime: 60,
+                chunkKey: `files/${asset.id}/tmp-embedding-chunks/chunk-0-60.mp4`,
+              },
+            ],
+          },
+        }))
+
+      await transcodeVideoChunksActivity({
+        parentTaskId: 'parent-retry-1',
+        teamId: team.id,
+        assetId: asset.id,
+        assetKey: 'media/video.mp4',
+        format: 'video',
+        chunks: [{ startTime: 0, endTime: 60 }],
+      })
+
+      expect(executeWaitSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ id: existingChild.id }),
+        expect.any(Number),
+      )
+
+      const count = await prisma.workflowTask.count({
+        where: { assetId: asset.id, type: WorkflowTaskType.transcode_video_chunks },
+      })
+      expect(count).toBe(1)
+    })
+
+    it('should return empty chunks immediately when chunks array is empty', async () => {
+      const executeWaitSpy = vi.spyOn(workflowService, 'executeWait')
+
+      const res = await transcodeVideoChunksActivity({
+        assetId: asset.id,
+        assetKey: 'media/video.mp4',
+        chunks: [],
+      })
+
+      expect(res.chunks).toEqual([])
+      expect(executeWaitSpy).not.toHaveBeenCalled()
+    })
+
+    it('should throw non-retryable ApplicationFailure when assetKey is empty', async () => {
+      await expect(
+        transcodeVideoChunksActivity({
+          assetId: asset.id,
+          assetKey: '',
+          chunks: [{ startTime: 0, endTime: 60 }],
+        }),
+      ).rejects.toThrow('assetKey is required for video chunks transcoding')
+    })
+
+    it('should cancel child transcode_video_chunks task when parent workflow is cancelled', async () => {
+      const parentTaskId = 'parent-cancel-test'
+      const abortController = new AbortController()
+      registerLocalTaskAbortController(parentTaskId, abortController)
+
+      const cancelSpy = vi.spyOn(workflowService, 'cancel').mockResolvedValue(undefined)
+      vi.spyOn(workflowService, 'executeWait').mockImplementation(async () => {
+        abortController.abort()
+        throw new DBOSError.DBOSWorkflowCancelledError(parentTaskId)
+      })
+
+      try {
+        await expect(
+          transcodeVideoChunksActivity({
+            parentTaskId,
+            teamId: team.id,
+            assetId: asset.id,
+            assetKey: 'media/video.mp4',
+            chunks: [{ startTime: 0, endTime: 60 }],
+          }),
+        ).rejects.toThrow()
+
+        const childTask = await prisma.workflowTask.findFirst({
+          where: { assetId: asset.id, type: WorkflowTaskType.transcode_video_chunks },
+        })
+        expect(childTask).toBeDefined()
+        expect(cancelSpy).toHaveBeenCalledWith(childTask!.id)
+        expect(childTask?.status).toBe(WorkflowTaskStatus.failed)
+      } finally {
+        unregisterLocalTaskAbortController(parentTaskId)
+      }
     })
   })
 })

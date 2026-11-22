@@ -13,15 +13,17 @@ export function initAgentWorkflows() {
 export * from './activities/agent'
 export {
   deleteAssetEmbeddingsActivity,
-  extractAiMetadataActivity,
   generateImageEmbeddingActivity,
   generateTextEmbeddingActivity,
   generateVideoChunkEmbeddingActivity,
   saveAssetEmbeddingsActivity,
+  transcodeVideoChunksActivity,
   type ExistingAssetEmbeddingInfo,
-  type ExtractAiMetadataParams,
   type GeneratedEmbedding,
   type GenerateTextEmbeddingParams,
+  type TranscodedVideoChunk,
+  type TranscodeVideoChunksParams,
+  type VideoChunkRange,
 } from './activities/ai'
 export * from './context/serialize-context'
 export * from './operation-tools'

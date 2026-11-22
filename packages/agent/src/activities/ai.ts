@@ -1,17 +1,15 @@
 import { GoogleGenAI } from '@google/genai'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { transcodeService } from '@shumai/core'
-import * as fs from 'fs'
-import * as os from 'os'
-import * as path from 'path'
-import { execFile } from 'child_process'
-import { promisify } from 'util'
-import { ulid } from 'ulid'
-import { ApplicationFailure, defineStep } from '@shumai/workflow-core'
-import { prisma } from '@shumai/db'
+import { textEmbeddingService } from '@shumai/core/src/search/text-embedding'
+import { prisma, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
+import {
+  ApplicationFailure,
+  defineStep,
+  getLocalTaskAbortSignal,
+  isDbosWorkflowCancelledError,
+  workflowService,
+} from '@shumai/workflow-core'
 import sharp from 'sharp'
-
-const execFileAsync = promisify(execFile)
 
 export interface Usage {
   inputTokens: number
@@ -111,8 +109,6 @@ async function callGemmaEmbeddingServer(input: string | OpenAiEmbeddingItem[]): 
   }
 }
 
-import { textEmbeddingService } from '@shumai/core/src/search/text-embedding'
-
 export interface GenerateTextEmbeddingParams {
   text: string
   teamId: string
@@ -156,66 +152,6 @@ export const generateTextEmbeddingActivity = defineStep(
     }
   },
 )
-
-export interface ExtractAiMetadataParams {
-  assetKey: string
-  filePath?: string
-  type: 'autofill'
-  isImage: boolean
-}
-
-export const extractAiMetadataActivity = defineStep(async function extractAiMetadataActivity(
-  params: ExtractAiMetadataParams,
-): Promise<string[]> {
-  const bucket = process.env.S3_BUCKET || 'shumai'
-  const assetDir = path.dirname(params.assetKey)
-  const aiDir = path.join(assetDir, 'ai_metadata')
-  const generatedFiles: string[] = []
-
-  let tmpDir = params.filePath ? path.dirname(params.filePath) : ''
-  let cleanupTmp = false
-  if (!tmpDir) {
-    tmpDir = transcodeService.createTempDir('ai-meta-')
-    cleanupTmp = true
-  }
-
-  try {
-    if (params.type === 'autofill') {
-      const targetKey = path.join(aiDir, '1.webp')
-      try {
-        await s3Service.headObject(bucket, targetKey)
-        const keys = await s3Service.listObjects(bucket, aiDir)
-        return keys.filter((k) => k.toLowerCase().endsWith('.webp'))
-      } catch {
-        // Not found
-      }
-
-      const inputSource = params.filePath || (await s3Service.resolveInput(bucket, params.assetKey))
-
-      const files = await transcodeService.extractVideoFrames({
-        inputFile: inputSource,
-        outputDir: tmpDir,
-        numFrames: 30,
-        frameHeight: 720,
-        isImage: params.isImage,
-      })
-
-      for (const file of files) {
-        const name = path.basename(file)
-        const buffer = fs.readFileSync(file)
-        const key = path.join(aiDir, name)
-        await s3Service.putObject(bucket, key, buffer, buffer.length, 'image/webp')
-        generatedFiles.push(key)
-      }
-    }
-  } finally {
-    if (cleanupTmp && tmpDir) {
-      transcodeService.removeDir(tmpDir)
-    }
-  }
-
-  return generatedFiles
-})
 
 export const getEmbeddingContextActivity = defineStep(
   async function getEmbeddingContextActivity(params: { teamId: string; assetId: string }) {
@@ -569,168 +505,140 @@ export const generateVideoChunkEmbeddingActivity = defineStep(
   },
 )
 
-export interface TranscodeVideoChunkParams {
-  assetId: string
-  assetKey?: string
-  filePath?: string
+export interface VideoChunkRange {
   startTime: number
   endTime: number
-  format?: 'video' | 'frames'
 }
 
-export const transcodeVideoChunkActivity = defineStep(async function transcodeVideoChunkActivity(
-  params: TranscodeVideoChunkParams,
-): Promise<{ chunkKey: string }> {
-  if (!params.filePath && !params.assetKey) {
+export interface TranscodedVideoChunk extends VideoChunkRange {
+  chunkKey: string
+}
+
+export interface TranscodeVideoChunksParams {
+  parentTaskId?: string
+  teamId?: string | null
+  projectId?: string | null
+  assetId: string
+  assetKey: string
+  format?: 'video' | 'frames'
+  chunks: VideoChunkRange[]
+}
+
+const DEFAULT_TRANSCODE_WAIT_TIMEOUT_MS = 60 * 60 * 1000 // 60 minutes
+
+function getTranscodeWaitTimeoutMs(): number {
+  const parsed = parseInt(process.env.EMBEDDING_TRANSCODE_WAIT_TIMEOUT_MS || '', 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_TRANSCODE_WAIT_TIMEOUT_MS
+}
+
+async function cancelChildTranscodeTask(childTaskId: string): Promise<void> {
+  try {
+    await workflowService.cancel(childTaskId)
+  } catch {
+    // Ignore DBOS cancel errors during cleanup
+  }
+  try {
+    await prisma.workflowTask.updateMany({
+      where: {
+        id: childTaskId,
+        status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
+      },
+      data: {
+        status: WorkflowTaskStatus.failed,
+        output: { error: 'Parent embedding workflow was cancelled' },
+      },
+    })
+  } catch {
+    // Ignore DB update errors during cleanup
+  }
+}
+
+export const transcodeVideoChunksActivity = defineStep(async function transcodeVideoChunksActivity(
+  params: TranscodeVideoChunksParams,
+): Promise<{ chunks: TranscodedVideoChunk[] }> {
+  if (!params.assetKey) {
     throw ApplicationFailure.create({
-      message: 'Neither filePath nor assetKey was provided for video chunk transcoding',
+      message: 'assetKey is required for video chunks transcoding',
       nonRetryable: true,
     })
   }
 
-  if (params.format === 'frames') {
-    const tmpDir = transcodeService.createTempDir('video-chunk-frames-')
-    try {
-      const bucket = process.env.S3_BUCKET || 'shumai'
-      const inputSource =
-        params.filePath ||
-        (params.assetKey ? await s3Service.resolveInput(bucket, params.assetKey) : '')
-      if (!inputSource) {
-        throw ApplicationFailure.create({
-          message: 'Neither filePath nor assetKey was provided for video chunk transcoding',
-          nonRetryable: true,
-        })
-      }
-      const isRemote = inputSource.startsWith('http://') || inputSource.startsWith('https://')
-
-      const duration = Math.max(0.1, params.endTime - params.startTime)
-      const fpsFilter = duration > 16 ? `fps=${16 / duration}` : 'fps=1'
-      const vframesArgs = duration > 16 ? ['-vframes', '16'] : []
-
-      await execFileAsync('ffmpeg', [
-        '-y',
-        '-loglevel',
-        'warning',
-        ...(isRemote
-          ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
-          : []),
-        '-ss',
-        params.startTime.toString(),
-        '-i',
-        inputSource,
-        '-map',
-        '0:V:0',
-        '-t',
-        duration.toString(),
-        '-vf',
-        fpsFilter,
-        ...vframesArgs,
-        '-q:v',
-        '2',
-        path.join(tmpDir, 'frame_%04d.jpg'),
-      ])
-
-      const frameFiles = fs
-        .readdirSync(tmpDir)
-        .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
-        .sort()
-
-      const archiveEntries: Record<string, Buffer> = {}
-      for (const file of frameFiles) {
-        archiveEntries[file] = fs.readFileSync(path.join(tmpDir, file))
-      }
-
-      const archive = new Bun.Archive(archiveEntries)
-      const archiveBytes = await archive.bytes()
-      const archiveData = Buffer.from(
-        archiveBytes.buffer,
-        archiveBytes.byteOffset,
-        archiveBytes.byteLength,
-      )
-      const key = `files/${params.assetId}/tmp-embedding-chunks/frames-${params.startTime}-${params.endTime}-${ulid()}.tar`
-      await s3Service.putObject(bucket, key, archiveData, archiveData.length, 'application/x-tar')
-
-      return { chunkKey: key }
-    } catch (err) {
-      if (err instanceof ApplicationFailure) {
-        throw err
-      }
-      throw ApplicationFailure.create({
-        message: `Failed to extract video chunk frames for ${params.startTime}-${params.endTime}: ${err instanceof Error ? err.message : String(err)}`,
-        nonRetryable: false,
-      })
-    } finally {
-      transcodeService.removeDir(tmpDir)
-    }
+  if (!params.chunks || params.chunks.length === 0) {
+    return { chunks: [] }
   }
 
-  const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}-${ulid()}.mp4`)
+  let childTask = null
+  if (params.parentTaskId) {
+    const candidates = await prisma.workflowTask.findMany({
+      where: {
+        assetId: params.assetId,
+        type: WorkflowTaskType.transcode_video_chunks,
+        status: {
+          in: [
+            WorkflowTaskStatus.pending,
+            WorkflowTaskStatus.processing,
+            WorkflowTaskStatus.completed,
+          ],
+        },
+      },
+      orderBy: { id: 'desc' },
+    })
+    childTask =
+      candidates.find((t) => t.payload?.videoChunks?.parentTaskId === params.parentTaskId) ?? null
+  }
+
+  if (!childTask) {
+    childTask = await prisma.workflowTask.create({
+      data: {
+        assetId: params.assetId,
+        teamId: params.teamId ?? null,
+        projectId: params.projectId ?? null,
+        type: WorkflowTaskType.transcode_video_chunks,
+        status: WorkflowTaskStatus.pending,
+        payload: {
+          projectId: params.projectId ?? '',
+          videoChunks: {
+            parentTaskId: params.parentTaskId,
+            assetKey: params.assetKey,
+            format: params.format,
+            chunks: params.chunks,
+          },
+        },
+      },
+    })
+  }
+
+  const abortSignal = getLocalTaskAbortSignal(params.parentTaskId)
+  if (abortSignal?.aborted) {
+    await cancelChildTranscodeTask(childTask.id)
+    throw ApplicationFailure.create({
+      message: 'Parent embedding workflow was cancelled before transcode completed',
+      nonRetryable: true,
+    })
+  }
+
+  const onAbort = () => {
+    void cancelChildTranscodeTask(childTask.id)
+  }
+  abortSignal?.addEventListener('abort', onAbort, { once: true })
+
   try {
-    const bucket = process.env.S3_BUCKET || 'shumai'
-    const inputSource =
-      params.filePath ||
-      (params.assetKey ? await s3Service.resolveInput(bucket, params.assetKey) : '')
-    if (!inputSource) {
+    const completedTask = await workflowService.executeWait(childTask, getTranscodeWaitTimeoutMs())
+    const output = completedTask.output as { chunks?: TranscodedVideoChunk[] } | null
+    if (!output?.chunks || !Array.isArray(output.chunks)) {
       throw ApplicationFailure.create({
-        message: 'Neither filePath nor assetKey was provided for video chunk transcoding',
-        nonRetryable: true,
+        message: `Transcode video chunks task ${childTask.id} completed without valid chunks output`,
+        nonRetryable: false,
       })
     }
-    const isRemote = inputSource.startsWith('http://') || inputSource.startsWith('https://')
-
-    // Slice video segment using ffmpeg, force 1fps and remove audio for gemini-embedding-2 optimization
-    // Note: -ss placed before -i for fast input seeking via demuxer Range requests
-    await execFileAsync('ffmpeg', [
-      '-y',
-      '-loglevel',
-      'warning',
-      ...(isRemote
-        ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
-        : []),
-      '-ss',
-      params.startTime.toString(),
-      '-i',
-      inputSource,
-      '-map',
-      '0:V:0',
-      '-t',
-      (params.endTime - params.startTime).toString(),
-      '-vf',
-      'fps=1',
-      '-c:v',
-      'libx264',
-      '-preset',
-      'ultrafast',
-      '-crf',
-      '28',
-      '-an',
-      chunkTmp,
-    ])
-
-    const chunkData = fs.readFileSync(chunkTmp)
-
-    // Upload to S3
-    const key = `files/${params.assetId}/tmp-embedding-chunks/chunk-${params.startTime}-${params.endTime}-${ulid()}.mp4`
-
-    await s3Service.putObject(bucket, key, chunkData, chunkData.length, 'video/mp4')
-
-    return { chunkKey: key }
+    return { chunks: output.chunks }
   } catch (err) {
-    if (err instanceof ApplicationFailure) {
-      throw err
+    if (abortSignal?.aborted || isDbosWorkflowCancelledError(err)) {
+      await cancelChildTranscodeTask(childTask.id)
     }
-    throw ApplicationFailure.create({
-      message: `Failed to transcode video chunk for ${params.startTime}-${params.endTime}: ${err instanceof Error ? err.message : String(err)}`,
-      nonRetryable: false,
-    })
+    throw err
   } finally {
-    if (fs.existsSync(chunkTmp)) {
-      try {
-        fs.unlinkSync(chunkTmp)
-      } catch (e) {
-        console.error('Failed to cleanup local chunk file:', e)
-      }
-    }
+    abortSignal?.removeEventListener('abort', onAbort)
   }
 })
 

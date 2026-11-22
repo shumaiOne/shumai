@@ -12,8 +12,9 @@ import {
   generateVideoChunkEmbeddingActivity,
   getEmbeddingContextActivity,
   saveAssetEmbeddingsActivity,
-  transcodeVideoChunkActivity,
+  transcodeVideoChunksActivity,
   type ExistingAssetEmbeddingInfo,
+  type VideoChunkRange,
 } from '../activities/ai'
 
 export interface GeneratedEmbedding {
@@ -148,6 +149,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       const overlap = chunkOverlap ?? 5.0
       const step = Math.max(1, limit - overlap)
 
+      const missingChunks: VideoChunkRange[] = []
       for (let start = 0.0; start < duration; start += step) {
         let end = start + limit
         if (end >= duration) {
@@ -163,57 +165,69 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
             Math.abs(c.endTime - end) < 0.1,
         )
 
-        if (chunkExists) {
-          // If this chunk reached the end of the video, stop
-          if (end >= duration) {
-            break
-          }
-          continue
-        }
-
-        // Step A: Slice chunk on transcode worker and upload to S3
-        const chunkRes = await transcodeVideoChunkActivity({
-          assetId: asset.id,
-          assetKey: embeddingKey,
-          startTime: start,
-          endTime: end,
-          format: isGemmaProvider ? 'frames' : 'video',
-        })
-        const { chunkKey } = chunkRes
-
-        try {
-          // Step B: Generate embedding on agent worker
-          const chunkResult = await generateVideoChunkEmbeddingActivity({
-            teamId: task.teamId,
-            chunkKey,
-          })
-
-          // Step C: Save chunk embedding to database immediately
-          await saveAssetEmbeddingsActivity({
-            assetId: task.assetId,
-            embeddings: [
-              {
-                embedding: chunkResult.embedding,
-                startTime: start,
-                endTime: end,
-              },
-            ],
-          })
-
-          if (chunkResult.usage) {
-            usage.inputTokens += chunkResult.usage.inputTokens || 0
-            usage.outputTokens += chunkResult.usage.outputTokens || 0
-          }
-        } finally {
-          // Step D: Delete temporary chunk from S3
-          await deleteS3ObjectActivity({
-            key: chunkKey,
-          })
+        if (!chunkExists) {
+          missingChunks.push({ startTime: start, endTime: end })
         }
 
         // If this chunk reached the end of the video, stop to avoid redundant overlapping chunks
         if (end >= duration) {
           break
+        }
+      }
+
+      if (missingChunks.length > 0) {
+        // Step A: Slice all missing chunks via batch task on transcode queue and upload to S3
+        const { chunks: transcodedChunks } = await transcodeVideoChunksActivity({
+          parentTaskId: task.id,
+          teamId: task.teamId,
+          projectId: task.projectId,
+          assetId: asset.id,
+          assetKey: embeddingKey,
+          format: isGemmaProvider ? 'frames' : 'video',
+          chunks: missingChunks,
+        })
+
+        const remainingChunkKeys = new Set(transcodedChunks.map((c) => c.chunkKey))
+
+        try {
+          for (const chunk of transcodedChunks) {
+            // Step B: Generate embedding on agent worker
+            const chunkResult = await generateVideoChunkEmbeddingActivity({
+              teamId: task.teamId,
+              chunkKey: chunk.chunkKey,
+            })
+
+            // Step C: Save chunk embedding to database immediately
+            await saveAssetEmbeddingsActivity({
+              assetId: task.assetId,
+              embeddings: [
+                {
+                  embedding: chunkResult.embedding,
+                  startTime: chunk.startTime,
+                  endTime: chunk.endTime,
+                },
+              ],
+            })
+
+            if (chunkResult.usage) {
+              usage.inputTokens += chunkResult.usage.inputTokens || 0
+              usage.outputTokens += chunkResult.usage.outputTokens || 0
+            }
+
+            // Step D: Delete temporary chunk from S3 as soon as it is embedded
+            await deleteS3ObjectActivity({
+              key: chunk.chunkKey,
+            })
+            remainingChunkKeys.delete(chunk.chunkKey)
+          }
+        } finally {
+          for (const key of remainingChunkKeys) {
+            try {
+              await deleteS3ObjectActivity({ key })
+            } catch (cleanupErr) {
+              console.error(`Failed to delete temporary chunk ${key} from S3:`, cleanupErr)
+            }
+          }
         }
       }
     }
