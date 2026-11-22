@@ -5556,6 +5556,46 @@ describe('AssetService — natural sort by name', () => {
       expect(restored?.isDeleted).toBe(false)
       expect(restored?.status).toBe(AssetStatus.processed)
     })
+
+    it('should restore asset with status "processed" even if an auxiliary transcode_video_chunks task is active', async () => {
+      const team = await prisma.team.create({ data: { name: 'Restore Video Chunks Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Restore Video Chunks Project', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const file = await prisma.asset.create({
+        data: {
+          name: 'embedding-chunks-video.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          status: AssetStatus.trashed,
+          isDeleted: true,
+          deletedAt: new Date(),
+        },
+      })
+
+      await prisma.workflowTask.create({
+        data: {
+          assetId: file.id,
+          type: WorkflowTaskType.transcode_video_chunks,
+          status: WorkflowTaskStatus.processing,
+        },
+      })
+
+      await assetService.restoreAssets([file.id])
+
+      const restored = await prisma.asset.findUnique({ where: { id: file.id } })
+      expect(restored?.isDeleted).toBe(false)
+      expect(restored?.status).toBe(AssetStatus.processed)
+    })
   })
 
   describe('HLS playlists', () => {

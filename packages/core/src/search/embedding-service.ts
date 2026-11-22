@@ -80,7 +80,9 @@ export class EmbeddingService {
       await prisma.workflowTask.deleteMany({
         where: {
           assetId: { in: eligibleAssetIds },
-          type: WorkflowTaskType.ai_embedding,
+          type: {
+            in: [WorkflowTaskType.ai_embedding, WorkflowTaskType.transcode_video_chunks],
+          },
         },
       })
 

@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **transcode**: Offload video chunk slicing for search embeddings to the transcode worker queue.
+
 ## [0.7.0] - 2026-11-18
 
 ### Added

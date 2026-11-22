@@ -360,6 +360,16 @@ declare global {
       annotations?: AnnotationList | null
     }
 
+    export interface VideoChunksSpec {
+      parentTaskId?: string
+      assetKey?: string
+      format?: 'video' | 'frames'
+      chunks: Array<{
+        startTime: number
+        endTime: number
+      }>
+    }
+
     export interface WorkflowTaskPayload {
       projectId: string
       transcode?: TaskSpec
@@ -370,6 +380,7 @@ declare global {
       screenshot?: ScreenshotSpec
       imageAnnotation?: ImageAnnotationSpec
       pdfPages?: PdfPagesSpec
+      videoChunks?: VideoChunksSpec
       /** Render that produced this result, if any (set by the read_asset pipeline). */
       assetRead?: AssetReadRequest
       watermark?: WatermarkTaskPayload

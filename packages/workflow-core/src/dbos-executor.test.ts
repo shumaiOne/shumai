@@ -42,6 +42,7 @@ describe('DbosExecutor Tests', () => {
       expect(getQueueForTaskType(WorkflowTaskType.transcode)).toBe(TaskQueueTranscode)
       expect(getQueueForTaskType(WorkflowTaskType.transcode_video)).toBe(TaskQueueTranscode)
       expect(getQueueForTaskType(WorkflowTaskType.transcode_image)).toBe(TaskQueueTranscode)
+      expect(getQueueForTaskType(WorkflowTaskType.transcode_video_chunks)).toBe(TaskQueueTranscode)
       expect(getQueueForTaskType(WorkflowTaskType.ai_embedding)).toBe(TaskQueueAgent)
       expect(getQueueForTaskType(WorkflowTaskType.chat)).toBe(TaskQueueAgent)
       expect(getQueueForTaskType(WorkflowTaskType.archive_asset)).toBe(TaskQueueArchive)

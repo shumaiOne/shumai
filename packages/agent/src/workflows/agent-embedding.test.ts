@@ -34,7 +34,7 @@ vi.mock('../activities/ai', async () => {
     generateVideoChunkEmbeddingActivity: vi.fn(),
     saveAssetEmbeddingsActivity: vi.fn(),
     deleteAssetEmbeddingsActivity: vi.fn(),
-    transcodeVideoChunkActivity: vi.fn(),
+    transcodeVideoChunksActivity: vi.fn(),
     deleteS3ObjectActivity: vi.fn(),
   }
 })
@@ -60,9 +60,7 @@ describe('Agent Embedding Workflow', () => {
       updateTaskUsageActivity: vi.mocked(workflowCore.updateTaskUsageActivity),
       createCommentActivity: vi.mocked(agentActivities.createCommentActivity),
       updateCommentActivity: vi.mocked(agentActivities.updateCommentActivity),
-      downloadMediaToTmpActivity: vi.fn(),
-      cleanupTmpDirActivity: vi.fn(),
-      transcodeVideoChunkActivity: vi.mocked(aiActivities.transcodeVideoChunkActivity),
+      transcodeVideoChunksActivity: vi.mocked(aiActivities.transcodeVideoChunksActivity),
       deleteS3ObjectActivity: vi.mocked(aiActivities.deleteS3ObjectActivity),
     }
 
@@ -86,19 +84,21 @@ describe('Agent Embedding Workflow', () => {
       embedding: [0.3, 0.4],
       usage: { inputTokens: 3, outputTokens: 3, model: 'gpt' },
     })
-    mockActivities.downloadMediaToTmpActivity.mockResolvedValue({
-      filePath: '/tmp/test.mp4',
-      tmpDir: '/tmp/test-dir',
-    })
-    mockActivities.transcodeVideoChunkActivity.mockImplementation(
-      async (params: { assetId: string; startTime: number; endTime: number }) => {
+    mockActivities.transcodeVideoChunksActivity.mockImplementation(
+      async (params: {
+        assetId: string
+        chunks: Array<{ startTime: number; endTime: number }>
+      }) => {
         return {
-          chunkKey: `files/${params.assetId}/tmp-embedding-chunks/chunk-${params.startTime}-${params.endTime}.mp4`,
+          chunks: params.chunks.map((c) => ({
+            startTime: c.startTime,
+            endTime: c.endTime,
+            chunkKey: `files/${params.assetId}/tmp-embedding-chunks/chunk-${c.startTime}-${c.endTime}.mp4`,
+          })),
         }
       },
     )
     mockActivities.deleteS3ObjectActivity.mockResolvedValue(undefined)
-    mockActivities.cleanupTmpDirActivity.mockResolvedValue(undefined)
   })
 
   it('should run agent embedding workflow successfully for image', async () => {
@@ -256,7 +256,7 @@ describe('Agent Embedding Workflow', () => {
     )
   })
 
-  it('should run agent embedding workflow successfully for video in chunks', async () => {
+  it('should run agent embedding workflow successfully for video in chunks via single batch transcode task', async () => {
     mockActivities.getEmbeddingContextActivity.mockResolvedValue({
       agent: { id: 'b1' },
       asset: {
@@ -278,6 +278,7 @@ describe('Agent Embedding Workflow', () => {
         status: 'pending',
         assetId: 'a1',
         teamId: 't1',
+        projectId: 'p1',
         payload: {
           projectId: 'p1',
           agent: { sessionId: 's1', agentId: 'agent-1' },
@@ -287,28 +288,20 @@ describe('Agent Embedding Workflow', () => {
 
     await agentEmbeddingMedia(task)
 
-    // Verify video chunk slicing activity called 3 times on transcode queue
-    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledTimes(3)
-    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(1, {
+    // Verify batch video chunk slicing activity called once on transcode queue with all 3 chunks
+    expect(mockActivities.transcodeVideoChunksActivity).toHaveBeenCalledTimes(1)
+    expect(mockActivities.transcodeVideoChunksActivity).toHaveBeenCalledWith({
+      parentTaskId: task.id,
+      teamId: 't1',
+      projectId: 'p1',
       assetId: 'a1',
       assetKey: 'test-transcoded.mp4',
-      startTime: 0,
-      endTime: 60,
       format: 'video',
-    })
-    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(2, {
-      assetId: 'a1',
-      assetKey: 'test-transcoded.mp4',
-      startTime: 55,
-      endTime: 115,
-      format: 'video',
-    })
-    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(3, {
-      assetId: 'a1',
-      assetKey: 'test-transcoded.mp4',
-      startTime: 110,
-      endTime: 150,
-      format: 'video',
+      chunks: [
+        { startTime: 0, endTime: 60 },
+        { startTime: 55, endTime: 115 },
+        { startTime: 110, endTime: 150 },
+      ],
     })
 
     // Verify video chunk embedding generation (3 chunks) on agent queue
@@ -401,6 +394,7 @@ describe('Agent Embedding Workflow', () => {
 
     await agentEmbeddingMedia(task)
 
+    expect(mockActivities.transcodeVideoChunksActivity).not.toHaveBeenCalled()
     expect(mockActivities.saveAssetEmbeddingsActivity).not.toHaveBeenCalled()
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
       taskId: task.id,
@@ -469,7 +463,7 @@ describe('Agent Embedding Workflow', () => {
     })
   })
 
-  it('should save completed chunks to DB immediately before subsequent chunk failure', async () => {
+  it('should save completed chunks to DB immediately and clean up all remaining temporary S3 chunks on failure', async () => {
     mockActivities.getEmbeddingContextActivity.mockResolvedValue({
       agent: { id: 'b1' },
       asset: {
@@ -510,6 +504,18 @@ describe('Agent Embedding Workflow', () => {
       assetId: 'a1',
       embeddings: [{ embedding: [0.1, 0.2], startTime: 0, endTime: 60 }],
     })
+
+    // All 3 temporary chunks (chunk 1 after success, chunk 2 and chunk 3 in finally) MUST be deleted from S3
+    expect(mockActivities.deleteS3ObjectActivity).toHaveBeenCalledTimes(3)
+    expect(mockActivities.deleteS3ObjectActivity).toHaveBeenNthCalledWith(1, {
+      key: 'files/a1/tmp-embedding-chunks/chunk-0-60.mp4',
+    })
+    expect(mockActivities.deleteS3ObjectActivity).toHaveBeenNthCalledWith(2, {
+      key: 'files/a1/tmp-embedding-chunks/chunk-55-115.mp4',
+    })
+    expect(mockActivities.deleteS3ObjectActivity).toHaveBeenNthCalledWith(3, {
+      key: 'files/a1/tmp-embedding-chunks/chunk-110-150.mp4',
+    })
   })
 
   it('should not create redundant chunks when video exactly matches chunk duration', async () => {
@@ -538,12 +544,11 @@ describe('Agent Embedding Workflow', () => {
 
     await agentEmbeddingMedia(task)
 
-    // Verify only 1 chunk was created instead of 2 (0-60 and 55-60)
-    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledTimes(1)
-    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledWith(
+    // Verify only 1 chunk was requested instead of 2 (0-60 and 55-60)
+    expect(mockActivities.transcodeVideoChunksActivity).toHaveBeenCalledTimes(1)
+    expect(mockActivities.transcodeVideoChunksActivity).toHaveBeenCalledWith(
       expect.objectContaining({
-        startTime: 0,
-        endTime: 60,
+        chunks: [{ startTime: 0, endTime: 60 }],
       }),
     )
   })
@@ -575,11 +580,10 @@ describe('Agent Embedding Workflow', () => {
 
     await agentEmbeddingMedia(task)
 
-    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledWith(
+    expect(mockActivities.transcodeVideoChunksActivity).toHaveBeenCalledWith(
       expect.objectContaining({
-        startTime: 0,
-        endTime: 30,
         format: 'frames',
+        chunks: [{ startTime: 0, endTime: 30 }],
       }),
     )
     expect(mockActivities.updateTaskUsageActivity).toHaveBeenCalledWith(
@@ -626,14 +630,14 @@ describe('Agent Embedding Workflow', () => {
     await agentEmbeddingMedia(task)
 
     // Chunk 1 (0-60) should be skipped; only chunk 2 (55-115) and chunk 3 (110-150) should be transcoded and embedded
-    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledTimes(2)
-    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({ startTime: 55, endTime: 115 }),
-    )
-    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({ startTime: 110, endTime: 150 }),
+    expect(mockActivities.transcodeVideoChunksActivity).toHaveBeenCalledTimes(1)
+    expect(mockActivities.transcodeVideoChunksActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chunks: [
+          { startTime: 55, endTime: 115 },
+          { startTime: 110, endTime: 150 },
+        ],
+      }),
     )
 
     expect(mockActivities.saveAssetEmbeddingsActivity).toHaveBeenCalledTimes(2)

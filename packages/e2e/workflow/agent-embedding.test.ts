@@ -313,6 +313,17 @@ describe('Workflow E2E - agentEmbeddingMedia', () => {
     // 5. Verification
     expect(completedTask.status).toBe('completed')
 
+    // Verify batch transcode_video_chunks task was created and completed on TaskQueueTranscode
+    const chunkTasks = await prisma.workflowTask.findMany({
+      where: {
+        assetId: asset.id,
+        type: 'transcode_video_chunks',
+      },
+    })
+    expect(chunkTasks).toHaveLength(1)
+    expect(chunkTasks[0].status).toBe(WorkflowTaskStatus.completed)
+    expect(chunkTasks[0].payload?.videoChunks?.parentTaskId).toBe(task.id)
+
     // Verify raw embedding is saved in DB with start and end times
     const dbEmbeddings = (await prisma.$queryRaw`
       SELECT id, asset_id as "assetId", start_time as "startTime", end_time as "endTime"
@@ -323,6 +334,13 @@ describe('Workflow E2E - agentEmbeddingMedia', () => {
     expect(dbEmbeddings.length).toBeGreaterThan(0)
     expect(dbEmbeddings[0].startTime).toBe(0)
     expect(dbEmbeddings[0].endTime).toBe(1)
+
+    // Verify all temporary embedding chunk files were cleaned up from S3
+    const remainingTmpChunks = await s3Service.listObjects(
+      'shumai-e2e-test-bucket-embedding',
+      `files/${asset.id}/tmp-embedding-chunks/`,
+    )
+    expect(remainingTmpChunks).toEqual([])
   }, 50000)
 
   it('should fail agentEmbeddingMedia workflow for an unsupported audio asset', async () => {

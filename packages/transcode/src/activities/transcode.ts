@@ -1580,7 +1580,27 @@ export const createAutofillTaskIfEnabledActivity = defineStep(
   },
 )
 
+async function ensureAssetNotPurgingByIdOrKey(assetId: string, assetKey?: string): Promise<void> {
+  const asset = await prisma.asset.findUnique({
+    where: { id: assetId },
+    select: { status: true, storageKey: { select: { status: true } } },
+  })
+  if (
+    asset &&
+    (asset.status === AssetStatus.pending_purge || asset.storageKey?.status === 'purging')
+  ) {
+    throw ApplicationFailure.create({
+      message: 'Asset or storage key has been purged or is pending purge',
+      nonRetryable: true,
+    })
+  }
+  if (assetKey) {
+    await ensureAssetNotPurging(assetKey)
+  }
+}
+
 export interface TranscodeVideoChunkParams {
+  taskId?: string
   assetId: string
   assetKey?: string
   filePath?: string
@@ -1597,6 +1617,28 @@ export const transcodeVideoChunkActivity = defineStep(async function transcodeVi
       message: 'Neither filePath nor assetKey was provided for video chunk transcoding',
       nonRetryable: true,
     })
+  }
+
+  const signal = getActivityCancellationSignal(params.taskId)
+  if (signal?.aborted) {
+    throw ApplicationFailure.create({
+      message: 'Video chunk transcoding cancelled',
+      nonRetryable: true,
+    })
+  }
+
+  const runFfmpeg = (args: string[]) =>
+    signal ? execFileAsync('ffmpeg', args, { signal }) : execFileAsync('ffmpeg', args)
+
+  const isAbortError = (err: unknown): boolean => {
+    const { code, message } = getErrorDetails(err)
+    const lowerMsg = message.toLowerCase()
+    return (
+      Boolean(signal?.aborted) ||
+      code === 'ABORT_ERR' ||
+      message.includes('aborted') ||
+      lowerMsg.includes('abort')
+    )
   }
 
   if (params.format === 'frames') {
@@ -1618,7 +1660,7 @@ export const transcodeVideoChunkActivity = defineStep(async function transcodeVi
       const fpsFilter = duration > 16 ? `fps=${16 / duration}` : 'fps=1'
       const vframesArgs = duration > 16 ? ['-vframes', '16'] : []
 
-      await execFileAsync('ffmpeg', [
+      await runFfmpeg([
         '-y',
         '-loglevel',
         'warning',
@@ -1658,6 +1700,7 @@ export const transcodeVideoChunkActivity = defineStep(async function transcodeVi
         archiveBytes.byteOffset,
         archiveBytes.byteLength,
       )
+      await ensureAssetNotPurgingByIdOrKey(params.assetId, params.assetKey)
       const key = `files/${params.assetId}/tmp-embedding-chunks/frames-${params.startTime}-${params.endTime}-${ulid()}.tar`
       await s3Service.putObject(bucket, key, archiveData, archiveData.length, 'application/x-tar')
 
@@ -1665,6 +1708,13 @@ export const transcodeVideoChunkActivity = defineStep(async function transcodeVi
     } catch (err) {
       if (err instanceof ApplicationFailure) {
         throw err
+      }
+      if (isAbortError(err)) {
+        throw ApplicationFailure.create({
+          message: 'Video chunk transcoding cancelled',
+          nonRetryable: true,
+          cause: err instanceof Error ? err : undefined,
+        })
       }
       throw ApplicationFailure.create({
         message: `Failed to extract video chunk frames for ${params.startTime}-${params.endTime}: ${err instanceof Error ? err.message : String(err)}`,
@@ -1691,7 +1741,7 @@ export const transcodeVideoChunkActivity = defineStep(async function transcodeVi
 
     // Slice video segment using ffmpeg, force 1fps and remove audio for gemini-embedding-2 optimization
     // Note: -ss placed before -i for fast input seeking via demuxer Range requests
-    await execFileAsync('ffmpeg', [
+    await runFfmpeg([
       '-y',
       '-loglevel',
       'warning',
@@ -1720,6 +1770,8 @@ export const transcodeVideoChunkActivity = defineStep(async function transcodeVi
 
     const chunkData = fs.readFileSync(chunkTmp)
 
+    await ensureAssetNotPurgingByIdOrKey(params.assetId, params.assetKey)
+
     // Upload to S3
     const key = `files/${params.assetId}/tmp-embedding-chunks/chunk-${params.startTime}-${params.endTime}-${ulid()}.mp4`
 
@@ -1730,6 +1782,13 @@ export const transcodeVideoChunkActivity = defineStep(async function transcodeVi
     if (err instanceof ApplicationFailure) {
       throw err
     }
+    if (isAbortError(err)) {
+      throw ApplicationFailure.create({
+        message: 'Video chunk transcoding cancelled',
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
     throw ApplicationFailure.create({
       message: `Failed to transcode video chunk for ${params.startTime}-${params.endTime}: ${err instanceof Error ? err.message : String(err)}`,
       nonRetryable: false,
@@ -1739,7 +1798,7 @@ export const transcodeVideoChunkActivity = defineStep(async function transcodeVi
       try {
         fs.unlinkSync(chunkTmp)
       } catch (e) {
-        console.error('Failed to cleanup local chunk file:', e)
+        logger.error({ err: e, chunkTmp }, 'Failed to cleanup local chunk file')
       }
     }
   }
