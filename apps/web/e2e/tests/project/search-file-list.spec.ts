@@ -1,5 +1,5 @@
 import type { APIRequestContext } from '@playwright/test'
-import type { AssetInfo, ImageSearchRequest } from '@shumai/dtos'
+import type { AssetInfo, ImageSearchRequest, SearchRequest } from '@shumai/dtos'
 import { expect, test } from '../../fixtures'
 import { apiUploadFile, fileCard } from '../../helpers/files'
 
@@ -164,6 +164,80 @@ test('owner searches the file list with a keyword and a filter condition', async
 
 test.describe('image search', () => {
   test.use({ fileOptions: { mediaType: 'image' } })
+
+  test('owner previews matched video ranges in both search dialogs', async ({ file }) => {
+    const { page, teamId, projectId, rootFolderId, fileName } = file
+    const video: AssetInfo = {
+      id: 'video-result',
+      name: 'result.mp4',
+      type: 'file',
+      sizeByte: 100,
+      fileCount: 1,
+      status: 'processed',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      proxyType: 'video',
+      preview: {
+        thumbnailUrl: '/test-sprites/poster.svg',
+        spriteUrl: '/test-sprites/full.svg',
+        originalWidth: 100,
+        originalHeight: 40,
+      },
+      startTime: 0,
+      endTime: 30,
+      matchedSprite: { url: '/test-sprites/chunk.svg', columns: 5, rows: 2, frameCount: 7 },
+    }
+    const brokenMatch: AssetInfo = {
+      ...video,
+      startTime: 25,
+      endTime: 40,
+      matchedSprite: { url: '/test-sprites/broken.svg', columns: 5, rows: 2, frameCount: 7 },
+    }
+    await page.route(`**/api/teams/${teamId}/settings`, async (route) => {
+      const response = await route.fetch()
+      await route.fulfill({
+        response,
+        json: { ...(await response.json()), semanticSearchEnabled: true },
+      })
+    })
+    const results = { json: { data: [video, brokenMatch], pageInfo: { total: 2 } } }
+    await page.route(`**/api/folders/${rootFolderId}/image-search`, (route) =>
+      route.fulfill(results),
+    )
+    await page.route(`**/api/folders/${rootFolderId}/search`, (route) => {
+      const request = route.request().postDataJSON() as SearchRequest | null
+      return request?.isSemantic ? route.fulfill(results) : route.continue()
+    })
+    await page.route('**/test-sprites/*.svg', (route) =>
+      route.request().url().endsWith('/broken.svg')
+        ? route.fulfill({ status: 404 })
+        : route.fulfill({
+            contentType: 'image/svg+xml',
+            body: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="40"/>',
+          }),
+    )
+
+    await page.goto(`/projects/${projectId}`)
+    await fileCard(page, fileName).click({ button: 'right' })
+    await page.getByRole('menuitem', { name: 'Find similar' }).click()
+    const findSimilar = page.getByRole('dialog', { name: 'Find similar' })
+    await findSimilar.getByTestId('sprite-scrubber').nth(0).hover()
+    await expect(findSimilar.locator('[style*="/test-sprites/chunk.svg"]')).toHaveCount(1)
+    await findSimilar.getByTestId('sprite-scrubber').nth(1).hover()
+    await expect(findSimilar.locator('[style*="/test-sprites/full.svg"]')).toHaveCount(1)
+
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Search' }).click()
+    const semanticSearch = page.getByRole('dialog', { name: 'Search', exact: true })
+    await semanticSearch.getByRole('switch', { name: 'Semantic Search' }).click()
+    const searchInput = semanticSearch.getByPlaceholder('Search records by content...')
+    await searchInput.fill('video scene')
+    await searchInput.press('Enter')
+    await semanticSearch.getByTestId('sprite-scrubber').nth(0).hover()
+    await expect(semanticSearch.locator('[style*="/test-sprites/chunk.svg"]')).toHaveCount(1)
+    await semanticSearch.getByTestId('sprite-scrubber').nth(1).hover()
+    await expect(semanticSearch.locator('[style*="/test-sprites/full.svg"]')).toHaveCount(1)
+  })
 
   test('owner finds similar media and filters the results by type', async ({ file }) => {
     const { page, teamId, projectId, rootFolderId, fileId, fileName } = file

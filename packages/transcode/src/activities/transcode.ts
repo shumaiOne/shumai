@@ -9,6 +9,10 @@ import {
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { getDerivedArtifactDirectory, stemFromKey } from '@shumai/core/src/utils/filename'
 import {
+  composeVideoChunkSprite,
+  sampleVideoChunkSprite,
+} from '@shumai/core/src/transcode/video-chunk-sprite'
+import {
   gotenbergService,
   type GotenbergConvertOptions,
 } from '@shumai/core/src/gotenberg/gotenberg'
@@ -1603,15 +1607,50 @@ export interface TranscodeVideoChunkParams {
   taskId?: string
   assetId: string
   assetKey?: string
+  originalKey?: string
   filePath?: string
   startTime: number
   endTime: number
   format?: 'video' | 'frames'
 }
 
+async function uploadVideoChunkSprite(
+  params: TranscodeVideoChunkParams,
+  render: () => ReturnType<typeof composeVideoChunkSprite>,
+  signal?: AbortSignal,
+): Promise<PrismaJson.VideoChunkSprite | undefined> {
+  if (signal?.aborted) return
+  try {
+    const sprite = await render()
+    if (!sprite || signal?.aborted) return
+
+    const originalKey = params.originalKey ?? params.assetKey
+    const directory = getDerivedArtifactDirectory(originalKey ?? '', params.assetId)
+    const format = params.format ?? 'video'
+    const key = `${directory}/chunk-sprites/${params.assetId}/${format}-${params.startTime}-${params.endTime}.webp`
+    await ensureAssetNotPurgingByIdOrKey(params.assetId, originalKey)
+    const { image, ...layout } = sprite
+    await s3Service.putObject(
+      process.env.S3_BUCKET || 'shumai',
+      key,
+      image,
+      image.length,
+      'image/webp',
+    )
+    return { key, ...layout }
+  } catch (err) {
+    if (!signal?.aborted) {
+      logger.warn(
+        { err, assetId: params.assetId, startTime: params.startTime, endTime: params.endTime },
+        'Failed to generate video chunk sprite',
+      )
+    }
+  }
+}
+
 export const transcodeVideoChunkActivity = defineStep(async function transcodeVideoChunkActivity(
   params: TranscodeVideoChunkParams,
-): Promise<{ chunkKey: string }> {
+): Promise<{ chunkKey: string; sprite?: PrismaJson.VideoChunkSprite }> {
   if (!params.filePath && !params.assetKey) {
     throw ApplicationFailure.create({
       message: 'Neither filePath nor assetKey was provided for video chunk transcoding',
@@ -1704,7 +1743,12 @@ export const transcodeVideoChunkActivity = defineStep(async function transcodeVi
       const key = `files/${params.assetId}/tmp-embedding-chunks/frames-${params.startTime}-${params.endTime}-${ulid()}.tar`
       await s3Service.putObject(bucket, key, archiveData, archiveData.length, 'application/x-tar')
 
-      return { chunkKey: key }
+      const sprite = await uploadVideoChunkSprite(
+        params,
+        () => composeVideoChunkSprite(frameFiles.map((file) => path.join(tmpDir, file))),
+        signal,
+      )
+      return sprite ? { chunkKey: key, sprite } : { chunkKey: key }
     } catch (err) {
       if (err instanceof ApplicationFailure) {
         throw err
@@ -1777,7 +1821,12 @@ export const transcodeVideoChunkActivity = defineStep(async function transcodeVi
 
     await s3Service.putObject(bucket, key, chunkData, chunkData.length, 'video/mp4')
 
-    return { chunkKey: key }
+    const sprite = await uploadVideoChunkSprite(
+      params,
+      () => sampleVideoChunkSprite(chunkTmp, params.endTime - params.startTime, signal),
+      signal,
+    )
+    return sprite ? { chunkKey: key, sprite } : { chunkKey: key }
   } catch (err) {
     if (err instanceof ApplicationFailure) {
       throw err

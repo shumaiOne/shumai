@@ -25,6 +25,16 @@ export const previewInfoSchema = z.object({
 })
 export type PreviewInfo = z.infer<typeof previewInfoSchema>
 
+const spriteLayoutSchema = z.object({
+  columns: z.number().int().positive(),
+  rows: z.number().int().positive(),
+  frameCount: z.number().int().positive(),
+})
+export type SpriteLayout = z.infer<typeof spriteLayoutSchema>
+
+const matchedSpriteSchema = spriteLayoutSchema.extend({ url: z.string() })
+export type MatchedSprite = z.infer<typeof matchedSpriteSchema>
+
 export const childPreviewSchema = z.object({
   type: z.string().nullable(),
   preview: previewInfoSchema.nullable(),
@@ -90,6 +100,7 @@ export const assetInfoSchema = z.object({
   sortIndex: z.string().optional().nullable(),
   startTime: z.number().optional().nullable(),
   endTime: z.number().optional().nullable(),
+  matchedSprite: matchedSpriteSchema.optional(),
   hasAgentsMd: z.boolean().optional(),
   commentsCount: z.number().optional(),
 

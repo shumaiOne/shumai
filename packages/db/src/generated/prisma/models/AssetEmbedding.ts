@@ -60,6 +60,7 @@ export type AssetEmbeddingCountAggregateOutputType = {
   id: number
   startTime: number
   endTime: number
+  sprite: number
   createdAt: number
   updatedAt: number
   assetId: number
@@ -99,6 +100,7 @@ export type AssetEmbeddingCountAggregateInputType = {
   id?: true
   startTime?: true
   endTime?: true
+  sprite?: true
   createdAt?: true
   updatedAt?: true
   assetId?: true
@@ -195,6 +197,7 @@ export type AssetEmbeddingGroupByOutputType = {
   id: string
   startTime: number | null
   endTime: number | null
+  sprite:PrismaJson.VideoChunkSprite | null
   createdAt: Date
   updatedAt: Date
   assetId: string
@@ -227,6 +230,7 @@ export type AssetEmbeddingWhereInput = {
   id?: Prisma.StringFilter<"AssetEmbedding"> | string
   startTime?: Prisma.FloatNullableFilter<"AssetEmbedding"> | number | null
   endTime?: Prisma.FloatNullableFilter<"AssetEmbedding"> | number | null
+  sprite?: Prisma.JsonNullableFilter<"AssetEmbedding">
   createdAt?: Prisma.DateTimeFilter<"AssetEmbedding"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AssetEmbedding"> | Date | string
   assetId?: Prisma.StringFilter<"AssetEmbedding"> | string
@@ -237,6 +241,7 @@ export type AssetEmbeddingOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   startTime?: Prisma.SortOrderInput | Prisma.SortOrder
   endTime?: Prisma.SortOrderInput | Prisma.SortOrder
+  sprite?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
@@ -250,6 +255,7 @@ export type AssetEmbeddingWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.AssetEmbeddingWhereInput | Prisma.AssetEmbeddingWhereInput[]
   startTime?: Prisma.FloatNullableFilter<"AssetEmbedding"> | number | null
   endTime?: Prisma.FloatNullableFilter<"AssetEmbedding"> | number | null
+  sprite?: Prisma.JsonNullableFilter<"AssetEmbedding">
   createdAt?: Prisma.DateTimeFilter<"AssetEmbedding"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AssetEmbedding"> | Date | string
   assetId?: Prisma.StringFilter<"AssetEmbedding"> | string
@@ -260,6 +266,7 @@ export type AssetEmbeddingOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   startTime?: Prisma.SortOrderInput | Prisma.SortOrder
   endTime?: Prisma.SortOrderInput | Prisma.SortOrder
+  sprite?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
@@ -277,6 +284,7 @@ export type AssetEmbeddingScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"AssetEmbedding"> | string
   startTime?: Prisma.FloatNullableWithAggregatesFilter<"AssetEmbedding"> | number | null
   endTime?: Prisma.FloatNullableWithAggregatesFilter<"AssetEmbedding"> | number | null
+  sprite?: Prisma.JsonNullableWithAggregatesFilter<"AssetEmbedding">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AssetEmbedding"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"AssetEmbedding"> | Date | string
   assetId?: Prisma.StringWithAggregatesFilter<"AssetEmbedding"> | string
@@ -286,6 +294,7 @@ export type AssetEmbeddingCreateInput = {
   id?: string
   startTime?: number | null
   endTime?: number | null
+  sprite?:PrismaJson.VideoChunkSprite | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
   asset: Prisma.AssetCreateNestedOneWithoutEmbeddingsInput
@@ -295,6 +304,7 @@ export type AssetEmbeddingUncheckedCreateInput = {
   id?: string
   startTime?: number | null
   endTime?: number | null
+  sprite?:PrismaJson.VideoChunkSprite | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
   assetId: string
@@ -304,6 +314,7 @@ export type AssetEmbeddingUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   startTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   endTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sprite?:PrismaJson.VideoChunkSprite | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   asset?: Prisma.AssetUpdateOneRequiredWithoutEmbeddingsNestedInput
@@ -313,6 +324,7 @@ export type AssetEmbeddingUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   startTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   endTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sprite?:PrismaJson.VideoChunkSprite | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -322,6 +334,7 @@ export type AssetEmbeddingCreateManyInput = {
   id?: string
   startTime?: number | null
   endTime?: number | null
+  sprite?:PrismaJson.VideoChunkSprite | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
   assetId: string
@@ -331,6 +344,7 @@ export type AssetEmbeddingUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   startTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   endTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sprite?:PrismaJson.VideoChunkSprite | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -339,6 +353,7 @@ export type AssetEmbeddingUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   startTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   endTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sprite?:PrismaJson.VideoChunkSprite | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -358,6 +373,7 @@ export type AssetEmbeddingCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrder
+  sprite?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
@@ -437,6 +453,7 @@ export type AssetEmbeddingCreateWithoutAssetInput = {
   id?: string
   startTime?: number | null
   endTime?: number | null
+  sprite?:PrismaJson.VideoChunkSprite | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -445,6 +462,7 @@ export type AssetEmbeddingUncheckedCreateWithoutAssetInput = {
   id?: string
   startTime?: number | null
   endTime?: number | null
+  sprite?:PrismaJson.VideoChunkSprite | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -482,6 +500,7 @@ export type AssetEmbeddingScalarWhereInput = {
   id?: Prisma.StringFilter<"AssetEmbedding"> | string
   startTime?: Prisma.FloatNullableFilter<"AssetEmbedding"> | number | null
   endTime?: Prisma.FloatNullableFilter<"AssetEmbedding"> | number | null
+  sprite?: Prisma.JsonNullableFilter<"AssetEmbedding">
   createdAt?: Prisma.DateTimeFilter<"AssetEmbedding"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AssetEmbedding"> | Date | string
   assetId?: Prisma.StringFilter<"AssetEmbedding"> | string
@@ -491,6 +510,7 @@ export type AssetEmbeddingCreateManyAssetInput = {
   id?: string
   startTime?: number | null
   endTime?: number | null
+  sprite?:PrismaJson.VideoChunkSprite | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -499,6 +519,7 @@ export type AssetEmbeddingUpdateWithoutAssetInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   startTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   endTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sprite?:PrismaJson.VideoChunkSprite | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -507,6 +528,7 @@ export type AssetEmbeddingUncheckedUpdateWithoutAssetInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   startTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   endTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sprite?:PrismaJson.VideoChunkSprite | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -515,6 +537,7 @@ export type AssetEmbeddingUncheckedUpdateManyWithoutAssetInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   startTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   endTime?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sprite?:PrismaJson.VideoChunkSprite | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -525,6 +548,7 @@ export type AssetEmbeddingSelect<ExtArgs extends runtime.Types.Extensions.Intern
   id?: boolean
   startTime?: boolean
   endTime?: boolean
+  sprite?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   assetId?: boolean
@@ -535,6 +559,7 @@ export type AssetEmbeddingSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   id?: boolean
   startTime?: boolean
   endTime?: boolean
+  sprite?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   assetId?: boolean
@@ -545,6 +570,7 @@ export type AssetEmbeddingSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   id?: boolean
   startTime?: boolean
   endTime?: boolean
+  sprite?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   assetId?: boolean
@@ -555,12 +581,13 @@ export type AssetEmbeddingSelectScalar = {
   id?: boolean
   startTime?: boolean
   endTime?: boolean
+  sprite?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   assetId?: boolean
 }
 
-export type AssetEmbeddingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "startTime" | "endTime" | "createdAt" | "updatedAt" | "assetId", ExtArgs["result"]["assetEmbedding"]>
+export type AssetEmbeddingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "startTime" | "endTime" | "sprite" | "createdAt" | "updatedAt" | "assetId", ExtArgs["result"]["assetEmbedding"]>
 export type AssetEmbeddingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   asset?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
 }
@@ -580,6 +607,10 @@ export type $AssetEmbeddingPayload<ExtArgs extends runtime.Types.Extensions.Inte
     id: string
     startTime: number | null
     endTime: number | null
+    /**
+     * [VideoChunkSprite]
+     */
+    sprite:PrismaJson.VideoChunkSprite | null
     createdAt: Date
     updatedAt: Date
     assetId: string
@@ -1010,6 +1041,7 @@ export interface AssetEmbeddingFieldRefs {
   readonly id: Prisma.FieldRef<"AssetEmbedding", 'String'>
   readonly startTime: Prisma.FieldRef<"AssetEmbedding", 'Float'>
   readonly endTime: Prisma.FieldRef<"AssetEmbedding", 'Float'>
+  readonly sprite: Prisma.FieldRef<"AssetEmbedding", 'Json'>
   readonly createdAt: Prisma.FieldRef<"AssetEmbedding", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"AssetEmbedding", 'DateTime'>
   readonly assetId: Prisma.FieldRef<"AssetEmbedding", 'String'>

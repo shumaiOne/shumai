@@ -1,4 +1,5 @@
 import { File, Folder, AudioLines } from 'lucide-react'
+import type { MatchedSprite } from '@shumai/dtos'
 import { SpriteScrubber } from '../sprite-scrubber'
 import { formatTime } from '../viewers/video/utils'
 
@@ -20,13 +21,19 @@ type FilePreviewItem = {
 interface FilePreviewProps {
   item: FilePreviewItem
   showDuration?: boolean
+  matchedSprite?: MatchedSprite
   matchDuration?: {
     startTime?: number | null
     endTime?: number | null
   } | null
 }
 
-export const FilePreview = ({ item, showDuration = false, matchDuration }: FilePreviewProps) => {
+export const FilePreview = ({
+  item,
+  showDuration = false,
+  matchedSprite,
+  matchDuration,
+}: FilePreviewProps) => {
   const proxyType = item.preview?.proxyType || item.proxyType
   const isVideo = proxyType === 'video'
   const isAudio = proxyType === 'audio'
@@ -56,21 +63,24 @@ export const FilePreview = ({ item, showDuration = false, matchDuration }: FileP
     </span>
   ) : null
 
-  const isMediaWithSprite =
+  const chunkSprite = hasMatchedChunk ? matchedSprite : undefined
+  const fullSpriteUrl =
     (isVideo || isPdf || is3D) &&
-    item.preview?.spriteUrl &&
-    item.preview.thumbnailUrl &&
-    item.preview.originalWidth &&
-    item.preview.originalHeight
+    ((hasMatchedChunk && isVideo) ||
+      (item.preview?.thumbnailUrl && item.preview.originalWidth && item.preview.originalHeight)) &&
+    item.preview?.spriteUrl
+  const spriteUrl = chunkSprite?.url || fullSpriteUrl
 
-  if (isMediaWithSprite && item.preview) {
+  if (spriteUrl) {
     return (
       <>
         <SpriteScrubber
-          spriteUrl={item.preview.spriteUrl!}
-          thumbnailUrl={item.preview.thumbnailUrl!}
-          videoWidth={item.preview.originalWidth!}
-          videoHeight={item.preview.originalHeight!}
+          spriteUrl={spriteUrl}
+          spriteLayout={chunkSprite}
+          fallbackSpriteUrl={chunkSprite && fullSpriteUrl ? fullSpriteUrl : undefined}
+          thumbnailUrl={item.preview?.thumbnailUrl}
+          videoWidth={item.preview?.originalWidth}
+          videoHeight={item.preview?.originalHeight}
           reverse={is3D}
         />
         {overlay}

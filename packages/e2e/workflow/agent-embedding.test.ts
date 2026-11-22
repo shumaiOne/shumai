@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import { describe, it, expect, beforeAll, afterEach, afterAll, vi } from 'vitest'
 import { prisma, WorkflowTaskStatus } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { workflowService, TaskQueueAgent, TaskQueueTranscode } from '@shumai/workflow-core'
@@ -8,6 +8,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { fileURLToPath } from 'url'
 import * as path from 'path'
 import * as fs from 'fs'
+import sharp from 'sharp'
 
 const mockEmbedContent = vi.fn().mockResolvedValue({
   embeddings: [
@@ -44,6 +45,11 @@ describe('Workflow E2E - agentEmbeddingMedia', () => {
     initTranscodeWorkflows()
 
     await workflowService.startWorkers([TaskQueueAgent, TaskQueueTranscode])
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
   })
 
   afterAll(async () => {
@@ -196,152 +202,180 @@ describe('Workflow E2E - agentEmbeddingMedia', () => {
     expect(dbEmbeddings[0].endTime).toBeNull()
   }, 50000)
 
-  it('should run agentEmbeddingMedia workflow for a video asset successfully', async () => {
-    // 1. Seed Database
-    const team = await prisma.team.create({
-      data: { name: 'E2E Video Embedding Team' },
-    })
+  it.each(['gemini-embedding-2', 'gemma-embedding-2-openai'])(
+    'persists a playable video chunk sprite with %s',
+    async (embeddingProvider) => {
+      vi.stubEnv('EMBEDDING_PROVIDER', embeddingProvider)
+      if (embeddingProvider === 'gemma-embedding-2-openai') {
+        const endpoint = 'https://embedding.example.com/v1/embeddings'
+        vi.stubEnv('GEMMA_EMBEDDING_OPENAI_BASE_URL', endpoint)
+        const fetch = globalThis.fetch
+        vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) =>
+          input === endpoint
+            ? Promise.resolve(
+                Response.json({ data: [{ embedding: Array<number>(768).fill(0.2) }] }),
+              )
+            : fetch(input, init),
+        )
+      }
+      // 1. Seed Database
+      const team = await prisma.team.create({
+        data: { name: 'E2E Video Embedding Team' },
+      })
 
-    const project = await prisma.project.create({
-      data: { name: 'E2E Video Embedding Project', teamId: team.id },
-    })
+      const project = await prisma.project.create({
+        data: { name: 'E2E Video Embedding Project', teamId: team.id },
+      })
 
-    const agentUser = await prisma.user.create({
-      data: {
-        name: 'E2E Video Embedding Agent User',
-        email: 'e2e-vid-emb-agent@shumai.ai',
-        type: 'agent',
-      },
-    })
-
-    await prisma.teamMember.create({
-      data: {
-        teamId: team.id,
-        userId: agentUser.id,
-        role: 'editor',
-      },
-    })
-
-    const provider = await prisma.provider.create({
-      data: {
-        name: 'google',
-        teamId: team.id,
-        config: { api: 'google-generative-ai', apiKey: 'dummy-google-api-key' },
-      },
-    })
-
-    const model = await prisma.model.create({
-      data: {
-        modelId: 'gemini',
-        name: 'Gemini',
-        providerId: provider.id,
-        config: {
-          input: ['text', 'image'],
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-          contextWindow: 8192,
-          maxTokens: 2048,
-          reasoning: false,
+      const agentUser = await prisma.user.create({
+        data: {
+          name: 'E2E Video Embedding Agent User',
+          email: 'e2e-vid-emb-agent@shumai.ai',
+          type: 'agent',
         },
-      },
-    })
+      })
 
-    await prisma.agent.create({
-      data: {
-        id: agentUser.id,
-        teamId: team.id,
-        type: 'embedding',
-        enabled: true,
-        providerId: provider.id,
-        modelId: model.id,
-        config: {
-          provider: 'google',
-          model: 'gemini',
+      await prisma.teamMember.create({
+        data: {
+          teamId: team.id,
+          userId: agentUser.id,
+          role: 'editor',
         },
-      },
-    })
+      })
 
-    const storageKey = await prisma.storageKey.create({
-      data: {
-        key: 'projects/e2e/test-video.mp4',
-      },
-    })
+      const provider = await prisma.provider.create({
+        data: {
+          name: 'google',
+          teamId: team.id,
+          config: { api: 'google-generative-ai', apiKey: 'dummy-google-api-key' },
+        },
+      })
 
-    const asset = await prisma.asset.create({
-      data: {
-        name: 'test-video.mp4',
-        type: 'file',
-        status: 'uploaded',
-        mediaType: 'video/mp4',
-        media: { duration: 1.0 } as unknown as PrismaJson.MediaInfo, // 1-second video
-        projectId: project.id,
-        storageKeyId: storageKey.id,
-      },
-    })
+      const model = await prisma.model.create({
+        data: {
+          modelId: 'gemini',
+          name: 'Gemini',
+          providerId: provider.id,
+          config: {
+            input: ['text', 'image'],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 8192,
+            maxTokens: 2048,
+            reasoning: false,
+          },
+        },
+      })
 
-    // 2. Seed S3 Storage from Fixture
-    const mp4Path = path.join(fixturesDir, 'small.mp4')
-    const mp4Buffer = fs.readFileSync(mp4Path)
-    await s3Service.putObject(
-      'shumai-e2e-test-bucket-embedding',
-      'projects/e2e/test-video.mp4',
-      mp4Buffer,
-      mp4Buffer.length,
-      'video/mp4',
-    )
+      await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: team.id,
+          type: 'embedding',
+          enabled: true,
+          providerId: provider.id,
+          modelId: model.id,
+          config: {
+            provider: 'google',
+            model: 'gemini',
+          },
+        },
+      })
 
-    // 3. Create Workflow Task (ai_embedding, pending)
-    const task = await prisma.workflowTask.create({
-      data: {
-        type: 'ai_embedding',
-        status: 'pending',
-        assetId: asset.id,
-        projectId: project.id,
-        teamId: team.id,
-        payload: {
+      const storageKey = await prisma.storageKey.create({
+        data: {
+          key: 'projects/e2e/test-video.mp4',
+        },
+      })
+
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'test-video.mp4',
+          type: 'file',
+          status: 'uploaded',
+          mediaType: 'video/mp4',
+          media: { duration: 1.0 } as unknown as PrismaJson.MediaInfo, // 1-second video
           projectId: project.id,
-          agent: { agentId: agentUser.id },
+          storageKeyId: storageKey.id,
         },
-      },
-    })
+      })
 
-    // 4. Wait for workflow to complete
-    console.log(
-      `Submitted E2E Video Embedding Workflow Task. ID: ${task.id}. Awaiting completion...`,
-    )
-    const completedTask = await workflowService.executeWait(task, 45000)
+      // 2. Seed S3 Storage from Fixture
+      const mp4Path = path.join(fixturesDir, 'small.mp4')
+      const mp4Buffer = fs.readFileSync(mp4Path)
+      await s3Service.putObject(
+        'shumai-e2e-test-bucket-embedding',
+        'projects/e2e/test-video.mp4',
+        mp4Buffer,
+        mp4Buffer.length,
+        'video/mp4',
+      )
 
-    // 5. Verification
-    expect(completedTask.status).toBe('completed')
+      // 3. Create Workflow Task (ai_embedding, pending)
+      const task = await prisma.workflowTask.create({
+        data: {
+          type: 'ai_embedding',
+          status: 'pending',
+          assetId: asset.id,
+          projectId: project.id,
+          teamId: team.id,
+          payload: {
+            projectId: project.id,
+            agent: { agentId: agentUser.id },
+          },
+        },
+      })
 
-    // Verify batch transcode_video_chunks task was created and completed on TaskQueueTranscode
-    const chunkTasks = await prisma.workflowTask.findMany({
-      where: {
-        assetId: asset.id,
-        type: 'transcode_video_chunks',
-      },
-    })
-    expect(chunkTasks).toHaveLength(1)
-    expect(chunkTasks[0].status).toBe(WorkflowTaskStatus.completed)
-    expect(chunkTasks[0].payload?.videoChunks?.parentTaskId).toBe(task.id)
+      // 4. Wait for workflow to complete
+      console.log(
+        `Submitted E2E Video Embedding Workflow Task. ID: ${task.id}. Awaiting completion...`,
+      )
+      const completedTask = await workflowService.executeWait(task, 45000)
 
-    // Verify raw embedding is saved in DB with start and end times
-    const dbEmbeddings = (await prisma.$queryRaw`
-      SELECT id, asset_id as "assetId", start_time as "startTime", end_time as "endTime"
-      FROM asset_embeddings
-      WHERE asset_id = ${asset.id}
-      ORDER BY start_time ASC
-    `) as { id: string; startTime: number | null; endTime: number | null }[]
-    expect(dbEmbeddings.length).toBeGreaterThan(0)
-    expect(dbEmbeddings[0].startTime).toBe(0)
-    expect(dbEmbeddings[0].endTime).toBe(1)
+      // 5. Verification
+      expect(completedTask.status).toBe('completed')
 
-    // Verify all temporary embedding chunk files were cleaned up from S3
-    const remainingTmpChunks = await s3Service.listObjects(
-      'shumai-e2e-test-bucket-embedding',
-      `files/${asset.id}/tmp-embedding-chunks/`,
-    )
-    expect(remainingTmpChunks).toEqual([])
-  }, 50000)
+      // Verify batch transcode_video_chunks task was created and completed on TaskQueueTranscode
+      const chunkTasks = await prisma.workflowTask.findMany({
+        where: {
+          assetId: asset.id,
+          type: 'transcode_video_chunks',
+        },
+      })
+      expect(chunkTasks).toHaveLength(1)
+      expect(chunkTasks[0].status).toBe(WorkflowTaskStatus.completed)
+      expect(chunkTasks[0].payload?.videoChunks?.parentTaskId).toBe(task.id)
+      expect(chunkTasks[0].output).toMatchObject({
+        chunks: [{ sprite: { columns: 1, rows: 1, frameCount: 1 } }],
+      })
+
+      const dbEmbeddings = await prisma.assetEmbedding.findMany({ where: { assetId: asset.id } })
+      expect(dbEmbeddings).toHaveLength(1)
+      expect(dbEmbeddings[0].startTime).toBe(0)
+      expect(dbEmbeddings[0].endTime).toBe(1)
+      const sprite = dbEmbeddings[0].sprite
+      const format = embeddingProvider === 'gemma-embedding-2-openai' ? 'frames' : 'video'
+      expect(sprite).toEqual({
+        key: `projects/e2e/chunk-sprites/${asset.id}/${format}-0-1.webp`,
+        columns: 1,
+        rows: 1,
+        frameCount: 1,
+      })
+      const { buffer } = await s3Service.getObject('shumai-e2e-test-bucket-embedding', sprite!.key)
+      expect(await sharp(buffer).metadata()).toMatchObject({
+        format: 'webp',
+        width: 64,
+        height: 64,
+      })
+
+      // Verify all temporary embedding chunk files were cleaned up from S3
+      const remainingTmpChunks = await s3Service.listObjects(
+        'shumai-e2e-test-bucket-embedding',
+        `files/${asset.id}/tmp-embedding-chunks/`,
+      )
+      expect(remainingTmpChunks).toEqual([])
+    },
+    50000,
+  )
 
   it('should fail agentEmbeddingMedia workflow for an unsupported audio asset', async () => {
     // 1. Seed Database

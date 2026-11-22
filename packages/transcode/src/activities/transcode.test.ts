@@ -9,11 +9,16 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { transcodeService } from '@shumai/core/src/transcode/transcode'
+import { sampleVideoChunkSprite } from '@shumai/core/src/transcode/video-chunk-sprite'
 import * as child_process from 'child_process'
 import * as fs from 'fs'
 
 vi.mock('child_process', () => ({
   execFile: vi.fn(),
+}))
+vi.mock('@shumai/core/src/transcode/video-chunk-sprite', () => ({
+  composeVideoChunkSprite: vi.fn(),
+  sampleVideoChunkSprite: vi.fn(),
 }))
 import {
   ensureLocalMediaFile,
@@ -1238,6 +1243,42 @@ describe('Transcode Activities', () => {
   })
 
   describe('Video Chunk Activities', () => {
+    it('returns the embedding clip when the optional sprite upload fails', async () => {
+      vi.mocked(child_process.execFile).mockImplementation(
+        // The activity awaits the promisified callback overload.
+        ((_file: string, _args: string[], callback: (err: null) => void) => {
+          callback(null)
+        }) as typeof child_process.execFile,
+      )
+      vi.mocked(sampleVideoChunkSprite).mockResolvedValueOnce({
+        image: Buffer.from('mock sprite'),
+        columns: 1,
+        rows: 1,
+        frameCount: 1,
+      })
+      vi.mocked(s3Service.putObject)
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error('Sprite storage unavailable'))
+
+      const chunk = await transcodeVideoChunkActivity({
+        assetId: 'asset-abc',
+        assetKey: 'files/storage-id/proxy.mp4',
+        originalKey: 'files/storage-id/original.mp4',
+        startTime: 0,
+        endTime: 1,
+      })
+
+      expect(chunk.chunkKey).toMatch(/\.mp4$/)
+      expect(chunk.sprite).toBeUndefined()
+      expect(s3Service.putObject).toHaveBeenLastCalledWith(
+        'shumai',
+        'files/storage-id/chunk-sprites/asset-abc/video-0-1.webp',
+        expect.any(Buffer),
+        expect.any(Number),
+        'image/webp',
+      )
+    })
+
     it('should transcode video chunk using ffmpeg and upload to S3', async () => {
       // Mock child_process.execFile to simulate ffmpeg succeeding
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

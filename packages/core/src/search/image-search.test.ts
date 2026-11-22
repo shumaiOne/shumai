@@ -14,12 +14,13 @@ async function insertEmbedding(
   embedding: number[],
   startTime: number | null = null,
   endTime: number | null = null,
+  sprite?: PrismaJson.VideoChunkSprite,
 ) {
   const column = embedding.length === 768 ? Prisma.sql`embedding_768` : Prisma.sql`embedding`
   await prisma.$executeRaw`
-    INSERT INTO asset_embeddings (id, asset_id, ${column}, start_time, end_time, created_at, updated_at)
+    INSERT INTO asset_embeddings (id, asset_id, ${column}, start_time, end_time, sprite, created_at, updated_at)
     VALUES (gen_random_uuid()::text, ${assetId}, ${JSON.stringify(embedding)}::vector,
-      ${startTime}, ${endTime}, NOW(), NOW())
+      ${startTime}, ${endTime}, ${sprite ? JSON.stringify(sprite) : null}::jsonb, NOW(), NOW())
   `
 }
 
@@ -80,8 +81,10 @@ describe('image search', () => {
     await prisma.asset.update({ where: { id: deleted.id }, data: { isDeleted: true } })
 
     await insertEmbedding(source.id, vector(1536, 1))
-    await insertEmbedding(video.id, vector(1536, 1), 4, 12)
-    await insertEmbedding(video.id, vector(1536, 0, 1), 12, 20)
+    const firstSprite = { key: 'files/video/chunk-4-12.webp', columns: 5, rows: 2, frameCount: 8 }
+    const secondSprite = { ...firstSprite, key: 'files/video/chunk-12-20.webp' }
+    await insertEmbedding(video.id, vector(1536, 1), 4, 12, firstSprite)
+    await insertEmbedding(video.id, vector(1536, 0, 1), 12, 20, secondSprite)
     await insertEmbedding(image.id, vector(1536, 1, 1))
     await insertEmbedding(deleted.id, vector(1536, 1))
     await insertEmbedding(audio.id, vector(1536, 1))
@@ -93,13 +96,25 @@ describe('image search', () => {
       imageSearchRequestSchema.parse({ ...request, first: 2 }),
     )
     expect(first.data.map((item) => item.id)).toEqual([video.id, image.id])
-    expect(first.data[0]).toMatchObject({ startTime: 4, endTime: 12 })
+    expect(first.data[0]).toMatchObject({
+      startTime: 4,
+      endTime: 12,
+      matchedSprite: { url: expect.stringContaining(firstSprite.key) },
+    })
+    expect(first.data[1].matchedSprite).toBeUndefined()
     expect(first.pageInfo).toMatchObject({ total: 3, cursor: expect.any(String) })
     const next = await searchService.searchByImage(
       root.id,
       imageSearchRequestSchema.parse({ ...request, first: 2, after: first.pageInfo.cursor }),
     )
-    expect(next.data).toMatchObject([{ id: video.id, startTime: 12, endTime: 20 }])
+    expect(next.data).toMatchObject([
+      {
+        id: video.id,
+        startTime: 12,
+        endTime: 20,
+        matchedSprite: { url: expect.stringContaining(secondSprite.key) },
+      },
+    ])
     expect(next.pageInfo.cursor).toBeUndefined()
 
     const images = await searchService.searchByImage(

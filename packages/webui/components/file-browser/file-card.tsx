@@ -308,7 +308,9 @@ export function FileCard({
 
   // A preview (poster thumbnail and/or sprite) can be available before transcoding finishes,
   // since the poster/sprite are generated and persisted ahead of the proxy transcodes.
-  const hasPreview = Boolean(displayItem.preview?.thumbnailUrl || displayItem.preview?.spriteUrl)
+  const hasPreview = Boolean(
+    item.matchedSprite || displayItem.preview?.thumbnailUrl || displayItem.preview?.spriteUrl,
+  )
   const isFailed = displayItem.status === 'failed'
   const isLocalUploader = Boolean(fileUploadState)
   const isUploadFailed = fileUploadState?.status === 'failed'
@@ -520,9 +522,10 @@ export function FileCard({
               <FilePreview
                 item={displayItem}
                 showDuration={!isProcessing && !isFailed}
+                matchedSprite={item.matchedSprite}
                 matchDuration={
-                  displayItem.startTime != null && displayItem.endTime != null
-                    ? { startTime: displayItem.startTime, endTime: displayItem.endTime }
+                  item.startTime != null && item.endTime != null
+                    ? { startTime: item.startTime, endTime: item.endTime }
                     : null
                 }
               />
@@ -569,8 +572,8 @@ export function FileCard({
               item={displayItem}
               showDuration
               matchDuration={
-                displayItem.startTime != null && displayItem.endTime != null
-                  ? { startTime: displayItem.startTime, endTime: displayItem.endTime }
+                item.startTime != null && item.endTime != null
+                  ? { startTime: item.startTime, endTime: item.endTime }
                   : null
               }
             />

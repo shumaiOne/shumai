@@ -217,6 +217,8 @@ declare global {
       resolutions: VideoTranscode[]
     }
 
+    export type VideoChunkSprite = import('@shumai/dtos').SpriteLayout & { key: string }
+
     export interface MediaInfo {
       duration: number
       filesize: number

@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **search**: Hover over a video result in Semantic Search or Find Similar to preview its matched time range when a segment preview is available.
+
 ### Changed
 
 - **transcode**: Offload video chunk slicing for search embeddings to the transcode worker queue.
