@@ -100,6 +100,7 @@ export const localUploadQuerySchema = z.object({
   bucket: z.string(),
   key: z.string(),
   Signature: z.string(),
+  Expires: z.string().optional(),
 })
 export type LocalUploadQuery = z.infer<typeof localUploadQuerySchema>
 

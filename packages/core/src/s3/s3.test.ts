@@ -12,10 +12,13 @@ import {
 } from '@aws-sdk/client-s3'
 import {
   buildContentDisposition,
+  getPresignedUrlExpirySeconds,
   LocalStorageService,
   S3StorageService,
   signLocalGetUrl,
+  signLocalUrl,
   verifyLocalGetUrlSignature,
+  verifyLocalUrlSignature,
 } from './s3'
 
 const s3ClientConstructorSpy = vi.fn()
@@ -82,7 +85,7 @@ describe('S3Service implementations', () => {
       expect(getSignedUrlSpy).toHaveBeenCalledWith(
         expect.anything(),
         expect.any(GetObjectCommand),
-        expect.objectContaining({ expiresIn: 18000 }),
+        expect.objectContaining({ expiresIn: 43200 }),
       )
     })
 
@@ -116,14 +119,14 @@ describe('S3Service implementations', () => {
         const url1 = await s3.presign('bucket', 'key', 'GET')
         expect(url1).toBe('http://presigned-url-1')
 
-        // Default GET lifetime is 5h; before 2.5h the cached URL should still be reused
-        const almostHalfMs = 2.5 * 3600 * 1000 - 1_000
+        // Default GET lifetime is 12h; before 6h the cached URL should still be reused
+        const almostHalfMs = 6 * 3600 * 1000 - 1_000
         wallNow += almostHalfMs
         perfNow += almostHalfMs
         expect(await s3.presign('bucket', 'key', 'GET')).toBe('http://presigned-url-1')
         expect(getSignedUrlSpy).toHaveBeenCalledTimes(1)
 
-        // Past 2.5h (half of the 5h lifetime), the cache must expire so callers never get nearly expired URLs
+        // Past 6h (half of the 12h lifetime), the cache must expire so callers never get nearly expired URLs
         wallNow += 2_000
         perfNow += 2_000
         expect(await s3.presign('bucket', 'key', 'GET')).toBe('http://presigned-url-2')
@@ -299,6 +302,43 @@ describe('S3Service implementations', () => {
       )
 
       delete process.env.PRESIGNED_URL_EXPIRES_IN
+    })
+
+    it('should support float values for PRESIGNED_URL_EXPIRES_IN and PRESIGNED_UPLOAD_URL_EXPIRES_IN', async () => {
+      process.env.PRESIGNED_URL_EXPIRES_IN = '0.1'
+      process.env.PRESIGNED_UPLOAD_URL_EXPIRES_IN = '1.5'
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+
+      getSignedUrlSpy.mockClear()
+      await s3.presign('bucket', 'key', 'GET')
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(GetObjectCommand),
+        expect.objectContaining({ expiresIn: 360 }),
+      )
+
+      getSignedUrlSpy.mockClear()
+      await s3.presign('bucket', 'key', 'PUT')
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(PutObjectCommand),
+        expect.objectContaining({ expiresIn: 5400 }),
+      )
+
+      getSignedUrlSpy.mockClear()
+      await s3.presignMultipart('bucket', 'key', {
+        method: 'PUT',
+        key: 'key',
+        fileId: 'file-1',
+      })
+      expect(getSignedUrlSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(PutObjectCommand),
+        expect.objectContaining({ expiresIn: 5400 }),
+      )
+
+      delete process.env.PRESIGNED_URL_EXPIRES_IN
+      delete process.env.PRESIGNED_UPLOAD_URL_EXPIRES_IN
     })
 
     it('should not set contentDisposition for normal GET presign', async () => {
@@ -920,6 +960,102 @@ describe('S3Service implementations', () => {
       await expect(localS3.presign('b', 'k', 'POST')).rejects.toThrow()
     })
 
+    it('should default local GET and PUT presign expiry to 12 hours', async () => {
+      const fixedNow = 1_700_000_000_000
+      const dateNowSpy = vi.spyOn(Date, 'now').mockReturnValue(fixedNow)
+      try {
+        const expectedExpires = String(Math.floor(fixedNow / 1000) + 12 * 3600)
+
+        const getUrl = new URL(await localS3.presign('my-bucket', 'dir/default.txt', 'GET'))
+        expect(getUrl.searchParams.get('Expires')).toBe(expectedExpires)
+
+        const putUrl = new URL(await localS3.presign('my-bucket', 'dir/default.txt', 'PUT'))
+        expect(putUrl.pathname).toBe('/api/upload/local')
+        expect(putUrl.searchParams.get('Expires')).toBe(expectedExpires)
+        expect(
+          verifyLocalUrlSignature(
+            'my-bucket',
+            'dir/default.txt',
+            putUrl.searchParams.get('Signature'),
+            putUrl.searchParams.get('Expires'),
+          ),
+        ).toBe(true)
+      } finally {
+        dateNowSpy.mockRestore()
+      }
+    })
+
+    it('should respect PRESIGNED_URL_EXPIRES_IN (including floats) for local GET and PUT fallback', async () => {
+      const fixedNow = 1_700_000_000_000
+      const dateNowSpy = vi.spyOn(Date, 'now').mockReturnValue(fixedNow)
+      process.env.PRESIGNED_URL_EXPIRES_IN = '0.1'
+      try {
+        const expectedExpires = String(Math.floor(fixedNow / 1000) + 360)
+
+        const getUrl = new URL(await localS3.presign('my-bucket', 'dir/float.txt', 'GET'))
+        expect(getUrl.searchParams.get('Expires')).toBe(expectedExpires)
+
+        const putUrl = new URL(await localS3.presign('my-bucket', 'dir/float.txt', 'PUT'))
+        expect(putUrl.searchParams.get('Expires')).toBe(expectedExpires)
+      } finally {
+        dateNowSpy.mockRestore()
+        delete process.env.PRESIGNED_URL_EXPIRES_IN
+      }
+    })
+
+    it('should respect PRESIGNED_UPLOAD_URL_EXPIRES_IN (including floats) for local PUT and presignMultipart', async () => {
+      const fixedNow = 1_700_000_000_000
+      const dateNowSpy = vi.spyOn(Date, 'now').mockReturnValue(fixedNow)
+      process.env.PRESIGNED_URL_EXPIRES_IN = '2'
+      process.env.PRESIGNED_UPLOAD_URL_EXPIRES_IN = '1.5'
+      try {
+        const expectedGetExpires = String(Math.floor(fixedNow / 1000) + 2 * 3600)
+        const expectedPutExpires = String(Math.floor(fixedNow / 1000) + 5400)
+
+        const getUrl = new URL(await localS3.presign('my-bucket', 'dir/upload-env.txt', 'GET'))
+        expect(getUrl.searchParams.get('Expires')).toBe(expectedGetExpires)
+
+        const putUrl = new URL(await localS3.presign('my-bucket', 'dir/upload-env.txt', 'PUT'))
+        expect(putUrl.searchParams.get('Expires')).toBe(expectedPutExpires)
+
+        const { url: multipartUrlStr } = await localS3.presignMultipart(
+          'my-bucket',
+          'dir/upload-env.txt',
+          {
+            method: 'PUT',
+            key: 'dir/upload-env.txt',
+            fileId: 'file-1',
+          },
+        )
+        const multipartUrl = new URL(multipartUrlStr)
+        expect(multipartUrl.searchParams.get('Expires')).toBe(expectedPutExpires)
+      } finally {
+        dateNowSpy.mockRestore()
+        delete process.env.PRESIGNED_URL_EXPIRES_IN
+        delete process.env.PRESIGNED_UPLOAD_URL_EXPIRES_IN
+      }
+    })
+
+    it('should respect explicit expiresInSeconds override for local GET and PUT', async () => {
+      const fixedNow = 1_700_000_000_000
+      const dateNowSpy = vi.spyOn(Date, 'now').mockReturnValue(fixedNow)
+      try {
+        const expectedExpires = String(Math.floor(fixedNow / 1000) + 600)
+
+        const getUrl = new URL(
+          await localS3.presign('my-bucket', 'dir/custom.txt', 'GET', false, undefined, false, 600),
+        )
+        expect(getUrl.searchParams.get('Expires')).toBe(expectedExpires)
+
+        const putUrl = new URL(
+          await localS3.presign('my-bucket', 'dir/custom.txt', 'PUT', false, undefined, false, 600),
+        )
+        expect(putUrl.searchParams.get('Expires')).toBe(expectedExpires)
+      } finally {
+        dateNowSpy.mockRestore()
+      }
+    })
+
     it('should resolveInput to local file path if file exists on disk', async () => {
       await localS3.putObject('my-bucket', 'video.mp4', 'dummy content', 13)
       const input = await localS3.resolveInput('my-bucket', 'video.mp4')
@@ -1076,6 +1212,109 @@ describe('S3Service implementations', () => {
       ).toBe(false)
       expect(
         verifyLocalGetUrlSignature('my-bucket', 'files/123/file.mp4', 'badsig', 'not-a-number'),
+      ).toBe(false)
+    })
+  })
+
+  describe('getPresignedUrlExpirySeconds', () => {
+    it('supports float hours and falls back to 12 hours for invalid values', () => {
+      expect(getPresignedUrlExpirySeconds('GET')).toBe(12 * 3600)
+      expect(getPresignedUrlExpirySeconds('PUT')).toBe(12 * 3600)
+
+      process.env.PRESIGNED_URL_EXPIRES_IN = '0.1'
+      expect(getPresignedUrlExpirySeconds('GET')).toBe(360)
+      expect(getPresignedUrlExpirySeconds('PUT')).toBe(360)
+
+      process.env.PRESIGNED_URL_EXPIRES_IN = '0.0001'
+      expect(getPresignedUrlExpirySeconds('GET')).toBe(1)
+
+      for (const invalid of ['0', '-1', 'abc', 'Infinity', 'NaN', '   ']) {
+        process.env.PRESIGNED_URL_EXPIRES_IN = invalid
+        expect(getPresignedUrlExpirySeconds('GET')).toBe(12 * 3600)
+        expect(getPresignedUrlExpirySeconds('PUT')).toBe(12 * 3600)
+      }
+
+      expect(getPresignedUrlExpirySeconds('GET', 120)).toBe(120)
+      expect(getPresignedUrlExpirySeconds('PUT', -10)).toBe(-10)
+    })
+  })
+
+  describe('signLocalUrl and verifyLocalUrlSignature', () => {
+    it('signs and verifies valid local PUT url', () => {
+      const signed = signLocalUrl('my-bucket', 'files/123/file.mp4')
+      const parsed = new URL(`http://localhost:3000${signed}`)
+      const signature = parsed.searchParams.get('Signature')
+      const expires = parsed.searchParams.get('Expires')
+
+      expect(signature).toBeTruthy()
+      expect(Number(expires)).toBeGreaterThan(Math.floor(Date.now() / 1000))
+      expect(verifyLocalUrlSignature('my-bucket', 'files/123/file.mp4', signature, expires)).toBe(
+        true,
+      )
+    })
+
+    it('rejects expired local PUT url signature', () => {
+      const signed = signLocalUrl('my-bucket', 'files/123/file.mp4', -10)
+      const parsed = new URL(`http://localhost:3000${signed}`)
+      expect(
+        verifyLocalUrlSignature(
+          'my-bucket',
+          'files/123/file.mp4',
+          parsed.searchParams.get('Signature'),
+          parsed.searchParams.get('Expires'),
+        ),
+      ).toBe(false)
+    })
+
+    it('rejects tampered bucket, key, or malformed params', () => {
+      const signed = signLocalUrl('my-bucket', 'files/123/file.mp4')
+      const parsed = new URL(`http://localhost:3000${signed}`)
+      const signature = parsed.searchParams.get('Signature')
+      const expires = parsed.searchParams.get('Expires')
+
+      expect(
+        verifyLocalUrlSignature('other-bucket', 'files/123/file.mp4', signature, expires),
+      ).toBe(false)
+      expect(verifyLocalUrlSignature('my-bucket', 'files/999/other.mp4', signature, expires)).toBe(
+        false,
+      )
+      expect(
+        verifyLocalUrlSignature(
+          'my-bucket',
+          'files/123/file.mp4',
+          signature,
+          String(Number(expires) + 60),
+        ),
+      ).toBe(false)
+      expect(verifyLocalUrlSignature('my-bucket', 'files/123/file.mp4', undefined, expires)).toBe(
+        false,
+      )
+      expect(verifyLocalUrlSignature('my-bucket', 'files/123/file.mp4', signature, undefined)).toBe(
+        false,
+      )
+      expect(
+        verifyLocalUrlSignature('my-bucket', 'files/123/file.mp4', signature, `${expires}abc`),
+      ).toBe(false)
+    })
+
+    it('rejects reusing a GET signature for PUT and vice versa', () => {
+      const { signature: getSig, expires: getExp } = signLocalGetUrl(
+        'my-bucket',
+        'files/123/file.mp4',
+      )
+      expect(
+        verifyLocalUrlSignature('my-bucket', 'files/123/file.mp4', getSig, String(getExp)),
+      ).toBe(false)
+
+      const signedPut = signLocalUrl('my-bucket', 'files/123/file.mp4')
+      const parsedPut = new URL(`http://localhost:3000${signedPut}`)
+      expect(
+        verifyLocalGetUrlSignature(
+          'my-bucket',
+          'files/123/file.mp4',
+          parsedPut.searchParams.get('Signature'),
+          parsedPut.searchParams.get('Expires'),
+        ),
       ).toBe(false)
     })
   })

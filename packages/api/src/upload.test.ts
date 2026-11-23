@@ -254,5 +254,67 @@ describe('Upload API', () => {
       })
       expect(res.status).toBe(404)
     })
+
+    it('accepts a valid signed local upload URL', async () => {
+      vi.spyOn(s3Module, 'getStorageBackend').mockReturnValue('local')
+      const putObjectSpy = vi.spyOn(s3Module.s3Service, 'putObject').mockResolvedValue(undefined)
+      const signedPath = s3Module.signLocalUrl('test-bucket', 'files/test.txt')
+      const localPath = signedPath.replace(/^\/api/, '')
+      const localApp = new Hono().route('/', localUploadRoute)
+
+      const res = await localApp.request(localPath, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/plain', 'Content-Length': '5' },
+        body: 'hello',
+      })
+
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ success: true })
+      expect(putObjectSpy).toHaveBeenCalledWith(
+        'test-bucket',
+        'files/test.txt',
+        expect.anything(),
+        5,
+        'text/plain',
+      )
+    })
+
+    it('returns 403 when local upload URL signature is expired', async () => {
+      vi.spyOn(s3Module, 'getStorageBackend').mockReturnValue('local')
+      const putObjectSpy = vi.spyOn(s3Module.s3Service, 'putObject').mockResolvedValue(undefined)
+      const signedPath = s3Module.signLocalUrl('test-bucket', 'files/test.txt', -10)
+      const localPath = signedPath.replace(/^\/api/, '')
+      const localApp = new Hono().route('/', localUploadRoute)
+
+      const res = await localApp.request(localPath, {
+        method: 'PUT',
+        body: 'hello',
+      })
+
+      expect(res.status).toBe(403)
+      expect(putObjectSpy).not.toHaveBeenCalled()
+    })
+
+    it('returns 403 when Expires query param is missing or invalid', async () => {
+      vi.spyOn(s3Module, 'getStorageBackend').mockReturnValue('local')
+      const putObjectSpy = vi.spyOn(s3Module.s3Service, 'putObject').mockResolvedValue(undefined)
+      const localApp = new Hono().route('/', localUploadRoute)
+
+      const missingRes = await localApp.request('/upload/local?bucket=b&key=k&Signature=sig', {
+        method: 'PUT',
+        body: 'hello',
+      })
+      expect(missingRes.status).toBe(403)
+
+      const invalidRes = await localApp.request(
+        '/upload/local?bucket=b&key=k&Signature=sig&Expires=not-a-number',
+        {
+          method: 'PUT',
+          body: 'hello',
+        },
+      )
+      expect(invalidRes.status).toBe(403)
+      expect(putObjectSpy).not.toHaveBeenCalled()
+    })
   })
 })

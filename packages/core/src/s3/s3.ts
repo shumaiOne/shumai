@@ -26,34 +26,73 @@ import { ulid } from 'ulid'
 import { LruTtlCache } from '../cache/lru-ttl-cache'
 import { detectSupportedMimeType } from '../utils/mime'
 
-export function signLocalUrl(bucket: string, key: string): string {
-  const secret = process.env.BETTER_AUTH_SECRET || 'shumai-local-storage-secret'
-  const hmac = crypto.createHmac('sha256', secret)
-  hmac.update(`${bucket}/${key}`)
-  const signature = hmac.digest('hex')
-  return `/api/upload/local?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}&Signature=${signature}`
+export const DEFAULT_PRESIGNED_URL_EXPIRY_HOURS = 12
+
+export function getPresignedUrlExpirySeconds(method: string, expiresInSeconds?: number): number {
+  if (expiresInSeconds !== undefined) {
+    return expiresInSeconds
+  }
+  const raw =
+    method === 'PUT'
+      ? process.env.PRESIGNED_UPLOAD_URL_EXPIRES_IN?.trim() ||
+        process.env.PRESIGNED_URL_EXPIRES_IN?.trim()
+      : process.env.PRESIGNED_URL_EXPIRES_IN?.trim()
+
+  if (raw) {
+    const hours = Number(raw)
+    if (Number.isFinite(hours) && hours > 0) {
+      return Math.max(1, Math.round(hours * 3600))
+    }
+  }
+
+  return DEFAULT_PRESIGNED_URL_EXPIRY_HOURS * 3600
 }
 
-export function verifyLocalUrlSignature(bucket: string, key: string, signature: string): boolean {
+export function signLocalUrl(bucket: string, key: string, expiresInSeconds?: number): string {
+  const lifetimeSeconds = getPresignedUrlExpirySeconds('PUT', expiresInSeconds)
+  const expires = Math.floor(Date.now() / 1000) + lifetimeSeconds
   const secret = process.env.BETTER_AUTH_SECRET || 'shumai-local-storage-secret'
   const hmac = crypto.createHmac('sha256', secret)
-  hmac.update(`${bucket}/${key}`)
+  hmac.update(`PUT:${bucket}/${key}:${expires}`)
+  const signature = hmac.digest('hex')
+  return `/api/upload/local?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}&Signature=${signature}&Expires=${expires}`
+}
+
+export function verifyLocalUrlSignature(
+  bucket: string,
+  key: string,
+  signature: string | undefined | null,
+  expiresStr: string | undefined | null,
+): boolean {
+  if (!signature || !expiresStr) return false
+  if (!/^-?\d+$/.test(expiresStr)) return false
+  const expires = parseInt(expiresStr, 10)
+  if (isNaN(expires)) return false
+
+  const now = Math.floor(Date.now() / 1000)
+  if (now > expires) return false
+
+  const secret = process.env.BETTER_AUTH_SECRET || 'shumai-local-storage-secret'
+  const hmac = crypto.createHmac('sha256', secret)
+  hmac.update(`PUT:${bucket}/${key}:${expires}`)
   const expected = hmac.digest('hex')
   try {
-    return crypto.timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'))
+    const sigBuf = Buffer.from(signature, 'hex')
+    const expBuf = Buffer.from(expected, 'hex')
+    if (sigBuf.length !== expBuf.length) return false
+    return crypto.timingSafeEqual(sigBuf, expBuf)
   } catch {
     return false
   }
 }
 
-export const DEFAULT_LOCAL_GET_EXPIRY_SECONDS = 12 * 3600
-
 export function signLocalGetUrl(
   bucket: string,
   key: string,
-  expiresInSeconds: number = DEFAULT_LOCAL_GET_EXPIRY_SECONDS,
+  expiresInSeconds?: number,
 ): { signature: string; expires: number } {
-  const expires = Math.floor(Date.now() / 1000) + expiresInSeconds
+  const lifetimeSeconds = getPresignedUrlExpirySeconds('GET', expiresInSeconds)
+  const expires = Math.floor(Date.now() / 1000) + lifetimeSeconds
   const secret = process.env.BETTER_AUTH_SECRET || 'shumai-local-storage-secret'
   const hmac = crypto.createHmac('sha256', secret)
   hmac.update(`GET:${bucket}/${key}:${expires}`)
@@ -68,6 +107,7 @@ export function verifyLocalGetUrlSignature(
   expiresStr: string | undefined | null,
 ): boolean {
   if (!signature || !expiresStr) return false
+  if (!/^-?\d+$/.test(expiresStr)) return false
   const expires = parseInt(expiresStr, 10)
   if (isNaN(expires)) return false
 
@@ -392,7 +432,7 @@ export interface S3Service {
     download?: boolean,
     filename?: string,
     internal?: boolean,
-    /** URL lifetime; defaults to PRESIGNED_UPLOAD_URL_EXPIRES_IN (12h) for PUT, or PRESIGNED_URL_EXPIRES_IN (5h) for GET, or DEFAULT_LOCAL_GET_EXPIRY_SECONDS (12h) for local. */
+    /** URL lifetime; defaults to PRESIGNED_UPLOAD_URL_EXPIRES_IN (12h, fallback PRESIGNED_URL_EXPIRES_IN) for PUT, or PRESIGNED_URL_EXPIRES_IN (12h) for GET and other methods. */
     expiresInSeconds?: number,
   ) => Promise<string>
   presignMultipart: (
@@ -664,21 +704,12 @@ export class S3StorageService implements S3Service {
     internal?: boolean,
     expiresInSeconds?: number,
   ): Promise<string> {
-    const defaultExpireHours =
-      method === 'PUT'
-        ? parseInt(
-            process.env.PRESIGNED_UPLOAD_URL_EXPIRES_IN ||
-              process.env.PRESIGNED_URL_EXPIRES_IN ||
-              '12',
-            10,
-          )
-        : parseInt(process.env.PRESIGNED_URL_EXPIRES_IN || '5', 10)
-    const lifetimeSeconds = expiresInSeconds ?? defaultExpireHours * 3600
+    const lifetimeSeconds = getPresignedUrlExpirySeconds(method, expiresInSeconds)
     // Only reuse a cached URL while it has at least half of its lifetime left, so callers
     // never receive a nearly expired link.
     const cacheTtlMs = (lifetimeSeconds * 1000) / 2
 
-    const cacheKey = `${bucket}/${key}?download=${download || false}&filename=${filename || ''}&internal=${internal || false}&expires=${expiresInSeconds ?? 'default'}`
+    const cacheKey = `${bucket}/${key}?download=${download || false}&filename=${filename || ''}&internal=${internal || false}&expires=${lifetimeSeconds}`
     if (method === 'GET' && !download) {
       const cached = this.presignCache.get(cacheKey)
       if (cached) {
@@ -724,11 +755,7 @@ export class S3StorageService implements S3Service {
     key: string,
     request: S3SignRequest,
   ): Promise<{ url: string }> {
-    const expireHours = parseInt(
-      process.env.PRESIGNED_UPLOAD_URL_EXPIRES_IN || process.env.PRESIGNED_URL_EXPIRES_IN || '12',
-      10,
-    )
-    const expiresInSeconds = expireHours * 3600
+    const expiresInSeconds = getPresignedUrlExpirySeconds('PUT')
 
     let url: string
 
@@ -1094,12 +1121,12 @@ export class LocalStorageService implements S3Service {
       throw new Error(`Invalid method: ${method}`)
     }
     if (method === 'PUT') {
-      return `${this.endpoint}${signLocalUrl(bucket, key)}`
+      return `${this.endpoint}${signLocalUrl(bucket, key, expiresInSeconds)}`
     }
 
-    const lifetimeSeconds = expiresInSeconds ?? DEFAULT_LOCAL_GET_EXPIRY_SECONDS
+    const lifetimeSeconds = getPresignedUrlExpirySeconds('GET', expiresInSeconds)
     const cacheTtlMs = (lifetimeSeconds * 1000) / 2
-    const cacheKey = `${bucket}/${key}?download=${download || false}&filename=${filename || ''}&expires=${expiresInSeconds ?? 'default'}`
+    const cacheKey = `${bucket}/${key}?download=${download || false}&filename=${filename || ''}&expires=${lifetimeSeconds}`
 
     if (method === 'GET' && !download) {
       const cached = this.presignCache.get(cacheKey)

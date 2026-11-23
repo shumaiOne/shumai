@@ -13,16 +13,16 @@ Shumai 采用 Bun 原生高性能 S3 客户端存储与分发创意资产。借�
 
 若要启用兼容 S3 的存储，请在 `.env` 文件或 Docker Compose 配置中更新以下环境变量：
 
-| 变量名                            | 说明                                                                                        | 必填 | 默认值 / 示例                        |
-| :-------------------------------- | :------------------------------------------------------------------------------------------ | :--- | :----------------------------------- |
-| `STORAGE_BACKEND`                 | 设为 `s3` 以启用兼容 S3 的存储后端。                                                        | 是   | `s3`                                 |
-| `S3_BUCKET`                       | 存放文件的 S3 存储桶名称。                                                                  | 是   | `shumai-bucket`                      |
-| `S3_REGION`                       | S3 存储桶所在地域（Region）。                                                               | 否   | `auto`                               |
-| `S3_ACCESS_KEY_ID`                | 存储服务的访问密钥 ID（Access Key ID）。                                                    | 是   | `your-access-key-id`                 |
-| `S3_SECRET_ACCESS_KEY`            | 存储服务的私有访问密钥（Secret Access Key）。                                               | 是   | `your-secret-access-key`             |
-| `AWS_ENDPOINT_URL_S3`             | 兼容 S3 的存储服务端点 URL。                                                                | 是   | `https://s3.us-east-1.amazonaws.com` |
-| `PRESIGNED_URL_EXPIRES_IN`        | 生成的预签名下载链接有效期（单位：小时）。                                                  | 否   | `5`                                  |
-| `PRESIGNED_UPLOAD_URL_EXPIRES_IN` | 生成的预签名上传链接有效期（单位：小时）。若未指定，则回退继承 `PRESIGNED_URL_EXPIRES_IN`。 | 否   | `12`                                 |
+| 变量名                            | 说明                                                                                                          | 必填 | 默认值 / 示例                        |
+| :-------------------------------- | :------------------------------------------------------------------------------------------------------------ | :--- | :----------------------------------- |
+| `STORAGE_BACKEND`                 | 设为 `s3` 以启用兼容 S3 的存储后端。                                                                          | 是   | `s3`                                 |
+| `S3_BUCKET`                       | 存放文件的 S3 存储桶名称。                                                                                    | 是   | `shumai-bucket`                      |
+| `S3_REGION`                       | S3 存储桶所在地域（Region）。                                                                                 | 否   | `auto`                               |
+| `S3_ACCESS_KEY_ID`                | 存储服务的访问密钥 ID（Access Key ID）。                                                                      | 是   | `your-access-key-id`                 |
+| `S3_SECRET_ACCESS_KEY`            | 存储服务的私有访问密钥（Secret Access Key）。                                                                 | 是   | `your-secret-access-key`             |
+| `AWS_ENDPOINT_URL_S3`             | 兼容 S3 的存储服务端点 URL。                                                                                  | 是   | `https://s3.us-east-1.amazonaws.com` |
+| `PRESIGNED_URL_EXPIRES_IN`        | 生成的预签名下载链接有效期（单位：小时，支持小数如 `0.5`）。                                                  | 否   | `12`                                 |
+| `PRESIGNED_UPLOAD_URL_EXPIRES_IN` | 生成的预签名上传链接有效期（单位：小时，支持小数如 `0.5`）。若未指定，则回退继承 `PRESIGNED_URL_EXPIRES_IN`。 | 否   | `12`                                 |
 
 ---
 
