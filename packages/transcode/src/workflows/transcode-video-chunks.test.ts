@@ -73,6 +73,7 @@ describe('transcodeVideoChunksWorkflow', () => {
       status: 'processed',
       storageKey: { key: 'files/asset-video/raw.mp4', isArchived: false },
       mediaType: 'video/mp4',
+      media: { duration: 110, sprite: { key: 'files/asset-video/sprite.webp' } },
     } as unknown as Awaited<ReturnType<typeof getAssetActivity>>)
 
     const sprite = {

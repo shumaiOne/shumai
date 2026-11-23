@@ -64,11 +64,13 @@ export const FilePreview = ({
   ) : null
 
   const chunkSprite = hasMatchedChunk ? matchedSprite : undefined
-  const fullSpriteUrl =
-    (isVideo || isPdf || is3D) &&
-    ((hasMatchedChunk && isVideo) ||
-      (item.preview?.thumbnailUrl && item.preview.originalWidth && item.preview.originalHeight)) &&
-    item.preview?.spriteUrl
+  const canShowFullSprite =
+    hasMatchedChunk ||
+    ((isVideo || isPdf || is3D) &&
+      item.preview?.thumbnailUrl &&
+      item.preview.originalWidth &&
+      item.preview.originalHeight)
+  const fullSpriteUrl = canShowFullSprite ? item.preview?.spriteUrl : undefined
   const spriteUrl = chunkSprite?.url || fullSpriteUrl
 
   if (spriteUrl) {

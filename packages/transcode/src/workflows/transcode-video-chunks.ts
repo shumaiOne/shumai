@@ -1,4 +1,5 @@
 import { logger } from '@shumai/core/src/logger'
+import { isFullVideoRange } from '@shumai/core/src/transcode/video-sprite'
 import type { WorkflowTask } from '@shumai/db'
 import { ApplicationFailure } from '@shumai/workflow-core'
 import { deleteS3ObjectActivity, transcodeVideoChunkActivity } from '../activities/transcode'
@@ -48,6 +49,9 @@ export async function transcodeVideoChunksWorkflow(task: WorkflowTask): Promise<
 
     const chunks: TranscodedVideoChunkItem[] = []
     for (const range of payload.videoChunks.chunks) {
+      const fullSpriteKey = isFullVideoRange(range.startTime, range.endTime, asset.media?.duration)
+        ? asset.media?.sprite?.key
+        : undefined
       const chunk = await transcodeVideoChunkActivity({
         taskId: task.id,
         assetId: asset.id,
@@ -56,6 +60,7 @@ export async function transcodeVideoChunksWorkflow(task: WorkflowTask): Promise<
         startTime: range.startTime,
         endTime: range.endTime,
         format: payload.videoChunks.format,
+        ...(fullSpriteKey && { fullSpriteKey }),
       })
       uploadedChunkKeys.push(chunk.chunkKey)
       chunks.push({ ...range, ...chunk })

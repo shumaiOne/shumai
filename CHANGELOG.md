@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- **search**: Video matches in Semantic Search and Find Similar show the first frame of the matched segment and let you scrub through it on hover when a segment preview is available.
+- **search**: Video segment matches in Semantic Search and Find Similar show the segment’s first frame and let you scrub through it on hover. Matches that span the entire video reuse its full preview when available.
 
 ### Changed
 

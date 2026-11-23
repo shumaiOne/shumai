@@ -202,9 +202,15 @@ describe('Workflow E2E - agentEmbeddingMedia', () => {
     expect(dbEmbeddings[0].endTime).toBeNull()
   }, 50000)
 
-  it.each(['gemini-embedding-2', 'gemma-embedding-2-openai'])(
-    'persists a playable video chunk sprite with %s',
-    async (embeddingProvider) => {
+  it.each([
+    ['gemini-embedding-2', 'no sprite metadata'],
+    ['gemma-embedding-2-openai', 'no sprite metadata'],
+    ['gemini-embedding-2', 'available full sprite'],
+    ['gemma-embedding-2-openai', 'available full sprite'],
+    ['gemma-embedding-2-openai', 'missing full sprite object'],
+  ])(
+    'indexes an entire video with %s and %s',
+    async (embeddingProvider, fullSpriteState) => {
       vi.stubEnv('EMBEDDING_PROVIDER', embeddingProvider)
       if (embeddingProvider === 'gemma-embedding-2-openai') {
         const endpoint = 'https://embedding.example.com/v1/embeddings'
@@ -287,13 +293,36 @@ describe('Workflow E2E - agentEmbeddingMedia', () => {
         },
       })
 
+      const bucket = 'shumai-e2e-test-bucket-embedding'
+      const fullSpriteKey = `projects/e2e/${storageKey.id}-full.webp`
+      const hasFullSprite = fullSpriteState === 'available full sprite'
+      if (hasFullSprite) {
+        const fullSprite = await sharp({
+          create: { width: 640, height: 640, channels: 3, background: 'blue' },
+        })
+          .webp()
+          .toBuffer()
+        await s3Service.putObject(
+          bucket,
+          fullSpriteKey,
+          fullSprite,
+          fullSprite.length,
+          'image/webp',
+        )
+      }
       const asset = await prisma.asset.create({
         data: {
           name: 'test-video.mp4',
           type: 'file',
           status: 'uploaded',
           mediaType: 'video/mp4',
-          media: { duration: 1.0 } as unknown as PrismaJson.MediaInfo, // 1-second video
+          media: {
+            duration: 1,
+            proxyType: 'video',
+            ...(fullSpriteState !== 'no sprite metadata' && {
+              sprite: { key: fullSpriteKey, frames: 100, tileX: 10, tileY: 10 },
+            }),
+          } as PrismaJson.MediaInfo,
           projectId: project.id,
           storageKeyId: storageKey.id,
         },
@@ -344,28 +373,35 @@ describe('Workflow E2E - agentEmbeddingMedia', () => {
       expect(chunkTasks).toHaveLength(1)
       expect(chunkTasks[0].status).toBe(WorkflowTaskStatus.completed)
       expect(chunkTasks[0].payload?.videoChunks?.parentTaskId).toBe(task.id)
-      expect(chunkTasks[0].output).toMatchObject({
-        chunks: [{ sprite: { columns: 1, rows: 1, frameCount: 1 } }],
-      })
-
       const dbEmbeddings = await prisma.assetEmbedding.findMany({ where: { assetId: asset.id } })
       expect(dbEmbeddings).toHaveLength(1)
       expect(dbEmbeddings[0].startTime).toBe(0)
       expect(dbEmbeddings[0].endTime).toBe(1)
       const sprite = dbEmbeddings[0].sprite
       const format = embeddingProvider === 'gemma-embedding-2-openai' ? 'frames' : 'video'
-      expect(sprite).toEqual({
-        key: `projects/e2e/chunk-sprites/${asset.id}/${format}-0-1.webp`,
-        columns: 1,
-        rows: 1,
-        frameCount: 1,
-      })
-      const { buffer } = await s3Service.getObject('shumai-e2e-test-bucket-embedding', sprite!.key)
-      expect(await sharp(buffer).metadata()).toMatchObject({
-        format: 'webp',
-        width: 64,
-        height: 64,
-      })
+      if (hasFullSprite) {
+        expect(sprite).toBeNull()
+        expect(
+          await s3Service.listObjects(bucket, `projects/e2e/chunk-sprites/${asset.id}/`),
+        ).toEqual([])
+        await s3Service.deleteObject(bucket, fullSpriteKey)
+      } else {
+        expect(chunkTasks[0].output).toMatchObject({
+          chunks: [{ sprite: { columns: 1, rows: 1, frameCount: 1 } }],
+        })
+        expect(sprite).toEqual({
+          key: `projects/e2e/chunk-sprites/${asset.id}/${format}-0-1.webp`,
+          columns: 1,
+          rows: 1,
+          frameCount: 1,
+        })
+        const { buffer } = await s3Service.getObject(bucket, sprite!.key)
+        expect(await sharp(buffer).metadata()).toMatchObject({
+          format: 'webp',
+          width: 64,
+          height: 64,
+        })
+      }
 
       // Verify all temporary embedding chunk files were cleaned up from S3
       const remainingTmpChunks = await s3Service.listObjects(

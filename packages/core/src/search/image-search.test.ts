@@ -2,6 +2,7 @@ import { prisma, Prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { imageSearchRequestSchema } from '@shumai/dtos'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { imageEmbeddingService } from './image-embedding'
 import { searchService } from './search'
 
@@ -143,6 +144,60 @@ describe('image search', () => {
     const result = await searchService.searchByImage(root.id, req)
     expect(result.data.map((item) => item.id)).toEqual([image.id])
   })
+
+  it.each([
+    { startTime: 0, endTime: 10, stored: true, useFullSprite: true },
+    { startTime: 0, endTime: 10, stored: false, useFullSprite: false },
+    { startTime: 0, endTime: 5, stored: true, useFullSprite: false },
+    { startTime: 5, endTime: 10, stored: true, useFullSprite: false },
+  ])(
+    'picks the preview for $startTime–$endTime when full sprite availability is $stored',
+    async ({ startTime, endTime, stored, useFullSprite }) => {
+      const { root, source, file } = await createProjectAssets()
+      const video = await file('result.mp4', 'video/mp4')
+      const bucket = process.env.S3_BUCKET || 'shumai'
+      const fullKey = `files/${video.id}/sprite.webp`
+      const chunkKey = `files/${video.id}/chunk.webp`
+      await prisma.asset.update({
+        where: { id: video.id },
+        data: {
+          media: {
+            duration: 10,
+            proxyType: 'video',
+            sprite: { key: fullKey, frames: 100, tileX: 10, tileY: 10 },
+          } as PrismaJson.MediaInfo,
+        },
+      })
+      if (stored) await s3Service.putObject(bucket, fullKey, 'sprite', 6, 'image/webp')
+      try {
+        await insertEmbedding(source.id, vector(1536, 1))
+        await insertEmbedding(video.id, vector(1536, 1), startTime, endTime, {
+          key: chunkKey,
+          columns: 5,
+          rows: 2,
+          frameCount: 10,
+        })
+
+        const result = await searchService.searchByImage(
+          root.id,
+          imageSearchRequestSchema.parse({ sourceAssetId: source.id }),
+        )
+        expect(result.data).toHaveLength(1)
+        expect(result.data[0]).toMatchObject({
+          startTime,
+          endTime,
+          preview: { spriteUrl: expect.stringContaining(fullKey) },
+        })
+        if (useFullSprite) {
+          expect(result.data[0].matchedSprite).toBeUndefined()
+        } else {
+          expect(result.data[0].matchedSprite?.url).toContain(chunkKey)
+        }
+      } finally {
+        if (stored) await s3Service.deleteObject(bucket, fullKey)
+      }
+    },
+  )
 
   it('limits an uploaded-image search to the folder and applies metadata filters', async () => {
     const { team, subfolder, source, file } = await createProjectAssets()

@@ -12,6 +12,7 @@ import {
   composeVideoChunkSprite,
   sampleVideoChunkSprite,
 } from '@shumai/core/src/transcode/video-chunk-sprite'
+import { hasStoredVideoSprite } from '@shumai/core/src/transcode/video-sprite'
 import {
   gotenbergService,
   type GotenbergConvertOptions,
@@ -1612,6 +1613,7 @@ export interface TranscodeVideoChunkParams {
   startTime: number
   endTime: number
   format?: 'video' | 'frames'
+  fullSpriteKey?: string
 }
 
 async function uploadVideoChunkSprite(
@@ -1621,6 +1623,10 @@ async function uploadVideoChunkSprite(
 ): Promise<PrismaJson.VideoChunkSprite | undefined> {
   if (signal?.aborted) return
   try {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    if (params.fullSpriteKey && (await hasStoredVideoSprite(bucket, params.fullSpriteKey))) return
+
+    if (signal?.aborted) return
     const sprite = await render()
     if (!sprite || signal?.aborted) return
 
@@ -1630,13 +1636,7 @@ async function uploadVideoChunkSprite(
     const key = `${directory}/chunk-sprites/${params.assetId}/${format}-${params.startTime}-${params.endTime}.webp`
     await ensureAssetNotPurgingByIdOrKey(params.assetId, originalKey)
     const { image, ...layout } = sprite
-    await s3Service.putObject(
-      process.env.S3_BUCKET || 'shumai',
-      key,
-      image,
-      image.length,
-      'image/webp',
-    )
+    await s3Service.putObject(bucket, key, image, image.length, 'image/webp')
     return { key, ...layout }
   } catch (err) {
     if (!signal?.aborted) {

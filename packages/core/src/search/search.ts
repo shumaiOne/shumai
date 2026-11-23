@@ -4,6 +4,7 @@ import { AssetService, assetService } from '@shumai/core/src/asset/asset'
 import type { AssetInfo, ImageSearchRequest, SearchRequest } from '@shumai/dtos'
 import { logger } from '@shumai/core/src/logger'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { hasStoredVideoSprite, isFullVideoRange } from '@shumai/core/src/transcode/video-sprite'
 import { PaginatedData, decodeCursor, encodeCursor, PageInfo } from '@shumai/core/src/pagination'
 import { generateSearchNgrams } from '@shumai/core/src/utils/ngram'
 import { HTTPException } from 'hono/http-exception'
@@ -418,7 +419,9 @@ export class SearchService {
     const offset = req.after ? decodeCursor(req.after) : 0
     const resultQuery = builder
       .select(
-        Prisma.sql`a.id as "assetId", ae.start_time as "startTime", ae.end_time as "endTime", ae.sprite, ${distance} as "distance"`,
+        Prisma.sql`a.id as "assetId", ae.start_time as "startTime", ae.end_time as "endTime", ae.sprite,
+          a.media -> 'duration' as "videoDuration", a.media #>> '{sprite,key}' as "fullSpriteKey",
+          ${distance} as "distance"`,
       )
       .orderBy(visual ? Prisma.sql`distance ASC, ae.id ASC` : Prisma.sql`distance ASC`)
       .limit(limit + 1)
@@ -431,28 +434,51 @@ export class SearchService {
         startTime: number | null
         endTime: number | null
         sprite: PrismaJson.VideoChunkSprite | null
+        videoDuration: unknown
+        fullSpriteKey: string | null
       }[]
     >(resultQuery)
     const page = matches.slice(0, limit)
     const assetIds = [...new Set(page.map((match) => match.assetId))]
     const infos = await this.assetSvc.listAssetsByIds(assetIds, req.previewFormat)
     const byId = new Map(infos.map((item) => [item.id, item]))
+    const bucket = process.env.S3_BUCKET || 'shumai'
     const results = await Promise.all(
-      page.map(async ({ assetId, startTime, endTime, sprite }): Promise<AssetInfo | undefined> => {
-        const item = byId.get(assetId)
-        if (!item) return
-        const match = { ...item, startTime, endTime }
-        if (!sprite) return match
+      page.map(
+        async ({
+          assetId,
+          startTime,
+          endTime,
+          sprite,
+          videoDuration,
+          fullSpriteKey,
+        }): Promise<AssetInfo | undefined> => {
+          const item = byId.get(assetId)
+          if (!item) return
+          const match = { ...item, startTime, endTime }
+          if (!sprite) return match
 
-        const { key, ...layout } = sprite
-        try {
-          const url = await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET')
-          return { ...match, matchedSprite: { ...layout, url } }
-        } catch (err) {
-          logger.warn({ err, assetId, key }, 'Failed to sign video chunk sprite')
-          return match
-        }
-      }),
+          // A stack or symlink can get its preview from a different asset.
+          if (
+            item.type === AssetType.file &&
+            item.preview?.spriteUrl &&
+            fullSpriteKey &&
+            isFullVideoRange(startTime, endTime, videoDuration) &&
+            (await hasStoredVideoSprite(bucket, fullSpriteKey))
+          ) {
+            return match
+          }
+
+          const { key, ...layout } = sprite
+          try {
+            const url = await s3Service.presign(bucket, key, 'GET')
+            return { ...match, matchedSprite: { ...layout, url } }
+          } catch (err) {
+            logger.warn({ err, assetId, key }, 'Failed to sign video chunk sprite')
+            return match
+          }
+        },
+      ),
     )
     const data = results.filter((item) => item !== undefined)
 

@@ -116,16 +116,19 @@ describe('SpriteScrubber', () => {
     expect(load).not.toHaveBeenCalled()
   })
 
-  it('uses the full sprite for a legacy video match without a poster or dimensions', () => {
-    const { getByTestId } = render(
-      <FilePreview
-        item={{ preview: { proxyType: 'video', spriteUrl: '/full.webp' } }}
-        matchDuration={{ startTime: 0, endTime: 10 }}
-      />,
-    )
+  it.each(['video', undefined] as const)(
+    'uses the full sprite for a legacy video match with proxy type %s and no poster or dimensions',
+    (proxyType) => {
+      const { getByTestId } = render(
+        <FilePreview
+          item={{ preview: { proxyType, spriteUrl: '/full.webp' } }}
+          matchDuration={{ startTime: 0, endTime: 10 }}
+        />,
+      )
 
-    expect(getByTestId('sprite-scrubber')).toBeTruthy()
-  })
+      expect(getByTestId('sprite-scrubber')).toBeTruthy()
+    },
+  )
 
   it('scrubs forward by default when hovering from left to right', () => {
     const { getByTestId } = render(
