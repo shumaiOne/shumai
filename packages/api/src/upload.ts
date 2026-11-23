@@ -27,10 +27,10 @@ export const localUploadRoute = new Hono().put(
       return c.text('Not found', 404)
     }
 
-    const { bucket, key, Signature } = c.req.valid('query')
+    const { bucket, key, Signature, Expires } = c.req.valid('query')
 
-    if (!verifyLocalUrlSignature(bucket, key, Signature)) {
-      return c.text('Invalid signature', 403)
+    if (!verifyLocalUrlSignature(bucket, key, Signature, Expires)) {
+      return c.text('Invalid or expired signature', 403)
     }
 
     const contentType = c.req.header('Content-Type')
