@@ -15,6 +15,11 @@ test.describe('Uploader Resilience E2E Tests', () => {
   test('keeps upload active on network drop and automatically resumes on reconnection', async ({
     page,
   }) => {
+    let isOffline = false
+    let markFirstSignStarted: () => void = () => {}
+    const firstSignStarted = new Promise<void>((resolve) => {
+      markFirstSignStarted = resolve
+    })
     let releaseSign: () => void = () => {}
     const signGate = new Promise<void>((resolve) => {
       releaseSign = resolve
@@ -24,32 +29,46 @@ test.describe('Uploader Resilience E2E Tests', () => {
     await page.route('**/api/teams/**/upload/sign', async (route) => {
       signCalls++
       if (signCalls === 1) {
-        // Wait until offline event is dispatched before releasing first sign call
+        markFirstSignStarted()
+        // Wait until the browser is offline before failing the in-flight sign request
         await signGate
       }
-      route.fulfill({
+      if (isOffline) {
+        // Playwright route.fulfill() bypasses context.setOffline(true) in Chromium,
+        // so explicitly abort mocked requests while offline to simulate a real network drop.
+        await route.abort('internetdisconnected').catch(() => {})
+        return
+      }
+      await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ url: 'http://localhost:5199/mock-upload' }),
       })
     })
 
-    await page.route('**/mock-upload', (route) =>
-      route.fulfill({
+    await page.route('**/mock-upload', async (route) => {
+      if (isOffline) {
+        await route.abort('internetdisconnected').catch(() => {})
+        return
+      }
+      await route.fulfill({
         status: 200,
         headers: { ['ETag']: '"test-etag"' },
-      }),
-    )
+      })
+    })
 
     await page.goto('/?view=uploader')
     await expect(page.getByTestId('upload-status')).toHaveText('idle')
 
-    // Start upload
+    // Start upload and wait until the first sign request is in flight
     await page.getByTestId('start-upload-btn').click()
     await expect(page.getByTestId('upload-status')).toHaveText('uploading')
+    await firstSignStarted
 
     // Simulate cutting the connection
+    isOffline = true
     await page.context().setOffline(true)
+    await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false)
     releaseSign()
 
     // Status remains 'uploading' during offline state and no error toast appears
@@ -58,10 +77,12 @@ test.describe('Uploader Resilience E2E Tests', () => {
     await expect(page.locator('[data-sonner-toast][data-type="error"]')).toHaveCount(0)
 
     // Reconnect network
+    isOffline = false
     await page.context().setOffline(false)
 
     // Upload automatically resumes and completes
     await expect(page.getByTestId('upload-status')).toHaveText('completed', { timeout: 15_000 })
+    expect(signCalls).toBeGreaterThanOrEqual(2)
     await expect(page.locator('[data-sonner-toast][data-type="error"]')).toHaveCount(0)
   })
 
