@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.7.1] - 2026-11-23
+
+### Added
+
 - **search**: Find similar images and video segments from a project image, or choose, drop, or paste an image in semantic search.
 
 ### Fixed
