@@ -101,10 +101,11 @@ export class LruTtlCache<TKey, TValue> {
   }
 
   /**
-   * Monotonic time source to avoid issues with system clock jumps.
+   * Wall-clock time source so TTLs reflect real elapsed time across host sleep / VM suspend
+   * and stay aligned with wall-clock expirations such as presigned URL timestamps.
    */
   private now(): number {
-    return performance.now()
+    return Date.now()
   }
 
   get size(): number {
