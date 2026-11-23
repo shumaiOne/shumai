@@ -2,12 +2,18 @@ import { Prisma } from '@shumai/db'
 import { SearchCondition } from '@shumai/dtos'
 
 export class SqlQueryBuilder {
+  private withSql: Prisma.Sql | null = null
   private selectSql: Prisma.Sql = Prisma.sql`*`
   private fromSql: Prisma.Sql | null = null
   private wheres: Prisma.Sql[] = []
   private orderSql: Prisma.Sql | null = null
   private limitCount: number | null = null
   private offsetCount: number | null = null
+
+  with(cte: Prisma.Sql): this {
+    this.withSql = cte
+    return this
+  }
 
   select(fields: Prisma.Sql): this {
     this.selectSql = fields
@@ -70,12 +76,14 @@ export class SqlQueryBuilder {
       throw new Error('FROM clause is required in SqlQueryBuilder')
     }
 
-    const queryParts: Prisma.Sql[] = [
-      Prisma.sql`SELECT`,
-      this.selectSql,
-      Prisma.sql`FROM`,
-      this.fromSql,
-    ]
+    const queryParts: Prisma.Sql[] = []
+
+    if (this.withSql) {
+      queryParts.push(Prisma.sql`WITH`)
+      queryParts.push(this.withSql)
+    }
+
+    queryParts.push(Prisma.sql`SELECT`, this.selectSql, Prisma.sql`FROM`, this.fromSql)
 
     if (this.wheres.length > 0) {
       queryParts.push(Prisma.sql`WHERE`)

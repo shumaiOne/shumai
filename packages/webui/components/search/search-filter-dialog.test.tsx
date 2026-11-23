@@ -325,4 +325,101 @@ describe('SearchFilterDialog', () => {
     expect(badges[0].textContent).toBe('00:10 - 00:30')
     expect(badges[1].textContent).toBe('02:00 - 02:30')
   })
+
+  it('renders version badge for version_stack results and opens the stack page on click', async () => {
+    const mockStack: AssetInfo = {
+      id: 'stack-1',
+      name: 'hero_final.png',
+      type: 'version_stack',
+      status: 'processed',
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+      preview: {
+        proxyType: 'image',
+        thumbnailUrl: 'https://example.com/hero_final.jpg',
+      },
+      versionStack: {
+        id: 'stack-1',
+        versions: [
+          {
+            id: 'file-v5',
+            name: 'hero_final.png',
+            version: 5,
+            current: true,
+            status: 'processed',
+            previewUrl: 'https://example.com/hero_final.jpg',
+            createdAt: '2026-01-05T00:00:00Z',
+          },
+          {
+            id: 'file-v4',
+            name: 'hero_v4.png',
+            version: 4,
+            current: false,
+            status: 'processed',
+            previewUrl: null,
+            createdAt: '2026-01-04T00:00:00Z',
+          },
+          {
+            id: 'file-v3',
+            name: 'hero_v3.png',
+            version: 3,
+            current: false,
+            status: 'processed',
+            previewUrl: null,
+            createdAt: '2026-01-03T00:00:00Z',
+          },
+          {
+            id: 'file-v2',
+            name: 'hero_v2.png',
+            version: 2,
+            current: false,
+            status: 'processed',
+            previewUrl: null,
+            createdAt: '2026-01-02T00:00:00Z',
+          },
+          {
+            id: 'file-v1',
+            name: 'hero_v1.png',
+            version: 1,
+            current: false,
+            status: 'processed',
+            previewUrl: null,
+            createdAt: '2026-01-01T00:00:00Z',
+          },
+        ],
+      },
+    } as AssetInfo
+
+    mockSearchPost.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: [mockStack],
+        pageInfo: { total: 1 },
+      }),
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SearchFilterDialog
+          {...defaultProps}
+          initialConditions={[{ field: 'name', operator: 'contains', value: 'hero' }]}
+        />
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('hero_final.png')).toBeTruthy()
+    })
+
+    expect(screen.getByText('v5')).toBeTruthy()
+
+    const card = screen.getByText('hero_final.png').closest('[data-testid="file-card"]')!
+    fireEvent.click(card)
+
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      '/projects/proj-1/files/stack-1',
+      '_blank',
+      'noopener,noreferrer',
+    )
+  })
 })

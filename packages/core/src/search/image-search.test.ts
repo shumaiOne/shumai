@@ -1,8 +1,9 @@
-import { prisma, Prisma } from '@shumai/db'
+import { AssetType, prisma, Prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { imageSearchRequestSchema } from '@shumai/dtos'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { versionStackService } from '@shumai/core/src/versionStack/versionStack'
 import { imageEmbeddingService } from './image-embedding'
 import { searchService } from './search'
 
@@ -57,7 +58,7 @@ async function createProjectAssets() {
       data: { name, mediaType, parentId, projectId: project.id, type: 'file', status: 'processed' },
     })
   const source = await file('source.jpg', 'image/jpeg', subfolder.id)
-  return { team, agent, root, subfolder, source, file }
+  return { team, user, agent, project, root, subfolder, source, file }
 }
 
 describe('image search', () => {
@@ -265,5 +266,139 @@ describe('image search', () => {
       searchService.searchByImage(root.id, imageSearchRequestSchema.parse({ image: 'aW1hZ2U=' })),
     ).rejects.toMatchObject({ status: 422 })
     expect(provider).not.toHaveBeenCalled()
+  })
+
+  it('matches only latest versions in version stacks for image search and find similar', async () => {
+    const { user, project, root, subfolder, file } = await createProjectAssets()
+
+    const firstStackFiles = await Promise.all([
+      file('stack-a-v5.jpg', 'image/jpeg', root.id),
+      file('stack-a-v4.jpg', 'image/jpeg', root.id),
+      file('stack-a-v3.jpg', 'image/jpeg', root.id),
+      file('stack-a-v2.jpg', 'image/jpeg', root.id),
+      file('stack-a-v1.jpg', 'image/jpeg', root.id),
+    ])
+    const stackA = await versionStackService.createVersionStack({
+      fileIds: firstStackFiles.map((f) => f.id),
+      projectId: project.id,
+      creatorId: user.id,
+    })
+
+    const secondStackFiles = await Promise.all([
+      file('stack-b-v5.jpg', 'image/jpeg', subfolder.id),
+      file('stack-b-v4.jpg', 'image/jpeg', subfolder.id),
+      file('stack-b-v3.jpg', 'image/jpeg', subfolder.id),
+      file('stack-b-v2.jpg', 'image/jpeg', subfolder.id),
+      file('stack-b-v1.jpg', 'image/jpeg', subfolder.id),
+    ])
+    const stackB = await versionStackService.createVersionStack({
+      fileIds: secondStackFiles.map((f) => f.id),
+      projectId: project.id,
+      creatorId: user.id,
+    })
+
+    // Stack C has an embedding ONLY on an older version, not its latest version -> should never match
+    const thirdStackFiles = await Promise.all([
+      file('stack-c-v2.jpg', 'image/jpeg', root.id),
+      file('stack-c-v1.jpg', 'image/jpeg', root.id),
+    ])
+    await versionStackService.createVersionStack({
+      fileIds: thirdStackFiles.map((f) => f.id),
+      projectId: project.id,
+      creatorId: user.id,
+    })
+
+    // Give every version of stackA and stackB an embedding, plus older version of stackC
+    await insertEmbedding(firstStackFiles[0].id, vector(1536, 1, 0))
+    for (const f of firstStackFiles.slice(1)) {
+      await insertEmbedding(f.id, vector(1536, 1, 0))
+    }
+    await insertEmbedding(secondStackFiles[0].id, vector(1536, 1, 1))
+    for (const f of secondStackFiles.slice(1)) {
+      await insertEmbedding(f.id, vector(1536, 1, 0))
+    }
+    await insertEmbedding(thirdStackFiles[1].id, vector(1536, 1, 0))
+
+    // 1) Uploaded-image search returns 2 version stacks, not 11 separate files
+    vi.spyOn(imageEmbeddingService, 'generateEmbedding').mockResolvedValue(vector(1536, 1, 0))
+    const byImage = await searchService.searchByImage(
+      root.id,
+      imageSearchRequestSchema.parse({ image: 'aW1hZ2U=' }),
+    )
+    expect(byImage.pageInfo.total).toBe(2)
+    expect(byImage.data.map((d) => d.id)).toEqual([stackA.id, stackB.id])
+    expect(byImage.data[0].type).toBe(AssetType.version_stack)
+    expect(byImage.data[0].name).toBe('stack-a-v5.jpg')
+    expect(byImage.data[0].versionStack?.versions).toHaveLength(5)
+    expect(byImage.data[1].type).toBe(AssetType.version_stack)
+    expect(byImage.data[1].name).toBe('stack-b-v5.jpg')
+    expect(byImage.data[1].versionStack?.versions).toHaveLength(5)
+
+    // 2) Find similar on stackA's latest version excludes stackA completely (all 5 versions)
+    const similarFromLatest = await searchService.searchByImage(
+      root.id,
+      imageSearchRequestSchema.parse({ sourceAssetId: firstStackFiles[0].id }),
+    )
+    expect(similarFromLatest.pageInfo.total).toBe(1)
+    expect(similarFromLatest.data.map((d) => d.id)).toEqual([stackB.id])
+    expect(similarFromLatest.data[0].versionStack?.versions).toHaveLength(5)
+
+    // 3) Find similar on an older version ID of stackA also excludes stackA completely
+    const similarFromOlder = await searchService.searchByImage(
+      root.id,
+      imageSearchRequestSchema.parse({ sourceAssetId: firstStackFiles[4].id }),
+    )
+    expect(similarFromOlder.pageInfo.total).toBe(1)
+    expect(similarFromOlder.data.map((d) => d.id)).toEqual([stackB.id])
+  })
+
+  it('reuses full stored video sprite for full-range match on a video version stack', async () => {
+    const { user, project, root, source, file } = await createProjectAssets()
+    const v2 = await file('clip-v2.mp4', 'video/mp4')
+    const v1 = await file('clip-v1.mp4', 'video/mp4')
+    const stack = await versionStackService.createVersionStack({
+      fileIds: [v2.id, v1.id],
+      projectId: project.id,
+      creatorId: user.id,
+    })
+
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const fullKey = `files/${v2.id}/sprite.webp`
+    const chunkKey = `files/${v2.id}/chunk.webp`
+    await prisma.asset.update({
+      where: { id: v2.id },
+      data: {
+        media: {
+          duration: 10,
+          proxyType: 'video',
+          sprite: { key: fullKey, frames: 100, tileX: 10, tileY: 10 },
+        } as PrismaJson.MediaInfo,
+      },
+    })
+    await s3Service.putObject(bucket, fullKey, 'sprite', 6, 'image/webp')
+    try {
+      await insertEmbedding(source.id, vector(1536, 1))
+      await insertEmbedding(v2.id, vector(1536, 1), 0, 10, {
+        key: chunkKey,
+        columns: 5,
+        rows: 2,
+        frameCount: 10,
+      })
+      await insertEmbedding(v1.id, vector(1536, 1), 0, 10)
+
+      const result = await searchService.searchByImage(
+        root.id,
+        imageSearchRequestSchema.parse({ sourceAssetId: source.id }),
+      )
+      expect(result.pageInfo.total).toBe(1)
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0].id).toBe(stack.id)
+      expect(result.data[0].type).toBe(AssetType.version_stack)
+      expect(result.data[0].versionStack?.versions).toHaveLength(2)
+      expect(result.data[0].preview?.spriteUrl).toContain(fullKey)
+      expect(result.data[0].matchedSprite).toBeUndefined()
+    } finally {
+      await s3Service.deleteObject(bucket, fullKey)
+    }
   })
 })

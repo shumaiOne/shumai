@@ -36,6 +36,18 @@ describe('SqlQueryBuilder', () => {
     expect(() => builder.build()).toThrow('FROM clause is required')
   })
 
+  it('prepends WITH clause when provided', () => {
+    const builder = new SqlQueryBuilder()
+      .with(Prisma.sql`scoped AS (SELECT id FROM assets WHERE is_deleted = false)`)
+      .select(Prisma.sql`s.id`)
+      .from(Prisma.sql`scoped s`)
+
+    const query = builder.build()
+    expect(query.text).toBe(
+      'WITH scoped AS (SELECT id FROM assets WHERE is_deleted = false) SELECT s.id FROM scoped s',
+    )
+  })
+
   describe('Bug Reproduction Tests for buildSqlCondition', () => {
     it('Bug 1: createdAt eq date should match full day range (>= startOfDay AND <= endOfDay)', () => {
       const builder = new SqlQueryBuilder()
