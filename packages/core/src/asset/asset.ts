@@ -176,10 +176,17 @@ export class AssetService {
   async getDescendantFolderIds(folderId: string): Promise<string[]> {
     const rows = await this.prismaClient.$queryRaw<{ id: string }[]>`
       WITH RECURSIVE descendant AS (
-        SELECT id, parent_id FROM assets WHERE parent_id = ${folderId}
+        SELECT id, parent_id
+        FROM assets
+        WHERE parent_id = ${folderId}
+          AND type = 'folder'::"AssetType"
+          AND is_deleted = false
         UNION ALL
-        SELECT a.id, a.parent_id FROM assets a
+        SELECT a.id, a.parent_id
+        FROM assets a
         INNER JOIN descendant d ON a.parent_id = d.id
+        WHERE a.type = 'folder'::"AssetType"
+          AND a.is_deleted = false
       )
       SELECT id FROM descendant;
     `

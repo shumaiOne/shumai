@@ -616,6 +616,7 @@ model Asset {
   @@index([agentId])
   @@index([name], name: "assets_name_idx")
   @@index([nameNgram], type: Gin)
+  @@index([parentId, isDeleted, sortIndex, id])
   @@unique([parentId, targetId], name: "parentIdTargetId")
 }
 
@@ -741,6 +742,7 @@ model AssetEmbedding {
   assetId      String   @map("asset_id")
   asset        Asset    @relation("AssetToEmbedding", fields: [assetId], references: [id], onDelete: Cascade)
 
+  @@index([assetId])
   @@index([embedding], name: "AssetEmbedding_embedding_idx")
   @@index([embedding768], name: "AssetEmbedding_embedding_768_idx")
   @@map("asset_embeddings")

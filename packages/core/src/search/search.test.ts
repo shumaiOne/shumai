@@ -6,8 +6,9 @@ import { SearchConditionOperator } from '@shumai/dtos'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { textEmbeddingService } from './text-embedding'
 
-import { AssetType } from '@shumai/db'
+import { AssetStatus, AssetType } from '@shumai/db'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { versionStackService } from '@shumai/core/src/versionStack/versionStack'
 import { s3Service } from '@shumai/core/src/s3/s3'
 
 describe('SearchService', () => {
@@ -1304,5 +1305,453 @@ describe('SearchService — natural sort by name', () => {
 
     expect(spy).toHaveBeenCalledWith(expect.any(Array), 'jpeg')
     spy.mockRestore()
+  })
+})
+
+describe('SearchService — version stacks', () => {
+  setupTestDbHooks()
+
+  let searchService: SearchService
+
+  beforeEach(() => {
+    searchService = new SearchService()
+  })
+
+  const setupVersionStacks = async () => {
+    const user = await prisma.user.create({
+      data: { name: 'stack-user', email: 'stack-search-user@example.com', type: 'human' },
+    })
+    const team = await prisma.team.create({ data: { name: 'stack-search-team' } })
+    const project = await prisma.project.create({
+      data: { name: 'stack-search-proj', teamId: team.id },
+    })
+    const rootFolder = await prisma.asset.create({
+      data: {
+        name: 'root',
+        type: AssetType.root,
+        projectId: project.id,
+        creatorId: user.id,
+        status: 'uploaded',
+      },
+    })
+    await prisma.project.update({
+      where: { id: project.id },
+      data: { rootFolderId: rootFolder.id },
+    })
+    const subFolder = await prisma.asset.create({
+      data: {
+        name: 'subfolder',
+        type: AssetType.folder,
+        projectId: project.id,
+        parentId: rootFolder.id,
+        creatorId: user.id,
+        status: 'uploaded',
+      },
+    })
+
+    const createFile = (data: {
+      name: string
+      parentId: string
+      sizeByte: number
+      createdAt: Date
+      status?: AssetStatus
+      mediaType?: string
+    }) =>
+      prisma.asset.create({
+        data: {
+          name: data.name,
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: data.parentId,
+          creatorId: user.id,
+          sizeByte: data.sizeByte,
+          createdAt: data.createdAt,
+          status: data.status ?? AssetStatus.processed,
+          mediaType: data.mediaType ?? 'image/png',
+        },
+      })
+
+    // Stack A (in rootFolder): 5 versions, v5 is latest (index 0)
+    const firstStackFiles = [
+      await createFile({
+        name: 'hero_final.png',
+        parentId: rootFolder.id,
+        sizeByte: 500,
+        createdAt: new Date('2026-05-10T10:00:00Z'),
+      }),
+      await createFile({
+        name: 'hero_draft_4.png',
+        parentId: rootFolder.id,
+        sizeByte: 400,
+        createdAt: new Date('2026-05-04T10:00:00Z'),
+      }),
+      await createFile({
+        name: 'hero_draft_3.png',
+        parentId: rootFolder.id,
+        sizeByte: 300,
+        createdAt: new Date('2026-05-03T10:00:00Z'),
+      }),
+      await createFile({
+        name: 'hero_draft_2.png',
+        parentId: rootFolder.id,
+        sizeByte: 200,
+        createdAt: new Date('2026-05-02T10:00:00Z'),
+      }),
+      await createFile({
+        name: 'old_only_keyword.png',
+        parentId: rootFolder.id,
+        sizeByte: 100,
+        createdAt: new Date('2026-05-01T10:00:00Z'),
+        status: AssetStatus.archived,
+      }),
+    ]
+    const stackA = await versionStackService.createVersionStack({
+      fileIds: firstStackFiles.map((f) => f.id),
+      projectId: project.id,
+      creatorId: user.id,
+    })
+
+    // Stack B (in subFolder): 5 versions, v5 is latest (index 0)
+    const secondStackFiles = [
+      await createFile({
+        name: 'hero_banner.png',
+        parentId: subFolder.id,
+        sizeByte: 800,
+        createdAt: new Date('2026-05-12T10:00:00Z'),
+      }),
+      await createFile({
+        name: 'hero_old_4.png',
+        parentId: subFolder.id,
+        sizeByte: 200,
+        createdAt: new Date('2026-05-04T10:00:00Z'),
+      }),
+      await createFile({
+        name: 'hero_old_3.png',
+        parentId: subFolder.id,
+        sizeByte: 200,
+        createdAt: new Date('2026-05-03T10:00:00Z'),
+      }),
+      await createFile({
+        name: 'hero_old_2.png',
+        parentId: subFolder.id,
+        sizeByte: 200,
+        createdAt: new Date('2026-05-02T10:00:00Z'),
+      }),
+      await createFile({
+        name: 'hero_old_1.png',
+        parentId: subFolder.id,
+        sizeByte: 200,
+        createdAt: new Date('2026-05-01T10:00:00Z'),
+      }),
+    ]
+    const stackB = await versionStackService.createVersionStack({
+      fileIds: secondStackFiles.map((f) => f.id),
+      projectId: project.id,
+      creatorId: user.id,
+    })
+
+    const standalone = await createFile({
+      name: 'standalone.png',
+      parentId: rootFolder.id,
+      sizeByte: 50,
+      createdAt: new Date('2026-05-05T10:00:00Z'),
+    })
+
+    // Metadata on latest versions vs older versions
+    await metadataService.updateAssetMetadata(stackA.id, [{ key: 'status', value: 'approved' }])
+    await metadataService.updateAssetMetadata(stackB.id, [{ key: 'status', value: 'approved' }])
+    await metadataService.updateAssetMetadata(firstStackFiles[4].id, [
+      { key: 'tag', value: 'legacy' },
+    ])
+
+    return {
+      user,
+      team,
+      project,
+      rootFolder,
+      subFolder,
+      stackA,
+      firstStackFiles,
+      stackB,
+      secondStackFiles,
+      standalone,
+    }
+  }
+
+  it('returns 2 version stacks instead of 10 individual versions in recursive and non-recursive search', async () => {
+    const { rootFolder, stackA, stackB, standalone } = await setupVersionStacks()
+
+    const recursive = await searchService.search(rootFolder.id, {
+      recursively: true,
+      assetType: 'file',
+      operator: 'AND',
+      conditions: [],
+      isSemantic: false,
+    })
+
+    expect(recursive.pageInfo.total).toBe(3)
+    expect(recursive.pageInfo.totalSize).toBe(500 + 800 + 50)
+    expect(recursive.data.map((a) => a.id).sort()).toEqual(
+      [stackA.id, stackB.id, standalone.id].sort(),
+    )
+
+    const returnedA = recursive.data.find((a) => a.id === stackA.id)!
+    const returnedB = recursive.data.find((a) => a.id === stackB.id)!
+    expect(returnedA.type).toBe(AssetType.version_stack)
+    expect(returnedA.name).toBe('hero_final.png')
+    expect(returnedA.versionStack?.id).toBe(stackA.id)
+    expect(returnedA.versionStack?.versions).toHaveLength(5)
+    expect(returnedB.type).toBe(AssetType.version_stack)
+    expect(returnedB.name).toBe('hero_banner.png')
+    expect(returnedB.versionStack?.versions).toHaveLength(5)
+
+    const nonRecursive = await searchService.search(rootFolder.id, {
+      recursively: false,
+      assetType: 'file',
+      operator: 'AND',
+      conditions: [],
+      isSemantic: false,
+    })
+
+    expect(nonRecursive.pageInfo.total).toBe(2)
+    expect(nonRecursive.pageInfo.totalSize).toBe(500 + 50)
+    expect(nonRecursive.data.map((a) => a.id).sort()).toEqual([stackA.id, standalone.id].sort())
+  })
+
+  it('matches name contains (n-gram) against latest version only and updates when latest version changes', async () => {
+    const { rootFolder, stackA, firstStackFiles, stackB } = await setupVersionStacks()
+
+    const heroSearch = await searchService.search(rootFolder.id, {
+      recursively: true,
+      operator: 'AND',
+      conditions: [{ field: 'name', operator: 'contains', value: 'hero' }],
+      isSemantic: false,
+    })
+    expect(heroSearch.pageInfo.total).toBe(2)
+    expect(heroSearch.pageInfo.totalSize).toBe(500 + 800)
+    expect(heroSearch.data.map((a) => a.id).sort()).toEqual([stackA.id, stackB.id].sort())
+    expect(heroSearch.data.every((a) => a.type === AssetType.version_stack)).toBe(true)
+
+    // Non-recursive name filter matches stackA in rootFolder
+    const rootOnlyHero = await searchService.search(rootFolder.id, {
+      recursively: false,
+      operator: 'AND',
+      conditions: [{ field: 'name', operator: 'contains', value: 'hero' }],
+      isSemantic: false,
+    })
+    expect(rootOnlyHero.data.map((a) => a.id)).toEqual([stackA.id])
+
+    // Keyword present only on older version v1 does NOT match
+    const oldOnly = await searchService.search(rootFolder.id, {
+      recursively: true,
+      operator: 'AND',
+      conditions: [{ field: 'name', operator: 'contains', value: 'old_only_keyword' }],
+      isSemantic: false,
+    })
+    expect(oldOnly.pageInfo.total).toBe(0)
+    expect(oldOnly.data).toHaveLength(0)
+
+    // Promote v1 to latest version -> now stackA matches
+    await versionStackService.changeStackFileVersion({
+      stackId: stackA.id,
+      fileId: firstStackFiles[4].id,
+      beforeId: firstStackFiles[0].id,
+    })
+    const promoted = await searchService.search(rootFolder.id, {
+      recursively: true,
+      operator: 'AND',
+      conditions: [{ field: 'name', operator: 'contains', value: 'old_only_keyword' }],
+      isSemantic: false,
+    })
+    expect(promoted.pageInfo.total).toBe(1)
+    expect(promoted.data).toHaveLength(1)
+    expect(promoted.data[0].id).toBe(stackA.id)
+    expect(promoted.data[0].type).toBe(AssetType.version_stack)
+    expect(promoted.data[0].name).toBe('old_only_keyword.png')
+  })
+
+  it('evaluates metadata, isArchived, sizeByte, createdAt filters and sorting against latest version only', async () => {
+    const { rootFolder, stackA, firstStackFiles, stackB, standalone } = await setupVersionStacks()
+
+    // Metadata on latest version matches both stacks once
+    const approved = await searchService.search(rootFolder.id, {
+      recursively: true,
+      operator: 'AND',
+      conditions: [{ field: 'status', operator: 'eq', value: 'approved' }],
+      isSemantic: false,
+    })
+    expect(approved.pageInfo.total).toBe(2)
+    expect(approved.data.map((a) => a.id).sort()).toEqual([stackA.id, stackB.id].sort())
+
+    // Metadata only on older version does not match
+    const legacy = await searchService.search(rootFolder.id, {
+      recursively: true,
+      operator: 'AND',
+      conditions: [{ field: 'tag', operator: 'eq', value: 'legacy' }],
+      isSemantic: false,
+    })
+    expect(legacy.pageInfo.total).toBe(0)
+
+    // isArchived = true: only v1 of stackA is archived, not latest v5 -> 0 matches
+    const archivedBefore = await searchService.search(rootFolder.id, {
+      recursively: true,
+      operator: 'AND',
+      conditions: [{ field: 'isArchived', operator: 'eq', value: true }],
+      isSemantic: false,
+    })
+    expect(archivedBefore.pageInfo.total).toBe(0)
+
+    // Archive latest version of stackA -> returns stackA once (not both stack and child file)
+    await prisma.asset.update({
+      where: { id: firstStackFiles[0].id },
+      data: { status: AssetStatus.archived },
+    })
+    const archivedAfter = await searchService.search(rootFolder.id, {
+      recursively: true,
+      operator: 'AND',
+      conditions: [{ field: 'isArchived', operator: 'eq', value: true }],
+      isSemantic: false,
+    })
+    expect(archivedAfter.pageInfo.total).toBe(1)
+    expect(archivedAfter.data.map((a) => a.id)).toEqual([stackA.id])
+
+    // sizeByte evaluates latest version (stackA latest = 500, cumulative = 1500; stackB latest = 800)
+    const largeFiles = await searchService.search(rootFolder.id, {
+      recursively: true,
+      operator: 'AND',
+      conditions: [{ field: 'sizeByte', operator: 'gt', value: 600 }],
+      isSemantic: false,
+    })
+    expect(largeFiles.data.map((a) => a.id)).toEqual([stackB.id])
+
+    // createdAt evaluates latest version
+    const recentFiles = await searchService.search(rootFolder.id, {
+      recursively: true,
+      operator: 'AND',
+      conditions: [{ field: 'createdAt', operator: 'gte', value: '2026-05-11' }],
+      isSemantic: false,
+    })
+    expect(recentFiles.data.map((a) => a.id)).toEqual([stackB.id])
+
+    // Sort by name asc uses latest version name
+    const byName = await searchService.search(rootFolder.id, {
+      recursively: true,
+      operator: 'AND',
+      conditions: [],
+      isSemantic: false,
+      sort: { field: 'name', order: 'asc' },
+    })
+    expect(byName.data.map((a) => a.name)).toEqual([
+      'hero_banner.png',
+      'hero_final.png',
+      'standalone.png',
+    ])
+
+    // Sort by sizeByte desc uses latest version size
+    const bySize = await searchService.search(rootFolder.id, {
+      recursively: true,
+      operator: 'AND',
+      conditions: [],
+      isSemantic: false,
+      sort: { field: 'sizeByte', order: 'desc' },
+    })
+    expect(bySize.data.map((a) => a.id)).toEqual([stackB.id, stackA.id, standalone.id])
+
+    // Sort by createdAt desc uses latest version createdAt
+    const byCreatedAt = await searchService.search(rootFolder.id, {
+      recursively: true,
+      operator: 'AND',
+      conditions: [],
+      isSemantic: false,
+      sort: { field: 'createdAt', order: 'desc' },
+    })
+    expect(byCreatedAt.data.map((a) => a.id)).toEqual([stackB.id, stackA.id, standalone.id])
+  })
+
+  it('semantic text search matches latest version embeddings only and returns version_stack items', async () => {
+    const { team, rootFolder, stackA, firstStackFiles, stackB, secondStackFiles } =
+      await setupVersionStacks()
+
+    const botUser = await prisma.user.create({
+      data: { name: 'Stack Emb Bot', email: 'stack-emb@example.com', type: 'agent' },
+    })
+    await prisma.agent.create({
+      data: {
+        id: botUser.id,
+        teamId: team.id,
+        type: 'embedding',
+        enabled: true,
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+
+    const vec = (x: number, y: number) => {
+      const arr = Array<number>(1536).fill(0)
+      arr[0] = x
+      arr[1] = y
+      return JSON.stringify(arr)
+    }
+
+    // Insert embeddings for ALL 5 versions of stackA (older version v1 has exact match [1,0], latest v5 has [1,1])
+    await prisma.$executeRaw`
+      INSERT INTO asset_embeddings (id, asset_id, embedding, created_at, updated_at)
+      VALUES ('sa-v5', ${firstStackFiles[0].id}, ${vec(1, 1)}::vector, NOW(), NOW())
+    `
+    for (let i = 1; i < firstStackFiles.length; i++) {
+      await prisma.$executeRaw`
+        INSERT INTO asset_embeddings (id, asset_id, embedding, created_at, updated_at)
+        VALUES (${`sa-v${5 - i}`}, ${firstStackFiles[i].id}, ${vec(1, 0)}::vector, NOW(), NOW())
+      `
+    }
+
+    // Insert 2 video chunk embeddings on stackB's latest version + 1 embedding on an older version
+    await prisma.$executeRaw`
+      INSERT INTO asset_embeddings (id, asset_id, embedding, start_time, end_time, created_at, updated_at)
+      VALUES ('sb-v5-c1', ${secondStackFiles[0].id}, ${vec(1, 0)}::vector, 5, 15, NOW(), NOW())
+    `
+    await prisma.$executeRaw`
+      INSERT INTO asset_embeddings (id, asset_id, embedding, start_time, end_time, created_at, updated_at)
+      VALUES ('sb-v5-c2', ${secondStackFiles[0].id}, ${vec(0, 1)}::vector, 20, 30, NOW(), NOW())
+    `
+    for (let i = 1; i < secondStackFiles.length; i++) {
+      await prisma.$executeRaw`
+        INSERT INTO asset_embeddings (id, asset_id, embedding, created_at, updated_at)
+        VALUES (${`sb-v${5 - i}`}, ${secondStackFiles[i].id}, ${vec(1, 0)}::vector, NOW(), NOW())
+      `
+    }
+
+    const queryVec = Array<number>(1536).fill(0)
+    queryVec[0] = 1
+    const mockEmb = vi
+      .spyOn(textEmbeddingService, 'generateEmbedding')
+      .mockResolvedValue({ embedding: queryVec })
+
+    try {
+      const result = await searchService.search(rootFolder.id, {
+        recursively: true,
+        operator: 'AND',
+        conditions: [],
+        query: 'hero shot',
+        isSemantic: true,
+      })
+
+      // Expect 3 results total: stackB chunk 1 (dist 0), stackA latest (dist 0.293), stackB chunk 2 (dist 1.0)
+      // None of the 8 older versions should appear
+      expect(result.pageInfo.total).toBe(3)
+      expect(result.data).toHaveLength(3)
+      expect(
+        result.data.map((d) => ({ id: d.id, startTime: d.startTime, endTime: d.endTime })),
+      ).toEqual([
+        { id: stackB.id, startTime: 5, endTime: 15 },
+        { id: stackA.id, startTime: null, endTime: null },
+        { id: stackB.id, startTime: 20, endTime: 30 },
+      ])
+      expect(result.data[0].type).toBe(AssetType.version_stack)
+      expect(result.data[0].versionStack?.versions).toHaveLength(5)
+      expect(result.data[1].type).toBe(AssetType.version_stack)
+      expect(result.data[1].versionStack?.versions).toHaveLength(5)
+    } finally {
+      mockEmb.mockRestore()
+    }
   })
 })
