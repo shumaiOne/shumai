@@ -5356,6 +5356,7 @@ export const AssetEmbeddingScalarFieldEnum = {
   id: 'id',
   startTime: 'startTime',
   endTime: 'endTime',
+  sprite: 'sprite',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   assetId: 'assetId'

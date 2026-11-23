@@ -1,6 +1,11 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render } from '@testing-library/react'
+import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import React from 'react'
+import {
+  mockIsIntersecting,
+  resetIntersectionMocking,
+  setupIntersectionMocking,
+} from 'react-intersection-observer/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SpriteScrubber } from './sprite-scrubber'
 import { FilePreview } from './file-browser/file-preview'
@@ -15,7 +20,115 @@ globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserv
 describe('SpriteScrubber', () => {
   afterEach(() => {
     cleanup()
+    resetIntersectionMocking()
+    vi.unstubAllGlobals()
   })
+
+  it.each(['chunk', 'full video', 'thumbnail'])('uses the %s preview on hover', (expected) => {
+    setupIntersectionMocking(vi.fn)
+    const chunkUrl = 'https://example.com/match.webp'
+    const fullUrl = 'https://example.com/full.webp'
+    const requests: string[] = []
+    const image = {
+      naturalWidth: 500,
+      naturalHeight: 200,
+      onload: null as (() => void) | null,
+      onerror: null as (() => void) | null,
+      set src(url: string) {
+        requests.push(url)
+      },
+    }
+    vi.stubGlobal(
+      'Image',
+      class {
+        constructor() {
+          return image
+        }
+      },
+    )
+    const { getByTestId, getByAltText, queryByAltText, container } = render(
+      <FilePreview
+        item={{
+          preview: { proxyType: 'video', spriteUrl: fullUrl, thumbnailUrl: '/poster.webp' },
+        }}
+        matchDuration={{ startTime: 0, endTime: 7 }}
+        matchedSprite={{ url: chunkUrl, columns: 5, rows: 2, frameCount: 7 }}
+      />,
+    )
+    const scrubber = getByTestId('sprite-scrubber')
+    vi.spyOn(scrubber, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 100, 100))
+    expect(requests).toEqual([])
+    act(() => mockIsIntersecting(scrubber, true))
+    expect(requests).toEqual([chunkUrl])
+
+    if (expected === 'chunk') {
+      act(() => image.onload?.())
+      expect(queryByAltText('Thumbnail')).toBeNull()
+      expect(scrubber).toHaveProperty('dataset.frame', '0')
+    } else {
+      act(() => image.onerror?.())
+      expect(requests).toEqual([chunkUrl])
+      expect(getByAltText('Thumbnail').className).toContain('opacity-100')
+    }
+
+    fireEvent.mouseEnter(scrubber)
+    fireEvent.mouseMove(scrubber, { clientX: 100 })
+    expect(scrubber).toHaveProperty('dataset.frame', '6')
+
+    if (expected === 'chunk') {
+      expect(requests).toEqual([chunkUrl])
+    } else {
+      expect(requests).toEqual([chunkUrl, fullUrl])
+    }
+
+    if (expected === 'thumbnail') {
+      act(() => image.onerror?.())
+      expect(getByAltText('Thumbnail').className).toContain('opacity-100')
+      expect(container.querySelector('.animate-spin')).toBeNull()
+    } else if (expected === 'full video') {
+      act(() => image.onload?.())
+      expect(getByAltText('Thumbnail').className).toContain('opacity-0')
+      expect(scrubber).toHaveProperty('dataset.frame', '99')
+    }
+
+    fireEvent.mouseLeave(scrubber)
+    expect(scrubber).toHaveProperty('dataset.frame', '0')
+    if (expected === 'chunk') {
+      expect(queryByAltText('Thumbnail')).toBeNull()
+    } else {
+      expect(getByAltText('Thumbnail').className).toContain('opacity-100')
+    }
+  })
+
+  it('keeps the regular cover and waits for hover when a match has no chunk sprite', () => {
+    const load = vi.fn()
+    vi.stubGlobal('Image', load)
+    const { getByAltText } = render(
+      <FilePreview
+        item={{
+          preview: { proxyType: 'video', spriteUrl: '/full.webp', thumbnailUrl: '/poster.webp' },
+        }}
+        matchDuration={{ startTime: 0, endTime: 10 }}
+      />,
+    )
+
+    expect(getByAltText('Thumbnail').getAttribute('src')).toBe('/poster.webp')
+    expect(load).not.toHaveBeenCalled()
+  })
+
+  it.each(['video', undefined] as const)(
+    'uses the full sprite for a legacy video match with proxy type %s and no poster or dimensions',
+    (proxyType) => {
+      const { getByTestId } = render(
+        <FilePreview
+          item={{ preview: { proxyType, spriteUrl: '/full.webp' } }}
+          matchDuration={{ startTime: 0, endTime: 10 }}
+        />,
+      )
+
+      expect(getByTestId('sprite-scrubber')).toBeTruthy()
+    },
+  )
 
   it('scrubs forward by default when hovering from left to right', () => {
     const { getByTestId } = render(

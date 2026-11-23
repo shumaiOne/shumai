@@ -8,6 +8,7 @@ import { textEmbeddingService } from './text-embedding'
 
 import { AssetType } from '@shumai/db'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { s3Service } from '@shumai/core/src/s3/s3'
 
 describe('SearchService', () => {
   setupTestDbHooks()
@@ -805,6 +806,22 @@ describe('SearchService', () => {
         )
       `
 
+      const sprite = { key: 'files/video-a/chunk-0-10.webp', columns: 5, rows: 2, frameCount: 7 }
+      await prisma.assetEmbedding.update({ where: { id: 'chunk-a1' }, data: { sprite } })
+      const unsignedKey = 'files/video-b/chunk-5-15.webp'
+      await prisma.assetEmbedding.update({
+        where: { id: 'chunk-b1' },
+        data: { sprite: { ...sprite, key: unsignedKey } },
+      })
+      const presign = s3Service.presign.bind(s3Service)
+      const signSprite = vi
+        .spyOn(s3Service, 'presign')
+        .mockImplementation((bucket, key, method) =>
+          key === unsignedKey
+            ? Promise.reject(new Error('Signing failed'))
+            : presign(bucket, key, method),
+        )
+
       // Mock the embedding generation
       // Our query vector points along the first dimension [1, 0, 0...]
       const queryVector = Array(1536).fill(0)
@@ -838,17 +855,26 @@ describe('SearchService', () => {
       expect(result.data[0].id).toBe(videoAssetA.id)
       expect(result.data[0].startTime).toBe(0)
       expect(result.data[0].endTime).toBe(10)
+      expect(result.data[0].matchedSprite).toEqual({
+        url: expect.stringContaining(sprite.key),
+        columns: 5,
+        rows: 2,
+        frameCount: 7,
+      })
 
       // 2nd: Chunk B1
       expect(result.data[1].id).toBe(videoAssetB.id)
       expect(result.data[1].startTime).toBe(5)
       expect(result.data[1].endTime).toBe(15)
+      expect(result.data[1].matchedSprite).toBeUndefined()
 
       // 3rd: Chunk A2
       expect(result.data[2].id).toBe(videoAssetA.id)
       expect(result.data[2].startTime).toBe(10)
       expect(result.data[2].endTime).toBe(20)
+      expect(result.data[2].matchedSprite).toBeUndefined()
 
+      signSprite.mockRestore()
       mockGenerateEmbedding.mockRestore()
     })
 

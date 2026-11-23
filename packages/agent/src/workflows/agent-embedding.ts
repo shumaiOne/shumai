@@ -206,6 +206,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
                   embedding: chunkResult.embedding,
                   startTime: chunk.startTime,
                   endTime: chunk.endTime,
+                  ...(chunk.sprite && { sprite: chunk.sprite }),
                 },
               ],
             })

@@ -251,6 +251,7 @@ export const saveAssetEmbeddingsActivity = defineStep(
       embedding: number[]
       startTime?: number
       endTime?: number
+      sprite?: PrismaJson.VideoChunkSprite
     }>
   }) {
     for (const item of params.embeddings) {
@@ -258,15 +259,16 @@ export const saveAssetEmbeddingsActivity = defineStep(
       const is768 = item.embedding.length === 768
 
       if (item.startTime !== undefined && item.endTime !== undefined) {
+        const sprite = item.sprite ? JSON.stringify(item.sprite) : null
         if (is768) {
           await prisma.$executeRaw`
-            INSERT INTO asset_embeddings (id, asset_id, embedding_768, start_time, end_time, updated_at)
-            VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, ${item.startTime}, ${item.endTime}, NOW())
+            INSERT INTO asset_embeddings (id, asset_id, embedding_768, start_time, end_time, sprite, updated_at)
+            VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, ${item.startTime}, ${item.endTime}, ${sprite}::jsonb, NOW())
           `
         } else {
           await prisma.$executeRaw`
-            INSERT INTO asset_embeddings (id, asset_id, embedding, start_time, end_time, updated_at)
-            VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, ${item.startTime}, ${item.endTime}, NOW())
+            INSERT INTO asset_embeddings (id, asset_id, embedding, start_time, end_time, sprite, updated_at)
+            VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, ${item.startTime}, ${item.endTime}, ${sprite}::jsonb, NOW())
           `
         }
       } else {
@@ -512,6 +514,7 @@ export interface VideoChunkRange {
 
 export interface TranscodedVideoChunk extends VideoChunkRange {
   chunkKey: string
+  sprite?: PrismaJson.VideoChunkSprite
 }
 
 export interface TranscodeVideoChunksParams {

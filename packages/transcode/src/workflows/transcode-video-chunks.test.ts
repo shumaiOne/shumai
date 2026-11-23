@@ -73,11 +73,19 @@ describe('transcodeVideoChunksWorkflow', () => {
       status: 'processed',
       storageKey: { key: 'files/asset-video/raw.mp4', isArchived: false },
       mediaType: 'video/mp4',
+      media: { duration: 110, sprite: { key: 'files/asset-video/sprite.webp' } },
     } as unknown as Awaited<ReturnType<typeof getAssetActivity>>)
 
+    const sprite = {
+      key: 'files/asset-video/chunk-sprites/asset-video/video-0-60.webp',
+      columns: 5,
+      rows: 3,
+      frameCount: 15,
+    }
     mockActivities.transcodeVideoChunkActivity
       .mockResolvedValueOnce({
         chunkKey: 'files/asset-video/tmp-embedding-chunks/chunk-0-60.mp4',
+        sprite,
       })
       .mockResolvedValueOnce({
         chunkKey: 'files/asset-video/tmp-embedding-chunks/chunk-55-110.mp4',
@@ -90,6 +98,7 @@ describe('transcodeVideoChunksWorkflow', () => {
       taskId: 'task-video-chunks',
       assetId: 'asset-video',
       assetKey: 'files/asset-video/proxy.mp4',
+      originalKey: 'files/asset-video/raw.mp4',
       startTime: 0,
       endTime: 60,
       format: 'video',
@@ -98,6 +107,7 @@ describe('transcodeVideoChunksWorkflow', () => {
       taskId: 'task-video-chunks',
       assetId: 'asset-video',
       assetKey: 'files/asset-video/proxy.mp4',
+      originalKey: 'files/asset-video/raw.mp4',
       startTime: 55,
       endTime: 110,
       format: 'video',
@@ -112,6 +122,7 @@ describe('transcodeVideoChunksWorkflow', () => {
             startTime: 0,
             endTime: 60,
             chunkKey: 'files/asset-video/tmp-embedding-chunks/chunk-0-60.mp4',
+            sprite,
           },
           {
             startTime: 55,
@@ -155,6 +166,7 @@ describe('transcodeVideoChunksWorkflow', () => {
       taskId: 'task-video-chunks',
       assetId: 'asset-video',
       assetKey: 'files/asset-video/proxy-720p.mp4',
+      originalKey: 'files/asset-video/raw.mp4',
       startTime: 0,
       endTime: 30,
       format: 'frames',

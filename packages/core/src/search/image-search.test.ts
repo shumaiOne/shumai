@@ -2,6 +2,7 @@ import { prisma, Prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { imageSearchRequestSchema } from '@shumai/dtos'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { imageEmbeddingService } from './image-embedding'
 import { searchService } from './search'
 
@@ -14,12 +15,13 @@ async function insertEmbedding(
   embedding: number[],
   startTime: number | null = null,
   endTime: number | null = null,
+  sprite?: PrismaJson.VideoChunkSprite,
 ) {
   const column = embedding.length === 768 ? Prisma.sql`embedding_768` : Prisma.sql`embedding`
   await prisma.$executeRaw`
-    INSERT INTO asset_embeddings (id, asset_id, ${column}, start_time, end_time, created_at, updated_at)
+    INSERT INTO asset_embeddings (id, asset_id, ${column}, start_time, end_time, sprite, created_at, updated_at)
     VALUES (gen_random_uuid()::text, ${assetId}, ${JSON.stringify(embedding)}::vector,
-      ${startTime}, ${endTime}, NOW(), NOW())
+      ${startTime}, ${endTime}, ${sprite ? JSON.stringify(sprite) : null}::jsonb, NOW(), NOW())
   `
 }
 
@@ -80,8 +82,10 @@ describe('image search', () => {
     await prisma.asset.update({ where: { id: deleted.id }, data: { isDeleted: true } })
 
     await insertEmbedding(source.id, vector(1536, 1))
-    await insertEmbedding(video.id, vector(1536, 1), 4, 12)
-    await insertEmbedding(video.id, vector(1536, 0, 1), 12, 20)
+    const firstSprite = { key: 'files/video/chunk-4-12.webp', columns: 5, rows: 2, frameCount: 8 }
+    const secondSprite = { ...firstSprite, key: 'files/video/chunk-12-20.webp' }
+    await insertEmbedding(video.id, vector(1536, 1), 4, 12, firstSprite)
+    await insertEmbedding(video.id, vector(1536, 0, 1), 12, 20, secondSprite)
     await insertEmbedding(image.id, vector(1536, 1, 1))
     await insertEmbedding(deleted.id, vector(1536, 1))
     await insertEmbedding(audio.id, vector(1536, 1))
@@ -93,13 +97,25 @@ describe('image search', () => {
       imageSearchRequestSchema.parse({ ...request, first: 2 }),
     )
     expect(first.data.map((item) => item.id)).toEqual([video.id, image.id])
-    expect(first.data[0]).toMatchObject({ startTime: 4, endTime: 12 })
+    expect(first.data[0]).toMatchObject({
+      startTime: 4,
+      endTime: 12,
+      matchedSprite: { url: expect.stringContaining(firstSprite.key) },
+    })
+    expect(first.data[1].matchedSprite).toBeUndefined()
     expect(first.pageInfo).toMatchObject({ total: 3, cursor: expect.any(String) })
     const next = await searchService.searchByImage(
       root.id,
       imageSearchRequestSchema.parse({ ...request, first: 2, after: first.pageInfo.cursor }),
     )
-    expect(next.data).toMatchObject([{ id: video.id, startTime: 12, endTime: 20 }])
+    expect(next.data).toMatchObject([
+      {
+        id: video.id,
+        startTime: 12,
+        endTime: 20,
+        matchedSprite: { url: expect.stringContaining(secondSprite.key) },
+      },
+    ])
     expect(next.pageInfo.cursor).toBeUndefined()
 
     const images = await searchService.searchByImage(
@@ -128,6 +144,60 @@ describe('image search', () => {
     const result = await searchService.searchByImage(root.id, req)
     expect(result.data.map((item) => item.id)).toEqual([image.id])
   })
+
+  it.each([
+    { startTime: 0, endTime: 10, stored: true, useFullSprite: true },
+    { startTime: 0, endTime: 10, stored: false, useFullSprite: false },
+    { startTime: 0, endTime: 5, stored: true, useFullSprite: false },
+    { startTime: 5, endTime: 10, stored: true, useFullSprite: false },
+  ])(
+    'picks the preview for $startTime–$endTime when full sprite availability is $stored',
+    async ({ startTime, endTime, stored, useFullSprite }) => {
+      const { root, source, file } = await createProjectAssets()
+      const video = await file('result.mp4', 'video/mp4')
+      const bucket = process.env.S3_BUCKET || 'shumai'
+      const fullKey = `files/${video.id}/sprite.webp`
+      const chunkKey = `files/${video.id}/chunk.webp`
+      await prisma.asset.update({
+        where: { id: video.id },
+        data: {
+          media: {
+            duration: 10,
+            proxyType: 'video',
+            sprite: { key: fullKey, frames: 100, tileX: 10, tileY: 10 },
+          } as PrismaJson.MediaInfo,
+        },
+      })
+      if (stored) await s3Service.putObject(bucket, fullKey, 'sprite', 6, 'image/webp')
+      try {
+        await insertEmbedding(source.id, vector(1536, 1))
+        await insertEmbedding(video.id, vector(1536, 1), startTime, endTime, {
+          key: chunkKey,
+          columns: 5,
+          rows: 2,
+          frameCount: 10,
+        })
+
+        const result = await searchService.searchByImage(
+          root.id,
+          imageSearchRequestSchema.parse({ sourceAssetId: source.id }),
+        )
+        expect(result.data).toHaveLength(1)
+        expect(result.data[0]).toMatchObject({
+          startTime,
+          endTime,
+          preview: { spriteUrl: expect.stringContaining(fullKey) },
+        })
+        if (useFullSprite) {
+          expect(result.data[0].matchedSprite).toBeUndefined()
+        } else {
+          expect(result.data[0].matchedSprite?.url).toContain(chunkKey)
+        }
+      } finally {
+        if (stored) await s3Service.deleteObject(bucket, fullKey)
+      }
+    },
+  )
 
   it('limits an uploaded-image search to the folder and applies metadata filters', async () => {
     const { team, subfolder, source, file } = await createProjectAssets()
