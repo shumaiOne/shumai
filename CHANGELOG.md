@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **storage**: Fix an issue where cached media preview and file URLs could expire and break after the host machine slept or near the end of an S3 link's lifetime.
 - **search**: Video segment matches in Semantic Search and Find Similar show the segment’s first frame and let you scrub through it on hover. Matches that span the entire video reuse its full preview when available.
 
 ### Changed

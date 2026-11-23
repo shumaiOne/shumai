@@ -101,6 +101,67 @@ describe('S3Service implementations', () => {
       expect(getSignedUrlSpy).toHaveBeenCalledTimes(1)
     })
 
+    it('should refresh cached default GET presign URLs after half their lifetime', async () => {
+      let wallNow = 1_700_000_000_000
+      let perfNow = 1_000
+      const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => wallNow)
+      const perfNowSpy = vi.spyOn(performance, 'now').mockImplementation(() => perfNow)
+
+      try {
+        const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+        getSignedUrlSpy.mockClear()
+        getSignedUrlSpy.mockResolvedValueOnce('http://presigned-url-1')
+        getSignedUrlSpy.mockResolvedValueOnce('http://presigned-url-2')
+
+        const url1 = await s3.presign('bucket', 'key', 'GET')
+        expect(url1).toBe('http://presigned-url-1')
+
+        // Default GET lifetime is 5h; before 2.5h the cached URL should still be reused
+        const almostHalfMs = 2.5 * 3600 * 1000 - 1_000
+        wallNow += almostHalfMs
+        perfNow += almostHalfMs
+        expect(await s3.presign('bucket', 'key', 'GET')).toBe('http://presigned-url-1')
+        expect(getSignedUrlSpy).toHaveBeenCalledTimes(1)
+
+        // Past 2.5h (half of the 5h lifetime), the cache must expire so callers never get nearly expired URLs
+        wallNow += 2_000
+        perfNow += 2_000
+        expect(await s3.presign('bucket', 'key', 'GET')).toBe('http://presigned-url-2')
+        expect(getSignedUrlSpy).toHaveBeenCalledTimes(2)
+      } finally {
+        dateNowSpy.mockRestore()
+        perfNowSpy.mockRestore()
+      }
+    })
+
+    it('should invalidate cached GET presign URLs after system sleep when wall clock advances but monotonic clock pauses', async () => {
+      let wallNow = 1_700_000_000_000
+      let perfNow = 1_000
+      const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => wallNow)
+      const perfNowSpy = vi.spyOn(performance, 'now').mockImplementation(() => perfNow)
+
+      try {
+        const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+        getSignedUrlSpy.mockClear()
+        getSignedUrlSpy.mockResolvedValueOnce('http://presigned-url-1')
+        getSignedUrlSpy.mockResolvedValueOnce('http://presigned-url-2')
+
+        const url1 = await s3.presign('bucket', 'sleep-key', 'GET')
+        expect(url1).toBe('http://presigned-url-1')
+
+        // Simulate 15 hours of host sleep: wall clock jumps 15h while performance.now() barely moves
+        wallNow += 15 * 3600 * 1000
+        perfNow += 1_000
+
+        const url2 = await s3.presign('bucket', 'sleep-key', 'GET')
+        expect(url2).toBe('http://presigned-url-2')
+        expect(getSignedUrlSpy).toHaveBeenCalledTimes(2)
+      } finally {
+        dateNowSpy.mockRestore()
+        perfNowSpy.mockRestore()
+      }
+    })
+
     it('signs with an explicit lifetime and caches it separately from the default', async () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
       getSignedUrlSpy.mockClear()
@@ -805,6 +866,46 @@ describe('S3Service implementations', () => {
 
       const urlOther = await localS3.presign('my-bucket', 'dir/other.txt', 'GET')
       expect(urlOther).not.toBe(url1)
+    })
+
+    it('should not return expired local GET presigned URLs after system sleep when wall clock advances but monotonic clock pauses', async () => {
+      let wallNow = 1_700_000_000_000
+      let perfNow = 1_000
+      const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => wallNow)
+      const perfNowSpy = vi.spyOn(performance, 'now').mockImplementation(() => perfNow)
+
+      try {
+        const url1 = await localS3.presign('my-bucket', 'dir/sleep.png', 'GET')
+        const parsed1 = new URL(url1)
+        expect(
+          verifyLocalGetUrlSignature(
+            'my-bucket',
+            'dir/sleep.png',
+            parsed1.searchParams.get('Signature'),
+            parsed1.searchParams.get('Expires'),
+          ),
+        ).toBe(true)
+
+        // Simulate 15 hours of host sleep: wall clock advances past the 12h expiry while performance.now() pauses
+        wallNow += 15 * 3600 * 1000
+        perfNow += 1_000
+
+        const url2 = await localS3.presign('my-bucket', 'dir/sleep.png', 'GET')
+        expect(url2).not.toBe(url1)
+
+        const parsed2 = new URL(url2)
+        expect(
+          verifyLocalGetUrlSignature(
+            'my-bucket',
+            'dir/sleep.png',
+            parsed2.searchParams.get('Signature'),
+            parsed2.searchParams.get('Expires'),
+          ),
+        ).toBe(true)
+      } finally {
+        dateNowSpy.mockRestore()
+        perfNowSpy.mockRestore()
+      }
     })
 
     it('should not cache download URLs', async () => {

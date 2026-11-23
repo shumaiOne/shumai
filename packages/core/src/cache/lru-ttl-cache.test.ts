@@ -48,6 +48,30 @@ describe('LruTtlCache', () => {
     expect(cache.size).toBe(0)
   })
 
+  it('should expire items using wall-clock time even when performance.now pauses during sleep', () => {
+    vi.useRealTimers()
+    let wallNow = 1_700_000_000_000
+    let perfNow = 1_000
+    const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => wallNow)
+    const perfNowSpy = vi.spyOn(performance, 'now').mockImplementation(() => perfNow)
+
+    try {
+      const cache = new LruTtlCache<string, string>(10)
+      cache.set('key1', 'value1', 60_000)
+      expect(cache.get('key1')).toBe('value1')
+
+      // Simulate host sleep: wall clock advances past TTL while monotonic clock barely moves
+      wallNow += 120_000
+      perfNow += 500
+
+      expect(cache.get('key1')).toBeUndefined()
+      expect(cache.size).toBe(0)
+    } finally {
+      dateNowSpy.mockRestore()
+      perfNowSpy.mockRestore()
+    }
+  })
+
   it('should proactively evict expired items on get', () => {
     const sampleSize = 5
     const cache = new LruTtlCache<string, string>(100, sampleSize)
