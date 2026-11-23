@@ -1754,4 +1754,132 @@ describe('SearchService — version stacks', () => {
       mockEmb.mockRestore()
     }
   })
+
+  it('finds a file moved between projects in the same team via semantic text search', async () => {
+    const { user, team, rootFolder, standalone } = await setupVersionStacks()
+
+    const botUser = await prisma.user.create({
+      data: { name: 'Moved Emb Bot', email: 'moved-emb@example.com', type: 'agent' },
+    })
+    await prisma.agent.create({
+      data: {
+        id: botUser.id,
+        teamId: team.id,
+        type: 'embedding',
+        enabled: true,
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+
+    const destProject = await prisma.project.create({
+      data: { name: 'dest-project', teamId: team.id },
+    })
+    const destRoot = await prisma.asset.create({
+      data: {
+        name: 'dest-root',
+        type: AssetType.root,
+        projectId: destProject.id,
+        creatorId: user.id,
+        status: 'uploaded',
+      },
+    })
+
+    const vec = Array<number>(1536).fill(0)
+    vec[0] = 1
+    await prisma.$executeRaw`
+      INSERT INTO asset_embeddings (id, asset_id, embedding, created_at, updated_at)
+      VALUES ('moved-file-emb', ${standalone.id}, ${JSON.stringify(vec)}::vector, NOW(), NOW())
+    `
+
+    await assetService.reparentAssets({
+      assetIds: [standalone.id],
+      newParentId: destRoot.id,
+      creatorId: user.id,
+    })
+
+    const mockEmb = vi
+      .spyOn(textEmbeddingService, 'generateEmbedding')
+      .mockResolvedValue({ embedding: vec })
+
+    try {
+      const destResult = await searchService.search(destRoot.id, {
+        recursively: true,
+        operator: 'AND',
+        conditions: [],
+        query: 'moved asset',
+        isSemantic: true,
+      })
+
+      expect(destResult.pageInfo.total).toBe(1)
+      expect(destResult.data.map((d) => d.id)).toEqual([standalone.id])
+
+      const sourceResult = await searchService.search(rootFolder.id, {
+        recursively: true,
+        operator: 'AND',
+        conditions: [],
+        query: 'moved asset',
+        isSemantic: true,
+      })
+      expect(sourceResult.pageInfo.total).toBe(0)
+    } finally {
+      mockEmb.mockRestore()
+    }
+  })
+
+  it('returns the latest version createdAt and updatedAt on date-filtered version stacks', async () => {
+    const { user, project, rootFolder } = await setupVersionStacks()
+
+    const latestCreatedAt = new Date('2020-01-15T10:00:00Z')
+    const latestUpdatedAt = new Date('2020-01-20T12:30:00Z')
+    const v2 = await prisma.asset.create({
+      data: {
+        name: 'archival_v2.png',
+        type: AssetType.file,
+        projectId: project.id,
+        parentId: rootFolder.id,
+        creatorId: user.id,
+        sizeByte: 300,
+        status: AssetStatus.processed,
+        createdAt: latestCreatedAt,
+        updatedAt: latestUpdatedAt,
+      },
+    })
+    const v1 = await prisma.asset.create({
+      data: {
+        name: 'archival_v1.png',
+        type: AssetType.file,
+        projectId: project.id,
+        parentId: rootFolder.id,
+        creatorId: user.id,
+        sizeByte: 200,
+        status: AssetStatus.processed,
+        createdAt: new Date('2019-06-01T00:00:00Z'),
+        updatedAt: new Date('2019-06-01T00:00:00Z'),
+      },
+    })
+
+    const stack = await versionStackService.createVersionStack({
+      fileIds: [v2.id, v1.id],
+      projectId: project.id,
+      creatorId: user.id,
+    })
+
+    // Restore explicit updatedAt on v2 after reparenting into stack
+    await prisma.$executeRaw`
+      UPDATE assets SET updated_at = ${latestUpdatedAt} WHERE id = ${v2.id}
+    `
+
+    const result = await searchService.search(rootFolder.id, {
+      recursively: true,
+      operator: 'AND',
+      conditions: [{ field: 'createdAt', operator: 'eq', value: '2020-01-15' }],
+      isSemantic: false,
+    })
+
+    expect(result.pageInfo.total).toBe(1)
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0].id).toBe(stack.id)
+    expect(result.data[0].createdAt).toBe(latestCreatedAt.toISOString())
+    expect(result.data[0].updatedAt).toBe(latestUpdatedAt.toISOString())
+  })
 })

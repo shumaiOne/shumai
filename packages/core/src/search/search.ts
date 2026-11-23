@@ -28,11 +28,10 @@ export class SearchService {
     if (req.query && req.isSemantic) {
       const folder = await this.prismaClient.asset.findUnique({
         where: { id: folderId },
-        select: { project: { select: { id: true, teamId: true } } },
+        select: { project: { select: { teamId: true } } },
       })
       const teamId = folder?.project?.teamId
-      const projectId = folder?.project?.id
-      if (!teamId || !projectId) throw new Error('Team ID not found for folder')
+      if (!teamId) throw new Error('Team ID not found for folder')
       await this.requireEmbeddingAgent(teamId)
 
       let vector: number[]
@@ -53,7 +52,6 @@ export class SearchService {
 
       return this.searchByEmbedding(
         targetFolderIds,
-        projectId,
         req,
         JSON.stringify(vector),
         vector.length === 768 ? 768 : 1536,
@@ -312,7 +310,8 @@ export class SearchService {
     }
 
     const folders = await this.assetSvc.getDescendantFolderIds(folderId)
-    return this.searchByEmbedding(folders, project.id, req, vector, dimensions, {
+    return this.searchByEmbedding(folders, req, vector, dimensions, {
+      projectId: project.id,
       mediaType: req.mediaType,
       excludeAssetId,
     })
@@ -430,7 +429,6 @@ export class SearchService {
 
   private async searchByEmbedding(
     folderIds: string[],
-    projectId: string,
     req: Pick<
       SearchRequest,
       'assetType' | 'showSymlink' | 'conditions' | 'operator' | 'first' | 'after' | 'previewFormat'
@@ -438,6 +436,7 @@ export class SearchService {
     vector: string,
     dimensions: 768 | 1536,
     visual?: {
+      projectId: string
       mediaType?: ImageSearchRequest['mediaType']
       excludeAssetId?: string
     },
@@ -447,17 +446,16 @@ export class SearchService {
     const isFolderSearch = !visual && req.assetType === 'folder'
 
     const applyCommonEmbeddingFilters = (target: SqlQueryBuilder) => {
-      target
-        .addWhere(Prisma.sql`a.is_deleted = false`)
-        .addWhere(Prisma.sql`${column} IS NOT NULL`)
-        .addWhere(Prisma.sql`a.project_id = ${projectId}`)
+      target.addWhere(Prisma.sql`a.is_deleted = false`).addWhere(Prisma.sql`${column} IS NOT NULL`)
 
       if (visual) {
-        target.addWhere(
-          visual.mediaType
-            ? Prisma.sql`a.media_type LIKE ${visual.mediaType + '/%'}`
-            : Prisma.sql`(a.media_type LIKE 'image/%' OR a.media_type LIKE 'video/%')`,
-        )
+        target
+          .addWhere(Prisma.sql`a.project_id = ${visual.projectId}`)
+          .addWhere(
+            visual.mediaType
+              ? Prisma.sql`a.media_type LIKE ${visual.mediaType + '/%'}`
+              : Prisma.sql`(a.media_type LIKE 'image/%' OR a.media_type LIKE 'video/%')`,
+          )
       }
 
       target.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
