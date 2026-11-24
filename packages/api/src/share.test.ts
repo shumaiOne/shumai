@@ -7,6 +7,7 @@ import { shareService } from '@shumai/core/src/share/share'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { ShareLinkPasswordInvalidError, ShareLinkExpiredError } from '@shumai/core/src/share/errors'
+import { auth } from '@shumai/core/src/auth/auth'
 import { createGuestToken } from '@shumai/core/src/auth/guest-token'
 import { userService } from '@shumai/core/src/user/user'
 import { notificationService } from '@shumai/core/src/notification/notification'
@@ -1095,6 +1096,36 @@ describe('Share API', () => {
         watermarkConfigId: null,
       })
     })
+  })
+
+  describe('GET /shares/:shareId/files/:fileId/comments', () => {
+    test.each([
+      [true, true],
+      [false, false],
+    ])(
+      'lists comments following the team hideInternalComments setting (%s)',
+      async (hide, guestThreadsOnly) => {
+        vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+          id: 'share1',
+          projectId: 'project1',
+        } as unknown as Awaited<ReturnType<typeof shareService.verifyPublicAccess>>)
+        const hidesSpy = vi.spyOn(shareService, 'hidesInternalComments').mockResolvedValue(hide)
+        vi.spyOn(assetService, 'resolveTargetAssetId').mockResolvedValue('target1')
+        vi.spyOn(auth.api, 'getSession').mockResolvedValue(null)
+        const listSpy = vi.spyOn(assetService, 'listComments').mockResolvedValue({
+          data: [],
+          pageInfo: {},
+        } as unknown as Awaited<ReturnType<typeof assetService.listComments>>)
+
+        const res = await app.request('/shares/share1/files/file1/comments')
+
+        expect(res.status).toBe(200)
+        expect(hidesSpy).toHaveBeenCalledWith('project1')
+        expect(listSpy).toHaveBeenCalledWith('target1', expect.anything(), undefined, {
+          guestThreadsOnly,
+        })
+      },
+    )
   })
 
   describe('POST /shares/:shareId/files/:fileId/comments', () => {

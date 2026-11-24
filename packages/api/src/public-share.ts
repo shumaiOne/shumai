@@ -340,7 +340,8 @@ const route = app
       const req = c.req.valid('query')
 
       try {
-        await shareService.verifyPublicAccess(shareId, fileId, password)
+        const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
+        const guestThreadsOnly = await shareService.hidesInternalComments(shareLink.projectId)
 
         const targetFileId = await assetService.resolveTargetAssetId(fileId)
         let userId: string | undefined
@@ -362,7 +363,10 @@ const route = app
             }
           }
         }
-        const res = await assetService.listComments(targetFileId, req, userId)
+        // Teams can opt in to showing share viewers only the threads started by guests
+        const res = await assetService.listComments(targetFileId, req, userId, {
+          guestThreadsOnly,
+        })
         return c.json(res)
       } catch (err) {
         return handlePublicShareError(c, err)

@@ -1758,5 +1758,12 @@
   "agent_runner_description": "选择为该 Agent 执行命令和下载工作空间资产的运行器。",
   "agent_runner_team_default": "团队默认运行器",
   "agent_runner_team_default_with_name": "团队默认（{name}）",
-  "agent_runner_none_configured_warning": "当前团队尚未配置任何运行器。在“团队设置 → Agent 运行器”中注册运行器之前，bash 和 download_asset 工具将不可用。"
+  "agent_runner_none_configured_warning": "当前团队尚未配置任何运行器。在“团队设置 → Agent 运行器”中注册运行器之前，bash 和 download_asset 工具将不可用。",
+  "share_link_settings_description": "适用于本团队的所有公开分享链接。",
+  "hide_internal_comments": "在分享链接中隐藏内部评论",
+  "hide_internal_comments_description": "分享链接的访客只能看到访客发起的讨论及其中的回复，看不到团队内部的审阅评论。",
+  "share_default_expiry": "新链接默认有效期",
+  "share_default_expiry_description": "创建分享链接时未设置过期日期则使用此值。每个链接之后仍可修改。",
+  "share_expiry_never": "永不过期",
+  "share_expiry_days": "{days} 天"
 }

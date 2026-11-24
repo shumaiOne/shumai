@@ -48,6 +48,10 @@ export class ShareService {
       })
     }
 
+    const { defaultExpiryDays } = await this.getShareSettings(projectId)
+    const defaultExpireAt =
+      defaultExpiryDays > 0 ? new Date(Date.now() + defaultExpiryDays * 24 * 60 * 60 * 1000) : null
+
     return await prisma.$transaction(async (tx) => {
       const shareFolder = await tx.asset.create({
         data: {
@@ -62,7 +66,7 @@ export class ShareService {
       const shareLink = await tx.shareLink.create({
         data: {
           name: req.name,
-          expireAt: req.expireAt ? new Date(req.expireAt) : null,
+          expireAt: req.expireAt ? new Date(req.expireAt) : defaultExpireAt,
           password: req.password,
           isDisabled: req.isDisabled ?? false,
           allowDownload: req.allowDownload ?? true,
@@ -246,6 +250,26 @@ export class ShareService {
         data: { fileCount: { decrement: 1 } },
       })
     })
+  }
+
+  /** Share link settings of the project's team (team settings `share.*`). */
+  async getShareSettings(
+    projectId: string,
+  ): Promise<{ hideInternalComments: boolean; defaultExpiryDays: number }> {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { team: { select: { settings: true } } },
+    })
+    const share = project?.team.settings?.share
+    return {
+      hideInternalComments: share?.hideInternalComments === true,
+      defaultExpiryDays: Math.max(0, Math.floor(share?.defaultExpiryDays ?? 0)),
+    }
+  }
+
+  /** Whether public share links of this project show only guest-started threads. */
+  async hidesInternalComments(projectId: string): Promise<boolean> {
+    return (await this.getShareSettings(projectId)).hideInternalComments
   }
 
   async verifyPublicAccess(

@@ -161,6 +161,14 @@ export const updateTeamSettingsRequestSchema = z.union([
     value: z.boolean(),
   }),
   z.object({
+    key: z.literal('share.hideInternalComments'),
+    value: z.boolean(),
+  }),
+  z.object({
+    key: z.literal('share.defaultExpiryDays'),
+    value: z.number().int().min(0).max(365),
+  }),
+  z.object({
     key: z.literal('autoArchive'),
     value: autoArchiveSettingsSchema,
   }),
@@ -217,6 +225,13 @@ export interface TeamAppearanceSettings {
   hideAgent?: boolean
 }
 
+export interface TeamShareSettings {
+  /** Public share links show only guest-started threads and their replies (default false). */
+  hideInternalComments?: boolean
+  /** New share links expire after this many days when no date is given; 0 = never (default 0). */
+  defaultExpiryDays?: number
+}
+
 export interface TeamSettingsResponse {
   transcode?: {
     videoStrategy?: VideoTranscodeStrategy
@@ -229,6 +244,7 @@ export interface TeamSettingsResponse {
   turntable?: TurntableSettingsResponse
   gotenberg?: GotenbergSettingsResponse
   appearance?: TeamAppearanceSettings
+  share?: TeamShareSettings
   semanticSearchEnabled?: boolean
   archiveStorage?: ArchiveStorageInfo
   autoArchive?: AutoArchiveSettings

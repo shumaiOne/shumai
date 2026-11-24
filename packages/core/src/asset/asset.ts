@@ -2284,13 +2284,25 @@ export class AssetService {
     assetId: string,
     params: PaginationParams,
     requestingUserId?: string,
+    options?: {
+      /**
+       * Only threads started by share guests (and every reply in them). Used for public
+       * share links so the team's internal review comments stay internal.
+       */
+      guestThreadsOnly?: boolean
+    },
   ): Promise<PaginatedData<CommentInfo[]>> {
     const resolvedAssetId = await this.resolveLatestVersionId(assetId)
+    const topLevelWhere: Prisma.AssetCommentWhereInput = {
+      assetId: resolvedAssetId,
+      replyToId: null,
+      ...(options?.guestThreadsOnly ? { creator: { guestEmail: { not: null } } } : {}),
+    }
 
     const { data: comments, pageInfo } = await paginateQuery(
       async (skip, take) => {
         return this.prismaClient.assetComment.findMany({
-          where: { assetId: resolvedAssetId, replyToId: null },
+          where: topLevelWhere,
           include: {
             creator: true,
             completionLastChangedBy: true,
@@ -2324,7 +2336,7 @@ export class AssetService {
       },
       async () =>
         this.prismaClient.assetComment.count({
-          where: { assetId: resolvedAssetId, replyToId: null },
+          where: topLevelWhere,
         }),
       params,
     )

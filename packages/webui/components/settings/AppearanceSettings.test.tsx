@@ -74,7 +74,7 @@ describe('AppearanceSettings', () => {
     renderComponent()
 
     await waitFor(() => {
-      const switchElement = screen.getByRole('switch')
+      const switchElement = screen.getAllByRole('switch')[0]
       expect(switchElement).toBeDefined()
       expect(switchElement.getAttribute('data-state')).toBe('unchecked')
     })
@@ -91,7 +91,7 @@ describe('AppearanceSettings', () => {
     renderComponent()
 
     await waitFor(() => {
-      const switchElement = screen.getByRole('switch')
+      const switchElement = screen.getAllByRole('switch')[0]
       expect(switchElement).toBeDefined()
       expect(switchElement.getAttribute('data-state')).toBe('checked')
     })
@@ -100,7 +100,7 @@ describe('AppearanceSettings', () => {
   it('updates settings, closes chatbot, and refreshes user metadata on toggle', async () => {
     renderComponent()
 
-    const switchElement = await screen.findByRole('switch')
+    const switchElement = (await screen.findAllByRole('switch'))[0]
     fireEvent.click(switchElement)
 
     await waitFor(() => {
@@ -117,6 +117,35 @@ describe('AppearanceSettings', () => {
     })
   })
 
+  it('turns on hiding internal comments on share links', async () => {
+    renderComponent()
+
+    const shareSwitch = (await screen.findAllByRole('switch'))[1]
+    expect(shareSwitch.getAttribute('data-state')).toBe('unchecked')
+    fireEvent.click(shareSwitch)
+
+    await waitFor(() => {
+      expect(mockPatchSettings).toHaveBeenCalledWith({
+        param: { teamId: 'team-123' },
+        json: { key: 'share.hideInternalComments', value: true },
+      })
+    })
+  })
+
+  it('sets the default expiry for new share links', async () => {
+    renderComponent()
+
+    const select = (await screen.findByLabelText(/default expiry/i)) as HTMLSelectElement
+    fireEvent.change(select, { target: { value: '7' } })
+
+    await waitFor(() => {
+      expect(mockPatchSettings).toHaveBeenCalledWith({
+        param: { teamId: 'team-123' },
+        json: { key: 'share.defaultExpiryDays', value: 7 },
+      })
+    })
+  })
+
   it('shows error toast when patch fails', async () => {
     mockPatchSettings.mockResolvedValueOnce({
       ok: false,
@@ -125,7 +154,7 @@ describe('AppearanceSettings', () => {
 
     renderComponent()
 
-    const switchElement = await screen.findByRole('switch')
+    const switchElement = (await screen.findAllByRole('switch'))[0]
     fireEvent.click(switchElement)
 
     await waitFor(() => {

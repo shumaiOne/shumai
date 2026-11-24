@@ -1758,5 +1758,12 @@
   "agent_runner_description": "Select which runner executes shell commands and downloads workspace assets for this agent.",
   "agent_runner_team_default": "Team Default Runner",
   "agent_runner_team_default_with_name": "Team Default ({name})",
-  "agent_runner_none_configured_warning": "No runners are configured for this team yet. The bash and download_asset tools will remain unavailable until you register a runner in Team Settings → Agent Runners."
+  "agent_runner_none_configured_warning": "No runners are configured for this team yet. The bash and download_asset tools will remain unavailable until you register a runner in Team Settings → Agent Runners.",
+  "share_link_settings_description": "Applies to every public share link of this team.",
+  "hide_internal_comments": "Hide Internal Comments on Share Links",
+  "hide_internal_comments_description": "Share link viewers only see the threads that guests start and the replies in them, not the team's internal review comments.",
+  "share_default_expiry": "Default Expiry for New Links",
+  "share_default_expiry_description": "Used when a share link is created without an expiration date. Each link can still be changed afterwards.",
+  "share_expiry_never": "Never",
+  "share_expiry_days": "{days} days"
 }

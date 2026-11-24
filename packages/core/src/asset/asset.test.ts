@@ -1134,6 +1134,46 @@ describe('AssetService', () => {
     expect(listWithReplies.data[0].replies[1].id).toBe(r2.id)
   })
 
+  it('lists only guest-started threads for public share viewers', async () => {
+    const { user, assets } = await setupBasicAssets()
+    const guest = await prisma.user.create({
+      data: {
+        name: 'Client',
+        email: `guest-${Date.now()}@example.com`,
+        guestEmail: 'client@example.com',
+      },
+    })
+
+    const internal = await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: user.id,
+      message: 'internal review note',
+      attachmentIds: [],
+    })
+    const external = await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: guest.id,
+      message: 'client feedback',
+      attachmentIds: [],
+    })
+    const teamReply = await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: user.id,
+      message: 'team answer to the client',
+      replyToId: external.id,
+      attachmentIds: [],
+    })
+
+    const all = await assetService.listComments(assets.fileA1.id, { first: 10 })
+    expect(all.data.map((c) => c.id).sort()).toEqual([internal.id, external.id].sort())
+
+    const shared = await assetService.listComments(assets.fileA1.id, { first: 10 }, undefined, {
+      guestThreadsOnly: true,
+    })
+    expect(shared.data.map((c) => c.id)).toEqual([external.id])
+    expect(shared.data[0].replies.map((r) => r.id)).toEqual([teamReply.id])
+  })
+
   it('can mark comments as complete and incomplete', async () => {
     const { user, assets } = await setupBasicAssets()
 

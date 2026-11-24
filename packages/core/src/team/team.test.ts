@@ -389,6 +389,7 @@ describe('TeamService', () => {
         username: undefined,
       },
       appearance: { hideAgent: false },
+      share: { hideInternalComments: false, defaultExpiryDays: 0 },
       archiveStorage: { enabled: false },
       autoArchive: {
         enabled: false,
@@ -425,6 +426,7 @@ describe('TeamService', () => {
         username: undefined,
       },
       appearance: { hideAgent: false },
+      share: { hideInternalComments: false, defaultExpiryDays: 0 },
       archiveStorage: { enabled: false },
       autoArchive: {
         enabled: false,
@@ -445,6 +447,8 @@ describe('TeamService', () => {
       '2160p',
     ])
     await teamService.updateSettings(team.id, 'appearance.hideAgent', true)
+    await teamService.updateSettings(team.id, 'share.hideInternalComments', true)
+    await teamService.updateSettings(team.id, 'share.defaultExpiryDays', 7)
 
     const finalSettings = await teamService.getSettings(team.id)
     expect(finalSettings).toEqual({
@@ -470,6 +474,7 @@ describe('TeamService', () => {
         username: undefined,
       },
       appearance: { hideAgent: true },
+      share: { hideInternalComments: true, defaultExpiryDays: 7 },
       semanticSearchEnabled: false,
       archiveStorage: { enabled: false },
       autoArchive: {

@@ -63,6 +63,38 @@ describe('ShareService', () => {
     expect(asset?.projectId).toBe(projectId)
   })
 
+  it('applies the team default expiry only when the creator gives no date', async () => {
+    const never = await shareService.createShareLink(projectId, { name: 'No default' })
+    expect(never.expireAt).toBeFalsy()
+
+    await prisma.team.update({
+      where: { id: teamId },
+      data: { settings: { share: { defaultExpiryDays: 7 } } },
+    })
+    const before = Date.now()
+    const link = await shareService.createShareLink(projectId, { name: 'Default expiry' })
+    const week = 7 * 24 * 60 * 60 * 1000
+    const expireAt = new Date(link.expireAt!).getTime()
+    expect(expireAt).toBeGreaterThanOrEqual(before + week - 1000)
+    expect(expireAt).toBeLessThanOrEqual(Date.now() + week + 1000)
+
+    const fixed = '2030-01-01T00:00:00.000Z'
+    const custom = await shareService.createShareLink(projectId, {
+      name: 'Custom',
+      expireAt: fixed,
+    })
+    expect(new Date(custom.expireAt!).toISOString()).toBe(fixed)
+  })
+
+  it('hides internal comments on share links only when the team turns it on', async () => {
+    expect(await shareService.hidesInternalComments(projectId)).toBe(false)
+    await prisma.team.update({
+      where: { id: teamId },
+      data: { settings: { share: { hideInternalComments: true } } },
+    })
+    expect(await shareService.hidesInternalComments(projectId)).toBe(true)
+  })
+
   it('creates a share link with allowDownload disabled', async () => {
     const shareLink = await shareService.createShareLink(projectId, {
       name: 'No Download Share',

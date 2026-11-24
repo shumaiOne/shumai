@@ -101,6 +101,11 @@ declare global {
       hideAgent?: boolean
     }
 
+    export interface ShareSettings {
+      hideInternalComments?: boolean
+      defaultExpiryDays?: number
+    }
+
     export interface EmailNotificationSettings {
       enabled: boolean
       host?: string
@@ -131,6 +136,7 @@ declare global {
       gotenberg?: GotenbergSettings
       mediaGeneration?: MediaGenerationSettings
       appearance?: AppearanceSettings
+      share?: ShareSettings
       emailNotification?: EmailNotificationSettings
       autoArchive?: import('@shumai/dtos').AutoArchiveSettings
     }

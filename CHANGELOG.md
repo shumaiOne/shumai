@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **share**: Add an option in team Appearance settings to hide the team's internal comments on share links, so share viewers only see threads started by guests and the replies to them.
+- **share**: Add a team setting for a default expiry on new share links (never, 1, 3, 7, 14, or 30 days), applied when a link is created without an expiration date.
+
 ### Fixed
 
 ### Changed

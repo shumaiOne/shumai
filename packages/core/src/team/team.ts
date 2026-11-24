@@ -357,6 +357,11 @@ export class TeamService {
       settings.appearance.hideAgent = false
     }
 
+    settings.share = {
+      hideInternalComments: settings.share?.hideInternalComments ?? false,
+      defaultExpiryDays: settings.share?.defaultExpiryDays ?? 0,
+    }
+
     settings.turntable = await turntableService.getSettings(teamId)
     settings.gotenberg = await gotenbergService.getSettings(teamId)
 
@@ -453,6 +458,18 @@ export class TeamService {
       }
       settings.appearance.hideAgent = Boolean(value)
       delete settings['appearance.hideAgent']
+    } else if (key === 'share.hideInternalComments') {
+      if (!settings.share) {
+        settings.share = {}
+      }
+      settings.share.hideInternalComments = Boolean(value)
+      delete settings['share.hideInternalComments']
+    } else if (key === 'share.defaultExpiryDays') {
+      if (!settings.share) {
+        settings.share = {}
+      }
+      settings.share.defaultExpiryDays = Math.max(0, Math.floor(Number(value) || 0))
+      delete settings['share.defaultExpiryDays']
     } else if (key === 'autoArchive') {
       const autoArchiveVal = value as AutoArchiveSettings
       if (autoArchiveVal.enabled && !isArchiveStorageEnabled()) {
