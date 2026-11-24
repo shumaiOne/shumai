@@ -25,7 +25,7 @@ import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { useMemberStore } from '@/ui/stores/members'
 import type { Annotation } from '@/ui/types'
-import type { AncestorFolder, AssetInfo, CommentInfo, FieldInfo } from '@shumai/dtos'
+import type { AncestorFolder, AssetInfo, CommentInfo, FieldInfo, ShareLinkInfo } from '@shumai/dtos'
 import { useQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
@@ -61,6 +61,10 @@ export interface MobileFileDetailProps {
   onDeleteFile?: () => Promise<void>
   onArchiveFile?: () => void
   onRestoreArchiveFile?: () => void
+  shareLinks?: ShareLinkInfo[]
+  onCreateShareLink?: () => void
+  onAddToShareLink?: (shareId: string) => void
+  isShareActionPending?: boolean
   onSaveField: (fieldId: string, value: unknown) => void
   onSelectVersion?: (versionId: string) => void
 }
@@ -86,6 +90,10 @@ export function MobileFileDetail({
   onDeleteFile,
   onArchiveFile,
   onRestoreArchiveFile,
+  shareLinks,
+  onCreateShareLink,
+  onAddToShareLink,
+  isShareActionPending = false,
   onSaveField,
   onSelectVersion,
 }: MobileFileDetailProps) {
@@ -240,6 +248,10 @@ export function MobileFileDetail({
         onDelete={() => setIsDeleteDialogOpen(true)}
         onArchive={onArchiveFile}
         onRestoreArchive={onRestoreArchiveFile}
+        shareLinks={shareLinks}
+        onCreateShareLink={onCreateShareLink}
+        onAddToShareLink={onAddToShareLink}
+        isShareActionPending={isShareActionPending}
         onLinkedTasks={!isPublic ? () => setIsLinkedTasksOpen(true) : undefined}
         linkedTaskCount={linkedTaskCount}
       />

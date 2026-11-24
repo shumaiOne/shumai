@@ -216,4 +216,83 @@ describe('MobileFileHeader', () => {
     expect(screen.queryByText('Restoring...')).toBeNull()
     expect(screen.queryByText('恢复中...')).toBeNull()
   })
+
+  it('renders Create Share Link and Add to Share Links at top of three-dot menu above Download for editors', () => {
+    const onCreateShareLink = vi.fn()
+    const onAddToShareLink = vi.fn()
+
+    render(
+      <MobileFileHeader
+        fileName="clip.mp4"
+        activeFileId="file-1"
+        canEdit={true}
+        allowDownload={true}
+        downloadInfo={{ originalKey: 'clip.mp4' }}
+        shareLinks={[
+          {
+            id: 'share-1',
+            name: 'Client Review',
+            isDisabled: false,
+            allowDownload: true,
+            hasPassword: false,
+            rootFolderId: 'rf-1',
+            projectId: 'proj-1',
+            isExpired: false,
+            createdAt: '2026-11-24T00:00:00.000Z',
+            updatedAt: '2026-11-24T00:00:00.000Z',
+          },
+        ]}
+        onCreateShareLink={onCreateShareLink}
+        onAddToShareLink={onAddToShareLink}
+        onBack={vi.fn()}
+      />,
+    )
+
+    const menuBtn = screen.getByLabelText(/More options/i)
+    fireEvent.pointerDown(menuBtn, { button: 0, ctrlKey: false })
+
+    const items = screen.getAllByRole('menuitem')
+    expect(items[0].textContent).toContain('Create Share Link')
+    expect(items[1].textContent).toContain('Add to Share Links')
+    expect(items[2].textContent).toContain('Download')
+
+    fireEvent.click(items[0])
+    expect(onCreateShareLink).toHaveBeenCalledTimes(1)
+
+    fireEvent.pointerDown(menuBtn, { button: 0, ctrlKey: false })
+    fireEvent.click(screen.getByText('Add to Share Links'))
+    fireEvent.click(screen.getByText('Client Review'))
+    expect(onAddToShareLink).toHaveBeenCalledWith('share-1')
+  })
+
+  it('hides share link options when public or when canEdit is false', () => {
+    const { rerender } = render(
+      <MobileFileHeader
+        fileName="clip.mp4"
+        activeFileId="file-1"
+        canEdit={false}
+        onCreateShareLink={vi.fn()}
+        onAddToShareLink={vi.fn()}
+        onBack={vi.fn()}
+      />,
+    )
+
+    const menuBtn = screen.getByLabelText(/More options/i)
+    fireEvent.pointerDown(menuBtn, { button: 0, ctrlKey: false })
+    expect(screen.queryByText('Create Share Link')).toBeNull()
+
+    rerender(
+      <MobileFileHeader
+        fileName="clip.mp4"
+        activeFileId="file-1"
+        canEdit={true}
+        isPublic={true}
+        onCreateShareLink={vi.fn()}
+        onAddToShareLink={vi.fn()}
+        onBack={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByText('Create Share Link')).toBeNull()
+  })
 })

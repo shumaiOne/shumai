@@ -16,6 +16,7 @@ interface DateTimePickerProps {
   placeholder?: string
   disabled?: boolean
   className?: string
+  modal?: boolean
 }
 
 export function DateTimePicker({
@@ -24,6 +25,7 @@ export function DateTimePicker({
   placeholder = 'Pick a date',
   disabled,
   className,
+  modal = false,
 }: DateTimePickerProps) {
   const [isOpen, setIsOpen] = React.useState(false)
   const [tempValue, setTempValue] = React.useState<Date | undefined>(value)
@@ -78,7 +80,7 @@ export function DateTimePicker({
   }
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover modal={modal} open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"

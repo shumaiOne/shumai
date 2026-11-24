@@ -29,7 +29,7 @@ import {
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
-import type { AncestorFolder } from '@shumai/dtos'
+import type { AncestorFolder, ShareLinkInfo } from '@shumai/dtos'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -84,6 +84,10 @@ interface BreadcrumbNavProps {
   onDelete?: () => void
   onArchive?: () => void
   onRestoreArchive?: () => void
+  shareLinks?: ShareLinkInfo[]
+  onCreateShareLink?: () => void
+  onAddToShareLink?: (shareId: string) => void
+  isShareActionPending?: boolean
   fileId?: string
   downloadInfo?: {
     originalKey?: string
@@ -131,6 +135,10 @@ export function BreadcrumbNav({
   onDelete,
   onArchive,
   onRestoreArchive,
+  shareLinks,
+  onCreateShareLink,
+  onAddToShareLink,
+  isShareActionPending = false,
   fileId,
   shareId,
   allowDownload = true,
@@ -318,6 +326,31 @@ export function BreadcrumbNav({
             </DropdownMenuTrigger>
           </div>
           <DropdownMenuContent className="w-56" align="center">
+            {canEdit && !isPublic && onCreateShareLink && (
+              <>
+                <DropdownMenuItem onClick={onCreateShareLink} disabled={isShareActionPending}>
+                  {m.create_share_link()}
+                </DropdownMenuItem>
+                {shareLinks && shareLinks.length > 0 && onAddToShareLink && (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>{m.add_to_share_links()}</DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent className="w-52">
+                        {shareLinks.map((share) => (
+                          <DropdownMenuItem
+                            key={share.id}
+                            disabled={isShareActionPending}
+                            onClick={() => onAddToShareLink(share.id)}
+                          >
+                            <span className="truncate">{share.name}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                )}
+              </>
+            )}
             {allowDownload &&
               (hasVideoTranscodes ? (
                 <DropdownMenuSub>
