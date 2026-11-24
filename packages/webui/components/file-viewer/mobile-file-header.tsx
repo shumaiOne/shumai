@@ -15,6 +15,7 @@ import {
 } from '@/ui/components/ui/dropdown-menu'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
+import type { ShareLinkInfo } from '@shumai/dtos'
 import {
   Archive,
   ArchiveRestore,
@@ -22,9 +23,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Link as LinkIcon,
   Loader2,
   MoreVertical,
   Pencil,
+  Plus,
   SquareKanban,
   Trash2,
 } from 'lucide-react'
@@ -67,6 +70,10 @@ export interface MobileFileHeaderProps {
   onDelete?: () => void
   onArchive?: () => void
   onRestoreArchive?: () => void
+  shareLinks?: ShareLinkInfo[]
+  onCreateShareLink?: () => void
+  onAddToShareLink?: (shareId: string) => void
+  isShareActionPending?: boolean
   onLinkedTasks?: () => void
   linkedTaskCount?: number
 }
@@ -93,6 +100,10 @@ export function MobileFileHeader({
   onDelete,
   onArchive,
   onRestoreArchive,
+  shareLinks,
+  onCreateShareLink,
+  onAddToShareLink,
+  isShareActionPending = false,
   onLinkedTasks,
   linkedTaskCount = 0,
 }: MobileFileHeaderProps) {
@@ -279,6 +290,42 @@ export function MobileFileHeader({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52 z-40">
+            {/* Share Links */}
+            {canEdit && !isPublic && onCreateShareLink && (
+              <>
+                <DropdownMenuItem
+                  onClick={onCreateShareLink}
+                  disabled={isShareActionPending}
+                  className="flex items-center gap-2 text-xs cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>{m.create_share_link()}</span>
+                </DropdownMenuItem>
+                {shareLinks && shareLinks.length > 0 && onAddToShareLink && (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="flex items-center gap-2 text-xs cursor-pointer">
+                      <LinkIcon className="h-3.5 w-3.5" />
+                      <span>{m.add_to_share_links()}</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent className="w-48 z-50">
+                        {shareLinks.map((share) => (
+                          <DropdownMenuItem
+                            key={share.id}
+                            disabled={isShareActionPending}
+                            onClick={() => onAddToShareLink(share.id)}
+                            className="text-xs cursor-pointer"
+                          >
+                            <span className="truncate">{share.name}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                )}
+              </>
+            )}
+
             {/* Download */}
             {allowDownload &&
               (hasVideoTranscodes ? (

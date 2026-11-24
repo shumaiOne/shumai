@@ -147,8 +147,10 @@ test('dissolving a shared version stack renders the remaining standalone file na
   // Share the version stack
   await fileCard(page, fileB.name).click({ button: 'right' })
   await page.getByRole('menuitem', { name: 'Create Share Link' }).click()
-  const toast = page.locator('[data-sonner-toast]').filter({ hasText: 'Share link created' })
-  await expect(toast).toBeVisible()
+  const shareDialog = page.getByRole('dialog')
+  await expect(shareDialog).toBeVisible()
+  await shareDialog.getByRole('button', { name: 'Done' }).click()
+  await expect(shareDialog).toBeHidden()
 
   const share = await prisma.shareLink.findFirstOrThrow({
     where: { projectId },

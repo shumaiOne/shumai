@@ -1758,5 +1758,7 @@
   "agent_runner_description": "选择为该 Agent 执行命令和下载工作空间资产的运行器。",
   "agent_runner_team_default": "团队默认运行器",
   "agent_runner_team_default_with_name": "团队默认（{name}）",
-  "agent_runner_none_configured_warning": "当前团队尚未配置任何运行器。在“团队设置 → Agent 运行器”中注册运行器之前，bash 和 download_asset 工具将不可用。"
+  "agent_runner_none_configured_warning": "当前团队尚未配置任何运行器。在“团队设置 → Agent 运行器”中注册运行器之前，bash 和 download_asset 工具将不可用。",
+  "advanced_settings": "高级设置",
+  "failed_add_to_share_link": "添加到分享链接失败"
 }

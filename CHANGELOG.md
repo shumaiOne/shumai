@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **share**: Add options to create a share link or add to existing share links directly from the media view dropdown menu, and open a quick share dialog with inline renaming, one-click link copying, and security settings upon creation.
+
 ### Fixed
 
 ### Changed

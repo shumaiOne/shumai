@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AncestorFolder } from '@shumai/dtos'
+import type { AncestorFolder, ShareLinkInfo } from '@shumai/dtos'
 
 export interface TopNavProjectState {
   teamId: string
@@ -46,6 +46,10 @@ export interface TopNavProjectState {
   onDelete?: () => void
   onArchive?: () => void
   onRestoreArchive?: () => void
+  shareLinks?: ShareLinkInfo[]
+  onCreateShareLink?: () => void
+  onAddToShareLink?: (shareId: string) => void
+  isShareActionPending?: boolean
   isRightSidebarCollapsed?: boolean
   onRightSidebarToggle?: () => void
   // Compare Versions

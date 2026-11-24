@@ -66,6 +66,10 @@ export function TopNav() {
     onDelete,
     onArchive,
     onRestoreArchive,
+    shareLinks,
+    onCreateShareLink,
+    onAddToShareLink,
+    isShareActionPending,
     compareMode,
     canCompareVersions,
     onCompareVersions,
@@ -166,6 +170,10 @@ export function TopNav() {
       onDelete={onDelete}
       onArchive={onArchive}
       onRestoreArchive={onRestoreArchive}
+      shareLinks={shareLinks}
+      onCreateShareLink={onCreateShareLink}
+      onAddToShareLink={onAddToShareLink}
+      isShareActionPending={isShareActionPending}
       compareMode={compareMode}
       canCompareVersions={canCompareVersions}
       onCompareVersions={onCompareVersions}

@@ -4,6 +4,7 @@ import type { InferRequestType, InferResponseType } from 'hono/client'
 import { m } from '@/ui/paraglide/messages.js'
 
 import { usePermissions } from '@/ui/hooks/use-permissions'
+import { useShareLinkActions } from '@/ui/hooks/use-share-link-actions'
 import { getAllFilesFromEntries } from '@/ui/lib/dnd-utils'
 import { formatSize } from '@/ui/lib/format'
 import { useFieldStore } from '@/ui/stores/fields'
@@ -15,9 +16,8 @@ import type {
   CreateUploadTaskRequest,
   SearchCondition,
   SearchSort,
-  ShareLinkInfo,
 } from '@shumai/dtos'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { AlertTriangle, Download, FolderClock, Loader2 } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -27,6 +27,7 @@ import type { DragState } from '../dnd-types'
 import { MoveCopyDialog } from '../move-copy-dialog'
 import { ManageVersionsDialog } from '../manage-versions-dialog'
 import { FilePreviewDialog } from '../file-preview-dialog'
+import { ShareLinkCreatedDialog } from '../share-link-created-dialog'
 import { FileBrowserContentSkeleton } from '../loading-skeletons'
 import { FileBrowserContextMenu } from './context-menu'
 import { FindSimilarDialog } from '../search/find-similar-dialog'
@@ -309,18 +310,11 @@ export function FileBrowser({
     }
   }, [isPreviewOpen, selectedIds.size, activePreviewItem])
 
-  const { data: shareLinksData } = useQuery({
-    queryKey: ['shares', projectId, 'list'],
-    queryFn: async () => {
-      const res = await client.api.projects[':projectId'].shares.$get({
-        param: { projectId },
-        query: { first: '100' },
-      })
-      if (!res.ok) throw new Error('Failed to fetch share links')
-      return (await res.json()) as unknown as { data: ShareLinkInfo[] }
-    },
-    enabled: !!projectId && !isPublic,
-  })
+  const { shareLinks, createShareLink, addToShareLink, createdShareLink, clearCreatedShareLink } =
+    useShareLinkActions({
+      projectId,
+      enabled: !isPublic,
+    })
 
   const $reparent = client.api.projects[':projectId'].reparent.$post
   const { mutate: reparentAssets } = useMutation<
@@ -412,71 +406,6 @@ export function FileBrowser({
       )
     }
   }
-
-  const { mutate: createShareLink } = useMutation({
-    mutationFn: async (items: AssetInfo[]) => {
-      const name =
-        items.length === 1
-          ? items[0].name
-          : new Date().toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })
-
-      const res = await client.api.projects[':projectId'].shares.$post({
-        param: { projectId },
-        json: { name },
-      })
-      if (!res.ok) throw new Error('Failed to create share link')
-      const share = await res.json()
-
-      // Add assets to the new share link
-      const assetsRes = await client.api.shares[':shareId'].assets.$post({
-        param: { shareId: share.id },
-        json: { assetIds: items.map((i) => i.id!) },
-      })
-      if (!assetsRes.ok) throw new Error('Failed to add assets to share link')
-
-      return share
-    },
-    onSuccess: (share) => {
-      queryClient.invalidateQueries({ queryKey: ['shares', projectId] })
-      toast.success('Share link created', {
-        action: {
-          label: 'View',
-          onClick: () =>
-            navigate({
-              to: '/projects/$projectId/shares/$shareId',
-              params: { projectId, shareId: share.id },
-            }),
-        },
-      })
-    },
-  })
-
-  const { mutate: addToShareLink } = useMutation({
-    mutationFn: async ({ shareId, items }: { shareId: string; items: AssetInfo[] }) => {
-      const res = await client.api.shares[':shareId'].assets.$post({
-        param: { shareId },
-        json: { assetIds: items.map((i) => i.id!) },
-      })
-      if (!res.ok) throw new Error('Failed to add assets')
-      return { shareId }
-    },
-    onSuccess: ({ shareId }) => {
-      toast.success('Added to share link', {
-        action: {
-          label: 'View',
-          onClick: () =>
-            navigate({
-              to: '/projects/$projectId/shares/$shareId',
-              params: { projectId, shareId },
-            }),
-        },
-      })
-    },
-  })
 
   const handleCreateShareLink = (items: AssetInfo[]) => {
     createShareLink(items)
@@ -1210,7 +1139,7 @@ export function FileBrowser({
           allowDownload={allowDownload}
           isRecentlyDeleted={isRecentlyDeleted}
           isRecents={isRecents}
-          shareLinks={shareLinksData?.data ?? []}
+          shareLinks={shareLinks}
           onCreateShareLink={handleCreateShareLink}
           onAddToShareLink={handleAddToShareLink}
           canEdit={canEdit}
@@ -1409,6 +1338,15 @@ export function FileBrowser({
         shareId={shareId}
         sharePassword={sharePassword}
         isPublic={isPublic}
+      />
+
+      <ShareLinkCreatedDialog
+        open={!!createdShareLink}
+        onOpenChange={(open) => {
+          if (!open) clearCreatedShareLink()
+        }}
+        shareLink={createdShareLink}
+        projectId={projectId}
       />
 
       <ArchiveConfirmDialog

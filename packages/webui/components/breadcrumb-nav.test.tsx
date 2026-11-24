@@ -392,4 +392,103 @@ describe('BreadcrumbNav component', () => {
     expect(screen.queryByText('Archived')).toBeNull()
     expect(screen.queryByText('已归档')).toBeNull()
   })
+
+  it('renders Create Share Link and Add to Share Links at top of dropdown above Download for editors', () => {
+    const editorQueryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    editorQueryClient.setQueryData(['projects', 'proj-1', 'me'], { role: 'owner' })
+    const onCreateShareLink = vi.fn()
+    const onAddToShareLink = vi.fn()
+
+    render(
+      <QueryClientProvider client={editorQueryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          fileId="file-share"
+          currentAsset={{ id: 'file-share', name: 'review.mp4', type: 'file', version: 1 }}
+          allowDownload={true}
+          downloadInfo={{ originalKey: 'review.mp4' }}
+          shareLinks={[
+            {
+              id: 'share-1',
+              name: 'Client Cut',
+              isDisabled: false,
+              allowDownload: true,
+              hasPassword: false,
+              rootFolderId: 'rf-1',
+              projectId: 'proj-1',
+              isExpired: false,
+              createdAt: '2026-11-24T00:00:00.000Z',
+              updatedAt: '2026-11-24T00:00:00.000Z',
+            },
+          ]}
+          onCreateShareLink={onCreateShareLink}
+          onAddToShareLink={onAddToShareLink}
+        />
+      </QueryClientProvider>,
+    )
+
+    const triggerButton = screen.getByRole('button', { name: 'review.mp4' })
+    fireEvent.pointerDown(triggerButton, { button: 0, ctrlKey: false })
+
+    const items = screen.getAllByRole('menuitem')
+    expect(items[0].textContent).toContain('Create Share Link')
+    expect(items[1].textContent).toContain('Add to Share Links')
+    expect(items[2].textContent).toContain('Download')
+
+    fireEvent.click(items[0])
+    expect(onCreateShareLink).toHaveBeenCalledTimes(1)
+
+    fireEvent.pointerDown(triggerButton, { button: 0, ctrlKey: false })
+    fireEvent.click(screen.getByText('Add to Share Links'))
+    fireEvent.click(screen.getByText('Client Cut'))
+    expect(onAddToShareLink).toHaveBeenCalledWith('share-1')
+  })
+
+  it('hides share link options when public or when user lacks edit permission', () => {
+    const reviewerQueryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    reviewerQueryClient.setQueryData(['projects', 'proj-1', 'me'], { role: 'reviewer' })
+
+    const { rerender } = render(
+      <QueryClientProvider client={reviewerQueryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          fileId="file-share"
+          currentAsset={{ id: 'file-share', name: 'review.mp4', type: 'file' }}
+          onCreateShareLink={vi.fn()}
+          onAddToShareLink={vi.fn()}
+        />
+      </QueryClientProvider>,
+    )
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'review.mp4' }), {
+      button: 0,
+      ctrlKey: false,
+    })
+    expect(screen.queryByText('Create Share Link')).toBeNull()
+    expect(screen.queryByText('Add to Share Links')).toBeNull()
+
+    const ownerQueryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    ownerQueryClient.setQueryData(['projects', 'proj-1', 'me'], { role: 'owner' })
+
+    rerender(
+      <QueryClientProvider client={ownerQueryClient}>
+        <BreadcrumbNav
+          {...baseProps}
+          isPublic={true}
+          fileId="file-share"
+          currentAsset={{ id: 'file-share', name: 'review.mp4', type: 'file' }}
+          onCreateShareLink={vi.fn()}
+          onAddToShareLink={vi.fn()}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.queryByText('Create Share Link')).toBeNull()
+  })
 })

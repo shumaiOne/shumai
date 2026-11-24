@@ -9,8 +9,11 @@ import { FileViewerRightSidebar } from '@/ui/components/file-viewer-right-sideba
 import { MobileFileDetail } from '@/ui/components/file-viewer/mobile-file-detail'
 import { FileDetailSkeleton } from '@/ui/components/loading-skeletons'
 import { ResizeHandle } from '@/ui/components/resize-handle'
+import { ShareLinkCreatedDialog } from '@/ui/components/share-link-created-dialog'
 import { useArchiveConfig } from '@/ui/hooks/use-archive-config'
 import { useIsMobile } from '@/ui/hooks/use-mobile'
+import { usePermissions } from '@/ui/hooks/use-permissions'
+import { useShareLinkActions } from '@/ui/hooks/use-share-link-actions'
 import { m } from '@/ui/paraglide/messages.js'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import { useChatbotStore } from '@/ui/stores/chatbot'
@@ -67,6 +70,15 @@ function FileViewPage() {
 
   const mediaControllerRef = useRef<MediaController | null>(null)
   const { archiveStorageEnabled } = useArchiveConfig()
+  const { canEdit } = usePermissions(projectId)
+  const {
+    shareLinks,
+    createShareLink,
+    addToShareLink,
+    isShareActionPending,
+    createdShareLink,
+    clearCreatedShareLink,
+  } = useShareLinkActions({ projectId, enabled: canEdit })
   const { teamId, ensureTeamIdForProject } = useTeamContextStore()
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
@@ -406,6 +418,17 @@ function FileViewPage() {
         onRestoreArchive: () => {
           setArchiveConfirmState({ open: true, mode: 'restore' })
         },
+        shareLinks,
+        onCreateShareLink: () => {
+          createShareLink([{ id: fileId, name: stackData?.name ?? fileData.name }])
+        },
+        onAddToShareLink: (targetShareId: string) => {
+          addToShareLink({
+            shareId: targetShareId,
+            items: [{ id: fileId, name: stackData?.name ?? fileData.name }],
+          })
+        },
+        isShareActionPending,
       })
     }
 
@@ -415,10 +438,15 @@ function FileViewPage() {
     projectId,
     projectInfo,
     fileData,
+    stackData?.name,
     versionsDataList,
     activeFileId,
     fileId,
     isCompareMode,
+    shareLinks,
+    createShareLink,
+    addToShareLink,
+    isShareActionPending,
     setProjectState,
     clearProjectState,
     navigate,
@@ -747,7 +775,26 @@ function FileViewPage() {
               ? () => setArchiveConfirmState({ open: true, mode: 'restore' })
               : undefined
           }
+          shareLinks={shareLinks}
+          onCreateShareLink={() => {
+            createShareLink([{ id: fileId, name: stackData?.name ?? fileData.name }])
+          }}
+          onAddToShareLink={(targetShareId) => {
+            addToShareLink({
+              shareId: targetShareId,
+              items: [{ id: fileId, name: stackData?.name ?? fileData.name }],
+            })
+          }}
+          isShareActionPending={isShareActionPending}
           onSaveField={handleSaveField}
+        />
+        <ShareLinkCreatedDialog
+          open={!!createdShareLink}
+          onOpenChange={(open) => {
+            if (!open) clearCreatedShareLink()
+          }}
+          shareLink={createdShareLink}
+          projectId={projectId}
         />
         <ArchiveConfirmDialog
           open={archiveConfirmState.open}
@@ -916,6 +963,15 @@ function FileViewPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ShareLinkCreatedDialog
+        open={!!createdShareLink}
+        onOpenChange={(open) => {
+          if (!open) clearCreatedShareLink()
+        }}
+        shareLink={createdShareLink}
+        projectId={projectId}
+      />
 
       <ArchiveConfirmDialog
         open={archiveConfirmState.open}

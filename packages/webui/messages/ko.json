@@ -1688,5 +1688,7 @@
   "agent_runner_description": "이 에이전트의 셸 명령을 실행하고 워크스페이스 에셋을 다운로드할 러너를 선택합니다.",
   "agent_runner_team_default": "팀 기본 러너",
   "agent_runner_team_default_with_name": "팀 기본({name})",
-  "agent_runner_none_configured_warning": "이 팀에 아직 구성된 러너가 없습니다. 팀 설정 → 에이전트 러너에서 러너를 등록할 때까지 bash 및 download_asset 도구를 사용할 수 없습니다."
+  "agent_runner_none_configured_warning": "이 팀에 아직 구성된 러너가 없습니다. 팀 설정 → 에이전트 러너에서 러너를 등록할 때까지 bash 및 download_asset 도구를 사용할 수 없습니다.",
+  "advanced_settings": "고급 설정",
+  "failed_add_to_share_link": "공유 링크에 추가하지 못했습니다"
 }

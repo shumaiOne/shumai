@@ -77,7 +77,8 @@ apps/web/e2e/
 | Owner deletes a file, finds it in recently deleted, and restores it | `tests/project/delete-restore.spec.ts` |
 | Owner deletes a folder and still sees its contents preview and countdown in recently deleted | `tests/project/delete-restore.spec.ts` |
 | Owner deletes a version stack and restores it from recently deleted | `tests/project/delete-restore.spec.ts` |
-| Owner creates a share link from a file context menu and lands on the share page | `tests/project/create-share-link.spec.ts` |
+| Owner creates a share link from a file context menu, edits it in the quick dialog, and opens advanced settings | `tests/project/create-share-link.spec.ts` |
+| Owner creates a share link and adds to an existing share link from media view | `tests/project/create-share-link.spec.ts` |
 | Owner protects a share with a password; guests must enter it to view | `tests/project/share-password.spec.ts` |
 | Owner creates a collection from the sidebar; the collection shows project files | `tests/project/create-collection.spec.ts` |
 | Owner invites a member to a project; the member only sees the invited project | `tests/project/invite-member.spec.ts` |
