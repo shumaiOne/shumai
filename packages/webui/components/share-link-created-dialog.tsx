@@ -155,12 +155,12 @@ export function ShareLinkCreatedDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md overflow-hidden">
+        <DialogHeader className="min-w-0">
           {isEditingName ? (
             <>
               <DialogTitle className="sr-only">{m.rename_share_link()}</DialogTitle>
-              <div className="flex items-center gap-1.5 pr-8">
+              <div className="flex min-w-0 items-center gap-1.5 pr-8">
                 <Input
                   ref={nameInputRef}
                   value={nameInput}
@@ -179,7 +179,7 @@ export function ShareLinkCreatedDialog({
                     }
                   }}
                   aria-label={m.rename_share_link()}
-                  className="h-8 text-sm font-semibold"
+                  className="h-8 min-w-0 flex-1 text-sm font-semibold"
                 />
                 <Button
                   type="button"
@@ -195,9 +195,9 @@ export function ShareLinkCreatedDialog({
               </div>
             </>
           ) : (
-            <DialogTitle className="flex items-center gap-1.5 pr-8 min-w-0">
+            <DialogTitle className="flex w-full min-w-0 items-center gap-1.5 pr-8">
               <span
-                className="truncate cursor-pointer hover:text-foreground/80"
+                className="min-w-0 truncate cursor-pointer hover:text-foreground/80"
                 onClick={startEditingName}
                 title={activeShare.name}
               >
@@ -217,8 +217,8 @@ export function ShareLinkCreatedDialog({
           )}
         </DialogHeader>
 
-        <div className="space-y-4 py-1">
-          <div className="relative w-full">
+        <div className="min-w-0 space-y-4 py-1">
+          <div className="relative w-full min-w-0">
             <Input
               value={shareUrl}
               readOnly
@@ -241,23 +241,23 @@ export function ShareLinkCreatedDialog({
             </Button>
           </div>
 
-          <div className="rounded-lg border border-border bg-muted/20 p-3.5">
+          <div className="min-w-0 rounded-lg border border-border bg-muted/20 p-3.5">
             <ShareSecuritySettings shareLink={activeShare} inDialog />
           </div>
         </div>
 
-        <DialogFooter className="flex-row items-center justify-between gap-2 sm:justify-between">
+        <DialogFooter className="min-w-0 flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="gap-1 px-2 text-muted-foreground hover:text-foreground"
+            className="w-fit gap-1 px-2 text-muted-foreground hover:text-foreground"
             onClick={handleAdvancedSettings}
           >
             <span>{m.advanced_settings()}</span>
             <ArrowUpRight className="h-4 w-4" />
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2">
             <Button type="button" variant="outline" onClick={handleCopyLink} className="gap-2">
               {copied ? (
                 <Check className="h-4 w-4 text-emerald-500" />

@@ -1,5 +1,14 @@
 import { type ReactElement, useCallback, useEffect, useRef, useState } from 'react'
 import ReactDOM from 'react-dom/client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  RouterProvider,
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+} from '@tanstack/react-router'
+import type { ShareLinkInfo } from '@shumai/dtos'
+import { ShareLinkCreatedDialog } from '@/ui/components/share-link-created-dialog'
 import type { MediaController } from '@/ui/components/viewers/types'
 import VideoPlayer from '@/ui/components/viewers/video/video-viewer'
 import ModelViewer from '@/ui/components/viewers/model/model-viewer'
@@ -269,6 +278,67 @@ function UploaderHarness(): ReactElement {
   )
 }
 
+function ShareDialogHarness(): ReactElement {
+  const nameParam =
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('name') : null
+  const shareName =
+    nameParam || 'Client_Delivery_2026_11_24_Final_Master_ProRes422HQ_v04_ColorGraded_Stereo.mov'
+
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { retry: false, enabled: false },
+        },
+      }),
+  )
+
+  const [router] = useState(() => {
+    const rootRoute = createRootRoute({
+      component: () => {
+        const mockShare: ShareLinkInfo = {
+          id: '01K9XYZABCDEFGHJKLMNPQRSTV',
+          name: shareName,
+          isDisabled: false,
+          allowDownload: true,
+          hasPassword: false,
+          password: null,
+          rootFolderId: 'rf-1',
+          projectId: 'proj-1',
+          isExpired: false,
+          watermarkConfigId: null,
+          watermarkStatus: 'disabled',
+          watermarkConfig: null,
+          createdAt: '2026-11-24T00:00:00.000Z',
+          updatedAt: '2026-11-24T00:00:00.000Z',
+          creator: null,
+        }
+        return (
+          <div className="p-6">
+            <Toaster position="top-right" />
+            <ShareLinkCreatedDialog
+              open={true}
+              onOpenChange={() => {}}
+              shareLink={mockShare}
+              projectId="proj-1"
+            />
+          </div>
+        )
+      },
+    })
+    return createRouter({
+      routeTree: rootRoute,
+      history: createMemoryHistory({ initialEntries: ['/'] }),
+    })
+  })
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  )
+}
+
 const rootElement = document.getElementById('root')
 if (!rootElement) {
   throw new Error('Harness root element not found')
@@ -278,5 +348,11 @@ const currentView =
   typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('view') : null
 
 ReactDOM.createRoot(rootElement).render(
-  currentView === 'uploader' ? <UploaderHarness /> : <Harness />,
+  currentView === 'uploader' ? (
+    <UploaderHarness />
+  ) : currentView === 'share-dialog' ? (
+    <ShareDialogHarness />
+  ) : (
+    <Harness />
+  ),
 )
