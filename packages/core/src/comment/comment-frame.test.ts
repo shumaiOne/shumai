@@ -10,7 +10,9 @@ import {
   selectBestVideoProxyKey,
   type ExecFileFn,
 } from './comment-frame'
+import { execFileSync } from 'child_process'
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 import sharp from 'sharp'
 
@@ -526,5 +528,178 @@ describe('CommentFrameService & AssetService print helpers', () => {
 
     const projectName = await assetService.getProjectNameForAsset(asset.id)
     expect(projectName).toBe('Commercial Cut')
+  })
+
+  it('extracts exact frames with real ffmpeg for 30fps video, 23.976fps video, and 6fps 3D turntable', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'shumai-frame-acc-'))
+    const w = 64
+    const h = 64
+
+    const createColorCodedVideo = (filename: string, rateArg: string, totalFrames: number) => {
+      const raw = Buffer.alloc(w * h * 3 * totalFrames)
+      for (let n = 0; n < totalFrames; n++) {
+        const r = (n * 9) & 255
+        const g = (n * 15) & 255
+        const off = n * w * h * 3
+        for (let i = 0; i < w * h; i++) {
+          raw[off + i * 3] = r
+          raw[off + i * 3 + 1] = g
+          raw[off + i * 3 + 2] = 120
+        }
+      }
+      const rawPath = path.join(tmpDir, `${filename}.rgb`)
+      const mp4Path = path.join(tmpDir, `${filename}.mp4`)
+      fs.writeFileSync(rawPath, raw)
+      execFileSync('ffmpeg', [
+        '-y',
+        '-loglevel',
+        'error',
+        '-f',
+        'rawvideo',
+        '-pix_fmt',
+        'rgb24',
+        '-s',
+        `${w}x${h}`,
+        '-r',
+        rateArg,
+        '-i',
+        rawPath,
+        '-c:v',
+        'libx264',
+        '-pix_fmt',
+        'yuv420p',
+        '-g',
+        '12',
+        '-bf',
+        '2',
+        '-movflags',
+        '+faststart',
+        mp4Path,
+      ])
+      return mp4Path
+    }
+
+    const identifyExtractedFrame = async (webpBuffer: Buffer, totalFrames: number) => {
+      const { data, info } = await sharp(webpBuffer).raw().toBuffer({ resolveWithObject: true })
+      const cx = Math.floor(info.width / 2)
+      const cy = Math.floor(info.height / 2)
+      const idx = (cy * info.width + cx) * info.channels
+      const r = data[idx]
+      const g = data[idx + 1]
+      let best = -1
+      let bestDist = Infinity
+      for (let n = 0; n < totalFrames; n++) {
+        const dr = r - ((n * 9) & 255)
+        const dg = g - ((n * 15) & 255)
+        const dist = dr * dr + dg * dg
+        if (dist < bestDist) {
+          bestDist = dist
+          best = n
+        }
+      }
+      return best
+    }
+
+    try {
+      const mp4Fps30 = createColorCodedVideo('v30', '30', 24)
+      const mp4Fps23976 = createColorCodedVideo('v23976', '24000/1001', 24)
+      const mp4Turntable = createColorCodedVideo('turntable', '6', 24)
+
+      const keyMap: Record<string, string> = {
+        'files/proxies/v30.mp4': mp4Fps30,
+        'files/proxies/v23976.mp4': mp4Fps23976,
+        'files/proxies/turntable.mp4': mp4Turntable,
+      }
+      vi.spyOn(s3Service, 'resolveInput').mockImplementation(async (_bucket, key) => keyMap[key])
+
+      const createAsset = async (
+        name: string,
+        proxyType: 'video' | '3d',
+        proxyKey: string,
+        fps: number,
+        totalFrames: number,
+      ) => {
+        const sk = await prisma.storageKey.create({ data: { key: `files/${name}` } })
+        return prisma.asset.create({
+          data: {
+            name,
+            type: AssetType.file,
+            status: AssetStatus.processed,
+            mediaType: proxyType === '3d' ? 'model/gltf-binary' : 'video/mp4',
+            projectId,
+            parentId: subFolderId,
+            creatorId: userId,
+            storageKeyId: sk.id,
+            media: {
+              proxyType,
+              duration: totalFrames / fps,
+              filesize: 1000,
+              frames: totalFrames,
+              imageTranscodes: [],
+              videoTranscodes: [{ key: proxyKey, width: 64, height: 64, hdr: false }],
+              finishedAt: new Date().toISOString(),
+              metadata: {
+                originalHeight: h,
+                originalWidth: w,
+                hasAudio: false,
+                bitRate: 100000,
+                frameRate: fps,
+                totalFrames,
+                duration: totalFrames / fps,
+                startTimecode: '00:00:00:00',
+                format: {},
+              },
+              original: null,
+            },
+          },
+        })
+      }
+
+      const asset30 = await createAsset('v30.mp4', 'video', 'files/proxies/v30.mp4', 30, 24)
+      const asset23976 = await createAsset(
+        'v23976.mp4',
+        'video',
+        'files/proxies/v23976.mp4',
+        24000 / 1001,
+        24,
+      )
+      const asset3d = await createAsset('chair.glb', '3d', 'files/proxies/turntable.mp4', 6, 24)
+
+      const realService = new CommentFrameService({ maxConcurrency: 2 })
+
+      // Frames where .toFixed(4) previously rounded UP and skipped to N+1:
+      // 30fps: frame 2 (0.06666... -> 0.0667), frame 5 (0.16666... -> 0.1667), frame 23 (last frame)
+      for (const frame of [0, 2, 5, 8, 17, 23]) {
+        const res = await realService.extractFrame({
+          assetId: asset30.id,
+          second: frame / 30,
+          width: 64,
+        })
+        expect(await identifyExtractedFrame(res.buffer, 24)).toBe(frame)
+      }
+
+      // 23.976fps: frame 7 (0.291958 -> 0.2920), frame 8, frame 19, frame 23
+      for (const frame of [0, 7, 8, 19, 23]) {
+        const res = await realService.extractFrame({
+          assetId: asset23976.id,
+          second: frame / (24000 / 1001),
+          width: 64,
+        })
+        expect(await identifyExtractedFrame(res.buffer, 24)).toBe(frame)
+      }
+
+      // 3D 6fps turntable where model-viewer stores center times ((N + 0.5) / 6, last = (23 + 0.25) / 6)
+      for (const frame of [0, 1, 6, 12, 23]) {
+        const centerSec = frame === 23 ? (frame + 0.25) / 6 : (frame + 0.5) / 6
+        const res = await realService.extractFrame({
+          assetId: asset3d.id,
+          second: centerSec,
+          width: 64,
+        })
+        expect(await identifyExtractedFrame(res.buffer, 24)).toBe(frame)
+      }
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
   })
 })

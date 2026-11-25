@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import { Button } from '@/ui/components/ui/button'
 import { DrawAnnotation, ShumaiLogo } from '@/ui/components/ui/icons'
 import { getViewerForFile } from '@/ui/components/viewers/registry'
-import { formatTimecode } from '@/ui/components/viewers/video/utils'
+import { formatFrame, formatTimecode } from '@/ui/components/viewers/video/utils'
 import { isImageFileName } from '@/ui/lib/media'
 import { m } from '@/ui/paraglide/messages.js'
 import { useUiStore } from '@/ui/stores/ui'
@@ -168,7 +168,7 @@ export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
         return viewerDef.commentsConfig.formatTimestamp(second)
       }
       if (!frameRate) return ''
-      const frameIndex = Math.round(second * frameRate)
+      const frameIndex = formatFrame(second, frameRate)
       return formatTimecode(frameIndex, frameRate, videoTimeDisplayMode, startTimecode)
     },
     [viewerDef, frameRate, videoTimeDisplayMode, startTimecode],

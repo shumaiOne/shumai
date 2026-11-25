@@ -1,6 +1,7 @@
 import { assetService } from '@shumai/core/src/asset/asset'
 import { logger } from '@shumai/core/src/logger'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { secondToTurntableFrame, TURNTABLE_FPS } from '@shumai/core/src/utils/model3d'
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { prisma } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
@@ -149,6 +150,55 @@ export function selectBestVideoProxyKey(
   return fallback[0]?.key ?? null
 }
 
+/**
+ * Resolves an ffmpeg `-ss` input seek timestamp that lands squarely on the exact
+ * target frame displayed by Shumai's video and 3D turntable players.
+ *
+ * `ffmpeg -ss T -i input -vframes 1` outputs the first frame with `PTS >= T`.
+ * Passing `N / fps` directly (especially after decimal rounding) or a frame center
+ * `(N + 0.5) / fps` causes ffmpeg to skip frame `N` and emit frame `N + 1` whenever
+ * `T` exceeds `PTS(N)` by even 1µs.
+ *
+ * Instead, we recover integer frame `N` with the exact player formula
+ * (`Math.floor(second * fps + 0.45)` for video, `secondToTurntableFrame` for 3D)
+ * and seek to the midpoint between frame `N - 1` and frame `N`: `(N - 0.5) / fps`,
+ * leaving a full ±0.5 frame tolerance margin on both sides.
+ */
+export function resolveFrameAccurateSeek(params: {
+  second: number
+  proxyType: 'video' | '3d'
+  frameRate?: number | null
+  totalFrames?: number | null
+  duration?: number | null
+}): { seekTime: number; frameIndex: number | null } {
+  const safeSecond = Math.max(0, params.second)
+
+  if (params.proxyType === '3d') {
+    const frameIndex = secondToTurntableFrame(safeSecond)
+    const seekTime = frameIndex <= 0 ? 0 : (frameIndex - 0.5) / TURNTABLE_FPS
+    return { seekTime, frameIndex }
+  }
+
+  const fps = params.frameRate && params.frameRate > 0 ? params.frameRate : null
+  if (fps) {
+    let frameIndex = Math.max(0, Math.floor(safeSecond * fps + 0.45))
+    if (params.totalFrames && params.totalFrames > 0) {
+      frameIndex = Math.min(frameIndex, params.totalFrames - 1)
+    } else if (params.duration && params.duration > 0) {
+      const maxFrame = Math.max(0, Math.round(params.duration * fps) - 1)
+      frameIndex = Math.min(frameIndex, maxFrame)
+    }
+    const seekTime = frameIndex <= 0 ? 0 : (frameIndex - 0.5) / fps
+    return { seekTime, frameIndex }
+  }
+
+  const seekTime =
+    params.duration && params.duration > 0 && safeSecond >= params.duration
+      ? Math.max(0, params.duration - 0.05)
+      : safeSecond
+  return { seekTime, frameIndex: null }
+}
+
 export class CommentFrameService {
   private readonly queue: FrameExtractionQueue
   private readonly inFlight = new Map<
@@ -208,8 +258,23 @@ export class CommentFrameService {
       })
     }
 
+    const frameTarget =
+      proxyType === 'pdf'
+        ? null
+        : resolveFrameAccurateSeek({
+            second,
+            proxyType,
+            frameRate: media?.metadata?.frameRate,
+            totalFrames: media?.metadata?.totalFrames ?? media?.frames,
+            duration: media?.duration ?? media?.metadata?.duration,
+          })
+
     const normalizedKeyTime =
-      proxyType === 'pdf' ? `p${Math.max(1, Math.round(second))}` : second.toFixed(3)
+      proxyType === 'pdf'
+        ? `p${Math.max(1, Math.round(second))}`
+        : frameTarget!.frameIndex !== null
+          ? `f${frameTarget!.frameIndex}`
+          : frameTarget!.seekTime.toFixed(6)
     const dedupeKey = `${targetAssetId}:${params.watermarkConfigId ?? ''}:${normalizedKeyTime}:${width}`
 
     let entry = this.inFlight.get(dedupeKey)
@@ -230,6 +295,8 @@ export class CommentFrameService {
             asset,
             media,
             second,
+            seekTime: frameTarget!.seekTime,
+            frameRate: proxyType === '3d' ? TURNTABLE_FPS : media?.metadata?.frameRate,
             width,
             watermarkConfigId: params.watermarkConfigId,
             signal: controller.signal,
@@ -308,6 +375,8 @@ export class CommentFrameService {
     }
     media: PrismaJson.MediaInfo | null
     second: number
+    seekTime: number
+    frameRate?: number | null
     width: number
     watermarkConfigId?: string | null
     signal?: AbortSignal
@@ -342,10 +411,6 @@ export class CommentFrameService {
       }
     }
 
-    const duration = params.media?.duration ?? params.media?.metadata?.duration ?? 0
-    const clampedSecond =
-      duration > 0 && params.second >= duration ? Math.max(0, duration - 0.1) : params.second
-
     const inputSource = await s3Service.resolveInput(bucket, targetKey)
     const isRemote = inputSource.startsWith('http://') || inputSource.startsWith('https://')
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'shumai-print-frame-'))
@@ -361,7 +426,7 @@ export class CommentFrameService {
             ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
             : []),
           '-ss',
-          timestamp.toFixed(4),
+          timestamp.toFixed(6),
           '-i',
           inputSource,
           '-map',
@@ -382,11 +447,12 @@ export class CommentFrameService {
         })
       }
 
-      await runFfmpeg(clampedSecond)
+      await runFfmpeg(params.seekTime)
 
-      // Seeking right at the very end of a stream can produce 0 frames; retry slightly earlier.
-      if ((!fs.existsSync(outPath) || fs.statSync(outPath).size === 0) && clampedSecond > 0) {
-        await runFfmpeg(Math.max(0, clampedSecond - 0.5))
+      // If container metadata overestimated totalFrames at EOF, step back one frame and retry.
+      if ((!fs.existsSync(outPath) || fs.statSync(outPath).size === 0) && params.seekTime > 0) {
+        const stepBack = params.frameRate && params.frameRate > 0 ? 1 / params.frameRate : 0.1
+        await runFfmpeg(Math.max(0, params.seekTime - stepBack))
       }
 
       if (!fs.existsSync(outPath) || fs.statSync(outPath).size === 0) {
