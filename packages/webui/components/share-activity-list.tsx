@@ -71,7 +71,7 @@ export function ShareActivityList({ shareId }: { shareId: string }) {
               {entries.map((event) => (
                 <li
                   key={event.id}
-                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-md border border-border px-2 py-2"
+                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-2 py-2"
                 >
                   {event.user ? (
                     <Avatar className="size-8">
