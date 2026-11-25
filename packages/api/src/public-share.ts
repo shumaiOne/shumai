@@ -437,15 +437,15 @@ const route = app
       // project and parent folder names are never leaked.
       const ancestors = asset.ancestorFolders ?? []
       const rootIndex = ancestors.findIndex((f) => f.id === shareLink.rootFolderId)
-      const scopedFolders = (rootIndex !== -1 ? ancestors.slice(0, rootIndex) : [])
-        .slice()
+      const scopedAncestors = rootIndex !== -1 ? ancestors.slice(0, rootIndex) : []
+      const scopedFolders = [...scopedAncestors]
         .reverse()
         .map((f) => f.name)
         .filter((name): name is string => Boolean(name))
       const breadcrumbs = shareLink.name ? [shareLink.name, ...scopedFolders] : scopedFolders
 
       return c.json({
-        asset,
+        asset: { ...asset, ancestorFolders: scopedAncestors },
         breadcrumbs,
         comments,
       })

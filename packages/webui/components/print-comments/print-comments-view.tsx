@@ -145,14 +145,7 @@ export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
 
   const hasPositionSort = Boolean(viewerDef.commentsConfig?.hasTimestamp)
   const [sortMode, setSortMode] = useState<PrintSortMode>(hasPositionSort ? 'position' : 'oldest')
-  const [frameStatuses, setFrameStatuses] = useState<Record<string, 'loaded' | 'error'>>({})
-
-  const handleFrameStatusChange = useCallback((commentId: string, status: 'loaded' | 'error') => {
-    setFrameStatuses((prev) => {
-      if (prev[commentId] === status) return prev
-      return { ...prev, [commentId]: status }
-    })
-  }, [])
+  const [settledFrameUrls, setSettledFrameUrls] = useState<Record<string, string>>({})
 
   const frameRate = viewerDef.commentsConfig?.hasTimestamp
     ? asset.media?.metadata?.frameRate || 30
@@ -227,17 +220,25 @@ export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
     [hasVisualThumbnailColumn, proxyType, asset, shareId, sharePassword],
   )
 
-  const expectedFrameIds = useMemo(() => {
-    return sortedComments
-      .filter((comment) => Boolean(getCommentFrameUrl(comment)))
-      .map((comment) => comment.id)
-  }, [sortedComments, getCommentFrameUrl])
+  const frameUrls = useMemo(() => {
+    const urls = new Map<string, string>()
+    for (const comment of comments) {
+      const url = getCommentFrameUrl(comment)
+      if (url) urls.set(comment.id, url)
 
-  const loadedFrameCount = useMemo(() => {
-    return expectedFrameIds.filter((id) => frameStatuses[id] !== undefined).length
-  }, [expectedFrameIds, frameStatuses])
+      for (const reply of comment.replies ?? []) {
+        if (parseAnnotations(reply.annotations).length === 0) continue
+        const replyUrl = getCommentFrameUrl(reply)
+        if (replyUrl) urls.set(reply.id, replyUrl)
+      }
+    }
+    return urls
+  }, [comments, getCommentFrameUrl])
 
-  const isLoadingFrames = expectedFrameIds.length > 0 && loadedFrameCount < expectedFrameIds.length
+  const settledFrameCount = Array.from(frameUrls).filter(
+    ([id, url]) => settledFrameUrls[id] === url,
+  ).length
+  const isLoadingFrames = settledFrameCount < frameUrls.size
 
   const sortIndicatorLabel = useMemo(() => {
     if (sortMode === 'oldest') return m.print_comments_sorted_by_oldest()
@@ -263,6 +264,24 @@ export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
     comments.length === 1
       ? m.print_comments_count_one()
       : m.print_comments_count({ count: String(comments.length) })
+
+  const renderFrame = (commentId: string, annotations: ReturnType<typeof parseAnnotations>) => {
+    const url = frameUrls.get(commentId)
+    if (!url) return null
+
+    return (
+      <CommentFrameThumbnail
+        key={url}
+        src={url}
+        annotations={annotations}
+        onStatusChange={() =>
+          setSettledFrameUrls((prev) =>
+            prev[commentId] === url ? prev : { ...prev, [commentId]: url },
+          )
+        }
+      />
+    )
+  }
 
   const renderCommentEntry = (
     comment: CommentInfo,
@@ -367,6 +386,10 @@ export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
             )}
           </div>
 
+          {options.isReply && frameUrls.has(comment.id) && (
+            <div className="mt-2">{renderFrame(comment.id, annotations)}</div>
+          )}
+
           {/* Attachments */}
           {comment.attachments && comment.attachments.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2" data-testid="print-comment-attachments">
@@ -433,8 +456,8 @@ export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
                 <span>
                   {m.print_comments_loading_frames({
-                    loaded: String(loadedFrameCount),
-                    total: String(expectedFrameIds.length),
+                    loaded: String(settledFrameCount),
+                    total: String(frameUrls.size),
                   })}
                 </span>
               </span>
@@ -485,6 +508,7 @@ export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
             <Button
               type="button"
               size="sm"
+              disabled={isLoadingFrames}
               onClick={() => window.print()}
               className="gap-1.5 cursor-pointer"
               data-testid="print-comments-button"
@@ -566,7 +590,6 @@ export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
         ) : (
           <div className="divide-y divide-border">
             {sortedComments.map((comment, idx) => {
-              const frameUrl = getCommentFrameUrl(comment)
               const annotations = parseAnnotations(comment.annotations)
               const replies = comment.replies ?? []
 
@@ -577,15 +600,7 @@ export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
                   data-testid="print-comment-thread"
                 >
                   {hasVisualThumbnailColumn && (
-                    <div className="w-[200px] shrink-0">
-                      {frameUrl && (
-                        <CommentFrameThumbnail
-                          src={frameUrl}
-                          annotations={annotations}
-                          onStatusChange={(status) => handleFrameStatusChange(comment.id, status)}
-                        />
-                      )}
-                    </div>
+                    <div className="w-[200px] shrink-0">{renderFrame(comment.id, annotations)}</div>
                   )}
 
                   <div className="min-w-0 flex-1">

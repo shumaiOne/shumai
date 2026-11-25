@@ -215,6 +215,38 @@ describe('CommentFrameService & AssetService print helpers', () => {
     vi.restoreAllMocks()
   })
 
+  it('skips extraction when the request is aborted during asset lookup', async () => {
+    const storageKey = await prisma.storageKey.create({ data: { key: 'files/clip.mp4' } })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'clip.mp4',
+        type: AssetType.file,
+        status: AssetStatus.processed,
+        mediaType: 'video/mp4',
+        projectId,
+        parentId: subFolderId,
+        creatorId: userId,
+        storageKeyId: storageKey.id,
+      },
+    })
+    const controller = new AbortController()
+    const resolveLatestVersionId = assetService.resolveLatestVersionId.bind(assetService)
+    vi.spyOn(assetService, 'resolveLatestVersionId').mockImplementationOnce(async (assetId) => {
+      const resolvedId = await resolveLatestVersionId(assetId)
+      controller.abort()
+      return resolvedId
+    })
+    const resolveInput = vi.spyOn(s3Service, 'resolveInput').mockResolvedValue('/local/clip.mp4')
+    const execFileFn = vi.fn<ExecFileFn>().mockResolvedValue({ stdout: '', stderr: '' })
+    const service = new CommentFrameService({ execFileFn })
+
+    await expect(
+      service.extractFrame({ assetId: asset.id, second: 0, signal: controller.signal }),
+    ).rejects.toMatchObject({ name: 'AbortError' })
+    expect(resolveInput).not.toHaveBeenCalled()
+    expect(execFileFn).not.toHaveBeenCalled()
+  })
+
   it('extracts a video frame using the lowest adequate SDR proxy and deduplicates concurrent requests', async () => {
     const webpBuffer = await createSampleWebpBuffer()
     const storageKey = await prisma.storageKey.create({
@@ -401,6 +433,7 @@ describe('CommentFrameService & AssetService print helpers', () => {
 
     const execFileMock = vi.fn<ExecFileFn>(async (file, args) => {
       expect(file).toBe('pdftoppm')
+      expect(args[args.indexOf('-scale-to') + 1]).toBe('400')
       expect(args).toContain('-f')
       expect(args).toContain('3')
       const prefix = args[args.length - 1]

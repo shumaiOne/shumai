@@ -39,6 +39,8 @@ function PrintCommentsPage() {
             param: { shareId, fileId: assetId },
           },
           {
+            // A 401 here is a share-password challenge handled by this page.
+            fetch,
             headers: sharePassword ? { 'x-share-password': sharePassword } : undefined,
           },
         )
@@ -68,10 +70,15 @@ function PrintCommentsPage() {
     }
   }, [data?.asset?.name])
 
+  useEffect(() => {
+    if (data && shareId && sharePassword) {
+      localStorage.setItem(`share_pwd_${shareId}`, sharePassword)
+    }
+  }, [data, shareId, sharePassword])
+
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!shareId) return
-    localStorage.setItem(`share_pwd_${shareId}`, passwordInput)
     setSharePassword(passwordInput)
   }
 
@@ -106,6 +113,11 @@ function PrintCommentsPage() {
                 placeholder={m.enter_password()}
                 autoFocus
               />
+              {sharePassword && (
+                <p role="alert" className="text-sm text-destructive">
+                  {m.incorrect_password()}
+                </p>
+              )}
               <Button type="submit" className="w-full cursor-pointer">
                 {m.confirm()}
               </Button>

@@ -97,7 +97,7 @@ export const CommentFrameThumbnail: React.FC<CommentFrameThumbnailProps> = ({
             alt={alt}
             onLoad={handleLoad}
             onError={handleError}
-            className={`block h-full w-full object-contain transition-opacity duration-150 ${
+            className={`block h-full w-full object-contain ${
               status === 'loaded' ? 'opacity-100' : 'opacity-0'
             }`}
           />

@@ -72,7 +72,9 @@ describe('public share print comments and frame api', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.breadcrumbs).toEqual(['Client Review', 'Inner Folder'])
-    expect(body.breadcrumbs).not.toContain('Secret Project Folder')
+    expect(body.asset.ancestorFolders).toEqual([{ id: 'inner', name: 'Inner Folder' }])
+    expect(JSON.stringify(body)).not.toContain('Secret Project Folder')
+    expect(JSON.stringify(body)).not.toContain('private-parent')
     expect(body.comments).toHaveLength(1)
   })
 

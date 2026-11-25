@@ -210,6 +210,53 @@ describe('PrintCommentsView', () => {
     )
   })
 
+  it('renders an annotated reply at its own timestamp and waits for it before printing', () => {
+    const { container } = render(
+      <PrintCommentsView
+        asset={videoAsset}
+        breadcrumbs={[]}
+        comments={[
+          makeComment({
+            second: 1,
+            replies: [
+              makeComment({
+                id: 'reply',
+                message: '',
+                second: 2,
+                annotations: [
+                  {
+                    type: 'box',
+                    color: 'red',
+                    points: [
+                      [0.1, 0.1],
+                      [0.5, 0.5],
+                    ],
+                  },
+                ],
+              }),
+            ],
+          }),
+        ]}
+      />,
+    )
+
+    const [commentFrame, replyFrame] = container.querySelectorAll(
+      '[data-testid="print-comment-frame"] img',
+    )
+    expect(replyFrame?.getAttribute('src')).toContain('second=2&')
+    fireEvent.load(commentFrame)
+
+    const printButton = screen.getByRole<HTMLButtonElement>('button', { name: 'Print' })
+    expect(printButton.disabled).toBe(true)
+    expect(screen.getByTestId('print-frames-progress').textContent).toContain('1/2')
+    fireEvent.load(replyFrame)
+
+    expect(screen.getByTestId('print-reply-item').querySelector('svg rect')).not.toBeNull()
+    expect(printButton.disabled).toBe(false)
+    fireEvent.click(printButton)
+    expect(printMock).toHaveBeenCalledTimes(1)
+  })
+
   it('reuses image proxy URL directly for image assets without calling frame API', () => {
     const imageAsset = {
       ...videoAsset,

@@ -244,6 +244,7 @@ export class CommentFrameService {
       where: { id: targetAssetId },
       include: { storageKey: true },
     })
+    params.signal?.throwIfAborted()
 
     if (!asset || asset.isDeleted) {
       throw new HTTPException(404, { message: 'Asset not found' })
@@ -511,8 +512,8 @@ export class CommentFrameService {
         'pdftoppm',
         [
           '-png',
-          '-r',
-          '100',
+          '-scale-to',
+          String(params.width),
           '-f',
           String(params.page),
           '-l',
@@ -531,9 +532,10 @@ export class CommentFrameService {
         throw new HTTPException(404, { message: `PDF page ${params.page} not found` })
       }
 
-      const buffer = await sharp(path.join(tmpDir, pngFile), { limitInputPixels: false })
+      const buffer = await sharp(path.join(tmpDir, pngFile), {
+        limitInputPixels: (params.width + 1) ** 2,
+      })
         .toColorspace('srgb')
-        .resize(params.width, undefined, { fit: 'inside', withoutEnlargement: true })
         .webp({ quality: 82 })
         .toBuffer()
 
