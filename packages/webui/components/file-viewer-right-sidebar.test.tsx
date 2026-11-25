@@ -154,7 +154,8 @@ describe('FileViewerRightSidebar - Comments Export', () => {
     expect(screen.getByRole('button', { name: 'More options' })).toBeDefined()
   })
 
-  it('does NOT render "All comments" header row in public share view', async () => {
+  it('renders "All comments" header with Print Comments (and without Export Comments) in public share view', async () => {
+    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
     render(
       <QueryClientProvider client={queryClient}>
         <FileViewerRightSidebar
@@ -169,8 +170,49 @@ describe('FileViewerRightSidebar - Comments Export', () => {
       </QueryClientProvider>,
     )
 
-    expect(screen.queryByText('All comments')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'More options' })).toBeNull()
+    expect(screen.getByText('All comments')).toBeDefined()
+    const moreButton = screen.getByRole('button', { name: 'More options' })
+    fireEvent.pointerDown(moreButton, { button: 0, ctrlKey: false })
+
+    const printItem = await screen.findByText('Print Comments')
+    expect(printItem).toBeDefined()
+    expect(screen.queryByText('Export Comments')).toBeNull()
+
+    fireEvent.click(printItem)
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      '/print/comments/file-123?shareId=share-123',
+      '_blank',
+      'noopener,noreferrer',
+    )
+    windowOpenSpy.mockRestore()
+  })
+
+  it('opens printable comments page from authenticated sidebar menu', async () => {
+    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <FileViewerRightSidebar
+          teamId="team-1"
+          projectId="proj-1"
+          file={mockFile}
+          onSaveField={vi.fn()}
+          members={[{ id: 'user-1', name: 'User One', role: 'owner' }]}
+          isPublic={false}
+        />
+      </QueryClientProvider>,
+    )
+
+    const moreButton = screen.getByRole('button', { name: 'More options' })
+    fireEvent.pointerDown(moreButton, { button: 0, ctrlKey: false })
+
+    const printItem = await screen.findByText('Print Comments')
+    fireEvent.click(printItem)
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      '/print/comments/file-123',
+      '_blank',
+      'noopener,noreferrer',
+    )
+    windowOpenSpy.mockRestore()
   })
 
   it('opens dropdown menu with Export Comments and the 4 NLE options', async () => {

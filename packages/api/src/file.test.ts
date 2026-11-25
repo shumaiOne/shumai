@@ -3,6 +3,7 @@ import { Hono, type Context, type Next } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import fileRoute from './file'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { commentFrameService } from '@shumai/core/src/comment/comment-frame'
 import { projectService } from '@shumai/core/src/project/project'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { notificationService } from '@shumai/core/src/notification/notification'
@@ -90,7 +91,10 @@ describe('file api', () => {
       assetId: 'file1',
     } as unknown as Awaited<ReturnType<typeof assetService.getComment>>)
     vi.spyOn(assetService, 'listComments').mockImplementation(vi.fn())
+    vi.spyOn(assetService, 'listAllComments').mockImplementation(vi.fn())
+    vi.spyOn(assetService, 'getProjectNameForAsset').mockResolvedValue('Demo Project')
     vi.spyOn(assetService, 'exportComments').mockImplementation(vi.fn())
+    vi.spyOn(commentFrameService, 'extractFrame').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'restoreAssets').mockImplementation(vi.fn())
     vi.spyOn(metadataService, 'updateAssetMetadata').mockImplementation(vi.fn())
     vi.spyOn(notificationService, 'create').mockImplementation(vi.fn())
@@ -1093,6 +1097,91 @@ describe('file api', () => {
         { userId: 'user1', via: 'api' },
         { assetIds: [validUlid] },
       )
+    })
+  })
+
+  describe('GET /files/:fileId/comments/print and /frame routes', () => {
+    it('returns asset, top-down breadcrumbs, and all comments for printing', async () => {
+      vi.mocked(assetService.getAsset).mockResolvedValue({
+        id: 'file-1',
+        name: 'demo.mp4',
+        sizeByte: 100,
+        fileCount: 1,
+        type: 'file',
+        status: 'active',
+        proxyType: 'video',
+        ancestorFolders: [
+          { id: 'f2', name: 'Inner' },
+          { id: 'f1', name: 'Outer' },
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      vi.mocked(assetService.getProjectNameForAsset).mockResolvedValue('My Project')
+      vi.mocked(assetService.listAllComments).mockResolvedValue([
+        {
+          id: 'c1',
+          assetId: 'file-1',
+          message: 'Looks great',
+          annotations: null,
+          second: 1.5,
+          creator: { id: 'u1', name: 'Alice' },
+          replies: [],
+          attachments: [],
+          mentions: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          sessionId: null,
+          isCompleted: false,
+          completionLastChangedBy: null,
+          reactionCounts: [],
+        },
+      ])
+
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/file-1/comments/print')
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.breadcrumbs).toEqual(['My Project', 'Outer', 'Inner'])
+      expect(body.comments).toHaveLength(1)
+      expect(body.asset.id).toBe('file-1')
+      expect(authzService.hasPermission).toHaveBeenCalledWith({
+        user: { id: 'user1', name: 'Test User' },
+        permission: Permission.Read,
+        type: ResourceType.Asset,
+        id: 'file-1',
+      })
+    })
+
+    it('streams extracted frame image with cache headers', async () => {
+      const buf = Buffer.from('mock-webp-bytes')
+      vi.mocked(commentFrameService.extractFrame).mockResolvedValue({
+        buffer: buf,
+        mimeType: 'image/webp',
+      })
+
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/file-1/comments/frame?second=2.5&width=400')
+
+      expect(res.status).toBe(200)
+      expect(res.headers.get('content-type')).toBe('image/webp')
+      expect(res.headers.get('cache-control')).toBe('private, max-age=300')
+      const arr = new Uint8Array(await res.arrayBuffer())
+      expect(Buffer.from(arr).toString()).toBe('mock-webp-bytes')
+      expect(commentFrameService.extractFrame).toHaveBeenCalledWith({
+        assetId: 'file-1',
+        second: 2.5,
+        width: 400,
+        signal: expect.any(AbortSignal),
+      })
+    })
+
+    it('rejects invalid second query parameter with 400', async () => {
+      const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+      const res = await app.request('/files/file-1/comments/frame?second=-5')
+      expect(res.status).toBe(400)
+      expect(commentFrameService.extractFrame).not.toHaveBeenCalled()
     })
   })
 })

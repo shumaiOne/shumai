@@ -2289,6 +2289,35 @@ export class AssetService {
     })
   }
 
+  private getCommentInclude() {
+    return {
+      creator: true,
+      completionLastChangedBy: true,
+      asset: { include: { storageKey: true } },
+      attachments: { include: { asset: { include: { storageKey: true } } } },
+      reactions: {
+        include: {
+          user: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'asc' as const },
+      },
+      replies: {
+        include: {
+          creator: true,
+          completionLastChangedBy: true,
+          attachments: { include: { asset: { include: { storageKey: true } } } },
+          reactions: {
+            include: {
+              user: { select: { id: true, name: true } },
+            },
+            orderBy: { createdAt: 'asc' as const },
+          },
+        },
+        orderBy: { id: 'asc' as const },
+      },
+    }
+  }
+
   async listComments(
     assetId: string,
     params: PaginationParams,
@@ -2300,32 +2329,7 @@ export class AssetService {
       async (skip, take) => {
         return this.prismaClient.assetComment.findMany({
           where: { assetId: resolvedAssetId, replyToId: null },
-          include: {
-            creator: true,
-            completionLastChangedBy: true,
-            asset: { include: { storageKey: true } },
-            attachments: { include: { asset: { include: { storageKey: true } } } },
-            reactions: {
-              include: {
-                user: { select: { id: true, name: true } },
-              },
-              orderBy: { createdAt: 'asc' },
-            },
-            replies: {
-              include: {
-                creator: true,
-                completionLastChangedBy: true,
-                attachments: { include: { asset: { include: { storageKey: true } } } },
-                reactions: {
-                  include: {
-                    user: { select: { id: true, name: true } },
-                  },
-                  orderBy: { createdAt: 'asc' },
-                },
-              },
-              orderBy: { id: 'asc' },
-            },
-          },
+          include: this.getCommentInclude(),
           skip,
           take,
           orderBy: { id: 'asc' },
@@ -2341,6 +2345,28 @@ export class AssetService {
     const infos = await Promise.all(comments.map((c) => this.toCommentInfo(c, requestingUserId)))
 
     return { data: infos, pageInfo }
+  }
+
+  async listAllComments(assetId: string, requestingUserId?: string): Promise<CommentInfo[]> {
+    const resolvedAssetId = await this.resolveLatestVersionId(assetId)
+
+    const comments = await this.prismaClient.assetComment.findMany({
+      where: { assetId: resolvedAssetId, replyToId: null },
+      include: this.getCommentInclude(),
+      orderBy: { id: 'asc' },
+    })
+
+    return Promise.all(comments.map((c) => this.toCommentInfo(c, requestingUserId)))
+  }
+
+  async getProjectNameForAsset(assetId: string): Promise<string | null> {
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: assetId },
+      select: {
+        project: { select: { name: true } },
+      },
+    })
+    return asset?.project?.name ?? null
   }
 
   async exportComments(

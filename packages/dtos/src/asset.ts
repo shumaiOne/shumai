@@ -485,3 +485,18 @@ export type ExportCommentsRequest = z.infer<typeof exportCommentsRequestSchema>
 export const exportCommentsQuerySchema = exportCommentsRequestSchema
 /** @deprecated Use ExportCommentsRequest */
 export type ExportCommentsQuery = ExportCommentsRequest
+
+export const commentFrameQuerySchema = z.object({
+  second: z.coerce.number().refine((val) => Number.isFinite(val) && val >= 0, {
+    message: 'second must be a non-negative finite number',
+  }),
+  width: z.coerce.number().int().min(64).max(1280).optional().default(400),
+})
+export type CommentFrameQuery = z.infer<typeof commentFrameQuerySchema>
+
+export const printCommentsResponseSchema = z.object({
+  asset: assetInfoSchema,
+  breadcrumbs: z.array(z.string()),
+  comments: z.array(commentInfoSchema),
+})
+export type PrintCommentsResponse = z.infer<typeof printCommentsResponseSchema>

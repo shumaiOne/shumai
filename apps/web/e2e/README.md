@@ -80,6 +80,7 @@ apps/web/e2e/
 | Owner creates a share link from a file context menu, edits it in the quick dialog, and opens advanced settings | `tests/project/create-share-link.spec.ts` |
 | Owner creates a share link and adds to an existing share link from media view | `tests/project/create-share-link.spec.ts` |
 | Owner protects a share with a password; guests must enter it to view | `tests/project/share-password.spec.ts` |
+| Guests can unlock a protected printable comments link directly | `tests/project/share-password.spec.ts` |
 | Public page views and share activity appear in both management sidebars | `tests/project/share-activity.spec.ts` |
 | Opening a direct historical version link records the selected version | `tests/project/share-activity.spec.ts` |
 | Concurrent public opens count every view and deduplicate matching activity | `tests/project/share-activity.spec.ts` |

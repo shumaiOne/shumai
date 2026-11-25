@@ -3,6 +3,7 @@ import { assetService } from '@shumai/core/src/asset/asset'
 import { projectService } from '@shumai/core/src/project/project'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { commentService } from '@shumai/core/src/comment/comment'
+import { commentFrameService } from '@shumai/core/src/comment/comment-frame'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
@@ -29,6 +30,7 @@ import {
   getDownloadLinksRequestSchema,
   getStoragePathsRequestSchema,
   completeCommentRequestSchema,
+  commentFrameQuerySchema,
   exportCommentsRequestSchema,
   addCommentReactionRequestSchema,
   removeCommentReactionRequestSchema,
@@ -248,6 +250,60 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.body(result.content)
     },
   )
+  .get('/files/:fileId/comments/print', async (c) => {
+    const fileId = c.req.param('fileId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: fileId,
+    })
+
+    const [asset, projectName, comments] = await Promise.all([
+      assetService.getAsset({ assetId: fileId }),
+      assetService.getProjectNameForAsset(fileId),
+      assetService.listAllComments(fileId, user.id),
+    ])
+
+    const folderNames = (asset.ancestorFolders ?? [])
+      .slice()
+      .reverse()
+      .map((f) => f.name)
+      .filter((name): name is string => Boolean(name))
+    const breadcrumbs = projectName ? [projectName, ...folderNames] : folderNames
+
+    return c.json({
+      asset,
+      breadcrumbs,
+      comments,
+    })
+  })
+  .get('/files/:fileId/comments/frame', zValidator('query', commentFrameQuerySchema), async (c) => {
+    const fileId = c.req.param('fileId')
+    const user = c.get('user')
+    const { second, width } = c.req.valid('query')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: fileId,
+    })
+
+    const result = await commentFrameService.extractFrame({
+      assetId: fileId,
+      second,
+      width,
+      signal: c.req.raw.signal,
+    })
+
+    return c.body(new Uint8Array(result.buffer), 200, {
+      'Content-Type': result.mimeType,
+      'Cache-Control': 'private, max-age=300',
+    })
+  })
   .post(
     '/comments/:commentId/reactions',
     zValidator('json', addCommentReactionRequestSchema),

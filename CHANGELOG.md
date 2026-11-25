@@ -8,11 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **comments**: Add a "Print Comments" option in the comments menu (available in both project file views and public share links) that opens a dedicated print-friendly page with asset metadata, comment thumbnails, visual markup overlays, replies, completion status, emoji reactions, and attachments.
+
 - **share**: See view counts, last viewed times, and activity for public share links, including file and folder views, downloads, and comments.
 
 - **share**: Add options to create a share link or add to existing share links directly from the media view dropdown menu, and open a quick share dialog with inline renaming, one-click link copying, and security settings upon creation.
 
 ### Fixed
+
+- **comments**: Keep password-protected print links on the share password prompt, keep private folder names out of shared print data, and wait for thumbnails and reply drawings before printing.
 
 ### Changed
 
