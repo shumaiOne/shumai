@@ -78,6 +78,11 @@ export type ProjectMember = Prisma.ProjectMemberModel
  */
 export type ShareLink = Prisma.ShareLinkModel
 /**
+ * Model ShareActivity
+ * 
+ */
+export type ShareActivity = Prisma.ShareActivityModel
+/**
  * Model WatermarkConfig
  * 
  */

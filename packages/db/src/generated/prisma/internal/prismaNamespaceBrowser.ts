@@ -63,6 +63,7 @@ export const ModelName = {
   Project: 'Project',
   ProjectMember: 'ProjectMember',
   ShareLink: 'ShareLink',
+  ShareActivity: 'ShareActivity',
   WatermarkConfig: 'WatermarkConfig',
   WatermarkTemplate: 'WatermarkTemplate',
   WatermarkFile: 'WatermarkFile',
@@ -298,6 +299,8 @@ export const ShareLinkScalarFieldEnum = {
   defaultSortOrder: 'defaultSortOrder',
   viewMode: 'viewMode',
   fieldVisibility: 'fieldVisibility',
+  views: 'views',
+  lastViewedAt: 'lastViewedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   projectId: 'projectId',
@@ -308,6 +311,18 @@ export const ShareLinkScalarFieldEnum = {
 } as const
 
 export type ShareLinkScalarFieldEnum = (typeof ShareLinkScalarFieldEnum)[keyof typeof ShareLinkScalarFieldEnum]
+
+
+export const ShareActivityScalarFieldEnum = {
+  id: 'id',
+  shareLinkId: 'shareLinkId',
+  kind: 'kind',
+  userId: 'userId',
+  assetId: 'assetId',
+  createdAt: 'createdAt'
+} as const
+
+export type ShareActivityScalarFieldEnum = (typeof ShareActivityScalarFieldEnum)[keyof typeof ShareActivityScalarFieldEnum]
 
 
 export const WatermarkConfigScalarFieldEnum = {

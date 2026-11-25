@@ -268,6 +268,16 @@ export const KanbanTaskEventType = {
 export type KanbanTaskEventType = (typeof KanbanTaskEventType)[keyof typeof KanbanTaskEventType]
 
 
+export const ShareActivityKind = {
+  share_viewed: 'share_viewed',
+  asset_viewed: 'asset_viewed',
+  asset_downloaded: 'asset_downloaded',
+  comment_created: 'comment_created'
+} as const
+
+export type ShareActivityKind = (typeof ShareActivityKind)[keyof typeof ShareActivityKind]
+
+
 export const AgentType = {
   chat: 'chat',
   autofill: 'autofill',

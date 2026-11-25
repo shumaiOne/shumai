@@ -1,4 +1,5 @@
 import { client } from '@/ui/api/client'
+import { requestShareDownload } from '@/ui/api/share-download'
 import { Badge } from '@/ui/components/ui/badge'
 import { Button } from '@/ui/components/ui/button'
 import {
@@ -206,10 +207,7 @@ export function BreadcrumbNav({
     if (!fileId) return
     try {
       const res = shareId
-        ? await client.api.shares[':shareId'].files[':fileId']['download-url'].$post({
-            param: { shareId, fileId },
-            json: { key },
-          })
+        ? await requestShareDownload(shareId, fileId, key)
         : await client.api.files['download-url'].$post({
             json: { key, assetId: fileId },
           })

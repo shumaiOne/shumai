@@ -409,6 +409,7 @@ export const ModelName = {
   Project: 'Project',
   ProjectMember: 'ProjectMember',
   ShareLink: 'ShareLink',
+  ShareActivity: 'ShareActivity',
   WatermarkConfig: 'WatermarkConfig',
   WatermarkTemplate: 'WatermarkTemplate',
   WatermarkFile: 'WatermarkFile',
@@ -473,7 +474,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "runner" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetCommentReaction" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionCommit" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord" | "kanbanGoal" | "kanbanTask" | "kanbanTaskLink" | "kanbanTaskAsset" | "kanbanTaskComment" | "kanbanTaskEvent" | "recentFileItem" | "jwks" | "oauthClient" | "oauthResource" | "oauthClientResource" | "oauthRefreshToken" | "oauthAccessToken" | "oauthConsent" | "oauthClientAssertion"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "runner" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "shareActivity" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetCommentReaction" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionCommit" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord" | "kanbanGoal" | "kanbanTask" | "kanbanTaskLink" | "kanbanTaskAsset" | "kanbanTaskComment" | "kanbanTaskEvent" | "recentFileItem" | "jwks" | "oauthClient" | "oauthResource" | "oauthClientResource" | "oauthRefreshToken" | "oauthAccessToken" | "oauthConsent" | "oauthClientAssertion"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1362,6 +1363,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ShareLinkCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ShareLinkCountAggregateOutputType> | number
+        }
+      }
+    }
+    ShareActivity: {
+      payload: Prisma.$ShareActivityPayload<ExtArgs>
+      fields: Prisma.ShareActivityFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ShareActivityFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShareActivityPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ShareActivityFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShareActivityPayload>
+        }
+        findFirst: {
+          args: Prisma.ShareActivityFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShareActivityPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ShareActivityFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShareActivityPayload>
+        }
+        findMany: {
+          args: Prisma.ShareActivityFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShareActivityPayload>[]
+        }
+        create: {
+          args: Prisma.ShareActivityCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShareActivityPayload>
+        }
+        createMany: {
+          args: Prisma.ShareActivityCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ShareActivityCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShareActivityPayload>[]
+        }
+        delete: {
+          args: Prisma.ShareActivityDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShareActivityPayload>
+        }
+        update: {
+          args: Prisma.ShareActivityUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShareActivityPayload>
+        }
+        deleteMany: {
+          args: Prisma.ShareActivityDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ShareActivityUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ShareActivityUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShareActivityPayload>[]
+        }
+        upsert: {
+          args: Prisma.ShareActivityUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShareActivityPayload>
+        }
+        aggregate: {
+          args: Prisma.ShareActivityAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateShareActivity>
+        }
+        groupBy: {
+          args: Prisma.ShareActivityGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ShareActivityGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ShareActivityCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ShareActivityCountAggregateOutputType> | number
         }
       }
     }
@@ -5198,6 +5273,8 @@ export const ShareLinkScalarFieldEnum = {
   defaultSortOrder: 'defaultSortOrder',
   viewMode: 'viewMode',
   fieldVisibility: 'fieldVisibility',
+  views: 'views',
+  lastViewedAt: 'lastViewedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   projectId: 'projectId',
@@ -5208,6 +5285,18 @@ export const ShareLinkScalarFieldEnum = {
 } as const
 
 export type ShareLinkScalarFieldEnum = (typeof ShareLinkScalarFieldEnum)[keyof typeof ShareLinkScalarFieldEnum]
+
+
+export const ShareActivityScalarFieldEnum = {
+  id: 'id',
+  shareLinkId: 'shareLinkId',
+  kind: 'kind',
+  userId: 'userId',
+  assetId: 'assetId',
+  createdAt: 'createdAt'
+} as const
+
+export type ShareActivityScalarFieldEnum = (typeof ShareActivityScalarFieldEnum)[keyof typeof ShareActivityScalarFieldEnum]
 
 
 export const WatermarkConfigScalarFieldEnum = {
@@ -6120,6 +6209,20 @@ export type ListEnumProjectMemberRoleFieldRefInput<$PrismaModel> = FieldRefInput
 
 
 /**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
  * Reference to a field of type 'WatermarkStatus'
  */
 export type EnumWatermarkStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WatermarkStatus'>
@@ -6130,6 +6233,20 @@ export type EnumWatermarkStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$
  * Reference to a field of type 'WatermarkStatus[]'
  */
 export type ListEnumWatermarkStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WatermarkStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'ShareActivityKind'
+ */
+export type EnumShareActivityKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ShareActivityKind'>
+    
+
+
+/**
+ * Reference to a field of type 'ShareActivityKind[]'
+ */
+export type ListEnumShareActivityKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ShareActivityKind[]'>
     
 
 
@@ -6158,20 +6275,6 @@ export type EnumAssetTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
  * Reference to a field of type 'AssetType[]'
  */
 export type ListEnumAssetTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssetType[]'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -6631,6 +6734,7 @@ export type GlobalOmitConfig = {
   project?: Prisma.ProjectOmit
   projectMember?: Prisma.ProjectMemberOmit
   shareLink?: Prisma.ShareLinkOmit
+  shareActivity?: Prisma.ShareActivityOmit
   watermarkConfig?: Prisma.WatermarkConfigOmit
   watermarkTemplate?: Prisma.WatermarkTemplateOmit
   watermarkFile?: Prisma.WatermarkFileOmit

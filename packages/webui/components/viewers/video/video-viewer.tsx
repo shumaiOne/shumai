@@ -1,4 +1,5 @@
 import { client } from '@/ui/api/client'
+import { requestShareDownload } from '@/ui/api/share-download'
 import { m } from '@/ui/paraglide/messages.js'
 import { cn } from '@/ui/lib/utils'
 import { Play, AudioLines, Loader2, AlertCircle } from 'lucide-react'
@@ -901,10 +902,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const handleDownload = async (key: string) => {
       try {
         const res = shareId
-          ? await client.api.shares[':shareId'].files[':fileId']['download-url'].$post({
-              param: { shareId, fileId: data.id! },
-              json: { key },
-            })
+          ? await requestShareDownload(shareId, data.id!, key)
           : await client.api.files['download-url'].$post({
               json: { key, assetId: data.id! },
             })

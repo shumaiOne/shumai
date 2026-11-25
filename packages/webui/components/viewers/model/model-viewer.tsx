@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } 
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { cn } from '@/ui/lib/utils'
 import { client } from '@/ui/api/client'
+import { requestShareDownload } from '@/ui/api/share-download'
 import DrawingCanvas from '@/ui/components/drawing-canvas'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { FileViewerProps, MediaController } from '../types'
@@ -65,10 +66,7 @@ export const ModelViewer = React.forwardRef<MediaController, FileViewerProps>(
       if (!key || !data.id) return
       try {
         const res = shareId
-          ? await client.api.shares[':shareId'].files[':fileId']['download-url'].$post({
-              param: { shareId, fileId: data.id },
-              json: { key },
-            })
+          ? await requestShareDownload(shareId, data.id, key)
           : await client.api.files['download-url'].$post({
               json: { key, assetId: data.id },
             })

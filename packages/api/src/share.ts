@@ -2,11 +2,13 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { shareService } from '@shumai/core/src/share/share'
+import { shareActivityService } from '@shumai/core/src/share/share-activity'
 import { projectService } from '@shumai/core/src/project/project'
 import {
   createShareLinkRequestSchema,
   updateShareLinkRequestSchema,
   listShareLinksRequestSchema,
+  paginationParamsSchema,
   addAssetToShareRequestSchema,
   updateShareLinkWatermarkRequestSchema,
   AuditAction,
@@ -89,6 +91,16 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     const shareLink = await shareService.getShareLink(shareId)
     return c.json(shareLink)
+  })
+  .get('/shares/:shareId/activities', zValidator('query', paginationParamsSchema), async (c) => {
+    const shareId = c.req.param('shareId')
+    await authzService.hasPermission({
+      user: c.get('user'),
+      permission: Permission.Read,
+      type: ResourceType.Share,
+      id: shareId,
+    })
+    return c.json(await shareActivityService.list(shareId, c.req.valid('query')))
   })
   .put('/shares/:shareId', zValidator('json', updateShareLinkRequestSchema), async (c) => {
     const shareId = c.req.param('shareId')

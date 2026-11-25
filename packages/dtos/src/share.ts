@@ -16,6 +16,8 @@ export interface ShareLinkInfo {
   rootFolderId: string
   projectId: string
   isExpired: boolean
+  views: number
+  lastViewedAt: string | null
   watermarkConfigId?: string | null
   watermarkStatus?: 'disabled' | 'processing' | 'ready' | 'failed'
   watermarkConfig?: {
@@ -27,6 +29,22 @@ export interface ShareLinkInfo {
   updatedAt: string
   creator?: { id: string; name: string; image?: string | null } | null
 }
+
+export type ShareActivityKind =
+  'share_viewed' | 'asset_viewed' | 'asset_downloaded' | 'comment_created'
+
+export interface ShareActivityInfo {
+  id: string
+  kind: ShareActivityKind
+  createdAt: string
+  user: { name: string; image?: string } | null
+  asset: { id: string; name: string | null } | null
+}
+
+export const recordShareViewRequestSchema = z.object({
+  assetId: z.string().min(1).optional(),
+  isShareEntry: z.boolean().optional(),
+})
 
 export const createShareLinkRequestSchema = z.object({
   name: z.string().min(1),

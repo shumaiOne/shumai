@@ -306,6 +306,8 @@ function ShareDialogHarness(): ReactElement {
           rootFolderId: 'rf-1',
           projectId: 'proj-1',
           isExpired: false,
+          views: 0,
+          lastViewedAt: null,
           watermarkConfigId: null,
           watermarkStatus: 'disabled',
           watermarkConfig: null,

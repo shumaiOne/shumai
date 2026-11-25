@@ -3,9 +3,14 @@ import type { Context } from 'hono'
 import { getCookie } from 'hono/cookie'
 import { zValidator } from '@hono/zod-validator'
 import { shareService } from '@shumai/core/src/share/share'
+import { shareActivityService } from '@shumai/core/src/share/share-activity'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
-import { paginationParamsSchema, assetTypeFilterSchema } from '@shumai/dtos'
+import {
+  paginationParamsSchema,
+  assetTypeFilterSchema,
+  recordShareViewRequestSchema,
+} from '@shumai/dtos'
 import { z } from 'zod'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { FieldInfo } from '@shumai/dtos'
@@ -156,7 +161,36 @@ const sharedChildrenRequestSchema = paginationParamsSchema.extend({
   assetType: assetTypeFilterSchema.optional().default('file'),
 })
 
+async function getPublicShareUserId(c: Context, shareId: string) {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers })
+  if (session?.user) return session.user.id
+
+  const token = getCookie(c, `shumai_guest_${shareId}`) || getCookie(c, 'shumai_guest')
+  const verified = token && verifyGuestToken(token, shareId)
+  if (!verified) return undefined
+
+  const guestUser = await userService.getUserById(verified.userId)
+  return guestUser?.guestEmail ? guestUser.id : undefined
+}
+
 const route = app
+  .post('/shares/:shareId/views', zValidator('json', recordShareViewRequestSchema), async (c) => {
+    const shareId = c.req.param('shareId')
+    const password = c.req.header('x-share-password')
+    const { assetId, isShareEntry } = c.req.valid('json')
+    try {
+      const share = await shareService.verifyPublicAccess(shareId, assetId, password)
+      const targetId =
+        assetId && assetId !== share.rootFolderId
+          ? await assetService.resolveLatestVersionId(assetId)
+          : undefined
+      const userId = await getPublicShareUserId(c, shareId)
+      await shareActivityService.recordView(shareId, { assetId: targetId, isShareEntry, userId })
+      return c.body(null, 204)
+    } catch (err) {
+      return handlePublicShareError(c, err)
+    }
+  })
   .get('/shares/:shareId/info', async (c) => {
     const shareId = c.req.param('shareId')
     const password = c.req.header('x-share-password')
@@ -305,12 +339,18 @@ const route = app
   })
   .post(
     '/shares/:shareId/files/:fileId/download-url',
-    zValidator('json', z.object({ key: z.string().min(1) })),
+    zValidator(
+      'json',
+      z.object({
+        key: z.string().min(1),
+        purpose: z.enum(['download', 'prepare', 'clipboard']).default('download'),
+      }),
+    ),
     async (c) => {
       const shareId = c.req.param('shareId')
       const fileId = c.req.param('fileId')
       const password = c.req.header('x-share-password')
-      const { key } = c.req.valid('json')
+      const { key, purpose } = c.req.valid('json')
 
       try {
         const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
@@ -323,7 +363,16 @@ const route = app
           return c.json({ error: 'Invalid key' }, 400)
         }
 
-        const url = await assetService.getDownloadUrl(fileId, key)
+        const { url, assetId } = await assetService.getDownloadUrlWithAsset(fileId, key)
+        if (assetId !== fileId) await shareService.verifyPublicAccess(shareId, assetId, password)
+        if (purpose === 'download') {
+          const userId = await getPublicShareUserId(c, shareId)
+          await shareActivityService.recordEvent(shareId, {
+            kind: 'asset_downloaded',
+            assetId,
+            userId,
+          })
+        }
         return c.json({ url })
       } catch (err) {
         return handlePublicShareError(c, err)
@@ -343,25 +392,7 @@ const route = app
         await shareService.verifyPublicAccess(shareId, fileId, password)
 
         const targetFileId = await assetService.resolveTargetAssetId(fileId)
-        let userId: string | undefined
-        const session = await auth.api.getSession({
-          headers: c.req.raw.headers,
-        })
-        if (session?.user) {
-          userId = session.user.id
-        } else {
-          const cookieName = `shumai_guest_${shareId}`
-          const token = getCookie(c, cookieName) || getCookie(c, 'shumai_guest')
-          if (token) {
-            const verified = verifyGuestToken(token, shareId)
-            if (verified) {
-              const guestUser = await userService.getUserById(verified.userId)
-              if (guestUser && guestUser.guestEmail) {
-                userId = guestUser.id
-              }
-            }
-          }
-        }
+        const userId = await getPublicShareUserId(c, shareId)
         const res = await assetService.listComments(targetFileId, req, userId)
         return c.json(res)
       } catch (err) {
@@ -383,48 +414,30 @@ const route = app
       }
 
       try {
-        const shareLink = await shareService.getShareLink(shareId)
-        await shareService.verifyPublicAccess(shareId, fileId, password)
+        const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
 
         const targetFileId = await assetService.resolveTargetAssetId(fileId)
 
         const teamId = await projectService.getProjectTeam(shareLink.projectId)
 
-        // Identify user
-        let userId: string | null = null
-        const session = await auth.api.getSession({
-          headers: c.req.raw.headers,
-        })
-
-        if (session?.user) {
-          userId = session.user.id
-        } else {
-          const cookieName = `shumai_guest_${shareId}`
-          const token = getCookie(c, cookieName) || getCookie(c, 'shumai_guest')
-          if (token) {
-            const verified = verifyGuestToken(token, shareId)
-            if (verified) {
-              const guestUser = await userService.getUserById(verified.userId)
-              if (guestUser && guestUser.guestEmail) {
-                userId = guestUser.id
-              }
-            }
-          }
-        }
+        const userId = await getPublicShareUserId(c, shareId)
 
         if (!userId) {
           return c.json({ error: 'Unauthorized' }, 401)
         }
 
-        const comment = await assetService.createComment({
-          assetId: targetFileId,
-          userId: userId,
-          replyToId: req.replyToId,
-          message: req.message,
-          annotations: req.annotations,
-          second: req.second,
-          attachmentIds: req.attachmentIds,
-        })
+        const comment = await assetService.createComment(
+          {
+            assetId: targetFileId,
+            userId,
+            replyToId: req.replyToId,
+            message: req.message,
+            annotations: req.annotations,
+            second: req.second,
+            attachmentIds: req.attachmentIds,
+          },
+          { shareLinkId: shareId },
+        )
 
         const notifType = req.replyToId ? 'reply_created' : 'comment_created'
 

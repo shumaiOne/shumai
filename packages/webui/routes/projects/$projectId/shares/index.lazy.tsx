@@ -6,6 +6,15 @@ import { m } from '@/ui/paraglide/messages.js'
 import { copyToClipboard } from '@/ui/lib/clipboard'
 import { Switch } from '@/ui/components/ui/switch'
 import { Button } from '@/ui/components/ui/button'
+import { ShareActivityList } from '@/ui/components/share-activity-list'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/ui/components/ui/sheet'
+import { formatTimeAgo } from '@/ui/lib/time'
 import {
   Table,
   TableBody,
@@ -24,7 +33,7 @@ import {
   useSuspenseQuery,
 } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Copy, ExternalLink, Calendar, Link2, Share2, Loader2 } from 'lucide-react'
 import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
@@ -56,6 +65,8 @@ function SharesPage() {
 
   const rootFolderId = projectInfo?.rootFolder
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(240)
+  const [activityShare, setActivityShare] = useState<ShareLinkInfo | null>(null)
+  const activityTrigger = useRef<HTMLButtonElement | null>(null)
 
   const {
     shareConfigLeftSidebarCollapsed: isLeftSidebarCollapsed,
@@ -185,6 +196,11 @@ function SharesPage() {
                       <TableHead className="font-semibold px-4 py-3 w-[150px]">
                         {m.created_date()}
                       </TableHead>
+                      <TableHead className="font-semibold px-4 py-3">{m.share_views()}</TableHead>
+                      <TableHead className="font-semibold px-4 py-3">
+                        {m.share_last_viewed()}
+                      </TableHead>
+                      <TableHead className="font-semibold px-4 py-3">{m.activity()}</TableHead>
                       <TableHead className="font-semibold px-4 py-3 text-right w-[120px]">
                         {m.active()}
                       </TableHead>
@@ -260,6 +276,33 @@ function SharesPage() {
                               <span>{new Date(share.createdAt).toLocaleDateString()}</span>
                             </div>
                           </TableCell>
+                          <TableCell className="px-4 py-3.5 tabular-nums">
+                            {share.views.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="px-4 py-3.5 text-sm text-muted-foreground">
+                            {share.lastViewedAt ? (
+                              <time
+                                dateTime={share.lastViewedAt}
+                                title={new Date(share.lastViewedAt).toLocaleString()}
+                              >
+                                {formatTimeAgo(share.lastViewedAt)}
+                              </time>
+                            ) : (
+                              m.share_never_viewed()
+                            )}
+                          </TableCell>
+                          <TableCell className="px-4 py-3.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(event) => {
+                                activityTrigger.current = event.currentTarget
+                                setActivityShare(share)
+                              }}
+                            >
+                              {m.share_view_activity()}
+                            </Button>
+                          </TableCell>
                           <TableCell className="px-4 py-3.5 text-right">
                             <div className="flex justify-end">
                               <Switch
@@ -283,6 +326,21 @@ function SharesPage() {
           </div>
         </div>
       </div>
+      <Sheet open={!!activityShare} onOpenChange={(open) => !open && setActivityShare(null)}>
+        <SheetContent
+          className="gap-0 sm:max-w-md"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            activityTrigger.current?.focus()
+          }}
+        >
+          <SheetHeader className="border-b pr-12">
+            <SheetTitle>{m.activity()}</SheetTitle>
+            <SheetDescription className="truncate">{activityShare?.name}</SheetDescription>
+          </SheetHeader>
+          {activityShare && <ShareActivityList shareId={activityShare.id} />}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { client } from '@/ui/api/client'
+import { requestShareDownload } from '@/ui/api/share-download'
 import { Badge } from '@/ui/components/ui/badge'
 import { Button } from '@/ui/components/ui/button'
 import {
@@ -113,10 +114,7 @@ export function MobileFileHeader({
     try {
       const res =
         isPublic && shareId
-          ? await client.api.shares[':shareId'].files[':fileId']['download-url'].$post({
-              param: { shareId, fileId: activeFileId },
-              json: { key },
-            })
+          ? await requestShareDownload(shareId, activeFileId, key)
           : await client.api.files['download-url'].$post({
               json: { key, assetId: activeFileId },
             })

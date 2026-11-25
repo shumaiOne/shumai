@@ -1,6 +1,7 @@
 'use client'
 
 import { client } from '@/ui/api/client'
+import { requestShareDownload } from '@/ui/api/share-download'
 import type { AssetInfo } from '@shumai/dtos'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
@@ -20,6 +21,18 @@ interface UseFileActionsProps {
   shareId?: string
 }
 
+async function requestShareDownloadUrl(
+  shareId: string,
+  fileId: string,
+  key: string,
+  purpose: 'prepare' | 'download',
+) {
+  const response = await requestShareDownload(shareId, fileId, key, purpose)
+  if (response.ok) return (await response.json()).url
+}
+
+type DownloadFile = { id: string; name: string; url: string; shareDownloadKey?: string }
+
 export function useFileActions({
   teamId,
   projectId,
@@ -35,9 +48,7 @@ export function useFileActions({
   const [itemsToDelete, setItemsToDelete] = useState<AssetInfo[]>([])
   const [isDownloadDialogOpen, setIsDownloadDialogOpen] = useState(false)
   const [isLoadingLinks, setIsLoadingLinks] = useState(false)
-  const [resolvedFiles, setResolvedFiles] = useState<
-    Array<{ id: string; name: string; url: string }>
-  >([])
+  const [resolvedFiles, setResolvedFiles] = useState<DownloadFile[]>([])
   const [skippedArchivedCount, setSkippedArchivedCount] = useState(0)
   const [archiveConfirmState, setArchiveConfirmState] = useState<{
     open: boolean
@@ -257,8 +268,7 @@ export function useFileActions({
     setSkippedArchivedCount(0)
     try {
       if (isPublic && shareId) {
-        const password = localStorage.getItem(`share_pwd_${shareId}`) || ''
-        const links: Array<{ id: string; name: string; url: string }> = []
+        const links: DownloadFile[] = []
         let skipped = 0
         for (const item of items) {
           if (
@@ -271,20 +281,9 @@ export function useFileActions({
           }
           const key = item.media?.original?.key
           if (!key || !item.id) continue
-          const res = await client.api.shares[':shareId'].files[':fileId']['download-url'].$post(
-            {
-              param: { shareId, fileId: item.id },
-              json: { key },
-            },
-            {
-              headers: {
-                'x-share-password': password,
-              },
-            },
-          )
-          if (res.ok) {
-            const { url } = await res.json()
-            links.push({ id: item.id, name: item.name || 'download', url })
+          const url = await requestShareDownloadUrl(shareId, item.id, key, 'prepare')
+          if (url) {
+            links.push({ id: item.id, name: item.name || 'download', url, shareDownloadKey: key })
           }
         }
         setSkippedArchivedCount(skipped)
@@ -407,9 +406,21 @@ export function useFileActions({
 
     const runQueue = async () => {
       const batchSize = 5
+      let failed = 0
       for (let i = 0; i < files.length; i += batchSize) {
         const chunk = files.slice(i, i + batchSize)
-        for (const file of chunk) {
+        const urls = await Promise.allSettled(
+          chunk.map((file) =>
+            shareId && file.shareDownloadKey
+              ? requestShareDownloadUrl(shareId, file.id, file.shareDownloadKey, 'download')
+              : file.url,
+          ),
+        )
+        for (const result of urls) {
+          if (result.status !== 'fulfilled' || !result.value) {
+            failed++
+            continue
+          }
           // Use a hidden iframe instead of an anchor with target="_blank".
           // Download URLs respond with Content-Disposition: attachment, so the
           // browser starts the download in the background: no flash of a tab
@@ -417,7 +428,7 @@ export function useFileActions({
           // the hidden iframe instead of navigating the SPA tab away.
           const iframe = document.createElement('iframe')
           iframe.style.display = 'none'
-          iframe.src = file.url
+          iframe.src = result.value
           document.body.appendChild(iframe)
           // Remove the iframe once the download has had time to start.
           window.setTimeout(() => iframe.remove(), 60_000)
@@ -426,7 +437,8 @@ export function useFileActions({
           await delay(600)
         }
       }
-      toast.success('All downloads initiated successfully')
+      if (failed > 0) toast.error(m.share_download_start_failed())
+      else toast.success('All downloads initiated successfully')
     }
 
     runQueue().catch((err) => {

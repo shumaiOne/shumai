@@ -250,7 +250,7 @@ export class ShareService {
 
   async verifyPublicAccess(
     shareLinkId: string,
-    assetId: string,
+    assetId: string | undefined,
     providedPassword?: string,
   ): Promise<Prisma.ShareLinkGetPayload<true>> {
     const shareLink = await prisma.shareLink.findUnique({
@@ -273,11 +273,13 @@ export class ShareService {
       throw new ShareLinkPasswordInvalidError('Invalid password for share link')
     }
 
+    const targetId = assetId ?? shareLink.rootFolderId
+
     const rows = await prisma.$queryRaw<{ id: string }[]>`
       WITH RECURSIVE 
       -- Trace ancestors in the real asset tree
       real_ancestors AS (
-        SELECT id, parent_id, type::text, target_id FROM assets WHERE id = ${assetId} AND is_deleted = false
+        SELECT id, parent_id, type::text, target_id FROM assets WHERE id = ${targetId} AND is_deleted = false
         UNION ALL
         SELECT a.id, a.parent_id, a.type::text, a.target_id FROM assets a
         INNER JOIN real_ancestors ra ON ra.parent_id = a.id
@@ -339,6 +341,8 @@ export class ShareService {
       rootFolderId: l.rootFolderId,
       projectId: l.projectId,
       isExpired,
+      views: l.views,
+      lastViewedAt: l.lastViewedAt?.toISOString() ?? null,
       watermarkConfigId: l.watermarkConfigId,
       watermarkStatus: l.watermarkStatus || 'disabled',
       watermarkConfig: watermarkConfig

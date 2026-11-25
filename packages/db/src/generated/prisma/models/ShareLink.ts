@@ -22,8 +22,18 @@ export type ShareLinkModel = runtime.Types.Result.DefaultSelection<Prisma.$Share
 
 export type AggregateShareLink = {
   _count: ShareLinkCountAggregateOutputType | null
+  _avg: ShareLinkAvgAggregateOutputType | null
+  _sum: ShareLinkSumAggregateOutputType | null
   _min: ShareLinkMinAggregateOutputType | null
   _max: ShareLinkMaxAggregateOutputType | null
+}
+
+export type ShareLinkAvgAggregateOutputType = {
+  views: number | null
+}
+
+export type ShareLinkSumAggregateOutputType = {
+  views: number | null
 }
 
 export type ShareLinkMinAggregateOutputType = {
@@ -35,6 +45,8 @@ export type ShareLinkMinAggregateOutputType = {
   allowDownload: boolean | null
   defaultSortOrder: string | null
   viewMode: string | null
+  views: number | null
+  lastViewedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
   projectId: string | null
@@ -53,6 +65,8 @@ export type ShareLinkMaxAggregateOutputType = {
   allowDownload: boolean | null
   defaultSortOrder: string | null
   viewMode: string | null
+  views: number | null
+  lastViewedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
   projectId: string | null
@@ -72,6 +86,8 @@ export type ShareLinkCountAggregateOutputType = {
   defaultSortOrder: number
   viewMode: number
   fieldVisibility: number
+  views: number
+  lastViewedAt: number
   createdAt: number
   updatedAt: number
   projectId: number
@@ -83,6 +99,14 @@ export type ShareLinkCountAggregateOutputType = {
 }
 
 
+export type ShareLinkAvgAggregateInputType = {
+  views?: true
+}
+
+export type ShareLinkSumAggregateInputType = {
+  views?: true
+}
+
 export type ShareLinkMinAggregateInputType = {
   id?: true
   name?: true
@@ -92,6 +116,8 @@ export type ShareLinkMinAggregateInputType = {
   allowDownload?: true
   defaultSortOrder?: true
   viewMode?: true
+  views?: true
+  lastViewedAt?: true
   createdAt?: true
   updatedAt?: true
   projectId?: true
@@ -110,6 +136,8 @@ export type ShareLinkMaxAggregateInputType = {
   allowDownload?: true
   defaultSortOrder?: true
   viewMode?: true
+  views?: true
+  lastViewedAt?: true
   createdAt?: true
   updatedAt?: true
   projectId?: true
@@ -129,6 +157,8 @@ export type ShareLinkCountAggregateInputType = {
   defaultSortOrder?: true
   viewMode?: true
   fieldVisibility?: true
+  views?: true
+  lastViewedAt?: true
   createdAt?: true
   updatedAt?: true
   projectId?: true
@@ -177,6 +207,18 @@ export type ShareLinkAggregateArgs<ExtArgs extends runtime.Types.Extensions.Inte
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: ShareLinkAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: ShareLinkSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: ShareLinkMinAggregateInputType
@@ -207,6 +249,8 @@ export type ShareLinkGroupByArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   _count?: ShareLinkCountAggregateInputType | true
+  _avg?: ShareLinkAvgAggregateInputType
+  _sum?: ShareLinkSumAggregateInputType
   _min?: ShareLinkMinAggregateInputType
   _max?: ShareLinkMaxAggregateInputType
 }
@@ -221,6 +265,8 @@ export type ShareLinkGroupByOutputType = {
   defaultSortOrder: string | null
   viewMode: string | null
   fieldVisibility:PrismaJson.ShareLinkFieldVisibility | null
+  views: number
+  lastViewedAt: Date | null
   createdAt: Date
   updatedAt: Date
   projectId: string
@@ -229,6 +275,8 @@ export type ShareLinkGroupByOutputType = {
   watermarkConfigId: string | null
   watermarkStatus: $Enums.WatermarkStatus
   _count: ShareLinkCountAggregateOutputType | null
+  _avg: ShareLinkAvgAggregateOutputType | null
+  _sum: ShareLinkSumAggregateOutputType | null
   _min: ShareLinkMinAggregateOutputType | null
   _max: ShareLinkMaxAggregateOutputType | null
 }
@@ -261,6 +309,8 @@ export type ShareLinkWhereInput = {
   defaultSortOrder?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   viewMode?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   fieldVisibility?: Prisma.JsonNullableFilter<"ShareLink">
+  views?: Prisma.IntFilter<"ShareLink"> | number
+  lastViewedAt?: Prisma.DateTimeNullableFilter<"ShareLink"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ShareLink"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ShareLink"> | Date | string
   projectId?: Prisma.StringFilter<"ShareLink"> | string
@@ -272,6 +322,7 @@ export type ShareLinkWhereInput = {
   rootFolder?: Prisma.XOR<Prisma.AssetScalarRelationFilter, Prisma.AssetWhereInput>
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   watermarkConfig?: Prisma.XOR<Prisma.WatermarkConfigNullableScalarRelationFilter, Prisma.WatermarkConfigWhereInput> | null
+  activities?: Prisma.ShareActivityListRelationFilter
 }
 
 export type ShareLinkOrderByWithRelationInput = {
@@ -284,6 +335,8 @@ export type ShareLinkOrderByWithRelationInput = {
   defaultSortOrder?: Prisma.SortOrderInput | Prisma.SortOrder
   viewMode?: Prisma.SortOrderInput | Prisma.SortOrder
   fieldVisibility?: Prisma.SortOrderInput | Prisma.SortOrder
+  views?: Prisma.SortOrder
+  lastViewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
@@ -295,6 +348,7 @@ export type ShareLinkOrderByWithRelationInput = {
   rootFolder?: Prisma.AssetOrderByWithRelationInput
   creator?: Prisma.UserOrderByWithRelationInput
   watermarkConfig?: Prisma.WatermarkConfigOrderByWithRelationInput
+  activities?: Prisma.ShareActivityOrderByRelationAggregateInput
 }
 
 export type ShareLinkWhereUniqueInput = Prisma.AtLeast<{
@@ -311,6 +365,8 @@ export type ShareLinkWhereUniqueInput = Prisma.AtLeast<{
   defaultSortOrder?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   viewMode?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   fieldVisibility?: Prisma.JsonNullableFilter<"ShareLink">
+  views?: Prisma.IntFilter<"ShareLink"> | number
+  lastViewedAt?: Prisma.DateTimeNullableFilter<"ShareLink"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ShareLink"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ShareLink"> | Date | string
   projectId?: Prisma.StringFilter<"ShareLink"> | string
@@ -321,6 +377,7 @@ export type ShareLinkWhereUniqueInput = Prisma.AtLeast<{
   rootFolder?: Prisma.XOR<Prisma.AssetScalarRelationFilter, Prisma.AssetWhereInput>
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   watermarkConfig?: Prisma.XOR<Prisma.WatermarkConfigNullableScalarRelationFilter, Prisma.WatermarkConfigWhereInput> | null
+  activities?: Prisma.ShareActivityListRelationFilter
 }, "id" | "rootFolderId">
 
 export type ShareLinkOrderByWithAggregationInput = {
@@ -333,6 +390,8 @@ export type ShareLinkOrderByWithAggregationInput = {
   defaultSortOrder?: Prisma.SortOrderInput | Prisma.SortOrder
   viewMode?: Prisma.SortOrderInput | Prisma.SortOrder
   fieldVisibility?: Prisma.SortOrderInput | Prisma.SortOrder
+  views?: Prisma.SortOrder
+  lastViewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
@@ -341,8 +400,10 @@ export type ShareLinkOrderByWithAggregationInput = {
   watermarkConfigId?: Prisma.SortOrderInput | Prisma.SortOrder
   watermarkStatus?: Prisma.SortOrder
   _count?: Prisma.ShareLinkCountOrderByAggregateInput
+  _avg?: Prisma.ShareLinkAvgOrderByAggregateInput
   _max?: Prisma.ShareLinkMaxOrderByAggregateInput
   _min?: Prisma.ShareLinkMinOrderByAggregateInput
+  _sum?: Prisma.ShareLinkSumOrderByAggregateInput
 }
 
 export type ShareLinkScalarWhereWithAggregatesInput = {
@@ -358,6 +419,8 @@ export type ShareLinkScalarWhereWithAggregatesInput = {
   defaultSortOrder?: Prisma.StringNullableWithAggregatesFilter<"ShareLink"> | string | null
   viewMode?: Prisma.StringNullableWithAggregatesFilter<"ShareLink"> | string | null
   fieldVisibility?: Prisma.JsonNullableWithAggregatesFilter<"ShareLink">
+  views?: Prisma.IntWithAggregatesFilter<"ShareLink"> | number
+  lastViewedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ShareLink"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ShareLink"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ShareLink"> | Date | string
   projectId?: Prisma.StringWithAggregatesFilter<"ShareLink"> | string
@@ -377,6 +440,8 @@ export type ShareLinkCreateInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   watermarkStatus?: $Enums.WatermarkStatus
@@ -384,6 +449,7 @@ export type ShareLinkCreateInput = {
   rootFolder: Prisma.AssetCreateNestedOneWithoutShareLinkRootFolderInput
   creator?: Prisma.UserCreateNestedOneWithoutShareLinksInput
   watermarkConfig?: Prisma.WatermarkConfigCreateNestedOneWithoutShareLinksInput
+  activities?: Prisma.ShareActivityCreateNestedManyWithoutShareLinkInput
 }
 
 export type ShareLinkUncheckedCreateInput = {
@@ -396,6 +462,8 @@ export type ShareLinkUncheckedCreateInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   projectId: string
@@ -403,6 +471,7 @@ export type ShareLinkUncheckedCreateInput = {
   creatorId?: string | null
   watermarkConfigId?: string | null
   watermarkStatus?: $Enums.WatermarkStatus
+  activities?: Prisma.ShareActivityUncheckedCreateNestedManyWithoutShareLinkInput
 }
 
 export type ShareLinkUpdateInput = {
@@ -415,6 +484,8 @@ export type ShareLinkUpdateInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
@@ -422,6 +493,7 @@ export type ShareLinkUpdateInput = {
   rootFolder?: Prisma.AssetUpdateOneRequiredWithoutShareLinkRootFolderNestedInput
   creator?: Prisma.UserUpdateOneWithoutShareLinksNestedInput
   watermarkConfig?: Prisma.WatermarkConfigUpdateOneWithoutShareLinksNestedInput
+  activities?: Prisma.ShareActivityUpdateManyWithoutShareLinkNestedInput
 }
 
 export type ShareLinkUncheckedUpdateInput = {
@@ -434,6 +506,8 @@ export type ShareLinkUncheckedUpdateInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -441,6 +515,7 @@ export type ShareLinkUncheckedUpdateInput = {
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   watermarkConfigId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
+  activities?: Prisma.ShareActivityUncheckedUpdateManyWithoutShareLinkNestedInput
 }
 
 export type ShareLinkCreateManyInput = {
@@ -453,6 +528,8 @@ export type ShareLinkCreateManyInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   projectId: string
@@ -472,6 +549,8 @@ export type ShareLinkUpdateManyMutationInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
@@ -487,6 +566,8 @@ export type ShareLinkUncheckedUpdateManyInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -516,6 +597,8 @@ export type ShareLinkCountOrderByAggregateInput = {
   defaultSortOrder?: Prisma.SortOrder
   viewMode?: Prisma.SortOrder
   fieldVisibility?: Prisma.SortOrder
+  views?: Prisma.SortOrder
+  lastViewedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
@@ -523,6 +606,10 @@ export type ShareLinkCountOrderByAggregateInput = {
   creatorId?: Prisma.SortOrder
   watermarkConfigId?: Prisma.SortOrder
   watermarkStatus?: Prisma.SortOrder
+}
+
+export type ShareLinkAvgOrderByAggregateInput = {
+  views?: Prisma.SortOrder
 }
 
 export type ShareLinkMaxOrderByAggregateInput = {
@@ -534,6 +621,8 @@ export type ShareLinkMaxOrderByAggregateInput = {
   allowDownload?: Prisma.SortOrder
   defaultSortOrder?: Prisma.SortOrder
   viewMode?: Prisma.SortOrder
+  views?: Prisma.SortOrder
+  lastViewedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
@@ -552,6 +641,8 @@ export type ShareLinkMinOrderByAggregateInput = {
   allowDownload?: Prisma.SortOrder
   defaultSortOrder?: Prisma.SortOrder
   viewMode?: Prisma.SortOrder
+  views?: Prisma.SortOrder
+  lastViewedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
@@ -559,6 +650,15 @@ export type ShareLinkMinOrderByAggregateInput = {
   creatorId?: Prisma.SortOrder
   watermarkConfigId?: Prisma.SortOrder
   watermarkStatus?: Prisma.SortOrder
+}
+
+export type ShareLinkSumOrderByAggregateInput = {
+  views?: Prisma.SortOrder
+}
+
+export type ShareLinkScalarRelationFilter = {
+  is?: Prisma.ShareLinkWhereInput
+  isNot?: Prisma.ShareLinkWhereInput
 }
 
 export type ShareLinkNullableScalarRelationFilter = {
@@ -650,8 +750,30 @@ export type ShareLinkUncheckedUpdateManyWithoutProjectNestedInput = {
   deleteMany?: Prisma.ShareLinkScalarWhereInput | Prisma.ShareLinkScalarWhereInput[]
 }
 
+export type IntFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type EnumWatermarkStatusFieldUpdateOperationsInput = {
   set?: $Enums.WatermarkStatus
+}
+
+export type ShareLinkCreateNestedOneWithoutActivitiesInput = {
+  create?: Prisma.XOR<Prisma.ShareLinkCreateWithoutActivitiesInput, Prisma.ShareLinkUncheckedCreateWithoutActivitiesInput>
+  connectOrCreate?: Prisma.ShareLinkCreateOrConnectWithoutActivitiesInput
+  connect?: Prisma.ShareLinkWhereUniqueInput
+}
+
+export type ShareLinkUpdateOneRequiredWithoutActivitiesNestedInput = {
+  create?: Prisma.XOR<Prisma.ShareLinkCreateWithoutActivitiesInput, Prisma.ShareLinkUncheckedCreateWithoutActivitiesInput>
+  connectOrCreate?: Prisma.ShareLinkCreateOrConnectWithoutActivitiesInput
+  upsert?: Prisma.ShareLinkUpsertWithoutActivitiesInput
+  connect?: Prisma.ShareLinkWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ShareLinkUpdateToOneWithWhereWithoutActivitiesInput, Prisma.ShareLinkUpdateWithoutActivitiesInput>, Prisma.ShareLinkUncheckedUpdateWithoutActivitiesInput>
 }
 
 export type ShareLinkCreateNestedManyWithoutWatermarkConfigInput = {
@@ -738,12 +860,15 @@ export type ShareLinkCreateWithoutCreatorInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   watermarkStatus?: $Enums.WatermarkStatus
   project: Prisma.ProjectCreateNestedOneWithoutShareLinksInput
   rootFolder: Prisma.AssetCreateNestedOneWithoutShareLinkRootFolderInput
   watermarkConfig?: Prisma.WatermarkConfigCreateNestedOneWithoutShareLinksInput
+  activities?: Prisma.ShareActivityCreateNestedManyWithoutShareLinkInput
 }
 
 export type ShareLinkUncheckedCreateWithoutCreatorInput = {
@@ -756,12 +881,15 @@ export type ShareLinkUncheckedCreateWithoutCreatorInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   projectId: string
   rootFolderId: string
   watermarkConfigId?: string | null
   watermarkStatus?: $Enums.WatermarkStatus
+  activities?: Prisma.ShareActivityUncheckedCreateNestedManyWithoutShareLinkInput
 }
 
 export type ShareLinkCreateOrConnectWithoutCreatorInput = {
@@ -803,6 +931,8 @@ export type ShareLinkScalarWhereInput = {
   defaultSortOrder?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   viewMode?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   fieldVisibility?: Prisma.JsonNullableFilter<"ShareLink">
+  views?: Prisma.IntFilter<"ShareLink"> | number
+  lastViewedAt?: Prisma.DateTimeNullableFilter<"ShareLink"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ShareLink"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ShareLink"> | Date | string
   projectId?: Prisma.StringFilter<"ShareLink"> | string
@@ -822,12 +952,15 @@ export type ShareLinkCreateWithoutProjectInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   watermarkStatus?: $Enums.WatermarkStatus
   rootFolder: Prisma.AssetCreateNestedOneWithoutShareLinkRootFolderInput
   creator?: Prisma.UserCreateNestedOneWithoutShareLinksInput
   watermarkConfig?: Prisma.WatermarkConfigCreateNestedOneWithoutShareLinksInput
+  activities?: Prisma.ShareActivityCreateNestedManyWithoutShareLinkInput
 }
 
 export type ShareLinkUncheckedCreateWithoutProjectInput = {
@@ -840,12 +973,15 @@ export type ShareLinkUncheckedCreateWithoutProjectInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   rootFolderId: string
   creatorId?: string | null
   watermarkConfigId?: string | null
   watermarkStatus?: $Enums.WatermarkStatus
+  activities?: Prisma.ShareActivityUncheckedCreateNestedManyWithoutShareLinkInput
 }
 
 export type ShareLinkCreateOrConnectWithoutProjectInput = {
@@ -874,6 +1010,106 @@ export type ShareLinkUpdateManyWithWhereWithoutProjectInput = {
   data: Prisma.XOR<Prisma.ShareLinkUpdateManyMutationInput, Prisma.ShareLinkUncheckedUpdateManyWithoutProjectInput>
 }
 
+export type ShareLinkCreateWithoutActivitiesInput = {
+  id?: string
+  name: string
+  expireAt?: Date | string | null
+  password?: string | null
+  isDisabled?: boolean
+  allowDownload?: boolean
+  defaultSortOrder?: string | null
+  viewMode?: string | null
+  fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  watermarkStatus?: $Enums.WatermarkStatus
+  project: Prisma.ProjectCreateNestedOneWithoutShareLinksInput
+  rootFolder: Prisma.AssetCreateNestedOneWithoutShareLinkRootFolderInput
+  creator?: Prisma.UserCreateNestedOneWithoutShareLinksInput
+  watermarkConfig?: Prisma.WatermarkConfigCreateNestedOneWithoutShareLinksInput
+}
+
+export type ShareLinkUncheckedCreateWithoutActivitiesInput = {
+  id?: string
+  name: string
+  expireAt?: Date | string | null
+  password?: string | null
+  isDisabled?: boolean
+  allowDownload?: boolean
+  defaultSortOrder?: string | null
+  viewMode?: string | null
+  fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectId: string
+  rootFolderId: string
+  creatorId?: string | null
+  watermarkConfigId?: string | null
+  watermarkStatus?: $Enums.WatermarkStatus
+}
+
+export type ShareLinkCreateOrConnectWithoutActivitiesInput = {
+  where: Prisma.ShareLinkWhereUniqueInput
+  create: Prisma.XOR<Prisma.ShareLinkCreateWithoutActivitiesInput, Prisma.ShareLinkUncheckedCreateWithoutActivitiesInput>
+}
+
+export type ShareLinkUpsertWithoutActivitiesInput = {
+  update: Prisma.XOR<Prisma.ShareLinkUpdateWithoutActivitiesInput, Prisma.ShareLinkUncheckedUpdateWithoutActivitiesInput>
+  create: Prisma.XOR<Prisma.ShareLinkCreateWithoutActivitiesInput, Prisma.ShareLinkUncheckedCreateWithoutActivitiesInput>
+  where?: Prisma.ShareLinkWhereInput
+}
+
+export type ShareLinkUpdateToOneWithWhereWithoutActivitiesInput = {
+  where?: Prisma.ShareLinkWhereInput
+  data: Prisma.XOR<Prisma.ShareLinkUpdateWithoutActivitiesInput, Prisma.ShareLinkUncheckedUpdateWithoutActivitiesInput>
+}
+
+export type ShareLinkUpdateWithoutActivitiesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
+  project?: Prisma.ProjectUpdateOneRequiredWithoutShareLinksNestedInput
+  rootFolder?: Prisma.AssetUpdateOneRequiredWithoutShareLinkRootFolderNestedInput
+  creator?: Prisma.UserUpdateOneWithoutShareLinksNestedInput
+  watermarkConfig?: Prisma.WatermarkConfigUpdateOneWithoutShareLinksNestedInput
+}
+
+export type ShareLinkUncheckedUpdateWithoutActivitiesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkConfigId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
+}
+
 export type ShareLinkCreateWithoutWatermarkConfigInput = {
   id?: string
   name: string
@@ -884,12 +1120,15 @@ export type ShareLinkCreateWithoutWatermarkConfigInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   watermarkStatus?: $Enums.WatermarkStatus
   project: Prisma.ProjectCreateNestedOneWithoutShareLinksInput
   rootFolder: Prisma.AssetCreateNestedOneWithoutShareLinkRootFolderInput
   creator?: Prisma.UserCreateNestedOneWithoutShareLinksInput
+  activities?: Prisma.ShareActivityCreateNestedManyWithoutShareLinkInput
 }
 
 export type ShareLinkUncheckedCreateWithoutWatermarkConfigInput = {
@@ -902,12 +1141,15 @@ export type ShareLinkUncheckedCreateWithoutWatermarkConfigInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   projectId: string
   rootFolderId: string
   creatorId?: string | null
   watermarkStatus?: $Enums.WatermarkStatus
+  activities?: Prisma.ShareActivityUncheckedCreateNestedManyWithoutShareLinkInput
 }
 
 export type ShareLinkCreateOrConnectWithoutWatermarkConfigInput = {
@@ -946,12 +1188,15 @@ export type ShareLinkCreateWithoutRootFolderInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   watermarkStatus?: $Enums.WatermarkStatus
   project: Prisma.ProjectCreateNestedOneWithoutShareLinksInput
   creator?: Prisma.UserCreateNestedOneWithoutShareLinksInput
   watermarkConfig?: Prisma.WatermarkConfigCreateNestedOneWithoutShareLinksInput
+  activities?: Prisma.ShareActivityCreateNestedManyWithoutShareLinkInput
 }
 
 export type ShareLinkUncheckedCreateWithoutRootFolderInput = {
@@ -964,12 +1209,15 @@ export type ShareLinkUncheckedCreateWithoutRootFolderInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   projectId: string
   creatorId?: string | null
   watermarkConfigId?: string | null
   watermarkStatus?: $Enums.WatermarkStatus
+  activities?: Prisma.ShareActivityUncheckedCreateNestedManyWithoutShareLinkInput
 }
 
 export type ShareLinkCreateOrConnectWithoutRootFolderInput = {
@@ -998,12 +1246,15 @@ export type ShareLinkUpdateWithoutRootFolderInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
   project?: Prisma.ProjectUpdateOneRequiredWithoutShareLinksNestedInput
   creator?: Prisma.UserUpdateOneWithoutShareLinksNestedInput
   watermarkConfig?: Prisma.WatermarkConfigUpdateOneWithoutShareLinksNestedInput
+  activities?: Prisma.ShareActivityUpdateManyWithoutShareLinkNestedInput
 }
 
 export type ShareLinkUncheckedUpdateWithoutRootFolderInput = {
@@ -1016,12 +1267,15 @@ export type ShareLinkUncheckedUpdateWithoutRootFolderInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   watermarkConfigId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
+  activities?: Prisma.ShareActivityUncheckedUpdateManyWithoutShareLinkNestedInput
 }
 
 export type ShareLinkCreateManyCreatorInput = {
@@ -1034,6 +1288,8 @@ export type ShareLinkCreateManyCreatorInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   projectId: string
@@ -1052,12 +1308,15 @@ export type ShareLinkUpdateWithoutCreatorInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
   project?: Prisma.ProjectUpdateOneRequiredWithoutShareLinksNestedInput
   rootFolder?: Prisma.AssetUpdateOneRequiredWithoutShareLinkRootFolderNestedInput
   watermarkConfig?: Prisma.WatermarkConfigUpdateOneWithoutShareLinksNestedInput
+  activities?: Prisma.ShareActivityUpdateManyWithoutShareLinkNestedInput
 }
 
 export type ShareLinkUncheckedUpdateWithoutCreatorInput = {
@@ -1070,12 +1329,15 @@ export type ShareLinkUncheckedUpdateWithoutCreatorInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
   watermarkConfigId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
+  activities?: Prisma.ShareActivityUncheckedUpdateManyWithoutShareLinkNestedInput
 }
 
 export type ShareLinkUncheckedUpdateManyWithoutCreatorInput = {
@@ -1088,6 +1350,8 @@ export type ShareLinkUncheckedUpdateManyWithoutCreatorInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1106,6 +1370,8 @@ export type ShareLinkCreateManyProjectInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   rootFolderId: string
@@ -1124,12 +1390,15 @@ export type ShareLinkUpdateWithoutProjectInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
   rootFolder?: Prisma.AssetUpdateOneRequiredWithoutShareLinkRootFolderNestedInput
   creator?: Prisma.UserUpdateOneWithoutShareLinksNestedInput
   watermarkConfig?: Prisma.WatermarkConfigUpdateOneWithoutShareLinksNestedInput
+  activities?: Prisma.ShareActivityUpdateManyWithoutShareLinkNestedInput
 }
 
 export type ShareLinkUncheckedUpdateWithoutProjectInput = {
@@ -1142,12 +1411,15 @@ export type ShareLinkUncheckedUpdateWithoutProjectInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   watermarkConfigId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
+  activities?: Prisma.ShareActivityUncheckedUpdateManyWithoutShareLinkNestedInput
 }
 
 export type ShareLinkUncheckedUpdateManyWithoutProjectInput = {
@@ -1160,6 +1432,8 @@ export type ShareLinkUncheckedUpdateManyWithoutProjectInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1178,6 +1452,8 @@ export type ShareLinkCreateManyWatermarkConfigInput = {
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: number
+  lastViewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   projectId: string
@@ -1196,12 +1472,15 @@ export type ShareLinkUpdateWithoutWatermarkConfigInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
   project?: Prisma.ProjectUpdateOneRequiredWithoutShareLinksNestedInput
   rootFolder?: Prisma.AssetUpdateOneRequiredWithoutShareLinkRootFolderNestedInput
   creator?: Prisma.UserUpdateOneWithoutShareLinksNestedInput
+  activities?: Prisma.ShareActivityUpdateManyWithoutShareLinkNestedInput
 }
 
 export type ShareLinkUncheckedUpdateWithoutWatermarkConfigInput = {
@@ -1214,12 +1493,15 @@ export type ShareLinkUncheckedUpdateWithoutWatermarkConfigInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
+  activities?: Prisma.ShareActivityUncheckedUpdateManyWithoutShareLinkNestedInput
 }
 
 export type ShareLinkUncheckedUpdateManyWithoutWatermarkConfigInput = {
@@ -1232,6 +1514,8 @@ export type ShareLinkUncheckedUpdateManyWithoutWatermarkConfigInput = {
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  lastViewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1240,6 +1524,35 @@ export type ShareLinkUncheckedUpdateManyWithoutWatermarkConfigInput = {
   watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
 }
 
+
+/**
+ * Count Type ShareLinkCountOutputType
+ */
+
+export type ShareLinkCountOutputType = {
+  activities: number
+}
+
+export type ShareLinkCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  activities?: boolean | ShareLinkCountOutputTypeCountActivitiesArgs
+}
+
+/**
+ * ShareLinkCountOutputType without action
+ */
+export type ShareLinkCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ShareLinkCountOutputType
+   */
+  select?: Prisma.ShareLinkCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * ShareLinkCountOutputType without action
+ */
+export type ShareLinkCountOutputTypeCountActivitiesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ShareActivityWhereInput
+}
 
 
 export type ShareLinkSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1252,6 +1565,8 @@ export type ShareLinkSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   defaultSortOrder?: boolean
   viewMode?: boolean
   fieldVisibility?: boolean
+  views?: boolean
+  lastViewedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   projectId?: boolean
@@ -1263,6 +1578,8 @@ export type ShareLinkSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
   watermarkConfig?: boolean | Prisma.ShareLink$watermarkConfigArgs<ExtArgs>
+  activities?: boolean | Prisma.ShareLink$activitiesArgs<ExtArgs>
+  _count?: boolean | Prisma.ShareLinkCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["shareLink"]>
 
 export type ShareLinkSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1275,6 +1592,8 @@ export type ShareLinkSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   defaultSortOrder?: boolean
   viewMode?: boolean
   fieldVisibility?: boolean
+  views?: boolean
+  lastViewedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   projectId?: boolean
@@ -1298,6 +1617,8 @@ export type ShareLinkSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   defaultSortOrder?: boolean
   viewMode?: boolean
   fieldVisibility?: boolean
+  views?: boolean
+  lastViewedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   projectId?: boolean
@@ -1321,6 +1642,8 @@ export type ShareLinkSelectScalar = {
   defaultSortOrder?: boolean
   viewMode?: boolean
   fieldVisibility?: boolean
+  views?: boolean
+  lastViewedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   projectId?: boolean
@@ -1330,12 +1653,14 @@ export type ShareLinkSelectScalar = {
   watermarkStatus?: boolean
 }
 
-export type ShareLinkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "expireAt" | "password" | "isDisabled" | "allowDownload" | "defaultSortOrder" | "viewMode" | "fieldVisibility" | "createdAt" | "updatedAt" | "projectId" | "rootFolderId" | "creatorId" | "watermarkConfigId" | "watermarkStatus", ExtArgs["result"]["shareLink"]>
+export type ShareLinkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "expireAt" | "password" | "isDisabled" | "allowDownload" | "defaultSortOrder" | "viewMode" | "fieldVisibility" | "views" | "lastViewedAt" | "createdAt" | "updatedAt" | "projectId" | "rootFolderId" | "creatorId" | "watermarkConfigId" | "watermarkStatus", ExtArgs["result"]["shareLink"]>
 export type ShareLinkInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
   watermarkConfig?: boolean | Prisma.ShareLink$watermarkConfigArgs<ExtArgs>
+  activities?: boolean | Prisma.ShareLink$activitiesArgs<ExtArgs>
+  _count?: boolean | Prisma.ShareLinkCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ShareLinkIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
@@ -1357,6 +1682,7 @@ export type $ShareLinkPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     rootFolder: Prisma.$AssetPayload<ExtArgs>
     creator: Prisma.$UserPayload<ExtArgs> | null
     watermarkConfig: Prisma.$WatermarkConfigPayload<ExtArgs> | null
+    activities: Prisma.$ShareActivityPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1371,6 +1697,8 @@ export type $ShareLinkPayload<ExtArgs extends runtime.Types.Extensions.InternalA
      * [ShareLinkFieldVisibility]
      */
     fieldVisibility:PrismaJson.ShareLinkFieldVisibility | null
+    views: number
+    lastViewedAt: Date | null
     createdAt: Date
     updatedAt: Date
     projectId: string
@@ -1776,6 +2104,7 @@ export interface Prisma__ShareLinkClient<T, Null = never, ExtArgs extends runtim
   rootFolder<T extends Prisma.AssetDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AssetDefaultArgs<ExtArgs>>): Prisma.Prisma__AssetClient<runtime.Types.Result.GetResult<Prisma.$AssetPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   creator<T extends Prisma.ShareLink$creatorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ShareLink$creatorArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   watermarkConfig<T extends Prisma.ShareLink$watermarkConfigArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ShareLink$watermarkConfigArgs<ExtArgs>>): Prisma.Prisma__WatermarkConfigClient<runtime.Types.Result.GetResult<Prisma.$WatermarkConfigPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  activities<T extends Prisma.ShareLink$activitiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ShareLink$activitiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ShareActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1814,6 +2143,8 @@ export interface ShareLinkFieldRefs {
   readonly defaultSortOrder: Prisma.FieldRef<"ShareLink", 'String'>
   readonly viewMode: Prisma.FieldRef<"ShareLink", 'String'>
   readonly fieldVisibility: Prisma.FieldRef<"ShareLink", 'Json'>
+  readonly views: Prisma.FieldRef<"ShareLink", 'Int'>
+  readonly lastViewedAt: Prisma.FieldRef<"ShareLink", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"ShareLink", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ShareLink", 'DateTime'>
   readonly projectId: Prisma.FieldRef<"ShareLink", 'String'>
@@ -2257,6 +2588,30 @@ export type ShareLink$watermarkConfigArgs<ExtArgs extends runtime.Types.Extensio
    */
   include?: Prisma.WatermarkConfigInclude<ExtArgs> | null
   where?: Prisma.WatermarkConfigWhereInput
+}
+
+/**
+ * ShareLink.activities
+ */
+export type ShareLink$activitiesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ShareActivity
+   */
+  select?: Prisma.ShareActivitySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ShareActivity
+   */
+  omit?: Prisma.ShareActivityOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ShareActivityInclude<ExtArgs> | null
+  where?: Prisma.ShareActivityWhereInput
+  orderBy?: Prisma.ShareActivityOrderByWithRelationInput | Prisma.ShareActivityOrderByWithRelationInput[]
+  cursor?: Prisma.ShareActivityWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ShareActivityScalarFieldEnum | Prisma.ShareActivityScalarFieldEnum[]
 }
 
 /**

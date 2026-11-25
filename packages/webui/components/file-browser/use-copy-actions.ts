@@ -1,6 +1,7 @@
 'use client'
 
 import { client } from '@/ui/api/client'
+import { requestShareDownload } from '@/ui/api/share-download'
 import type { AssetInfo } from '@shumai/dtos'
 import { toast } from 'sonner'
 import { copyToClipboard, copyToClipboardDeferred, copyImageToClipboard } from '@/ui/lib/clipboard'
@@ -39,18 +40,7 @@ export function useCopyActions({
         if (transcode?.url) return transcode.url
         if (transcode?.key && item.id) {
           if (isPublic && shareId) {
-            const password = localStorage.getItem(`share_pwd_${shareId}`) || ''
-            const res = await client.api.shares[':shareId'].files[':fileId']['download-url'].$post(
-              {
-                param: { shareId, fileId: item.id },
-                json: { key: transcode.key },
-              },
-              {
-                headers: {
-                  'x-share-password': password,
-                },
-              },
-            )
+            const res = await requestShareDownload(shareId, item.id, transcode.key, 'clipboard')
             if (res.ok) {
               const { url } = await res.json()
               return url

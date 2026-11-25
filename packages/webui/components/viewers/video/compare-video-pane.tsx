@@ -1,4 +1,5 @@
 import { client } from '@/ui/api/client'
+import { requestShareDownload } from '@/ui/api/share-download'
 import DrawingCanvas from '@/ui/components/drawing-canvas'
 import { cn } from '@/ui/lib/utils'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
@@ -452,10 +453,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
         if (!dlKey || !file.id) return
         try {
           const res = shareId
-            ? await client.api.shares[':shareId'].files[':fileId']['download-url'].$post({
-                param: { shareId, fileId: file.id },
-                json: { key: dlKey },
-              })
+            ? await requestShareDownload(shareId, file.id, dlKey)
             : await client.api.files['download-url'].$post({
                 json: { key: dlKey, assetId: file.id },
               })

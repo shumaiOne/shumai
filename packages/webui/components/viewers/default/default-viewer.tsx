@@ -1,4 +1,5 @@
 import { client } from '@/ui/api/client'
+import { requestShareDownload } from '@/ui/api/share-download'
 import { m } from '@/ui/paraglide/messages.js'
 import { Download, AlertCircle } from 'lucide-react'
 import React, { useImperativeHandle } from 'react'
@@ -18,10 +19,7 @@ export const DefaultViewer = React.forwardRef<MediaController, FileViewerProps>(
       if (!key || !file.id) return
       try {
         const res = shareId
-          ? await client.api.shares[':shareId'].files[':fileId']['download-url'].$post({
-              param: { shareId, fileId: file.id },
-              json: { key },
-            })
+          ? await requestShareDownload(shareId, file.id, key)
           : await client.api.files['download-url'].$post({
               json: { key, assetId: file.id },
             })

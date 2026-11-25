@@ -1,5 +1,6 @@
 import { useScreenSize } from '@/ui/hooks/useScreenSize'
 import { client } from '@/ui/api/client'
+import { requestShareDownload } from '@/ui/api/share-download'
 import { getBestTranscode } from '@/ui/lib/media'
 import { copyImageToClipboard } from '@/ui/lib/clipboard'
 import React, { useEffect, useRef, useState, useImperativeHandle } from 'react'
@@ -106,10 +107,7 @@ export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
       if (!key || !file.id) return
       try {
         const res = shareId
-          ? await client.api.shares[':shareId'].files[':fileId']['download-url'].$post({
-              param: { shareId, fileId: file.id },
-              json: { key },
-            })
+          ? await requestShareDownload(shareId, file.id, key)
           : await client.api.files['download-url'].$post({
               json: { key, assetId: file.id },
             })
