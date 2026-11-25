@@ -6,6 +6,7 @@ import { m } from '@/ui/paraglide/messages.js'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useIsMobile } from '@/ui/hooks/use-mobile'
+import { usePublicShareView } from '@/ui/hooks/use-public-share-view'
 import { TopNav } from './top-nav'
 import { FileBrowser } from './file-browser/file-browser'
 import { MobileFileBrowser } from './file-browser/mobile-file-browser'
@@ -127,6 +128,7 @@ export function PublicShareManager({
         },
       )
       if (res.status === 401) throw new Error('Unauthorized')
+      if (!res.ok) throw new Error('Failed to fetch shared asset')
       return (await res.json()) as unknown as AssetInfo
     },
     enabled: !!shareInfo && !!currentFolderId,
@@ -258,6 +260,7 @@ export function PublicShareManager({
         },
       )
       if (res.status === 401) throw new Error('Unauthorized')
+      if (!res.ok) throw new Error('Failed to fetch shared asset')
       return (await res.json()) as unknown as AssetInfo
     },
     enabled: !!viewingFileId && !!shareInfo,
@@ -277,6 +280,7 @@ export function PublicShareManager({
         },
       )
       if (res.status === 401) throw new Error('Unauthorized')
+      if (!res.ok) throw new Error('Failed to fetch shared asset')
       return (await res.json()) as unknown as AssetInfo
     },
     enabled: !!versionId && !!shareInfo,
@@ -286,6 +290,12 @@ export function PublicShareManager({
   // or the stack itself) is what we actually display.
   const viewingFileData = versionId ? versionFileData : stackFileData
   const isViewingFileLoading = isStackFileLoading || (!!versionId && isVersionFileLoading)
+  usePublicShareView({
+    shareId,
+    assetId: activeFileId ?? initialFolderId,
+    password,
+    ready: !!shareInfo && (viewingFileId ? !!viewingFileData : !initialFolderId || !!folderInfo),
+  })
 
   useEffect(() => {
     if (foldersError?.message === 'Unauthorized') {

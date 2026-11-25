@@ -61,6 +61,7 @@ import { dedupeSymlinksToTarget } from './symlink'
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
+import { shareActivityService } from '@shumai/core/src/share/share-activity'
 import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
@@ -1964,7 +1965,7 @@ export class AssetService {
    */
   async createComment(
     req: CreateCommentRequest,
-    options: { triggerAgents?: boolean } = {},
+    options: { triggerAgents?: boolean; shareLinkId?: string } = {},
   ): Promise<CommentInfo> {
     const triggerAgents = options.triggerAgents ?? true
     let commentId = ''
@@ -2018,6 +2019,14 @@ export class AssetService {
             },
           })
         }
+      }
+
+      if (options.shareLinkId) {
+        await shareActivityService.recordEvent(
+          options.shareLinkId,
+          { kind: 'comment_created', assetId: a.id, userId: req.userId },
+          tx,
+        )
       }
 
       if (!triggerAgents) return
@@ -3080,6 +3089,10 @@ export class AssetService {
    * that belong to an asset they have access to.
    */
   async getDownloadUrl(assetId: string, key: string): Promise<string> {
+    return (await this.getDownloadUrlWithAsset(assetId, key)).url
+  }
+
+  async getDownloadUrlWithAsset(assetId: string, key: string) {
     const targetAssetId = await this.resolveLatestVersionId(assetId)
     const asset = await this.prismaClient.asset.findUnique({
       where: { id: targetAssetId },
@@ -3100,6 +3113,7 @@ export class AssetService {
       throw new Error('Key does not belong to this asset')
     }
 
+    let signedAssetId = asset.id
     let storageKey = asset.storageKey.key
     let assetDir = storageKey.substring(0, storageKey.lastIndexOf('/') + 1)
     let targetName = asset.name
@@ -3115,12 +3129,14 @@ export class AssetService {
           storageKey: { key: { startsWith: key.substring(0, key.lastIndexOf('/') + 1) } },
         },
         select: {
+          id: true,
           name: true,
           status: true,
           storageKey: { select: { key: true, isArchived: true } },
         },
       })
       if (sibling?.storageKey?.key) {
+        signedAssetId = sibling.id
         storageKey = sibling.storageKey.key
         assetDir = storageKey.substring(0, storageKey.lastIndexOf('/') + 1)
         targetStatus = sibling.status
@@ -3176,7 +3192,14 @@ export class AssetService {
       }
     }
 
-    return s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET', true, downloadFilename)
+    const url = await s3Service.presign(
+      process.env.S3_BUCKET || 'shumai',
+      key,
+      'GET',
+      true,
+      downloadFilename,
+    )
+    return { url, assetId: signedAssetId }
   }
 
   async archiveAssets(

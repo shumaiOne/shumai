@@ -479,6 +479,8 @@ model ShareLink {
   viewMode         String?   @map("view_mode")
   /// [ShareLinkFieldVisibility]
   fieldVisibility  Json?     @map("field_visibility")
+  views            Int       @default(0)
+  lastViewedAt     DateTime? @map("last_viewed_at")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
@@ -495,7 +497,31 @@ model ShareLink {
   watermarkStatus   WatermarkStatus  @default(disabled) @map("watermark_status")
   watermarkConfig   WatermarkConfig? @relation(fields: [watermarkConfigId], references: [id], onDelete: SetNull)
 
+  activities ShareActivity[]
+
   @@map("share_links")
+}
+
+enum ShareActivityKind {
+  share_viewed
+  asset_viewed
+  asset_downloaded
+  comment_created
+}
+
+model ShareActivity {
+  id          String            @id @default(ulid())
+  shareLinkId String            @map("share_link_id")
+  shareLink   ShareLink         @relation(fields: [shareLinkId], references: [id], onDelete: Cascade)
+  kind        ShareActivityKind
+  // Historical references retained when the user or asset is deleted.
+  userId      String?           @map("user_id")
+  assetId     String?           @map("asset_id")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  @@index([shareLinkId, kind, userId, assetId, createdAt(sort: Desc)], map: "share_activities_dedup_idx")
+  @@index([shareLinkId, id(sort: Desc)])
+  @@map("share_activities")
 }
 
 model WatermarkConfig {

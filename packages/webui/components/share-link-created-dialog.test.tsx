@@ -52,6 +52,8 @@ const sampleShare: ShareLinkInfo = {
   rootFolderId: 'folder-share-1',
   projectId: 'proj-1',
   isExpired: false,
+  views: 0,
+  lastViewedAt: null,
   watermarkConfigId: null,
   watermarkStatus: 'disabled',
   watermarkConfig: null,

@@ -9,6 +9,8 @@ import { useMutation, useInfiniteQuery, useQuery, useQueryClient } from '@tansta
 import { useEffect, useState, useMemo } from 'react'
 import { FileBrowser } from './file-browser/file-browser'
 import { ShareSettingsSidebar } from './share-settings-sidebar'
+import { ShareActivityList } from './share-activity-list'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { FolderTree } from './folder-tree'
 import { ResizeHandle } from './resize-handle'
 import { useFileSystemDnd } from './use-file-system-dnd'
@@ -354,13 +356,30 @@ export default function ShareManager({
                 }
               />
               <div style={{ width: rightSidebarWidth }} className="flex-shrink-0 h-full">
-                <ShareSettingsSidebar
-                  shareLink={shareLink}
-                  viewMode={displayStyle}
-                  onViewModeChange={(mode) => updateShare({ viewMode: mode })}
-                  defaultSortOrder={defaultSortOrder}
-                  onSortOrderChange={(sortOrder) => updateShare({ defaultSortOrder: sortOrder })}
-                />
+                <Tabs defaultValue="settings" className="flex h-full min-h-0 flex-col px-2 py-1">
+                  <TabsList className="w-full shrink-0">
+                    <TabsTrigger value="settings" className="flex-1">
+                      {m.settings()}
+                    </TabsTrigger>
+                    <TabsTrigger value="activity" className="flex-1">
+                      {m.activity()}
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="settings" className="min-h-0 flex-1 overflow-hidden">
+                    <ShareSettingsSidebar
+                      shareLink={shareLink}
+                      viewMode={displayStyle}
+                      onViewModeChange={(mode) => updateShare({ viewMode: mode })}
+                      defaultSortOrder={defaultSortOrder}
+                      onSortOrderChange={(sortOrder) =>
+                        updateShare({ defaultSortOrder: sortOrder })
+                      }
+                    />
+                  </TabsContent>
+                  <TabsContent value="activity" className="flex min-h-0 flex-1 flex-col">
+                    <ShareActivityList shareId={shareId} />
+                  </TabsContent>
+                </Tabs>
               </div>
             </>
           )}

@@ -4,9 +4,15 @@ import shareRoute from './share'
 import publicShareRoute from './public-share'
 import { authMiddleware } from './middleware/auth'
 import { shareService } from '@shumai/core/src/share/share'
+import { shareActivityService } from '@shumai/core/src/share/share-activity'
+import { HTTPException } from 'hono/http-exception'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
-import { ShareLinkPasswordInvalidError, ShareLinkExpiredError } from '@shumai/core/src/share/errors'
+import {
+  ShareLinkPasswordInvalidError,
+  ShareLinkExpiredError,
+  ShareLinkNotFoundError,
+} from '@shumai/core/src/share/errors'
 import { createGuestToken } from '@shumai/core/src/auth/guest-token'
 import { userService } from '@shumai/core/src/user/user'
 import { notificationService } from '@shumai/core/src/notification/notification'
@@ -93,6 +99,82 @@ describe('Share API', () => {
   })
 
   // Public Routes
+  describe('POST /shares/:shareId/views', () => {
+    test('attributes an authorized asset view to a verified guest', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        rootFolderId: 'folder1',
+      } as Awaited<ReturnType<typeof shareService.verifyPublicAccess>>)
+      vi.spyOn(assetService, 'resolveLatestVersionId').mockResolvedValue('asset1')
+      vi.spyOn(userService, 'getUserById').mockResolvedValue({
+        id: 'guest1',
+        guestEmail: 'alice@example.com',
+      } as Awaited<ReturnType<typeof userService.getUserById>>)
+      const record = vi.spyOn(shareActivityService, 'recordView').mockResolvedValue(undefined)
+      const token = createGuestToken({ userId: 'guest1', shareId: 'share1' })
+
+      const res = await app.request('/shares/share1/views', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-share-password': 'pass',
+          Cookie: `shumai_guest_share1=${token}`,
+        },
+        body: JSON.stringify({ assetId: 'alias1', isShareEntry: true }),
+      })
+
+      expect(res.status).toBe(204)
+      expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('share1', 'alias1', 'pass')
+      expect(record).toHaveBeenCalledWith('share1', {
+        assetId: 'asset1',
+        isShareEntry: true,
+        userId: 'guest1',
+      })
+    })
+
+    test('a rejected view leaves the counter and history alone', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockRejectedValue(
+        new ShareLinkPasswordInvalidError('Incorrect password'),
+      )
+      const record = vi.spyOn(shareActivityService, 'recordView').mockResolvedValue(undefined)
+      const res = await app.request('/shares/share1/views', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+
+      expect(res.status).toBe(401)
+      expect(record).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('GET /shares/:shareId/activities', () => {
+    test('returns the requested page to a share reader', async () => {
+      const list = vi.spyOn(shareActivityService, 'list').mockResolvedValue({
+        data: [],
+        pageInfo: { total: 0 },
+      })
+      const res = await app.request('/shares/share1/activities?first=20')
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ data: [], pageInfo: { total: 0 } })
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'share1',
+          permission: Permission.Read,
+          type: ResourceType.Share,
+        }),
+      )
+      expect(list).toHaveBeenCalledWith('share1', { first: 20 })
+    })
+
+    test('denies access to activity without share read permission', async () => {
+      vi.mocked(authzService.hasPermission).mockRejectedValueOnce(new HTTPException(403))
+      const list = vi.spyOn(shareActivityService, 'list')
+      const res = await app.request('/shares/share1/activities')
+      expect(res.status).toBe(403)
+      expect(list).not.toHaveBeenCalled()
+    })
+  })
+
   describe('GET /shares/:shareId/info', () => {
     test('Success', async () => {
       vi.spyOn(shareService, 'getShareLink').mockResolvedValue({
@@ -101,6 +183,8 @@ describe('Share API', () => {
         isDisabled: false,
         allowDownload: false,
         isExpired: false,
+        views: 0,
+        lastViewedAt: null,
         hasPassword: true,
         rootFolderId: 'folder1',
         projectId: 'project1',
@@ -134,6 +218,8 @@ describe('Share API', () => {
         isDisabled: false,
         allowDownload: false,
         isExpired: false,
+        views: 0,
+        lastViewedAt: null,
         hasPassword: true,
         rootFolderId: 'folder1',
         projectId: 'project1',
@@ -161,6 +247,8 @@ describe('Share API', () => {
         isDisabled: false,
         allowDownload: false,
         isExpired: false,
+        views: 0,
+        lastViewedAt: null,
         hasPassword: true,
         rootFolderId: 'folder1',
         projectId: 'project1',
@@ -712,6 +800,8 @@ describe('Share API', () => {
         rootFolderId: 'root1',
         projectId: 'project1',
         isExpired: false,
+        views: 0,
+        lastViewedAt: null,
         hasPassword: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -756,6 +846,8 @@ describe('Share API', () => {
         rootFolderId: 'root1',
         projectId: 'project1',
         isExpired: false,
+        views: 0,
+        lastViewedAt: null,
         hasPassword: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -813,6 +905,8 @@ describe('Share API', () => {
         rootFolderId: 'root1',
         projectId: 'project1',
         isExpired: false,
+        views: 0,
+        lastViewedAt: null,
         hasPassword: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -844,6 +938,8 @@ describe('Share API', () => {
         rootFolderId: 'root1',
         projectId: 'project1',
         isExpired: false,
+        views: 0,
+        lastViewedAt: null,
         hasPassword: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -888,6 +984,8 @@ describe('Share API', () => {
         rootFolderId: 'root1',
         projectId: 'project1',
         isExpired: false,
+        views: 0,
+        lastViewedAt: null,
         hasPassword: false,
         watermarkStatus: 'processing',
         watermarkConfigId: 'cfg1',
@@ -976,12 +1074,60 @@ describe('Share API', () => {
   })
 
   describe('POST /shares/:shareId/files/:fileId/download-url', () => {
+    test('requires share access to the concrete asset selected for download', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess')
+        .mockResolvedValueOnce({
+          allowDownload: true,
+        } as Awaited<ReturnType<typeof shareService.verifyPublicAccess>>)
+        .mockRejectedValueOnce(new ShareLinkNotFoundError('Asset is not shared'))
+      vi.spyOn(assetService, 'getDownloadUrlWithAsset').mockResolvedValue({
+        url: 'https://s3.example.com/download',
+        assetId: 'unshared',
+      })
+      const record = vi.spyOn(shareActivityService, 'recordEvent').mockResolvedValue(undefined)
+      const res = await app.request('/shares/share1/files/file1/download-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'files/download.png' }),
+      })
+
+      expect(res.status).toBe(404)
+      expect(await res.json()).toEqual({ error: 'Asset is not shared' })
+      expect(record).not.toHaveBeenCalled()
+    })
+
+    test.each(['prepare', 'clipboard'])(
+      'does not count a URL requested for %s',
+      async (purpose) => {
+        vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+          allowDownload: true,
+        } as Awaited<ReturnType<typeof shareService.verifyPublicAccess>>)
+        vi.spyOn(assetService, 'getDownloadUrlWithAsset').mockResolvedValue({
+          url: 'https://s3.example.com/download',
+          assetId: 'target1',
+        })
+        const record = vi.spyOn(shareActivityService, 'recordEvent').mockResolvedValue(undefined)
+        const res = await app.request('/shares/share1/files/symlink1/download-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'files/target1/fly.png', purpose }),
+        })
+
+        expect(res.status).toBe(200)
+        expect(record).not.toHaveBeenCalled()
+      },
+    )
+
     test('Success for symlink asset in share', async () => {
       vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
         allowDownload: true,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)
-      vi.spyOn(assetService, 'getDownloadUrl').mockResolvedValue('https://s3.example.com/download')
+      vi.spyOn(assetService, 'getDownloadUrlWithAsset').mockResolvedValue({
+        url: 'https://s3.example.com/download',
+        assetId: 'target1',
+      })
+      const record = vi.spyOn(shareActivityService, 'recordEvent').mockResolvedValue(undefined)
 
       const res = await app.request('/shares/share1/files/symlink1/download-url', {
         method: 'POST',
@@ -993,7 +1139,15 @@ describe('Share API', () => {
       const body = await res.json()
       expect(body.url).toBe('https://s3.example.com/download')
       expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('share1', 'symlink1', undefined)
-      expect(assetService.getDownloadUrl).toHaveBeenCalledWith('symlink1', 'files/target1/fly.png')
+      expect(assetService.getDownloadUrlWithAsset).toHaveBeenCalledWith(
+        'symlink1',
+        'files/target1/fly.png',
+      )
+      expect(record).toHaveBeenCalledWith('share1', {
+        kind: 'asset_downloaded',
+        assetId: 'target1',
+        userId: undefined,
+      })
     })
 
     test('Rejects when allowDownload is disabled', async () => {
@@ -1004,8 +1158,8 @@ describe('Share API', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)
       const getDownloadUrlSpy = vi
-        .spyOn(assetService, 'getDownloadUrl')
-        .mockResolvedValue('https://s3.example.com/download')
+        .spyOn(assetService, 'getDownloadUrlWithAsset')
+        .mockResolvedValue({ url: 'https://s3.example.com/download', assetId: 'target1' })
 
       const res = await app.request('/shares/share1/files/symlink1/download-url', {
         method: 'POST',
@@ -1173,6 +1327,7 @@ describe('Share API', () => {
           userId: 'guest1',
           message: 'hello from alice',
         }),
+        { shareLinkId: 'share1' },
       )
     })
 

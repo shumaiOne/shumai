@@ -1,4 +1,5 @@
 import { client } from '@/ui/api/client'
+import { requestShareDownload } from '@/ui/api/share-download'
 import DrawingCanvas from '@/ui/components/drawing-canvas'
 import { useScreenSize } from '@/ui/hooks/useScreenSize'
 import { getBestTranscode } from '@/ui/lib/media'
@@ -118,10 +119,7 @@ export const CompareImagePane = forwardRef<ComparePaneHandle, CompareImagePanePr
       if (!key || !file.id) return
       try {
         const res = shareId
-          ? await client.api.shares[':shareId'].files[':fileId']['download-url'].$post({
-              param: { shareId, fileId: file.id },
-              json: { key },
-            })
+          ? await requestShareDownload(shareId, file.id, key)
           : await client.api.files['download-url'].$post({
               json: { key, assetId: file.id },
             })

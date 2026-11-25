@@ -419,6 +419,8 @@ describe('BreadcrumbNav component', () => {
               rootFolderId: 'rf-1',
               projectId: 'proj-1',
               isExpired: false,
+              views: 0,
+              lastViewedAt: null,
               createdAt: '2026-11-24T00:00:00.000Z',
               updatedAt: '2026-11-24T00:00:00.000Z',
             },
