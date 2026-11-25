@@ -16,10 +16,16 @@ import {
   Loader2,
   Printer,
 } from 'lucide-react'
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import { parseAnnotations } from './annotation-overlay-svg'
 import { CommentFrameThumbnail } from './comment-frame-thumbnail'
+import {
+  fitHeaderThumbnailBox,
+  HEADER_MAX_HEIGHT,
+  resolveAssetDisplayDimensions,
+  type Dimensions,
+} from './sizing'
 
 export type PrintSortMode = 'position' | 'oldest' | 'newest'
 
@@ -130,6 +136,66 @@ function renderPlainCommentText(comment: CommentInfo): React.ReactNode {
     }
     return <React.Fragment key={index}>{part}</React.Fragment>
   })
+}
+
+interface HeaderThumbnailProps {
+  url: string | null
+  proxyType: string | null
+  initialDimensions: Dimensions | null
+}
+
+const HeaderThumbnail: React.FC<HeaderThumbnailProps> = ({ url, proxyType, initialDimensions }) => {
+  const [naturalSize, setNaturalSize] = useState<Dimensions | null>(initialDimensions)
+  const imgRef = useRef<HTMLImageElement>(null)
+
+  useEffect(() => {
+    setNaturalSize(initialDimensions)
+    const img = imgRef.current
+    if (img && img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
+      setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight })
+    }
+  }, [url, initialDimensions])
+
+  if (!url) {
+    return (
+      <div
+        className="flex shrink-0 items-center justify-center overflow-hidden rounded-sm border border-border bg-muted/40"
+        style={{ width: HEADER_MAX_HEIGHT, height: HEADER_MAX_HEIGHT }}
+        data-testid="print-header-thumbnail"
+      >
+        {proxyType === 'audio' ? (
+          <FileAudio className="h-5 w-5 text-muted-foreground" />
+        ) : proxyType === 'pdf' ? (
+          <FileText className="h-5 w-5 text-muted-foreground" />
+        ) : (
+          <FileIcon className="h-5 w-5 text-muted-foreground" />
+        )}
+      </div>
+    )
+  }
+
+  const { width, height } = fitHeaderThumbnailBox(naturalSize)
+
+  return (
+    <div
+      className="flex shrink-0 items-center justify-center overflow-hidden rounded-sm border border-border transparency-checkerboard"
+      style={{ width, height }}
+      data-testid="print-header-thumbnail"
+    >
+      <img
+        ref={imgRef}
+        src={url}
+        alt=""
+        onLoad={(e) => {
+          const img = e.currentTarget
+          if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+            setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight })
+          }
+        }}
+        className="block h-full w-full"
+      />
+    </div>
+  )
 }
 
 export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
@@ -255,6 +321,7 @@ export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
   }, [proxyType])
 
   const headerThumbUrl = useMemo(() => getHeaderThumbnailUrl(asset), [asset])
+  const assetDimensions = useMemo(() => resolveAssetDisplayDimensions(asset), [asset])
   const { head: nameHead, tail: nameTail } = splitMiddleTruncate(asset.name || '')
   const creatorAndDate = [asset.creator?.name, formatShortDate(asset.createdAt)]
     .filter(Boolean)
@@ -274,6 +341,7 @@ export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
         key={url}
         src={url}
         annotations={annotations}
+        initialDimensions={assetDimensions}
         onStatusChange={() =>
           setSettledFrameUrls((prev) =>
             prev[commentId] === url ? prev : { ...prev, [commentId]: url },
@@ -524,20 +592,11 @@ export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
       <div className="mx-auto max-w-[860px] px-6 py-8 print:max-w-none print:px-0 print:py-0">
         {/* Document Header */}
         <header className="flex items-center gap-4 pb-5">
-          <div
-            className="flex shrink-0 items-center justify-center overflow-hidden rounded-sm border border-border transparency-checkerboard"
-            style={{ width: 96, height: 54 }}
-          >
-            {headerThumbUrl ? (
-              <img src={headerThumbUrl} alt="" className="h-full w-full object-contain" />
-            ) : proxyType === 'audio' ? (
-              <FileAudio className="h-5 w-5 text-muted-foreground" />
-            ) : proxyType === 'pdf' ? (
-              <FileText className="h-5 w-5 text-muted-foreground" />
-            ) : (
-              <FileIcon className="h-5 w-5 text-muted-foreground" />
-            )}
-          </div>
+          <HeaderThumbnail
+            url={headerThumbUrl}
+            proxyType={proxyType}
+            initialDimensions={assetDimensions}
+          />
 
           <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5">
             {/* Top row: Breadcrumbs + Shumai Logo */}

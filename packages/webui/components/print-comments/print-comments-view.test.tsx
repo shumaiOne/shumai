@@ -4,6 +4,11 @@ import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AssetInfo, CommentInfo } from '@shumai/dtos'
 import { PrintCommentsView } from './print-comments-view'
+import {
+  computeCommentFrameBox,
+  fitHeaderThumbnailBox,
+  resolveAssetDisplayDimensions,
+} from './sizing'
 
 function makeComment(overrides: Partial<CommentInfo> = {}): CommentInfo {
   return {
@@ -367,5 +372,130 @@ describe('PrintCommentsView', () => {
 
     expect(screen.getByTestId('print-frame-error').textContent).toContain('Frame unavailable')
     expect(screen.queryByTestId('print-frames-progress')).toBeNull()
+  })
+
+  it('sizes header and comment frame containers tightly with zero padding across aspect ratios', () => {
+    const cases: Array<{
+      label: string
+      w: number
+      h: number
+      headerW: number
+      headerH: number
+      frameW: number
+      frameH: number
+    }> = [
+      { label: '16:9', w: 1920, h: 1080, headerW: 96, headerH: 54, frameW: 200, frameH: 113 },
+      { label: '9:16', w: 1080, h: 1920, headerW: 30, headerH: 54, frameW: 200, frameH: 356 },
+      {
+        label: '9:16 (704x1280)',
+        w: 704,
+        h: 1280,
+        headerW: 30,
+        headerH: 54,
+        frameW: 200,
+        frameH: 364,
+      },
+      { label: '4:3', w: 1440, h: 1080, headerW: 72, headerH: 54, frameW: 200, frameH: 150 },
+      { label: '3:4', w: 1080, h: 1440, headerW: 41, headerH: 54, frameW: 200, frameH: 267 },
+      { label: '1:1', w: 1080, h: 1080, headerW: 54, headerH: 54, frameW: 200, frameH: 200 },
+      { label: '21:9', w: 2560, h: 1080, headerW: 96, headerH: 41, frameW: 200, frameH: 84 },
+    ]
+
+    for (const c of cases) {
+      expect(fitHeaderThumbnailBox({ width: c.w, height: c.h })).toEqual({
+        width: c.headerW,
+        height: c.headerH,
+      })
+      expect(computeCommentFrameBox({ width: c.w, height: c.h })).toEqual({
+        width: c.frameW,
+        height: c.frameH,
+      })
+    }
+
+    // Rotation metadata swaps raw dimensions when transcodes are absent
+    const rotatedAsset: AssetInfo = {
+      ...videoAsset,
+      preview: {
+        thumbnailUrl: 'https://example.com/thumb.jpg',
+        originalWidth: 1920,
+        originalHeight: 1080,
+        rotation: 90,
+      },
+      media: {
+        proxyType: 'video',
+        imageTranscodes: [],
+        videoTranscodes: [],
+      },
+    }
+    expect(resolveAssetDisplayDimensions(rotatedAsset)).toEqual({ width: 1080, height: 1920 })
+
+    // Verify DOM container styles & SVG viewBox on a 9:16 portrait video
+    const portraitAsset: AssetInfo = {
+      ...videoAsset,
+      preview: {
+        thumbnailUrl: 'https://example.com/portrait-thumb.jpg',
+        originalWidth: 704,
+        originalHeight: 1280,
+      },
+      media: {
+        proxyType: 'video',
+        imageTranscodes: [],
+        videoTranscodes: [
+          {
+            id: 'v1',
+            key: 'k1',
+            url: 'https://example.com/v.mp4',
+            width: 704,
+            height: 1280,
+            size: 1000,
+          },
+        ],
+        metadata: { frameRate: 24 },
+      },
+    }
+
+    const { container } = render(
+      <PrintCommentsView
+        asset={portraitAsset}
+        breadcrumbs={['Project']}
+        comments={[
+          makeComment({
+            id: 'c-portrait',
+            second: 1.2,
+            annotations: [
+              {
+                type: 'box',
+                color: '#ef4444',
+                points: [
+                  [0.1, 0.1],
+                  [0.9, 0.9],
+                ],
+              },
+            ],
+          }),
+        ]}
+      />,
+    )
+
+    // Before image loads, containers already size to metadata aspect ratio (no layout shift)
+    const headerBox = screen.getByTestId('print-header-thumbnail')
+    expect(headerBox.style.width).toBe('30px')
+    expect(headerBox.style.height).toBe('54px')
+
+    const frameBox = screen.getByTestId('print-comment-frame')
+    expect(frameBox.style.width).toBe('200px')
+    expect(frameBox.style.height).toBe('364px')
+
+    // When a frame loads with different actual dimensions (e.g. a 3:4 page), container & SVG update
+    const frameImg = container.querySelector('[data-testid="print-comment-frame"] img')!
+    Object.defineProperty(frameImg, 'naturalWidth', { value: 300, configurable: true })
+    Object.defineProperty(frameImg, 'naturalHeight', { value: 400, configurable: true })
+    fireEvent.load(frameImg)
+
+    expect(frameBox.style.width).toBe('200px')
+    expect(frameBox.style.height).toBe('267px')
+    expect(screen.getByTestId('print-annotation-overlay').getAttribute('viewBox')).toBe(
+      '0 0 200 267',
+    )
   })
 })
