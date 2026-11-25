@@ -1,14 +1,17 @@
 import { Hono } from 'hono'
 import type { Context } from 'hono'
+import { HTTPException } from 'hono/http-exception'
 import { getCookie } from 'hono/cookie'
 import { zValidator } from '@hono/zod-validator'
 import { shareService } from '@shumai/core/src/share/share'
 import { shareActivityService } from '@shumai/core/src/share/share-activity'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { commentFrameService } from '@shumai/core/src/comment/comment-frame'
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import {
   paginationParamsSchema,
   assetTypeFilterSchema,
+  commentFrameQuerySchema,
   recordShareViewRequestSchema,
 } from '@shumai/dtos'
 import { z } from 'zod'
@@ -396,6 +399,89 @@ const route = app
         const res = await assetService.listComments(targetFileId, req, userId)
         return c.json(res)
       } catch (err) {
+        return handlePublicShareError(c, err)
+      }
+    },
+  )
+  .get('/shares/:shareId/files/:fileId/comments/print', async (c) => {
+    const shareId = c.req.param('shareId')
+    const fileId = c.req.param('fileId')
+    const password = c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
+
+    try {
+      const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
+      let asset = await assetService.getAsset({ assetId: fileId })
+      const targetAssetId = await assetService.resolveLatestVersionId(fileId)
+
+      if (
+        shareLink.watermarkConfigId &&
+        (asset.proxyType === 'video' || asset.proxyType === 'image' || asset.proxyType === '3d')
+      ) {
+        const wfMap = await watermarkService.getCompletedWatermarkMediaMap(
+          [targetAssetId],
+          shareLink.watermarkConfigId,
+        )
+        asset = await applyWatermarkToAssetMedia(
+          asset,
+          wfMap.get(targetAssetId) ?? null,
+          shareLink.id,
+          password,
+        )
+      }
+
+      const targetFileId = await assetService.resolveTargetAssetId(fileId)
+      const userId = await getPublicShareUserId(c, shareId)
+      const comments = await assetService.listAllComments(targetFileId, userId)
+
+      // Scope breadcrumbs strictly to folders inside the share link root so private
+      // project and parent folder names are never leaked.
+      const ancestors = asset.ancestorFolders ?? []
+      const rootIndex = ancestors.findIndex((f) => f.id === shareLink.rootFolderId)
+      const scopedFolders = (rootIndex !== -1 ? ancestors.slice(0, rootIndex) : [])
+        .slice()
+        .reverse()
+        .map((f) => f.name)
+        .filter((name): name is string => Boolean(name))
+      const breadcrumbs = shareLink.name ? [shareLink.name, ...scopedFolders] : scopedFolders
+
+      return c.json({
+        asset,
+        breadcrumbs,
+        comments,
+      })
+    } catch (err) {
+      return handlePublicShareError(c, err)
+    }
+  })
+  .get(
+    '/shares/:shareId/files/:fileId/comments/frame',
+    zValidator('query', commentFrameQuerySchema),
+    async (c) => {
+      const shareId = c.req.param('shareId')
+      const fileId = c.req.param('fileId')
+      const password =
+        c.req.header('x-share-password') || c.req.query('password') || c.req.query('p')
+      const { second, width } = c.req.valid('query')
+
+      try {
+        const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
+        const targetFileId = await assetService.resolveTargetAssetId(fileId)
+        const result = await commentFrameService.extractFrame({
+          assetId: targetFileId,
+          second,
+          width,
+          watermarkConfigId: shareLink.watermarkConfigId,
+          signal: c.req.raw.signal,
+        })
+
+        return c.body(new Uint8Array(result.buffer), 200, {
+          'Content-Type': result.mimeType,
+          'Cache-Control': 'private, max-age=300',
+        })
+      } catch (err) {
+        if (err instanceof HTTPException) {
+          throw err
+        }
         return handlePublicShareError(c, err)
       }
     },

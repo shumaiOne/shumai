@@ -88,6 +88,15 @@ export function FileViewerRightSidebar({
     second?: number | null
   } | null>(null)
 
+  const handlePrintComments = () => {
+    if (!file?.id) return
+    const url =
+      isPublic && shareId
+        ? `/print/comments/${encodeURIComponent(file.id)}?shareId=${encodeURIComponent(shareId)}`
+        : `/print/comments/${encodeURIComponent(file.id)}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
   const handleExportComments = async (format: CommentExportFormat) => {
     if (!file?.id || isExporting) return
     try {
@@ -361,21 +370,21 @@ export function FileViewerRightSidebar({
           </TabsTrigger>
         </TabsList>
         <TabsContent value="comments" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-0">
-          {!isPublic && (
-            <div className="flex items-center justify-between px-1 py-1.5 shrink-0 border-b border-border/50">
-              <span className="text-xs font-semibold text-foreground">{m.all_comments()}</span>
-              <DropdownMenu modal={false}>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
-                    aria-label={m.more_options()}
-                  >
-                    <MoreHorizontal className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+          <div className="flex items-center justify-between px-1 py-1.5 shrink-0 border-b border-border/50">
+            <span className="text-xs font-semibold text-foreground">{m.all_comments()}</span>
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+                  aria-label={m.more_options()}
+                >
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {!isPublic && (
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger className="cursor-pointer">
                       <span>{m.export_comments()}</span>
@@ -396,10 +405,13 @@ export function FileViewerRightSidebar({
                       ))}
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
+                )}
+                <DropdownMenuItem className="cursor-pointer" onClick={handlePrintComments}>
+                  <span>{m.print_comments()}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <ScrollArea className="flex-1 min-h-0 [&>div>div]:block!">
             <div className="space-y-4 pt-2">
               {comments.map((comment) => (

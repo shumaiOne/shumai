@@ -24,6 +24,7 @@ import { Route as TeamsTeamIdDashboardRouteImport } from './routes/teams/$teamId
 import { Route as ProjectsProjectIdRecentsRouteImport } from './routes/projects/$projectId/recents'
 import { Route as ProjectsProjectIdRecentlyDeletedRouteImport } from './routes/projects/$projectId/recently-deleted'
 import { Route as ProjectsProjectIdAgentsmdRouteImport } from './routes/projects/$projectId/agentsmd'
+import { Route as PrintCommentsAssetIdRouteImport } from './routes/print/comments/$assetId'
 import { Route as ProjectsProjectIdSharesIndexRouteImport } from './routes/projects/$projectId/shares/index'
 import { Route as ProjectsProjectIdCollectionsIndexRouteImport } from './routes/projects/$projectId/collections/index'
 import { Route as ShareShareIdFoldersFolderIdRouteImport } from './routes/share/$shareId/folders/$folderId'
@@ -111,6 +112,11 @@ const ProjectsProjectIdAgentsmdRoute = ProjectsProjectIdAgentsmdRouteImport.upda
   path: '/projects/$projectId/agentsmd',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/projects/$projectId/agentsmd.lazy').then((d) => d.Route))
+const PrintCommentsAssetIdRoute = PrintCommentsAssetIdRouteImport.update({
+  id: '/print/comments/$assetId',
+  path: '/print/comments/$assetId',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/print/comments/$assetId.lazy').then((d) => d.Route))
 const ProjectsProjectIdSharesIndexRoute = ProjectsProjectIdSharesIndexRouteImport.update({
   id: '/projects/$projectId/shares/',
   path: '/projects/$projectId/shares/',
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
+  '/print/comments/$assetId': typeof PrintCommentsAssetIdRoute
   '/projects/$projectId/agentsmd': typeof ProjectsProjectIdAgentsmdRoute
   '/projects/$projectId/recently-deleted': typeof ProjectsProjectIdRecentlyDeletedRoute
   '/projects/$projectId/recents': typeof ProjectsProjectIdRecentsRoute
@@ -201,6 +208,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/print/comments/$assetId': typeof PrintCommentsAssetIdRoute
   '/projects/$projectId/agentsmd': typeof ProjectsProjectIdAgentsmdRoute
   '/projects/$projectId/recently-deleted': typeof ProjectsProjectIdRecentlyDeletedRoute
   '/projects/$projectId/recents': typeof ProjectsProjectIdRecentsRoute
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
+  '/print/comments/$assetId': typeof PrintCommentsAssetIdRoute
   '/projects/$projectId/agentsmd': typeof ProjectsProjectIdAgentsmdRoute
   '/projects/$projectId/recently-deleted': typeof ProjectsProjectIdRecentlyDeletedRoute
   '/projects/$projectId/recents': typeof ProjectsProjectIdRecentsRoute
@@ -256,6 +265,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/share/$shareId'
+    | '/print/comments/$assetId'
     | '/projects/$projectId/agentsmd'
     | '/projects/$projectId/recently-deleted'
     | '/projects/$projectId/recents'
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/print/comments/$assetId'
     | '/projects/$projectId/agentsmd'
     | '/projects/$projectId/recently-deleted'
     | '/projects/$projectId/recents'
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/share/$shareId'
+    | '/print/comments/$assetId'
     | '/projects/$projectId/agentsmd'
     | '/projects/$projectId/recently-deleted'
     | '/projects/$projectId/recents'
@@ -334,6 +346,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   ShareShareIdRoute: typeof ShareShareIdRouteWithChildren
+  PrintCommentsAssetIdRoute: typeof PrintCommentsAssetIdRoute
   ProjectsProjectIdAgentsmdRoute: typeof ProjectsProjectIdAgentsmdRoute
   ProjectsProjectIdRecentlyDeletedRoute: typeof ProjectsProjectIdRecentlyDeletedRoute
   ProjectsProjectIdRecentsRoute: typeof ProjectsProjectIdRecentsRoute
@@ -458,6 +471,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdAgentsmdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/print/comments/$assetId': {
+      id: '/print/comments/$assetId'
+      path: '/print/comments/$assetId'
+      fullPath: '/print/comments/$assetId'
+      preLoaderRoute: typeof PrintCommentsAssetIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/$projectId/shares/': {
       id: '/projects/$projectId/shares/'
       path: '/projects/$projectId/shares'
@@ -545,6 +565,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   ShareShareIdRoute: ShareShareIdRouteWithChildren,
+  PrintCommentsAssetIdRoute: PrintCommentsAssetIdRoute,
   ProjectsProjectIdAgentsmdRoute: ProjectsProjectIdAgentsmdRoute,
   ProjectsProjectIdRecentlyDeletedRoute: ProjectsProjectIdRecentlyDeletedRoute,
   ProjectsProjectIdRecentsRoute: ProjectsProjectIdRecentsRoute,
