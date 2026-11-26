@@ -333,6 +333,7 @@ export function FileBrowserListView({
     ),
     overscan: 10,
     paddingEnd: 240,
+    useFlushSync: false,
   })
 
   const virtualItems = rowVirtualizer.getVirtualItems()
