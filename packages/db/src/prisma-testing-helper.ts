@@ -217,6 +217,10 @@ export class PrismaTestingHelper<
     return this.proxyClient
   }
 
+  public getUnderlyingClient(): T {
+    return this.prismaClient
+  }
+
   public async startNewTransaction(opts?: { timeout?: number; maxWait?: number }): Promise<void> {
     if (this.endCurrentTransactionPromise != null) {
       throw new Error(

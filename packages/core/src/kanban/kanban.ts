@@ -7,6 +7,7 @@ import { paginateQuery } from '../pagination'
 import { getAvatarUrl } from '../user/avatar'
 import { s3Service } from '../s3/s3'
 import { getProxyType } from '../utils/mime'
+import { sanitizeFilename } from '../utils/filename'
 import { assetService } from '../asset/asset'
 import type {
   CreateKanbanGoalRequest,
@@ -27,6 +28,73 @@ import type {
   KanbanGoalInfo,
 } from '@shumai/dtos'
 import { UNASSIGNED_GOAL_ID } from '@shumai/dtos'
+
+type TaskEventWithActor = Prisma.KanbanTaskEventGetPayload<{ include: { actor: true } }>
+
+function dependencyEventParentId(event: TaskEventWithActor): string | undefined {
+  if (
+    event.type === KanbanTaskEventType.DEPENDENCY_ADDED ||
+    event.type === KanbanTaskEventType.DEPENDENCY_REMOVED
+  ) {
+    const parentId = event.data?.parentId
+    if (typeof parentId === 'string') return parentId
+  }
+}
+
+function taskRelationCountSelect(
+  taskFilter: Prisma.KanbanTaskWhereInput | undefined,
+): Prisma.KanbanTaskCountOutputTypeSelect {
+  return {
+    comments: true,
+    assets: true,
+    dependencies: taskFilter ? { where: { parent: taskFilter } } : true,
+    dependents: taskFilter ? { where: { child: taskFilter } } : true,
+  }
+}
+
+const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/
+
+function isSafeKeySegment(segment: string): boolean {
+  // eslint-disable-next-line no-control-regex
+  return segment !== '' && segment !== '.' && segment !== '..' && !/[\\\x00-\x1f\x7f]/.test(segment)
+}
+
+/**
+ * Parses a comment attachment key issued by `createAttachment`:
+ * `kanban/attachments/<teamId>/<uploaderId>/<ulid>/<file name>`.
+ */
+function parseAttachmentKey(key: string): { teamId: string; uploaderId: string } | null {
+  const parts = key.split('/')
+  if (
+    parts.length !== 6 ||
+    parts[0] !== 'kanban' ||
+    parts[1] !== 'attachments' ||
+    !isSafeKeySegment(parts[2]) ||
+    !isSafeKeySegment(parts[3]) ||
+    !ULID_PATTERN.test(parts[4]) ||
+    !isSafeKeySegment(parts[5])
+  ) {
+    return null
+  }
+  return { teamId: parts[2], uploaderId: parts[3] }
+}
+
+/** Keys of comment attachments stored before keys carried the team and uploader. */
+function isLegacyAttachmentKey(key: string): boolean {
+  const parts = key.split('/')
+  return (
+    parts.length === 4 &&
+    parts[0] === 'kanban' &&
+    parts[1] === 'attachments' &&
+    ULID_PATTERN.test(parts[2]) &&
+    isSafeKeySegment(parts[3])
+  )
+}
+
+/** Whether a stored attachment key may be signed for a comment on a task in `teamId`. */
+function isReadableAttachmentKey(key: string, teamId: string): boolean {
+  return parseAttachmentKey(key)?.teamId === teamId || isLegacyAttachmentKey(key)
+}
 
 export class KanbanService {
   // --------------------------------------------------------------------------
@@ -314,7 +382,7 @@ export class KanbanService {
     })
   }
 
-  async getTask(taskId: string): Promise<KanbanTaskDetail> {
+  async getTask(taskId: string, viewerId?: string): Promise<KanbanTaskDetail> {
     const task = await prisma.kanbanTask.findUnique({
       where: { id: taskId },
       include: {
@@ -354,27 +422,38 @@ export class KanbanService {
       throw new HTTPException(404, { message: 'Task not found' })
     }
 
+    const readableIds = await this.readableRelatedTaskIds(task.teamId, viewerId, [
+      ...task.dependencies.map((link) => link.parentId),
+      ...task.dependents.map((link) => link.childId),
+      ...task.events.map(dependencyEventParentId).filter((id) => id !== undefined),
+    ])
+    const dependencies = task.dependencies.filter(
+      (link) => !readableIds || readableIds.has(link.parentId),
+    )
+    const dependents = task.dependents.filter(
+      (link) => !readableIds || readableIds.has(link.childId),
+    )
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, task.status)
     const resolvedAssets = await this.resolveTaskAssetInfos(task.assets)
 
     const baseInfo = await this.toTaskInfo(task, {
       latestStatusEvent,
-      dependencyCount: task.dependencies.length,
-      dependentCount: task.dependents.length,
+      dependencyCount: dependencies.length,
+      dependentCount: dependents.length,
       commentCount: task.comments.length,
       assetCount: task.assets.length,
     })
 
     return {
       ...baseInfo,
-      dependencies: task.dependencies.map((d) => ({
+      dependencies: dependencies.map((d) => ({
         id: d.parent.id,
         title: d.parent.title,
         isAgentTask: d.parent.isAgentTask,
         status: d.parent.status,
         priority: d.parent.priority,
       })),
-      dependents: task.dependents.map((d) => ({
+      dependents: dependents.map((d) => ({
         id: d.child.id,
         title: d.child.title,
         isAgentTask: d.child.isAgentTask,
@@ -392,29 +471,12 @@ export class KanbanService {
             image: await getAvatarUrl(c.author.image),
           },
           body: c.body,
-          attachments: await this.resolveCommentAttachments(c.attachments),
+          attachments: await this.resolveCommentAttachments(c.attachments, task.teamId),
           createdAt: c.createdAt.toISOString(),
           updatedAt: c.updatedAt.toISOString(),
         })),
       ),
-      events: await Promise.all(
-        task.events.map(async (e) => ({
-          id: e.id,
-          taskId: e.taskId,
-          actor: e.actor
-            ? {
-                id: e.actor.id,
-                name: e.actor.name,
-                image: await getAvatarUrl(e.actor.image),
-              }
-            : null,
-          type: e.type,
-          fromStatus: e.fromStatus,
-          toStatus: e.toStatus,
-          data: (e.data as Record<string, unknown>) ?? null,
-          createdAt: e.createdAt.toISOString(),
-        })),
-      ),
+      events: await this.resolveTaskEvents(task.events, readableIds),
     }
   }
 
@@ -659,7 +721,8 @@ export class KanbanService {
     }
 
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, updated.status)
-    const counts = await this.getTaskCounts(taskId)
+    const taskFilter = await this.readableTaskFilter(updated.teamId, actorId)
+    const counts = await this.getTaskCounts(taskId, taskFilter)
 
     return await this.toTaskInfo(updated, {
       latestStatusEvent,
@@ -704,10 +767,54 @@ export class KanbanService {
     return taskInfo
   }
 
+  /**
+   * Limits kanban tasks to those a user may read. Team-scoped members see every
+   * task in the team; project-scoped members see tasks in the projects they
+   * belong to and tasks they created, report, or are assigned to.
+   */
+  private async readableTaskFilter(
+    teamId: string,
+    userId: string | undefined,
+  ): Promise<Prisma.KanbanTaskWhereInput | undefined> {
+    if (!userId) return
+    const member = await prisma.teamMember.findUnique({
+      where: { teamIdUserId: { teamId, userId } },
+    })
+    if (!member) return { id: { in: [] } }
+    if (member.scope === 'team') return
+    return {
+      teamId,
+      OR: [
+        { project: { members: { some: { teamMemberId: member.id } } } },
+        { creatorId: userId },
+        { reporterId: userId },
+        { assigneeId: userId },
+      ],
+    }
+  }
+
+  private async readableRelatedTaskIds(
+    teamId: string,
+    viewerId: string | undefined,
+    relatedIds: string[],
+  ): Promise<Set<string> | undefined> {
+    if (relatedIds.length === 0) return
+    const filter = await this.readableTaskFilter(teamId, viewerId)
+    if (!filter) return
+
+    const tasks = await prisma.kanbanTask.findMany({
+      where: { id: { in: [...new Set(relatedIds)] }, AND: [filter] },
+      select: { id: true },
+    })
+    return new Set(tasks.map((task) => task.id))
+  }
+
   async listTasks(
     teamId: string,
     params: ListKanbanTasksRequest,
+    viewerId?: string,
   ): Promise<{ data: KanbanTaskInfo[]; pageInfo: { total?: number; cursor?: string } }> {
+    const taskFilter = await this.readableTaskFilter(teamId, viewerId)
     const where: Prisma.KanbanTaskWhereInput = {
       teamId,
       ...(params.status && { status: params.status }),
@@ -721,6 +828,7 @@ export class KanbanService {
       ...(params.priority && { priority: params.priority }),
       ...(params.assigneeId && { assigneeId: params.assigneeId }),
       ...(params.reporterId && { reporterId: params.reporterId }),
+      ...(taskFilter && { AND: [taskFilter] }),
     }
 
     return await paginateQuery(
@@ -732,14 +840,7 @@ export class KanbanService {
             reporter: true,
             assignee: true,
             goal: true,
-            _count: {
-              select: {
-                comments: true,
-                dependencies: true,
-                dependents: true,
-                assets: true,
-              },
-            },
+            _count: { select: taskRelationCountSelect(taskFilter) },
           },
           orderBy: [{ sortIndex: 'asc' }, { id: 'asc' }],
           skip,
@@ -869,9 +970,10 @@ export class KanbanService {
 
   async createAttachment(
     teamId: string,
+    uploaderId: string,
     req: { fileName: string; size: number; contentType?: string },
   ): Promise<PostKanbanAttachmentResponse> {
-    const key = `kanban/attachments/${ulid()}/${req.fileName}`
+    const key = `kanban/attachments/${teamId}/${uploaderId}/${ulid()}/${sanitizeFilename(req.fileName)}`
     const uploadUrl = await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'PUT')
     const proxyType = getProxyType(req.contentType, req.fileName)
 
@@ -895,6 +997,16 @@ export class KanbanService {
     const task = await prisma.kanbanTask.findUnique({ where: { id: taskId } })
     if (!task) throw new HTTPException(404, { message: 'Task not found' })
 
+    // Attachments are uploaded through createAttachment. Only keys it issued to the
+    // comment author for this task's team may be stored and signed later.
+    const isOwnUpload = (key: string) => {
+      const parsed = parseAttachmentKey(key)
+      return parsed?.teamId === task.teamId && parsed.uploaderId === authorId
+    }
+    if (attachments?.some((att) => !isOwnUpload(att.key))) {
+      throw new HTTPException(400, { message: 'Invalid attachment' })
+    }
+
     const comment = await prisma.$transaction(async (tx) => {
       const c = await tx.kanbanTaskComment.create({
         data: {
@@ -917,7 +1029,10 @@ export class KanbanService {
       return c
     })
 
-    const resolvedAttachments = await this.resolveCommentAttachments(comment.attachments)
+    const resolvedAttachments = await this.resolveCommentAttachments(
+      comment.attachments,
+      task.teamId,
+    )
 
     return {
       id: comment.id,
@@ -935,6 +1050,12 @@ export class KanbanService {
   }
 
   async listComments(taskId: string): Promise<KanbanCommentInfo[]> {
+    const task = await prisma.kanbanTask.findUnique({
+      where: { id: taskId },
+      select: { teamId: true },
+    })
+    if (!task) throw new HTTPException(404, { message: 'Task not found' })
+
     const comments = await prisma.kanbanTaskComment.findMany({
       where: { taskId },
       include: { author: true },
@@ -951,7 +1072,7 @@ export class KanbanService {
           image: await getAvatarUrl(c.author.image),
         },
         body: c.body,
-        attachments: await this.resolveCommentAttachments(c.attachments),
+        attachments: await this.resolveCommentAttachments(c.attachments, task.teamId),
         createdAt: c.createdAt.toISOString(),
         updatedAt: c.updatedAt.toISOString(),
       })),
@@ -981,7 +1102,8 @@ export class KanbanService {
   }
 
   private async resolveCommentAttachments(
-    attachments?: PrismaJson.KanbanCommentAttachmentList | null,
+    attachments: PrismaJson.KanbanCommentAttachmentList | null | undefined,
+    teamId: string,
   ): Promise<KanbanAttachmentInfo[]> {
     if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
       return []
@@ -989,29 +1111,50 @@ export class KanbanService {
 
     const bucket = process.env.S3_BUCKET || 'shumai'
     return await Promise.all(
-      attachments.map(async (att) => {
-        const url = await s3Service.presign(bucket, att.key, 'GET')
-        return {
-          id: att.id,
-          name: att.name,
-          sizeByte: att.sizeByte,
-          contentType: att.contentType,
-          url,
-          proxyType: att.proxyType,
-        }
-      }),
+      attachments
+        .filter((att) => typeof att.key === 'string' && isReadableAttachmentKey(att.key, teamId))
+        .map(async (att) => {
+          const url = await s3Service.presign(bucket, att.key, 'GET')
+          return {
+            id: att.id,
+            name: att.name,
+            sizeByte: att.sizeByte,
+            contentType: att.contentType,
+            url,
+            proxyType: att.proxyType,
+          }
+        }),
     )
   }
 
-  async listEvents(taskId: string): Promise<KanbanEventInfo[]> {
-    const events = await prisma.kanbanTaskEvent.findMany({
-      where: { taskId },
-      include: { actor: true },
-      orderBy: { createdAt: 'desc' },
+  async listEvents(taskId: string, viewerId?: string): Promise<KanbanEventInfo[]> {
+    const task = await prisma.kanbanTask.findUnique({
+      where: { id: taskId },
+      select: {
+        teamId: true,
+        events: { include: { actor: true }, orderBy: { createdAt: 'desc' } },
+      },
+    })
+    if (!task) return []
+    const readableIds = await this.readableRelatedTaskIds(
+      task.teamId,
+      viewerId,
+      task.events.map(dependencyEventParentId).filter((id) => id !== undefined),
+    )
+    return await this.resolveTaskEvents(task.events, readableIds)
+  }
+
+  private async resolveTaskEvents(
+    events: TaskEventWithActor[],
+    readableIds: Set<string> | undefined,
+  ): Promise<KanbanEventInfo[]> {
+    const visibleEvents = events.filter((event) => {
+      const parentId = dependencyEventParentId(event)
+      return !readableIds || parentId === undefined || readableIds.has(parentId)
     })
 
     return await Promise.all(
-      events.map(async (e) => ({
+      visibleEvents.map(async (e) => ({
         id: e.id,
         taskId: e.taskId,
         actor: e.actor
@@ -1024,7 +1167,7 @@ export class KanbanService {
         type: e.type,
         fromStatus: e.fromStatus,
         toStatus: e.toStatus,
-        data: (e.data as Record<string, unknown>) ?? null,
+        data: e.data ?? null,
         createdAt: e.createdAt.toISOString(),
       })),
     )
@@ -1115,9 +1258,17 @@ export class KanbanService {
     return await this.resolveTaskAssetInfos(links)
   }
 
-  async listTasksForAsset(teamId: string, assetId: string): Promise<KanbanTaskInfo[]> {
+  async listTasksForAsset(
+    teamId: string,
+    assetId: string,
+    viewerId?: string,
+  ): Promise<KanbanTaskInfo[]> {
+    const taskFilter = await this.readableTaskFilter(teamId, viewerId)
     const links = await prisma.kanbanTaskAsset.findMany({
-      where: { assetId },
+      where: {
+        assetId,
+        task: { teamId, ...taskFilter },
+      },
       include: {
         task: {
           include: {
@@ -1125,24 +1276,15 @@ export class KanbanService {
             reporter: true,
             assignee: true,
             goal: true,
-            _count: {
-              select: {
-                comments: true,
-                dependencies: true,
-                dependents: true,
-                assets: true,
-              },
-            },
+            _count: { select: taskRelationCountSelect(taskFilter) },
           },
         },
       },
       orderBy: { createdAt: 'desc' },
     })
 
-    const matchingLinks = links.filter((l) => l.task && l.task.teamId === teamId)
-
     return await Promise.all(
-      matchingLinks.map(async (l) => {
+      links.map(async (l) => {
         const t = l.task
         const latestStatusEvent = await this.resolveLatestStatusEvent(t.id, t.status)
         return await this.toTaskInfo(t, {
@@ -1195,19 +1337,25 @@ export class KanbanService {
     }
   }
 
-  private async getTaskCounts(taskId: string): Promise<{
+  private async getTaskCounts(
+    taskId: string,
+    taskFilter?: Prisma.KanbanTaskWhereInput,
+  ): Promise<{
     commentCount: number
     dependencyCount: number
     dependentCount: number
     assetCount: number
   }> {
-    const [commentCount, dependencyCount, dependentCount, assetCount] = await Promise.all([
-      prisma.kanbanTaskComment.count({ where: { taskId } }),
-      prisma.kanbanTaskLink.count({ where: { childId: taskId } }),
-      prisma.kanbanTaskLink.count({ where: { parentId: taskId } }),
-      prisma.kanbanTaskAsset.count({ where: { taskId } }),
-    ])
-    return { commentCount, dependencyCount, dependentCount, assetCount }
+    const task = await prisma.kanbanTask.findUnique({
+      where: { id: taskId },
+      select: { _count: { select: taskRelationCountSelect(taskFilter) } },
+    })
+    return {
+      commentCount: task?._count.comments ?? 0,
+      dependencyCount: task?._count.dependencies ?? 0,
+      dependentCount: task?._count.dependents ?? 0,
+      assetCount: task?._count.assets ?? 0,
+    }
   }
 
   private async resolveTaskAssetInfos(

@@ -850,6 +850,11 @@ export class LocalStorageService implements S3Service {
   }
 
   private getFilePath(bucket: string, key: string): string {
+    // Object keys are flat names: a `..` segment must not be resolved into another
+    // object's path (S3 keeps it literally).
+    if (key.split(/[\\/]/).includes('..') || bucket.split(/[\\/]/).includes('..')) {
+      throw new Error(`Invalid path: potential path traversal detected`)
+    }
     const filePath = path.join(this.basePath, bucket, key)
     if (!filePath.startsWith(this.basePath)) {
       throw new Error(`Invalid path: potential path traversal detected`)

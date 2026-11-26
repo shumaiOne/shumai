@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from 'node:crypto'
 import { prisma } from '@shumai/db'
 import { AssetType, Prisma } from '@shumai/db'
 import {
@@ -17,6 +18,17 @@ import {
   ShareLinkExpiredError,
   ShareLinkPasswordInvalidError,
 } from './errors'
+
+/**
+ * Compares a provided share password with the stored one in constant time.
+ * Both values are hashed first so the comparison does not depend on their lengths.
+ */
+function sharePasswordMatches(stored: string, provided: string | undefined): boolean {
+  if (provided === undefined) return false
+  const a = createHash('sha256').update(stored).digest()
+  const b = createHash('sha256').update(provided).digest()
+  return timingSafeEqual(a, b)
+}
 
 export class ShareService {
   async createShareLink(
@@ -269,7 +281,7 @@ export class ShareService {
       throw new ShareLinkExpiredError('Share link has expired')
     }
 
-    if (shareLink.password && shareLink.password !== providedPassword) {
+    if (shareLink.password && !sharePasswordMatches(shareLink.password, providedPassword)) {
       throw new ShareLinkPasswordInvalidError('Invalid password for share link')
     }
 

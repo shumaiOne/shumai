@@ -1958,6 +1958,27 @@ export class AssetService {
     }
   }
 
+  private async lockCommentAttachments(
+    tx: Prisma.TransactionClient,
+    attachmentIds: string[],
+    owner?: { projectId: string | null; userId: string },
+  ): Promise<string[]> {
+    if (attachmentIds.length === 0) return []
+
+    // Lock the same rows in the same order when claiming or removing attachments.
+    const ownerFilter = owner
+      ? Prisma.sql`AND project_id IS NOT DISTINCT FROM ${owner.projectId} AND creator_id = ${owner.userId}`
+      : Prisma.empty
+    const attachments = await tx.$queryRaw<{ id: string }[]>`
+      SELECT id FROM assets
+      WHERE id IN (${Prisma.join(attachmentIds)}) AND type = 'attachment'
+      ${ownerFilter}
+      ORDER BY id
+      FOR NO KEY UPDATE
+    `
+    return attachments.map(({ id }) => id)
+  }
+
   /**
    * Creates a comment or reply. Mentions of agents (`<@agentId>`) start a chat with them
    * unless `triggerAgents` is false, which keeps an agent's own comments from starting
@@ -1990,6 +2011,10 @@ export class AssetService {
         }
       }
 
+      const attachmentIds = await this.lockCommentAttachments(tx, req.attachmentIds, {
+        projectId: a.projectId,
+        userId: req.userId,
+      })
       const comment = await tx.assetComment.create({
         data: {
           assetId: a.id,
@@ -2002,23 +2027,15 @@ export class AssetService {
       })
       commentId = comment.id
 
-      for (const attachmentId of req.attachmentIds) {
-        const attachmentAsset = await tx.asset.findUnique({
-          where: { id: attachmentId },
+      if (attachmentIds.length > 0) {
+        // Read the links after acquiring the locks to see any claims that committed while waiting.
+        const unclaimed = await tx.asset.findMany({
+          where: { id: { in: attachmentIds }, commentAttachments: { none: {} } },
+          select: { id: true },
         })
-        if (
-          attachmentAsset &&
-          (attachmentAsset.type === AssetType.attachment ||
-            attachmentAsset.type === AssetType.file) &&
-          attachmentAsset.projectId === a.projectId
-        ) {
-          await tx.assetCommentAttachment.create({
-            data: {
-              assetId: attachmentAsset.id,
-              commentId: comment.id,
-            },
-          })
-        }
+        await tx.assetCommentAttachment.createMany({
+          data: unclaimed.map(({ id }) => ({ assetId: id, commentId: comment.id })),
+        })
       }
 
       if (options.shareLinkId) {
@@ -2207,19 +2224,12 @@ export class AssetService {
   async deleteComment({ commentId, userId }: { commentId: string; userId: string }): Promise<void> {
     const comment = await this.prismaClient.assetComment.findUnique({
       where: { id: commentId },
-      include: {
-        attachments: {
-          include: {
-            asset: {
-              include: {
-                storageKey: true,
-              },
-            },
-          },
-        },
+      select: {
+        creatorId: true,
+        attachments: { select: { assetId: true } },
         asset: {
           select: {
-            project: { select: { id: true, teamId: true } },
+            project: { select: { teamId: true } },
           },
         },
       },
@@ -2257,35 +2267,19 @@ export class AssetService {
       throw new HTTPException(403, { message: 'You do not have permission to delete this comment' })
     }
 
-    // Clean up attachment files from S3/storage and delete their DB records
-    const bucket = process.env.S3_BUCKET || 'shumai'
-    for (const att of comment.attachments) {
-      const asset = att.asset
-      if (asset.storageKey) {
-        try {
-          await s3Service.deleteObject(bucket, asset.storageKey.key)
-        } catch (err) {
-          logger.error({ err, assetId: asset.id }, 'Failed to delete attachment file from S3')
-        }
+    await this.prismaClient.$transaction(async (tx) => {
+      const attachmentIds = await this.lockCommentAttachments(
+        tx,
+        comment.attachments.map(({ assetId }) => assetId),
+      )
+      await tx.assetComment.delete({ where: { id: commentId } })
+
+      if (attachmentIds.length > 0) {
+        // The storage cleanup job removes objects once every asset using their storage key is gone.
+        await tx.asset.deleteMany({
+          where: { id: { in: attachmentIds }, commentAttachments: { none: {} } },
+        })
       }
-
-      await this.prismaClient.asset.delete({
-        where: { id: asset.id },
-      })
-
-      if (asset.storageKey) {
-        await this.prismaClient.storageKey
-          .delete({
-            where: { id: asset.storageKey.id },
-          })
-          .catch(() => {
-            // Silently ignore if already deleted
-          })
-      }
-    }
-
-    await this.prismaClient.assetComment.delete({
-      where: { id: commentId },
     })
   }
 

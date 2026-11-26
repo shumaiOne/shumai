@@ -752,6 +752,18 @@ describe('S3Service implementations', () => {
       expect(size).toBe(11)
     })
 
+    it('rejects keys with parent directory segments', async () => {
+      await localS3.putObject('test-bucket', 'files/a/master.mov', 'original', 8)
+
+      await expect(
+        localS3.putObject('test-bucket', 'attachments/x/../../files/a/master.mov', 'evil', 4),
+      ).rejects.toThrow(/path traversal/)
+      await expect(
+        localS3.getObjectSize('test-bucket', 'attachments/x/..\\..\\files/a/master.mov'),
+      ).rejects.toThrow(/path traversal/)
+      expect(await localS3.getObjectSize('test-bucket', 'files/a/master.mov')).toBe(8)
+    })
+
     it('removes empty embedding chunk directories after deleting the last chunk', async () => {
       const key = 'files/asset-1/tmp-embedding-chunks/chunk.mp4'
       await localS3.putObject('test-bucket', key, 'chunk', 5)

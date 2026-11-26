@@ -595,5 +595,70 @@ describe('AuthzService', () => {
         }),
       ).rejects.toThrow('Permission denied')
     })
+
+    it('limits Kanban task reads for project-scoped members to their projects and their own tasks', async () => {
+      const owner = await prisma.user.create({
+        data: { name: 'Owner User', email: 'owner-kanban-read@example.com', password: 'pass' },
+      })
+      const client = await prisma.user.create({
+        data: { name: 'Client User', email: 'client-kanban-read@example.com', password: 'pass' },
+      })
+      const teamReviewer = await prisma.user.create({
+        data: { name: 'Team Reviewer', email: 'rev-kanban-read@example.com', password: 'pass' },
+      })
+
+      const team = await prisma.team.create({ data: { name: 'Kanban Read Team' } })
+      const ownProject = await prisma.project.create({
+        data: { name: 'Client Project', teamId: team.id },
+      })
+      const otherProject = await prisma.project.create({
+        data: { name: 'Internal Project', teamId: team.id },
+      })
+
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: owner.id, role: 'owner', scope: 'team' },
+      })
+      const clientMember = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: client.id, role: 'reviewer', scope: 'project' },
+      })
+      await prisma.projectMember.create({
+        data: { projectId: ownProject.id, teamMemberId: clientMember.id, role: 'reviewer' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: teamReviewer.id, role: 'reviewer', scope: 'team' },
+      })
+
+      const createTask = (title: string, projectId?: string, assigneeId?: string) =>
+        prisma.kanbanTask.create({
+          data: {
+            teamId: team.id,
+            title,
+            projectId,
+            creatorId: owner.id,
+            reporterId: owner.id,
+            assigneeId,
+          },
+        })
+      const ownTask = await createTask('Client task', ownProject.id)
+      const otherTask = await createTask('Internal task', otherProject.id)
+      const teamTask = await createTask('Team task')
+      const assignedTask = await createTask('Assigned task', otherProject.id, client.id)
+
+      const read = (user: { id: string }, id: string) =>
+        authzService.hasPermission({
+          type: ResourceType.KanbanTask,
+          id,
+          user,
+          permission: Permission.Read,
+        })
+
+      await expect(read(client, ownTask.id)).resolves.toBeUndefined()
+      await expect(read(client, assignedTask.id)).resolves.toBeUndefined()
+      await expect(read(client, otherTask.id)).rejects.toThrow('User has only project scope')
+      await expect(read(client, teamTask.id)).rejects.toThrow('User has only project scope')
+
+      await expect(read(teamReviewer, otherTask.id)).resolves.toBeUndefined()
+      await expect(read(teamReviewer, teamTask.id)).resolves.toBeUndefined()
+    })
   })
 })

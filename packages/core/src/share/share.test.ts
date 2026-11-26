@@ -6,6 +6,12 @@ import { assetService } from '@shumai/core/src/asset/asset'
 import { projectService } from '@shumai/core/src/project/project'
 import { AssetType } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { timingSafeEqual } from 'node:crypto'
+
+vi.mock('node:crypto', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:crypto')>()
+  return { ...actual, timingSafeEqual: vi.fn(actual.timingSafeEqual) }
+})
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
@@ -165,6 +171,69 @@ describe('ShareService', () => {
     await expect(
       shareService.verifyPublicAccess(shareLink.id, symlink!.id, 'secret-password'),
     ).rejects.toThrow('expired')
+  })
+
+  it('includes the saved password in share link settings', async () => {
+    const created = await shareService.createShareLink(projectId, {
+      name: 'Protected Share',
+      password: 'secret-password',
+    })
+    expect(created.hasPassword).toBe(true)
+    expect(created.password).toBe('secret-password')
+
+    const fetched = await shareService.getShareLink(created.id)
+    expect(fetched.hasPassword).toBe(true)
+    expect(fetched.password).toBe('secret-password')
+
+    const updated = await shareService.updateShareLink(created.id, { password: 'other' })
+    expect(updated.hasPassword).toBe(true)
+    expect(updated.password).toBe('other')
+
+    const list = await shareService.listProjectShareLinks({ projectId })
+    expect(list.data).toContainEqual(expect.objectContaining({ id: created.id, password: 'other' }))
+
+    const cleared = await shareService.updateShareLink(created.id, { password: null })
+    expect(cleared.hasPassword).toBe(false)
+    expect(cleared.password).toBeNull()
+  })
+
+  it('rejects missing or different-length share passwords', async () => {
+    const shareLink = await shareService.createShareLink(projectId, {
+      name: 'Protected Share',
+      password: 'secret-password',
+    })
+
+    await expect(
+      shareService.verifyPublicAccess(shareLink.id, shareLink.rootFolderId),
+    ).rejects.toThrow('Invalid password')
+    await expect(
+      shareService.verifyPublicAccess(shareLink.id, shareLink.rootFolderId, ''),
+    ).rejects.toThrow('Invalid password')
+    await expect(
+      shareService.verifyPublicAccess(shareLink.id, shareLink.rootFolderId, 'secret'),
+    ).rejects.toThrow('Invalid password')
+    await expect(
+      shareService.verifyPublicAccess(
+        shareLink.id,
+        shareLink.rootFolderId,
+        'secret-password-and-more',
+      ),
+    ).rejects.toThrow('Invalid password')
+    await expect(
+      shareService.verifyPublicAccess(shareLink.id, shareLink.rootFolderId, 'secret-password'),
+    ).resolves.toBeDefined()
+  })
+
+  it('compares share passwords in constant time', async () => {
+    const shareLink = await shareService.createShareLink(projectId, {
+      name: 'Protected Share',
+      password: 'secret-password',
+    })
+
+    await expect(
+      shareService.verifyPublicAccess(shareLink.id, shareLink.rootFolderId, 'wrong'),
+    ).rejects.toThrow('Invalid password')
+    expect(timingSafeEqual).toHaveBeenCalled()
   })
 
   it('traces deep ancestors for public access', async () => {

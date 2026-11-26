@@ -438,6 +438,119 @@ describe('Share API', () => {
     })
   })
 
+  describe('public share field values', () => {
+    const shareLinkWithFields = {
+      id: 'share1',
+      name: 'My Share',
+      isDisabled: false,
+      allowDownload: false,
+      rootFolderId: 'folder1',
+      projectId: 'project1',
+      password: null,
+      expireAt: null,
+      watermarkConfigId: null,
+      fieldVisibility: { status: true, internalNote: false },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any
+
+    const assetWithFields = {
+      id: 'file1',
+      name: 'a.png',
+      sizeByte: 1,
+      fileCount: 0,
+      type: 'file',
+      status: 'processed',
+      proxyType: 'pdf',
+      fieldValues: [
+        { fieldId: 'status', value: 'Approved' },
+        { fieldId: 'internalNote', value: 'not for guests' },
+        { fieldId: 'rating', value: 3 },
+      ],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any
+
+    test('children only include field values visible on the share', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue(shareLinkWithFields)
+      vi.spyOn(assetService, 'listChildren').mockResolvedValue({
+        data: [assetWithFields],
+        pageInfo: { total: 1, cursor: undefined },
+      })
+
+      const res = await app.request('/shares/share1/folders/folder1/children?assetType=file')
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.data[0].fieldValues).toEqual([{ fieldId: 'status', value: 'Approved' }])
+    })
+
+    test('children with watermark only include field values visible on the share', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        ...shareLinkWithFields,
+        watermarkConfigId: 'cfg1',
+      })
+      vi.spyOn(assetService, 'listChildren').mockResolvedValue({
+        data: [assetWithFields],
+        pageInfo: { total: 1, cursor: undefined },
+      })
+      vi.spyOn(assetService, 'resolveLatestVersionId').mockImplementation(async (id) => id)
+      vi.spyOn(watermarkService, 'getCompletedWatermarkMediaMap').mockResolvedValue(new Map())
+
+      const res = await app.request('/shares/share1/folders/folder1/children?assetType=file')
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.data[0].fieldValues).toEqual([{ fieldId: 'status', value: 'Approved' }])
+    })
+
+    test('children include no field values when the share shows no fields', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        ...shareLinkWithFields,
+        fieldVisibility: null,
+      })
+      vi.spyOn(assetService, 'listChildren').mockResolvedValue({
+        data: [assetWithFields],
+        pageInfo: { total: 1, cursor: undefined },
+      })
+
+      const res = await app.request('/shares/share1/folders/folder1/children?assetType=file')
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.data[0].fieldValues).toEqual([])
+    })
+
+    test('file detail only includes field values visible on the share', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue(shareLinkWithFields)
+      vi.spyOn(assetService, 'getAsset').mockResolvedValue(assetWithFields)
+
+      const res = await app.request('/shares/share1/files/file1')
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.fieldValues).toEqual([{ fieldId: 'status', value: 'Approved' }])
+    })
+
+    test('file detail with watermark only includes field values visible on the share', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        ...shareLinkWithFields,
+        watermarkConfigId: 'cfg1',
+      })
+      vi.spyOn(assetService, 'getAsset').mockResolvedValue({
+        ...assetWithFields,
+        proxyType: 'image',
+        media: { proxyType: 'image', videoTranscodes: [], imageTranscodes: [] },
+      })
+      vi.spyOn(assetService, 'resolveLatestVersionId').mockResolvedValue('file1')
+      vi.spyOn(watermarkService, 'getCompletedWatermarkMediaMap').mockResolvedValue(new Map())
+
+      const res = await app.request('/shares/share1/files/file1')
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.fieldValues).toEqual([{ fieldId: 'status', value: 'Approved' }])
+    })
+  })
+
   describe('GET /shares/:shareId/files/:fileId', () => {
     const shareLinkWithWatermark = {
       id: 'share1',

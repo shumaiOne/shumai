@@ -6,6 +6,7 @@ import { AssetType } from '@shumai/db'
 import { authMiddleware } from './middleware/auth'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { s3Service } from '@shumai/core/src/s3/s3'
 
 vi.mock('./middleware/auth', () => ({
   // any is used here because Hono's Context and Next types are complex to mock in vitest.mock
@@ -83,5 +84,29 @@ describe('Attachment API', () => {
       projectId: 'project1',
       itemId: 'asset1',
     })
+  })
+
+  it('keeps the upload key inside the attachment folder', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(assetService.createAsset).mockResolvedValue({ id: 'asset1' } as any)
+    vi.mocked(s3Service.presign).mockResolvedValue('http://mock-s3-url')
+
+    const fileName = '../../files/01JAAAAAAAAAAAAAAAAAAAAAAA/master.mov'
+    const res = await app.request('/projects/project1/attachments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test' },
+      body: JSON.stringify({ fileName, contentType: 'video/quicktime', size: 100 }),
+    })
+
+    expect(res.status).toBe(200)
+    const key = vi.mocked(assetService.createAsset).mock.lastCall?.[0].key as string
+    const parts = key.split('/')
+    expect(parts[0]).toBe('attachments')
+    expect(parts).toHaveLength(3)
+    expect(parts).not.toContain('..')
+    expect(s3Service.presign).toHaveBeenCalledWith(expect.any(String), key, 'PUT')
+    expect(assetService.createAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ name: fileName }),
+    )
   })
 })

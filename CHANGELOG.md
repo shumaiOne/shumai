@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - **comments**: Keep password-protected print links on the share password prompt, keep private folder names out of shared print data, and wait for thumbnails and reply drawings before printing.
+- **security**: Security improvements.
 
 ### Changed
 

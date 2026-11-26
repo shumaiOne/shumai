@@ -24,6 +24,7 @@ describe('public share print comments and frame api', () => {
       rootFolderId: 'share-root',
       projectId: 'proj-1',
       watermarkConfigId: null,
+      fieldVisibility: { status: true, internalNote: false },
     } as never)
 
     vi.spyOn(assetService, 'getAsset').mockResolvedValue({
@@ -34,6 +35,11 @@ describe('public share print comments and frame api', () => {
       type: 'file',
       status: 'active',
       proxyType: 'video',
+      fieldValues: [
+        { fieldId: 'status', value: 'Approved' },
+        { fieldId: 'internalNote', value: 'Private note' },
+        { fieldId: 'rating', value: 3 },
+      ],
       ancestorFolders: [
         { id: 'inner', name: 'Inner Folder' },
         { id: 'share-root', name: 'Share Root' },
@@ -73,6 +79,7 @@ describe('public share print comments and frame api', () => {
     const body = await res.json()
     expect(body.breadcrumbs).toEqual(['Client Review', 'Inner Folder'])
     expect(body.asset.ancestorFolders).toEqual([{ id: 'inner', name: 'Inner Folder' }])
+    expect(body.asset.fieldValues).toEqual([{ fieldId: 'status', value: 'Approved' }])
     expect(JSON.stringify(body)).not.toContain('Secret Project Folder')
     expect(JSON.stringify(body)).not.toContain('private-parent')
     expect(body.comments).toHaveLength(1)

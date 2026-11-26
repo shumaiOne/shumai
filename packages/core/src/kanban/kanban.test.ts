@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { KanbanTaskStatus, KanbanTaskPriority } from '@shumai/db/enums'
+import { KanbanTaskStatus, KanbanTaskPriority, KanbanTaskEventType } from '@shumai/db/enums'
 import { UNASSIGNED_GOAL_ID } from '@shumai/dtos'
 import { kanbanService } from './kanban'
 
@@ -646,7 +646,7 @@ describe('KanbanService', () => {
       )
 
       // Create attachment
-      const att = await kanbanService.createAttachment(team.id, {
+      const att = await kanbanService.createAttachment(team.id, editor.id, {
         fileName: 'design.png',
         size: 1024,
         contentType: 'image/png',
@@ -685,6 +685,119 @@ describe('KanbanService', () => {
       await kanbanService.deleteComment(task.id, comment.id, owner.id, 'owner')
       const afterDelete = await kanbanService.listComments(task.id)
       expect(afterDelete.length).toBe(0)
+    })
+  })
+
+  describe('Comment attachment keys', () => {
+    function payload(key: string) {
+      return [{ id: 'att-1', name: 'file.txt', key, sizeByte: 1, contentType: 'text/plain' }]
+    }
+
+    it('rejects attachment keys that were not issued to the author for the task team', async () => {
+      const { team, editor, reviewer } = await setupTeamAndUsers()
+      const otherTeam = await prisma.team.create({ data: { name: 'Other Team' } })
+      const task = await kanbanService.createTask(team.id, { title: 'Task' }, editor.id, 'editor')
+
+      const foreignTeam = await kanbanService.createAttachment(otherTeam.id, editor.id, {
+        fileName: 'other.png',
+        size: 1,
+      })
+      const otherUser = await kanbanService.createAttachment(team.id, reviewer.id, {
+        fileName: 'theirs.png',
+        size: 1,
+      })
+      const own = await kanbanService.createAttachment(team.id, editor.id, {
+        fileName: 'own.png',
+        size: 1,
+      })
+      const ownDir = own.key.slice(0, own.key.lastIndexOf('/'))
+
+      for (const key of [
+        'files/01JAAAAAAAAAAAAAAAAAAAAAAA/master.mov',
+        'avatars/someone.png',
+        'kanban/attachments/01JAAAAAAAAAAAAAAAAAAAAAAA/old.png',
+        foreignTeam.key,
+        otherUser.key,
+        `${ownDir}/../../../../../files/01JAAAAAAAAAAAAAAAAAAAAAAA/master.mov`,
+        `kanban/attachments/${team.id}/${editor.id}/not-a-ulid/own.png`,
+      ]) {
+        await expect(
+          kanbanService.addComment(task.id, editor.id, 'see attached', payload(key)),
+        ).rejects.toThrow(/Invalid attachment/)
+      }
+
+      const comments = await kanbanService.listComments(task.id)
+      expect(comments).toHaveLength(0)
+
+      const accepted = await kanbanService.addComment(
+        task.id,
+        editor.id,
+        'see attached',
+        payload(own.key),
+      )
+      expect(accepted.attachments.map((a) => a.id)).toEqual(['att-1'])
+    })
+
+    it('does not sign stored attachment keys outside kanban attachments', async () => {
+      const { team, editor } = await setupTeamAndUsers()
+      const task = await kanbanService.createTask(team.id, { title: 'Task' }, editor.id, 'editor')
+      const legacyKey = 'kanban/attachments/01JAAAAAAAAAAAAAAAAAAAAAAA/notes.txt'
+
+      await prisma.kanbanTaskComment.create({
+        data: {
+          taskId: task.id,
+          authorId: editor.id,
+          body: 'stored before validation',
+          attachments: [
+            {
+              id: 'a',
+              name: 'secret',
+              key: 'files/01JAAAAAAAAAAAAAAAAAAAAAAA/master.mov',
+              sizeByte: 1,
+            },
+            {
+              id: 'b',
+              name: 'escape',
+              key: 'kanban/attachments/../files/x/master.mov',
+              sizeByte: 1,
+            },
+            { id: 'c', name: 'notes.txt', key: legacyKey, sizeByte: 1 },
+            {
+              id: 'd',
+              name: 'other-team.txt',
+              key: `kanban/attachments/other-team/${editor.id}/01JAAAAAAAAAAAAAAAAAAAAAAA/x.txt`,
+              sizeByte: 1,
+            },
+            {
+              id: 'e',
+              name: 'current.txt',
+              key: `kanban/attachments/${team.id}/${editor.id}/01JAAAAAAAAAAAAAAAAAAAAAAA/y.txt`,
+              sizeByte: 1,
+            },
+          ],
+        },
+      })
+
+      const [comment] = await kanbanService.listComments(task.id)
+      expect(comment.attachments.map((a) => a.id)).toEqual(['c', 'e'])
+
+      const detail = await kanbanService.getTask(task.id)
+      expect(detail.comments[0].attachments.map((a) => a.id)).toEqual(['c', 'e'])
+    })
+
+    it('keeps attachment uploads inside the team attachment folder', async () => {
+      const { team, editor } = await setupTeamAndUsers()
+
+      const att = await kanbanService.createAttachment(team.id, editor.id, {
+        fileName: '../../files/01JAAAAAAAAAAAAAAAAAAAAAAA/master.mov',
+        size: 1,
+      })
+
+      const parts = att.key.split('/')
+      expect(parts.slice(0, 4)).toEqual(['kanban', 'attachments', team.id, editor.id])
+      expect(parts).toHaveLength(6)
+      expect(parts).not.toContain('..')
+      expect(att.name).toBe('../../files/01JAAAAAAAAAAAAAAAAAAAAAAA/master.mov')
     })
   })
 
@@ -1137,6 +1250,187 @@ describe('KanbanService', () => {
       expect(pdfDetail?.proxyType).toBe('pdf')
       // Must use poster for pdf
       expect(pdfDetail?.thumbnailUrl).toContain('posters/doc_poster.webp')
+    })
+  })
+
+  // --------------------------------------------------------------------------
+  // Project membership
+  // --------------------------------------------------------------------------
+  describe('Project membership', () => {
+    async function setupProjectScopedMember() {
+      const { team, owner, reviewer } = await setupTeamAndUsers()
+      const client = await prisma.user.create({
+        data: { name: 'Client Reviewer', email: 'client@example.com' },
+      })
+      const ownProject = await prisma.project.create({
+        data: { name: 'Client Project', teamId: team.id },
+      })
+      const otherProject = await prisma.project.create({
+        data: { name: 'Internal Project', teamId: team.id },
+      })
+      const clientMember = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: client.id, role: 'reviewer', scope: 'project' },
+      })
+      await prisma.projectMember.create({
+        data: { projectId: ownProject.id, teamMemberId: clientMember.id, role: 'reviewer' },
+      })
+
+      const ownTask = await kanbanService.createTask(
+        team.id,
+        { title: 'Client task', projectId: ownProject.id },
+        owner.id,
+        'owner',
+      )
+      const otherTask = await kanbanService.createTask(
+        team.id,
+        { title: 'Internal task', projectId: otherProject.id },
+        owner.id,
+        'owner',
+      )
+      const teamTask = await kanbanService.createTask(
+        team.id,
+        { title: 'Team task' },
+        owner.id,
+        'owner',
+      )
+      const assignedTask = await kanbanService.createTask(
+        team.id,
+        { title: 'Assigned internal task', projectId: otherProject.id, assigneeId: client.id },
+        owner.id,
+        'owner',
+      )
+
+      return {
+        team,
+        owner,
+        reviewer,
+        client,
+        otherProject,
+        ownTask,
+        otherTask,
+        teamTask,
+        assignedTask,
+      }
+    }
+
+    it('lists only tasks in their projects, or that they take part in, for project-scoped members', async () => {
+      const { team, client, otherProject, ownTask, assignedTask } = await setupProjectScopedMember()
+
+      const list = await kanbanService.listTasks(team.id, {}, client.id)
+      expect(list.data.map((t) => t.id).sort()).toEqual([ownTask.id, assignedTask.id].sort())
+      expect(list.pageInfo.total).toBe(2)
+
+      const filtered = await kanbanService.listTasks(
+        team.id,
+        { projectId: otherProject.id },
+        client.id,
+      )
+      expect(filtered.data.map((t) => t.id)).toEqual([assignedTask.id])
+    })
+
+    it('lists every team task for team-scoped members', async () => {
+      const { team, reviewer, ownTask, otherTask, teamTask, assignedTask } =
+        await setupProjectScopedMember()
+
+      const list = await kanbanService.listTasks(team.id, {}, reviewer.id)
+      expect(list.data.map((t) => t.id).sort()).toEqual(
+        [ownTask.id, otherTask.id, teamTask.id, assignedTask.id].sort(),
+      )
+    })
+
+    it('shows only readable dependencies, dependents, and dependency events', async () => {
+      const { owner, team, client, reviewer, ownTask, otherTask, teamTask, assignedTask } =
+        await setupProjectScopedMember()
+
+      await kanbanService.setDependencies(
+        ownTask.id,
+        [otherTask.id, assignedTask.id, teamTask.id],
+        owner.id,
+      )
+      await kanbanService.setDependencies(ownTask.id, [otherTask.id, assignedTask.id], owner.id)
+      await kanbanService.setDependencies(teamTask.id, [ownTask.id], owner.id)
+      await kanbanService.setDependencies(assignedTask.id, [otherTask.id], owner.id)
+
+      const detail = await kanbanService.getTask(ownTask.id, client.id)
+      expect(detail.dependencies.map((task) => task.id)).toEqual([assignedTask.id])
+      expect(detail.dependents).toEqual([])
+      expect(detail.dependencyCount).toBe(1)
+      expect(detail.dependentCount).toBe(0)
+
+      const events = await kanbanService.listEvents(ownTask.id, client.id)
+      for (const history of [detail.events, events]) {
+        expect(
+          history.filter((event) => event.type === KanbanTaskEventType.DEPENDENCY_ADDED),
+        ).toEqual([expect.objectContaining({ data: { parentId: assignedTask.id } })])
+        expect(history).toContainEqual(
+          expect.objectContaining({ type: KanbanTaskEventType.CREATED }),
+        )
+        expect(history).not.toContainEqual(
+          expect.objectContaining({ type: KanbanTaskEventType.DEPENDENCY_REMOVED }),
+        )
+      }
+
+      const teamDetail = await kanbanService.getTask(ownTask.id, reviewer.id)
+      expect(teamDetail.dependencies.map((task) => task.id).sort()).toEqual(
+        [otherTask.id, assignedTask.id].sort(),
+      )
+      expect(teamDetail.dependents.map((task) => task.id)).toEqual([teamTask.id])
+      expect(teamDetail.events).toContainEqual(
+        expect.objectContaining({
+          type: KanbanTaskEventType.DEPENDENCY_REMOVED,
+          data: { parentId: teamTask.id },
+        }),
+      )
+
+      const summary = await kanbanService.listTasks(team.id, {}, client.id)
+      expect(summary.data).toContainEqual(
+        expect.objectContaining({ id: ownTask.id, dependencyCount: 1, dependentCount: 0 }),
+      )
+
+      const updated = await kanbanService.updateTask(
+        assignedTask.id,
+        { title: 'Updated assigned task' },
+        client.id,
+        null,
+      )
+      expect(updated).toMatchObject({ dependencyCount: 0, dependentCount: 1 })
+    })
+
+    it('lists no tasks for users outside the team', async () => {
+      const { team } = await setupProjectScopedMember()
+      const outsider = await prisma.user.create({
+        data: { name: 'Outsider', email: 'outsider@example.com' },
+      })
+
+      const list = await kanbanService.listTasks(team.id, {}, outsider.id)
+      expect(list.data).toEqual([])
+    })
+
+    it('lists only readable tasks linked to an asset', async () => {
+      const { team, owner, client, reviewer, otherProject, otherTask, assignedTask } =
+        await setupProjectScopedMember()
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'internal.mp4',
+          type: 'file',
+          status: 'processed',
+          projectId: otherProject.id,
+          creatorId: owner.id,
+        },
+      })
+      await kanbanService.linkAsset(team.id, otherTask.id, asset.id)
+      await kanbanService.linkAsset(team.id, assignedTask.id, asset.id)
+      await kanbanService.setDependencies(assignedTask.id, [otherTask.id], owner.id)
+
+      const forClient = await kanbanService.listTasksForAsset(team.id, asset.id, client.id)
+      expect(forClient.map((t) => t.id)).toEqual([assignedTask.id])
+      expect(forClient[0].dependencyCount).toBe(0)
+
+      const forReviewer = await kanbanService.listTasksForAsset(team.id, asset.id, reviewer.id)
+      expect(forReviewer.map((t) => t.id).sort()).toEqual([otherTask.id, assignedTask.id].sort())
+      expect(forReviewer).toContainEqual(
+        expect.objectContaining({ id: assignedTask.id, dependencyCount: 1 }),
+      )
     })
   })
 })

@@ -123,6 +123,20 @@ async function applyWatermarkToAssetMedia(
   }
 }
 
+/**
+ * Keeps only the custom field values the share link is configured to show.
+ * Fields are hidden by default; `fieldVisibility` lists the keys turned on
+ * for this share, matching what `GET /shares/:shareId/fields` returns.
+ */
+function filterSharedFieldValues(asset: AssetInfo, fieldVisibility: unknown): AssetInfo {
+  if (!asset.fieldValues) return asset
+  const visibility = (fieldVisibility || {}) as Record<string, boolean>
+  return {
+    ...asset,
+    fieldValues: asset.fieldValues.filter((fv) => Boolean(visibility[fv.fieldId])),
+  }
+}
+
 const app = new Hono()
 
 function toFieldInfo(
@@ -297,6 +311,8 @@ const route = app
           }
         }
 
+        res.data = res.data.map((item) => filterSharedFieldValues(item, shareLink.fieldVisibility))
+
         return c.json(res)
       } catch (err) {
         return handlePublicShareError(c, err)
@@ -335,7 +351,7 @@ const route = app
         asset.media.hls.url = `/api/shares/${shareLink.id}/files/${asset.id}/m3u8/master.m3u8${pwQuery}`
       }
 
-      return c.json(asset)
+      return c.json(filterSharedFieldValues(asset, shareLink.fieldVisibility))
     } catch (err) {
       return handlePublicShareError(c, err)
     }
@@ -445,7 +461,10 @@ const route = app
       const breadcrumbs = shareLink.name ? [shareLink.name, ...scopedFolders] : scopedFolders
 
       return c.json({
-        asset: { ...asset, ancestorFolders: scopedAncestors },
+        asset: {
+          ...filterSharedFieldValues(asset, shareLink.fieldVisibility),
+          ancestorFolders: scopedAncestors,
+        },
         breadcrumbs,
         comments,
       })

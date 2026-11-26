@@ -22,6 +22,21 @@ import { HTTPException } from 'hono/http-exception'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
+/**
+ * Linking a file to a task shows its name, folder path and thumbnail to everyone
+ * who can read the task, so the caller must be able to read each linked file.
+ */
+async function assertCanReadAssets(user: User, assetIds: string[] | undefined) {
+  for (const id of new Set(assetIds ?? [])) {
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id,
+    })
+  }
+}
+
 const route = new Hono<{ Variables: { user: User } }>()
   .post('/teams/:teamId/kanban/tasks', zValidator('json', createKanbanTaskSchema), async (c) => {
     const { teamId } = c.req.param()
@@ -39,6 +54,8 @@ const route = new Hono<{ Variables: { user: User } }>()
     if (!role) {
       throw new HTTPException(403, { message: 'User is not a member of the team' })
     }
+
+    await assertCanReadAssets(user, req.assetIds)
 
     const task = await kanbanService.createTask(teamId, req, user.id, role)
 
@@ -89,7 +106,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: teamId,
       })
 
-      const result = await kanbanService.listTasks(teamId, req)
+      const result = await kanbanService.listTasks(teamId, req, user.id)
       return c.json(result)
     },
   )
@@ -104,7 +121,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: taskId,
     })
 
-    const task = await kanbanService.getTask(taskId)
+    const task = await kanbanService.getTask(taskId, user.id)
     return c.json(task)
   })
   .patch(
@@ -121,6 +138,8 @@ const route = new Hono<{ Variables: { user: User } }>()
         type: ResourceType.KanbanTask,
         id: taskId,
       })
+
+      await assertCanReadAssets(user, req.assetIds)
 
       const existing = await kanbanService.getTask(taskId)
       const role = await resolveEffectiveRole(teamId, existing.projectId ?? undefined, user.id)
@@ -262,6 +281,8 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: taskId,
       })
 
+      await assertCanReadAssets(user, req.assetIds)
+
       await kanbanService.linkAssets(teamId, taskId, req.assetIds)
       return c.json({ success: true })
     },
@@ -291,7 +312,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: teamId,
     })
 
-    const tasks = await kanbanService.listTasksForAsset(teamId, assetId)
+    const tasks = await kanbanService.listTasksForAsset(teamId, assetId, user.id)
     return c.json({ data: tasks, total: tasks.length })
   })
   .post(
@@ -308,6 +329,8 @@ const route = new Hono<{ Variables: { user: User } }>()
         type: ResourceType.KanbanTask,
         id: req.taskId,
       })
+
+      await assertCanReadAssets(user, [assetId])
 
       await kanbanService.linkAsset(teamId, req.taskId, assetId)
       return c.json({ success: true })

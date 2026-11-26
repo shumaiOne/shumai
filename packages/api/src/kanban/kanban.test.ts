@@ -4,6 +4,8 @@ import { kanbanService } from '@shumai/core/src/kanban/kanban'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { KanbanTaskStatus, KanbanTaskPriority } from '@shumai/db/enums'
+import { HTTPException } from 'hono/http-exception'
+import { authzService } from '@shumai/core/src/authz/authz'
 import kanbanRoute from './index'
 
 vi.mock('@shumai/core/src/authz/authz', () => ({
@@ -19,6 +21,7 @@ vi.mock('@shumai/core/src/authz/authz', () => ({
   ResourceType: {
     Team: 'team',
     Project: 'project',
+    Asset: 'asset',
     KanbanGoal: 'kanbanGoal',
     KanbanTask: 'kanbanTask',
   },
@@ -51,6 +54,7 @@ describe('Kanban API Routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
     vi.mocked(auditLogService.logAction).mockResolvedValue({} as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     vi.mocked(notificationService.notifyKanbanTaskEvent).mockResolvedValue(undefined as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     app = new Hono()
@@ -218,6 +222,7 @@ describe('Kanban API Routes', () => {
           status: 'READY',
           goalId: 'goal-1',
         }),
+        'user-1',
       )
     })
 
@@ -248,7 +253,7 @@ describe('Kanban API Routes', () => {
       expect(res.status).toBe(200)
       const json = await res.json()
       expect(json.id).toBe(taskId)
-      expect(mockGet).toHaveBeenCalledWith(taskId)
+      expect(mockGet).toHaveBeenCalledWith(taskId, 'user-1')
     })
 
     it('PATCH /teams/:teamId/kanban/tasks/:taskId', async () => {
@@ -493,6 +498,74 @@ describe('Kanban API Routes', () => {
       expect(mockLinkAssets).toHaveBeenCalledWith(teamId, taskId, ['asset-1', 'asset-2'])
     })
 
+    describe('linking files the caller cannot read', () => {
+      const denyAsset = (deniedAssetId: string) =>
+        vi.mocked(authzService.hasPermission).mockImplementation(async (req) => {
+          if (req.type === 'asset' && req.id === deniedAssetId) {
+            throw new HTTPException(403, { message: 'User has only project scope' })
+          }
+        })
+
+      it('checks Read on every file linked to a task', async () => {
+        const mockLinkAssets = vi.spyOn(kanbanService, 'linkAssets').mockResolvedValue(undefined)
+        denyAsset('asset-2')
+
+        const res = await app.request(`/teams/${teamId}/kanban/tasks/${taskId}/assets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assetIds: ['asset-1', 'asset-2'] }),
+        })
+
+        expect(res.status).toBe(403)
+        expect(mockLinkAssets).not.toHaveBeenCalled()
+        expect(authzService.hasPermission).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'asset', id: 'asset-1', permission: 'Read' }),
+        )
+      })
+
+      it('checks Read on the file when linking it from the file side', async () => {
+        const mockLinkAsset = vi.spyOn(kanbanService, 'linkAsset').mockResolvedValue(undefined)
+        denyAsset('asset-1')
+
+        const res = await app.request(`/teams/${teamId}/kanban/assets/asset-1/tasks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskId }),
+        })
+
+        expect(res.status).toBe(403)
+        expect(mockLinkAsset).not.toHaveBeenCalled()
+      })
+
+      it('checks Read on files passed when updating a task', async () => {
+        const mockUpdate = vi.spyOn(kanbanService, 'updateTask')
+        denyAsset('asset-9')
+
+        const res = await app.request(`/teams/${teamId}/kanban/tasks/${taskId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assetIds: ['asset-9'] }),
+        })
+
+        expect(res.status).toBe(403)
+        expect(mockUpdate).not.toHaveBeenCalled()
+      })
+
+      it('checks Read on files passed when creating a task', async () => {
+        const mockCreate = vi.spyOn(kanbanService, 'createTask')
+        denyAsset('asset-9')
+
+        const res = await app.request(`/teams/${teamId}/kanban/tasks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'Task', assetIds: ['asset-9'] }),
+        })
+
+        expect(res.status).toBe(403)
+        expect(mockCreate).not.toHaveBeenCalled()
+      })
+    })
+
     it('DELETE /teams/:teamId/kanban/tasks/:taskId/assets/:assetId', async () => {
       const mockUnlinkAsset = vi.spyOn(kanbanService, 'unlinkAsset').mockResolvedValue(undefined)
 
@@ -530,7 +603,7 @@ describe('Kanban API Routes', () => {
       const json = await res.json()
       expect(json.total).toBe(1)
       expect(json.data).toHaveLength(1)
-      expect(mockListTasksForAsset).toHaveBeenCalledWith(teamId, 'asset-1')
+      expect(mockListTasksForAsset).toHaveBeenCalledWith(teamId, 'asset-1', 'user-1')
     })
 
     it('POST /teams/:teamId/kanban/assets/:assetId/tasks', async () => {
@@ -585,7 +658,7 @@ describe('Kanban API Routes', () => {
       expect(res.status).toBe(200)
       const json = await res.json()
       expect(json.id).toBe('att-1')
-      expect(mockAttachment).toHaveBeenCalledWith(teamId, {
+      expect(mockAttachment).toHaveBeenCalledWith(teamId, 'user-1', {
         fileName: 'test.png',
         size: 1024,
         contentType: 'image/png',
@@ -683,7 +756,7 @@ describe('Kanban API Routes', () => {
       expect(res.status).toBe(200)
       const json = await res.json()
       expect(json.data).toHaveLength(1)
-      expect(mockEvents).toHaveBeenCalledWith(taskId)
+      expect(mockEvents).toHaveBeenCalledWith(taskId, 'user-1')
     })
   })
 })

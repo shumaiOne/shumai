@@ -122,17 +122,16 @@ export class AuthzService {
     })
     if (!member) throw new HTTPException(403, { message: 'User is not a member of the team' })
 
-    // If this is a KanbanTask and user is a team member, check if they are the assignee, reporter, or creator
+    // A project-scoped member can read or edit a KanbanTask outside their projects
+    // only when they are its assignee, reporter, or creator.
     if (req.type === ResourceType.KanbanTask) {
-      if (req.permission === Permission.Read) {
-        return
-      }
-      if (req.permission === Permission.Edit) {
+      if (req.permission === Permission.Read || req.permission === Permission.Edit) {
         const isParticipant = await this.isKanbanTaskParticipant(req.id, req.user.id)
         if (isParticipant) {
           return
         }
       }
+      throw new HTTPException(403, { message: 'User has only project scope' })
     }
 
     // Project-scoped member on a team-level resource (no project context):

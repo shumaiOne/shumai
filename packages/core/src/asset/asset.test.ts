@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { prisma } from '@shumai/db'
+import { getPrismaTestingHelper, prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { HTTPException } from 'hono/http-exception'
 
@@ -941,7 +941,7 @@ describe('AssetService', () => {
     ).resolves.not.toThrow()
   })
 
-  it('deleteComment cleans up S3 attachment files and database records', async () => {
+  it('cleans up deleted comment attachments through the asset cleanup job', async () => {
     const { user, project, assets } = await setupBasicAssets()
 
     // 1. Create StorageKey and Asset for attachment
@@ -949,15 +949,15 @@ describe('AssetService', () => {
       data: {
         key: 'attachments/test-attachment-file.png',
         status: 'active',
+        createdAt: new Date(Date.now() - 60_000),
       },
     })
 
     const attachmentAsset = await prisma.asset.create({
       data: {
         name: 'test-attachment-file.png',
-        type: AssetType.file,
+        type: AssetType.attachment,
         projectId: project.id,
-        parentId: assets.root.id,
         creatorId: user.id,
         storageKeyId: storageKey.id,
         sizeByte: 100,
@@ -988,16 +988,276 @@ describe('AssetService', () => {
     // 5. Verify the comment is deleted from DB
     await expect(prisma.assetComment.findUnique({ where: { id: comment.id } })).resolves.toBeNull()
 
-    // 6. Verify that the attachment Asset and StorageKey are deleted from DB
+    // 6. The attachment is removed immediately; the storage cleanup owns object deletion.
     await expect(prisma.asset.findUnique({ where: { id: attachmentAsset.id } })).resolves.toBeNull()
+    expect(s3Service.deleteObject).not.toHaveBeenCalled()
+
+    await assetService.emptyTrash(project.id)
+
     await expect(prisma.storageKey.findUnique({ where: { id: storageKey.id } })).resolves.toBeNull()
 
-    // 7. Verify S3 deletion was called
-    const { s3Service } = await import('@shumai/core/src/s3/s3')
     expect(s3Service.deleteObject).toHaveBeenCalledWith(
       'shumai',
       'attachments/test-attachment-file.png',
     )
+  })
+
+  describe('comment attachments', () => {
+    const addProjectReviewer = async (teamId: string) => {
+      const reviewer = await prisma.user.create({
+        data: { name: 'Reviewer', type: 'human', email: `reviewer-${Date.now()}@example.com` },
+      })
+      await prisma.teamMember.create({
+        data: { teamId, userId: reviewer.id, role: 'reviewer' },
+      })
+      return reviewer
+    }
+
+    const createUpload = async (projectId: string, creatorId: string, name: string) => {
+      const storageKey = await prisma.storageKey.create({
+        data: { key: `attachments/${name}`, status: 'active' },
+      })
+      return await prisma.asset.create({
+        data: {
+          name,
+          type: AssetType.attachment,
+          projectId,
+          creatorId,
+          sizeByte: 1,
+          status: 'uploaded',
+          storageKeyId: storageKey.id,
+        },
+      })
+    }
+
+    it('only attaches comment uploads made by the commenter', async () => {
+      const { user, project, assets } = await setupBasicAssets()
+      const reviewer = await addProjectReviewer(project.teamId)
+      const ownerUpload = await createUpload(project.id, user.id, 'owner-upload.png')
+      const reviewerUpload = await createUpload(project.id, reviewer.id, 'reviewer-upload.png')
+
+      const comment = await assetService.createComment({
+        assetId: assets.fileA1.id,
+        userId: reviewer.id,
+        message: 'looks good',
+        attachmentIds: [assets.fileA2.id, ownerUpload.id, reviewerUpload.id],
+      })
+
+      const links = await prisma.assetCommentAttachment.findMany({
+        where: { commentId: comment.id },
+      })
+      expect(links.map((l) => l.assetId)).toEqual([reviewerUpload.id])
+    })
+
+    it('does not attach an upload that already belongs to another comment', async () => {
+      const { user, assets, project } = await setupBasicAssets()
+      const upload = await createUpload(project.id, user.id, 'shared.png')
+
+      await assetService.createComment({
+        assetId: assets.fileA1.id,
+        userId: user.id,
+        message: 'first',
+        attachmentIds: [upload.id],
+      })
+      const second = await assetService.createComment({
+        assetId: assets.fileA1.id,
+        userId: user.id,
+        message: 'second',
+        attachmentIds: [upload.id],
+      })
+
+      const links = await prisma.assetCommentAttachment.findMany({
+        where: { commentId: second.id },
+      })
+      expect(links).toHaveLength(0)
+    })
+
+    it('allows only one concurrent comment to claim an upload', async () => {
+      // The normal test proxy serializes transactions on a single connection.
+      const db = getPrismaTestingHelper().getUnderlyingClient() as typeof prisma
+      const service = new AssetService(db)
+      const { user, team, project, file, upload } = await db.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: { name: 'Commenter', email: `attachment-race-${crypto.randomUUID()}@example.com` },
+        })
+        const team = await tx.team.create({ data: { name: 'Attachment race' } })
+        const project = await tx.project.create({ data: { name: 'Project', teamId: team.id } })
+        const file = await tx.asset.create({
+          data: {
+            name: 'File',
+            type: AssetType.file,
+            status: AssetStatus.processed,
+            projectId: project.id,
+            creatorId: user.id,
+          },
+        })
+        const upload = await tx.asset.create({
+          data: {
+            name: 'Upload',
+            type: AssetType.attachment,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+            creatorId: user.id,
+          },
+        })
+        return { user, team, project, file, upload }
+      })
+
+      let claims: Promise<PromiseSettledResult<unknown>[]> | undefined
+      try {
+        await db.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT id FROM assets WHERE id = ${upload.id} FOR UPDATE`
+          claims = Promise.allSettled(
+            ['First comment', 'Second comment'].map((message) =>
+              service.createComment(
+                { assetId: file.id, userId: user.id, message, attachmentIds: [upload.id] },
+                { triggerAgents: false },
+              ),
+            ),
+          )
+
+          // Release the upload only after both requests are waiting on its row lock.
+          await vi.waitFor(
+            async () => {
+              const [waiters] = await tx.$queryRaw<{ count: number }[]>`
+              WITH RECURSIVE waiters(pid) AS (
+                SELECT pg_backend_pid()
+                UNION
+                SELECT pending.pid
+                FROM waiters
+                JOIN (SELECT DISTINCT pid FROM pg_locks WHERE NOT granted) pending
+                  ON waiters.pid = ANY(pg_blocking_pids(pending.pid))
+              )
+              SELECT count(*)::int - 1 AS count FROM waiters
+            `
+              expect(waiters.count).toBe(2)
+            },
+            { timeout: 3_000 },
+          )
+        })
+
+        expect(await claims).toEqual([
+          expect.objectContaining({ status: 'fulfilled' }),
+          expect.objectContaining({ status: 'fulfilled' }),
+        ])
+        await expect(
+          db.assetCommentAttachment.count({ where: { assetId: upload.id } }),
+        ).resolves.toBe(1)
+      } finally {
+        await claims
+        await db.asset.deleteMany({ where: { projectId: project.id } })
+        await db.project.delete({ where: { id: project.id } })
+        await db.team.delete({ where: { id: team.id } })
+        await db.user.delete({ where: { id: user.id } })
+      }
+    })
+
+    it('deleteComment keeps project files that are linked to the comment', async () => {
+      const { project, assets } = await setupBasicAssets()
+      const reviewer = await addProjectReviewer(project.teamId)
+      const fileKey = await prisma.storageKey.create({
+        data: { key: 'files/01JAAAAAAAAAAAAAAAAAAAAAAA/deliverable.mov', status: 'active' },
+      })
+      await prisma.asset.update({
+        where: { id: assets.fileA2.id },
+        data: { storageKeyId: fileKey.id },
+      })
+
+      const comment = await assetService.createComment({
+        assetId: assets.fileA1.id,
+        userId: reviewer.id,
+        message: 'note',
+        attachmentIds: [],
+      })
+      // A link to a project file, as comments created before attachment checks could hold.
+      await prisma.assetCommentAttachment.create({
+        data: { commentId: comment.id, assetId: assets.fileA2.id },
+      })
+
+      await assetService.deleteComment({ commentId: comment.id, userId: reviewer.id })
+
+      await expect(
+        prisma.assetComment.findUnique({ where: { id: comment.id } }),
+      ).resolves.toBeNull()
+      await expect(
+        prisma.asset.findUnique({ where: { id: assets.fileA2.id } }),
+      ).resolves.not.toBeNull()
+      await expect(
+        prisma.storageKey.findUnique({ where: { id: fileKey.id } }),
+      ).resolves.not.toBeNull()
+      expect(s3Service.deleteObject).not.toHaveBeenCalledWith(
+        expect.anything(),
+        'files/01JAAAAAAAAAAAAAAAAAAAAAAA/deliverable.mov',
+      )
+    })
+
+    it('keeps an attachment object until the original and copied comments are deleted', async () => {
+      const { user, project, assets } = await setupBasicAssets()
+      const upload = await createUpload(project.id, user.id, 'copied-upload.png')
+      const originalComment = await assetService.createComment({
+        assetId: assets.fileA1.id,
+        userId: user.id,
+        message: 'Original comment',
+        attachmentIds: [upload.id],
+      })
+      const [copiedFileId] = await assetService.copyAssets({
+        assetIds: [assets.fileA1.id],
+        newParentId: assets.root3.id,
+        creatorId: user.id,
+        withComments: true,
+      })
+      const copiedComment = await prisma.assetComment.findFirstOrThrow({
+        where: { assetId: copiedFileId },
+      })
+      const storageKey = await prisma.storageKey.findFirstOrThrow({
+        where: { key: 'attachments/copied-upload.png' },
+      })
+      await prisma.storageKey.update({
+        where: { id: storageKey.id },
+        data: { createdAt: new Date(Date.now() - 60_000) },
+      })
+
+      await assetService.deleteComment({ commentId: copiedComment.id, userId: user.id })
+      await assetService.emptyTrash(project.id)
+
+      const survivingUpload = await prisma.asset.findUniqueOrThrow({ where: { id: upload.id } })
+      expect(survivingUpload.storageKeyId).toBe(storageKey.id)
+      expect(s3Service.deleteObject).not.toHaveBeenCalledWith(expect.any(String), storageKey.key)
+
+      await assetService.deleteComment({ commentId: originalComment.id, userId: user.id })
+      await assetService.emptyTrash(project.id)
+
+      await expect(
+        prisma.storageKey.findUnique({ where: { id: storageKey.id } }),
+      ).resolves.toBeNull()
+      expect(s3Service.deleteObject).toHaveBeenCalledWith(expect.any(String), storageKey.key)
+    })
+
+    it('keeps a legacy attachment asset while another comment still links to it', async () => {
+      const { user, project, assets } = await setupBasicAssets()
+      const upload = await createUpload(project.id, user.id, 'legacy-upload.png')
+      const first = await assetService.createComment({
+        assetId: assets.fileA1.id,
+        userId: user.id,
+        message: 'First comment',
+        attachmentIds: [upload.id],
+      })
+      const second = await assetService.createComment({
+        assetId: assets.fileA1.id,
+        userId: user.id,
+        message: 'Second comment',
+        attachmentIds: [],
+      })
+      await prisma.assetCommentAttachment.create({
+        data: { assetId: upload.id, commentId: second.id },
+      })
+
+      await assetService.deleteComment({ commentId: first.id, userId: user.id })
+      await expect(prisma.asset.findUnique({ where: { id: upload.id } })).resolves.not.toBeNull()
+
+      await assetService.deleteComment({ commentId: second.id, userId: user.id })
+      await expect(prisma.asset.findUnique({ where: { id: upload.id } })).resolves.toBeNull()
+    })
   })
 
   it('can create and retrieve comments with video timestamp', async () => {

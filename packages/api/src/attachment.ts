@@ -7,6 +7,7 @@ import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { projectService } from '@shumai/core/src/project/project'
 import { AssetType } from '@shumai/db'
 import { ulid } from 'ulid'
+import { sanitizeFilename } from '@shumai/core/src/utils/filename'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import type { Prisma } from '@shumai/db'
 
@@ -27,7 +28,7 @@ const route = new Hono<{ Variables: { user: User } }>().post(
       id: projectId,
     })
 
-    const key = `attachments/${ulid()}/${req.fileName}`
+    const key = `attachments/${ulid()}/${sanitizeFilename(req.fileName)}`
 
     const assetInfo = await assetService.createAsset({
       name: req.fileName,

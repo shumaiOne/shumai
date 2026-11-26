@@ -30,7 +30,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: teamId,
       })
 
-      const attachment = await kanbanService.createAttachment(teamId, req)
+      const attachment = await kanbanService.createAttachment(teamId, user.id, req)
       return c.json(attachment)
     },
   )
@@ -123,7 +123,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: taskId,
     })
 
-    const events = await kanbanService.listEvents(taskId)
+    const events = await kanbanService.listEvents(taskId, user.id)
     return c.json({ data: events })
   })
 
