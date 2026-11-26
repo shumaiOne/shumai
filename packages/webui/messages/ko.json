@@ -1723,5 +1723,15 @@
   "print_comments_error": "인쇄용 댓글을 불러오지 못했습니다.",
   "print_comments_count": "댓글 {count}개",
   "print_comments_count_one": "댓글 1개",
-  "print_comments_has_annotations": "주석이 포함된 댓글"
+  "print_comments_has_annotations": "주석이 포함된 댓글",
+  "public_comment": "공개 댓글",
+  "internal_comment": "내부 댓글",
+  "public_comment_label": "공개",
+  "internal_comment_label": "내부",
+  "public_comment_description": "팀 멤버와 공유 링크에서 모두 볼 수 있음",
+  "internal_comment_description": "팀 멤버만 볼 수 있음",
+  "internal_comment_tooltip": "내부 댓글 — 공개 공유 링크에는 표시되지 않음",
+  "internal_reply_locked_tooltip": "내부 댓글에 대한 답글은 항상 내부 댓글로 작성됩니다",
+  "remove_timestamp": "타임스탬프 제거",
+  "failed_to_update_comment": "댓글을 수정하지 못했습니다"
 }
