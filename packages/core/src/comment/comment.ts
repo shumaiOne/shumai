@@ -12,6 +12,8 @@ export interface PostCommentParams {
   /** Timecode in seconds (or the encoded viewing angle for 3D models). */
   second?: number
   attachmentIds?: string[]
+  /** Whether the comment is internal and hidden from public share links (default false). */
+  isInternal?: boolean
   /** Whether mentions of agents start a chat with them (default true). */
   triggerAgents?: boolean
 }
@@ -31,6 +33,7 @@ export class CommentService {
         annotations: params.annotations,
         second: params.second,
         attachmentIds: params.attachmentIds ?? [],
+        isInternal: params.isInternal,
       },
       { triggerAgents: params.triggerAgents },
     )

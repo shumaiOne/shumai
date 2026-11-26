@@ -82,6 +82,7 @@ describe('file api', () => {
     vi.spyOn(assetService, 'updateAssetName').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'deleteAssets').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'createComment').mockImplementation(vi.fn())
+    vi.spyOn(assetService, 'updateComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'completeComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'deleteComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'addCommentReaction').mockImplementation(vi.fn())
@@ -291,6 +292,7 @@ describe('file api', () => {
       updatedAt: new Date().toISOString(),
       sessionId: null,
       isCompleted: false,
+      isInternal: false,
       completionLastChangedBy: null,
       reactionCounts: [],
     })
@@ -351,6 +353,7 @@ describe('file api', () => {
       updatedAt: new Date().toISOString(),
       sessionId: null,
       isCompleted: false,
+      isInternal: false,
       completionLastChangedBy: null,
       reactionCounts: [],
     })
@@ -408,6 +411,7 @@ describe('file api', () => {
           updatedAt: new Date().toISOString(),
           sessionId: null,
           isCompleted: false,
+          isInternal: false,
           completionLastChangedBy: null,
           reactionCounts: [],
         },
@@ -553,6 +557,7 @@ describe('file api', () => {
       updatedAt: new Date().toISOString(),
       sessionId: null,
       isCompleted: true,
+      isInternal: false,
       completionLastChangedBy: { id: 'user1', name: 'Test User' },
       reactionCounts: [],
     })
@@ -577,6 +582,110 @@ describe('file api', () => {
       { commentId: 'comment-id', reopen: false },
     )
     expect(assetService.getComment).toHaveBeenCalledWith('comment-id', 'user1')
+  })
+
+  it('POST /files/:fileId/comments forwards isInternal', async () => {
+    vi.mocked(assetService.createComment).mockResolvedValue({
+      id: 'comment-internal-id',
+      assetId: 'test-id',
+      message: 'internal note',
+      annotations: null,
+      second: null,
+      creator: { id: 'user1', name: 'Test User' },
+      replies: [],
+      attachments: [],
+      mentions: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      sessionId: null,
+      isCompleted: false,
+      isInternal: true,
+      completionLastChangedBy: null,
+      reactionCounts: [],
+    })
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/files/test-id/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'internal note', attachmentIds: [], isInternal: true }),
+    })
+
+    expect(res.status).toBe(201)
+    const json = await res.json()
+    expect(json.isInternal).toBe(true)
+    expect(assetService.createComment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetId: 'test-id',
+        userId: 'user1',
+        message: 'internal note',
+        isInternal: true,
+      }),
+      expect.anything(),
+    )
+  })
+
+  it('PATCH /comments/:commentId updates comment and logs comment_update audit entry', async () => {
+    vi.mocked(assetService.updateComment).mockResolvedValue({
+      id: 'comment-id',
+      assetId: 'file-id',
+      message: 'edited text',
+      annotations: null,
+      second: null,
+      creator: { id: 'user1', name: 'Test User' },
+      replies: [],
+      attachments: [],
+      mentions: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      sessionId: null,
+      isCompleted: false,
+      isInternal: true,
+      completionLastChangedBy: null,
+      reactionCounts: [],
+    })
+    vi.mocked(assetService.getAssetContext).mockResolvedValue({
+      teamId: 'test-team',
+      projectId: 'proj-1',
+    })
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/comments/comment-id', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'edited text',
+        isInternal: true,
+        second: null,
+        attachmentIds: ['att-1'],
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.message).toBe('edited text')
+    expect(json.isInternal).toBe(true)
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user1', name: 'Test User' },
+      permission: Permission.Read,
+      type: ResourceType.Comment,
+      id: 'comment-id',
+    })
+    expect(assetService.updateComment).toHaveBeenCalledWith({
+      commentId: 'comment-id',
+      userId: 'user1',
+      message: 'edited text',
+      isInternal: true,
+      second: null,
+      attachmentIds: ['att-1'],
+    })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'comment_update',
+      teamId: 'test-team',
+      userId: 'user1',
+      projectId: 'proj-1',
+      itemId: 'comment-id',
+    })
   })
 
   it('POST /comments/:commentId/complete reopens with isCompleted false', async () => {
@@ -1133,6 +1242,7 @@ describe('file api', () => {
           updatedAt: new Date().toISOString(),
           sessionId: null,
           isCompleted: false,
+          isInternal: false,
           completionLastChangedBy: null,
           reactionCounts: [],
         },

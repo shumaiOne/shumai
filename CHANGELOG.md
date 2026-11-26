@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **comments**: Add Internal Comments with a Public/Internal selector in the comment composer so team and project members can have private discussions (marked with a lock icon) that never appear on public share links.
+- **comments**: Allow comment authors to edit their comments inline from the comment menu, including updating text, switching between Public and Internal, removing timestamps, and adding or removing attachments.
+
 - **comments**: Add a "Print Comments" option in the comments menu (available in both project file views and public share links) that opens a dedicated print-friendly page with asset metadata, comment thumbnails, visual markup overlays, replies, completion status, emoji reactions, and attachments.
 
 - **share**: See view counts, last viewed times, and activity for public share links, including file and folder views, downloads, and comments.

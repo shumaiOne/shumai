@@ -171,12 +171,14 @@ export function MobileFileBottomSheet({
       annotations,
       replyToId,
       second,
+      isInternal,
     }: {
       text: string
       attachmentIds: string[]
       annotations?: Annotation[]
       replyToId?: string | null
       second?: number | null
+      isInternal?: boolean
     }) => {
       if (isPublic) {
         const password = localStorage.getItem(`share_pwd_${shareId}`) || ''
@@ -208,6 +210,7 @@ export function MobileFileBottomSheet({
             replyToId: replyToId ?? undefined,
             annotations: annotations,
             second: second ?? undefined,
+            isInternal: isInternal ?? false,
           },
         })
         if (!res.ok) throw new Error('Failed to create comment')
@@ -267,6 +270,8 @@ export function MobileFileBottomSheet({
     annotations: Annotation[] = [],
     replyToId?: string | null,
     second?: number | null,
+    _attachedFilesMeta?: unknown,
+    isInternal?: boolean,
   ) => {
     if (!text.trim() && attachmentIds.length === 0 && annotations.length === 0) return
 
@@ -286,7 +291,14 @@ export function MobileFileBottomSheet({
         })
       }
     } else {
-      createComment({ text, attachmentIds, annotations, replyToId: actualReplyToId, second })
+      createComment({
+        text,
+        attachmentIds,
+        annotations,
+        replyToId: actualReplyToId,
+        second,
+        isInternal,
+      })
     }
     setReplyingTo(null)
   }
@@ -372,6 +384,7 @@ export function MobileFileBottomSheet({
                   <div key={comment.id}>
                     <MessageCard
                       teamId={teamId}
+                      projectId={projectId}
                       message={comment}
                       getUser={getUser}
                       onReply={setReplyingTo}
@@ -398,7 +411,9 @@ export function MobileFileBottomSheet({
                       <div key={reply.id}>
                         <MessageCard
                           teamId={teamId}
+                          projectId={projectId}
                           isReply={true}
+                          parentIsInternal={comment.isInternal}
                           message={reply}
                           getUser={getUser}
                           onReply={setReplyingTo}
@@ -445,6 +460,7 @@ export function MobileFileBottomSheet({
                   onSendMessage={handleSendMessage}
                   replyingTo={replyingTo}
                   onCancelReply={() => setReplyingTo(null)}
+                  allowInternalComments={!isPublic}
                   hideAnnotationControl={hideAnnotationControl}
                   disableMentions={isPublic}
                   currentTime={viewerDef?.commentsConfig?.hasTimestamp ? currentTime : undefined}

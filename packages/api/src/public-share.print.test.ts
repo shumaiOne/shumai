@@ -65,6 +65,7 @@ describe('public share print comments and frame api', () => {
         updatedAt: new Date().toISOString(),
         sessionId: null,
         isCompleted: false,
+        isInternal: false,
         completionLastChangedBy: null,
         reactionCounts: [],
       },
@@ -76,6 +77,9 @@ describe('public share print comments and frame api', () => {
     })
 
     expect(res.status).toBe(200)
+    expect(assetService.listAllComments).toHaveBeenCalledWith('file-1', undefined, {
+      excludeInternal: true,
+    })
     const body = await res.json()
     expect(body.breadcrumbs).toEqual(['Client Review', 'Inner Folder'])
     expect(body.asset.ancestorFolders).toEqual([{ id: 'inner', name: 'Inner Folder' }])
@@ -126,5 +130,37 @@ describe('public share print comments and frame api', () => {
       watermarkConfigId: 'wm-1',
       signal: expect.any(AbortSignal),
     })
+  })
+
+  it('GET /shares/:shareId/files/:fileId/comments excludes internal comments', async () => {
+    vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+      id: 'share-1',
+      rootFolderId: 'share-root',
+      projectId: 'proj-1',
+    } as never)
+    vi.spyOn(assetService, 'resolveTargetAssetId').mockResolvedValue('file-1')
+    const listSpy = vi.spyOn(assetService, 'listComments').mockResolvedValue({
+      data: [],
+      pageInfo: { cursor: undefined, total: 0 },
+    })
+
+    const app = new Hono().route('/', publicShareRoute)
+    const res = await app.request('/shares/share-1/files/file-1/comments')
+
+    expect(res.status).toBe(200)
+    expect(listSpy).toHaveBeenCalledWith('file-1', expect.anything(), undefined, {
+      excludeInternal: true,
+    })
+  })
+
+  it('POST /shares/:shareId/files/:fileId/comments rejects isInternal=true with 400', async () => {
+    const app = new Hono().route('/', publicShareRoute)
+    const res = await app.request('/shares/share-1/files/file-1/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'secret', attachmentIds: [], isInternal: true }),
+    })
+
+    expect(res.status).toBe(400)
   })
 })

@@ -209,12 +209,14 @@ export function FileViewerRightSidebar({
       annotations,
       replyToId,
       second,
+      isInternal,
     }: {
       text: string
       attachmentIds: string[]
       annotations?: Annotation[]
       replyToId?: string | null
       second?: number | null
+      isInternal?: boolean
     }) => {
       if (isPublic) {
         const password = localStorage.getItem(`share_pwd_${shareId}`) || ''
@@ -246,6 +248,7 @@ export function FileViewerRightSidebar({
             replyToId: replyToId ?? undefined,
             annotations: annotations,
             second: second ?? undefined,
+            isInternal: isInternal ?? false,
           },
         })
         if (!res.ok) throw new Error('Failed to create comment')
@@ -297,6 +300,8 @@ export function FileViewerRightSidebar({
     annotations?: Annotation[],
     replyToId?: string | null,
     second?: number | null,
+    _attachedFilesMeta?: unknown,
+    isInternal?: boolean,
   ) => {
     if (!file?.id) return
 
@@ -321,7 +326,7 @@ export function FileViewerRightSidebar({
         createComment({ text, attachmentIds, annotations, replyToId, second })
       }
     } else {
-      createComment({ text, attachmentIds, annotations, replyToId, second })
+      createComment({ text, attachmentIds, annotations, replyToId, second, isInternal })
     }
     setReplyingTo(null)
   }
@@ -418,6 +423,7 @@ export function FileViewerRightSidebar({
                 <div key={comment.id}>
                   <MessageCard
                     teamId={teamId}
+                    projectId={projectId}
                     message={comment}
                     getUser={getUser}
                     onReply={setReplyingTo}
@@ -444,7 +450,9 @@ export function FileViewerRightSidebar({
                     <div key={reply.id}>
                       <MessageCard
                         teamId={teamId}
+                        projectId={projectId}
                         isReply={true}
+                        parentIsInternal={comment.isInternal}
                         message={reply}
                         getUser={getUser}
                         onReply={setReplyingTo}
@@ -488,6 +496,7 @@ export function FileViewerRightSidebar({
                   onSendMessage={handleSendMessage}
                   replyingTo={replyingTo}
                   onCancelReply={() => setReplyingTo(null)}
+                  allowInternalComments={!isPublic}
                   hideAnnotationControl={hideAnnotationControl}
                   disableMentions={isPublic}
                   currentTime={viewerDef?.commentsConfig?.hasTimestamp ? currentTime : undefined}

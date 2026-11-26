@@ -1793,5 +1793,15 @@
   "print_comments_error": "加载可打印评论失败。",
   "print_comments_count": "{count} 条评论",
   "print_comments_count_one": "1 条评论",
-  "print_comments_has_annotations": "评论包含标注"
+  "print_comments_has_annotations": "评论包含标注",
+  "public_comment": "公开评论",
+  "internal_comment": "内部评论",
+  "public_comment_label": "公开",
+  "internal_comment_label": "内部",
+  "public_comment_description": "团队成员和公开分享链接均可见",
+  "internal_comment_description": "仅团队成员可见",
+  "internal_comment_tooltip": "内部评论 — 不会在公开分享链接中显示",
+  "internal_reply_locked_tooltip": "回复内部评论时只能发送内部评论",
+  "remove_timestamp": "移除时间戳",
+  "failed_to_update_comment": "更新评论失败"
 }

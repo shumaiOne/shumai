@@ -21,6 +21,19 @@ vi.mock('@/ui/api/client', () => ({
           },
         },
       },
+      projects: {
+        ':projectId': {
+          attachments: {
+            $post: vi.fn().mockResolvedValue({
+              ok: true,
+              json: async () => ({
+                id: 'att-new-asset',
+                uploadUrl: 'https://upload.example.com/new.txt',
+              }),
+            }),
+          },
+        },
+      },
       comments: {
         ':commentId': {
           complete: {
@@ -39,6 +52,10 @@ vi.mock('@/ui/api/client', () => ({
               json: async () => ({ success: true }),
             }),
           },
+          $patch: vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ id: 'msg-edit', message: 'Updated text', isInternal: true }),
+          }),
           $delete: vi.fn().mockResolvedValue({
             ok: true,
             json: async () => ({ success: true }),
@@ -98,6 +115,7 @@ describe('MessageCard component', () => {
       updatedAt: '2026-08-20T10:30:00.000Z',
       sessionId: null,
       isCompleted: false,
+      isInternal: false,
       completionLastChangedBy: null,
       reactionCounts: [],
     }
@@ -158,6 +176,7 @@ describe('MessageCard component', () => {
       updatedAt: '2026-08-20T10:30:00.000Z',
       sessionId: null,
       isCompleted: false,
+      isInternal: false,
       completionLastChangedBy: null,
       reactionCounts: [
         {
@@ -234,6 +253,7 @@ describe('MessageCard component', () => {
       updatedAt: '2026-08-20T10:30:00.000Z',
       sessionId: null,
       isCompleted: false,
+      isInternal: false,
       completionLastChangedBy: null,
       reactionCounts: [
         {
@@ -261,5 +281,190 @@ describe('MessageCard component', () => {
     // Clicking does not call API
     fireEvent.click(partyBadge!)
     expect(client.api.comments[':commentId'].reactions.$post).not.toHaveBeenCalled()
+  })
+
+  it('displays lock icon for internal comments and hides it for public comments', () => {
+    const baseMessage: CommentInfo = {
+      id: 'msg-internal',
+      assetId: 'asset-1',
+      message: 'Private review note',
+      annotations: null,
+      second: null,
+      creator: { id: 'u-1', name: 'Bob Reviewer' },
+      replies: [],
+      attachments: [],
+      mentions: [],
+      createdAt: '2026-08-20T10:30:00.000Z',
+      updatedAt: '2026-08-20T10:30:00.000Z',
+      sessionId: null,
+      isCompleted: false,
+      isInternal: true,
+      completionLastChangedBy: null,
+      reactionCounts: [],
+    }
+
+    const { rerender } = render(
+      <MessageCard
+        teamId="team-1"
+        projectId="proj-1"
+        message={baseMessage}
+        getUser={() => ({ id: 'u-1', name: 'Bob Reviewer', role: 'reviewer' })}
+        onReply={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    )
+
+    expect(screen.getByTestId('internal-comment-icon')).toBeDefined()
+
+    rerender(
+      <MessageCard
+        teamId="team-1"
+        projectId="proj-1"
+        message={{ ...baseMessage, isInternal: false }}
+        getUser={() => ({ id: 'u-1', name: 'Bob Reviewer', role: 'reviewer' })}
+        onReply={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByTestId('internal-comment-icon')).toBeNull()
+  })
+
+  it('allows author to edit text (preserving mentions), remove timestamp, remove attachment, toggle internal, and save', async () => {
+    const mockMessage: CommentInfo = {
+      id: 'msg-edit',
+      assetId: 'asset-1',
+      message: 'Hey <@u-2> check this frame',
+      annotations: null,
+      second: 5,
+      creator: { id: 'u-1', name: 'Bob Reviewer' },
+      replies: [],
+      attachments: [
+        {
+          id: 'join-1',
+          assetId: 'att-asset-1',
+          url: 'https://example.com/spec.pdf',
+          proxyType: null,
+        },
+        {
+          id: 'join-2',
+          assetId: 'att-asset-2',
+          url: 'https://example.com/keep.png',
+          proxyType: 'image',
+        },
+      ],
+      mentions: [{ id: 'u-2', name: 'Alice' }],
+      createdAt: '2026-08-20T10:30:00.000Z',
+      updatedAt: '2026-08-20T10:30:00.000Z',
+      sessionId: null,
+      isCompleted: false,
+      isInternal: false,
+      completionLastChangedBy: null,
+      reactionCounts: [],
+    }
+
+    render(
+      <MessageCard
+        teamId="team-1"
+        projectId="proj-1"
+        message={mockMessage}
+        frameRate={30}
+        getUser={(id) =>
+          id === 'u-2'
+            ? { id: 'u-2', name: 'Alice', role: 'editor' }
+            : { id, name: 'Unknown', role: 'unknown' }
+        }
+        onReply={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    )
+
+    // Wait for team me query so author menu renders
+    const moreBtn = await screen.findByRole('button', { name: /more options/i })
+    fireEvent.pointerDown(moreBtn)
+    fireEvent.click(moreBtn)
+
+    const editMenuItem = await screen.findByText('Edit')
+    fireEvent.click(editMenuItem)
+
+    // Edit form should appear with hydrated mention chip, timestamp badge, and 2 attachments
+    expect(screen.getByTestId('comment-edit-form')).toBeDefined()
+    const mentionSpan = document.querySelector(
+      '[data-testid="edit-comment-input"] span[data-type="mention"]',
+    )
+    expect(mentionSpan?.getAttribute('data-id')).toBe('u-2')
+    expect(mentionSpan?.textContent).toBe('@Alice')
+
+    // Remove timestamp
+    fireEvent.click(screen.getByTestId('edit-comment-remove-timestamp'))
+    expect(screen.queryByTestId('edit-comment-timestamp')).toBeNull()
+
+    // Remove first attachment
+    fireEvent.click(screen.getByTestId('edit-remove-attachment-att-asset-1'))
+    expect(screen.getAllByTestId('edit-existing-attachment')).toHaveLength(1)
+
+    // Toggle Public -> Internal
+    const visTrigger = screen.getByTestId('comment-visibility-trigger')
+    fireEvent.pointerDown(visTrigger)
+    fireEvent.click(visTrigger)
+    fireEvent.click(await screen.findByTestId('comment-visibility-internal'))
+
+    // Save
+    fireEvent.click(screen.getByTestId('edit-comment-save'))
+
+    await waitFor(() => {
+      expect(client.api.comments[':commentId'].$patch).toHaveBeenCalledWith({
+        param: { commentId: 'msg-edit' },
+        json: {
+          message: 'Hey <@u-2> check this frame',
+          isInternal: true,
+          second: null,
+          attachmentIds: ['att-asset-2'],
+        },
+      })
+    })
+  })
+
+  it('does not show Edit menu item to non-author even if they are team owner', async () => {
+    vi.mocked(client.api.teams[':teamId'].me.$get).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 'u-owner', name: 'Owner', role: 'owner' }),
+    } as never)
+
+    const mockMessage: CommentInfo = {
+      id: 'msg-other',
+      assetId: 'asset-1',
+      message: 'Another user comment',
+      annotations: null,
+      second: null,
+      creator: { id: 'u-1', name: 'Bob Reviewer' },
+      replies: [],
+      attachments: [],
+      mentions: [],
+      createdAt: '2026-08-20T10:30:00.000Z',
+      updatedAt: '2026-08-20T10:30:00.000Z',
+      sessionId: null,
+      isCompleted: false,
+      isInternal: false,
+      completionLastChangedBy: null,
+      reactionCounts: [],
+    }
+
+    render(
+      <MessageCard
+        teamId="team-1"
+        projectId="proj-1"
+        message={mockMessage}
+        getUser={() => ({ id: 'u-1', name: 'Bob Reviewer', role: 'reviewer' })}
+        onReply={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    )
+
+    const moreBtn = await screen.findByRole('button', { name: /more options/i })
+    fireEvent.pointerDown(moreBtn)
+    fireEvent.click(moreBtn)
+
+    await screen.findByText('Delete')
+    expect(screen.queryByText('Edit')).toBeNull()
   })
 })

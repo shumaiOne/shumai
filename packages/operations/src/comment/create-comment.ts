@@ -22,11 +22,18 @@ export const createComment = defineOperation({
       .min(0)
       .optional()
       .describe('Timecode in seconds on a video or audio file. Omit for other files.'),
+    isInternal: z
+      .boolean()
+      .optional()
+      .describe(
+        'Whether this is an internal comment hidden from public share links. Defaults to false.',
+      ),
   }),
   output: z.object({
     id: z.string().describe('The new comment ID.'),
     assetId: z.string().describe('The file the comment is on (the latest version for a stack).'),
     replyToId: z.string().nullable().describe('The thread it replies to, if any.'),
+    isInternal: z.boolean().describe('Whether the created comment is internal.'),
   }),
   surfaces: ['agent', 'mcp', 'cli'],
   annotations: { readOnly: false, destructive: false },
@@ -34,7 +41,7 @@ export const createComment = defineOperation({
     command: ['comment', 'add'],
     description: 'Comment on a file, or reply to a comment with --reply-to.',
     positional: ['assetId', 'message'],
-    flags: { replyToId: ['--reply-to'], second: ['-t', '--at'] },
+    flags: { replyToId: ['--reply-to'], second: ['-t', '--at'], isInternal: ['--internal'] },
     format: (output) => `Posted comment ${output.id}`,
   },
 })

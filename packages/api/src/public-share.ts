@@ -155,6 +155,9 @@ function toFieldInfo(
 }
 
 export function handlePublicShareError(c: Context, err: unknown) {
+  if (err instanceof HTTPException) {
+    throw err
+  }
   if (err instanceof ShareLinkPasswordInvalidError) {
     return c.json({ error: 'Unauthorized' }, 401)
   }
@@ -273,13 +276,16 @@ const route = app
           order = parts[1]
         }
 
-        const res = await assetService.listChildren({
-          ...req,
-          assetId: folderId,
-          assetType: req.assetType || 'file',
-          sort,
-          order,
-        })
+        const res = await assetService.listChildren(
+          {
+            ...req,
+            assetId: folderId,
+            assetType: req.assetType || 'file',
+            sort,
+            order,
+          },
+          { excludeInternalComments: true },
+        )
 
         if (shareLink.watermarkConfigId && res.data.length > 0) {
           // Resolve symlink targets once and reuse for the media lookup, so each
@@ -327,7 +333,10 @@ const route = app
     try {
       const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
 
-      let asset = await assetService.getAsset({ assetId: fileId })
+      let asset = await assetService.getAsset(
+        { assetId: fileId },
+        { excludeInternalComments: true },
+      )
 
       // Only video/image/3d assets are subject to watermark protection; skip the
       // watermark lookup entirely for other media types (pdf, audio, ...).
@@ -412,7 +421,9 @@ const route = app
 
         const targetFileId = await assetService.resolveTargetAssetId(fileId)
         const userId = await getPublicShareUserId(c, shareId)
-        const res = await assetService.listComments(targetFileId, req, userId)
+        const res = await assetService.listComments(targetFileId, req, userId, {
+          excludeInternal: true,
+        })
         return c.json(res)
       } catch (err) {
         return handlePublicShareError(c, err)
@@ -426,7 +437,10 @@ const route = app
 
     try {
       const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
-      let asset = await assetService.getAsset({ assetId: fileId })
+      let asset = await assetService.getAsset(
+        { assetId: fileId },
+        { excludeInternalComments: true },
+      )
       const targetAssetId = await assetService.resolveLatestVersionId(fileId)
 
       if (
@@ -447,7 +461,9 @@ const route = app
 
       const targetFileId = await assetService.resolveTargetAssetId(fileId)
       const userId = await getPublicShareUserId(c, shareId)
-      const comments = await assetService.listAllComments(targetFileId, userId)
+      const comments = await assetService.listAllComments(targetFileId, userId, {
+        excludeInternal: true,
+      })
 
       // Scope breadcrumbs strictly to folders inside the share link root so private
       // project and parent folder names are never leaked.
@@ -518,6 +534,10 @@ const route = app
         return c.json({ error: 'Attachments are not allowed on public share comments' }, 400)
       }
 
+      if (req.isInternal) {
+        return c.json({ error: 'Internal comments are not allowed on public share links' }, 400)
+      }
+
       try {
         const shareLink = await shareService.verifyPublicAccess(shareId, fileId, password)
 
@@ -540,6 +560,7 @@ const route = app
             annotations: req.annotations,
             second: req.second,
             attachmentIds: req.attachmentIds,
+            isInternal: false,
           },
           { shareLinkId: shareId },
         )

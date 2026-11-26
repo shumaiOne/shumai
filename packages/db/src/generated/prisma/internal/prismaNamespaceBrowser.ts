@@ -438,6 +438,7 @@ export const AssetCommentScalarFieldEnum = {
   assetId: 'assetId',
   creatorId: 'creatorId',
   isCompleted: 'isCompleted',
+  isInternal: 'isInternal',
   completionLastChangedById: 'completionLastChangedById',
   replyToId: 'replyToId'
 } as const

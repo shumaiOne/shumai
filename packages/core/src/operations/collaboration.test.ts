@@ -240,7 +240,12 @@ describe('collaboration Operations', () => {
         message: 'Too dark at the start',
         second: 2.5,
       })
-      expect(comment).toEqual({ id: expect.any(String), assetId: file, replyToId: null })
+      expect(comment).toEqual({
+        id: expect.any(String),
+        assetId: file,
+        replyToId: null,
+        isInternal: false,
+      })
 
       const reply = await runOperation(createCommentOp, as(owner, 'agent', undefined), {
         assetId: file,
@@ -248,9 +253,17 @@ describe('collaboration Operations', () => {
         replyToId: comment.id,
       })
       expect(reply.replyToId).toBe(comment.id)
+      expect(reply.isInternal).toBe(false)
+
+      const internalComment = await runOperation(createCommentOp, as(reviewer), {
+        assetId: file,
+        message: 'Internal budget note',
+        isInternal: true,
+      })
+      expect(internalComment.isInternal).toBe(true)
 
       const listed = await runOperation(listCommentsOp, as(reviewer), { assetId: file })
-      expect(listed.total).toBe(1)
+      expect(listed.total).toBe(2)
       expect(listed.data).toEqual([
         expect.objectContaining({
           id: comment.id,
@@ -258,13 +271,20 @@ describe('collaboration Operations', () => {
           author: { id: reviewer.id, name: 'Reviewer' },
           second: 2.5,
           resolved: false,
+          isInternal: false,
           replies: [
             expect.objectContaining({
               id: reply.id,
               message: 'Brightened in v2',
               author: { id: owner.id, name: 'Owner' },
+              isInternal: false,
             }),
           ],
+        }),
+        expect.objectContaining({
+          id: internalComment.id,
+          message: 'Internal budget note',
+          isInternal: true,
         }),
       ])
 
@@ -276,7 +296,7 @@ describe('collaboration Operations', () => {
       ).resolves.toEqual({ commentId: comment.id, resolved: false })
 
       const created = await auditRows(AuditAction.comment_create)
-      expect(created.map((r) => r.itemId)).toEqual([comment.id, reply.id])
+      expect(created.map((r) => r.itemId)).toEqual([comment.id, reply.id, internalComment.id])
       expect(created.every((r) => r.teamId === teamId && r.projectId === projectId)).toBe(true)
       const completed = await auditRows(AuditAction.comment_complete)
       expect(completed).toHaveLength(2)

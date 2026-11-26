@@ -305,6 +305,7 @@ describe('Share API', () => {
           sort: 'name',
           order: 'asc',
         }),
+        { excludeInternalComments: true },
       )
     })
 

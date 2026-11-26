@@ -238,8 +238,17 @@ export const createCommentRequestSchema = z.object({
   annotations: z.any().optional(),
   second: z.number().optional(),
   attachmentIds: z.array(z.string()),
+  isInternal: z.boolean().optional(),
 })
 export type CreateCommentRequest = z.infer<typeof createCommentRequestSchema>
+
+export const updateCommentRequestSchema = z.object({
+  message: z.string().optional(),
+  isInternal: z.boolean().optional(),
+  second: z.number().min(0).nullable().optional(),
+  attachmentIds: z.array(z.string()).optional(),
+})
+export type UpdateCommentRequest = z.infer<typeof updateCommentRequestSchema>
 
 export const attachmentInfoSchema = z.object({
   id: z.string(),
@@ -282,6 +291,7 @@ export type CommentInfo = {
   updatedAt: string
   sessionId: string | null
   isCompleted: boolean
+  isInternal: boolean
   completionLastChangedBy: AssetUserInfo | null
   reactionCounts: CommentReactionCount[]
 }
@@ -301,6 +311,7 @@ export const commentInfoSchema: z.ZodType<CommentInfo> = z.object({
   updatedAt: z.string(),
   sessionId: z.string().nullable(),
   isCompleted: z.boolean(),
+  isInternal: z.boolean(),
   completionLastChangedBy: assetUserInfoSchema.nullable(),
   reactionCounts: z.array(commentReactionCountSchema),
 })

@@ -709,6 +709,7 @@ model AssetComment {
   creator     User?    @relation("UserToAssetComment", fields: [creatorId], references: [id])
 
   isCompleted                 Boolean       @default(false) @map("is_completed")
+  isInternal                  Boolean       @default(false) @map("is_internal")
   completionLastChangedById   String?       @map("completion_last_changed_by_id")
   completionLastChangedBy     User?         @relation("UserToAssetCommentCompletionChanged", fields: [completionLastChangedById], references: [id])
 
