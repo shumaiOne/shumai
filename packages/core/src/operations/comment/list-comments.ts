@@ -15,6 +15,7 @@ function toCommentFields(comment: CommentInfo) {
     second: comment.second,
     hasMarkup: Array.isArray(comment.annotations) && comment.annotations.length > 0,
     attachmentCount: comment.attachments.length,
+    isInternal: comment.isInternal,
     createdAt: comment.createdAt,
   }
 }

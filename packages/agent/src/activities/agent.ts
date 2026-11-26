@@ -601,6 +601,7 @@ export const createCommentActivity = defineStep(
     sessionId?: string | null
     agentId?: string | null
     replyToId?: string | null
+    isInternal?: boolean
   }) {
     if (params.sessionId) {
       const agentId = params.agentId && params.agentId !== 'default' ? params.agentId : 'default'
@@ -669,6 +670,7 @@ export const createCommentActivity = defineStep(
         sessionId: params.sessionId ?? null,
         creatorId: params.agentId && params.agentId !== 'default' ? params.agentId : null,
         replyToId: params.replyToId,
+        isInternal: params.isInternal ?? false,
       },
     })
   },

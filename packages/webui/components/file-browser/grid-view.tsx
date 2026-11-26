@@ -118,9 +118,10 @@ export function FileBrowserGridView({
 
   useEffect(() => {
     let resizeFrame = 0
+    const observeTarget = scrollContainerRef.current ?? containerRef.current
     const updateCols = () => {
-      if (!containerRef.current) return
-      const width = containerRef.current.offsetWidth
+      const width = containerRef.current?.offsetWidth ?? scrollContainerRef.current?.clientWidth
+      if (!width) return
       if (width < 640) setCols(2)
       else if (width < 768) setCols(2)
       else if (width < 1024) setCols(3)
@@ -134,12 +135,12 @@ export function FileBrowserGridView({
       cancelAnimationFrame(resizeFrame)
       resizeFrame = requestAnimationFrame(updateCols)
     })
-    if (containerRef.current) observer.observe(containerRef.current)
+    if (observeTarget) observer.observe(observeTarget)
     return () => {
       observer.disconnect()
       cancelAnimationFrame(resizeFrame)
     }
-  }, [])
+  }, [scrollContainerRef])
 
   const rows = useMemo(() => {
     const list: (
@@ -191,6 +192,7 @@ export function FileBrowserGridView({
     ),
     overscan: 5,
     paddingEnd: 240,
+    useFlushSync: false,
   })
 
   const virtualItems = rowVirtualizer.getVirtualItems()

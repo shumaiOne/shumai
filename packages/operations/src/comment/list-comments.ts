@@ -16,6 +16,9 @@ const commentFields = {
   /** Whether markup was drawn on the frame or page. */
   hasMarkup: z.boolean(),
   attachmentCount: z.number(),
+  isInternal: z
+    .boolean()
+    .describe('Whether this comment is internal (hidden from public share links).'),
   createdAt: z.string(),
 }
 
@@ -68,9 +71,13 @@ export const listComments = defineOperation({
       for (const thread of output.data) {
         const at = thread.second !== null ? ` @${thread.second}s` : ''
         const status = thread.resolved ? ' [resolved]' : ''
-        lines.push(`${thread.id}${at}${status} ${thread.author.name}: ${thread.message}`)
+        const visibility = thread.isInternal ? ' [internal]' : ''
+        lines.push(
+          `${thread.id}${at}${status}${visibility} ${thread.author.name}: ${thread.message}`,
+        )
         for (const reply of thread.replies) {
-          lines.push(`  ↳ ${reply.id} ${reply.author.name}: ${reply.message}`)
+          const replyVisibility = reply.isInternal ? ' [internal]' : ''
+          lines.push(`  ↳ ${reply.id}${replyVisibility} ${reply.author.name}: ${reply.message}`)
         }
       }
       return lines.join('\n')

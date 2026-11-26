@@ -32,6 +32,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { formatTimecode } from '../viewers/video/utils'
 import { useUiStore } from '@/ui/stores/ui'
 import { isImageFileName } from '@/ui/lib/media'
+import { CommentVisibilitySelector } from './comment-visibility-selector'
+import { createMentionNode, serializeEditableContent } from './mention-utils'
 
 export type UploadingFile = {
   id: string // A unique ID for the file, e.g., timestamp + name
@@ -59,6 +61,7 @@ export interface ChatInputProps {
     replyToId?: string | null,
     second?: number | null,
     attachedFilesMeta?: AttachedFileMeta[],
+    isInternal?: boolean,
   ) => void
 
   placeholder?: string
@@ -95,6 +98,9 @@ export interface ChatInputProps {
   replyingTo?: CommentInfo | null
   onCancelReply?: () => void
 
+  // Internal Comments (hidden from public share links)
+  allowInternalComments?: boolean
+
   // Bottom action bar extras (e.g. Agent Selector)
   bottomLeftExtra?: React.ReactNode
 
@@ -127,6 +133,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       onSendMessage,
       replyingTo,
       onCancelReply,
+      allowInternalComments = false,
       placeholder,
       initialText = '',
       value,
@@ -156,6 +163,14 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([])
     const [viewingFile, setViewingFile] = useState<File | null>(null)
     const [isTimestampEnabled, setIsTimestampEnabled] = useState(true)
+    const [isInternal, setIsInternal] = useState(false)
+
+    const isReplyLockedInternal = Boolean(allowInternalComments && replyingTo?.isInternal)
+    const effectiveIsInternal = allowInternalComments
+      ? isReplyLockedInternal
+        ? true
+        : isInternal
+      : false
 
     const effectiveAllowMentions = allowMentions ?? !disableMentions
     const effectiveAllowMarkup = allowMarkup ?? !hideAnnotationControl
@@ -285,14 +300,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       (user: { id: string; name: string }) => {
         if (!editorRef.current) return
 
-        const mentionNode = document.createElement('span')
-        mentionNode.contentEditable = 'false'
-        mentionNode.dataset.type = 'mention'
-        mentionNode.dataset.id = user.id
-        mentionNode.className =
-          'inline-block bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-1.5 py-0.5 rounded-md text-sm font-medium align-middle select-none mx-0.5'
-        mentionNode.innerText = `@${user.name}`
-
+        const mentionNode = createMentionNode(user)
         const spaceNode = document.createTextNode('\u00A0')
 
         editorRef.current.appendChild(mentionNode)
@@ -457,13 +465,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       const range = mentionRangeRef.current
       range.deleteContents()
 
-      const mentionNode = document.createElement('span')
-      mentionNode.contentEditable = 'false'
-      mentionNode.dataset.type = 'mention'
-      mentionNode.dataset.id = entity.data.id
-      mentionNode.className =
-        'inline-block bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-1.5 py-0.5 rounded-md text-sm font-medium align-middle select-none mx-0.5'
-      mentionNode.innerText = `@${entity.data.name}`
+      const mentionNode = createMentionNode({ id: entity.data.id, name: entity.data.name })
 
       range.insertNode(mentionNode)
 
@@ -652,26 +654,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
         }))
 
       // Serialize content
-      let processedText = ''
-      editorRef.current.childNodes.forEach((node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          processedText += node.textContent
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-          const el = node as HTMLElement
-          if (el.dataset.type === 'mention') {
-            processedText += `<@${el.dataset.id}>`
-          } else if (el.tagName === 'BR') {
-            processedText += '\n'
-          } else if (el.tagName === 'DIV' || el.tagName === 'P') {
-            // contentEditable often uses div/p for new lines
-            processedText += '\n' + el.innerText
-          } else {
-            processedText += el.innerText
-          }
-        }
-      })
-
-      processedText = processedText.trim()
+      const processedText = serializeEditableContent(editorRef.current)
 
       const hasWorkspaceAssets = (workspaceAssets?.length ?? 0) > 0
 
@@ -684,14 +667,26 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       )
         return
 
-      onSendMessage(
-        processedText,
-        successfulAttachmentIds,
-        annotations,
-        replyingTo?.id,
-        effectiveAllowTimestamp && isTimestampEnabled ? currentTime : undefined,
-        successfulAttachedFilesMeta,
-      )
+      if (allowInternalComments) {
+        onSendMessage(
+          processedText,
+          successfulAttachmentIds,
+          annotations,
+          replyingTo?.id,
+          effectiveAllowTimestamp && isTimestampEnabled ? currentTime : undefined,
+          successfulAttachedFilesMeta,
+          effectiveIsInternal,
+        )
+      } else {
+        onSendMessage(
+          processedText,
+          successfulAttachmentIds,
+          annotations,
+          replyingTo?.id,
+          effectiveAllowTimestamp && isTimestampEnabled ? currentTime : undefined,
+          successfulAttachedFilesMeta,
+        )
+      }
 
       // Reset editor
       editorRef.current.innerHTML = ''
@@ -703,6 +698,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       setIsDrawing(false)
       resetAnnotations()
       setShowMentionList(false)
+      setIsInternal(false)
       if (onCancelReply) onCancelReply()
     }
 
@@ -1177,17 +1173,27 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
               </div>
             </button>
           ) : (
-            <button
-              onClick={handleSend}
-              disabled={!canSend || isUploading}
-              className={`p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 ${
-                canSend && !isUploading
-                  ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5 cursor-pointer'
-                  : 'bg-gray-400 cursor-not-allowed opacity-50'
-              }`}
-            >
-              <ArrowUp className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {allowInternalComments && !isDrawing && (
+                <CommentVisibilitySelector
+                  isInternal={effectiveIsInternal}
+                  onChange={setIsInternal}
+                  disabled={isReplyLockedInternal}
+                  disabledTooltip={m.internal_reply_locked_tooltip()}
+                />
+              )}
+              <button
+                onClick={handleSend}
+                disabled={!canSend || isUploading}
+                className={`h-7 w-7 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 ${
+                  canSend && !isUploading
+                    ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5 cursor-pointer'
+                    : 'bg-gray-400 cursor-not-allowed opacity-50'
+                }`}
+              >
+                <ArrowUp className="w-3.5 h-3.5" />
+              </button>
+            </div>
           )}
         </div>
 

@@ -125,7 +125,7 @@ An **Operation** is defined once and exposed across built-in agent tools, the MC
 - **Route Code-Splitting**: Split all routes into `[route].tsx` (route definition and loaders) and `[route].lazy.tsx` (UI component and heavy imports).
 - **Radix / Shadcn UI**: Set `modal={false}` on `<DropdownMenu>` when triggering a `Dialog` or `AlertDialog` from inside it to prevent focus-trap UI freezes. Use `ScrollArea` (`@/ui/components/ui/scroll-area`) for scrollable containers.
 - **Pagination & Infinite Scroll**: Use `useInfiniteQuery` + `react-intersection-observer` with default `limit: 20` and the API's `total` field. Backend list APIs use `paginateQuery` from `packages/core/src/pagination.ts` (default `limit: 20`).
-- **Internationalization (i18n)**: Hardcoded UI text is strictly forbidden. Add `snake_case` keys to both `packages/webui/messages/en.json` and `packages/webui/messages/zh.json`, run `bun run i18n:compile` (or `bun run i18n:watch`), and import `m` from `@/ui/paraglide/messages.js`.
+- **Internationalization (i18n)**: Hardcoded UI text is strictly forbidden. Add `snake_case` keys to **all** locale files in `packages/webui/messages/*.json` (do not assume only `en.json` and `zh.json` exist; check the directory for all supported languages), run `bun run i18n:compile` (or `bun run i18n:watch`), and import `m` from `@/ui/paraglide/messages.js`.
 
 ## Database & Prisma (`packages/db`)
 

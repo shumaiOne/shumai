@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/component
 import type { CommentInfo, CommentReactionCount, UserInfo } from '@shumai/dtos'
 import type { MemberInfo } from '@/ui/stores/members'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Download, FileText, MoreHorizontal, Smile, Trash2 } from 'lucide-react'
+import { Download, FileText, Lock, MoreHorizontal, Pencil, Smile, Trash2 } from 'lucide-react'
 import React from 'react'
 import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
@@ -33,11 +33,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { AgentSessionLogsDialog } from '../agent/agent-session-logs-dialog'
 import { isImageFileName } from '@/ui/lib/media'
 import { EmojiPickerPopover } from '../ui/emoji-picker'
+import { MessageEditForm } from './message-edit-form'
 
 interface MessageCardProps {
   teamId?: string
+  projectId?: string
   message: CommentInfo
   isReply?: boolean
+  parentIsInternal?: boolean
   hasReplies?: boolean
   isLastReply?: boolean
   getUser: (id: string) => MemberInfo | UserInfo
@@ -186,8 +189,10 @@ function updateCommentTreeReactions(
 
 export const MessageCard: React.FC<MessageCardProps> = ({
   teamId,
+  projectId,
   message: initialMessage,
   isReply,
+  parentIsInternal,
   hasReplies,
   isLastReply,
   getUser,
@@ -210,6 +215,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   const loadingText = (message.message && AI_PLACEHOLDERS[message.message]) || 'Generating...'
 
   const [isLogsOpen, setIsLogsOpen] = React.useState(false)
+  const [isEditing, setIsEditing] = React.useState(false)
   const [previewImage, setPreviewImage] = React.useState<{ url: string; name: string } | null>(null)
 
   const { videoTimeDisplayMode } = useUiStore()
@@ -377,12 +383,17 @@ export const MessageCard: React.FC<MessageCardProps> = ({
     },
   })
 
+  const canEdit = React.useMemo(() => {
+    if (isReadOnly || !me || message.sessionId) return false
+    return message.creator?.id === me.id
+  }, [isReadOnly, me, message.creator?.id, message.sessionId])
+
   const canDelete = React.useMemo(() => {
-    if (!me) return false
+    if (isReadOnly || !me) return false
     if (me.role === 'owner') return true
     if (message.creator?.id === me.id) return true
     return false
-  }, [me, message.creator?.id])
+  }, [isReadOnly, me, message.creator?.id])
 
   const renderFormattedMessage = (text: string) => {
     const parts = text.split(/(<@[a-zA-Z0-9_-]+>)/g)
@@ -410,7 +421,9 @@ export const MessageCard: React.FC<MessageCardProps> = ({
 
   return (
     <div
-      onClick={onSelect}
+      onClick={() => {
+        if (!isEditing) onSelect?.()
+      }}
       className={`relative flex gap-4 ${isReply ? 'mt-[-1px]' : 'mt-3'} mr-3 group p-3 py-4 border transition-all duration-200 cursor-pointer ${
         isReply
           ? isLastReply
@@ -458,8 +471,26 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                 minute: '2-digit',
               })}
             </span>
+            {message.isInternal && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className="inline-flex items-center text-muted-foreground"
+                      data-testid="internal-comment-icon"
+                      aria-label={m.internal_comment_tooltip()}
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">{m.internal_comment_tooltip()}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
-          {canDelete && (
+          {(canEdit || canDelete) && !isEditing && (
             <div className="opacity-0 group-hover:opacity-100 transition-opacity">
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
@@ -468,231 +499,262 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                     variant="ghost"
                     className="h-6 w-6 cursor-pointer"
                     onClick={(e) => e.stopPropagation()}
+                    aria-label={m.more_options()}
                   >
                     <MoreHorizontal className="h-4 w-4 text-foreground/70" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setIsDeleteDialogOpen(true)
-                    }}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    <span>{m.delete()}</span>
-                  </DropdownMenuItem>
+                  {canEdit && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setIsEditing(true)
+                      }}
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      <span>{m.edit()}</span>
+                    </DropdownMenuItem>
+                  )}
+                  {canDelete && (
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setIsDeleteDialogOpen(true)
+                      }}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      <span>{m.delete()}</span>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           )}
         </div>
 
-        <div className="flow-root mt-1">
-          {message.second !== null && message.second !== undefined && frameRate && (
-            <div className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-1 mt-[2px] mr-2 rounded-sm text-xs leading-none font-mono font-bold flex items-center gap-1">
-              {displayTime}
-            </div>
-          )}
-
-          {hasDrawInfo && (
-            <div
-              className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-1 py-1 mt-[2px] mr-2 rounded-sm text-xs leading-none font-bold flex items-center gap-1"
-              title="Contains drawing annotations"
-            >
-              <DrawAnnotation className="w-3.5 h-3.5" />
-            </div>
-          )}
-
-          {showSkeleton ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-              <span className="text-xs text-muted-foreground animate-pulse">{loadingText}</span>
-            </div>
-          ) : message.sessionId ? (
-            <div className="text-sm leading-[1.8] prose prose-sm dark:prose-invert max-w-none break-words">
-              <Markdown>{preprocessMarkdown(message.message!)}</Markdown>
-            </div>
-          ) : (
-            <div className="text-sm leading-[1.8] whitespace-pre-wrap break-words text-wrap break-all">
-              {renderFormattedMessage(message.message!)}
-            </div>
-          )}
-        </div>
-
-        {/* Attachments */}
-        {message.attachments && message.attachments.length > 0 && (
-          <div className="flex flex-col gap-1.5 mt-3 w-full max-w-full overflow-hidden">
-            {message.attachments.map((att) => {
-              const rawName = att.url?.split('/').pop()?.split('?')[0] || 'file'
-              const name = decodeURIComponent(rawName)
-              const isImage = isImageFileName(name)
-              return (
-                <div
-                  key={att.id}
-                  className={`group relative flex items-center w-full max-w-full rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors overflow-hidden ${
-                    isImage ? 'h-18 p-1.5 gap-2.5 cursor-pointer' : 'h-9 px-2.5 gap-2.5'
-                  }`}
-                  onClick={() => {
-                    if (isImage) {
-                      setPreviewImage({ url: att.url, name })
-                    } else {
-                      window.open(att.url, '_blank', 'noreferrer')
-                    }
-                  }}
-                >
-                  {isImage ? (
-                    <div className="h-full aspect-square rounded-md overflow-hidden bg-muted/40 shrink-0">
-                      <img
-                        src={att.url}
-                        alt={name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                      />
-                    </div>
-                  ) : (
-                    <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-                  )}
-
-                  <div className="min-w-0 flex-1 overflow-hidden">
-                    <p
-                      className="text-xs font-medium text-foreground truncate block w-full"
-                      title={name}
-                    >
-                      {name}
-                    </p>
-                  </div>
-
-                  <a
-                    href={att.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    download={name}
-                    className="p-1 text-muted-foreground hover:text-foreground shrink-0 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
-                    onClick={(e) => e.stopPropagation()}
-                    title={m.download()}
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </a>
+        {isEditing ? (
+          <MessageEditForm
+            projectId={projectId}
+            teamId={teamId}
+            message={message}
+            parentIsInternal={parentIsInternal}
+            getUser={getUser}
+            displayTime={displayTime}
+            hasDrawInfo={hasDrawInfo}
+            onCancel={() => setIsEditing(false)}
+            onSaved={() => setIsEditing(false)}
+          />
+        ) : (
+          <>
+            <div className="flow-root mt-1">
+              {message.second !== null && message.second !== undefined && frameRate && (
+                <div className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-1 mt-[2px] mr-2 rounded-sm text-xs leading-none font-mono font-bold flex items-center gap-1">
+                  {displayTime}
                 </div>
-              )
-            })}
-          </div>
-        )}
+              )}
 
-        {/* Agent Footer */}
-        {message.sessionId && (
-          <div className="mt-3 pt-2 border-t border-foreground/5 flex items-center justify-between text-xs text-muted-foreground/60">
-            <span className="flex items-center gap-1.5 font-medium text-muted-foreground/80">
-              Created by Agent
-            </span>
-            {isAdmin && (
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={() => setIsLogsOpen(true)}
-                className="cursor-pointer border-violet-500/20 text-violet-600 dark:text-violet-400 hover:bg-violet-500/10 hover:text-violet-700 hover:border-violet-500/30 font-semibold"
-              >
-                Logs
-              </Button>
+              {hasDrawInfo && (
+                <div
+                  className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-1 py-1 mt-[2px] mr-2 rounded-sm text-xs leading-none font-bold flex items-center gap-1"
+                  title="Contains drawing annotations"
+                >
+                  <DrawAnnotation className="w-3.5 h-3.5" />
+                </div>
+              )}
+
+              {showSkeleton ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <span className="text-xs text-muted-foreground animate-pulse">{loadingText}</span>
+                </div>
+              ) : message.sessionId ? (
+                <div className="text-sm leading-[1.8] prose prose-sm dark:prose-invert max-w-none break-words">
+                  <Markdown>{preprocessMarkdown(message.message!)}</Markdown>
+                </div>
+              ) : (
+                <div className="text-sm leading-[1.8] whitespace-pre-wrap break-words text-wrap break-all">
+                  {renderFormattedMessage(message.message!)}
+                </div>
+              )}
+            </div>
+
+            {/* Attachments */}
+            {message.attachments && message.attachments.length > 0 && (
+              <div className="flex flex-col gap-1.5 mt-3 w-full max-w-full overflow-hidden">
+                {message.attachments.map((att) => {
+                  const rawName = att.url?.split('/').pop()?.split('?')[0] || 'file'
+                  const name = decodeURIComponent(rawName)
+                  const isImage = isImageFileName(name)
+                  return (
+                    <div
+                      key={att.id}
+                      className={`group relative flex items-center w-full max-w-full rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors overflow-hidden ${
+                        isImage ? 'h-18 p-1.5 gap-2.5 cursor-pointer' : 'h-9 px-2.5 gap-2.5'
+                      }`}
+                      onClick={() => {
+                        if (isImage) {
+                          setPreviewImage({ url: att.url, name })
+                        } else {
+                          window.open(att.url, '_blank', 'noreferrer')
+                        }
+                      }}
+                    >
+                      {isImage ? (
+                        <div className="h-full aspect-square rounded-md overflow-hidden bg-muted/40 shrink-0">
+                          <img
+                            src={att.url}
+                            alt={name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                        </div>
+                      ) : (
+                        <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                      )}
+
+                      <div className="min-w-0 flex-1 overflow-hidden">
+                        <p
+                          className="text-xs font-medium text-foreground truncate block w-full"
+                          title={name}
+                        >
+                          {name}
+                        </p>
+                      </div>
+
+                      <a
+                        href={att.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        download={name}
+                        className="p-1 text-muted-foreground hover:text-foreground shrink-0 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
+                        onClick={(e) => e.stopPropagation()}
+                        title={m.download()}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  )
+                })}
+              </div>
             )}
-          </div>
-        )}
 
-        {/* Reactions */}
-        {message.reactionCounts && message.reactionCounts.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 mt-2">
-            {message.reactionCounts.map((reaction) => {
-              const tooltipText = getReactionTooltip(reaction)
-              return (
-                <TooltipProvider key={reaction.code}>
+            {/* Agent Footer */}
+            {message.sessionId && (
+              <div className="mt-3 pt-2 border-t border-foreground/5 flex items-center justify-between text-xs text-muted-foreground/60">
+                <span className="flex items-center gap-1.5 font-medium text-muted-foreground/80">
+                  Created by Agent
+                </span>
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => setIsLogsOpen(true)}
+                    className="cursor-pointer border-violet-500/20 text-violet-600 dark:text-violet-400 hover:bg-violet-500/10 hover:text-violet-700 hover:border-violet-500/30 font-semibold"
+                  >
+                    Logs
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Reactions */}
+            {message.reactionCounts && message.reactionCounts.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {message.reactionCounts.map((reaction) => {
+                  const tooltipText = getReactionTooltip(reaction)
+                  return (
+                    <TooltipProvider key={reaction.code}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            disabled={isReadOnly}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleToggleReaction(reaction.code)
+                            }}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-colors select-none ${
+                              isReadOnly ? 'cursor-default' : 'cursor-pointer'
+                            } ${
+                              reaction.requestingUserReacted
+                                ? 'border-primary/40 bg-primary/10 font-medium'
+                                : 'border-border/60 bg-muted/40 hover:bg-muted'
+                            }`}
+                          >
+                            <span className="text-sm leading-none">{reaction.code}</span>
+                            <span className="text-xs font-semibold text-foreground">
+                              {reaction.count}
+                            </span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>{tooltipText}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="mt-2 flex items-center justify-between w-full">
+              <button
+                onClick={handleReply}
+                className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 cursor-pointer"
+              >
+                {m.reply()}
+              </button>
+
+              <div className="flex items-center gap-1">
+                {!isReadOnly && (
+                  <EmojiPickerPopover
+                    onEmojiSelect={(emoji) => handleToggleReaction(emoji)}
+                    align="end"
+                    side="top"
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center justify-center p-1 rounded-full text-gray-400 hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
+                      title={m.add_reaction()}
+                    >
+                      <Smile className="w-5 h-5" />
+                    </button>
+                  </EmojiPickerPopover>
+                )}
+
+                <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
-                        type="button"
-                        disabled={isReadOnly}
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleToggleReaction(reaction.code)
+                          toggleComplete()
                         }}
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-colors select-none ${
-                          isReadOnly ? 'cursor-default' : 'cursor-pointer'
-                        } ${
-                          reaction.requestingUserReacted
-                            ? 'border-primary/40 bg-primary/10 font-medium'
-                            : 'border-border/60 bg-muted/40 hover:bg-muted'
+                        className={`flex items-center justify-center p-1 rounded-full transition-colors cursor-pointer ${
+                          message.isCompleted
+                            ? 'text-green-500 hover:text-green-600 hover:bg-green-500/10'
+                            : 'text-gray-400 hover:text-green-500 hover:bg-green-500/10'
                         }`}
                       >
-                        <span className="text-sm leading-none">{reaction.code}</span>
-                        <span className="text-xs font-semibold text-foreground">
-                          {reaction.count}
-                        </span>
+                        {message.isCompleted ? (
+                          <FilledCircleCheck className="w-5 h-5" />
+                        ) : (
+                          <UnfilledCircleCheck className="w-5 h-5" />
+                        )}
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent>{tooltipText}</TooltipContent>
+                    <TooltipContent>
+                      {message.isCompleted ? m.mark_as_incomplete() : m.mark_as_complete()}
+                    </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-              )
-            })}
-          </div>
+              </div>
+            </div>
+          </>
         )}
-
-        {/* Actions */}
-        <div className="mt-2 flex items-center justify-between w-full">
-          <button
-            onClick={handleReply}
-            className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 cursor-pointer"
-          >
-            {m.reply()}
-          </button>
-
-          <div className="flex items-center gap-1">
-            {!isReadOnly && (
-              <EmojiPickerPopover
-                onEmojiSelect={(emoji) => handleToggleReaction(emoji)}
-                align="end"
-                side="top"
-              >
-                <button
-                  type="button"
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center p-1 rounded-full text-gray-400 hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
-                  title={m.add_reaction()}
-                >
-                  <Smile className="w-5 h-5" />
-                </button>
-              </EmojiPickerPopover>
-            )}
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      toggleComplete()
-                    }}
-                    className={`flex items-center justify-center p-1 rounded-full transition-colors cursor-pointer ${
-                      message.isCompleted
-                        ? 'text-green-500 hover:text-green-600 hover:bg-green-500/10'
-                        : 'text-gray-400 hover:text-green-500 hover:bg-green-500/10'
-                    }`}
-                  >
-                    {message.isCompleted ? (
-                      <FilledCircleCheck className="w-5 h-5" />
-                    ) : (
-                      <UnfilledCircleCheck className="w-5 h-5" />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {message.isCompleted ? m.mark_as_incomplete() : m.mark_as_complete()}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
       </div>
 
       {/* Logs Dialog */}

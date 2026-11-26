@@ -14,6 +14,7 @@ import {
   FileIcon,
   FileText,
   Loader2,
+  Lock,
   Printer,
 } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -399,6 +400,16 @@ export const PrintCommentsView: React.FC<PrintCommentsViewProps> = ({
               <span className="whitespace-nowrap text-xs text-muted-foreground">
                 {formatCommentDateTime(comment.createdAt)}
               </span>
+              {comment.isInternal && (
+                <span
+                  className="inline-flex items-center text-muted-foreground"
+                  title={m.internal_comment_tooltip()}
+                  aria-label={m.internal_comment_tooltip()}
+                  data-testid="print-comment-internal"
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                </span>
+              )}
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {comment.isCompleted && (

@@ -18,6 +18,7 @@ import {
 import {
   archiveAssetsRequestSchema,
   createCommentRequestSchema,
+  updateCommentRequestSchema,
   deleteFilesRequestSchema,
   batchGetFilesRequestSchema,
   paginationParamsSchema,
@@ -199,6 +200,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         annotations: req.annotations,
         second: req.second,
         attachmentIds: req.attachmentIds,
+        isInternal: req.isInternal,
       })
 
       const context = await assetService.getAssetContext(fileId)
@@ -361,6 +363,38 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.json(await assetService.getComment(commentId, user.id))
     },
   )
+  .patch('/comments/:commentId', zValidator('json', updateCommentRequestSchema), async (c) => {
+    const commentId = c.req.param('commentId')
+    const user = c.get('user')
+    const req = c.req.valid('json')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Comment,
+      id: commentId,
+    })
+
+    const updated = await assetService.updateComment({
+      commentId,
+      userId: user.id,
+      message: req.message,
+      isInternal: req.isInternal,
+      second: req.second,
+      attachmentIds: req.attachmentIds,
+    })
+
+    const context = await assetService.getAssetContext(updated.assetId)
+    await auditLogService.logAction({
+      action: AuditAction.comment_update,
+      teamId: context.teamId,
+      userId: user.id,
+      projectId: context.projectId,
+      itemId: commentId,
+    })
+
+    return c.json(updated)
+  })
   .delete('/comments/:commentId', async (c) => {
     const commentId = c.req.param('commentId')
     const user = c.get('user')

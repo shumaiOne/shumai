@@ -20,10 +20,16 @@ export const createCommentOp = implementOperation(createComment, {
       message: input.message,
       replyToId: input.replyToId,
       second: input.second,
+      isInternal: input.isInternal,
       // Mentions in comments written by Shumai's own agent must not start more agent runs.
       triggerAgents: ctx.via !== 'agent',
     })
-    return { id: comment.id, assetId: comment.assetId, replyToId: input.replyToId ?? null }
+    return {
+      id: comment.id,
+      assetId: comment.assetId,
+      replyToId: input.replyToId ?? null,
+      isInternal: comment.isInternal,
+    }
   },
   audit: (input, output) => [
     { action: AuditAction.comment_create, itemId: output.id, contextAssetId: input.assetId },

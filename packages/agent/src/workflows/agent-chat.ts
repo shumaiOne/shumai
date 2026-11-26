@@ -85,6 +85,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
         sessionId: sessionId || 'pending',
         agentId: agentId,
         replyToId: userComment.replyToId ?? userComment.id,
+        ...(userComment.isInternal ? { isInternal: true } : {}),
       })
       placeholderCommentId = placeholder.id
 

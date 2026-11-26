@@ -25,6 +25,7 @@ function makeComment(overrides: Partial<CommentInfo> = {}): CommentInfo {
     updatedAt: '2026-11-25T14:53:00.000Z',
     sessionId: null,
     isCompleted: false,
+    isInternal: false,
     completionLastChangedBy: null,
     reactionCounts: [],
     ...overrides,
@@ -497,5 +498,30 @@ describe('PrintCommentsView', () => {
     expect(screen.getByTestId('print-annotation-overlay').getAttribute('viewBox')).toBe(
       '0 0 200 267',
     )
+  })
+
+  it('renders a lock indicator for internal comments', () => {
+    render(
+      <PrintCommentsView
+        asset={{
+          id: 'asset-1',
+          name: 'video.mp4',
+          sizeByte: 100,
+          fileCount: 1,
+          type: 'file',
+          status: 'processed',
+          proxyType: 'video',
+          createdAt: '2026-11-25T14:53:00.000Z',
+          updatedAt: '2026-11-25T14:53:00.000Z',
+        }}
+        breadcrumbs={['Project']}
+        comments={[
+          makeComment({ id: 'c-pub', isInternal: false }),
+          makeComment({ id: 'c-int', isInternal: true }),
+        ]}
+      />,
+    )
+
+    expect(screen.getAllByTestId('print-comment-internal')).toHaveLength(1)
   })
 })

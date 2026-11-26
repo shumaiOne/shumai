@@ -44,6 +44,7 @@ describe('ChatInput auto-mention on reply', () => {
       updatedAt: '2026-08-20T10:30:00.000Z',
       sessionId: null,
       isCompleted: false,
+      isInternal: false,
       completionLastChangedBy: null,
       reactionCounts: [],
     }
@@ -89,6 +90,7 @@ describe('ChatInput auto-mention on reply', () => {
       updatedAt: '2026-08-20T10:30:00.000Z',
       sessionId: null,
       isCompleted: false,
+      isInternal: false,
       completionLastChangedBy: null,
       reactionCounts: [],
     }
@@ -124,6 +126,7 @@ describe('ChatInput auto-mention on reply', () => {
       updatedAt: '2026-08-20T10:30:00.000Z',
       sessionId: null,
       isCompleted: false,
+      isInternal: false,
       completionLastChangedBy: null,
       reactionCounts: [],
     }
@@ -142,6 +145,7 @@ describe('ChatInput auto-mention on reply', () => {
       updatedAt: '2026-08-20T10:31:00.000Z',
       sessionId: null,
       isCompleted: false,
+      isInternal: false,
       completionLastChangedBy: null,
       reactionCounts: [],
     }
@@ -163,5 +167,111 @@ describe('ChatInput auto-mention on reply', () => {
     mentionSpans = document.querySelectorAll('span[data-type="mention"]')
     expect(mentionSpans).toHaveLength(2)
     expect(mentionSpans[1].getAttribute('data-id')).toBe('user-bob')
+  })
+
+  it('hides visibility selector when allowInternalComments is false', () => {
+    const onSendMessage = vi.fn()
+    render(<ChatInput projectId="proj-1" onSendMessage={onSendMessage} />, {
+      wrapper: createWrapper(),
+    })
+
+    expect(document.querySelector('[data-testid="comment-visibility-trigger"]')).toBeNull()
+  })
+
+  it('defaults to Public, switches to Internal via dropdown pill, and resets after send', () => {
+    const onSendMessage = vi.fn()
+    render(
+      <ChatInput projectId="proj-1" onSendMessage={onSendMessage} allowInternalComments={true} />,
+      { wrapper: createWrapper() },
+    )
+
+    const trigger = document.querySelector(
+      '[data-testid="comment-visibility-trigger"]',
+    ) as HTMLButtonElement
+    expect(trigger).not.toBeNull()
+    expect(trigger.textContent).toContain('Public')
+
+    // Open dropdown and choose Internal
+    fireEvent.pointerDown(trigger)
+    fireEvent.click(trigger)
+    const internalOption = document.querySelector(
+      '[data-testid="comment-visibility-internal"]',
+    ) as HTMLElement
+    expect(internalOption).not.toBeNull()
+    fireEvent.click(internalOption)
+
+    expect(trigger.textContent).toContain('Internal')
+
+    // Type message and send
+    const editor = document.querySelector('[contenteditable="true"]') as HTMLDivElement
+    editor.innerText = 'Internal discussion'
+    fireEvent.input(editor)
+
+    const sendButton = document.querySelector('button .lucide-arrow-up')?.closest('button')
+    fireEvent.click(sendButton as HTMLButtonElement)
+
+    expect(onSendMessage).toHaveBeenCalledWith(
+      'Internal discussion',
+      [],
+      [],
+      undefined,
+      undefined,
+      [],
+      true,
+    )
+    // Resets back to Public default after send
+    expect(trigger.textContent).toContain('Public')
+  })
+
+  it('locks visibility to Internal when replying to an internal comment', () => {
+    const internalComment: CommentInfo = {
+      id: 'comment-int',
+      assetId: 'asset-1',
+      message: 'Private thread',
+      annotations: null,
+      second: null,
+      creator: { id: 'user-alice', name: 'Alice Smith' },
+      replies: [],
+      attachments: [],
+      mentions: [],
+      createdAt: '2026-08-20T10:30:00.000Z',
+      updatedAt: '2026-08-20T10:30:00.000Z',
+      sessionId: null,
+      isCompleted: false,
+      isInternal: true,
+      completionLastChangedBy: null,
+      reactionCounts: [],
+    }
+
+    const onSendMessage = vi.fn()
+    render(
+      <ChatInput
+        projectId="proj-1"
+        onSendMessage={onSendMessage}
+        replyingTo={internalComment}
+        allowInternalComments={true}
+      />,
+      { wrapper: createWrapper() },
+    )
+
+    const trigger = document.querySelector(
+      '[data-testid="comment-visibility-trigger"]',
+    ) as HTMLButtonElement
+    expect(trigger).not.toBeNull()
+    expect(trigger.textContent).toContain('Internal')
+    expect(trigger.disabled).toBe(true)
+
+    const sendButton = document.querySelector('button .lucide-arrow-up')?.closest('button')
+    fireEvent.click(sendButton as HTMLButtonElement)
+
+    expect(onSendMessage).toHaveBeenCalledWith(
+      '<@user-alice>',
+      [],
+      [],
+      'comment-int',
+      undefined,
+      [],
+      true,
+    )
   })
 })

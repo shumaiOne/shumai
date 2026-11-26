@@ -743,7 +743,10 @@ export class AssetService {
     }
   }
 
-  async listChildren(req: ListChildrenRequest): Promise<PaginatedData<AssetInfo[]>> {
+  async listChildren(
+    req: ListChildrenRequest,
+    options?: { excludeInternalComments?: boolean },
+  ): Promise<PaginatedData<AssetInfo[]>> {
     let typesToQuery: AssetType[]
     if (req.assetType === 'file') {
       typesToQuery = [AssetType.file, AssetType.version_stack]
@@ -831,6 +834,7 @@ export class AssetService {
 
     const infos = await this.toAssetInfos(assets, undefined, {
       includeDeletedChildren: req.showDeleted,
+      excludeInternalComments: options?.excludeInternalComments,
     })
 
     return { data: infos, pageInfo }
@@ -1107,7 +1111,10 @@ export class AssetService {
     return this.getAsset({ assetId: asset.id })
   }
 
-  async getAsset(req: GetAssetRequest): Promise<AssetInfo> {
+  async getAsset(
+    req: GetAssetRequest,
+    options?: { excludeInternalComments?: boolean },
+  ): Promise<AssetInfo> {
     const a = await this.prismaClient.asset.findUnique({
       where: { id: req.assetId },
       include: assetInclude,
@@ -1130,7 +1137,9 @@ export class AssetService {
       afs.push({ id: row.id, name: row.name })
     }
 
-    const infos = await this.toAssetInfos([a])
+    const infos = await this.toAssetInfos([a], undefined, {
+      excludeInternalComments: options?.excludeInternalComments,
+    })
     const info = infos[0]
     info.ancestorFolders = afs
 
@@ -2001,15 +2010,38 @@ export class AssetService {
 
       let actualReplyToId = req.replyToId
       let parentComment = null
+      let parentIsInternal = false
       if (req.replyToId) {
         parentComment = await tx.assetComment.findUnique({
           where: { id: req.replyToId },
-          include: { creator: true },
+          include: {
+            creator: true,
+            replyTo: { select: { id: true, isInternal: true } },
+          },
         })
+        if (options.shareLinkId) {
+          if (
+            !parentComment ||
+            parentComment.assetId !== a.id ||
+            parentComment.isInternal ||
+            parentComment.replyTo?.isInternal
+          ) {
+            throw new HTTPException(404, { message: 'Comment not found' })
+          }
+        }
         if (parentComment?.replyToId) {
           actualReplyToId = parentComment.replyToId
+          parentIsInternal = Boolean(parentComment.isInternal || parentComment.replyTo?.isInternal)
+        } else if (parentComment) {
+          parentIsInternal = parentComment.isInternal
         }
       }
+
+      const isInternal = options.shareLinkId
+        ? false
+        : parentIsInternal
+          ? true
+          : Boolean(req.isInternal)
 
       const attachmentIds = await this.lockCommentAttachments(tx, req.attachmentIds, {
         projectId: a.projectId,
@@ -2023,6 +2055,7 @@ export class AssetService {
           annotation: req.annotations,
           second: req.second,
           replyToId: actualReplyToId,
+          isInternal,
         },
       })
       commentId = comment.id
@@ -2221,6 +2254,145 @@ export class AssetService {
     return this.getComment(commentId, userId)
   }
 
+  async updateComment(params: {
+    commentId: string
+    userId: string
+    message?: string
+    isInternal?: boolean
+    second?: number | null
+    attachmentIds?: string[]
+  }): Promise<CommentInfo> {
+    await this.prismaClient.$transaction(async (tx) => {
+      const comment = await tx.assetComment.findUnique({
+        where: { id: params.commentId },
+        select: {
+          id: true,
+          creatorId: true,
+          sessionId: true,
+          message: true,
+          annotation: true,
+          second: true,
+          isInternal: true,
+          attachments: { select: { assetId: true } },
+          replyTo: { select: { isInternal: true } },
+          asset: { select: { projectId: true } },
+        },
+      })
+
+      if (!comment) {
+        throw new HTTPException(404, { message: 'Comment not found' })
+      }
+
+      if (comment.sessionId !== null || comment.creatorId !== params.userId) {
+        throw new HTTPException(403, { message: 'Only the comment author can edit this comment' })
+      }
+
+      if (comment.replyTo?.isInternal && params.isInternal === false) {
+        throw new HTTPException(400, {
+          message: 'Cannot make a reply public when its parent comment is internal',
+        })
+      }
+
+      const existingAttachmentIds = comment.attachments.map(({ assetId }) => assetId)
+      const existingSet = new Set(existingAttachmentIds)
+
+      let toAdd: string[] = []
+      let toRemove: string[] = []
+      let keptCount = existingAttachmentIds.length
+
+      if (params.attachmentIds !== undefined) {
+        const desiredIds = Array.from(new Set(params.attachmentIds))
+        const desiredSet = new Set(desiredIds)
+        toAdd = desiredIds.filter((id) => !existingSet.has(id))
+        toRemove = existingAttachmentIds.filter((id) => !desiredSet.has(id))
+        keptCount = existingAttachmentIds.filter((id) => desiredSet.has(id)).length
+      }
+
+      const idsToLock = Array.from(new Set([...toAdd, ...toRemove]))
+      let claimedToAdd: string[] = []
+      let lockedToRemove: string[] = []
+
+      if (idsToLock.length > 0) {
+        const lockedRows = await tx.$queryRaw<
+          { id: string; projectId: string | null; creatorId: string | null }[]
+        >`
+          SELECT id, project_id AS "projectId", creator_id AS "creatorId" FROM assets
+          WHERE id IN (${Prisma.join(idsToLock)}) AND type = 'attachment'
+          ORDER BY id
+          FOR NO KEY UPDATE
+        `
+        const toAddSet = new Set(toAdd)
+        const toRemoveSet = new Set(toRemove)
+        const ownedToAdd = lockedRows
+          .filter(
+            (row) =>
+              toAddSet.has(row.id) &&
+              row.projectId === comment.asset.projectId &&
+              row.creatorId === params.userId,
+          )
+          .map((row) => row.id)
+
+        lockedToRemove = lockedRows.filter((row) => toRemoveSet.has(row.id)).map((row) => row.id)
+
+        if (ownedToAdd.length > 0) {
+          const unclaimed = await tx.asset.findMany({
+            where: { id: { in: ownedToAdd }, commentAttachments: { none: {} } },
+            select: { id: true },
+          })
+          claimedToAdd = unclaimed.map(({ id }) => id)
+        }
+      }
+
+      const finalMessage = params.message !== undefined ? params.message : (comment.message ?? '')
+      const hasAnnotations = Array.isArray(comment.annotation) && comment.annotation.length > 0
+      const finalAttachmentCount = keptCount + claimedToAdd.length
+
+      if (!finalMessage.trim() && finalAttachmentCount === 0 && !hasAnnotations) {
+        throw new HTTPException(400, { message: 'Comment cannot be empty' })
+      }
+
+      if (toRemove.length > 0) {
+        await tx.assetCommentAttachment.deleteMany({
+          where: {
+            commentId: params.commentId,
+            assetId: { in: toRemove },
+          },
+        })
+        if (lockedToRemove.length > 0) {
+          await tx.asset.deleteMany({
+            where: { id: { in: lockedToRemove }, commentAttachments: { none: {} } },
+          })
+        }
+      }
+
+      if (claimedToAdd.length > 0) {
+        await tx.assetCommentAttachment.createMany({
+          data: claimedToAdd.map((assetId) => ({ assetId, commentId: params.commentId })),
+        })
+      }
+
+      const updateData: Prisma.AssetCommentUpdateInput = {}
+      if (params.message !== undefined) {
+        updateData.message = params.message
+      }
+      if (params.isInternal !== undefined) {
+        updateData.isInternal = params.isInternal
+      }
+      if (params.second !== undefined) {
+        updateData.second = params.second
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await tx.assetComment.update({
+          where: { id: params.commentId },
+          data: updateData,
+        })
+      }
+    })
+
+    return this.getComment(params.commentId, params.userId)
+  }
+
   async deleteComment({ commentId, userId }: { commentId: string; userId: string }): Promise<void> {
     const comment = await this.prismaClient.assetComment.findUnique({
       where: { id: commentId },
@@ -2283,7 +2455,7 @@ export class AssetService {
     })
   }
 
-  private getCommentInclude() {
+  private getCommentInclude(options?: { excludeInternal?: boolean }) {
     return {
       creator: true,
       completionLastChangedBy: true,
@@ -2296,6 +2468,7 @@ export class AssetService {
         orderBy: { createdAt: 'asc' as const },
       },
       replies: {
+        ...(options?.excludeInternal ? { where: { isInternal: false } } : {}),
         include: {
           creator: true,
           completionLastChangedBy: true,
@@ -2316,14 +2489,20 @@ export class AssetService {
     assetId: string,
     params: PaginationParams,
     requestingUserId?: string,
+    options?: { excludeInternal?: boolean },
   ): Promise<PaginatedData<CommentInfo[]>> {
     const resolvedAssetId = await this.resolveLatestVersionId(assetId)
+    const where: Prisma.AssetCommentWhereInput = {
+      assetId: resolvedAssetId,
+      replyToId: null,
+      ...(options?.excludeInternal ? { isInternal: false } : {}),
+    }
 
     const { data: comments, pageInfo } = await paginateQuery(
       async (skip, take) => {
         return this.prismaClient.assetComment.findMany({
-          where: { assetId: resolvedAssetId, replyToId: null },
-          include: this.getCommentInclude(),
+          where,
+          include: this.getCommentInclude(options),
           skip,
           take,
           orderBy: { id: 'asc' },
@@ -2331,7 +2510,7 @@ export class AssetService {
       },
       async () =>
         this.prismaClient.assetComment.count({
-          where: { assetId: resolvedAssetId, replyToId: null },
+          where,
         }),
       params,
     )
@@ -2341,12 +2520,20 @@ export class AssetService {
     return { data: infos, pageInfo }
   }
 
-  async listAllComments(assetId: string, requestingUserId?: string): Promise<CommentInfo[]> {
+  async listAllComments(
+    assetId: string,
+    requestingUserId?: string,
+    options?: { excludeInternal?: boolean },
+  ): Promise<CommentInfo[]> {
     const resolvedAssetId = await this.resolveLatestVersionId(assetId)
 
     const comments = await this.prismaClient.assetComment.findMany({
-      where: { assetId: resolvedAssetId, replyToId: null },
-      include: this.getCommentInclude(),
+      where: {
+        assetId: resolvedAssetId,
+        replyToId: null,
+        ...(options?.excludeInternal ? { isInternal: false } : {}),
+      },
+      include: this.getCommentInclude(options),
       orderBy: { id: 'asc' },
     })
 
@@ -2461,9 +2648,10 @@ export class AssetService {
   async toAssetInfos(
     assets: AssetWithIncludes[],
     previewFormat?: PreviewFormat,
-    options?: { includeDeletedChildren?: boolean },
+    options?: { includeDeletedChildren?: boolean; excludeInternalComments?: boolean },
   ): Promise<AssetInfo[]> {
     const includeDeletedChildren = options?.includeDeletedChildren ?? false
+    const excludeInternalComments = options?.excludeInternalComments ?? false
     const stackIds = new Set<string>()
 
     for (const a of assets) {
@@ -2553,6 +2741,12 @@ export class AssetService {
             by: ['assetId'],
             where: {
               assetId: { in: Array.from(commentTargetIds) },
+              ...(excludeInternalComments
+                ? {
+                    isInternal: false,
+                    OR: [{ replyToId: null }, { replyTo: { isInternal: false } }],
+                  }
+                : {}),
             },
             _count: { _all: true },
           })
@@ -3429,6 +3623,7 @@ export class AssetService {
       updatedAt: c.updatedAt.toISOString(),
       sessionId: c.sessionId,
       isCompleted: c.isCompleted,
+      isInternal: c.isInternal,
       completionLastChangedBy,
       reactionCounts,
     }

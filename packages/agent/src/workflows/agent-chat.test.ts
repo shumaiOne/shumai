@@ -205,6 +205,43 @@ describe('Agent Chat Workflow', () => {
     })
   })
 
+  it('marks agent placeholder reply as internal when user comment is internal', async () => {
+    mockActivities.getCommentActivity.mockResolvedValue({
+      id: 'c-internal',
+      message: 'hello agent privately',
+      assetId: 'a1',
+      creatorId: 'user-c1',
+      second: null,
+      annotation: null,
+      replyToId: null,
+      isInternal: true,
+      attachments: [],
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'chat',
+        status: 'pending',
+        assetId: 'a1',
+        payload: {
+          projectId: 'p1',
+          agent: { userCommentId: 'c-internal', agentId: 'b1' },
+        },
+      },
+    })
+
+    await agentChat(task)
+
+    expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
+      assetId: 'a1',
+      message: '__CHAT__',
+      sessionId: 'pending',
+      agentId: 'b1',
+      replyToId: 'c-internal',
+      isInternal: true,
+    })
+  })
+
   it('should skip session initialization if sessionId is already provided', async () => {
     const task = await prisma.workflowTask.create({
       data: {

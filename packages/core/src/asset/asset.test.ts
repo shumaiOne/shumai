@@ -5964,4 +5964,367 @@ describe('AssetService — natural sort by name', () => {
       expect(variant).toContain('http://mock-s3-url')
     })
   })
+
+  describe('internal comments and comment editing', () => {
+    async function setupCommentFixture() {
+      const team = await prisma.team.create({ data: { name: 'Comment Team' } })
+      const author = await prisma.user.create({
+        data: { name: 'Author', email: `author-${Date.now()}-${Math.random()}@test.com` },
+      })
+      const owner = await prisma.user.create({
+        data: { name: 'Owner', email: `owner-${Date.now()}-${Math.random()}@test.com` },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: author.id, role: 'editor' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: owner.id, role: 'owner' },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Comment Project', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const file = await prisma.asset.create({
+        data: {
+          name: 'clip.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          creatorId: author.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      return { team, author, owner, project, rootFolder, file }
+    }
+
+    async function createAttachmentAsset(projectId: string, creatorId: string, name: string) {
+      const storageKey = await prisma.storageKey.create({
+        data: { key: `files/attachments/${Date.now()}-${Math.random()}-${name}` },
+      })
+      return prisma.asset.create({
+        data: {
+          name,
+          type: AssetType.attachment,
+          projectId,
+          creatorId,
+          status: AssetStatus.uploaded,
+          storageKeyId: storageKey.id,
+        },
+      })
+    }
+
+    it('creates public (default) and internal comments, and enforces internal replies on internal parents', async () => {
+      const { author, owner, file } = await setupCommentFixture()
+
+      const pub = await assetService.createComment(
+        { assetId: file.id, userId: author.id, message: 'Public feedback', attachmentIds: [] },
+        { triggerAgents: false },
+      )
+      expect(pub.isInternal).toBe(false)
+
+      const internal = await assetService.createComment(
+        {
+          assetId: file.id,
+          userId: author.id,
+          message: 'Internal note',
+          attachmentIds: [],
+          isInternal: true,
+        },
+        { triggerAgents: false },
+      )
+      expect(internal.isInternal).toBe(true)
+
+      // Replying to an internal parent forces isInternal: true even if false is passed
+      const replyToInternal = await assetService.createComment(
+        {
+          assetId: file.id,
+          userId: owner.id,
+          replyToId: internal.id,
+          message: 'Internal reply',
+          attachmentIds: [],
+          isInternal: false,
+        },
+        { triggerAgents: false },
+      )
+      expect(replyToInternal.isInternal).toBe(true)
+
+      // Replying internally to a public parent is allowed
+      const internalReplyOnPublic = await assetService.createComment(
+        {
+          assetId: file.id,
+          userId: owner.id,
+          replyToId: pub.id,
+          message: 'Private side note',
+          attachmentIds: [],
+          isInternal: true,
+        },
+        { triggerAgents: false },
+      )
+      expect(internalReplyOnPublic.isInternal).toBe(true)
+
+      const publicReplyOnPublic = await assetService.createComment(
+        {
+          assetId: file.id,
+          userId: author.id,
+          replyToId: pub.id,
+          message: 'Public reply',
+          attachmentIds: [],
+          isInternal: false,
+        },
+        { triggerAgents: false },
+      )
+      expect(publicReplyOnPublic.isInternal).toBe(false)
+
+      // Authenticated list includes everything
+      const allListed = await assetService.listComments(file.id, { first: 20 }, author.id)
+      expect(allListed.data).toHaveLength(2)
+      expect(allListed.data[0].replies).toHaveLength(2)
+      expect(allListed.data[1].replies).toHaveLength(1)
+
+      // Public share list excludes internal comments and internal replies
+      const publicListed = await assetService.listComments(file.id, { first: 20 }, undefined, {
+        excludeInternal: true,
+      })
+      expect(publicListed.data).toHaveLength(1)
+      expect(publicListed.data[0].id).toBe(pub.id)
+      expect(publicListed.data[0].replies.map((r) => r.id)).toEqual([publicReplyOnPublic.id])
+
+      // listAllComments with excludeInternal matches
+      const publicAll = await assetService.listAllComments(file.id, undefined, {
+        excludeInternal: true,
+      })
+      expect(publicAll).toHaveLength(1)
+      expect(publicAll[0].replies.map((r) => r.id)).toEqual([publicReplyOnPublic.id])
+    })
+
+    it('excludes internal comments and replies under internal parents from public share commentsCount', async () => {
+      const { author, rootFolder, file } = await setupCommentFixture()
+
+      const pub = await assetService.createComment(
+        { assetId: file.id, userId: author.id, message: 'Public', attachmentIds: [] },
+        { triggerAgents: false },
+      )
+      await assetService.createComment(
+        {
+          assetId: file.id,
+          userId: author.id,
+          replyToId: pub.id,
+          message: 'Internal reply on public',
+          attachmentIds: [],
+          isInternal: true,
+        },
+        { triggerAgents: false },
+      )
+      const internal = await assetService.createComment(
+        {
+          assetId: file.id,
+          userId: author.id,
+          message: 'Internal root',
+          attachmentIds: [],
+          isInternal: true,
+        },
+        { triggerAgents: false },
+      )
+      await assetService.createComment(
+        {
+          assetId: file.id,
+          userId: author.id,
+          replyToId: internal.id,
+          message: 'Reply on internal',
+          attachmentIds: [],
+          isInternal: true,
+        },
+        { triggerAgents: false },
+      )
+
+      const allChildren = await assetService.listChildren({
+        assetId: rootFolder.id,
+        assetType: 'file',
+      })
+      expect(allChildren.data.find((a) => a.id === file.id)?.commentsCount).toBe(4)
+
+      const publicChildren = await assetService.listChildren(
+        { assetId: rootFolder.id, assetType: 'file' },
+        { excludeInternalComments: true },
+      )
+      expect(publicChildren.data.find((a) => a.id === file.id)?.commentsCount).toBe(1)
+
+      const publicFile = await assetService.getAsset(
+        { assetId: file.id },
+        { excludeInternalComments: true },
+      )
+      expect(publicFile.commentsCount).toBe(1)
+    })
+
+    it('rejects replying to an internal comment from a public share link', async () => {
+      const { author, file } = await setupCommentFixture()
+      const internal = await assetService.createComment(
+        {
+          assetId: file.id,
+          userId: author.id,
+          message: 'Internal only',
+          attachmentIds: [],
+          isInternal: true,
+        },
+        { triggerAgents: false },
+      )
+
+      await expect(
+        assetService.createComment(
+          {
+            assetId: file.id,
+            userId: author.id,
+            replyToId: internal.id,
+            message: 'Guest reply attempt',
+            attachmentIds: [],
+          },
+          { triggerAgents: false, shareLinkId: 'share-1' },
+        ),
+      ).rejects.toMatchObject({ status: 404 })
+    })
+
+    it('allows author to edit text, visibility, remove timestamp, and add/delete attachments', async () => {
+      const { author, project, file } = await setupCommentFixture()
+      const att1 = await createAttachmentAsset(project.id, author.id, 'old.png')
+      const att2 = await createAttachmentAsset(project.id, author.id, 'keep.pdf')
+      const att3 = await createAttachmentAsset(project.id, author.id, 'new.png')
+
+      const created = await assetService.createComment(
+        {
+          assetId: file.id,
+          userId: author.id,
+          message: 'Original message',
+          second: 12.5,
+          attachmentIds: [att1.id, att2.id],
+          isInternal: false,
+        },
+        { triggerAgents: false },
+      )
+
+      const updated = await assetService.updateComment({
+        commentId: created.id,
+        userId: author.id,
+        message: 'Updated message',
+        isInternal: true,
+        second: null,
+        attachmentIds: [att2.id, att3.id],
+      })
+
+      expect(updated.message).toBe('Updated message')
+      expect(updated.isInternal).toBe(true)
+      expect(updated.second).toBeNull()
+      expect(updated.attachments.map((a) => a.assetId).sort()).toEqual([att2.id, att3.id].sort())
+
+      // Removed attachment asset should be cleaned up since no comment references it anymore
+      expect(await prisma.asset.findUnique({ where: { id: att1.id } })).toBeNull()
+      expect(await prisma.asset.findUnique({ where: { id: att2.id } })).not.toBeNull()
+      expect(await prisma.asset.findUnique({ where: { id: att3.id } })).not.toBeNull()
+    })
+
+    it('enforces author-only edit, parent-internal reply constraint, non-empty validation, and preserves reply flags', async () => {
+      const { author, owner, file } = await setupCommentFixture()
+
+      const parent = await assetService.createComment(
+        {
+          assetId: file.id,
+          userId: author.id,
+          message: 'Parent comment',
+          attachmentIds: [],
+          isInternal: true,
+        },
+        { triggerAgents: false },
+      )
+      const reply = await assetService.createComment(
+        {
+          assetId: file.id,
+          userId: author.id,
+          replyToId: parent.id,
+          message: 'Internal reply',
+          attachmentIds: [],
+          isInternal: true,
+        },
+        { triggerAgents: false },
+      )
+
+      // Non-author (even team owner) cannot edit
+      await expect(
+        assetService.updateComment({
+          commentId: parent.id,
+          userId: owner.id,
+          message: 'Owner edit attempt',
+        }),
+      ).rejects.toMatchObject({ status: 403 })
+
+      // Reply cannot be made public while parent is internal
+      await expect(
+        assetService.updateComment({
+          commentId: reply.id,
+          userId: author.id,
+          isInternal: false,
+        }),
+      ).rejects.toMatchObject({ status: 400 })
+
+      // Empty comment without attachments or annotations is rejected
+      await expect(
+        assetService.updateComment({
+          commentId: parent.id,
+          userId: author.id,
+          message: '   ',
+          attachmentIds: [],
+        }),
+      ).rejects.toMatchObject({ status: 400 })
+
+      // Toggling parent Internal -> Public keeps reply's own isInternal flag intact
+      const toggledParent = await assetService.updateComment({
+        commentId: parent.id,
+        userId: author.id,
+        isInternal: false,
+      })
+      expect(toggledParent.isInternal).toBe(false)
+      expect(toggledParent.replies[0].isInternal).toBe(true)
+
+      // Agent comments cannot be edited
+      const agentUser = await prisma.user.create({
+        data: {
+          name: 'Bot',
+          email: `bot-${Date.now()}-${Math.random()}@test.com`,
+          type: 'agent',
+        },
+      })
+      const agent = await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: (await prisma.project.findUniqueOrThrow({ where: { id: file.projectId! } }))
+            .teamId,
+          type: 'chat',
+          config: { provider: 'openai', model: 'gpt-4' },
+        },
+      })
+      const session = await prisma.agentSession.create({
+        data: { agentId: agent.id, cwd: '/tmp' },
+      })
+      const agentComment = await prisma.assetComment.create({
+        data: {
+          assetId: file.id,
+          creatorId: author.id,
+          sessionId: session.id,
+          message: 'Agent generated reply',
+        },
+      })
+      await expect(
+        assetService.updateComment({
+          commentId: agentComment.id,
+          userId: author.id,
+          message: 'Try edit agent',
+        }),
+      ).rejects.toMatchObject({ status: 403 })
+    })
+  })
 })

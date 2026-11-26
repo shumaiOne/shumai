@@ -1793,5 +1793,15 @@
   "print_comments_error": "Failed to load printable comments.",
   "print_comments_count": "{count} comments",
   "print_comments_count_one": "1 comment",
-  "print_comments_has_annotations": "Comment has annotations"
+  "print_comments_has_annotations": "Comment has annotations",
+  "public_comment": "Public Comment",
+  "internal_comment": "Internal Comment",
+  "public_comment_label": "Public",
+  "internal_comment_label": "Internal",
+  "public_comment_description": "Visible to team members and share links",
+  "internal_comment_description": "Only visible to team members",
+  "internal_comment_tooltip": "Internal comment — hidden from public share links",
+  "internal_reply_locked_tooltip": "Replies to internal comments are always internal",
+  "remove_timestamp": "Remove timestamp",
+  "failed_to_update_comment": "Failed to update comment"
 }
