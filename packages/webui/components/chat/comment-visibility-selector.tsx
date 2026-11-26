@@ -26,7 +26,7 @@ export const CommentVisibilitySelector: React.FC<CommentVisibilitySelectorProps>
   align = 'end',
   side = 'top',
 }) => {
-  const pillClasses = `inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors shrink-0 select-none ${
+  const pillClasses = `inline-flex h-7 items-center gap-1 rounded-md border px-2 text-xs font-medium transition-colors shrink-0 select-none ${
     isInternal
       ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
       : 'border-border bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/80'

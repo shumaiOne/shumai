@@ -1185,13 +1185,13 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
               <button
                 onClick={handleSend}
                 disabled={!canSend || isUploading}
-                className={`p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 ${
+                className={`h-7 w-7 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 ${
                   canSend && !isUploading
                     ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5 cursor-pointer'
                     : 'bg-gray-400 cursor-not-allowed opacity-50'
                 }`}
               >
-                <ArrowUp className="w-4 h-4" />
+                <ArrowUp className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
