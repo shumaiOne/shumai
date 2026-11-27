@@ -14,12 +14,20 @@ const formatTime = (seconds: number): string => {
   return `${mm}:${ss}`
 }
 
+export interface SeekbarScrubHandlers {
+  onStart: (frame: number) => void
+  onMove: (frame: number) => void
+  onEnd: (frame: number) => void
+  onCancel: () => void
+}
+
 interface ProgressBarProps {
   totalFrames: number
   currentFrame: number
   fps: number
   previewUrl?: string
   onSeek: (frame: number) => void
+  scrub?: SeekbarScrubHandlers
   buffered?: number
   metadata?: MediaMetadata
 }
@@ -30,6 +38,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   fps,
   previewUrl,
   onSeek,
+  scrub,
   buffered = 0,
   metadata,
 }) => {
@@ -48,10 +57,17 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   // trigger a second seek through the mouse path.
   const lastTouchEndAtRef = useRef(0)
 
-  const onSeekRef = useRef(onSeek)
+  const handlersRef = useRef({ onSeek, scrub })
   useEffect(() => {
-    onSeekRef.current = onSeek
-  }, [onSeek])
+    handlersRef.current = { onSeek, scrub }
+  }, [onSeek, scrub])
+
+  useEffect(
+    () => () => {
+      if (didDragMoveRef.current) handlersRef.current.scrub?.onCancel()
+    },
+    [],
+  )
 
   // Load the preview video in background
   useEffect(() => {
@@ -61,35 +77,32 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   }, [previewUrl])
 
   const getPercentageFromEvent = useCallback((clientX: number) => {
-    if (!containerRef.current) return 0
-    const rect = containerRef.current.getBoundingClientRect()
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect?.width) return 0
     const x = Math.max(0, Math.min(clientX - rect.left, rect.width))
     return x / rect.width
   }, [])
 
+  const seekPreview = useCallback(
+    (percentage: number) => {
+      const video = previewVideoRef.current
+      const seekTime = (percentage * totalFrames + 0.5) / fps
+      if (video && totalFrames > 0 && Number.isFinite(seekTime)) {
+        video.currentTime = seekTime
+      }
+    },
+    [totalFrames, fps],
+  )
+
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (isDragging) return
-      if (!containerRef.current) return
-
-      const rect = containerRef.current.getBoundingClientRect()
-      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width))
-      const percentage = x / rect.width
-
+      const percentage = getPercentageFromEvent(e.clientX)
       setHoverPosition(percentage)
       setIsHovering(true)
-
-      if (previewVideoRef.current && totalFrames) {
-        const targetFrame = percentage * totalFrames
-        const frameDuration = 1 / fps
-        const seekTime = targetFrame * frameDuration + frameDuration / 2
-        const vid = previewVideoRef.current
-        if (Number.isFinite(seekTime)) {
-          vid.currentTime = seekTime
-        }
-      }
+      seekPreview(percentage)
     },
-    [totalFrames, fps, isDragging],
+    [getPercentageFromEvent, isDragging, seekPreview],
   )
 
   const handleMouseLeave = () => {
@@ -99,154 +112,108 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     }
   }
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return
-    if (Date.now() - lastTouchEndAtRef.current < 700) return
-    e.preventDefault()
+  const startInteraction = (clientX: number) => {
+    if (isDragging || totalFrames <= 0) return
     setIsDragging(true)
     didDragMoveRef.current = false
-    lastSeekPosRef.current = e.clientX
-    const percentage = getPercentageFromEvent(e.clientX)
+    lastSeekPosRef.current = clientX
+    const percentage = getPercentageFromEvent(clientX)
     setHoverPosition(percentage)
     setIsHovering(true)
-    onSeekRef.current(percentage * totalFrames)
+    if (!scrub) onSeek(percentage * totalFrames)
+  }
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || Date.now() - lastTouchEndAtRef.current < 700) return
+    e.preventDefault()
+    startInteraction(e.clientX)
   }
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    setIsDragging(true)
-    didDragMoveRef.current = false
-    lastSeekPosRef.current = e.touches[0].clientX
-    const percentage = getPercentageFromEvent(e.touches[0].clientX)
-    setHoverPosition(percentage)
-    setIsHovering(true)
-    onSeekRef.current(percentage * totalFrames)
+    if (e.touches.length === 1) startInteraction(e.touches[0].clientX)
   }
 
   useEffect(() => {
     if (!isDragging) return
 
-    const handleWindowMouseMove = (e: MouseEvent) => {
-      if (lastSeekPosRef.current !== null && Math.abs(e.clientX - lastSeekPosRef.current) >= 2) {
-        didDragMoveRef.current = true
-        lastSeekPosRef.current = e.clientX
-      } else if (!didDragMoveRef.current) {
-        return
-      }
-      const percentage = getPercentageFromEvent(e.clientX)
+    const moveInteraction = (clientX: number) => {
+      const start = lastSeekPosRef.current
+      if (start === null) return
+      const alreadyMoved = didDragMoveRef.current
+      if (!alreadyMoved && Math.abs(clientX - start) < 2) return
+      didDragMoveRef.current = true
+      const percentage = getPercentageFromEvent(clientX)
       setHoverPosition(percentage)
       setIsHovering(true)
 
-      if (previewVideoRef.current && totalFrames) {
-        const targetFrame = percentage * totalFrames
-        const frameDuration = 1 / fps
-        const seekTime = targetFrame * frameDuration + frameDuration / 2
-        const vid = previewVideoRef.current
-        if (Number.isFinite(seekTime)) {
-          vid.currentTime = seekTime
-        }
+      const { onSeek, scrub } = handlersRef.current
+      const frame = percentage * totalFrames
+      if (scrub) {
+        if (alreadyMoved) scrub.onMove(frame)
+        else scrub.onStart(frame)
+      } else {
+        seekPreview(percentage)
+        onSeek(frame)
       }
-
-      onSeekRef.current(percentage * totalFrames)
     }
 
-    const handleWindowMouseUp = (e: MouseEvent) => {
-      setIsDragging(false)
-
-      let stillHovering = false
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect()
-        stillHovering =
-          e.clientX >= rect.left &&
-          e.clientX <= rect.right &&
-          e.clientY >= rect.top &&
-          e.clientY <= rect.bottom
-      }
-
-      if (!stillHovering) {
-        setIsHovering(false)
-        setHoverPosition(null)
-      }
-
-      // A plain click already seeked on mousedown; only seek again if the
-      // pointer actually moved (drag release position differs from start).
-      if (didDragMoveRef.current) {
-        const percentage = getPercentageFromEvent(e.clientX)
-        onSeekRef.current(percentage * totalFrames)
-      }
+    const finishInteraction = (clientX: number, clientY: number, isTouch = false) => {
+      if (lastSeekPosRef.current === null) return
+      const { onSeek, scrub } = handlersRef.current
+      const moved = didDragMoveRef.current
       didDragMoveRef.current = false
       lastSeekPosRef.current = null
-    }
-
-    const handleWindowTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 0) return
+      setIsDragging(false)
+      const percentage = getPercentageFromEvent(clientX)
+      const rect = containerRef.current?.getBoundingClientRect()
       if (
-        lastSeekPosRef.current !== null &&
-        Math.abs(e.touches[0].clientX - lastSeekPosRef.current) >= 2
+        !rect ||
+        (isTouch && scrub) ||
+        clientX < rect.left ||
+        clientX > rect.right ||
+        clientY < rect.top ||
+        clientY > rect.bottom
       ) {
-        didDragMoveRef.current = true
-        lastSeekPosRef.current = e.touches[0].clientX
-      } else if (!didDragMoveRef.current) {
-        return
-      }
-      const percentage = getPercentageFromEvent(e.touches[0].clientX)
-      setHoverPosition(percentage)
-      setIsHovering(true)
-
-      if (previewVideoRef.current && totalFrames) {
-        const targetFrame = percentage * totalFrames
-        const frameDuration = 1 / fps
-        const seekTime = targetFrame * frameDuration + frameDuration / 2
-        const vid = previewVideoRef.current
-        if (Number.isFinite(seekTime)) {
-          vid.currentTime = seekTime
-        }
-      }
-
-      onSeekRef.current(percentage * totalFrames)
-    }
-
-    const handleWindowTouchEnd = (e: TouchEvent) => {
-      setIsDragging(false)
-      lastTouchEndAtRef.current = Date.now()
-
-      const clientX = e.changedTouches.length > 0 ? e.changedTouches[0].clientX : null
-      const clientY = e.changedTouches.length > 0 ? e.changedTouches[0].clientY : null
-
-      let stillHovering = false
-      if (clientX !== null && clientY !== null && containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect()
-        stillHovering =
-          clientX >= rect.left &&
-          clientX <= rect.right &&
-          clientY >= rect.top &&
-          clientY <= rect.bottom
-      }
-
-      if (!stillHovering) {
         setIsHovering(false)
         setHoverPosition(null)
+      } else if (scrub) {
+        setHoverPosition(percentage)
+        seekPreview(percentage)
       }
 
-      if (clientX !== null && didDragMoveRef.current) {
-        // A plain tap already seeked on touchstart; only seek again after a
-        // real drag so a single tap doesn't restart the seek and stall.
-        const percentage = getPercentageFromEvent(clientX)
-        onSeekRef.current(percentage * totalFrames)
+      const frame = percentage * totalFrames
+      if (scrub && moved) {
+        scrub.onEnd(frame)
+      } else if (scrub || moved) {
+        // Compare and audio already seek on press, so only commit moved gestures here.
+        onSeek(frame)
       }
-      didDragMoveRef.current = false
-      lastSeekPosRef.current = null
     }
 
-    const handleWindowTouchCancel = () => {
-      // OS gestures (app switch, palm rejection, notification pull) cancel
-      // the touch. Reset drag state without seeking so the bar doesn't stay
-      // stuck in dragging/hover mode.
+    const cancelInteraction = () => {
+      if (didDragMoveRef.current) handlersRef.current.scrub?.onCancel()
+      didDragMoveRef.current = false
+      lastSeekPosRef.current = null
       setIsDragging(false)
       setIsHovering(false)
       setHoverPosition(null)
-      didDragMoveRef.current = false
-      lastSeekPosRef.current = null
+    }
+
+    const handleWindowMouseMove = (e: MouseEvent) => moveInteraction(e.clientX)
+    const handleWindowMouseUp = (e: MouseEvent) => finishInteraction(e.clientX, e.clientY)
+    const handleWindowTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1) moveInteraction(e.touches[0].clientX)
+    }
+    const handleWindowTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length > 0) return
       lastTouchEndAtRef.current = Date.now()
+      const touch = e.changedTouches[0]
+      if (touch) finishInteraction(touch.clientX, touch.clientY, true)
+      else cancelInteraction()
+    }
+    const handleWindowTouchCancel = () => {
+      lastTouchEndAtRef.current = Date.now()
+      cancelInteraction()
     }
 
     window.addEventListener('mousemove', handleWindowMouseMove)
@@ -254,6 +221,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     window.addEventListener('touchmove', handleWindowTouchMove, { passive: true })
     window.addEventListener('touchend', handleWindowTouchEnd)
     window.addEventListener('touchcancel', handleWindowTouchCancel)
+    window.addEventListener('blur', cancelInteraction)
 
     return () => {
       window.removeEventListener('mousemove', handleWindowMouseMove)
@@ -261,8 +229,9 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       window.removeEventListener('touchmove', handleWindowTouchMove)
       window.removeEventListener('touchend', handleWindowTouchEnd)
       window.removeEventListener('touchcancel', handleWindowTouchCancel)
+      window.removeEventListener('blur', cancelInteraction)
     }
-  }, [isDragging, totalFrames, fps, getPercentageFromEvent])
+  }, [isDragging, totalFrames, getPercentageFromEvent, seekPreview])
 
   const progressPercent =
     isDragging && hoverPosition !== null
@@ -329,7 +298,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       />
 
       {/* Hover Preview Tooltip */}
-      {isHovering && totalFrames > 0 && (
+      {isHovering && totalFrames > 0 && !(scrub && isDragging) && (
         <div
           className="pointer-events-none absolute bottom-full z-50 mb-3 flex w-max flex-col"
           style={getTooltipStyle()}

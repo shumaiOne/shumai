@@ -147,6 +147,7 @@ export const longAudioVideoAsset: AssetInfo = {
         size: 6170,
       },
     ],
+    videoPreview: { url: SAMPLE_VIDEO_URL },
     metadata: {
       duration: LONG_AUDIO_DURATION,
       originalWidth: SAMPLE_WIDTH,

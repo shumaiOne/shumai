@@ -27,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '../../ui/dropdown-menu'
 import { Slider } from '../../ui/slider'
-import ProgressBar from './progress-bar'
+import ProgressBar, { type SeekbarScrubHandlers } from './progress-bar'
 import { formatTime, formatTimecode } from './utils'
 import { getVideoResolutionLabel } from '@/ui/lib/media'
 
@@ -83,6 +83,7 @@ export interface ControlBarProps {
   totalFrames: number
   currentFrame: number
   seekToFrame: (frame: number) => Promise<void> | void
+  scrub?: SeekbarScrubHandlers
   /**
    * Whether the bar floats as an absolute overlay over the media while
    * fullscreen (single-file player). Compare mode sets this false so the bar
@@ -118,6 +119,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
   totalFrames,
   currentFrame,
   seekToFrame,
+  scrub,
   floatOverlayInFullScreen = true,
   onMouseEnter,
   onMouseLeave,
@@ -175,6 +177,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
             buffered={buffered}
             previewUrl={data.media.videoPreview?.url}
             onSeek={seekToFrame}
+            scrub={scrub}
             metadata={{
               ...data.media.metadata,
               frameRate: frameRate,

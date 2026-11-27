@@ -5,6 +5,7 @@ export interface UseFramePlayerResult {
   currentFrame: number
   setCurrentFrame: React.Dispatch<React.SetStateAction<number>>
   seekToFrame: (targetFrame: number) => Promise<void>
+  pauseForScrub: () => void
   isSeeking: React.RefObject<boolean>
 }
 
@@ -28,8 +29,10 @@ export function useFramePlayer(
 ): UseFramePlayerResult {
   const [currentFrame, setCurrentFrame] = useState<number>(0)
   const isSeekingRef = useRef<boolean>(false)
+  const seekCompletionRef = useRef<Promise<void> | null>(null)
   const isPlayingRef = useRef<boolean>(false)
   const pendingSeekFrameRef = useRef<number | null>(null)
+  const scrubPauseRef = useRef(false)
   const currentFrameRef = useRef<number>(currentFrame)
   currentFrameRef.current = currentFrame
 
@@ -149,6 +152,8 @@ export function useFramePlayer(
     }
 
     const handlePause = () => {
+      const scrubPause = scrubPauseRef.current
+      scrubPauseRef.current = false
       if (rVfcId !== null) {
         const videoWithCallback = video as unknown as HtmlVideoElementWithCallback
         if (videoWithCallback.cancelVideoFrameCallback) {
@@ -181,7 +186,7 @@ export function useFramePlayer(
 
       // Snap the playhead to the center of the paused frame to align browser compositor
       // Skip snapping if the video has ended to preserve the native ended state and allow native replay
-      if (!video.ended) {
+      if (!video.ended && !scrubPause) {
         const safeCenterTime = calculateFrameCenterTime(clamped, frameRate)
         video.currentTime = safeCenterTime
       }
@@ -222,6 +227,16 @@ export function useFramePlayer(
     }
   }, [videoRef.current, frameRate, totalFrames])
 
+  const pauseForScrub = useCallback(() => {
+    const video = videoRef.current
+    if (video && !video.paused) {
+      // The ordinary pause snaps to the nearest frame. Scrubbing defers the
+      // first native seek until release.
+      scrubPauseRef.current = true
+      video.pause()
+    }
+  }, [videoRef])
+
   const seekToFrame = useCallback(
     async (targetFrame: number) => {
       const video = videoRef.current
@@ -231,10 +246,10 @@ export function useFramePlayer(
       const clampedFrame = Math.max(0, Math.min(roundedFrame, totalFrames - 1))
 
       // If a seek is already active, queue this target and update UI state optimistically
-      if (isSeekingRef.current) {
+      if (seekCompletionRef.current) {
         pendingSeekFrameRef.current = clampedFrame
         setCurrentFrame(clampedFrame)
-        return
+        return seekCompletionRef.current
       }
 
       isSeekingRef.current = true
@@ -280,18 +295,26 @@ export function useFramePlayer(
             setCurrentFrame(verifiedFrame)
           })
         }
+      }
 
-        // Process next seek in the queue if any came in during the seek
-        if (pendingSeekFrameRef.current !== null) {
-          const nextFrame = pendingSeekFrameRef.current
+      const runSeeks = async () => {
+        try {
+          // Process the latest queued seek before signaling completion to any caller.
+          let nextFrame: number | null = clampedFrame
+          while (nextFrame !== null) {
+            await performSeek(nextFrame)
+            nextFrame = pendingSeekFrameRef.current
+            pendingSeekFrameRef.current = null
+          }
+        } finally {
+          seekCompletionRef.current = null
           pendingSeekFrameRef.current = null
-          await performSeek(nextFrame)
-        } else {
           isSeekingRef.current = false
         }
       }
 
-      await performSeek(clampedFrame)
+      seekCompletionRef.current = runSeeks()
+      await seekCompletionRef.current
     },
     [videoRef, frameRate, totalFrames],
   )
@@ -356,6 +379,7 @@ export function useFramePlayer(
     currentFrame,
     setCurrentFrame,
     seekToFrame,
+    pauseForScrub,
     isSeeking: isSeekingRef,
   }
 }
