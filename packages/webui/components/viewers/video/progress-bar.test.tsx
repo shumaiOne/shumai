@@ -2,18 +2,20 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import ProgressBar from './progress-bar'
+import ProgressBar, { type SeekbarScrubHandlers } from './progress-bar'
 
 const TOTAL_FRAMES = 1000
 
-function renderBar(onSeek = vi.fn()) {
-  render(
+function renderBar(scrub?: SeekbarScrubHandlers) {
+  const onSeek = vi.fn()
+  const { unmount } = render(
     <ProgressBar
       totalFrames={TOTAL_FRAMES}
       currentFrame={0}
       fps={25}
       previewUrl="https://example.test/preview.mp4"
       onSeek={onSeek}
+      scrub={scrub}
     />,
   )
   const bar = screen.getByTestId('seekbar')
@@ -28,7 +30,7 @@ function renderBar(onSeek = vi.fn()) {
     y: 0,
     toJSON: () => ({}),
   } as DOMRect)
-  return { bar, onSeek }
+  return { bar, onSeek, unmount }
 }
 
 function touchEvent(type: string, clientX: number, list: 'touches' | 'changedTouches') {
@@ -134,5 +136,67 @@ describe('ProgressBar seeking', () => {
     const preview = document.querySelector('video.hidden')
     expect(preview).not.toBeNull()
     expect(preview?.getAttribute('preload')).toBe('metadata')
+  })
+
+  describe('with in-player scrubbing', () => {
+    const scrub = { onStart: vi.fn(), onMove: vi.fn(), onEnd: vi.fn(), onCancel: vi.fn() }
+
+    beforeEach(() => {
+      vi.clearAllMocks()
+    })
+
+    it('starts after movement and commits at the release position outside the track', () => {
+      const { bar, onSeek } = renderBar(scrub)
+
+      fireEvent.mouseDown(bar, { button: 0, clientX: 20 })
+      fireEvent.mouseMove(window, { clientX: 21 })
+      expect(scrub.onStart).not.toHaveBeenCalled()
+      expect(onSeek).not.toHaveBeenCalled()
+
+      fireEvent.mouseMove(window, { clientX: 40 })
+      fireEvent.mouseMove(window, { clientX: 60 })
+      expect(scrub.onStart).toHaveBeenCalledExactlyOnceWith(400)
+      expect(scrub.onMove).toHaveBeenCalledExactlyOnceWith(600)
+      expect(scrub.onEnd).not.toHaveBeenCalled()
+      expect(onSeek).not.toHaveBeenCalled()
+      expect(bar.querySelectorAll('video')).toHaveLength(1)
+
+      fireEvent.mouseUp(window, { button: 0, clientX: 120, clientY: 20 })
+      expect(scrub.onEnd).toHaveBeenCalledExactlyOnceWith(TOTAL_FRAMES)
+      expect(onSeek).not.toHaveBeenCalled()
+    })
+
+    it('seeks once on touch release when the user taps', () => {
+      const { bar, onSeek } = renderBar(scrub)
+      fireEvent(bar, touchEvent('touchstart', 30, 'touches'))
+      expect(onSeek).not.toHaveBeenCalled()
+      fireEvent(window, touchEvent('touchend', 30, 'changedTouches'))
+      fireEvent.mouseDown(bar, { button: 0, clientX: 30 })
+      expect(onSeek).toHaveBeenCalledExactlyOnceWith(300)
+      expect(scrub.onStart).not.toHaveBeenCalled()
+    })
+
+    it('cancels an interrupted touch drag without committing the frame', () => {
+      const { bar, onSeek } = renderBar(scrub)
+      fireEvent(bar, touchEvent('touchstart', 30, 'touches'))
+      fireEvent(window, touchEvent('touchmove', 50, 'touches'))
+      fireEvent(window, new Event('touchcancel'))
+      fireEvent(window, touchEvent('touchend', 60, 'changedTouches'))
+      expect(scrub.onStart).toHaveBeenCalledExactlyOnceWith(500)
+      expect(scrub.onCancel).toHaveBeenCalledTimes(1)
+      expect(scrub.onEnd).not.toHaveBeenCalled()
+      expect(onSeek).not.toHaveBeenCalled()
+    })
+
+    it('cancels an active drag when the controls unmount', () => {
+      const { bar, unmount } = renderBar(scrub)
+      fireEvent.mouseDown(bar, { button: 0, clientX: 20 })
+      fireEvent.mouseMove(window, { clientX: 40 })
+      unmount()
+
+      expect(scrub.onStart).toHaveBeenCalledExactlyOnceWith(400)
+      expect(scrub.onCancel).toHaveBeenCalledTimes(1)
+      expect(scrub.onEnd).not.toHaveBeenCalled()
+    })
   })
 })

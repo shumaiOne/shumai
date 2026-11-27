@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **video**: Pause playback while dragging the seekbar and show a lightweight preview in the player until the selected frame is ready.
 - **comments**: Keep password-protected print links on the share password prompt, keep private folder names out of shared print data, and wait for thumbnails and reply drawings before printing.
 - **security**: Security improvements.
 

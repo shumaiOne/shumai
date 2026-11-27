@@ -6,6 +6,8 @@ import { Play, AudioLines, Loader2, AlertCircle } from 'lucide-react'
 import React, { useCallback, useEffect, useRef, useState, useImperativeHandle } from 'react'
 import Hls from 'hls.js'
 import { useFramePlayer } from './use-frame-player'
+import { useVideoScrub } from './use-video-scrub'
+import { ScrubPreview } from './scrub-preview'
 import { calculateFrameCenterTime, resolveTotalFrames } from './utils'
 import { VideoControlBar, type PlayerState, type DisplayTranscode } from './video-control-bar'
 import { MobileVideoControlBar } from './mobile-video-control-bar'
@@ -269,7 +271,12 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
 
     const isAudio = data.proxyType === 'audio'
     const totalFrames = resolveTotalFrames({ dbTotalFrames, containerDuration, frameRate })
-    const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames, isAudio)
+    const { currentFrame, seekToFrame, pauseForScrub } = useFramePlayer(
+      videoRef,
+      frameRate,
+      totalFrames,
+      isAudio,
+    )
 
     const handleSeekToFrame = useCallback(
       (frame: number) => {
@@ -283,7 +290,19 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       [seekToFrame],
     )
 
-    const currentTime = currentFrame / frameRate
+    const targetSrc = isHls ? (data.media?.hls?.url ?? '') : (getInitialResolution()?.url ?? '')
+    const { scrub, scrubFrame, previewTime } = useVideoScrub({
+      videoRef,
+      assetId: data.id,
+      source: state.currentSrc ?? targetSrc,
+      totalFrames,
+      frameRate,
+      pauseForScrub,
+      seekToFrame: handleSeekToFrame,
+    })
+    const displayFrame = scrubFrame ?? currentFrame
+    const isScrubbing = scrubFrame !== null
+    const currentTime = displayFrame / frameRate
     const duration = totalFrames / frameRate
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
@@ -305,8 +324,6 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     }, [currentFrame, frameRate, onTimeUpdate])
 
     // Initialize player (Hls.js or native HTML5 video)
-    const targetSrc = isHls ? (data.media?.hls?.url ?? '') : (getInitialResolution()?.url ?? '')
-
     useEffect(() => {
       const video = videoRef.current
       if (!video) return
@@ -629,7 +646,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     // -- Event Handlers --
 
     const togglePlay = useCallback(() => {
-      if (isLoading) return
+      if (isLoading || isScrubbing) return
       // Disable click-to-play if drawing
       if (useAnnotationStore.getState().isDrawing) return
 
@@ -653,7 +670,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       } else {
         video.pause()
       }
-    }, [isLoading])
+    }, [isLoading, isScrubbing])
 
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -1036,6 +1053,13 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
                   preload="auto"
                   poster={data.preview?.thumbnailUrl || undefined}
                 />
+                {data.media?.videoPreview?.url && (
+                  <ScrubPreview
+                    key={data.media.videoPreview.url}
+                    url={data.media.videoPreview.url}
+                    time={previewTime}
+                  />
+                )}
               </div>
             )}
             {isAudio && (
@@ -1095,7 +1119,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
             )}
 
             {/* Initial Big Play Button Overlay (shown only before playback starts) */}
-            {!isLoading && !hasStartedPlaying && !isDrawing && (
+            {!isLoading && !hasStartedPlaying && !isDrawing && !isScrubbing && (
               <div
                 className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10 transition-opacity duration-200"
                 data-testid="video-play-overlay"
@@ -1128,8 +1152,9 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
             onZoomReset={handleZoomReset}
             frameRate={frameRate}
             totalFrames={totalFrames}
-            currentFrame={currentFrame}
+            currentFrame={displayFrame}
             seekToFrame={handleSeekToFrame}
+            scrub={isAudio ? undefined : scrub}
             onMouseEnter={handleControlsMouseEnter}
             onMouseLeave={handleControlsMouseLeave}
             allowDownload={allowDownload}
@@ -1155,8 +1180,9 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
             onZoomReset={handleZoomReset}
             frameRate={frameRate}
             totalFrames={totalFrames}
-            currentFrame={currentFrame}
+            currentFrame={displayFrame}
             seekToFrame={handleSeekToFrame}
+            scrub={isAudio ? undefined : scrub}
             onMouseEnter={handleControlsMouseEnter}
             onMouseLeave={handleControlsMouseLeave}
             allowDownload={allowDownload}

@@ -42,6 +42,7 @@ export const MobileVideoControlBar: React.FC<ControlBarProps> = ({
   totalFrames,
   currentFrame,
   seekToFrame,
+  scrub,
   floatOverlayInFullScreen = true,
   onMouseEnter,
   onMouseLeave,
@@ -95,6 +96,7 @@ export const MobileVideoControlBar: React.FC<ControlBarProps> = ({
             buffered={buffered}
             previewUrl={data.media.videoPreview?.url}
             onSeek={seekToFrame}
+            scrub={scrub}
             metadata={{
               ...data.media.metadata,
               frameRate: frameRate,
