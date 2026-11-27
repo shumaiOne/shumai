@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.7.2] - 2026-11-27
+
+### Added
+
 - **comments**: Add Internal Comments with a Public/Internal selector in the comment composer so team and project members can have private discussions (marked with a lock icon) that never appear on public share links.
 - **comments**: Allow comment authors to edit their comments inline from the comment menu, including updating text, switching between Public and Internal, removing timestamps, and adding or removing attachments.
 

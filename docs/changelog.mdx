@@ -3,6 +3,29 @@ title: "Changelog"
 description: "Recent updates, new features, and improvements in Shumai"
 ---
 
+<Update label="v0.7.2" description="November 27, 2026">
+
+### Added
+
+- **comments**: Add Internal Comments with a Public/Internal selector in the comment composer so team and project members can have private discussions (marked with a lock icon) that never appear on public share links.
+- **comments**: Allow comment authors to edit their comments inline from the comment menu, including updating text, switching between Public and Internal, removing timestamps, and adding or removing attachments.
+
+- **comments**: Add a "Print Comments" option in the comments menu (available in both project file views and public share links) that opens a dedicated print-friendly page with asset metadata, comment thumbnails, visual markup overlays, replies, completion status, emoji reactions, and attachments.
+
+- **share**: See view counts, last viewed times, and activity for public share links, including file and folder views, downloads, and comments.
+
+- **share**: Add options to create a share link or add to existing share links directly from the media view dropdown menu, and open a quick share dialog with inline renaming, one-click link copying, and security settings upon creation.
+
+### Fixed
+
+- **video**: Pause playback while dragging the seekbar and show a lightweight preview in the player until the selected frame is ready.
+- **comments**: Keep password-protected print links on the share password prompt, keep private folder names out of shared print data, and wait for thumbnails and reply drawings before printing.
+- **security**: Security improvements.
+
+### Changed
+
+</Update>
+
 <Update label="v0.7.1" description="November 23, 2026">
 
 ### Added
@@ -29,6 +52,7 @@ description: "Recent updates, new features, and improvements in Shumai"
 
 ### Fixed
 
+- **video**: Fix playback stalling after tapping or clicking the progress bar on slow connections, and stop the hidden seek preview from downloading the whole video in the background.
 - **cli**: Fix release publication failing to find staged standalone downloads.
 
 ### Changed
