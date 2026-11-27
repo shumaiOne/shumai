@@ -13,6 +13,7 @@
   <a href="https://github.com/shumaiOne/shumai/releases"><img alt="GitHub latest release" src="https://img.shields.io/github/v/release/shumaiOne/shumai" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue" /></a>
   <a target="_blank" href="https://deepwiki.com/shumaiOne/shumai"><img alt="Ask DeepWiki" src="https://img.shields.io/badge/Ask-DeepWiki-6E56CF" /></a>
+  <a target="_blank" href="https://docs.qq.com/doc/DUmJRWndFVWJPQVRI"><img alt="微信群" src="https://img.shields.io/badge/WeChat-%E5%BE%AE%E4%BF%A1%E7%BE%A4-07C160" /></a>
 </p>
 
 <p align="center">
