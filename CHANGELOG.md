@@ -48,6 +48,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **video**: Fix playback stalling after tapping or clicking the progress bar on slow connections, and stop the hidden seek preview from downloading the whole video in the background.
 - **cli**: Fix release publication failing to find staged standalone downloads.
 
 ### Changed
